@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#EEEDFE"/>
+      <stop offset="50%"  stop-color="#FBEAF0"/>
+      <stop offset="100%" stop-color="#E1F5EE"/>
+    </linearGradient>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#7F77DD"/>
+      <stop offset="100%" stop-color="#D4537E"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Decorative blobs -->
+  <circle cx="1050" cy="100" r="180" fill="#7F77DD" opacity="0.08"/>
+  <circle cx="150"  cy="530" r="140" fill="#D4537E" opacity="0.08"/>
+  <circle cx="1100" cy="500" r="100" fill="#3CBE8B" opacity="0.07"/>
+
+  <!-- Card shape (floating card preview) -->
+  <rect x="680" y="80" width="440" height="470" rx="32" fill="white" opacity="0.9"
+        filter="drop-shadow(0 20px 60px rgba(127,119,221,0.2))"/>
+
+  <!-- Card header -->
+  <rect x="680" y="80" width="440" height="120" rx="32" fill="#FBEAF0"/>
+  <rect x="680" y="168" width="440" height="32" fill="#FBEAF0"/>
+
+  <text x="710" y="130" font-family="Georgia,serif" font-size="20" fill="#99284E" font-weight="600">Happy Birthday, Amaka! 🎂</text>
+  <text x="710" y="158" font-family="Arial,sans-serif" font-size="13" fill="#D4537E">From Tunde and 23 others</text>
+
+  <!-- Message cards -->
+  <rect x="698" y="222" width="192" height="80" rx="12" fill="#F3F3FD"/>
+  <circle cx="718" cy="242" r="12" fill="#CECBF6"/>
+  <text x="735" y="247" font-family="Arial,sans-serif" font-size="11" fill="#534AB7" font-weight="600">Kemi A.</text>
+  <text x="708" y="267" font-family="Arial,sans-serif" font-size="11" fill="#555">You deserve all the</text>
+  <text x="708" y="283" font-family="Arial,sans-serif" font-size="11" fill="#555">happiness in the world!</text>
+  <text x="708" y="298" font-family="Arial,sans-serif" font-size="10" fill="#aaa">❤️</text>
+
+  <rect x="906" y="222" width="192" height="80" rx="12" fill="#F0FBF4"/>
+  <circle cx="926" cy="242" r="12" fill="#86EFAC"/>
+  <text x="943" y="247" font-family="Arial,sans-serif" font-size="11" fill="#166534" font-weight="600">Emeka O.</text>
+  <text x="916" y="267" font-family="Arial,sans-serif" font-size="11" fill="#555">Wishing you blessings</text>
+  <text x="916" y="283" font-family="Arial,sans-serif" font-size="11" fill="#555">beyond measure! 🙌</text>
+
+  <rect x="698" y="318" width="192" height="80" rx="12" fill="#FFFBEB"/>
+  <circle cx="718" cy="338" r="12" fill="#FDE68A"/>
+  <text x="735" y="343" font-family="Arial,sans-serif" font-size="11" fill="#92400E" font-weight="600">Mama Okafor</text>
+  <text x="708" y="363" font-family="Arial,sans-serif" font-size="11" fill="#555">God bless you always</text>
+  <text x="708" y="379" font-family="Arial,sans-serif" font-size="11" fill="#555">my daughter ❤️</text>
+
+  <rect x="906" y="318" width="192" height="80" rx="12" fill="#FFF0F5"/>
+  <circle cx="926" cy="338" r="12" fill="#FBCFE8"/>
+  <text x="943" y="343" font-family="Arial,sans-serif" font-size="11" fill="#9D174D" font-weight="600">Sisi Eko</text>
+  <text x="916" y="363" font-family="Arial,sans-serif" font-size="11" fill="#555">Party hard tonight!</text>
+  <text x="916" y="379" font-family="Arial,sans-serif" font-size="11" fill="#555">You only turn 30 once!</text>
+
+  <!-- Gift pot bar -->
+  <rect x="698" y="422" width="400" height="96" rx="16" fill="#F0FBF4"/>
+  <text x="724" y="454" font-size="24">🎁</text>
+  <text x="758" y="452" font-family="Georgia,serif" font-size="14" fill="#166534" font-weight="600">Gift pot collected</text>
+  <text x="758" y="472" font-family="Arial,sans-serif" font-size="12" fill="#22C55E">24 contributors</text>
+  <text x="960" y="465" font-family="Georgia,serif" font-size="22" fill="#15803D" font-weight="700" text-anchor="middle">₦92,500</text>
+
+  <!-- Left side: branding + headline -->
+  <g transform="translate(100, 160)">
+    <!-- Logo icon -->
+    <rect width="64" height="64" rx="16" fill="#7F77DD"/>
+    <rect x="14" y="14" width="36" height="7" rx="3.5" fill="white"/>
+    <rect x="28.5" y="14" width="7" height="26" rx="3.5" fill="white"/>
+    <path d="M32 50 C28.5 46.5 23 43 23 39.5 C23 36.8 25.2 35 27.5 35 C29.5 35 31 36.2 32 37.5 C33 36.2 34.5 35 36.5 35 C38.8 35 41 36.8 41 39.5 C41 43 35.5 46.5 32 50Z" fill="#D4537E"/>
+
+    <!-- Brand name -->
+    <text x="80" y="44" font-family="Georgia,serif" font-size="32" font-weight="600" fill="#1a1a1a">Thankeeu</text>
+
+    <!-- Headline -->
+    <text x="0" y="120" font-family="Georgia,serif" font-size="52" font-weight="600" fill="#1a1a1a">Make someone</text>
+    <text x="0" y="180" font-family="Georgia,serif" font-size="52" font-weight="600" fill="url(#textGrad)">feel truly loved</text>
+
+    <!-- Subheadline -->
+    <text x="0" y="235" font-family="Arial,sans-serif" font-size="20" fill="#555">Group cards · Gift pots · Beautiful delivery</text>
+    <text x="0" y="263" font-family="Arial,sans-serif" font-size="18" fill="#888">Made for Nigeria 🇳🇬 · Powered by Paystack</text>
+
+    <!-- Stats -->
+    <rect y="300" width="460" height="70" rx="16" fill="white" opacity="0.7"/>
+    <text x="30" y="328" font-family="Georgia,serif" font-size="22" font-weight="700" fill="#7F77DD">10,000+</text>
+    <text x="30" y="352" font-family="Arial,sans-serif" font-size="12" fill="#888">Cards created</text>
+    <line x1="145" y1="308" x2="145" y2="363" stroke="#eee" stroke-width="1"/>
+    <text x="165" y="328" font-family="Georgia,serif" font-size="22" font-weight="700" fill="#D4537E">₦50M+</text>
+    <text x="165" y="352" font-family="Arial,sans-serif" font-size="12" fill="#888">Gifts collected</text>
+    <line x1="285" y1="308" x2="285" y2="363" stroke="#eee" stroke-width="1"/>
+    <text x="305" y="328" font-family="Georgia,serif" font-size="22" font-weight="700" fill="#3CBE8B">4.9★</text>
+    <text x="305" y="352" font-family="Arial,sans-serif" font-size="12" fill="#888">User rating</text>
+  </g>
+
+  <!-- Bottom URL bar -->
+  <rect x="0" y="580" width="1200" height="50" fill="#7F77DD" opacity="0.9"/>
+  <text x="600" y="611" font-family="Arial,sans-serif" font-size="18" fill="white" text-anchor="middle" letter-spacing="2">
+    thankeeu.ng
+  </text>
+</svg>

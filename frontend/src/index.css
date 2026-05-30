@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    @apply bg-white text-gray-900 font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent horizontal overflow on mobile */
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3 { @apply font-display; }
+
+  /* Mobile-first readable font sizes */
+  h1 { @apply text-3xl md:text-4xl lg:text-5xl font-semibold leading-tight; }
+  h2 { @apply text-2xl md:text-3xl font-semibold leading-tight; }
+  h3 { @apply text-xl font-semibold; }
+  p  { @apply text-base leading-relaxed text-gray-700; }
+
+  /* Accessible link styles */
+  a { @apply transition-colors; }
+
+  /* Ensure images are responsive */
+  img { @apply max-w-full h-auto; }
+
+  /* Better tap targets for mobile */
+  button, [role="button"] { @apply cursor-pointer; }
+}
+
+@layer components {
+  /* ── Buttons (mobile-first: full-width → auto on sm) ── */
+  .btn-primary {
+    @apply inline-flex items-center justify-center
+      bg-primary-400 hover:bg-primary-600 active:bg-primary-600
+      text-white font-semibold text-sm
+      px-5 py-3 rounded-xl
+      transition-all duration-200
+      active:scale-95
+      disabled:opacity-50 disabled:cursor-not-allowed
+      select-none;
+    min-height: 44px; /* WCAG touch target */
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center
+      border border-gray-200 hover:bg-gray-50 active:bg-gray-100
+      text-gray-700 font-medium text-sm
+      px-5 py-3 rounded-xl
+      transition-all duration-200
+      active:scale-95
+      select-none;
+    min-height: 44px;
+  }
+
+  .btn-pink {
+    @apply inline-flex items-center justify-center
+      bg-pink-400 hover:bg-pink-600 active:bg-pink-600
+      text-white font-semibold text-sm
+      px-5 py-3 rounded-xl
+      transition-all duration-200
+      active:scale-95
+      select-none;
+    min-height: 44px;
+  }
+
+  /* ── Form inputs (mobile-first) ── */
+  .input {
+    @apply w-full border border-gray-200 rounded-xl
+      px-4 py-3 text-base text-gray-900
+      focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent
+      transition-all placeholder-gray-400 bg-white;
+    min-height: 48px; /* Better touch target */
+    /* Prevent iOS zoom on focus (font-size >= 16px) */
+    font-size: 16px;
+  }
+
+  @media (min-width: 640px) {
+    .input { font-size: 14px; min-height: 44px; }
+  }
+
+  .input:disabled { @apply bg-gray-50 text-gray-400 cursor-not-allowed; }
+
+  /* ── Cards ── */
+  .card {
+    @apply bg-white border border-gray-100 rounded-2xl p-5 md:p-6 shadow-sm;
+  }
+
+  /* ── Badges ── */
+  .badge { @apply inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full; }
+  .badge-active    { @apply badge bg-green-100 text-green-700; }
+  .badge-draft     { @apply badge bg-gray-100  text-gray-600; }
+  .badge-sent      { @apply badge bg-blue-100  text-blue-700; }
+  .badge-collecting{ @apply badge bg-amber-100 text-amber-700; }
+
+  /* ── Section containers ── */
+  .section-container {
+    @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  /* ── Page section spacing ── */
+  .section-py { @apply py-12 md:py-16 lg:py-20; }
+
+  /* ── Mobile-friendly table wrapper ── */
+  .table-scroll {
+    @apply overflow-x-auto -mx-4 sm:mx-0;
+  }
+  .table-scroll table {
+    @apply min-w-full;
+  }
+}
+
+@layer utilities {
+  .gradient-hero {
+    background: linear-gradient(135deg, #EEEDFE 0%, #FBEAF0 50%, #E1F5EE 100%);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #7F77DD, #D4537E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Prevent scroll when mobile menu open */
+  .no-scroll { overflow: hidden; }
+
+  /* Scrollbar hide */
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Smooth line clamp */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Safe area padding for notched phones */
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+  .safe-top    { padding-top:    env(safe-area-inset-top, 0); }
+}
+
+/* Custom scrollbar for card grid */
+.messages-grid::-webkit-scrollbar { width: 4px; }
+.messages-grid::-webkit-scrollbar-track  { background: #f1f1f1; border-radius: 2px; }
+.messages-grid::-webkit-scrollbar-thumb  { background: #7F77DD; border-radius: 2px; }
+
+/* Float animation for hero */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.7; }
+}
+
+.animate-float    { animation: float 6s ease-in-out infinite; }
+.animate-slide-up { animation: slideUp 0.4s ease-out; }
+.animate-fade-in  { animation: fadeIn 0.3s ease-out; }
+
+/* ── Mobile nav overlay ── */
+.mobile-nav-overlay {
+  @apply fixed inset-0 bg-black/50 z-40 md:hidden;
+  backdrop-filter: blur(2px);
+}
+
+/* ── Responsive dashboard sidebar ── */
+@media (max-width: 767px) {
+  .dashboard-main { @apply pt-16; }
+}

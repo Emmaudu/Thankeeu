@@ -1,0 +1,20 @@
+{
+  "name": "Thankeeu — Group Cards & Gifts",
+  "short_name": "Thankeeu",
+  "description": "Nigeria's home for group cards and gifts. Birthdays, farewells, promotions and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7F77DD",
+  "lang": "en-NG",
+  "scope": "/",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "categories": ["business", "productivity", "social"],
+  "screenshots": [
+    { "src": "/og-image.png", "sizes": "1200x630", "type": "image/png", "form_factor": "wide" }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

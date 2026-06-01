@@ -384,3 +384,162 @@ describe('Demo request form validation', () => {
     assert.ok(statuses.includes('converted'));
   });
 });
+
+describe('Blog post helpers', () => {
+  // Replicate helpers from blogController
+  function generateSlug(title) {
+    return title
+      .toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 80);
+  }
+
+  function estimateReadTime(content) {
+    const wc = (content || '').replace(/<[^>]+>/g, '').split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.round(wc / 200));
+  }
+
+  describe('generateSlug()', () => {
+    it('converts spaces to hyphens', () => {
+      assert.equal(generateSlug('Hello World'), 'hello-world');
+    });
+    it('removes special characters', () => {
+      assert.equal(generateSlug("Nigeria's #1 Group Card!"), 'nigerias-1-group-card');
+    });
+    it('collapses multiple hyphens', () => {
+      assert.equal(generateSlug('Hello   World'), 'hello-world');
+    });
+    it('lowercases everything', () => {
+      assert.equal(generateSlug('HELLO WORLD'), 'hello-world');
+    });
+    it('trims to 80 chars max', () => {
+      const long = 'a'.repeat(100);
+      assert.ok(generateSlug(long).length <= 80);
+    });
+    it('handles Nigerian titles correctly', () => {
+      const slug = generateSlug('How to Plan an Office Birthday in Lagos');
+      assert.match(slug, /^[a-z0-9-]+$/);
+      assert.ok(slug.includes('birthday'));
+    });
+    it('empty string produces empty string', () => {
+      assert.equal(generateSlug(''), '');
+    });
+  });
+
+  describe('estimateReadTime()', () => {
+    it('returns at least 1 minute', () => {
+      assert.ok(estimateReadTime('') >= 1);
+    });
+    it('200 words ≈ 1 minute', () => {
+      const content = 'word '.repeat(200);
+      assert.equal(estimateReadTime(content), 1);
+    });
+    it('400 words ≈ 2 minutes', () => {
+      const content = 'word '.repeat(400);
+      assert.equal(estimateReadTime(content), 2);
+    });
+    it('strips HTML tags before counting', () => {
+      const html = '<h2>Title</h2>' + '<p>word </p>'.repeat(200);
+      assert.ok(estimateReadTime(html) >= 1);
+    });
+    it('1000 words ≈ 5 minutes', () => {
+      const content = 'word '.repeat(1000);
+      assert.equal(estimateReadTime(content), 5);
+    });
+  });
+
+  describe('Blog post status', () => {
+    const VALID_STATUSES = ['draft', 'published', 'archived'];
+    it('3 valid statuses', () => {
+      assert.equal(VALID_STATUSES.length, 3);
+    });
+    it('draft is default status', () => {
+      const post = { status: 'draft' };
+      assert.equal(post.status, 'draft');
+    });
+    it('only published posts visible to public', () => {
+      const posts = [
+        { status: 'draft'    },
+        { status: 'published'},
+        { status: 'archived' },
+      ];
+      const visible = posts.filter(p => p.status === 'published');
+      assert.equal(visible.length, 1);
+    });
+  });
+
+  describe('Blog categories', () => {
+    const CATEGORIES = ['General', 'Workplace Culture', 'HR & Technology', 'Gifting', 'Product Updates', 'Occasions'];
+    it('6 blog categories', () => {
+      assert.equal(CATEGORIES.length, 6);
+    });
+    it('General is default category', () => {
+      assert.ok(CATEGORIES.includes('General'));
+    });
+    it('Nigeria-relevant categories present', () => {
+      assert.ok(CATEGORIES.includes('HR & Technology'));
+      assert.ok(CATEGORIES.includes('Workplace Culture'));
+    });
+  });
+
+  describe('SEO: Article schema rules', () => {
+    const articleSchema = {
+      '@type': 'Article',
+      headline: 'How to Plan an Office Birthday in Nigeria',
+      description: 'Step-by-step guide for Nigerian HR teams...',
+      datePublished: '2025-01-01T00:00:00Z',
+      author: { '@type': 'Person', name: 'Thankeeu Team' },
+      publisher: { '@id': 'https://thankeeu.ng/#organization' },
+      inLanguage: 'en-NG',
+    };
+
+    it('@type is Article', () => {
+      assert.equal(articleSchema['@type'], 'Article');
+    });
+    it('headline is present', () => {
+      assert.ok(articleSchema.headline?.length > 0);
+    });
+    it('inLanguage is en-NG', () => {
+      assert.equal(articleSchema.inLanguage, 'en-NG');
+    });
+    it('author has @type Person', () => {
+      assert.equal(articleSchema.author['@type'], 'Person');
+    });
+    it('publisher references organization', () => {
+      assert.ok(articleSchema.publisher['@id'].includes('#organization'));
+    });
+    it('datePublished is valid ISO date', () => {
+      assert.ok(!isNaN(new Date(articleSchema.datePublished)));
+    });
+  });
+
+  describe('Blog sitemap rules', () => {
+    const BLOG_PAGES = [
+      { url: '/blog', priority: 0.8, changefreq: 'weekly' },
+      { url: '/blog/how-to-plan-office-birthday-surprise-nigeria', priority: 0.7, changefreq: 'monthly' },
+      { url: '/blog/hris-integration-guide-nigerian-companies', priority: 0.7, changefreq: 'monthly' },
+    ];
+
+    it('blog index priority is 0.8', () => {
+      const idx = BLOG_PAGES.find(p => p.url === '/blog');
+      assert.equal(idx.priority, 0.8);
+    });
+
+    it('blog index changefreq is weekly (updated often)', () => {
+      const idx = BLOG_PAGES.find(p => p.url === '/blog');
+      assert.equal(idx.changefreq, 'weekly');
+    });
+
+    it('individual posts have priority 0.7', () => {
+      const posts = BLOG_PAGES.filter(p => p.url !== '/blog');
+      assert.ok(posts.every(p => p.priority === 0.7));
+    });
+
+    it('all blog URLs start with /blog', () => {
+      assert.ok(BLOG_PAGES.every(p => p.url.startsWith('/blog')));
+    });
+  });
+});

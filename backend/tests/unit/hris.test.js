@@ -505,7 +505,7 @@ describe('HRIS — New hire (welcome) occasion', () => {
     assert.equal(isNewHireEligible('2026-06-12'), true);
   });
   it('employee who started 6 days ago is still in window', () => {
-    assert.equal(isNewHireEligible('2026-05-24'), true);
+    assert.equal(isNewHireEligible('2026-05-26'), true);
   });
   it('employee who started 14 days ago is outside window', () => {
     assert.equal(isNewHireEligible('2026-05-15'), false);

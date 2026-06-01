@@ -42,6 +42,7 @@ app.use('/api/members', require('./routes/companyMembers'));
 app.use('/api/deductions', require('./routes/deductions'));
 app.use('/api/hris', require('./routes/hris'));
 app.use('/api/demo', require('./routes/demo'));
+app.use('/api/blog', require('./routes/blog'));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', app: 'Thankeeu API', time: new Date() }));

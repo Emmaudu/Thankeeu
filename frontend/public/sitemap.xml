@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- ── Core public pages (highest priority) ────────────────────────────── -->
+
+  <url>
+    <loc>https://thankeeu.ng/</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://thankeeu.ng/"/>
+    <image:image>
+      <image:loc>https://thankeeu.ng/og-image.png</image:loc>
+      <image:title>Thankeeu — Group Cards and Gifts for Nigeria</image:title>
+      <image:caption>Create beautiful group cards and collect gifts with Paystack. Made for Nigeria.</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/pricing</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/pricing"/>
+  </url>
+
+  <!-- ── Individual user auth pages ─────────────────────────────────────── -->
+
+  <url>
+    <loc>https://thankeeu.ng/signup</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/signup"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/login</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/forgot-password</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- ── Company / Teams auth pages ─────────────────────────────────────── -->
+
+  <url>
+    <loc>https://thankeeu.ng/company/signup</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/company/signup"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/company/login</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/company/forgot-password</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- ── Team member pages ───────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://thankeeu.ng/member/signup</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/member/signup"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/member/login</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- ── Legal ────────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://thankeeu.ng/policy</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/policy"/>
+  </url>
+
+
+  <!-- ── Blog pages ─────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://thankeeu.ng/blog</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/blog"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/blog/how-to-plan-office-birthday-surprise-nigeria</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/blog/how-to-plan-office-birthday-surprise-nigeria"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/blog/hris-integration-guide-nigerian-companies</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/blog/hris-integration-guide-nigerian-companies"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/blog/group-gift-pots-better-than-individual-gifts</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/blog/group-gift-pots-better-than-individual-gifts"/>
+  </url>
+
+</urlset>

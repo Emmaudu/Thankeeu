@@ -1,0 +1,108 @@
+const supabase = require('../utils/supabase');
+const { sendEmail } = require('../utils/email');
+
+const createTicket = async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+    if (!subject || !message) return res.status(400).json({ error: 'Subject and message are required' });
+
+    const isCompany = !!req.company;
+    const sender = isCompany ? req.company : req.user;
+
+    const { data: ticket, error } = await supabase.from('support_tickets').insert({
+      sender_type: isCompany ? 'company' : 'user',
+      sender_id: sender.id,
+      sender_name: isCompany ? sender.name : sender.full_name,
+      sender_email: sender.email,
+      subject,
+      message
+    }).select().single();
+
+    if (error) throw error;
+
+    // Email support team
+    await sendEmail({
+      to: process.env.SUPPORT_EMAIL || 'support@thankeeu.ng',
+      template: 'supportTicket',
+      data: {
+        senderName: isCompany ? sender.name : sender.full_name,
+        senderEmail: sender.email,
+        senderType: isCompany ? 'Company' : 'User',
+        subject,
+        message,
+        ticketId: ticket.id
+      }
+    });
+
+    // Confirm to sender
+    await sendEmail({
+      to: sender.email,
+      template: 'supportConfirm',
+      data: {
+        name: isCompany ? sender.name : sender.full_name,
+        subject,
+        ticketId: ticket.id
+      }
+    });
+
+    res.status(201).json({ message: 'Support ticket submitted. We will respond within 24 hours.', ticket });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to submit support ticket' });
+  }
+};
+
+const getMyTickets = async (req, res) => {
+  try {
+    const senderId = req.company ? req.company.id : req.user.id;
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('id, subject, message, status, admin_reply, admin_replied_at, created_at')
+      .eq('sender_id', senderId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+};
+
+// Admin: get all tickets
+const getAllTickets = async (req, res) => {
+  try {
+    const { status } = req.query;
+    let query = supabase.from('support_tickets').select('*').order('created_at', { ascending: false });
+    if (status) query = query.eq('status', status);
+    const { data, error } = await query;
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch tickets' });
+  }
+};
+
+// Admin: reply to ticket
+const replyToTicket = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { reply } = req.body;
+    const { data: ticket } = await supabase.from('support_tickets').select('*').eq('id', ticketId).single();
+    if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
+
+    await supabase.from('support_tickets').update({
+      admin_reply: reply, admin_replied_at: new Date(), status: 'resolved', updated_at: new Date()
+    }).eq('id', ticketId);
+
+    await sendEmail({
+      to: ticket.sender_email,
+      template: 'supportReply',
+      data: { name: ticket.sender_name, subject: ticket.subject, reply, ticketId }
+    });
+
+    res.json({ message: 'Reply sent' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to reply to ticket' });
+  }
+};
+
+module.exports = { createTicket, getMyTickets, getAllTickets, replyToTicket };

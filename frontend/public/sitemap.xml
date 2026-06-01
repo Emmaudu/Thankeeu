@@ -104,4 +104,39 @@
     <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/policy"/>
   </url>
 
+
+  <!-- ── Blog pages ─────────────────────────────────────────────────────────── -->
+
+  <url>
+    <loc>https://thankeeu.ng/blog</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/blog"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/blog/how-to-plan-office-birthday-surprise-nigeria</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/blog/how-to-plan-office-birthday-surprise-nigeria"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/blog/hris-integration-guide-nigerian-companies</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/blog/hris-integration-guide-nigerian-companies"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.ng/blog/group-gift-pots-better-than-individual-gifts</loc>
+    <lastmod>2026-01-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://thankeeu.ng/blog/group-gift-pots-better-than-individual-gifts"/>
+  </url>
+
 </urlset>

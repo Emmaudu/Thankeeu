@@ -33,6 +33,8 @@ import SupportPage            from './pages/company/SupportPage';
 import MembersApprovalPage    from './pages/company/MembersApprovalPage';
 import DeductionRequestsPage  from './pages/company/DeductionRequestsPage';
 import HRISPage               from './pages/company/HRISPage';
+import Blog                   from './pages/Blog';
+import BlogPost               from './pages/BlogPost';
 
 // Team member / leader pages
 import JoinCompanySignup      from './pages/member/JoinCompanySignup';
@@ -117,6 +119,8 @@ const App = () => (
             <Route path="/company/subscription" element={<CompanyProtectedRoute><SubscriptionPage /></CompanyProtectedRoute>} />
             <Route path="/company/settings"    element={<CompanyProtectedRoute><SettingsPage /></CompanyProtectedRoute>} />
             <Route path="/company/support"     element={<CompanyProtectedRoute><SupportPage /></CompanyProtectedRoute>} />
+          <Route path="/blog"          element={<Blog />} />
+          <Route path="/blog/:slug"    element={<BlogPost />} />
           <Route path="/company/hris"        element={<CompanyProtectedRoute><HRISPage /></CompanyProtectedRoute>} />
 
             {/* ── Team member / leader auth ────────────────── */}

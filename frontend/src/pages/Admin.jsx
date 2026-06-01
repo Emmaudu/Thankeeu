@@ -1,7 +1,8 @@
+import { format } from 'date-fns';
 import { useSEO } from '../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { adminAPI, adminCompanyAPI, adminSupportAPI, demoAPI } from '../utils/api';
+import { adminAPI, adminCompanyAPI, adminSupportAPI, demoAPI, blogAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -46,6 +47,7 @@ const Admin = () => {
     if (tab === 'support' && tickets.length === 0) fetchTickets();
     if (tab === 'companies' && companies.length === 0) fetchCompanies();
     if (tab === 'demos'     && demos.length === 0)     fetchDemos();
+    if (tab === 'blog'      && blogPosts.length === 0) fetchBlog();
   }, [tab]);
 
   const fetchCore = async () => {
@@ -69,6 +71,15 @@ const Admin = () => {
       setTickets(res.data || []);
     } catch { toast.error('Failed to load support tickets'); }
     finally { setTicketsLoading(false); }
+  };
+
+  const fetchBlog = async () => {
+    setBlogLoading(true);
+    try {
+      const res = await blogAPI.admin.getPosts();
+      setBlogPosts(res.data || []);
+    } catch { }
+    finally { setBlogLoading(false); }
   };
 
   const fetchDemos = async () => {
@@ -161,6 +172,7 @@ const Admin = () => {
     { id: 'companies', label: `Companies (${companies.length || '...'})` },
     { id: 'support',   label: `Support${openCount > 0 ? ` · ${openCount} open` : ''}` },
     { id: 'demos',     label: `Demos${demos.filter(d=>d.status==='new').length > 0 ? ` · ${demos.filter(d=>d.status==='new').length} new` : ''}` },
+    { id: 'blog',      label: `Blog (${blogPosts.filter(p=>p.status==='published').length} live)` },
   ];
 
   return (
@@ -442,6 +454,161 @@ const Admin = () => {
                     )}
                   </div>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Blog Management ── */}
+        {tab === 'blog' && (
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2">
+                {['all','published','draft','archived'].map(s => (
+                  <span key={s} className={`text-xs px-3 py-1.5 rounded-full font-medium capitalize border ${
+                    s==='published' ? 'bg-green-100 text-green-700 border-green-200' :
+                    s==='draft'     ? 'bg-amber-100 text-amber-700 border-amber-200' :
+                    s==='archived'  ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                    'bg-primary-50 text-primary-600 border-primary-100'
+                  }`}>
+                    {s} ({s==='all' ? blogPosts.length : blogPosts.filter(p=>p.status===s).length})
+                  </span>
+                ))}
+              </div>
+              <button onClick={() => { setBlogEditing('new'); setBlogForm({ title:'',excerpt:'',content:'',category:'General',tags:'',status:'draft',is_featured:false,cover_image:'',author_name:'Thankeeu Team' }); }}
+                className="btn-primary text-xs py-2 px-4">+ New post</button>
+            </div>
+
+            {/* New / Edit form */}
+            {blogEditing && (
+              <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                  <p className="font-semibold text-gray-900 text-sm">{blogEditing === 'new' ? 'New post' : `Edit: ${blogEditing.title}`}</p>
+                  <button onClick={() => setBlogEditing(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Title *</label>
+                      <input className="input text-sm" placeholder="How to plan the perfect office birthday..." value={blogForm.title} onChange={e=>setBlogForm(p=>({...p,title:e.target.value}))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                      <select className="input text-sm" value={blogForm.category} onChange={e=>setBlogForm(p=>({...p,category:e.target.value}))}>
+                        {['General','Workplace Culture','HR & Technology','Gifting','Product Updates','Occasions'].map(cat => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
+                      <input className="input text-sm" placeholder="nigeria, birthday, hr" value={blogForm.tags} onChange={e=>setBlogForm(p=>({...p,tags:e.target.value}))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Author name</label>
+                      <input className="input text-sm" value={blogForm.author_name} onChange={e=>setBlogForm(p=>({...p,author_name:e.target.value}))} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Cover image URL</label>
+                      <input className="input text-sm" placeholder="https://..." value={blogForm.cover_image} onChange={e=>setBlogForm(p=>({...p,cover_image:e.target.value}))} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Excerpt (shown in listing)</label>
+                      <textarea className="input text-sm h-16 resize-none" placeholder="150-200 character summary..." value={blogForm.excerpt} onChange={e=>setBlogForm(p=>({...p,excerpt:e.target.value}))} />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Content (HTML)</label>
+                      <textarea className="input text-sm font-mono h-64 resize-y" placeholder="<h2>Introduction</h2><p>Your content here...</p>" value={blogForm.content} onChange={e=>setBlogForm(p=>({...p,content:e.target.value}))} />
+                      <p className="text-xs text-gray-400 mt-1">Write in HTML. Use &lt;h2&gt; for headings, &lt;p&gt; for paragraphs, &lt;strong&gt; for bold, &lt;ul&gt;&lt;li&gt; for lists.</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" id="isFeatured" checked={blogForm.is_featured} onChange={e=>setBlogForm(p=>({...p,is_featured:e.target.checked}))} className="w-4 h-4 accent-primary-400" />
+                      <label htmlFor="isFeatured" className="text-sm text-gray-700">Featured post</label>
+                    </div>
+                    <select className="input text-sm w-auto" value={blogForm.status} onChange={e=>setBlogForm(p=>({...p,status:e.target.value}))}>
+                      <option value="draft">Draft</option>
+                      <option value="published">Publish now</option>
+                      <option value="archived">Archived</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setBlogEditing(null)} className="btn-secondary flex-1 text-sm py-2">Cancel</button>
+                    <button disabled={blogSaving || !blogForm.title || !blogForm.content} onClick={async () => {
+                      setBlogSaving(true);
+                      try {
+                        if (blogEditing === 'new') {
+                          await blogAPI.admin.createPost(blogForm);
+                          toast.success('Post created!');
+                        } else {
+                          await blogAPI.admin.updatePost(blogEditing.id, blogForm);
+                          toast.success('Post updated!');
+                        }
+                        setBlogEditing(null);
+                        fetchBlog();
+                      } catch (err) { toast.error(err.response?.data?.error || 'Failed to save'); }
+                      finally { setBlogSaving(false); }
+                    }} className="btn-primary flex-1 text-sm py-2 disabled:opacity-50">
+                      {blogSaving ? 'Saving...' : blogEditing === 'new' ? 'Create post' : 'Save changes'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Posts list */}
+            {blogLoading ? (
+              [...Array(3)].map((_,i) => <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />)
+            ) : blogPosts.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+                <div className="text-4xl mb-3">📝</div>
+                <p className="text-sm text-gray-400">No posts yet. Create your first post above.</p>
+              </div>
+            ) : blogPosts.map(post => (
+              <div key={post.id} className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <p className="font-semibold text-gray-900 text-sm truncate">{post.title}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
+                      post.status==='published' ? 'bg-green-100 text-green-700' :
+                      post.status==='draft'     ? 'bg-amber-100 text-amber-700' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>{post.status}</span>
+                    {post.is_featured && <span className="text-xs bg-primary-50 text-primary-500 px-2 py-0.5 rounded-full">★ Featured</span>}
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    <span className="text-primary-400">{post.category}</span>
+                    {post.published_at ? ` · ${format(new Date(post.published_at), 'MMM d, yyyy')}` : ' · Not published'}
+                    {' '} · {(post.views||0).toLocaleString()} views · {post.read_time} min read
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5 font-mono">/blog/{post.slug}</p>
+                </div>
+                <div className="flex flex-wrap gap-2 flex-shrink-0">
+                  <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer"
+                    className="text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg">Preview</a>
+                  <button onClick={() => { setBlogEditing(post); setBlogForm({ title:post.title, excerpt:post.excerpt||'', content:post.content||'', category:post.category, tags:(post.tags||[]).join(', '), status:post.status, is_featured:post.is_featured, cover_image:post.cover_image||'', author_name:post.author_name }); }}
+                    className="text-xs border border-primary-200 text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-lg">Edit</button>
+                  <button onClick={async () => {
+                    const newStatus = post.status === 'published' ? 'draft' : 'published';
+                    try {
+                      await blogAPI.admin.setStatus(post.id, newStatus);
+                      setBlogPosts(prev => prev.map(p => p.id===post.id ? {...p,status:newStatus} : p));
+                      toast.success(`Post ${newStatus}`);
+                    } catch { toast.error('Failed'); }
+                  }} className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${post.status==='published' ? 'border-amber-200 text-amber-600 hover:bg-amber-50' : 'border-green-200 text-green-600 hover:bg-green-50'}`}>
+                    {post.status === 'published' ? 'Unpublish' : 'Publish'}
+                  </button>
+                  <button onClick={async () => {
+                    if (!confirm(\`Delete "${post.title}"? This cannot be undone.\`)) return;
+                    try {
+                      await blogAPI.admin.deletePost(post.id);
+                      setBlogPosts(prev => prev.filter(p => p.id!==post.id));
+                      toast.success('Post deleted');
+                    } catch { toast.error('Failed'); }
+                  }} className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg border border-red-100">Delete</button>
+                </div>
               </div>
             ))}
           </div>

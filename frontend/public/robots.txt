@@ -18,6 +18,8 @@ Allow: /company/forgot-password
 Allow: /member/signup
 Allow: /member/login
 Allow: /member/forgot-password
+Allow: /blog
+Allow: /blog/
 
 # Block private / authenticated pages (no SEO value, auth-gated)
 Disallow: /dashboard

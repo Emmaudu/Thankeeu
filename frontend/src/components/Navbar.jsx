@@ -63,6 +63,7 @@ const Navbar = ({ onBookDemo }) => {
               <a href="/#occasions" className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors">
                 Occasions
               </a>
+              <NavLink to="/blog">Blog</NavLink>
 
               {/* For Teams dropdown */}
               <div className="relative" onMouseEnter={() => setForOpen(true)} onMouseLeave={() => setForOpen(false)}>
@@ -194,6 +195,7 @@ const Navbar = ({ onBookDemo }) => {
               <Link to="/pricing"      className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">💳 Pricing</Link>
               <a href="/#how-it-works" className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">💡 How it works</a>
               <a href="/#occasions"    className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">🎉 Occasions</a>
+              <Link to="/blog" className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50">📚 Blog</Link>
 
               <div className="pt-2 mt-2 border-t border-gray-100">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide px-3 py-2">For Teams</p>

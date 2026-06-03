@@ -187,7 +187,7 @@ const Admin = () => {
   };
 
   const handleReply = async (ticketId) => {
-    if (!replyText.trim()) return toast.error("Reply cannot be empty");
+    if (!replyText.trim()) return toast.error("Reply cannot be empty!");
     setReplying(true);
     try {
       await adminSupportAPI.reply(ticketId, replyText);

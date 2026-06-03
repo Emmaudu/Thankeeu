@@ -58,7 +58,6 @@ const companyLogin = async (req, res) => {
     const valid = await bcrypt.compare(password, company.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
-    // Get subscription status
     const { data: sub } = await supabase
       .from('company_subscriptions')
       .select('*')
@@ -67,23 +66,11 @@ const companyLogin = async (req, res) => {
       .limit(1)
       .maybeSingle();
 
-    // Create default branch if branch_name provided
-    if (branch_name?.trim()) {
-      await supabase.from('company_branches').insert({ company_id: company.id, name: branch_name.trim(), city, state, is_default: true }).catch(() => {});
-    }
-
-    // Update company with location
-    if (city || state || country) {
-      await supabase.from('companies').update({ city, state, country: country || 'Nigeria' }).eq('id', company.id);
-    }
-
-    // Seed all default occasion types for this company
-    await supabase.rpc('seed_occasion_types', { p_company_id: company.id }).catch(() => {});
-
     const token = generateToken(company.id);
-    const { password_hash, reset_token, ...safeCompany } = company;
+    const { password_hash, reset_token, reset_token_expires, ...safeCompany } = company;
     res.json({ token, company: { ...safeCompany, subscription: sub || null } });
   } catch (err) {
+    console.error('Company login error:', err);
     res.status(500).json({ error: 'Server error during login' });
   }
 };

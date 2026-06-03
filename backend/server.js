@@ -11,9 +11,20 @@ const app = express();
 
 // Security
 app.use(helmet());
+const allowedOrigins = [
+  ...(process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean),
+  'http://localhost:5173',
+];
+
 app.use(cors({
-  origin: [process.env.FRONTEND_URL, 'http://localhost:5173'],
-  credentials: true
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    cb(new Error(`CORS blocked: ${origin}`));
+  },
+  credentials: true,
 }));
 
 // Rate limiting

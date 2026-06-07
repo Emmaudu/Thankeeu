@@ -114,7 +114,7 @@ const Policy = () => {
 
         <Section id="refund" title="Refund Policy">
           <h3 className="font-semibold text-warm-800 text-base">Card fees</h3>
-          <p>Card fees (₦5,000 per card, ₦10,000 for a pack of 5) are non-refundable once a card has been activated — that is, once the shareable signing link has been generated and the card is open for contributions.</p>
+          <p>Card fees (₦5,000 per card, ₦20,000 for a pack of 5) are non-refundable once a card has been activated — that is, once the shareable signing link has been generated and the card is open for contributions.</p>
           <p>If you experience a technical error during payment and your card was not activated, please contact us at support@thankeeu.com within 48 hours with your Paystack transaction reference and we will issue a full refund.</p>
           <h3 className="font-semibold text-warm-800 text-base">Gift contributions</h3>
           <p>Gift contributions made by card signers can be refunded within 24 hours of payment, provided the card has not yet been delivered to the recipient. After delivery, contributions are non-refundable.</p>

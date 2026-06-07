@@ -1,11 +1,10 @@
 import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { cardsAPI, paymentsAPI } from '../utils/api';
+import { paymentsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
-import { usdToNgn } from '../utils/currency';
+import { formatNGN } from '../utils/currency';
 
 const OCCASIONS = [
   { id: 'birthday', icon: '🎂', label: 'Birthday' },
@@ -63,14 +62,14 @@ const CreateCard = () => {
   useSEO({ title: 'Create a Card', description: 'Create a new group card.', noIndex: true });
 
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [inviteEmails, setInviteEmails] = useState('');
   const [form, setForm] = useState({
     occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0',
-    title: '', recipient_name: '', recipient_email: '', send_date: '',
-    deadline: '', is_gift_enabled: true, gift_type: 'pot', suggested_amount: 25,
+    title: `${user?.full_name?.split(' ')[0] || 'Someone'}'s Birthday Card`,
+    recipient_name: '', recipient_email: '', send_date: '',
+    deadline: '', is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
     allow_private_messages: true, send_reminders: true, hide_amounts: false
   });
 
@@ -90,31 +89,26 @@ const CreateCard = () => {
     if (!form.recipient_name) return toast.error('Add recipient name');
     setLoading(true);
     try {
-      // Convert suggested_amount from USD to NGN before saving
-      const cardData = { ...form, suggested_amount: form.suggested_amount };
-      const res = await cardsAPI.create(cardData);
-      const slug = res.data.slug;
+      const occasionLabel = OCCASIONS.find(o => o.id === form.occasion)?.label || 'Celebration';
+      const cardData = {
+        ...form,
+        title: form.title.trim() || `${form.recipient_name}'s ${occasionLabel} Card`,
+      };
 
-      // Step 2: Initiate payment — on success Paystack redirects back
-      const payRes = await paymentsAPI.initPurchase('single');
-      // Store pending card info so we can activate after payment
+      // Save the payload before leaving for Paystack, then create after verification.
       localStorage.setItem('thankeeu_pending_card', JSON.stringify({
-        slug,
+        cardData,
         inviteEmails: inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean)
       }));
-      window.location.href = `https://checkout.paystack.com/${payRes.data.access_code}`;
+      const payRes = await paymentsAPI.initPurchase('single');
+      const checkoutUrl = payRes.data.authorization_url
+        || `https://checkout.paystack.com/${payRes.data.access_code}`;
+      window.location.assign(checkoutUrl);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to create card');
+      localStorage.removeItem('thankeeu_pending_card');
+      toast.error(err.response?.data?.error || 'Could not open payment. Please try again.');
       setLoading(false);
     }
-  };
-
-  const handlePayAndCreate = async () => {
-    setLoading(true);
-    try {
-      const res = await paymentsAPI.initPurchase('single');
-      window.location.href = `https://checkout.paystack.com/${res.data.access_code}`;
-    } catch { toast.error('Payment init failed'); setLoading(false); }
   };
 
   const selectedDesign = DESIGNS.find(d => d.id === form.design_theme);
@@ -199,7 +193,7 @@ const CreateCard = () => {
                 <input className="input" placeholder="e.g. Amaka's Birthday Card 🎂" value={form.title}
                   onChange={e => set('title', e.target.value)} />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-warm-700 mb-1.5">Recipient's name <span className="text-red-400">*</span></label>
                   <input className="input" placeholder="e.g. Amaka" value={form.recipient_name}
@@ -211,7 +205,7 @@ const CreateCard = () => {
                     onChange={e => set('recipient_email', e.target.value)} />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-warm-700 mb-1.5">Delivery date</label>
                   <input type="date" className="input" value={form.send_date}
@@ -280,14 +274,14 @@ const CreateCard = () => {
               <div className="mb-5">
                 <p className="text-sm font-medium text-warm-700 mb-3">Suggested contribution</p>
                 <div className="flex flex-wrap gap-2">
-                  {[5, 10, 25, 50, 100].map(amt => (
+                  {[2500, 5000, 10000, 25000, 50000].map(amt => (
                     <button key={amt} onClick={() => set('suggested_amount', amt)}
                       className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
                         form.suggested_amount === amt
                           ? 'bg-primary-400 text-white border-primary-400'
                           : 'border-purple-100 text-warm-700 hover:border-primary-300'
                       }`}>
-                      ${amt}
+                      {formatNGN(amt)}
                     </button>
                   ))}
                 </div>
@@ -309,7 +303,7 @@ const CreateCard = () => {
                 ['Occasion', OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion],
                 ['Design', DESIGNS.find(d => d.id === form.design_theme)?.name || form.design_theme],
                 ['Recipient', form.recipient_name],
-                ['Gift enabled', form.is_gift_enabled ? `Yes — ₦${form.suggested_amount.toLocaleString()} suggested` : 'No'],
+                ['Gift enabled', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount)} suggested` : 'No'],
                 ['Card fee', '₦5,000 one-time'],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between items-center px-4 py-3">
@@ -323,7 +317,7 @@ const CreateCard = () => {
               <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
               <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1">
                 {loading
-                  ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creating...</span>
+                  ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Opening secure payment...</span>
                   : '🔒 Pay ₦5,000 & Create Card'}
               </button>
             </div>

@@ -73,7 +73,7 @@ CREATE TYPE ticket_status AS ENUM ('open', 'in_progress', 'resolved', 'closed');
 CREATE TABLE support_tickets (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   -- Can be from regular user or company
-  sender_type TEXT NOT NULL CHECK (sender_type IN ('user', 'company')),
+  sender_type TEXT NOT NULL CHECK (sender_type IN ('user', 'company', 'member')),
   sender_id UUID NOT NULL,
   sender_name TEXT NOT NULL,
   sender_email TEXT NOT NULL,

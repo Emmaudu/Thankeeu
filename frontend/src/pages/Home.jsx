@@ -318,7 +318,7 @@ const Home = () => {
               People who actually<br/><span className="text-primary-500">made someone's day</span>
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {TESTIMONIALS.map(t => (
               <div key={t.name} className="bg-white border-2 border-purple-100 rounded-3xl p-5 flex flex-col gap-3 hover:border-primary-300 hover:shadow-md transition-all">
                 <div className="text-sm">{Array(t.stars).fill('⭐').join('')}</div>
@@ -352,7 +352,7 @@ const Home = () => {
               Connect your HRIS once. Thankeeu creates cards, notifies departments, pools gifts, and delivers — on the exact right day. Every time.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
             {[
               { icon:'🔗', title:'HRIS Integration', desc:'SeamlessHR, BambooHR, Zoho People, WorkPay — one sync and your whole org is in.' },
               { icon:'🎉', title:'12 Occasions Automated', desc:"Birthdays, farewells, promotions, new hires, Women's Day — zero manual effort." },

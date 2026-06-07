@@ -333,7 +333,7 @@ const HRISPage = () => {
           <p className="text-sm font-semibold text-warm-700 mb-3">
             {connections.length > 0 ? 'Add another integration' : 'Connect your HRIS'}
           </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {PROVIDERS.map(p => {
               const isConnected = connectedProviderIds.includes(p.id);
               const isSelected  = selectedProvider?.id === p.id;

@@ -34,7 +34,17 @@ const companySignup = async (req, res) => {
 
     // Create default branch if branch_name provided
     if (branch_name?.trim()) {
-      await supabase.from('company_branches').insert({ company_id: company.id, name: branch_name.trim(), city, state, is_default: true }).catch(() => {});
+      try {
+        await supabase.from('company_branches').insert({
+          company_id: company.id,
+          name: branch_name.trim(),
+          city,
+          state,
+          is_default: true
+        });
+      } catch (branchError) {
+        console.error('Default branch creation failed:', branchError);
+      }
     }
 
     // Update company with location
@@ -43,7 +53,11 @@ const companySignup = async (req, res) => {
     }
 
     // Seed all default occasion types for this company
-    await supabase.rpc('seed_occasion_types', { p_company_id: company.id }).catch(() => {});
+    try {
+      await supabase.rpc('seed_occasion_types', { p_company_id: company.id });
+    } catch (seedError) {
+      console.error('Occasion type seeding failed:', seedError);
+    }
 
     const token = generateToken(company.id);
     res.status(201).json({ token, company });

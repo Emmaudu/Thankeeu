@@ -258,8 +258,8 @@ Data import is always free. Subscription only required to activate automated ema
 
 | Stream | Rate | Source |
 |--------|------|--------|
-| Individual card fee | ₦1,500/card | Activated at card creation |
-| Card pack of 5 | ₦5,000 | ₦1,000/card effective |
+| Individual card fee | ₦5,000/card | Activated after successful payment |
+| Card pack of 5 | ₦20,000 | ₦4,000/card effective |
 | Gift pot cut | 4% | Auto-deducted from each pot |
 | Flower delivery referral | 15% | Per vendor order |
 | Gift voucher cut | 3–5% | Per redemption |

@@ -5,7 +5,13 @@ const BASE = import.meta.env.VITE_API_URL || '/api';
 // ─── Axios instances ───────────────────────────────────────────────────────
 
 // 1. Regular user (thankeeu_token)
-const api = axios.create({ baseURL: BASE, headers: { 'Content-Type': 'application/json' } });
+const axiosOptions = {
+  baseURL: BASE,
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' },
+};
+
+const api = axios.create(axiosOptions);
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('thankeeu_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -21,10 +27,10 @@ api.interceptors.response.use(res => res, err => {
 });
 
 // 2. Public — no auth, no 401 redirect (signing pages, public cards)
-const publicAxios = axios.create({ baseURL: BASE, headers: { 'Content-Type': 'application/json' } });
+const publicAxios = axios.create(axiosOptions);
 
 // 3. Company / HR (thankeeu_company_token)
-const companyAxios = axios.create({ baseURL: BASE, headers: { 'Content-Type': 'application/json' } });
+const companyAxios = axios.create(axiosOptions);
 companyAxios.interceptors.request.use((config) => {
   const token = localStorage.getItem('thankeeu_company_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -40,7 +46,7 @@ companyAxios.interceptors.response.use(res => res, err => {
 });
 
 // 4. Team member (thankeeu_member_token)
-const memberAxios = axios.create({ baseURL: BASE, headers: { 'Content-Type': 'application/json' } });
+const memberAxios = axios.create(axiosOptions);
 memberAxios.interceptors.request.use((config) => {
   const token = localStorage.getItem('thankeeu_member_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;

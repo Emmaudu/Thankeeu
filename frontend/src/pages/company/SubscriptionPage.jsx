@@ -201,7 +201,7 @@ const SubscriptionPage = () => {
       {/* Payment info */}
       <div className="bg-warm-100 rounded-3xl p-5 max-w-3xl mb-6">
         <p className="text-sm font-semibold text-warm-700 mb-3">💳 Payment & billing info</p>
-        <div className="grid sm:grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-warm-600">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-warm-600">
           <div className="flex items-start gap-2">
             <span className="text-green-500 font-bold">✓</span>
             <span>Payments processed securely via Paystack</span>

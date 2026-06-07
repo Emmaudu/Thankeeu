@@ -205,7 +205,7 @@ const Blog = () => {
         {loading ? (
           <div className="space-y-6">
             <div className="h-64 bg-white rounded-3xl border border-purple-100 animate-pulse" />
-            <div className="grid sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="h-72 bg-white rounded-3xl border border-purple-100 animate-pulse" />
               ))}
@@ -223,7 +223,7 @@ const Blog = () => {
             {featured && page === 1 && <PostCard post={featured} featured />}
 
             {/* Post grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
               {(featured && page === 1 ? rest : posts).map(post => (
                 <PostCard key={post.id} post={post} />
               ))}

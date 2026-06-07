@@ -47,27 +47,39 @@ const Dashboard = () => {
   const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    fetchDashboard();
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'success') {
-      const ref = params.get('reference');
+      const ref = params.get('reference') || params.get('trxref');
       const activatePending = async () => {
         try {
-          if (ref) await paymentsAPI.verify(ref);
+          if (!ref) throw new Error('Payment reference is missing');
+          await paymentsAPI.verify(ref);
+
           const pendingRaw = localStorage.getItem('thankeeu_pending_card');
-          if (pendingRaw) {
-            const pending = JSON.parse(pendingRaw);
-            localStorage.removeItem('thankeeu_pending_card');
-            await cardsAPI.activate(pending.slug, { inviteEmails: pending.inviteEmails || [] });
-            toast.success('Payment confirmed! Your card is now live 🎉');
-            fetchDashboard();
-          } else {
-            toast.success('Payment confirmed! ✓');
+          if (!pendingRaw) throw new Error('Card details were not found on this device');
+
+          const pending = JSON.parse(pendingRaw);
+          let slug = pending.slug;
+          if (!slug) {
+            if (!pending.cardData) throw new Error('Card details are incomplete');
+            const createRes = await cardsAPI.create(pending.cardData);
+            slug = createRes.data.slug;
+            localStorage.setItem('thankeeu_pending_card', JSON.stringify({ ...pending, slug }));
           }
-        } catch { toast.success('Payment successful!'); }
-        window.history.replaceState({}, '', '/dashboard');
+
+          await cardsAPI.activate(slug, { inviteEmails: pending.inviteEmails || [] });
+          localStorage.removeItem('thankeeu_pending_card');
+          toast.success('Payment confirmed! Your card is live.');
+          navigate(`/card/${slug}`, { replace: true });
+        } catch (err) {
+          console.error('Payment completion failed:', err);
+          toast.error(err.response?.data?.error || err.message || 'Could not finish creating your card. Reload to retry.');
+          setLoading(false);
+        }
       };
       activatePending();
+    } else {
+      fetchDashboard();
     }
   }, []);
 
@@ -129,7 +141,7 @@ const Dashboard = () => {
 
         {/* Cards grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_,i) => <div key={i} className="bg-white rounded-3xl h-52 animate-pulse border-2 border-purple-100"/>)}
           </div>
         ) : filtered.length === 0 ? (
@@ -144,7 +156,7 @@ const Dashboard = () => {
             <Link to="/create-card" className="btn-primary px-8 py-3">✨ Create your first card</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map(card => {
               const sc = statusConfig[card.status] || statusConfig.draft;
               return (

@@ -29,30 +29,33 @@ const createTicket = async (req, res) => {
 
     if (error) throw error;
 
-    // Email support team
-    await sendEmail({
-      to: process.env.SUPPORT_EMAIL || 'support@thankeeu.com',
-      template: 'supportTicket',
-      data: {
-        senderName,
-        senderEmail: sender.email,
-        senderType: isCompany ? 'Company (HR)' : isMember ? 'Team Member' : 'User',
-        subject,
-        message,
-        ticketId: ticket.id
-      }
-    });
+    const emailResults = await Promise.allSettled([
+      sendEmail({
+        to: process.env.SUPPORT_EMAIL || 'support@thankeeu.com',
+        template: 'supportTicket',
+        data: {
+          senderName,
+          senderEmail: sender.email,
+          senderType: isCompany ? 'Company (HR)' : isMember ? 'Team Member' : 'User',
+          subject,
+          message,
+          ticketId: ticket.id
+        }
+      }),
+      sendEmail({
+        to: sender.email,
+        template: 'supportConfirm',
+        data: {
+          name: senderName,
+          subject,
+          ticketId: ticket.id
+        }
+      })
+    ]);
 
-    // Confirm to sender
-    await sendEmail({
-      to: sender.email,
-      template: 'supportConfirm',
-      data: {
-        name: senderName,
-        subject,
-        ticketId: ticket.id
-      }
-    });
+    emailResults
+      .filter(result => result.status === 'rejected')
+      .forEach(result => console.error('Support email failed:', result.reason));
 
     res.status(201).json({ message: 'Support ticket submitted. We will respond within 24 hours.', ticket });
   } catch (err) {
@@ -63,7 +66,8 @@ const createTicket = async (req, res) => {
 
 const getMyTickets = async (req, res) => {
   try {
-    const senderId = req.company ? req.company.id : req.user.id;
+    const senderId = req.company?.id || req.member?.id || req.user?.id;
+    if (!senderId) return res.status(401).json({ error: 'Not authenticated' });
     const { data, error } = await supabase
       .from('support_tickets')
       .select('id, subject, message, status, admin_reply, admin_replied_at, created_at')

@@ -33,8 +33,22 @@ const SignCard = () => {
   });
 
   useEffect(() => {
-    fetchCard();
-    if (searchParams.get('contributed') === 'true') toast.success('Gift contribution confirmed! 🎉');
+    const completeContribution = async () => {
+      if (searchParams.get('contributed') === 'true') {
+        const reference = searchParams.get('reference') || searchParams.get('trxref');
+        try {
+          if (!reference) throw new Error('Payment reference is missing');
+          await paymentsAPI.verify(reference);
+          toast.success('Gift contribution confirmed! 🎉');
+          window.history.replaceState({}, '', `/sign/${slug}`);
+        } catch (err) {
+          toast.error(err.response?.data?.error || err.message || 'Could not verify contribution');
+        }
+      }
+      await fetchCard();
+    };
+
+    completeContribution();
   }, [slug]);
 
   const fetchCard = async () => {

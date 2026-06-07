@@ -279,10 +279,14 @@ cron.schedule('0 6 * * *', async () => {
           .eq('id', m.id);
 
         // Create wallet for card
-        await supabase.from('contribution_wallets').insert({
-          card_id: card.id, company_id: ot.company_id,
-          total_contributed: 0, platform_fee: 0, net_after_fee: 0, amount_to_celebrant: 0,
-        }).catch(() => {});
+        try {
+          await supabase.from('contribution_wallets').insert({
+            card_id: card.id, company_id: ot.company_id,
+            total_contributed: 0, platform_fee: 0, net_after_fee: 0, amount_to_celebrant: 0,
+          });
+        } catch (walletError) {
+          console.error('Contribution wallet creation failed:', walletError);
+        }
 
         // Determine who to notify based on scope
         let colleagueQuery = supabase.from('occasion_members')

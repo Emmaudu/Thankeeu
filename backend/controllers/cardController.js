@@ -17,6 +17,10 @@ const createCard = async (req, res) => {
       company_id, created_by_member_id, notification_scope, status: reqStatus
     } = req.body;
 
+    if (!recipient_name?.trim() || !occasion) {
+      return res.status(400).json({ error: 'Recipient name and occasion are required' });
+    }
+
     const slug = generateSlug(recipient_name, occasion);
 
     const { data: card, error } = await supabase
@@ -24,9 +28,14 @@ const createCard = async (req, res) => {
       .insert({
         slug,
         creator_id: req.user?.id || null,
-        recipient_name, recipient_email,
-        occasion, title, design_theme, background_color, is_gift_enabled,
-        gift_type, suggested_amount, send_date, deadline,
+        recipient_name: recipient_name.trim(),
+        recipient_email: recipient_email?.trim() || null,
+        occasion,
+        title: title?.trim() || `${recipient_name}'s Card`,
+        design_theme, background_color, is_gift_enabled,
+        gift_type, suggested_amount,
+        send_date: send_date || null,
+        deadline: deadline || null,
         allow_private_messages, send_reminders, hide_amounts,
         status: reqStatus || 'draft',
         // Member card fields (these columns must exist in DB)
@@ -93,8 +102,8 @@ const createCard = async (req, res) => {
 
     res.status(201).json(card);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create card' });
+    console.error('Create card error:', err);
+    res.status(500).json({ error: err.message || 'Failed to create card' });
   }
 };
 
@@ -179,13 +188,16 @@ const activateCard = async (req, res) => {
     if (!card || card.creator_id !== req.user.id)
       return res.status(403).json({ error: 'Not authorized' });
 
-    await supabase.from('cards').update({ status: 'active' }).eq('slug', slug);
+    if (card.status !== 'active') {
+      const { error } = await supabase.from('cards').update({ status: 'active' }).eq('slug', slug);
+      if (error) throw error;
+    }
 
     // Send invites if emails provided
     if (inviteEmails?.length) {
       const deadline = card.deadline ? new Date(card.deadline).toLocaleDateString('en') : 'soon';
-      for (const email of inviteEmails) {
-        await sendEmail({
+      const emailJobs = inviteEmails.map(email =>
+        sendEmail({
           to: email,
           template: 'cardInvite',
           data: {
@@ -196,8 +208,13 @@ const activateCard = async (req, res) => {
             giftEnabled: card.is_gift_enabled,
             deadline
           }
-        });
-      }
+        })
+      );
+
+      Promise.allSettled(emailJobs).then(results => {
+        const failed = results.filter(result => result.status === 'rejected');
+        if (failed.length) console.error(`Failed to send ${failed.length} card invitation(s)`);
+      });
     }
 
     res.json({ message: 'Card activated', slug });

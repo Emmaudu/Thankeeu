@@ -1,20 +1,76 @@
 const axios = require('axios');
+const crypto = require('crypto');
 const supabase = require('../utils/supabase');
-const { sendEmail } = require('../utils/email');
 
 const PAYSTACK_BASE = 'https://api.paystack.co';
+const PAYSTACK_TIMEOUT_MS = 10000;
+const PLAN_CREDITS = { single: 1, pack5: 5, business: 999 };
 const paystackHeaders = () => ({
   Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
   'Content-Type': 'application/json'
 });
 
-// Initialize card purchase (single card $5 or pack of 5 $20)
+const grantCardCredits = async ({ userId, planType, reference }) => {
+  const credits = PLAN_CREDITS[planType] || 1;
+  const { data: existing, error: lookupError } = await supabase
+    .from('card_credits')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (lookupError) throw lookupError;
+  if (existing?.paystack_reference === reference) {
+    return { credits, alreadyProcessed: true };
+  }
+
+  if (existing) {
+    const { error } = await supabase.from('card_credits').update({
+      credits_remaining: existing.credits_remaining + credits,
+      paystack_reference: reference,
+      plan_type: planType
+    }).eq('user_id', userId);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('card_credits').insert({
+      user_id: userId,
+      credits_remaining: credits,
+      paystack_reference: reference,
+      plan_type: planType
+    });
+    if (error) throw error;
+  }
+
+  return { credits, alreadyProcessed: false };
+};
+
+const verifyContribution = async ({ contributionId, reference }) => {
+  const { data: contribution, error: lookupError } = await supabase
+    .from('contributions')
+    .select('*')
+    .eq('id', contributionId)
+    .single();
+
+  if (lookupError || !contribution) throw lookupError || new Error('Contribution not found');
+  if (contribution.status === 'success') {
+    return { contribution, alreadyProcessed: true };
+  }
+
+  const { data: updated, error } = await supabase
+    .from('contributions')
+    .update({ status: 'success', paystack_reference: reference })
+    .eq('id', contributionId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { contribution: updated, alreadyProcessed: false };
+};
+
+// Initialize card purchase in Nigerian naira (Paystack receives kobo).
 const initializeCardPurchase = async (req, res) => {
   try {
     const { plan_type } = req.body;
-    // USD prices: single=$5, pack5=$20, business=$50
-    // Converted to NGN at 1600/USD, then to kobo (*100)
-    const amounts = { single: 500000, pack5: 2000000, business: 20000000 }; // kobo — NGN: single=₦5k, pack5=₦20k, business=₦200k
+    const amounts = { single: 500000, pack5: 2000000, business: 20000000 };
     const amount = amounts[plan_type];
     if (!amount) return res.status(400).json({ error: 'Invalid plan type' });
 
@@ -28,7 +84,7 @@ const initializeCardPurchase = async (req, res) => {
         custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: plan_type }]
       },
       callback_url: `${process.env.FRONTEND_URL}/dashboard?payment=success`
-    }, { headers: paystackHeaders() });
+    }, { headers: paystackHeaders(), timeout: PAYSTACK_TIMEOUT_MS });
 
     res.json(response.data.data);
   } catch (err) {
@@ -45,11 +101,15 @@ const initializeContribution = async (req, res) => {
     if (!contributor_email) return res.status(400).json({ error: 'Email required for payment' });
     if (amount < 2500) return res.status(400).json({ error: 'Minimum contribution is ₦2,500' });
 
-    const { data: card } = await supabase.from('cards').select('id, recipient_name, occasion').eq('slug', card_slug).single();
-    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const { data: card, error: cardError } = await supabase
+      .from('cards')
+      .select('id, recipient_name, occasion')
+      .eq('slug', card_slug)
+      .single();
+    if (cardError || !card) return res.status(404).json({ error: 'Card not found' });
 
     // Create pending contribution record
-    const { data: contribution } = await supabase.from('contributions').insert({
+    const { data: contribution, error: contributionError } = await supabase.from('contributions').insert({
       card_id: card.id,
       message_id: message_id || null,
       contributor_name,
@@ -57,6 +117,7 @@ const initializeContribution = async (req, res) => {
       amount,
       status: 'pending'
     }).select().single();
+    if (contributionError) throw contributionError;
 
     const response = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, {
       email: contributor_email,
@@ -73,7 +134,7 @@ const initializeContribution = async (req, res) => {
         ]
       },
       callback_url: `${process.env.FRONTEND_URL}/sign/${card_slug}?contributed=true`
-    }, { headers: paystackHeaders() });
+    }, { headers: paystackHeaders(), timeout: PAYSTACK_TIMEOUT_MS });
 
     await supabase.from('contributions').update({
       paystack_reference: response.data.data.reference,
@@ -92,51 +153,34 @@ const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
 
-    const response = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${reference}`, {
-      headers: paystackHeaders()
+    const response = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
+      headers: paystackHeaders(),
+      timeout: PAYSTACK_TIMEOUT_MS
     });
 
     const txn = response.data.data;
     if (txn.status !== 'success') return res.status(400).json({ error: 'Payment not successful' });
 
-    const { type, contribution_id, user_id, plan_type, card_id, card_slug } = txn.metadata;
+    const { type, contribution_id, user_id, plan_type } = txn.metadata || {};
 
     if (type === 'gift_contribution' && contribution_id) {
-      const { data: contribution } = await supabase
-        .from('contributions')
-        .update({ status: 'success', paystack_reference: reference })
-        .eq('id', contribution_id)
-        .select()
-        .single();
-
-      // Update card total
-      await supabase.from('cards')
-        .update({ total_collected: supabase.rpc('increment', { x: contribution.amount }) })
-        .eq('id', card_id);
-
-      // Actually increment using raw update
-      const { data: card } = await supabase.from('cards').select('total_collected').eq('id', card_id).single();
-      await supabase.from('cards').update({ total_collected: (card?.total_collected || 0) + contribution.amount }).eq('id', card_id);
-
-      return res.json({ success: true, type: 'contribution', amount: contribution.amount });
+      const result = await verifyContribution({ contributionId: contribution_id, reference });
+      return res.json({
+        success: true,
+        type: 'contribution',
+        amount: result.contribution.amount,
+        already_processed: result.alreadyProcessed
+      });
     }
 
     if (type === 'card_purchase' && user_id) {
-      const credits = plan_type === 'pack5' ? 5 : 1;
-      const { data: existing } = await supabase.from('card_credits').select('*').eq('user_id', user_id).maybeSingle();
-
-      if (existing) {
-        await supabase.from('card_credits').update({
-          credits_remaining: existing.credits_remaining + credits,
-          paystack_reference: reference
-        }).eq('user_id', user_id);
-      } else {
-        await supabase.from('card_credits').insert({
-          user_id, credits_remaining: credits, paystack_reference: reference, plan_type
-        });
-      }
-
-      return res.json({ success: true, type: 'card_purchase', credits_added: credits });
+      const result = await grantCardCredits({ userId: user_id, planType: plan_type, reference });
+      return res.json({
+        success: true,
+        type: 'card_purchase',
+        credits_added: result.alreadyProcessed ? 0 : result.credits,
+        already_processed: result.alreadyProcessed
+      });
     }
 
     res.json({ success: true });
@@ -149,33 +193,24 @@ const verifyPayment = async (req, res) => {
 // Paystack webhook
 const webhook = async (req, res) => {
   try {
-    const crypto = require('crypto');
+    const rawBody = Buffer.isBuffer(req.body)
+      ? req.body
+      : Buffer.from(JSON.stringify(req.body));
     const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
-      .update(JSON.stringify(req.body)).digest('hex');
+      .update(rawBody).digest('hex');
 
     if (hash !== req.headers['x-paystack-signature'])
       return res.status(400).send('Invalid signature');
 
-    const event = req.body;
+    const event = Buffer.isBuffer(req.body)
+      ? JSON.parse(req.body.toString('utf8'))
+      : req.body;
     if (event.event === 'charge.success') {
-      const { reference, metadata, amount } = event.data;
-      const { type, contribution_id, user_id, plan_type, card_id } = metadata;
+      const { reference, metadata = {} } = event.data;
+      const { type, contribution_id } = metadata;
 
       if (type === 'gift_contribution' && contribution_id) {
-        await supabase.from('contributions').update({ status: 'success' }).eq('id', contribution_id);
-        const amountNaira = amount / 100;
-        const { data: card } = await supabase.from('cards').select('total_collected').eq('id', card_id).single();
-        await supabase.from('cards').update({ total_collected: (card?.total_collected || 0) + amountNaira }).eq('id', card_id);
-      }
-
-      if (type === 'card_purchase' && user_id) {
-        const credits = plan_type === 'pack5' ? 5 : plan_type === 'business' ? 999 : 1;
-        const { data: existing } = await supabase.from('card_credits').select('*').eq('user_id', user_id).maybeSingle();
-        if (existing) {
-          await supabase.from('card_credits').update({ credits_remaining: existing.credits_remaining + credits }).eq('user_id', user_id);
-        } else {
-          await supabase.from('card_credits').insert({ user_id, credits_remaining: credits, plan_type });
-        }
+        await verifyContribution({ contributionId: contribution_id, reference });
       }
     }
 

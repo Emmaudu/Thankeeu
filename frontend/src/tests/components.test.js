@@ -113,7 +113,7 @@ function isValidUUID(str) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
-function getMemberSignupURL(companyId, baseUrl = 'https://thankeeu.ng') {
+function getMemberSignupURL(companyId, baseUrl = 'https://thankeeu.com') {
   return `${baseUrl}/member/signup?code=${companyId}`;
 }
 
@@ -324,7 +324,7 @@ describe('Company code sharing helpers', () => {
   });
   it('getMemberSignupURL uses production domain by default', () => {
     const url = getMemberSignupURL('co-001');
-    expect(url).toContain('thankeeu.ng');
+    expect(url).toContain('thankeeu.com');
   });
 });
 
@@ -533,10 +533,10 @@ describe('SEO: JSON-LD structured data', () => {
   it('Organization schema has all required fields', () => {
     const org = {
       '@type': 'Organization',
-      '@id': 'https://thankeeu.ng/#organization',
+      '@id': 'https://thankeeu.com/#organization',
       name: 'Thankeeu',
-      url: 'https://thankeeu.ng',
-      logo: { '@type': 'ImageObject', url: 'https://thankeeu.ng/favicon.svg' },
+      url: 'https://thankeeu.com',
+      logo: { '@type': 'ImageObject', url: 'https://thankeeu.com/favicon.svg' },
       address: { '@type': 'PostalAddress', addressCountry: 'NG' },
     };
     expect(org['@type']).toBe('Organization');
@@ -551,7 +551,7 @@ describe('SEO: JSON-LD structured data', () => {
       '@type': 'WebSite',
       potentialAction: {
         '@type': 'SearchAction',
-        target: { '@type': 'EntryPoint', urlTemplate: 'https://thankeeu.ng/sign/{s}' },
+        target: { '@type': 'EntryPoint', urlTemplate: 'https://thankeeu.com/sign/{s}' },
       },
     };
     expect(site.potentialAction['@type']).toBe('SearchAction');
@@ -591,13 +591,13 @@ describe('SEO: JSON-LD structured data', () => {
     const breadcrumb = {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://thankeeu.ng/' },
-        { '@type': 'ListItem', position: 2, name: 'Pricing', item: 'https://thankeeu.ng/pricing' },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://thankeeu.com/' },
+        { '@type': 'ListItem', position: 2, name: 'Pricing', item: 'https://thankeeu.com/pricing' },
       ],
     };
     expect(breadcrumb.itemListElement[0].position).toBe(1);
     expect(breadcrumb.itemListElement[1].position).toBe(2);
-    expect(breadcrumb.itemListElement[0].item).toContain('thankeeu.ng');
+    expect(breadcrumb.itemListElement[0].item).toContain('thankeeu.com');
   });
 
   it('LocalBusiness has areaServed Nigeria', () => {
@@ -643,7 +643,7 @@ describe('SEO: robots.txt rules', () => {
   });
 
   it('sitemap is declared in robots.txt', () => {
-    const sitemapLine = 'Sitemap: https://thankeeu.ng/sitemap.xml';
+    const sitemapLine = 'Sitemap: https://thankeeu.com/sitemap.xml';
     expect(sitemapLine).toContain('sitemap.xml');
   });
 });
@@ -693,7 +693,7 @@ describe('SEO: sitemap.xml structure', () => {
 
 describe('SEO: URL and canonical rules', () => {
   it('canonical URLs use HTTPS', () => {
-    const BASE_URL = 'https://thankeeu.ng';
+    const BASE_URL = 'https://thankeeu.com';
     expect(BASE_URL).toMatch(/^https:\/\//);
   });
 
@@ -716,7 +716,7 @@ describe('SEO: URL and canonical rules', () => {
   });
 
   it('x-default hreflang points to same URL as en-NG', () => {
-    // Both en-NG and x-default point to https://thankeeu.ng/
+    // Both en-NG and x-default point to https://thankeeu.com/
     // because Thankeeu is English-only for now
     const strategy = 'same-url';
     expect(strategy).toBe('same-url');

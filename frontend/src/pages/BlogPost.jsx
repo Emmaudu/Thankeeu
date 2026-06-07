@@ -27,9 +27,9 @@ const ShareButton = ({ url, title }) => {
   const text    = encodeURIComponent(`${title} via @thankeeu_ng`);
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-xs text-gray-500 font-medium">Share:</span>
+      <span className="text-xs text-warm-500 font-medium">Share:</span>
       <a href={`https://twitter.com/intent/tweet?url=${encoded}&text=${text}`} target="_blank" rel="noopener noreferrer"
-        className="flex items-center gap-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors">
+        className="flex items-center gap-1.5 text-xs bg-purple-50 hover:bg-gray-200 text-warm-700 px-3 py-1.5 rounded-lg transition-colors">
         𝕏 Twitter
       </a>
       <a href={`https://wa.me/?text=${text}%20${encoded}`} target="_blank" rel="noopener noreferrer"
@@ -42,7 +42,7 @@ const ShareButton = ({ url, title }) => {
         LinkedIn
       </a>
       <button onClick={() => navigator.clipboard?.writeText(url).then(() => {})}
-        className="flex items-center gap-1.5 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors">
+        className="flex items-center gap-1.5 text-xs bg-purple-50 hover:bg-gray-200 text-warm-700 px-3 py-1.5 rounded-lg transition-colors">
         🔗 Copy link
       </button>
     </div>
@@ -148,13 +148,13 @@ const BlogPost = () => {
 
   // Loading skeleton
   if (loading) return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-warm-100">
       <Navbar />
       <div className="section-container py-10 md:py-16 max-w-4xl mx-auto space-y-6 animate-pulse">
         <div className="h-6  bg-gray-200 rounded-full w-32" />
         <div className="h-10 bg-gray-200 rounded-xl w-3/4" />
         <div className="h-6  bg-gray-200 rounded-full w-48" />
-        <div className="h-64 bg-gray-200 rounded-2xl w-full" />
+        <div className="h-64 bg-gray-200 rounded-3xl w-full" />
         <div className="space-y-3">
           {[...Array(8)].map((_, i) => (
             <div key={i} className={`h-4 bg-gray-200 rounded-full ${i % 3 === 2 ? 'w-2/3' : 'w-full'}`} />
@@ -172,7 +172,7 @@ const BlogPost = () => {
   const postUrl       = `${BASE_URL}/blog/${post.slug}`;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-warm-100">
       <Navbar />
 
       <article itemScope itemType="https://schema.org/Article">
@@ -201,12 +201,12 @@ const BlogPost = () => {
             {/* Main content */}
             <div className="min-w-0">
               {/* Breadcrumb */}
-              <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-gray-500 mb-6">
+              <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-warm-500 mb-6">
                 <Link to="/" className="hover:text-primary-500 transition-colors">Home</Link>
                 <span>›</span>
                 <Link to="/blog" className="hover:text-primary-500 transition-colors">Blog</Link>
                 <span>›</span>
-                <span className="text-gray-700 line-clamp-1">{post.title}</span>
+                <span className="text-warm-700 line-clamp-1">{post.title}</span>
               </nav>
 
               {/* Category + tags */}
@@ -216,31 +216,31 @@ const BlogPost = () => {
                   {CATEGORY_ICONS[post.category] || '📝'} {post.category}
                 </Link>
                 {(post.tags || []).map(tag => (
-                  <span key={tag} className="bg-gray-100 text-gray-600 text-xs px-2.5 py-1 rounded-full">
+                  <span key={tag} className="bg-purple-50 text-warm-600 text-xs px-2.5 py-1 rounded-full">
                     #{tag}
                   </span>
                 ))}
               </div>
 
               {/* Title */}
-              <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900 leading-tight mb-5"
+              <h1 className="font-display text-2xl sm:text-3xl md:text-2xl sm:text-4xl font-semibold text-warm-900 leading-tight mb-5"
                 itemProp="headline">
                 {post.title}
               </h1>
 
               {/* Author + meta */}
-              <div className="flex flex-wrap items-center gap-4 pb-5 mb-6 border-b border-gray-100"
+              <div className="flex flex-wrap items-center gap-4 pb-5 mb-6 border-b border-purple-100"
                 itemProp="author" itemScope itemType="https://schema.org/Person">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold flex-shrink-0">
                     {post.author_name?.charAt(0) || 'T'}
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900" itemProp="name">{post.author_name}</p>
-                    <p className="text-xs text-gray-500">Thankeeu Team</p>
+                    <p className="text-sm font-semibold text-warm-900" itemProp="name">{post.author_name}</p>
+                    <p className="text-xs text-warm-500">Thankeeu Team</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+                <div className="flex flex-wrap gap-3 text-xs text-warm-500">
                   <time dateTime={post.published_at || ''} itemProp="datePublished">
                     📅 {publishedDate}
                   </time>
@@ -257,12 +257,12 @@ const BlogPost = () => {
               />
 
               {/* Tags footer */}
-              <div className="mt-8 pt-6 border-t border-gray-100">
+              <div className="mt-8 pt-6 border-t border-purple-100">
                 <div className="flex flex-wrap items-center gap-2 mb-5">
-                  <span className="text-xs text-gray-500 font-medium">Tags:</span>
+                  <span className="text-xs text-warm-500 font-medium">Tags:</span>
                   {(post.tags || []).map(tag => (
                     <Link key={tag} to={`/blog?tag=${tag}`}
-                      className="bg-gray-100 hover:bg-primary-50 hover:text-primary-600 text-gray-600 text-xs px-2.5 py-1 rounded-full transition-colors">
+                      className="bg-purple-50 hover:bg-primary-50 hover:text-primary-600 text-warm-600 text-xs px-2.5 py-1 rounded-full transition-colors">
                       #{tag}
                     </Link>
                   ))}
@@ -271,13 +271,13 @@ const BlogPost = () => {
               </div>
 
               {/* Author bio box */}
-              <div className="mt-8 bg-primary-50 rounded-2xl p-5 md:p-6 flex items-start gap-4">
+              <div className="mt-8 bg-primary-50 rounded-3xl p-5 md:p-6 flex items-start gap-4">
                 <div className="w-12 h-12 bg-primary-400 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                   {post.author_name?.charAt(0) || 'T'}
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900 mb-1">{post.author_name}</p>
-                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <p className="font-semibold text-warm-900 mb-1">{post.author_name}</p>
+                  <p className="text-sm text-warm-600 leading-relaxed">
                     The Thankeeu team writes about workplace celebrations, HR best practices, group gifting, and building better cultures at companies worldwide.
                   </p>
                   <Link to="/blog" className="text-primary-500 text-sm font-medium hover:underline mt-1 inline-block">
@@ -290,7 +290,7 @@ const BlogPost = () => {
             {/* Sidebar */}
             <aside className="space-y-6">
               {/* CTA card */}
-              <div className="bg-primary-400 rounded-2xl p-5 text-white sticky top-20">
+              <div className="bg-primary-400 rounded-3xl p-5 text-white sticky top-20">
                 <p className="text-2xl mb-2">💜</p>
                 <p className="font-semibold text-lg mb-2">Try Thankeeu free</p>
                 <p className="text-primary-100 text-sm mb-4 leading-relaxed">
@@ -309,19 +309,19 @@ const BlogPost = () => {
               {/* Related posts */}
               {related.length > 0 && (
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 mb-3">Related articles</p>
+                  <p className="text-sm font-semibold text-warm-700 mb-3">Related articles</p>
                   <div className="space-y-3">
                     {related.map(rp => (
                       <Link key={rp.id} to={`/blog/${rp.slug}`}
-                        className="block bg-white rounded-xl p-3 border border-gray-100 hover:border-primary-200 hover:shadow-sm transition-all group">
+                        className="block bg-white rounded-xl p-3 border border-purple-100 hover:border-primary-200 hover:shadow-sm transition-all group">
                         {rp.cover_image && (
                           <img src={rp.cover_image} alt={rp.title}
                             className="w-full h-28 object-cover rounded-lg mb-2" loading="lazy" />
                         )}
-                        <p className="text-sm font-medium text-gray-800 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
+                        <p className="text-sm font-medium text-warm-800 group-hover:text-primary-600 transition-colors line-clamp-2 leading-snug">
                           {rp.title}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">{rp.read_time} min read</p>
+                        <p className="text-xs text-warm-400 mt-1">{rp.read_time} min read</p>
                       </Link>
                     ))}
                   </div>
@@ -336,14 +336,14 @@ const BlogPost = () => {
       {/* Related posts (mobile — below article) */}
       {related.length > 0 && (
         <section className="section-container pb-10 md:pb-16 lg:hidden">
-          <h2 className="text-lg font-semibold text-gray-800 mb-4">More articles</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <h2 className="text-lg font-semibold text-warm-800 mb-4">More articles</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4">
             {related.map(rp => (
               <Link key={rp.id} to={`/blog/${rp.slug}`}
-                className="bg-white rounded-2xl p-4 border border-gray-100 hover:shadow-md transition-all group">
+                className="bg-white rounded-3xl p-4 border border-purple-100 hover:shadow-md transition-all group">
                 <p className="text-xs text-primary-500 font-medium mb-1">{rp.category}</p>
-                <p className="text-sm font-semibold text-gray-800 group-hover:text-primary-600 line-clamp-2 mb-1">{rp.title}</p>
-                <p className="text-xs text-gray-400">{rp.read_time} min read</p>
+                <p className="text-sm font-semibold text-warm-800 group-hover:text-primary-600 line-clamp-2 mb-1">{rp.title}</p>
+                <p className="text-xs text-warm-400">{rp.read_time} min read</p>
               </Link>
             ))}
           </div>

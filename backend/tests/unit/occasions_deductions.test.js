@@ -209,7 +209,7 @@ describe('Occasion Controller', () => {
 
 describe('Deduction Controller', () => {
   describe('Wallet calculations', () => {
-    it('₦100,000 contribution → ₦20,000 fee, ₦80,000 net', () => {
+    it('₦100,000 contribution → ₦20,000 fee, ₦200,000 net', () => {
       const w = calculateWallet(100000);
       assert.equal(w.platformFee,       20000);
       assert.equal(w.netAfterFee,       80000);

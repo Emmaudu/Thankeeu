@@ -23,6 +23,12 @@ api.interceptors.response.use(
   }
 );
 
+// Public axios — NO auth interceptor (for card/sign pages viewable without login)
+const publicAxios = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '/api',
+  headers: { 'Content-Type': 'application/json' }
+});
+
 export const authAPI = {
   signup: (data) => api.post('/auth/signup', data),
   login: (data) => api.post('/auth/login', data),
@@ -36,7 +42,7 @@ export const cardsAPI = {
   create: (data) => api.post('/cards', data),
   getAll: () => api.get('/cards'),
   getOne: (slug, token) => api.get(`/cards/${slug}${token ? `?token=${token}` : ''}`),
-  getPublic: (slug) => api.get(`/cards/public/${slug}`),
+  getPublic: (slug) => publicAxios.get(`/cards/public/${slug}`),
   update: (slug, data) => api.put(`/cards/${slug}`, data),
   activate: (slug, data) => api.post(`/cards/${slug}/activate`, data),
   send: (slug) => api.post(`/cards/${slug}/send`),
@@ -44,12 +50,12 @@ export const cardsAPI = {
 };
 
 export const messagesAPI = {
-  add: (cardSlug, data) => api.post(`/messages/${cardSlug}`, data, {
+  add: (cardSlug, data) => publicAxios.post(`/messages/${cardSlug}`, data, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  react: (messageId, data) => api.post(`/messages/react/${messageId}`, data),
+  react: (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
   delete: (messageId) => api.delete(`/messages/${messageId}`),
-  reply: (cardSlug, data) => api.post(`/messages/${cardSlug}/reply`, data)
+  reply: (cardSlug, data) => publicAxios.post(`/messages/${cardSlug}/reply`, data)
 };
 
 export const paymentsAPI = {
@@ -230,9 +236,9 @@ export const hrisAPI = {
 };
 
 // ── Demo / Book Demo API ──────────────────────────────────────────────────────
-const publicAxios = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
+const demoPublicAxios = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' });
 export const demoAPI = {
-  submit:    (data) => publicAxios.post('/demo/request', data),
+  submit:    (data) => demoPublicAxios.post('/demo/request', data),
   getAll:    ()     => api.get('/demo/requests'),
   updateStatus: (id, status, admin_note) => api.patch(`/demo/requests/${id}`, { status, admin_note }),
 };

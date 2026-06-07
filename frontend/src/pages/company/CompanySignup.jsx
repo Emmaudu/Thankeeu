@@ -48,14 +48,14 @@ const CompanySignup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-10 md:py-16">
+    <div className="min-h-screen"><Navbar /><div className="flex items-center justify-center p-4 py-10 md:py-16">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
             🏢 For Teams
           </div>
-          <h1 className="font-display text-3xl font-semibold text-gray-900 mb-2">Create a company account</h1>
-          <p className="text-gray-500 text-sm">Automate birthday celebrations for your entire team</p>
+          <h1 className="font-display text-3xl font-semibold text-warm-900 mb-2">Create a company account</h1>
+          <p className="text-warm-500 text-sm">Automate birthday celebrations for your entire team</p>
         </div>
 
         {/* Step indicator */}
@@ -63,11 +63,11 @@ const CompanySignup = () => {
           {[1,2].map(s => (
             <div key={s} className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
-                s < step ? 'bg-primary-400 text-white' : s === step ? 'bg-primary-400 text-white ring-4 ring-primary-100' : 'bg-gray-200 text-gray-500'
+                s < step ? 'bg-primary-400 text-white' : s === step ? 'bg-primary-400 text-white ring-4 ring-primary-100' : 'bg-gray-200 text-warm-500'
               }`}>
                 {s < step ? '✓' : s}
               </div>
-              <span className={`text-xs font-medium ${s <= step ? 'text-gray-800' : 'text-gray-400'}`}>
+              <span className={`text-xs font-medium ${s <= step ? 'text-warm-800' : 'text-warm-700'}`}>
                 {s === 1 ? 'Company info' : 'Account setup'}
               </span>
               {s < 2 && <div className={`w-8 h-0.5 ${step > s ? 'bg-primary-400' : 'bg-gray-200'}`} />}
@@ -75,42 +75,42 @@ const CompanySignup = () => {
           ))}
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+        <div className="bg-white rounded-3xl shadow-xl p-8 border border-purple-100">
           {step === 1 ? (
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Company name <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Company name <span className="text-red-400">*</span></label>
                 <input className="input" placeholder="e.g. Your Company Name" value={form.name} onChange={e => set('name', e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Company email <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Company email <span className="text-red-400">*</span></label>
                 <input type="email" className="input" placeholder="hr@company.com" value={form.email} onChange={e => set('email', e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Industry</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Industry</label>
                 <select className="input" value={form.industry} onChange={e => set('industry', e.target.value)}>
                   <option value="">Select industry</option>
                   {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone number</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Phone number</label>
                 <input className="input" placeholder="+234 800 000 0000" value={form.phone} onChange={e => set('phone', e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">City</label>
+                  <label className="block text-xs font-medium text-warm-700 mb-1.5">City</label>
                   <input className="input" placeholder="e.g. Lagos, Abuja" value={form.city} onChange={e => set('city', e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1.5">State</label>
+                  <label className="block text-xs font-medium text-warm-700 mb-1.5">State</label>
                   <input className="input" placeholder="e.g. Lagos State" value={form.state} onChange={e => set('state', e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1.5">Branch name <span className="text-gray-400 font-normal">(optional)</span></label>
+                <label className="block text-xs font-medium text-warm-700 mb-1.5">Branch name <span className="text-warm-700 font-normal">(optional)</span></label>
                 <input className="input" placeholder="e.g. Ikeja Branch, Lekki Office, HQ Abuja" value={form.branch_name} onChange={e => set('branch_name', e.target.value)} />
-                <p className="text-xs text-gray-400 mt-1">You can add more branches later from Settings</p>
+                <p className="text-xs text-warm-700 mt-1">You can add more branches later from Settings</p>
               </div>
               <button onClick={handleNext} className="btn-primary w-full py-3.5">
                 Continue →
@@ -119,14 +119,14 @@ const CompanySignup = () => {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact person (HR manager) <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Contact person (HR manager) <span className="text-red-400">*</span></label>
                 <input className="input" placeholder="Full name" value={form.contact_person} onChange={e => set('contact_person', e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Password <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Password <span className="text-red-400">*</span></label>
                 <div className="relative">
                   <input type={show ? 'text' : 'password'} className="input pr-10" placeholder="Min. 8 characters" value={form.password} onChange={e => set('password', e.target.value)} minLength={8} />
-                  <button type="button" onClick={() => setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">{show ? 'Hide' : 'Show'}</button>
+                  <button type="button" onClick={() => setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-700 text-xs">{show ? 'Hide' : 'Show'}</button>
                 </div>
               </div>
               <div className="bg-primary-50 rounded-xl p-3 text-xs text-primary-700">
@@ -146,11 +146,11 @@ const CompanySignup = () => {
             </form>
           )}
 
-          <p className="text-center text-xs text-gray-400 mt-5">
+          <p className="text-center text-xs text-warm-700 mt-5">
             Already have a company account?{' '}
             <Link to="/company/login" className="text-primary-400 font-medium hover:text-primary-600">Sign in</Link>
           </p>
-          <p className="text-center text-xs text-gray-400 mt-2">
+          <p className="text-center text-xs text-warm-700 mt-2">
             Individual user?{' '}
             <Link to="/signup" className="text-primary-400 font-medium">Personal account →</Link>
           </p>

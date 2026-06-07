@@ -96,7 +96,7 @@ const TeamsPage = () => {
   return (
     <CompanyLayout title="Occasion Tables" subtitle="Manage employee data for each celebration occasion">
       {!loading && !isSubscribed && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <span className="text-2xl">⚠️</span>
             <div>
@@ -109,12 +109,12 @@ const TeamsPage = () => {
       )}
 
       {/* HRIS quick sync banner */}
-      <div className="bg-gradient-to-r from-blue-50 to-primary-50 border border-blue-100 rounded-2xl p-4 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div className="bg-gradient-to-r from-blue-50 to-primary-50 border border-blue-100 rounded-3xl p-4 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="text-2xl">🔗</span>
           <div>
-            <p className="font-semibold text-gray-800 text-sm">Connect your HRIS to auto-populate all occasion tables</p>
-            <p className="text-xs text-gray-500 mt-0.5">SeamlessHR, BambooHR, Zoho People, SAP SuccessFactors, WorkPay — one sync fills everything</p>
+            <p className="font-semibold text-warm-800 text-sm">Connect your HRIS to auto-populate all occasion tables</p>
+            <p className="text-xs text-warm-500 mt-0.5">SeamlessHR, BambooHR, Zoho People, SAP SuccessFactors, WorkPay — one sync fills everything</p>
           </div>
         </div>
         <Link to="/company/hris" className="bg-primary-400 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors whitespace-nowrap flex-shrink-0">
@@ -123,16 +123,16 @@ const TeamsPage = () => {
       </div>
 
       {/* Occasion type tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-        {loading ? [...Array(6)].map((_, i) => <div key={i} className="h-10 w-32 bg-gray-100 rounded-xl animate-pulse flex-shrink-0" />) : (
+      <div className="flex flex-wrap gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+        {loading ? [...Array(6)].map((_, i) => <div key={i} className="h-10 w-32 bg-purple-50 rounded-xl animate-pulse flex-shrink-0" />) : (
           types.map(ot => (
             <button key={ot.id} onClick={() => { setSelected(ot); setImportResult(null); setSearch(''); setDeptFilter(''); }}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all border flex-shrink-0 ${
-                selected?.id === ot.id ? 'bg-primary-400 text-white border-primary-400' : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
+                selected?.id === ot.id ? 'bg-primary-400 text-white border-primary-400' : 'bg-white text-warm-600 border-purple-100 hover:border-primary-300'
               }`}>
               <span>{ot.icon}</span> {ot.label}
               {ot.member_count > 0 && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${selected?.id === ot.id ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${selected?.id === ot.id ? 'bg-white/20 text-white' : 'bg-purple-50 text-warm-500'}`}>
                   {ot.member_count}
                 </span>
               )}
@@ -144,12 +144,12 @@ const TeamsPage = () => {
       {selected && (
         <>
           {/* Header row */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="bg-white border border-purple-100 rounded-3xl p-5 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center text-2xl">{selected.icon}</div>
+              <div className="w-12 h-12 bg-primary-50 rounded-3xl flex items-center justify-center text-2xl">{selected.icon}</div>
               <div>
-                <h2 className="font-semibold text-gray-900">{selected.label}</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <h2 className="font-semibold text-warm-900">{selected.label}</h2>
+                <p className="text-xs text-warm-500 mt-0.5">
                   {selected.default_scope === 'company_wide' ? 'Company-wide' : 'Department'} notifications ·
                   {selected.notify_days_before}d notice ·
                   {members.length} members
@@ -158,7 +158,7 @@ const TeamsPage = () => {
               </div>
             </div>
             <div className="flex gap-2 flex-shrink-0">
-              <button onClick={handleDownload} className="flex items-center gap-2 border border-gray-200 bg-white text-gray-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+              <button onClick={handleDownload} className="flex items-center gap-2 border border-purple-100 bg-white text-warm-700 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-warm-100 transition-colors">
                 📥 Template
               </button>
               <button onClick={() => fileRef.current.click()} disabled={importing}
@@ -171,7 +171,7 @@ const TeamsPage = () => {
 
           {/* Template guide (empty state) */}
           {!membersLoading && members.length === 0 && (
-            <div className="bg-primary-50 rounded-2xl p-5 mb-5 border border-primary-100">
+            <div className="bg-primary-50 rounded-3xl p-5 mb-5 border border-primary-100">
               <p className="text-sm font-semibold text-primary-700 mb-3">📋 {selected.label} template columns</p>
               <div className="flex flex-wrap gap-2 mb-3">
                 {['First Name', 'Last Name', 'Email Address', 'Department',
@@ -186,7 +186,7 @@ const TeamsPage = () => {
 
           {/* Import result */}
           {importResult && (
-            <div className="mb-5 bg-green-50 border border-green-200 rounded-2xl p-4">
+            <div className="mb-5 bg-green-50 border border-green-200 rounded-3xl p-4">
               <p className="text-sm font-semibold text-green-800 mb-1">✅ {importResult.imported} imported to {selected.label}</p>
               {importResult.skipped > 0 && <p className="text-xs text-amber-600">{importResult.skipped} rows skipped</p>}
               {(importResult.row_errors || []).map((e, i) => <p key={i} className="text-xs text-red-500 mt-0.5">⚠ {e}</p>)}
@@ -205,23 +205,23 @@ const TeamsPage = () => {
           )}
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
             {membersLoading ? (
-              <div className="p-5 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-gray-50 rounded-xl animate-pulse" />)}</div>
+              <div className="p-5 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-warm-100 rounded-xl animate-pulse" />)}</div>
             ) : filtered.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="text-5xl mb-3">{selected.icon}</div>
-                <p className="text-sm font-medium text-gray-700 mb-1">No {selected.label} data yet</p>
-                <p className="text-xs text-gray-400 mb-5">Download the template, fill it in, then upload it back here</p>
+                <p className="text-sm font-medium text-warm-700 mb-1">No {selected.label} data yet</p>
+                <p className="text-xs text-warm-400 mb-5">Download the template, fill it in, then upload it back here</p>
                 <button onClick={handleDownload} className="btn-primary text-sm py-2.5 px-6">📥 Download template</button>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50">
+                    <tr className="border-b border-purple-100 bg-warm-100">
                       {['Employee','Department','Email','Date','Days Away','Status',''].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-warm-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -229,24 +229,24 @@ const TeamsPage = () => {
                     {filtered.map(m => {
                       const days = daysUntil(m.occasion_date);
                       return (
-                        <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                        <tr key={m.id} className="hover:bg-warm-100 transition-colors">
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-xs font-bold flex-shrink-0">
                                 {m.first_name[0]}{m.last_name[0]}
                               </div>
-                              <span className="text-sm font-medium text-gray-900 whitespace-nowrap">{m.first_name} {m.last_name}</span>
+                              <span className="text-sm font-medium text-warm-900 whitespace-nowrap">{m.first_name} {m.last_name}</span>
                             </div>
                           </td>
                           <td className="px-4 py-3"><span className="text-xs bg-primary-50 text-primary-600 px-2.5 py-1 rounded-full font-medium">{m.department}</span></td>
-                          <td className="px-4 py-3 text-sm text-gray-500 max-w-[160px] truncate">{m.email}</td>
-                          <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">
+                          <td className="px-4 py-3 text-sm text-warm-500 max-w-[160px] truncate">{m.email}</td>
+                          <td className="px-4 py-3 text-sm text-warm-700 whitespace-nowrap">
                             {new Date(m.occasion_date).toLocaleDateString('en-NG', { day: 'numeric', month: 'short' })}
                           </td>
                           <td className="px-4 py-3">
                             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${
                               days === 0 ? 'bg-pink-100 text-pink-700' : days <= 2 ? 'bg-red-100 text-red-600' :
-                              days <= 7 ? 'bg-amber-100 text-amber-600' : 'bg-gray-100 text-gray-500'
+                              days <= 7 ? 'bg-amber-100 text-amber-600' : 'bg-purple-50 text-warm-500'
                             }`}>{days === 0 ? '🎉 Today!' : days === 1 ? 'Tomorrow' : `${days} days`}</span>
                           </td>
                           <td className="px-4 py-3">
@@ -254,7 +254,7 @@ const TeamsPage = () => {
                               ? <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">✓ Sent</span>
                               : m.card_slug
                               ? <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">🔄 Active</span>
-                              : <span className="text-xs text-gray-400">Pending</span>}
+                              : <span className="text-xs text-warm-400">Pending</span>}
                           </td>
                           <td className="px-4 py-3">
                             <button onClick={() => handleDelete(m.id, `${m.first_name} ${m.last_name}`)}

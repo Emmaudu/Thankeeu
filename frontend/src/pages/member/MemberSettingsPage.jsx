@@ -66,11 +66,11 @@ const MemberSettingsPage = () => {
       <div className="max-w-2xl">
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 overflow-x-auto">
+        <div className="flex gap-1 bg-purple-50 p-1 rounded-xl mb-6 overflow-x-auto">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all flex-1 ${
-                tab === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                tab === t.id ? 'bg-white text-warm-900 shadow-sm' : 'text-warm-500 hover:text-warm-700'
               }`}>
               {t.label}
             </button>
@@ -79,7 +79,7 @@ const MemberSettingsPage = () => {
 
         {/* Profile tab */}
         {tab === 'profile' && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 space-y-5">
 
             {/* Account info */}
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-4">
@@ -91,27 +91,27 @@ const MemberSettingsPage = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">First name</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">First name</label>
                 <input className="input" value={profile.first_name}
                   onChange={e => setProfile(p => ({ ...p, first_name: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Last name</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Last name</label>
                 <input className="input" value={profile.last_name}
                   onChange={e => setProfile(p => ({ ...p, last_name: e.target.value }))} />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
-              <input className="input bg-gray-50 cursor-not-allowed" value={member?.email || ''} disabled />
-              <p className="text-xs text-gray-400 mt-1">Email cannot be changed. Contact your HR admin if needed.</p>
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Email address</label>
+              <input className="input bg-warm-100 cursor-not-allowed" value={member?.email || ''} disabled />
+              <p className="text-xs text-warm-400 mt-1">Email cannot be changed. Contact your HR admin if needed.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone number</label>
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Phone number</label>
               <input className="input" placeholder="+234 800 000 0000" value={profile.phone}
                 onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} />
             </div>
@@ -124,21 +124,21 @@ const MemberSettingsPage = () => {
 
         {/* Password tab */}
         {tab === 'password' && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Current password</label>
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Current password</label>
               <input type="password" className="input" placeholder="Your current password"
                 value={passwords.current_password}
                 onChange={e => setPasswords(p => ({ ...p, current_password: e.target.value }))} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">New password</label>
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">New password</label>
               <input type="password" className="input" placeholder="At least 8 characters"
                 value={passwords.new_password}
                 onChange={e => setPasswords(p => ({ ...p, new_password: e.target.value }))} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm new password</label>
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Confirm new password</label>
               <input type="password" className="input" placeholder="Repeat new password"
                 value={passwords.confirm_password}
                 onChange={e => setPasswords(p => ({ ...p, confirm_password: e.target.value }))} />
@@ -158,7 +158,7 @@ const MemberSettingsPage = () => {
 
         {/* Account tab */}
         {tab === 'account' && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 space-y-5">
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
               <p className="text-sm font-semibold text-amber-800 mb-1">ℹ️ Account information</p>
               <p className="text-xs text-amber-700 leading-relaxed">
@@ -166,24 +166,24 @@ const MemberSettingsPage = () => {
               </p>
             </div>
 
-            <div className="space-y-3 text-sm text-gray-600">
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <span className="text-gray-500">Account status</span>
+            <div className="space-y-3 text-sm text-warm-600">
+              <div className="flex items-center justify-between py-3 border-b border-purple-100">
+                <span className="text-warm-500">Account status</span>
                 <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">✓ Approved</span>
               </div>
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <span className="text-gray-500">Department</span>
-                <span className="font-medium text-gray-800">{member?.department}</span>
+              <div className="flex items-center justify-between py-3 border-b border-purple-100">
+                <span className="text-warm-500">Department</span>
+                <span className="font-medium text-warm-800">{member?.department}</span>
               </div>
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <span className="text-gray-500">Role</span>
-                <span className="font-medium text-gray-800">
+              <div className="flex items-center justify-between py-3 border-b border-purple-100">
+                <span className="text-warm-500">Role</span>
+                <span className="font-medium text-warm-800">
                   {member?.role === 'team_leader' ? '👑 Team Leader' : '👤 Team Member'}
                 </span>
               </div>
               <div className="flex items-center justify-between py-3">
-                <span className="text-gray-500">Company</span>
-                <span className="font-medium text-gray-800">{member?.company?.name}</span>
+                <span className="text-warm-500">Company</span>
+                <span className="font-medium text-warm-800">{member?.company?.name}</span>
               </div>
             </div>
 

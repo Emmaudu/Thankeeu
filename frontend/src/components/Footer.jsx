@@ -1,62 +1,81 @@
 import { Link } from 'react-router-dom';
-import ThankeeuLogo from './ThankeeuLogo';
 
 const Footer = () => (
-  <footer className="bg-gray-950 text-gray-400">
-    <div className="section-container py-12 md:py-16">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10 md:mb-12">
-
+  <footer style={{ background:'linear-gradient(180deg,#F5F0FF,#EDE5FF)' }} className="border-t border-purple-100 mt-auto">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
         {/* Brand */}
-        <div className="col-span-2 md:col-span-1">
-          <ThankeeuLogo size={32} textSize="text-lg" className="[&_span]:text-white mb-3" />
-          <p className="text-sm leading-relaxed mb-4 text-gray-500">
-            The world's group card and gift platform. Celebrate every milestone, together.
+        <div className="col-span-2 sm:col-span-1">
+          <Link to="/" className="flex items-center gap-2.5 mb-4">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{ background:'linear-gradient(135deg,#A855F7,#7C3AED)' }}>
+              <span className="text-xl">💌</span>
+            </div>
+            <span className="font-display font-bold text-xl text-warm-900">
+              Thank<span className="text-primary-500">eeu</span>
+            </span>
+          </Link>
+          <p className="text-sm text-warm-600 leading-relaxed mb-4">
+            The world's favourite group card & gift platform. Celebrate every milestone, together 🌍
           </p>
-          <p className="text-xs text-gray-600">Made with 💜 worldwide 🌍</p>
+          <div className="flex gap-2">
+            {['🐦','💼','📸'].map((icon,i) => (
+              <a key={i} href="#"
+                className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-base border-2 border-purple-100 hover:border-primary-300 hover:bg-primary-50 transition-all">
+                {icon}
+              </a>
+            ))}
+          </div>
         </div>
 
         {/* Product */}
         <div>
-          <p className="text-sm font-semibold text-white mb-4">Product</p>
-          <ul className="space-y-3 text-sm">
-            <li><Link to="/signup"  className="hover:text-white transition-colors">Create a card</Link></li>
-            <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-            <li><a href="#occasions" className="hover:text-white transition-colors">Occasions</a></li>
-            <li><a href="#how-it-works" className="hover:text-white transition-colors">How it works</a></li>
-            <li><a href="/blog" className="hover:text-white transition-colors">Blog</a></li>
+          <p className="font-bold text-warm-900 text-sm mb-4">🎁 Product</p>
+          <ul className="space-y-2.5">
+            {[
+              { to:'/create-card', label:'Create a card' },
+              { to:'/pricing',     label:'Pricing' },
+              { to:'/company/signup', label:'For Teams' },
+              { to:'/blog',        label:'Blog' },
+            ].map(({ to, label }) => (
+              <li key={to}><Link to={to} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
+            ))}
           </ul>
         </div>
 
-        {/* For Teams */}
+        {/* Occasions */}
         <div>
-          <p className="text-sm font-semibold text-white mb-4">For Teams</p>
-          <ul className="space-y-3 text-sm">
-            <li><Link to="/company/signup" className="hover:text-white transition-colors">Company signup</Link></li>
-            <li><Link to="/company/login"  className="hover:text-white transition-colors">Company login</Link></li>
-            <li><Link to="/pricing"        className="hover:text-white transition-colors">Team pricing</Link></li>
-            <li><a href="#book-demo"       className="hover:text-white transition-colors">Book a demo</a></li>
+          <p className="font-bold text-warm-900 text-sm mb-4">🎉 Occasions</p>
+          <ul className="space-y-2.5">
+            {['🎂 Birthday','💼 Farewell','🎓 Graduation','💍 Anniversary','🌟 Promotion','👶 Baby shower'].map(l => (
+              <li key={l}><span className="text-sm text-warm-600 font-medium">{l}</span></li>
+            ))}
           </ul>
         </div>
 
-        {/* Legal */}
+        {/* Company */}
         <div>
-          <p className="text-sm font-semibold text-white mb-4">Company</p>
-          <ul className="space-y-3 text-sm">
-            <li><Link to="/policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-            <li><Link to="/policy" className="hover:text-white transition-colors">Terms of Service</Link></li>
-            <li><a href="mailto:support@thankeeu.com" className="hover:text-white transition-colors">Contact us</a></li>
-            <li><a href="mailto:support@thankeeu.com" className="hover:text-white transition-colors">Support</a></li>
+          <p className="font-bold text-warm-900 text-sm mb-4">🏢 Company</p>
+          <ul className="space-y-2.5">
+            {[
+              { to:'/policy',     label:'Privacy & Terms' },
+              { to:'/policy#faq', label:'FAQ' },
+            ].map(({ to, label }) => (
+              <li key={to}><Link to={to} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
+            ))}
+            <li><a href="mailto:support@thankeeu.com" className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">📧 support@thankeeu.com</a></li>
           </ul>
         </div>
       </div>
 
-      <div className="border-t border-gray-900 pt-6 md:pt-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
-        <p>© {new Date().getFullYear()} Thankeeu. All rights reserved.</p>
-        <p className="flex items-center gap-2">
-          Payments by <strong className="text-gray-500">Paystack</strong> ·
-          Emails by <strong className="text-gray-500">Resend</strong> ·
-          Storage by <strong className="text-gray-500">Supabase</strong>
+      <div className="border-t border-purple-200 pt-7 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p className="text-xs text-warm-500 text-center sm:text-left">
+          © {new Date().getFullYear()} Thankeeu. Made with 💜 worldwide 🌍
         </p>
+        <span className="text-xs px-3 py-1.5 rounded-full font-bold"
+          style={{ background:'#F5F0FF', color:'#7C3AED', border:'1.5px solid #DDD6FE' }}>
+          🔒 Secure Naira payments via Paystack
+        </span>
       </div>
     </div>
   </footer>

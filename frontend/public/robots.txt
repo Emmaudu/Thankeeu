@@ -1,5 +1,5 @@
 # Thankeeu — robots.txt
-# https://thankeeu.ng
+# https://thankeeu.com
 # Last updated: 2026-01-01
 
 # ── Default: allow all crawlers ───────────────────────────────────────────────
@@ -100,7 +100,7 @@ User-agent: YouBot
 Disallow: /
 
 # ── Sitemap location ─────────────────────────────────────────────────────────
-Sitemap: https://thankeeu.ng/sitemap.xml
+Sitemap: https://thankeeu.com/sitemap.xml
 
 # ── Crawl delay for well-behaved bots (optional — Google ignores this) ───────
 Crawl-delay: 1

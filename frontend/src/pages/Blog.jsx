@@ -30,7 +30,7 @@ const PostCard = ({ post, featured = false }) => {
   if (featured) {
     return (
       <Link to={`/blog/${post.slug}`}
-        className="group block bg-white rounded-2xl md:rounded-3xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 md:flex">
+        className="group block bg-white rounded-3xl md:rounded-3xl overflow-hidden border border-purple-100 shadow-sm hover:shadow-xl transition-all duration-300 md:flex">
         <div className="md:w-1/2 h-48 md:h-auto overflow-hidden">
           <img src={cover} alt={post.cover_alt || post.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -41,20 +41,20 @@ const PostCard = ({ post, featured = false }) => {
             <span className="bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1 rounded-full">
               {CATEGORY_ICONS[post.category] || '📝'} {post.category}
             </span>
-            <span className="text-xs text-gray-400">Featured</span>
+            <span className="text-xs text-warm-400">Featured</span>
           </div>
-          <h2 className="font-display text-xl md:text-2xl font-semibold text-gray-900 group-hover:text-primary-600 transition-colors mb-3 leading-tight">
+          <h2 className="font-display text-xl md:text-2xl font-semibold text-warm-900 group-hover:text-primary-600 transition-colors mb-3 leading-tight">
             {post.title}
           </h2>
-          <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3">{post.excerpt}</p>
+          <p className="text-warm-600 text-sm leading-relaxed mb-4 line-clamp-3">{post.excerpt}</p>
           <div className="flex items-center justify-between mt-auto">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-xs font-bold text-primary-600">
                 {post.author_name?.charAt(0) || 'T'}
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-700">{post.author_name}</p>
-                <p className="text-xs text-gray-400">{date} · {post.read_time} min read</p>
+                <p className="text-xs font-medium text-warm-700">{post.author_name}</p>
+                <p className="text-xs text-warm-400">{date} · {post.read_time} min read</p>
               </div>
             </div>
             <span className="text-primary-400 text-sm font-medium group-hover:translate-x-1 transition-transform inline-block">
@@ -68,7 +68,7 @@ const PostCard = ({ post, featured = false }) => {
 
   return (
     <Link to={`/blog/${post.slug}`}
-      className="group block bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300">
+      className="group block bg-white rounded-3xl overflow-hidden border border-purple-100 shadow-sm hover:shadow-lg transition-all duration-300">
       <div className="h-40 sm:h-44 overflow-hidden">
         <img src={cover} alt={post.cover_alt || post.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -76,25 +76,25 @@ const PostCard = ({ post, featured = false }) => {
       </div>
       <div className="p-4 md:p-5">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
+          <span className="text-xs bg-purple-50 text-warm-600 px-2.5 py-0.5 rounded-full font-medium">
             {CATEGORY_ICONS[post.category] || '📝'} {post.category}
           </span>
           {post.is_featured && (
             <span className="text-xs bg-primary-50 text-primary-500 px-2 py-0.5 rounded-full">★ Featured</span>
           )}
         </div>
-        <h3 className="font-display text-base md:text-lg font-semibold text-gray-900 group-hover:text-primary-600 transition-colors mb-2 leading-snug line-clamp-2">
+        <h3 className="font-display text-base md:text-lg font-semibold text-warm-900 group-hover:text-primary-600 transition-colors mb-2 leading-snug line-clamp-2">
           {post.title}
         </h3>
-        <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 mb-4">{post.excerpt}</p>
+        <p className="text-warm-500 text-sm leading-relaxed line-clamp-2 mb-4">{post.excerpt}</p>
         <div className="flex items-center justify-between pt-3 border-t border-gray-50">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-xs font-bold text-primary-600">
               {post.author_name?.charAt(0) || 'T'}
             </div>
-            <p className="text-xs text-gray-500">{date} · {post.read_time} min</p>
+            <p className="text-xs text-warm-500">{date} · {post.read_time} min</p>
           </div>
-          <p className="text-xs text-gray-400">{(post.views || 0).toLocaleString()} views</p>
+          <p className="text-xs text-warm-400">{(post.views || 0).toLocaleString()} views</p>
         </div>
       </div>
     </Link>
@@ -159,20 +159,20 @@ const Blog = () => {
   const rest        = posts.filter(p => !p.is_featured || posts.indexOf(p) > 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-warm-100">
       <Navbar />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-primary-50 to-white pt-10 pb-8 md:pt-16 md:pb-12 border-b border-gray-100">
+      <section className="bg-gradient-to-br from-primary-50 to-white pt-10 pb-8 md:pt-16 md:pb-12 border-b border-purple-100">
         <div className="section-container">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
               📚 Thankeeu Blog
             </div>
-            <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-gray-900 mb-3 leading-tight">
+            <h1 className="font-display text-3xl sm:text-4xl md:text-3xl sm:text-5xl font-semibold text-warm-900 mb-3 leading-tight">
               Insights for modern<br className="hidden sm:block" /> modern workplaces
             </h1>
-            <p className="text-gray-600 text-base md:text-lg leading-relaxed">
+            <p className="text-warm-600 text-base md:text-lg leading-relaxed">
               Guides on workplace celebrations, HRIS integration, group gifting, and building better team cultures.
             </p>
           </div>
@@ -180,7 +180,7 @@ const Blog = () => {
       </section>
 
       {/* Category filter */}
-      <div className="sticky top-14 md:top-16 z-30 bg-white border-b border-gray-100 shadow-sm">
+      <div className="sticky top-14 md:top-16 z-30 bg-white border-b border-purple-100 shadow-sm">
         <div className="section-container">
           <div className="flex gap-1 overflow-x-auto scrollbar-hide py-2">
             {categories.map(cat => (
@@ -188,11 +188,11 @@ const Blog = () => {
                 className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                   category === cat.name
                     ? 'bg-primary-400 text-white shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-50'
+                    : 'text-warm-600 hover:bg-warm-100'
                 }`}>
                 <span>{CATEGORY_ICONS[cat.name] || '📝'}</span>
                 <span>{cat.name}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${category === cat.name ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded-full ${category === cat.name ? 'bg-white/20 text-white' : 'bg-purple-50 text-warm-500'}`}>
                   {cat.count}
                 </span>
               </button>
@@ -204,18 +204,18 @@ const Blog = () => {
       <main className="section-container py-8 md:py-12">
         {loading ? (
           <div className="space-y-6">
-            <div className="h-64 bg-white rounded-3xl border border-gray-100 animate-pulse" />
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="h-64 bg-white rounded-3xl border border-purple-100 animate-pulse" />
+            <div className="grid sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-72 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+                <div key={i} className="h-72 bg-white rounded-3xl border border-purple-100 animate-pulse" />
               ))}
             </div>
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">📝</div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No posts yet</h3>
-            <p className="text-gray-500 text-sm">Check back soon — we are working on great content!</p>
+            <h3 className="text-lg font-semibold text-warm-700 mb-2">No posts yet</h3>
+            <p className="text-warm-500 text-sm">Check back soon — we are working on great content!</p>
           </div>
         ) : (
           <div className="space-y-8">
@@ -223,7 +223,7 @@ const Blog = () => {
             {featured && page === 1 && <PostCard post={featured} featured />}
 
             {/* Post grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
               {(featured && page === 1 ? rest : posts).map(post => (
                 <PostCard key={post.id} post={post} />
               ))}
@@ -238,7 +238,7 @@ const Blog = () => {
                   {[...Array(totalPages)].map((_, i) => (
                     <button key={i} onClick={() => setPage(i + 1)}
                       className={`w-9 h-9 rounded-xl text-sm font-medium transition-all ${
-                        page === i + 1 ? 'bg-primary-400 text-white' : 'text-gray-600 hover:bg-gray-100'
+                        page === i + 1 ? 'bg-primary-400 text-white' : 'text-warm-600 hover:bg-purple-50'
                       }`}>{i + 1}</button>
                   ))}
                 </div>
@@ -250,7 +250,7 @@ const Blog = () => {
         )}
 
         {/* Newsletter CTA */}
-        <div className="mt-12 md:mt-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-2xl md:rounded-3xl p-6 md:p-10 text-center">
+        <div className="mt-12 md:mt-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-3xl md:rounded-3xl p-6 md:p-10 text-center">
           <p className="text-2xl mb-2">💌</p>
           <h3 className="font-display text-xl md:text-2xl font-semibold text-white mb-2">
             Get new articles in your inbox

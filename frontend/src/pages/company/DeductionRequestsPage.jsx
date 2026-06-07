@@ -82,8 +82,8 @@ const DeductionRequestsPage = () => {
     <CompanyLayout title="Financial Requests" subtitle="Approve team leader deductions and company-wide notification requests">
 
       {/* Info card */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 mb-6">
-        <div className="grid sm:grid-cols-2 gap-4 text-sm">
+      <div className="bg-blue-50 border border-blue-100 rounded-3xl p-5 mb-6">
+        <div className="grid sm:grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
             <p className="font-semibold text-blue-800 mb-1">💰 How deductions work</p>
             <p className="text-blue-700 text-xs leading-relaxed">
@@ -100,11 +100,11 @@ const DeductionRequestsPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 border-b border-gray-200 mb-6">
+      <div className="flex gap-0 border-b border-purple-100 mb-6">
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === t.id ? 'border-primary-400 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              tab === t.id ? 'border-primary-500 text-primary-600 font-bold' : 'border-transparent text-warm-500 hover:text-warm-800'
             }`}>{t.label}</button>
         ))}
       </div>
@@ -113,39 +113,39 @@ const DeductionRequestsPage = () => {
       {tab === 'deductions' && (
         <div className="space-y-4">
           {loading ? (
-            [...Array(3)].map((_, i) => <div key={i} className="h-28 bg-white rounded-2xl border border-gray-100 animate-pulse" />)
+            [...Array(3)].map((_, i) => <div key={i} className="h-28 bg-white rounded-3xl border border-purple-100 animate-pulse" />)
           ) : deductions.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+            <div className="bg-white rounded-3xl border border-purple-100 p-12 text-center">
               <div className="text-5xl mb-3">💰</div>
-              <p className="text-sm text-gray-500">No deduction requests yet</p>
+              <p className="text-sm text-warm-500">No deduction requests yet</p>
             </div>
           ) : (
             <>
               {/* Pending first */}
               {pendingDeductions.length > 0 && (
                 <div className="mb-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Awaiting your review</p>
+                  <p className="text-xs font-semibold text-warm-500 uppercase tracking-wide mb-3">Awaiting your review</p>
                   {pendingDeductions.map(d => (
-                    <div key={d.id} className="bg-white border border-amber-200 rounded-2xl p-5 mb-3">
+                    <div key={d.id} className="bg-white border border-amber-200 rounded-3xl p-5 mb-3">
                       <div className="flex items-start justify-between gap-4 mb-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-semibold text-gray-900">{d.requested_by_name}</span>
+                            <span className="text-sm font-semibold text-warm-900">{d.requested_by_name}</span>
                             <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Pending</span>
                           </div>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-warm-500">
                             Requested {format(new Date(d.created_at), 'MMM d, yyyy · h:mm a')}
                             {d.cards && ` · Card: ${d.cards.recipient_name}`}
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-xl font-bold text-gray-900">{formatUSD(d.amount || 0)}</p>
-                          <p className="text-xs text-gray-400">requested deduction</p>
+                          <p className="text-xl font-bold text-warm-900">{formatUSD(d.amount || 0)}</p>
+                          <p className="text-xs text-warm-400">requested deduction</p>
                         </div>
                       </div>
-                      <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                        <p className="text-xs font-semibold text-gray-500 mb-1">Reason from team leader</p>
-                        <p className="text-sm text-gray-700">{d.reason}</p>
+                      <div className="bg-warm-100 rounded-xl p-3 mb-4">
+                        <p className="text-xs font-semibold text-warm-500 mb-1">Reason from team leader</p>
+                        <p className="text-sm text-warm-700">{d.reason}</p>
                       </div>
 
                       {noteFor === d.id ? (
@@ -178,19 +178,19 @@ const DeductionRequestsPage = () => {
               {/* Resolved */}
               {resolvedDeductions.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Resolved</p>
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <p className="text-xs font-semibold text-warm-500 uppercase tracking-wide mb-3">Resolved</p>
+                  <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
                     <div className="divide-y divide-gray-50">
                       {resolvedDeductions.map(d => (
                         <div key={d.id} className="flex items-center gap-4 px-5 py-3">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-gray-900">{d.requested_by_name}</p>
+                              <p className="text-sm font-medium text-warm-900">{d.requested_by_name}</p>
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[d.status]}`}>{d.status}</span>
                             </div>
-                            <p className="text-xs text-gray-400 mt-0.5">{d.reason?.slice(0, 60)}{d.reason?.length > 60 ? '...' : ''}</p>
+                            <p className="text-xs text-warm-400 mt-0.5">{d.reason?.slice(0, 60)}{d.reason?.length > 60 ? '...' : ''}</p>
                           </div>
-                          <p className="text-sm font-bold text-gray-700 flex-shrink-0">{formatUSD(d.amount || 0)}</p>
+                          <p className="text-sm font-bold text-warm-700 flex-shrink-0">{formatUSD(d.amount || 0)}</p>
                         </div>
                       ))}
                     </div>
@@ -206,20 +206,20 @@ const DeductionRequestsPage = () => {
       {tab === 'crossdept' && (
         <div className="space-y-4">
           {loading ? (
-            [...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />)
+            [...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white rounded-3xl border border-purple-100 animate-pulse" />)
           ) : crossDept.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+            <div className="bg-white rounded-3xl border border-purple-100 p-12 text-center">
               <div className="text-5xl mb-3">📣</div>
-              <p className="text-sm text-gray-500">No pending cross-department requests</p>
+              <p className="text-sm text-warm-500">No pending cross-department requests</p>
             </div>
           ) : crossDept.map(r => (
-            <div key={r.id} className="bg-white border border-primary-100 rounded-2xl p-5">
+            <div key={r.id} className="bg-white border border-primary-100 rounded-3xl p-5">
               <div className="flex items-start justify-between gap-4 mb-3">
                 <div>
-                  <p className="text-sm font-semibold text-gray-900 mb-1">
+                  <p className="text-sm font-semibold text-warm-900 mb-1">
                     {r.requested_by_name} wants to notify all departments
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-warm-500">
                     Card: <strong>{r.cards?.title || r.cards?.recipient_name}</strong> ·
                     {format(new Date(r.created_at), ' MMM d, yyyy')}
                   </p>
@@ -229,9 +229,9 @@ const DeductionRequestsPage = () => {
                 </span>
               </div>
               {r.reason && (
-                <div className="bg-gray-50 rounded-xl p-3 mb-4">
-                  <p className="text-xs font-semibold text-gray-500 mb-1">Reason</p>
-                  <p className="text-sm text-gray-700">{r.reason}</p>
+                <div className="bg-warm-100 rounded-xl p-3 mb-4">
+                  <p className="text-xs font-semibold text-warm-500 mb-1">Reason</p>
+                  <p className="text-sm text-warm-700">{r.reason}</p>
                 </div>
               )}
               <div className="flex gap-3">

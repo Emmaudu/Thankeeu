@@ -14,7 +14,7 @@ const initializeCardPurchase = async (req, res) => {
     const { plan_type } = req.body;
     // USD prices: single=$5, pack5=$20, business=$50
     // Converted to NGN at 1600/USD, then to kobo (*100)
-    const amounts = { single: 800000, pack5: 3200000, business: 8000000 }; // kobo
+    const amounts = { single: 500000, pack5: 1000000, business: 20000000 }; // kobo — NGN: single=₦5k, pack=₦10k, business=₦200k
     const amount = amounts[plan_type];
     if (!amount) return res.status(400).json({ error: 'Invalid plan type' });
 
@@ -43,7 +43,7 @@ const initializeContribution = async (req, res) => {
     const { card_slug, contributor_name, contributor_email, amount, message_id } = req.body;
 
     if (!contributor_email) return res.status(400).json({ error: 'Email required for payment' });
-    if (amount < 1600) return res.status(400).json({ error: 'Minimum contribution is $1' });
+    if (amount < 2500) return res.status(400).json({ error: 'Minimum contribution is ₦2,500' });
 
     const { data: card } = await supabase.from('cards').select('id, recipient_name, occasion').eq('slug', card_slug).single();
     if (!card) return res.status(404).json({ error: 'Card not found' });

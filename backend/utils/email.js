@@ -174,7 +174,7 @@ const sendEmail = async ({ to, template, data }) => {
     const tmpl = emailTemplates[template]?.(data);
     if (!tmpl) throw new Error(`Template "${template}" not found`);
     const result = await resend.emails.send({
-      from: `${process.env.EMAIL_FROM_NAME || 'Thankeeu'} <${process.env.EMAIL_FROM || 'hello@thankeeu.ng'}>`,
+      from: `${process.env.EMAIL_FROM_NAME || 'Thankeeu'} <${process.env.EMAIL_FROM || 'hello@thankeeu.com'}>`,
       to,
       subject: tmpl.subject,
       html: tmpl.html
@@ -454,7 +454,7 @@ const demoTemplates = {
         </ul>
       </div>
       <p style="color:#555;font-size:13px;line-height:1.7;">In the meantime, feel free to explore the platform at <a href="${process.env.APP_URL}" style="color:#6C5CE7;">${process.env.APP_URL}</a>.</p>
-      <p style="color:#aaa;font-size:12px;margin-top:16px;">Questions? Reply to this email or contact us at <a href="mailto:support@thankeeu.ng" style="color:#6C5CE7;">support@thankeeu.ng</a></p>
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Questions? Reply to this email or contact us at <a href="mailto:support@thankeeu.com" style="color:#6C5CE7;">support@thankeeu.com</a></p>
     `)
   }),
 };

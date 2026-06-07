@@ -492,7 +492,7 @@ describe('Blog post helpers', () => {
       description: 'Step-by-step guide for Nigerian HR teams...',
       datePublished: '2025-01-01T00:00:00Z',
       author: { '@type': 'Person', name: 'Thankeeu Team' },
-      publisher: { '@id': 'https://thankeeu.ng/#organization' },
+      publisher: { '@id': 'https://thankeeu.com/#organization' },
       inLanguage: 'en-NG',
     };
 

@@ -1,44 +1,25 @@
 /**
- * Thankeeu Currency Utility
- * The backend stores all amounts in NGN and processes payments via Paystack in kobo.
- * The frontend shows amounts in USD for a global audience.
- *
- * Exchange rate: 1 USD ≈ 1,600 NGN (approximate 2025 mid-market rate)
- * This is for display purposes. Paystack handles actual FX at checkout.
+ * Thankeeu Currency — Nigerian Naira (₦)
+ * All amounts stored in NGN. Paystack processes in kobo (NGN × 100).
  */
 
-export const NGN_PER_USD = 1600;
-
-/**
- * Format a stored NGN amount as a USD display string.
- * e.g.  8000 NGN → "$5"
- *       16000 NGN → "$10"
- *       80000 NGN → "$50"
- */
-export const formatUSD = (ngnAmount) => {
-  if (!ngnAmount || isNaN(ngnAmount)) return '$0';
-  const usd = ngnAmount / NGN_PER_USD;
-  if (usd >= 1000) return `$${(usd / 1000).toFixed(1)}k`;
-  if (usd < 1) return `$${usd.toFixed(2)}`;
-  return `$${Math.round(usd).toLocaleString()}`;
+/** Format an NGN amount for display: ₦5,000 / ₦1.2M */
+export const formatNGN = (amount) => {
+  if (!amount || isNaN(amount)) return '₦0';
+  const n = Number(amount);
+  if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)    return `₦${n.toLocaleString('en-NG')}`;
+  return `₦${n}`;
 };
 
-/**
- * Convert a USD amount to NGN for sending to the backend.
- * e.g.  5 USD → 8000 NGN
- */
-export const usdToNgn = (usdAmount) => Math.round(usdAmount * NGN_PER_USD);
+/** Alias used by pages that still call formatUSD — returns Naira string */
+export const formatUSD = formatNGN;
 
-/**
- * Convert NGN to USD number (unformatted).
- */
-export const ngnToUsd = (ngnAmount) => Math.round(ngnAmount / NGN_PER_USD);
+/** Convert NGN → kobo for Paystack */
+export const toKobo = (ngn) => Math.round(ngn * 100);
 
-/**
- * Format a USD number as a display string without converting (amount already in USD).
- */
-export const formatUSDDirect = (usdAmount) => {
-  if (!usdAmount || isNaN(usdAmount)) return '$0';
-  if (usdAmount >= 1000) return `$${(usdAmount / 1000).toFixed(1)}k`;
-  return `$${usdAmount.toLocaleString()}`;
-};
+/** No-op aliases for backward compatibility */
+export const usdToNgn    = (x) => x;
+export const ngnToUsd    = (x) => x;
+export const formatUSDDirect = formatNGN;
+export const NGN_PER_USD = 1;

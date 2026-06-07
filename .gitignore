@@ -1,32 +1,77 @@
-# Dependencies
+# ── Dependencies ─────────────────────────────────────────────────
 node_modules/
-**/node_modules/
+.pnp
+.pnp.js
 
-# Environment variables
-.env
-**/.env
-*.env.local
-
-# Build output
+# ── Build outputs ─────────────────────────────────────────────────
 dist/
 build/
-**/dist/
+.output/
+.vercel/
+.netlify/
 
-# Logs
+# ── Environment variables (NEVER commit these) ────────────────────
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+*.env
+
+# ── Logs ──────────────────────────────────────────────────────────
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# OS
+# ── OS files ──────────────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
 
-# IDE
+# ── Editor / IDE ──────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.cursor/
 
-# Coverage
+# ── Testing & coverage ────────────────────────────────────────────
 coverage/
+*.lcov
 .nyc_output/
+
+# ── Caches ────────────────────────────────────────────────────────
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# ── Uploads / user media ──────────────────────────────────────────
+backend/uploads/
+public/uploads/
+*.mp4
+*.mp3
+*.wav
+
+# ── Misc ──────────────────────────────────────────────────────────
+.turbo/
+.svelte-kit/

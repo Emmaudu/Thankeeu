@@ -8,10 +8,10 @@ import toast from 'react-hot-toast';
 import { formatUSD } from '../utils/currency';
 
 const StatCard = ({ label, value, sub, color = 'bg-white' }) => (
-  <div className={`${color} rounded-2xl p-5 border border-gray-100`}>
-    <p className="text-xs text-gray-500 mb-1 uppercase tracking-wide">{label}</p>
-    <p className="text-2xl font-display font-semibold text-gray-900">{value}</p>
-    {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+  <div className={`${color} rounded-3xl p-5 border border-purple-100`}>
+    <p className="text-xs text-warm-500 mb-1 uppercase tracking-wide">{label}</p>
+    <p className="text-2xl font-display font-semibold text-warm-900">{value}</p>
+    {sub && <p className="text-xs text-warm-400 mt-1">{sub}</p>}
   </div>
 );
 
@@ -19,7 +19,7 @@ const ticketColors = {
   open: 'bg-amber-100 text-amber-700',
   in_progress: 'bg-blue-100 text-blue-700',
   resolved: 'bg-green-100 text-green-700',
-  closed: 'bg-gray-100 text-gray-500',
+  closed: 'bg-purple-50 text-warm-500',
 };
 
 const Admin = () => {
@@ -164,7 +164,7 @@ const Admin = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-warm-100 flex items-center justify-center">
       <div className="w-10 h-10 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
     </div>
   );
@@ -183,20 +183,20 @@ const Admin = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-warm-100">
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="font-display text-3xl font-semibold text-gray-900">Admin Panel</h1>
-            <p className="text-gray-500 text-sm mt-1">Signed in as {user?.full_name} 🛡️</p>
+            <h1 className="font-display text-3xl font-semibold text-warm-900">Admin Panel</h1>
+            <p className="text-warm-500 text-sm mt-1">Signed in as {user?.full_name} 🛡️</p>
           </div>
           <button onClick={fetchCore} className="btn-secondary text-sm py-2 px-4">↻ Refresh</button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           <StatCard label="Total users" value={(stats.total_users || 0).toLocaleString()} />
           <StatCard label="Total cards" value={(stats.total_cards || 0).toLocaleString()} sub={`${stats.active_cards || 0} active`} />
           <StatCard label="Cards sent" value={(stats.sent_cards || 0).toLocaleString()} />
@@ -205,13 +205,13 @@ const Admin = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-0 border-b border-gray-200 mb-6 overflow-x-auto scrollbar-hide">
+        <div className="flex gap-0 border-b border-purple-100 mb-6 overflow-x-auto scrollbar-hide">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
                 tab === t.id
                   ? 'border-primary-400 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  : 'border-transparent text-warm-500 hover:text-warm-800'
               }`}>
               {t.label}
             </button>
@@ -221,9 +221,9 @@ const Admin = () => {
         {/* ── Overview ── */}
         {tab === 'overview' && (
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50">
-                <h3 className="font-semibold text-gray-900 text-sm">Recent signups</h3>
+                <h3 className="font-semibold text-warm-900 text-sm">Recent signups</h3>
               </div>
               <div className="divide-y divide-gray-50">
                 {(data?.recent_users || []).slice(0, 8).map(u => (
@@ -232,35 +232,35 @@ const Admin = () => {
                       {u.full_name?.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{u.full_name}</p>
-                      <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                      <p className="text-sm font-medium text-warm-800 truncate">{u.full_name}</p>
+                      <p className="text-xs text-warm-400 truncate">{u.email}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        u.role === 'admin' ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-500'
+                        u.role === 'admin' ? 'bg-primary-100 text-primary-600' : 'bg-purple-50 text-warm-500'
                       }`}>{u.role}</span>
-                      <p className="text-xs text-gray-400 mt-0.5">{format(new Date(u.created_at), 'MMM d')}</p>
+                      <p className="text-xs text-warm-400 mt-0.5">{format(new Date(u.created_at), 'MMM d')}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50">
-                <h3 className="font-semibold text-gray-900 text-sm">Recent cards</h3>
+                <h3 className="font-semibold text-warm-900 text-sm">Recent cards</h3>
               </div>
               <div className="divide-y divide-gray-50">
                 {(data?.recent_cards || []).slice(0, 8).map(c => (
                   <div key={c.id} className="flex items-center gap-3 px-5 py-3">
                     <div className="w-8 h-8 bg-pink-50 rounded-xl flex items-center justify-center text-base flex-shrink-0">💌</div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{c.title || c.slug}</p>
-                      <p className="text-xs text-gray-400">{formatUSD(c.total_collected || 0)} collected</p>
+                      <p className="text-sm font-medium text-warm-800 truncate">{c.title || c.slug}</p>
+                      <p className="text-xs text-warm-400">{formatUSD(c.total_collected || 0)} collected</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
                       c.status === 'active' ? 'bg-green-100 text-green-700' :
-                      c.status === 'sent' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+                      c.status === 'sent' ? 'bg-blue-100 text-blue-700' : 'bg-purple-50 text-warm-500'
                     }`}>{c.status}</span>
                   </div>
                 ))}
@@ -271,34 +271,34 @@ const Admin = () => {
 
         {/* ── Users ── */}
         {tab === 'users' && (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-purple-100 bg-warm-100">
                     {['User', 'Email', 'Role', 'Joined', 'Actions'].map(h => (
-                      <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-warm-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {users.map(u => (
-                    <tr key={u.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={u.id} className="hover:bg-warm-100 transition-colors">
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-xs font-bold">{u.full_name?.charAt(0)}</div>
-                          <span className="text-sm font-medium text-gray-800">{u.full_name}</span>
+                          <span className="text-sm font-medium text-warm-800">{u.full_name}</span>
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-sm text-gray-500">{u.email}</td>
+                      <td className="px-5 py-3 text-sm text-warm-500">{u.email}</td>
                       <td className="px-5 py-3">
                         <select value={u.role} onChange={e => handleRoleChange(u.id, e.target.value)}
-                          className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400">
+                          className="text-xs border border-purple-100 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-400">
                           <option value="user">user</option>
                           <option value="admin">admin</option>
                         </select>
                       </td>
-                      <td className="px-5 py-3 text-xs text-gray-400">{format(new Date(u.created_at), 'MMM d, yyyy')}</td>
+                      <td className="px-5 py-3 text-xs text-warm-400">{format(new Date(u.created_at), 'MMM d, yyyy')}</td>
                       <td className="px-5 py-3">
                         {u.id !== user?.id && (
                           <button onClick={() => handleDeleteUser(u.id, u.full_name)}
@@ -317,34 +317,34 @@ const Admin = () => {
 
         {/* ── Cards ── */}
         {tab === 'cards' && (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
+                  <tr className="border-b border-purple-100 bg-warm-100">
                     {['Card', 'Occasion', 'Creator', 'Status', 'Gift', 'Created', 'Actions'].map(h => (
-                      <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                      <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-warm-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {cards.map(c => (
-                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={c.id} className="hover:bg-warm-100 transition-colors">
                       <td className="px-5 py-3">
-                        <p className="text-sm font-medium text-gray-800 max-w-[150px] truncate">{c.title || c.slug}</p>
-                        <p className="text-xs text-gray-400">For {c.recipient_name}</p>
+                        <p className="text-sm font-medium text-warm-800 max-w-[150px] truncate">{c.title || c.slug}</p>
+                        <p className="text-xs text-warm-400">For {c.recipient_name}</p>
                       </td>
-                      <td className="px-5 py-3 text-sm text-gray-500 capitalize">{(c.occasion || '').replace('_', ' ')}</td>
-                      <td className="px-5 py-3 text-sm text-gray-500">{c.users?.full_name || '—'}</td>
+                      <td className="px-5 py-3 text-sm text-warm-500 capitalize">{(c.occasion || '').replace('_', ' ')}</td>
+                      <td className="px-5 py-3 text-sm text-warm-500">{c.users?.full_name || '—'}</td>
                       <td className="px-5 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           c.status === 'active' ? 'bg-green-100 text-green-700' :
                           c.status === 'sent'   ? 'bg-blue-100 text-blue-700' :
-                          c.status === 'draft'  ? 'bg-gray-100 text-gray-500' : 'bg-red-100 text-red-600'
+                          c.status === 'draft'  ? 'bg-purple-50 text-warm-500' : 'bg-red-100 text-red-600'
                         }`}>{c.status}</span>
                       </td>
                       <td className="px-5 py-3 text-sm font-medium text-green-700">{formatUSD(c.total_collected || 0)}</td>
-                      <td className="px-5 py-3 text-xs text-gray-400 whitespace-nowrap">{format(new Date(c.created_at), 'MMM d, yyyy')}</td>
+                      <td className="px-5 py-3 text-xs text-warm-400 whitespace-nowrap">{format(new Date(c.created_at), 'MMM d, yyyy')}</td>
                       <td className="px-5 py-3">
                         <div className="flex gap-2">
                           <a href={`/sign/${c.slug}`} target="_blank" rel="noreferrer"
@@ -365,34 +365,34 @@ const Admin = () => {
         {tab === 'companies' && (
           <div className="space-y-3">
             {companiesLoading ? (
-              [...Array(4)].map((_, i) => <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />)
+              [...Array(4)].map((_, i) => <div key={i} className="h-20 bg-white rounded-3xl border border-purple-100 animate-pulse" />)
             ) : companies.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+              <div className="bg-white rounded-3xl border border-purple-100 p-12 text-center">
                 <div className="text-4xl mb-3">🏢</div>
-                <p className="text-sm text-gray-400">No company accounts yet</p>
+                <p className="text-sm text-warm-400">No company accounts yet</p>
               </div>
             ) : companies.map(co => (
-              <div key={co.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div key={co.id} className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
                 <div className="flex items-start gap-4 px-5 py-4">
                   <div className="w-10 h-10 bg-primary-100 rounded-xl flex items-center justify-center text-primary-600 font-bold text-sm flex-shrink-0">
                     {co.name?.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                      <p className="font-semibold text-gray-900 text-sm">{co.name}</p>
+                      <p className="font-semibold text-warm-900 text-sm">{co.name}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         co.subscription?.status === 'active'
                           ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-500'
+                          : 'bg-purple-50 text-warm-500'
                       }`}>
                         {co.subscription?.status === 'active'
                           ? `✓ ${co.subscription.plan} plan`
                           : 'No subscription'}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400">{co.email} · {co.contact_person} · {co.industry || 'No industry'}</p>
+                    <p className="text-xs text-warm-400">{co.email} · {co.contact_person} · {co.industry || 'No industry'}</p>
                     {co.subscription?.expires_at && (
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs text-warm-400 mt-0.5">
                         Subscription expires: {format(new Date(co.subscription.expires_at), 'MMM d, yyyy')}
                         {co.subscription?.amount ? ` · ${formatUSD(co.subscription.amount / 100)}` : ''}
                       </p>
@@ -416,19 +416,19 @@ const Admin = () => {
                 </div>
 
                 {openCompany === co.id && (
-                  <div className="border-t border-gray-100 bg-gray-50 px-5 py-4">
-                    <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">
+                  <div className="border-t border-purple-100 bg-warm-100 px-5 py-4">
+                    <p className="text-xs font-semibold text-warm-500 mb-3 uppercase tracking-wide">
                       Team members ({(companyMembers[co.id] || []).length})
                     </p>
                     {!companyMembers[co.id] ? (
                       <div className="h-10 bg-gray-200 rounded-lg animate-pulse" />
                     ) : companyMembers[co.id].length === 0 ? (
-                      <p className="text-xs text-gray-400">No team members imported yet</p>
+                      <p className="text-xs text-warm-400">No team members imported yet</p>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="text-gray-400">
+                            <tr className="text-warm-400">
                               {['Name', 'Email', 'Department', 'Birthday', 'Status'].map(h => (
                                 <th key={h} className="text-left py-1.5 pr-4 font-semibold uppercase tracking-wide">{h}</th>
                               ))}
@@ -436,7 +436,7 @@ const Admin = () => {
                           </thead>
                           <tbody className="divide-y divide-gray-100">
                             {companyMembers[co.id].slice(0, 10).map(m => (
-                              <tr key={m.id} className="text-gray-600">
+                              <tr key={m.id} className="text-warm-600">
                                 <td className="py-2 pr-4 font-medium">{m.first_name} {m.last_name}</td>
                                 <td className="py-2 pr-4">{m.email}</td>
                                 <td className="py-2 pr-4">{m.department}</td>
@@ -444,7 +444,7 @@ const Admin = () => {
                                   {new Date(m.birthday).toLocaleDateString('en', { day: 'numeric', month: 'short' })}
                                 </td>
                                 <td className="py-2">
-                                  <span className={`px-2 py-0.5 rounded-full ${m.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                  <span className={`px-2 py-0.5 rounded-full ${m.is_active ? 'bg-green-100 text-green-700' : 'bg-purple-50 text-warm-500'}`}>
                                     {m.is_active ? 'Active' : 'Inactive'}
                                   </span>
                                 </td>
@@ -453,7 +453,7 @@ const Admin = () => {
                           </tbody>
                         </table>
                         {companyMembers[co.id].length > 10 && (
-                          <p className="text-xs text-gray-400 mt-2">
+                          <p className="text-xs text-warm-400 mt-2">
                             + {companyMembers[co.id].length - 10} more members
                           </p>
                         )}
@@ -476,7 +476,7 @@ const Admin = () => {
                   <span key={s} className={`text-xs px-3 py-1.5 rounded-full font-medium capitalize border ${
                     s==='published' ? 'bg-green-100 text-green-700 border-green-200' :
                     s==='draft'     ? 'bg-amber-100 text-amber-700 border-amber-200' :
-                    s==='archived'  ? 'bg-gray-100 text-gray-500 border-gray-200' :
+                    s==='archived'  ? 'bg-purple-50 text-warm-500 border-purple-100' :
                     'bg-primary-50 text-primary-600 border-primary-100'
                   }`}>
                     {s} ({s==='all' ? blogPosts.length : blogPosts.filter(p=>p.status===s).length})
@@ -489,19 +489,19 @@ const Admin = () => {
 
             {/* New / Edit form */}
             {blogEditing && (
-              <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                  <p className="font-semibold text-gray-900 text-sm">{blogEditing === 'new' ? 'New post' : `Edit: ${blogEditing.title}`}</p>
-                  <button onClick={() => setBlogEditing(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+              <div className="bg-white border border-purple-100 rounded-3xl overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-4 border-b border-purple-100">
+                  <p className="font-semibold text-warm-900 text-sm">{blogEditing === 'new' ? 'New post' : `Edit: ${blogEditing.title}`}</p>
+                  <button onClick={() => setBlogEditing(null)} className="text-warm-400 hover:text-warm-600 text-lg">✕</button>
                 </div>
                 <div className="p-5 space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Title *</label>
+                      <label className="block text-xs font-medium text-warm-700 mb-1">Title *</label>
                       <input className="input text-sm" placeholder="How to plan the perfect office birthday..." value={blogForm.title} onChange={e=>setBlogForm(p=>({...p,title:e.target.value}))} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                      <label className="block text-xs font-medium text-warm-700 mb-1">Category</label>
                       <select className="input text-sm" value={blogForm.category} onChange={e=>setBlogForm(p=>({...p,category:e.target.value}))}>
                         {['General','Workplace Culture','HR & Technology','Gifting','Product Updates','Occasions'].map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
@@ -509,31 +509,31 @@ const Admin = () => {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Tags (comma-separated)</label>
+                      <label className="block text-xs font-medium text-warm-700 mb-1">Tags (comma-separated)</label>
                       <input className="input text-sm" placeholder="workplace, birthday, hr" value={blogForm.tags} onChange={e=>setBlogForm(p=>({...p,tags:e.target.value}))} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Author name</label>
+                      <label className="block text-xs font-medium text-warm-700 mb-1">Author name</label>
                       <input className="input text-sm" value={blogForm.author_name} onChange={e=>setBlogForm(p=>({...p,author_name:e.target.value}))} />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Cover image URL</label>
+                      <label className="block text-xs font-medium text-warm-700 mb-1">Cover image URL</label>
                       <input className="input text-sm" placeholder="https://..." value={blogForm.cover_image} onChange={e=>setBlogForm(p=>({...p,cover_image:e.target.value}))} />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Excerpt (shown in listing)</label>
+                      <label className="block text-xs font-medium text-warm-700 mb-1">Excerpt (shown in listing)</label>
                       <textarea className="input text-sm h-16 resize-none" placeholder="150-200 character summary..." value={blogForm.excerpt} onChange={e=>setBlogForm(p=>({...p,excerpt:e.target.value}))} />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Content (HTML)</label>
+                      <label className="block text-xs font-medium text-warm-700 mb-1">Content (HTML)</label>
                       <textarea className="input text-sm font-mono h-64 resize-y" placeholder="<h2>Introduction</h2><p>Your content here...</p>" value={blogForm.content} onChange={e=>setBlogForm(p=>({...p,content:e.target.value}))} />
-                      <p className="text-xs text-gray-400 mt-1">Write in HTML. Use &lt;h2&gt; for headings, &lt;p&gt; for paragraphs, &lt;strong&gt; for bold, &lt;ul&gt;&lt;li&gt; for lists.</p>
+                      <p className="text-xs text-warm-400 mt-1">Write in HTML. Use &lt;h2&gt; for headings, &lt;p&gt; for paragraphs, &lt;strong&gt; for bold, &lt;ul&gt;&lt;li&gt; for lists.</p>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-center gap-4">
                     <div className="flex items-center gap-2">
                       <input type="checkbox" id="isFeatured" checked={blogForm.is_featured} onChange={e=>setBlogForm(p=>({...p,is_featured:e.target.checked}))} className="w-4 h-4 accent-primary-400" />
-                      <label htmlFor="isFeatured" className="text-sm text-gray-700">Featured post</label>
+                      <label htmlFor="isFeatured" className="text-sm text-warm-700">Featured post</label>
                     </div>
                     <select className="input text-sm w-auto" value={blogForm.status} onChange={e=>setBlogForm(p=>({...p,status:e.target.value}))}>
                       <option value="draft">Draft</option>
@@ -567,34 +567,34 @@ const Admin = () => {
 
             {/* Posts list */}
             {blogLoading ? (
-              [...Array(3)].map((_,i) => <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />)
+              [...Array(3)].map((_,i) => <div key={i} className="h-20 bg-white rounded-3xl border border-purple-100 animate-pulse" />)
             ) : blogPosts.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+              <div className="bg-white rounded-3xl border border-purple-100 p-10 text-center">
                 <div className="text-4xl mb-3">📝</div>
-                <p className="text-sm text-gray-400">No posts yet. Create your first post above.</p>
+                <p className="text-sm text-warm-400">No posts yet. Create your first post above.</p>
               </div>
             ) : blogPosts.map(post => (
-              <div key={post.id} className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div key={post.id} className="bg-white rounded-3xl border border-purple-100 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <p className="font-semibold text-gray-900 text-sm truncate">{post.title}</p>
+                    <p className="font-semibold text-warm-900 text-sm truncate">{post.title}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${
                       post.status==='published' ? 'bg-green-100 text-green-700' :
                       post.status==='draft'     ? 'bg-amber-100 text-amber-700' :
-                      'bg-gray-100 text-gray-500'
+                      'bg-purple-50 text-warm-500'
                     }`}>{post.status}</span>
                     {post.is_featured && <span className="text-xs bg-primary-50 text-primary-500 px-2 py-0.5 rounded-full">★ Featured</span>}
                   </div>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-warm-400">
                     <span className="text-primary-400">{post.category}</span>
                     {post.published_at ? ` · ${format(new Date(post.published_at), 'MMM d, yyyy')}` : ' · Not published'}
                     {' '} · {(post.views||0).toLocaleString()} views · {post.read_time} min read
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5 font-mono">/blog/{post.slug}</p>
+                  <p className="text-xs text-warm-400 mt-0.5 font-mono">/blog/{post.slug}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 flex-shrink-0">
                   <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer"
-                    className="text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-1.5 rounded-lg">Preview</a>
+                    className="text-xs border border-purple-100 text-warm-600 hover:bg-warm-100 px-3 py-1.5 rounded-lg">Preview</a>
                   <button onClick={() => { setBlogEditing(post); setBlogForm({ title:post.title, excerpt:post.excerpt||'', content:post.content||'', category:post.category, tags:(post.tags||[]).join(', '), status:post.status, is_featured:post.is_featured, cover_image:post.cover_image||'', author_name:post.author_name }); }}
                     className="text-xs border border-primary-200 text-primary-600 hover:bg-primary-50 px-3 py-1.5 rounded-lg">Edit</button>
                   <button onClick={async () => {
@@ -632,7 +632,7 @@ const Admin = () => {
                     s==='contacted' ? 'bg-blue-100 text-blue-700 border-blue-200' :
                     s==='scheduled' ? 'bg-purple-100 text-purple-700 border-purple-200' :
                     s==='converted' ? 'bg-green-100 text-green-700 border-green-200' :
-                    'bg-gray-100 text-gray-500 border-gray-200'
+                    'bg-purple-50 text-warm-500 border-purple-100'
                   }`}>
                     {s} ({demos.filter(d=>d.status===s).length})
                   </span>
@@ -642,34 +642,34 @@ const Admin = () => {
             </div>
 
             {demosLoading ? (
-              [...Array(3)].map((_,i) => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />)
+              [...Array(3)].map((_,i) => <div key={i} className="h-24 bg-white rounded-3xl border border-purple-100 animate-pulse" />)
             ) : demos.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+              <div className="bg-white rounded-3xl border border-purple-100 p-12 text-center">
                 <div className="text-4xl mb-3">📅</div>
-                <p className="text-sm text-gray-400">No demo requests yet</p>
-                <p className="text-xs text-gray-400 mt-1">Requests appear here when companies fill the Book Demo form</p>
+                <p className="text-sm text-warm-400">No demo requests yet</p>
+                <p className="text-xs text-warm-400 mt-1">Requests appear here when companies fill the Book Demo form</p>
               </div>
             ) : demos.map(d => (
-              <div key={d.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div key={d.id} className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4 px-5 py-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <p className="font-semibold text-gray-900 text-sm">{d.company_name}</p>
+                      <p className="font-semibold text-warm-900 text-sm">{d.company_name}</p>
                       <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium capitalize ${
                         d.status==='new'       ? 'bg-amber-100 text-amber-700' :
                         d.status==='contacted' ? 'bg-blue-100 text-blue-700' :
                         d.status==='scheduled' ? 'bg-purple-100 text-purple-700' :
                         d.status==='converted' ? 'bg-green-100 text-green-700' :
-                        'bg-gray-100 text-gray-500'
+                        'bg-purple-50 text-warm-500'
                       }`}>{d.status}</span>
-                      {d.team_size && <span className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full">{d.team_size} employees</span>}
+                      {d.team_size && <span className="text-xs bg-purple-50 text-warm-600 px-2.5 py-0.5 rounded-full">{d.team_size} employees</span>}
                     </div>
-                    <p className="text-xs text-gray-500 mb-1">
-                      <strong className="text-gray-700">{d.contact_name}</strong> · {d.email}
+                    <p className="text-xs text-warm-500 mb-1">
+                      <strong className="text-warm-700">{d.contact_name}</strong> · {d.email}
                       {d.phone ? ` · ${d.phone}` : ''}
                     </p>
-                    {d.message && <p className="text-xs text-gray-400 line-clamp-2">{d.message}</p>}
-                    <p className="text-xs text-gray-400 mt-1">{format(new Date(d.created_at), 'MMM d, yyyy · h:mm a')}</p>
+                    {d.message && <p className="text-xs text-warm-400 line-clamp-2">{d.message}</p>}
+                    <p className="text-xs text-warm-400 mt-1">{format(new Date(d.created_at), 'MMM d, yyyy · h:mm a')}</p>
                     {d.admin_note && (
                       <div className="mt-2 bg-primary-50 px-3 py-2 rounded-lg">
                         <p className="text-xs text-primary-700"><strong>Note:</strong> {d.admin_note}</p>
@@ -682,15 +682,15 @@ const Admin = () => {
                       📧 Email
                     </a>
                     <button onClick={() => setEditDemoId(editDemoId === d.id ? null : d.id)}
-                      className="text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-lg transition-colors">
+                      className="text-xs border border-purple-100 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-lg transition-colors">
                       Update status
                     </button>
                   </div>
                 </div>
 
                 {editDemoId === d.id && (
-                  <div className="border-t border-gray-100 bg-gray-50 px-5 py-4 space-y-3">
-                    <p className="text-xs font-semibold text-gray-500">Update status for {d.company_name}</p>
+                  <div className="border-t border-purple-100 bg-warm-100 px-5 py-4 space-y-3">
+                    <p className="text-xs font-semibold text-warm-500">Update status for {d.company_name}</p>
                     <div className="flex flex-wrap gap-2">
                       {['new','contacted','scheduled','converted','declined'].map(s => (
                         <button key={s} onClick={async () => {
@@ -701,7 +701,7 @@ const Admin = () => {
                             setEditDemoId(null); setDemoNote('');
                           } catch { toast.error('Failed to update'); }
                         }} className={`text-xs px-3 py-2 rounded-lg font-medium capitalize border-2 transition-all ${
-                          d.status === s ? 'border-primary-400 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          d.status === s ? 'border-primary-400 bg-primary-50 text-primary-700' : 'border-purple-100 text-warm-600 hover:border-purple-200'
                         }`}>{s}</button>
                       ))}
                     </div>
@@ -720,7 +720,7 @@ const Admin = () => {
             <div className="flex items-center justify-between">
               <div className="flex gap-2 flex-wrap">
                 {['open', 'in_progress', 'resolved', 'closed'].map(s => (
-                  <span key={s} className={`text-xs px-3 py-1.5 rounded-full font-medium border ${ticketColors[s] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                  <span key={s} className={`text-xs px-3 py-1.5 rounded-full font-medium border ${ticketColors[s] || 'bg-purple-50 text-warm-500 border-purple-100'}`}>
                     {s.replace('_', ' ')} ({tickets.filter(t => t.status === s).length})
                   </span>
                 ))}
@@ -731,19 +731,19 @@ const Admin = () => {
             </div>
 
             {ticketsLoading ? (
-              [...Array(4)].map((_, i) => <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />)
+              [...Array(4)].map((_, i) => <div key={i} className="h-20 bg-white rounded-3xl border border-purple-100 animate-pulse" />)
             ) : tickets.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+              <div className="bg-white rounded-3xl border border-purple-100 p-12 text-center">
                 <div className="text-4xl mb-3">🎫</div>
-                <p className="text-sm text-gray-400">No support tickets yet</p>
+                <p className="text-sm text-warm-400">No support tickets yet</p>
               </div>
             ) : tickets.map(t => (
-              <div key={t.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div key={t.id} className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
                 <div className="flex items-start gap-4 px-5 py-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <p className="text-sm font-semibold text-gray-900">{t.subject}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ticketColors[t.status] || 'bg-gray-100 text-gray-500'}`}>
+                      <p className="text-sm font-semibold text-warm-900">{t.subject}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ticketColors[t.status] || 'bg-purple-50 text-warm-500'}`}>
                         {t.status.replace('_', ' ')}
                       </span>
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -752,8 +752,8 @@ const Admin = () => {
                         {t.sender_type === 'company' ? '🏢 Company' : '👤 User'}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400">
-                      From <strong className="text-gray-600">{t.sender_name}</strong> ({t.sender_email}) · {format(new Date(t.created_at), 'MMM d, yyyy · h:mm a')}
+                    <p className="text-xs text-warm-400">
+                      From <strong className="text-warm-600">{t.sender_name}</strong> ({t.sender_email}) · {format(new Date(t.created_at), 'MMM d, yyyy · h:mm a')}
                     </p>
                   </div>
                   <button
@@ -764,10 +764,10 @@ const Admin = () => {
                 </div>
 
                 {openTicket === t.id && (
-                  <div className="border-t border-gray-100 px-5 py-4 bg-gray-50 space-y-4">
-                    <div className="bg-white rounded-xl p-4 border border-gray-100">
-                      <p className="text-xs font-semibold text-gray-400 mb-2">Message</p>
-                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{t.message}</p>
+                  <div className="border-t border-purple-100 px-5 py-4 bg-warm-100 space-y-4">
+                    <div className="bg-white rounded-xl p-4 border border-purple-100">
+                      <p className="text-xs font-semibold text-warm-400 mb-2">Message</p>
+                      <p className="text-sm text-warm-700 leading-relaxed whitespace-pre-line">{t.message}</p>
                     </div>
 
                     {t.admin_reply && (
@@ -775,7 +775,7 @@ const Admin = () => {
                         <p className="text-xs font-semibold text-primary-500 mb-2">
                           Your reply · {t.admin_replied_at ? format(new Date(t.admin_replied_at), 'MMM d, yyyy') : ''}
                         </p>
-                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{t.admin_reply}</p>
+                        <p className="text-sm text-warm-700 leading-relaxed whitespace-pre-line">{t.admin_reply}</p>
                       </div>
                     )}
 

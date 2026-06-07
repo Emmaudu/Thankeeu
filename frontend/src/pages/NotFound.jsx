@@ -19,13 +19,13 @@ const NotFound = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-warm-100">
       <Navbar />
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 text-center">
         <div className="text-7xl sm:text-8xl mb-6 animate-float">💌</div>
-        <h1 className="font-display text-5xl sm:text-6xl font-semibold text-gray-900 mb-4">404</h1>
-        <p className="text-lg sm:text-xl text-gray-600 mb-2 font-display">This page got lost in the mail</p>
-        <p className="text-gray-400 text-sm mb-10 max-w-sm leading-relaxed">
+        <h1 className="font-display text-5xl sm:text-6xl font-semibold text-warm-900 mb-4">404</h1>
+        <p className="text-lg sm:text-xl text-warm-600 mb-2 font-display">This page got lost in the mail</p>
+        <p className="text-warm-400 text-sm mb-10 max-w-sm leading-relaxed">
           The page you are looking for does not exist, was moved, or the link is broken.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto px-4 sm:px-0">

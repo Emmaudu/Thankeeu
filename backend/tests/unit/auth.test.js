@@ -5,9 +5,9 @@ const jwt    = require('../jwt-helper');
 
 process.env.JWT_SECRET      = 'test-secret-key-minimum-32-chars-long';
 process.env.JWT_EXPIRES_IN  = '7d';
-process.env.APP_URL         = 'https://thankeeu.ng';
+process.env.APP_URL         = 'https://thankeeu.com';
 process.env.RESEND_API_KEY  = 'test-key';
-process.env.EMAIL_FROM      = 'hello@thankeeu.ng';
+process.env.EMAIL_FROM      = 'hello@thankeeu.com';
 process.env.EMAIL_FROM_NAME = 'Thankeeu';
 
 const { makeReq, makeRes, FIXTURES, createBcryptMock, createEmailMock } = require('../mocks');

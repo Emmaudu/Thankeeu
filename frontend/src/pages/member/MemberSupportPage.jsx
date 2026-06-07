@@ -22,7 +22,7 @@ const statusColors = {
   open: 'bg-amber-100 text-amber-700',
   in_progress: 'bg-blue-100 text-blue-700',
   resolved: 'bg-green-100 text-green-700',
-  closed: 'bg-gray-100 text-gray-500',
+  closed: 'bg-purple-50 text-warm-500',
 };
 
 const MemberSupportPage = () => {
@@ -67,13 +67,13 @@ const MemberSupportPage = () => {
 
         {/* Submit form */}
         <div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-1">Submit a support ticket</h3>
-            <p className="text-sm text-gray-500 mb-5">Describe your issue and our team will get back to you.</p>
+          <div className="bg-white rounded-3xl border border-purple-100 p-6">
+            <h3 className="font-semibold text-warm-900 mb-1">Submit a support ticket</h3>
+            <p className="text-sm text-warm-500 mb-5">Describe your issue and our team will get back to you.</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Subject</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Subject</label>
                 <select className="input"
                   value={form.subject}
                   onChange={e => setForm(p => ({ ...p, subject: e.target.value }))}>
@@ -83,7 +83,7 @@ const MemberSupportPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Message</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Message</label>
                 <textarea
                   className="input resize-none"
                   rows={5}
@@ -100,14 +100,14 @@ const MemberSupportPage = () => {
           </div>
 
           {/* Quick contact */}
-          <div className="mt-4 bg-primary-50 rounded-2xl p-5">
+          <div className="mt-4 bg-primary-50 rounded-3xl p-5">
             <p className="text-sm font-semibold text-primary-800 mb-3">💬 Other ways to reach us</p>
-            <a href="mailto:support@thankeeu.ng"
-              className="flex items-center gap-3 bg-white rounded-xl p-3 hover:border-primary-200 border border-gray-100 transition-colors">
+            <a href="mailto:support@thankeeu.com"
+              className="flex items-center gap-3 bg-white rounded-xl p-3 hover:border-primary-200 border border-purple-100 transition-colors">
               <span className="text-xl">📧</span>
               <div>
-                <p className="text-sm font-medium text-gray-900">Email support</p>
-                <p className="text-xs text-gray-400">support@thankeeu.ng</p>
+                <p className="text-sm font-medium text-warm-900">Email support</p>
+                <p className="text-xs text-warm-400">support@thankeeu.com</p>
               </div>
             </a>
           </div>
@@ -115,27 +115,27 @@ const MemberSupportPage = () => {
 
         {/* Ticket history */}
         <div>
-          <h3 className="font-semibold text-gray-900 mb-4">My tickets</h3>
+          <h3 className="font-semibold text-warm-900 mb-4">My tickets</h3>
 
           {loading ? (
             <div className="space-y-3">
-              {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-white rounded-2xl animate-pulse border border-gray-100" />)}
+              {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-white rounded-3xl animate-pulse border border-purple-100" />)}
             </div>
           ) : tickets.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+            <div className="bg-white rounded-3xl border border-purple-100 p-8 text-center">
               <div className="text-4xl mb-3">🎫</div>
-              <p className="text-sm text-gray-400">No support tickets yet</p>
-              <p className="text-xs text-gray-400 mt-1">Submit a ticket and it will appear here</p>
+              <p className="text-sm text-warm-400">No support tickets yet</p>
+              <p className="text-xs text-warm-400 mt-1">Submit a ticket and it will appear here</p>
             </div>
           ) : (
             <div className="space-y-3">
               {tickets.map(ticket => (
-                <div key={ticket.id} className="bg-white rounded-2xl border border-gray-100 p-4 cursor-pointer hover:border-primary-200 transition-colors"
+                <div key={ticket.id} className="bg-white rounded-3xl border border-purple-100 p-4 cursor-pointer hover:border-primary-200 transition-colors"
                   onClick={() => setOpenTicket(openTicket?.id === ticket.id ? null : ticket)}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{ticket.subject}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-sm font-medium text-warm-900 truncate">{ticket.subject}</p>
+                      <p className="text-xs text-warm-400 mt-0.5">
                         {format(new Date(ticket.created_at), 'MMM d, yyyy')}
                       </p>
                     </div>
@@ -145,15 +145,15 @@ const MemberSupportPage = () => {
                   </div>
 
                   {openTicket?.id === ticket.id && (
-                    <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                    <div className="mt-4 pt-4 border-t border-purple-100 space-y-3">
                       <div>
-                        <p className="text-xs font-medium text-gray-500 mb-1">Your message</p>
-                        <p className="text-sm text-gray-700 leading-relaxed">{ticket.message}</p>
+                        <p className="text-xs font-medium text-warm-500 mb-1">Your message</p>
+                        <p className="text-sm text-warm-700 leading-relaxed">{ticket.message}</p>
                       </div>
                       {ticket.admin_reply && (
                         <div className="bg-primary-50 rounded-xl p-3">
                           <p className="text-xs font-medium text-primary-700 mb-1">💬 Support reply</p>
-                          <p className="text-sm text-gray-700 leading-relaxed">{ticket.admin_reply}</p>
+                          <p className="text-sm text-warm-700 leading-relaxed">{ticket.admin_reply}</p>
                           {ticket.admin_replied_at && (
                             <p className="text-xs text-primary-400 mt-1">
                               {format(new Date(ticket.admin_replied_at), 'MMM d, yyyy · HH:mm')}

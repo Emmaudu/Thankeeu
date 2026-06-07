@@ -5,7 +5,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 
-const APP_URL = 'https://thankeeu.ng';
+const APP_URL = 'https://thankeeu.com';
 
 // Replicate BASE + btn helpers from email.js
 const BASE = (c) => `<html><body>${c}</body></html>`;

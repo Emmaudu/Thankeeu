@@ -6,8 +6,8 @@ const headers = () => ({ Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KE
 
 // USD prices converted to NGN kobo: $50/mo = 50*1600*100=8,000,000; $500/yr = 500*1600*100=80,000,000
 const PLANS = {
-  monthly: { amount: 8000000, label: '$50/month', naira: 80000 },
-  yearly:  { amount: 80000000, label: '$500/year', naira: 800000 }
+  monthly: { amount: 20000000, label: '₦200,000/month', naira: 200000 },
+  yearly:  { amount: 240000000, label: '₦2,400,000/year', naira: 2400000 }
 };
 
 const initializeSubscription = async (req, res) => {

@@ -81,12 +81,12 @@ const MemberOccasionsPage = () => {
     <MemberLayout title="Occasions" subtitle={`Upcoming celebrations in your company · ${member?.department}`}>
 
       {/* Create card CTA */}
-      <div className="bg-gradient-to-r from-primary-50 to-pink-50 border border-primary-100 rounded-2xl p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-primary-50 to-pink-50 border border-primary-100 rounded-3xl p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <p className="font-semibold text-gray-900 mb-1">🎉 Create a card for any colleague</p>
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="font-semibold text-warm-900 mb-1">🎉 Create a card for any colleague</p>
+          <p className="text-sm text-warm-600 leading-relaxed">
             You can create a group card for any colleague — or even for yourself! The rest of the team will be notified to sign and contribute.
-            <br /><span className="text-xs text-gray-400">No account needed to sign a card. Creating a card requires your team account.</span>
+            <br /><span className="text-xs text-warm-400">No account needed to sign a card. Creating a card requires your team account.</span>
           </p>
         </div>
         <button onClick={() => setShowCreate(true)}
@@ -96,27 +96,27 @@ const MemberOccasionsPage = () => {
       </div>
 
       {/* Upcoming occasions */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden mb-6">
+      <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden mb-6">
         <div className="px-5 py-4 border-b border-gray-50">
-          <h3 className="font-semibold text-gray-900">Upcoming occasions — next 30 days</h3>
+          <h3 className="font-semibold text-warm-900">Upcoming occasions — next 30 days</h3>
         </div>
         {loading ? (
-          <div className="p-5 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-gray-50 rounded-xl animate-pulse" />)}</div>
+          <div className="p-5 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-warm-100 rounded-xl animate-pulse" />)}</div>
         ) : upcoming.length === 0 ? (
           <div className="px-5 py-10 text-center">
             <div className="text-4xl mb-3">📅</div>
-            <p className="text-sm text-gray-400">No upcoming occasions in the next 30 days</p>
+            <p className="text-sm text-warm-400">No upcoming occasions in the next 30 days</p>
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
             {upcoming.map(m => (
-              <div key={m.id} className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition-colors">
-                <div className="w-11 h-11 bg-primary-50 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0">
+              <div key={m.id} className="flex items-center gap-4 px-5 py-4 hover:bg-warm-100 transition-colors">
+                <div className="w-11 h-11 bg-primary-50 rounded-3xl flex items-center justify-center text-2xl flex-shrink-0">
                   {OCCASION_ICONS[m.occasion_types?.name] || '🎉'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900">{m.first_name} {m.last_name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-sm font-semibold text-warm-900">{m.first_name} {m.last_name}</p>
+                  <p className="text-xs text-warm-400 mt-0.5">
                     {m.occasion_types?.label} · {m.department} ·{' '}
                     {new Date(m.occasion_date).toLocaleDateString('en', { day: 'numeric', month: 'long' })}
                   </p>
@@ -126,7 +126,7 @@ const MemberOccasionsPage = () => {
                     m.days_until === 0 ? 'bg-pink-100 text-pink-700' :
                     m.days_until <= 2 ? 'bg-red-100 text-red-600' :
                     m.days_until <= 7 ? 'bg-amber-100 text-amber-600' :
-                    'bg-gray-100 text-gray-500'
+                    'bg-purple-50 text-warm-500'
                   }`}>
                     {m.days_until === 0 ? '🎉 Today!' : m.days_until === 1 ? 'Tomorrow' : `${m.days_until} days`}
                   </span>
@@ -163,22 +163,22 @@ const MemberOccasionsPage = () => {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-display text-xl font-semibold text-gray-900">Create a card</h3>
-              <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+              <h3 className="font-display text-xl font-semibold text-warm-900">Create a card</h3>
+              <button onClick={() => setShowCreate(false)} className="text-warm-400 hover:text-warm-600 text-xl">✕</button>
             </div>
             <form onSubmit={handleCreateCard} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Who is this card for? <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Who is this card for? <span className="text-red-400">*</span></label>
                 <input className="input" placeholder="e.g. Amaka Okafor" value={cardForm.recipient_name}
                   onChange={e => setCardForm(p => ({ ...p, recipient_name: e.target.value }))} required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Their email <span className="text-gray-400 font-normal text-xs">(to deliver card)</span></label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Their email <span className="text-warm-400 font-normal text-xs">(to deliver card)</span></label>
                 <input type="email" className="input" placeholder="amaka@company.com" value={cardForm.recipient_email}
                   onChange={e => setCardForm(p => ({ ...p, recipient_email: e.target.value }))} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Occasion</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Occasion</label>
                 <select className="input" value={cardForm.occasion} onChange={e => setCardForm(p => ({ ...p, occasion: e.target.value }))}>
                   {Object.entries(OCCASION_ICONS).map(([k, v]) => (
                     <option key={k} value={k}>{v} {k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</option>
@@ -186,24 +186,24 @@ const MemberOccasionsPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Card title <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Card title <span className="text-warm-400 font-normal text-xs">(optional)</span></label>
                 <input className="input" placeholder={`Happy ${cardForm.occasion.replace(/_/g,' ')} ${cardForm.recipient_name || ''}!`}
                   value={cardForm.title} onChange={e => setCardForm(p => ({ ...p, title: e.target.value }))} />
               </div>
 
               {/* Notification scope */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Who should be notified?</label>
+                <label className="block text-sm font-medium text-warm-700 mb-2">Who should be notified?</label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { id: 'department', icon: '👥', label: 'Department only', desc: 'Your dept members' },
                     { id: 'company_wide', icon: '🏢', label: 'Entire company', desc: 'Needs HR approval' },
                   ].map(opt => (
                     <button key={opt.id} type="button" onClick={() => setCardForm(p => ({ ...p, notification_scope: opt.id }))}
-                      className={`rounded-2xl p-3 text-left border-2 transition-all ${cardForm.notification_scope === opt.id ? 'border-primary-400 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                      className={`rounded-3xl p-3 text-left border-2 transition-all ${cardForm.notification_scope === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
                       <div className="text-lg mb-1">{opt.icon}</div>
-                      <p className="text-xs font-semibold text-gray-900">{opt.label}</p>
-                      <p className="text-xs text-gray-500">{opt.desc}</p>
+                      <p className="text-xs font-semibold text-warm-900">{opt.label}</p>
+                      <p className="text-xs text-warm-500">{opt.desc}</p>
                     </button>
                   ))}
                 </div>
@@ -215,10 +215,10 @@ const MemberOccasionsPage = () => {
               </div>
 
               {/* Gift pot */}
-              <div className="flex items-center justify-between py-3 border-t border-gray-100">
+              <div className="flex items-center justify-between py-3 border-t border-purple-100">
                 <div>
-                  <p className="text-sm font-medium text-gray-800">Enable gift pot</p>
-                  <p className="text-xs text-gray-500">Colleagues can contribute money when they sign</p>
+                  <p className="text-sm font-medium text-warm-800">Enable gift pot</p>
+                  <p className="text-xs text-warm-500">Colleagues can contribute money when they sign</p>
                 </div>
                 <button type="button" onClick={() => setCardForm(p => ({ ...p, is_gift_enabled: !p.is_gift_enabled }))}
                   className={`w-11 h-6 rounded-full transition-colors relative flex items-center ${cardForm.is_gift_enabled ? 'bg-primary-400' : 'bg-gray-200'}`}>

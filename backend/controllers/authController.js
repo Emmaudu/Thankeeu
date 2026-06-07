@@ -11,8 +11,14 @@ const signup = async (req, res) => {
   try {
     const { full_name, email, password } = req.body;
 
+    if (!full_name || !email || !password)
+      return res.status(400).json({ error: 'Name, email and password are required' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    // Use maybeSingle — single() throws if no row found
     const { data: existing } = await supabase
-      .from('users').select('id').eq('email', email).single();
+      .from('users').select('id').eq('email', email.toLowerCase().trim()).maybeSingle();
     if (existing) return res.status(400).json({ error: 'Email already registered' });
 
     const password_hash = await bcrypt.hash(password, 12);
@@ -20,18 +26,25 @@ const signup = async (req, res) => {
 
     const { data: user, error } = await supabase
       .from('users')
-      .insert({ full_name, email, password_hash, verification_token })
+      .insert({ full_name, email: email.toLowerCase().trim(), password_hash, verification_token })
       .select('id, email, full_name, role, avatar_url')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Signup DB error:', error);
+      if (error.code === '23505') return res.status(400).json({ error: 'Email already registered' });
+      throw error;
+    }
 
-    await sendEmail({ to: email, template: 'welcome', data: { name: full_name } });
+    // Send welcome email — don't fail signup if email fails
+    sendEmail({ to: email, template: 'welcome', data: { name: full_name } }).catch(e =>
+      console.error('Welcome email failed:', e)
+    );
 
     const token = generateToken(user.id);
     res.status(201).json({ token, user });
   } catch (err) {
-    console.error(err);
+    console.error('Signup error:', err);
     res.status(500).json({ error: 'Server error during signup' });
   }
 };
@@ -39,9 +52,11 @@ const signup = async (req, res) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ error: 'Email and password are required' });
 
     const { data: user, error } = await supabase
-      .from('users').select('*').eq('email', email).single();
+      .from('users').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
     if (error || !user) return res.status(401).json({ error: 'Invalid email or password' });
 
     const valid = await bcrypt.compare(password, user.password_hash);
@@ -51,6 +66,7 @@ const login = async (req, res) => {
     const { password_hash, verification_token, reset_token, ...safeUser } = user;
     res.json({ token, user: safeUser });
   } catch (err) {
+    console.error('Login error:', err);
     res.status(500).json({ error: 'Server error during login' });
   }
 };

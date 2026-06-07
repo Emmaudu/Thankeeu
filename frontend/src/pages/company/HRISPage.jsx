@@ -65,7 +65,7 @@ const STATUS_STYLES = {
   success: 'bg-green-100 text-green-700',
   partial: 'bg-amber-100 text-amber-700',
   failed:  'bg-red-100 text-red-600',
-  never:   'bg-gray-100 text-gray-500',
+  never:   'bg-purple-50 text-warm-500',
   running: 'bg-blue-100 text-blue-700',
 };
 
@@ -157,14 +157,14 @@ const HRISPage = () => {
     <CompanyLayout title="HRIS Integration" subtitle="Connect your HR system to auto-populate all celebration occasion tables">
 
       {/* Tabs */}
-      <div className="flex gap-0 border-b border-gray-200 mb-6">
+      <div className="flex gap-0 border-b border-purple-100 mb-6">
         {[
           { id: 'integrations', label: '🔗 Integrations' },
           { id: 'sync_history', label: `📋 Sync History (${logs.length})` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-              tab === t.id ? 'border-primary-400 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              tab === t.id ? 'border-primary-500 text-primary-600 font-bold' : 'border-transparent text-warm-500 hover:text-warm-800'
             }`}>{t.label}</button>
         ))}
       </div>
@@ -173,7 +173,7 @@ const HRISPage = () => {
       {tab === 'integrations' && (
         <>
           {/* How it works banner */}
-          <div className="bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-100 rounded-2xl p-5 mb-6">
+          <div className="bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-100 rounded-3xl p-5 mb-6">
             <p className="font-semibold text-primary-800 mb-2">🚀 How HRIS sync works</p>
             <div className="grid sm:grid-cols-4 gap-3 text-xs text-primary-700">
               {[
@@ -192,8 +192,8 @@ const HRISPage = () => {
           </div>
 
           {/* What gets synced */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 mb-6">
-            <p className="font-semibold text-gray-800 mb-3 text-sm">📊 What gets populated from a single HRIS sync</p>
+          <div className="bg-white border border-purple-100 rounded-3xl p-5 mb-6">
+            <p className="font-semibold text-warm-800 mb-3 text-sm">📊 What gets populated from a single HRIS sync</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {[
                 { icon: '🎂', table: 'Birthday',     rule: 'All employees with DOB' },
@@ -207,11 +207,11 @@ const HRISPage = () => {
                 { icon: '👋', table: 'Farewell/Leaving', rule: 'Employees leaving within 90 days' },
                 { icon: '🔕', table: 'Deactivation', rule: 'Terminated employees are muted' },
               ].map(r => (
-                <div key={r.table} className="bg-gray-50 rounded-xl p-2.5 flex items-start gap-2">
+                <div key={r.table} className="bg-warm-100 rounded-xl p-2.5 flex items-start gap-2">
                   <span className="text-lg flex-shrink-0">{r.icon}</span>
                   <div>
-                    <p className="text-xs font-semibold text-gray-800">{r.table}</p>
-                    <p className="text-xs text-gray-500 leading-tight mt-0.5">{r.rule}</p>
+                    <p className="text-xs font-semibold text-warm-800">{r.table}</p>
+                    <p className="text-xs text-warm-500 leading-tight mt-0.5">{r.rule}</p>
                   </div>
                 </div>
               ))}
@@ -221,19 +221,19 @@ const HRISPage = () => {
           {/* Connected providers */}
           {connections.length > 0 && (
             <div className="mb-6">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Connected integrations</p>
+              <p className="text-sm font-semibold text-warm-700 mb-3">Connected integrations</p>
               <div className="space-y-3">
                 {connections.map(conn => {
                   const provider = PROVIDERS.find(p => p.id === conn.provider) || {};
                   return (
-                    <div key={conn.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
+                    <div key={conn.id} className="bg-white border border-purple-100 rounded-3xl overflow-hidden">
                       <div className="flex items-center gap-4 px-5 py-4">
-                        <div className={`w-12 h-12 rounded-2xl border-2 ${provider.color || 'bg-gray-50 border-gray-200'} flex items-center justify-center text-2xl flex-shrink-0`}>
+                        <div className={`w-12 h-12 rounded-3xl border-2 ${provider.color || 'bg-warm-100 border-purple-100'} flex items-center justify-center text-2xl flex-shrink-0`}>
                           {provider.logo || '🔗'}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <p className="font-semibold text-gray-900 text-sm">{conn.display_name}</p>
+                            <p className="font-semibold text-warm-900 text-sm">{conn.display_name}</p>
                             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${conn.is_verified ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
                               {conn.is_verified ? '✓ Verified' : '⚠ Unverified'}
                             </span>
@@ -243,14 +243,14 @@ const HRISPage = () => {
                                conn.last_sync_status === 'partial' ? '⚠ Partial sync' : 'Never synced'}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-warm-400">
                             {conn.last_synced_at ? `Last synced ${format(new Date(conn.last_synced_at), 'MMM d, yyyy · h:mm a')}` : 'Not yet synced'}
                             {conn.auto_sync ? ' · Auto-sync ON' : ''}
                           </p>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">
                           <button onClick={() => handleTest(conn.id, conn.display_name)} disabled={testing === conn.id}
-                            className="text-xs border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-2 rounded-xl transition-colors disabled:opacity-50">
+                            className="text-xs border border-purple-100 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors disabled:opacity-50">
                             {testing === conn.id ? <span className="flex items-center gap-1"><span className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin" />Testing...</span> : 'Test'}
                           </button>
                           <button onClick={() => handleSync(conn.id, conn.display_name)} disabled={syncing === conn.id}
@@ -266,7 +266,7 @@ const HRISPage = () => {
 
                       {/* Sync result inline */}
                       {syncResult?.id === conn.id && (
-                        <div className="border-t border-gray-100 bg-green-50 px-5 py-4">
+                        <div className="border-t border-purple-100 bg-green-50 px-5 py-4">
                           <p className="text-sm font-semibold text-green-800 mb-3">
                             ✅ Sync complete — {syncResult.total_employees} employees processed
                           </p>
@@ -282,8 +282,8 @@ const HRISPage = () => {
                               { label: 'Deactivated', val: syncResult.synced?.deactivated },
                             ].map(s => (
                               <div key={s.label} className="bg-white rounded-lg px-3 py-2">
-                                <p className="font-semibold text-gray-800">{s.val ?? 0}</p>
-                                <p className="text-gray-500">{s.label}</p>
+                                <p className="font-semibold text-warm-800">{s.val ?? 0}</p>
+                                <p className="text-warm-500">{s.label}</p>
                               </div>
                             ))}
                           </div>
@@ -300,7 +300,7 @@ const HRISPage = () => {
 
                       {/* Test result inline */}
                       {testResult?.id === conn.id && !syncResult && (
-                        <div className={`border-t border-gray-100 px-5 py-4 ${testResult.error ? 'bg-red-50' : 'bg-green-50'}`}>
+                        <div className={`border-t border-purple-100 px-5 py-4 ${testResult.error ? 'bg-red-50' : 'bg-green-50'}`}>
                           {testResult.error
                             ? <p className="text-sm text-red-600">✕ {testResult.error}</p>
                             : (
@@ -312,8 +312,8 @@ const HRISPage = () => {
                                   <div className="flex flex-wrap gap-2">
                                     {testResult.sample.map((s, i) => (
                                       <div key={i} className="bg-white rounded-lg px-3 py-1.5 text-xs">
-                                        <span className="font-medium text-gray-800">{s.name}</span>
-                                        <span className="text-gray-400 ml-1">({s.department})</span>
+                                        <span className="font-medium text-warm-800">{s.name}</span>
+                                        <span className="text-warm-400 ml-1">({s.department})</span>
                                       </div>
                                     ))}
                                   </div>
@@ -330,15 +330,15 @@ const HRISPage = () => {
           )}
 
           {/* Available providers to connect */}
-          <p className="text-sm font-semibold text-gray-700 mb-3">
+          <p className="text-sm font-semibold text-warm-700 mb-3">
             {connections.length > 0 ? 'Add another integration' : 'Connect your HRIS'}
           </p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {PROVIDERS.map(p => {
               const isConnected = connectedProviderIds.includes(p.id);
               const isSelected  = selectedProvider?.id === p.id;
               return (
-                <div key={p.id} className={`relative rounded-2xl border-2 transition-all ${isSelected ? 'border-primary-400' : isConnected ? 'border-green-300' : 'border-gray-200 hover:border-gray-300'}`}>
+                <div key={p.id} className={`relative rounded-3xl border-2 transition-all ${isSelected ? 'border-primary-400' : isConnected ? 'border-green-300' : 'border-purple-100 hover:border-purple-200'}`}>
                   {p.popular && !isConnected && (
                     <div className="absolute -top-3 left-4 bg-primary-400 text-white text-xs font-semibold px-3 py-1 rounded-full">
                       Popular worldwide
@@ -357,17 +357,17 @@ const HRISPage = () => {
                     }}>
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-3xl">{p.logo}</span>
-                      <p className="font-semibold text-gray-900">{p.name}</p>
+                      <p className="font-semibold text-warm-900">{p.name}</p>
                     </div>
-                    <p className="text-xs text-gray-500 leading-relaxed">{p.desc}</p>
+                    <p className="text-xs text-warm-500 leading-relaxed">{p.desc}</p>
                   </button>
 
                   {/* Expanded connection form */}
                   {isSelected && (
-                    <form onSubmit={handleConnect} className="border-t border-gray-100 p-5 space-y-3 bg-gray-50 rounded-b-2xl">
+                    <form onSubmit={handleConnect} className="border-t border-purple-100 p-5 space-y-3 bg-warm-100 rounded-b-2xl">
                       {p.fields.map(field => (
                         <div key={field.key}>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">{field.label}</label>
+                          <label className="block text-xs font-medium text-warm-700 mb-1">{field.label}</label>
                           <input
                             type={field.type}
                             className="input text-sm"
@@ -377,7 +377,7 @@ const HRISPage = () => {
                             required
                             autoComplete="off"
                           />
-                          {field.help && <p className="text-xs text-gray-400 mt-1">{field.help}</p>}
+                          {field.help && <p className="text-xs text-warm-400 mt-1">{field.help}</p>}
                         </div>
                       ))}
                       <div className="flex items-center justify-between py-2">
@@ -386,7 +386,7 @@ const HRISPage = () => {
                             className={`w-10 h-5 rounded-full transition-colors relative ${autoSync ? 'bg-primary-400' : 'bg-gray-300'}`}>
                             <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${autoSync ? 'translate-x-5' : 'translate-x-0.5'}`} />
                           </button>
-                          <span className="text-xs text-gray-600">Daily auto-sync</span>
+                          <span className="text-xs text-warm-600">Daily auto-sync</span>
                         </div>
                       </div>
                       <div className="flex gap-2">
@@ -408,15 +408,15 @@ const HRISPage = () => {
       {tab === 'sync_history' && (
         <div className="space-y-3">
           {loading ? (
-            [...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />)
+            [...Array(3)].map((_, i) => <div key={i} className="h-24 bg-white rounded-3xl border border-purple-100 animate-pulse" />)
           ) : logs.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+            <div className="bg-white rounded-3xl border border-purple-100 p-12 text-center">
               <div className="text-4xl mb-3">📋</div>
-              <p className="text-sm text-gray-500">No sync history yet</p>
-              <p className="text-xs text-gray-400 mt-1">Connect an HRIS provider and run a sync to see history here</p>
+              <p className="text-sm text-warm-500">No sync history yet</p>
+              <p className="text-xs text-warm-400 mt-1">Connect an HRIS provider and run a sync to see history here</p>
             </div>
           ) : logs.map(log => (
-            <div key={log.id} className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div key={log.id} className="bg-white rounded-3xl border border-purple-100 p-5">
               <div className="flex items-start gap-4">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 ${
                   log.status === 'success' ? 'bg-green-100' :
@@ -427,11 +427,11 @@ const HRISPage = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <p className="font-semibold text-gray-900 text-sm capitalize">{log.provider?.replace('_', ' ')}</p>
+                    <p className="font-semibold text-warm-900 text-sm capitalize">{log.provider?.replace('_', ' ')}</p>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${STATUS_STYLES[log.status]}`}>{log.status}</span>
-                    {log.duration_ms && <span className="text-xs text-gray-400">{(log.duration_ms / 1000).toFixed(1)}s</span>}
+                    {log.duration_ms && <span className="text-xs text-warm-400">{(log.duration_ms / 1000).toFixed(1)}s</span>}
                   </div>
-                  <p className="text-xs text-gray-400 mb-3">
+                  <p className="text-xs text-warm-400 mb-3">
                     {format(new Date(log.started_at), 'MMM d, yyyy · h:mm a')}
                     {log.total_employees > 0 ? ` · ${log.total_employees} employees` : ''}
                   </p>
@@ -450,8 +450,8 @@ const HRISPage = () => {
                         ['🔕', 'Deactivated',  log.deactivated_count],
                       ].map(([icon, label, val]) => (
                         <div key={label} className="text-center">
-                          <p className="text-sm font-bold text-gray-800">{val ?? 0}</p>
-                          <p className="text-xs text-gray-500 leading-tight">{icon} {label}</p>
+                          <p className="text-sm font-bold text-warm-800">{val ?? 0}</p>
+                          <p className="text-xs text-warm-500 leading-tight">{icon} {label}</p>
                         </div>
                       ))}
                     </div>

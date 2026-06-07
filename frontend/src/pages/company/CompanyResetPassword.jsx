@@ -18,11 +18,11 @@ const CompanyResetPassword = () => {
   const [done, setDone] = useState(false);
 
   if (!token) return (
-    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
+    <div className="min-h-screen"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="text-center">
         <div className="text-5xl mb-4">🔗</div>
-        <h2 className="font-display text-2xl font-semibold text-gray-900 mb-2">Invalid reset link</h2>
-        <p className="text-gray-500 mb-6 text-sm">This link is invalid or has expired.</p>
+        <h2 className="font-display text-2xl font-semibold text-warm-900 mb-2">Invalid reset link</h2>
+        <p className="text-warm-500 mb-6 text-sm">This link is invalid or has expired.</p>
         <Link to="/company/forgot-password" className="btn-primary">Request a new link</Link>
       </div>
     </div></div>
@@ -43,34 +43,34 @@ const CompanyResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
+    <div className="min-h-screen"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
             🏢 For Teams
           </div>
-          <h1 className="font-display text-3xl font-semibold text-gray-900 mb-2">Set new password</h1>
-          <p className="text-gray-500 text-sm">Choose a strong password for your company account</p>
+          <h1 className="font-display text-3xl font-semibold text-warm-900 mb-2">Set new password</h1>
+          <p className="text-warm-500 text-sm">Choose a strong password for your company account</p>
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+        <div className="bg-white rounded-3xl shadow-xl p-8 border border-purple-100">
           {done ? (
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
-              <h3 className="font-display text-xl font-semibold text-gray-900 mb-2">Password reset!</h3>
-              <p className="text-gray-500 text-sm mb-2">Your company password has been updated.</p>
-              <p className="text-xs text-gray-400">Redirecting to login...</p>
+              <h3 className="font-display text-xl font-semibold text-warm-900 mb-2">Password reset!</h3>
+              <p className="text-warm-500 text-sm mb-2">Your company password has been updated.</p>
+              <p className="text-xs text-warm-700">Redirecting to login...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">New password</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">New password</label>
                 <div className="relative">
                   <input type={show ? 'text' : 'password'} className="input pr-10"
                     placeholder="At least 8 characters" required minLength={8}
                     value={form.password} onChange={e => setForm(p => ({ ...p, password: e.target.value }))} />
                   <button type="button" onClick={() => setShow(!show)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-warm-700 text-xs">
                     {show ? 'Hide' : 'Show'}
                   </button>
                 </div>
@@ -85,7 +85,7 @@ const CompanyResetPassword = () => {
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm new password</label>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Confirm new password</label>
                 <input type="password" className="input" placeholder="Repeat new password" required
                   value={form.confirm} onChange={e => setForm(p => ({ ...p, confirm: e.target.value }))} />
                 {form.confirm && form.password !== form.confirm && (
@@ -100,7 +100,7 @@ const CompanyResetPassword = () => {
                     </span>
                   : 'Reset company password'}
               </button>
-              <p className="text-center text-sm text-gray-500">
+              <p className="text-center text-sm text-warm-500">
                 <Link to="/company/login" className="text-primary-400 font-medium hover:text-primary-600">← Back to login</Link>
               </p>
             </form>

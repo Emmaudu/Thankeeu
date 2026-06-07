@@ -15,7 +15,7 @@ function setLink(rel, href) {
   el.setAttribute('rel', rel); el.setAttribute('href', href);
 }
 function applyPageSEO({ title, description, canonical, ogImage, noIndex = false }) {
-  const BASE = 'https://thankeeu.ng';
+  const BASE = 'https://thankeeu.com';
   const SITE = 'Thankeeu';
   const fullTitle = title ? `${title} | ${SITE}` : `${SITE} — Group Cards & Gifts for Nigeria`;
   document.title = fullTitle;
@@ -108,8 +108,8 @@ describe('Open Graph tags', () => {
   });
 
   it('accepts custom ogImage URL', () => {
-    applyPageSEO({ title: 'T', description: 'd', ogImage: 'https://thankeeu.ng/custom.png' });
-    expect(getMeta('property', 'og:image')).toBe('https://thankeeu.ng/custom.png');
+    applyPageSEO({ title: 'T', description: 'd', ogImage: 'https://thankeeu.com/custom.png' });
+    expect(getMeta('property', 'og:image')).toBe('https://thankeeu.com/custom.png');
   });
 
   it('sets og:site_name to Thankeeu', () => {
@@ -125,7 +125,7 @@ describe('Open Graph tags', () => {
   it('sets canonical og:url from canonical prop', () => {
     applyPageSEO({ title: 'T', description: 'd', canonical: '/pricing' });
     expect(getMeta('property', 'og:url')).toContain('/pricing');
-    expect(getMeta('property', 'og:url')).toContain('thankeeu.ng');
+    expect(getMeta('property', 'og:url')).toContain('thankeeu.com');
   });
 });
 
@@ -168,7 +168,7 @@ describe('Canonical link tag', () => {
 
   it('canonical includes the full domain', () => {
     applyPageSEO({ title: 'T', description: 'd', canonical: '/signup' });
-    expect(getLink('canonical')).toContain('thankeeu.ng');
+    expect(getLink('canonical')).toContain('thankeeu.com');
   });
 
   it('canonical uses the provided path', () => {
@@ -178,7 +178,7 @@ describe('Canonical link tag', () => {
 });
 
 describe('JSON-LD schema builders (SCHEMAS object)', () => {
-  const BASE_URL = 'https://thankeeu.ng';
+  const BASE_URL = 'https://thankeeu.com';
 
   const organization = {
     '@type': 'Organization', '@id': `${BASE_URL}/#organization`,
@@ -257,7 +257,7 @@ describe('JSON-LD schema builders (SCHEMAS object)', () => {
 
   it('BreadcrumbList item URL includes base domain', () => {
     const b = breadcrumb([{ name: 'Pricing', url: '/pricing' }]);
-    expect(b.itemListElement[0].item).toContain('thankeeu.ng');
+    expect(b.itemListElement[0].item).toContain('thankeeu.com');
   });
 
   it('FAQPage has correct schema type', () => {
@@ -349,8 +349,8 @@ describe('SEO content quality rules', () => {
   });
 
   it('OG image URL points to a real path', () => {
-    const OG_IMAGE = 'https://thankeeu.ng/og-image.svg';
-    expect(OG_IMAGE).toContain('thankeeu.ng');
+    const OG_IMAGE = 'https://thankeeu.com/og-image.svg';
+    expect(OG_IMAGE).toContain('thankeeu.com');
     expect(OG_IMAGE).toContain('og-image');
   });
 
@@ -371,7 +371,7 @@ Disallow: /company/dashboard
 Disallow: /member/dashboard
 User-agent: GPTBot
 Disallow: /
-Sitemap: https://thankeeu.ng/sitemap.xml
+Sitemap: https://thankeeu.com/sitemap.xml
   `.trim();
 
   it('allows root path', () => {
@@ -393,20 +393,20 @@ Sitemap: https://thankeeu.ng/sitemap.xml
   });
 
   it('includes sitemap URL', () => {
-    expect(ROBOTS).toContain('Sitemap: https://thankeeu.ng/sitemap.xml');
+    expect(ROBOTS).toContain('Sitemap: https://thankeeu.com/sitemap.xml');
   });
 });
 
 describe('Sitemap content', () => {
   const SITEMAP_URLS = [
-    'https://thankeeu.ng/',
-    'https://thankeeu.ng/pricing',
-    'https://thankeeu.ng/signup',
-    'https://thankeeu.ng/login',
-    'https://thankeeu.ng/company/signup',
-    'https://thankeeu.ng/company/login',
-    'https://thankeeu.ng/member/signup',
-    'https://thankeeu.ng/policy',
+    'https://thankeeu.com/',
+    'https://thankeeu.com/pricing',
+    'https://thankeeu.com/signup',
+    'https://thankeeu.com/login',
+    'https://thankeeu.com/company/signup',
+    'https://thankeeu.com/company/login',
+    'https://thankeeu.com/member/signup',
+    'https://thankeeu.com/policy',
   ];
 
   it('homepage has priority 1.0', () => {
@@ -428,7 +428,7 @@ describe('Sitemap content', () => {
   });
 
   it('all sitemap URLs use the production domain', () => {
-    SITEMAP_URLS.forEach(url => expect(url).toContain('thankeeu.ng'));
+    SITEMAP_URLS.forEach(url => expect(url).toContain('thankeeu.com'));
   });
 
   it('private pages are excluded from sitemap', () => {

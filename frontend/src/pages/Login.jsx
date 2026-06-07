@@ -1,19 +1,13 @@
-import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
-import ThankeeuLogo from '../components/ThankeeuLogo';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
 
 const Login = () => {
-  useSEO({
-    title:       'Sign In to Thankeeu',
-    description: 'Sign in to your Thankeeu account to manage your group cards and gifts.',
-    canonical:   '/login',
-    jsonLd:      [SCHEMAS.organization, SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Sign In', url: '/login' }])],
-  });
-
+  useSEO({ title: 'Sign In — Thankeeu', description: 'Sign in to your Thankeeu account.', canonical: '/login', noIndex: true });
   const { login } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -25,7 +19,7 @@ const Login = () => {
     setLoading(true);
     try {
       await login(form.email, form.password);
-      toast.success('Welcome back!');
+      toast.success('Welcome back! 🎉');
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Invalid email or password');
@@ -33,47 +27,63 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(160deg,#F5F0FF 0%,#FDFCFF 50%,#FFF1F3 100%)' }}>
       <Navbar />
-      <div className="flex items-center justify-center p-4 py-12 md:py-20">
+
+      <div className="flex-1 flex items-center justify-center p-4 py-12">
         <div className="w-full max-w-md">
+
+          {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="font-display text-3xl font-semibold text-gray-900 mb-2">Welcome back</h1>
-            <p className="text-gray-500 text-sm">Sign in to your account</p>
+            <div className="text-5xl mb-4 animate-bounce-soft">🎉</div>
+            <h1 className="font-display text-3xl font-bold text-warm-900 mb-2">Welcome back!</h1>
+            <p className="text-warm-500 text-sm">Sign in to manage your cards & gifts</p>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+          {/* Card */}
+          <div className="bg-white rounded-3xl shadow-lg border border-purple-100 p-8">
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email address</label>
+                <label className="block text-sm font-bold text-warm-800 mb-1.5">Email address</label>
                 <input type="email" className="input" placeholder="you@example.com" required
                   value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
               </div>
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-medium text-gray-700">Password</label>
-                  <Link to="/forgot-password" className="text-xs text-primary-400 hover:text-primary-600">Forgot password?</Link>
+                  <label className="text-sm font-bold text-warm-800">Password</label>
+                  <Link to="/forgot-password" className="text-xs font-semibold text-primary-500 hover:text-primary-700">Forgot password?</Link>
                 </div>
                 <div className="relative">
-                  <input type={show ? 'text' : 'password'} className="input pr-10" placeholder="Enter your password" required
+                  <input type={show ? 'text' : 'password'} className="input pr-16" placeholder="Your password" required
                     value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
                   <button type="button" onClick={() => setShow(!show)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold px-2.5 py-1 rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors">
                     {show ? 'Hide' : 'Show'}
                   </button>
                 </div>
               </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full py-3.5">
-                {loading ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Signing in...</span> : 'Sign in'}
+              <button type="submit" disabled={loading} className="btn-primary w-full py-3.5 text-base">
+                {loading
+                  ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Signing in…</span>
+                  : '✨ Sign in'}
               </button>
             </form>
-            <p className="text-center text-sm text-gray-500 mt-6">
-              Don't have an account?{' '}
-              <Link to="/signup" className="text-primary-400 font-medium hover:text-primary-600">Create one free</Link>
-            </p>
+
+            <div className="mt-6 pt-6 border-t border-purple-50 text-center">
+              <p className="text-sm text-warm-600">
+                Don't have an account?{' '}
+                <Link to="/signup" className="font-bold text-primary-500 hover:text-primary-700">Create one free 🎁</Link>
+              </p>
+            </div>
           </div>
+
+          {/* Social proof */}
+          <p className="text-center text-xs text-warm-400 mt-5">
+            🔒 Secure · Used by 50,000+ people worldwide
+          </p>
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

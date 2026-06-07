@@ -46,16 +46,16 @@ const GiftCheckout = () => {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="w-10 h-10 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" /></div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-warm-100">
       <Navbar />
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-10">
         <div className="text-center mb-8">
           <div className="text-5xl mb-4">🎁</div>
-          <h1 className="font-display text-3xl font-semibold text-gray-900 mb-2">Redeem your gift</h1>
-          <p className="text-gray-500">Choose how you'd like to receive your gift from {card?.recipient_name}'s card</p>
+          <h1 className="font-display text-3xl font-semibold text-warm-900 mb-2">Redeem your gift</h1>
+          <p className="text-warm-500">Choose how you'd like to receive your gift from {card?.recipient_name}'s card</p>
         </div>
 
-        <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-8 text-center">
+        <div className="bg-green-50 border border-green-200 rounded-3xl p-5 mb-8 text-center">
           <p className="text-sm text-green-600 mb-1">Total collected for you</p>
           <p className="font-display text-4xl font-bold text-green-700">{formatUSD(card?.total_collected || 0)}</p>
           <p className="text-xs text-green-500 mt-1">From {card?.signed_count || 0} contributors</p>
@@ -64,11 +64,11 @@ const GiftCheckout = () => {
         <div className="space-y-3 mb-6">
           {GIFT_OPTIONS.map(opt => (
             <button key={opt.id} onClick={() => setSelected(opt.id)}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${selected === opt.id ? 'border-primary-400 bg-primary-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+              className={`w-full flex items-center gap-4 p-4 rounded-3xl border-2 text-left transition-all ${selected === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 bg-white hover:border-purple-200'}`}>
               <span className="text-3xl">{opt.icon}</span>
               <div>
-                <p className="font-semibold text-gray-900 text-sm">{opt.label}</p>
-                <p className="text-xs text-gray-500">{opt.desc}</p>
+                <p className="font-semibold text-warm-900 text-sm">{opt.label}</p>
+                <p className="text-xs text-warm-500">{opt.desc}</p>
               </div>
               {selected === opt.id && <span className="ml-auto text-primary-400 text-lg">✓</span>}
             </button>
@@ -76,8 +76,8 @@ const GiftCheckout = () => {
         </div>
 
         {selected === 'transfer' && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6 space-y-3">
-            <p className="font-semibold text-gray-900 text-sm mb-3">Bank details</p>
+          <div className="bg-white rounded-3xl border border-purple-100 p-5 mb-6 space-y-3">
+            <p className="font-semibold text-warm-900 text-sm mb-3">Bank details</p>
             <input className="input" placeholder="Account number" value={bankDetails.account_number}
               onChange={e => setBankDetails({ ...bankDetails, account_number: e.target.value })} />
             <input className="input" placeholder="Bank name (e.g. GTBank, Access)" value={bankDetails.bank_name}
@@ -90,7 +90,7 @@ const GiftCheckout = () => {
         <button onClick={handleRedeem} disabled={submitting || !selected} className="btn-primary w-full py-4 text-base">
           {submitting ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />Processing...</span> : `Redeem ${formatUSD(card?.total_collected || 0)}`}
         </button>
-        <p className="text-xs text-center text-gray-400 mt-3">Gift redemptions are processed within 24 hours</p>
+        <p className="text-xs text-center text-warm-400 mt-3">Gift redemptions are processed within 24 hours</p>
       </div>
       <Footer />
     </div>

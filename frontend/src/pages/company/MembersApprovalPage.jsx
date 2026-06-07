@@ -76,7 +76,7 @@ const MembersApprovalPage = () => {
     <CompanyLayout title="Team Members" subtitle="Manage who joins your company workspace">
 
       {/* Company code banner */}
-      <div className="bg-primary-50 border border-primary-100 rounded-2xl p-5 mb-6">
+      <div className="bg-primary-50 border border-primary-100 rounded-3xl p-5 mb-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <p className="font-semibold text-primary-800 text-sm mb-1">🔑 Your company code</p>
@@ -100,7 +100,7 @@ const MembersApprovalPage = () => {
 
       {/* Tabs + filter */}
       <div className="flex flex-col sm:flex-row gap-3 mb-5">
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+        <div className="flex gap-1 bg-purple-50 p-1 rounded-xl">
           {[
             { id: 'pending',  label: `Pending (${counts.pending})` },
             { id: 'approved', label: `Approved (${counts.approved})` },
@@ -109,7 +109,7 @@ const MembersApprovalPage = () => {
           ].map(t => (
             <button key={t.id} onClick={() => setFilter(t.id)}
               className={`px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                filter === t.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                filter === t.id ? 'bg-white text-primary-700 shadow-sm font-bold border border-purple-100' : 'text-warm-500 hover:text-warm-800'
               }`}>
               {t.label}
             </button>
@@ -123,29 +123,29 @@ const MembersApprovalPage = () => {
 
       {/* Members list */}
       {loading ? (
-        <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}</div>
+        <div className="space-y-3">{[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-white rounded-3xl border border-purple-100 animate-pulse" />)}</div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-3xl border border-purple-100 p-12 text-center">
           <div className="text-5xl mb-3">👥</div>
-          <p className="text-sm font-medium text-gray-700 mb-1">
+          <p className="text-sm font-medium text-warm-700 mb-1">
             {filter === 'pending' ? 'No pending requests' : `No ${filter} members`}
           </p>
-          <p className="text-xs text-gray-400">Share your company code above so employees can sign up</p>
+          <p className="text-xs text-warm-400">Share your company code above so employees can sign up</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
+                <tr className="border-b border-purple-100 bg-warm-100">
                   {['Member','Role','Department','Email','Requested','Status','Actions'].map(h => (
-                    <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-warm-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(m => (
-                  <tr key={m.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={m.id} className="hover:bg-warm-100 transition-colors">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         {m.profile_picture_url
@@ -153,7 +153,7 @@ const MembersApprovalPage = () => {
                           : <div className="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 text-xs font-bold flex-shrink-0">
                               {m.first_name?.[0]}{m.last_name?.[0]}
                             </div>}
-                        <span className="text-sm font-medium text-gray-900 whitespace-nowrap">{m.first_name} {m.last_name}</span>
+                        <span className="text-sm font-medium text-warm-900 whitespace-nowrap">{m.first_name} {m.last_name}</span>
                       </div>
                     </td>
                     <td className="px-5 py-3">
@@ -161,9 +161,9 @@ const MembersApprovalPage = () => {
                         {m.role === 'team_leader' ? '👑 Leader' : '👤 Member'}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-sm text-gray-600">{m.department}</td>
-                    <td className="px-5 py-3 text-sm text-gray-500 max-w-[180px] truncate">{m.email}</td>
-                    <td className="px-5 py-3 text-xs text-gray-400 whitespace-nowrap">
+                    <td className="px-5 py-3 text-sm text-warm-600">{m.department}</td>
+                    <td className="px-5 py-3 text-sm text-warm-500 max-w-[180px] truncate">{m.email}</td>
+                    <td className="px-5 py-3 text-xs text-warm-400 whitespace-nowrap">
                       {format(new Date(m.created_at), 'MMM d, yyyy')}
                     </td>
                     <td className="px-5 py-3">
@@ -188,12 +188,12 @@ const MembersApprovalPage = () => {
                         </div>
                       )}
                       {m.status === 'approved' && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-warm-400">
                           {m.approved_at ? format(new Date(m.approved_at), 'MMM d') : 'Approved'}
                         </span>
                       )}
                       {m.status === 'rejected' && m.rejection_reason && (
-                        <span className="text-xs text-gray-400 max-w-[120px] truncate block" title={m.rejection_reason}>
+                        <span className="text-xs text-warm-400 max-w-[120px] truncate block" title={m.rejection_reason}>
                           {m.rejection_reason}
                         </span>
                       )}
@@ -210,8 +210,8 @@ const MembersApprovalPage = () => {
       {rejectId && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
-            <h3 className="font-display text-xl font-semibold text-gray-900 mb-2">Reject request</h3>
-            <p className="text-sm text-gray-500 mb-5">Please provide a reason so the member knows why they were not approved.</p>
+            <h3 className="font-display text-xl font-semibold text-warm-900 mb-2">Reject request</h3>
+            <p className="text-sm text-warm-500 mb-5">Please provide a reason so the member knows why they were not approved.</p>
             <textarea className="input h-24 resize-none mb-4" placeholder="e.g. Email domain mismatch, duplicate account..."
               value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
             <div className="flex gap-3">

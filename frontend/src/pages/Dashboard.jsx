@@ -7,34 +7,38 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { formatUSD } from '../utils/currency';
+import { formatNGN } from '../utils/currency';
 
-const statusColors = {
-
-  draft: 'badge-draft',
-  active: 'badge-active',
-  sent: 'badge-sent',
-  expired: 'bg-red-100 text-red-600 badge'
+const statusConfig = {
+  draft:    { label:'Draft',    style:'bg-warm-100 text-warm-500 border border-warm-300' },
+  active:   { label:'Active ✓', style:'bg-green-50 text-green-700 border border-green-200' },
+  sent:     { label:'Sent 🚀',  style:'bg-blue-50 text-blue-700 border border-blue-200' },
+  expired:  { label:'Expired',  style:'bg-rose-50 text-rose-600 border border-rose-200' },
 };
 
-const occasionIcons = {
-  birthday: '🎂', valentine: '💝', leaving: '💼', anniversary: '💍',
-  wedding: '💒', baby_shower: '👶', retirement: '🏖️', congratulations: '🎉',
-  christmas: '🎄', new_year: '✨', promotion: '🌟', graduation: '🎓',
-  get_well: '🌷', other: '💌'
+const occasionEmoji = {
+  birthday:'🎂', valentine:'💝', leaving:'💼', anniversary:'💍', wedding:'💒',
+  baby_shower:'👶', retirement:'🏖️', congratulations:'🎉', graduation:'🎓',
+  promotion:'🌟', christmas:'🎄', get_well:'🌷', new_year:'✨', other:'💌',
 };
 
-const StatCard = ({ label, value, sub, color = 'bg-white' }) => (
-  <div className={`${color} rounded-2xl p-5 border border-gray-100`}>
-    <p className="text-sm text-gray-500 mb-1">{label}</p>
-    <p className="text-2xl font-display font-semibold text-gray-900">{value}</p>
-    {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+const StatCard = ({ icon, label, value, sub, highlight }) => (
+  <div className={`rounded-2xl sm:rounded-3xl p-4 sm:p-5 border-2 ${highlight ? 'border-primary-200 bg-primary-50' : 'bg-white border-purple-100'}`}>
+    <div className="flex items-start justify-between gap-2">
+      <div>
+        <p className="text-xs font-semibold text-warm-500 mb-1">{label}</p>
+        <p className={`font-display text-xl sm:text-2xl font-bold ${highlight ? 'text-primary-600' : 'text-warm-900'}`}>{value}</p>
+        {sub && <p className="text-xs text-warm-400 mt-1">{sub}</p>}
+      </div>
+      <span className="text-2xl flex-shrink-0">{icon}</span>
+    </div>
   </div>
 );
 
-const Dashboard = () => {
-  useSEO({ title: 'My Dashboard', description: 'Manage your group cards and gift collections.', noIndex: true });
+const FILTERS = ['all','draft','active','sent'];
 
+const Dashboard = () => {
+  useSEO({ title:'My Dashboard — Thankeeu', noIndex:true });
   const { user } = useAuth();
   const navigate = useNavigate();
   const [cards, setCards] = useState([]);
@@ -47,192 +51,152 @@ const Dashboard = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'success') {
       const ref = params.get('reference');
-      const handlePaymentSuccess = async () => {
+      const activatePending = async () => {
         try {
           if (ref) await paymentsAPI.verify(ref);
-          // Check for pending card to activate
           const pendingRaw = localStorage.getItem('thankeeu_pending_card');
           if (pendingRaw) {
             const pending = JSON.parse(pendingRaw);
             localStorage.removeItem('thankeeu_pending_card');
             await cardsAPI.activate(pending.slug, { inviteEmails: pending.inviteEmails || [] });
-            toast.success('Payment confirmed! Your card is now live! 🎉');
+            toast.success('Payment confirmed! Your card is now live 🎉');
             fetchDashboard();
           } else {
-            toast.success('Payment confirmed! Card credits added.');
+            toast.success('Payment confirmed! ✓');
           }
-        } catch {
-          toast.success('Payment successful!');
-        }
-        // Clean URL
+        } catch { toast.success('Payment successful!'); }
         window.history.replaceState({}, '', '/dashboard');
       };
-      handlePaymentSuccess();
+      activatePending();
     }
   }, []);
 
   const fetchDashboard = async () => {
     try {
-      const res = await dashboardAPI.get();
-      setCards(res.data.all_cards || []);
-      setDashData(res.data);
+      const [dashRes, cardsRes] = await Promise.all([dashboardAPI.get(), cardsAPI.getAll()]);
+      setDashData(dashRes.data);
+      setCards(cardsRes.data || []);
     } catch { toast.error('Failed to load dashboard'); }
     finally { setLoading(false); }
   };
 
-  const handleDelete = async (slug) => {
-    if (!confirm('Delete this card? This cannot be undone.')) return;
-    try {
-      await cardsAPI.delete(slug);
-      setCards(prev => prev.filter(c => c.slug !== slug));
-      toast.success('Card deleted');
-    } catch { toast.error('Failed to delete card'); }
-  };
-
-  const handleSend = async (slug) => {
-    try {
-      await cardsAPI.send(slug);
-      toast.success('Card sent to recipient!');
-      fetchDashboard();
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to send card');
-    }
-  };
-
   const filtered = filter === 'all' ? cards : cards.filter(c => c.status === filter);
-
-  // Use server-computed stats from dashboardAPI
-  const stats = dashData?.stats || {
-    active_cards: 0, total_cards: 0, sent_cards: 0,
-    total_collected: 0, credits_remaining: 0, unread_notifications: 0
-  };
+  const stats = dashData || {};
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen flex flex-col" style={{ background:'#FDFCFF' }}>
       <Navbar />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+      <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-6 sm:py-8">
+        {/* Greeting */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
           <div>
-            <h1 className="font-display text-3xl font-semibold text-gray-900">
-              Hey, {user?.full_name?.split(' ')[0]}! 👋
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-warm-900">
+              Hey {user?.full_name?.split(' ')[0] || 'there'} 👋
             </h1>
-            <p className="text-gray-500 text-sm mt-1">Here's what's happening with your cards</p>
+            <p className="text-warm-500 text-sm mt-1">Here's what's happening with your cards</p>
           </div>
-          <Link to="/create" className="btn-primary flex items-center gap-2">
-            <span>+</span> Create card
+          <Link to="/create-card" className="btn-primary py-3 px-6 text-sm w-full sm:w-auto">
+            ✨ Create new card
           </Link>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard label="Active cards" value={stats.active_cards} sub="currently collecting" />
-          <StatCard label="Total cards" value={stats.total_cards} sub="all time" />
-          <StatCard label="Cards sent" value={stats.sent_cards} sub="delivered" />
-          <StatCard label="Gifts collected" value={formatUSD(stats.total_collected || 0)} sub="total volume" color="bg-primary-50" />
-        </div>
-
-        {/* Closing soon alert */}
-        {dashData?.closing_soon?.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
-            <span className="text-2xl">⏰</span>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-800">Cards closing soon!</p>
-              <p className="text-xs text-amber-600 mt-0.5">
-                {dashData.closing_soon.map(c => c.title || c.recipient_name).join(', ')} — deadline within 48 hours
-              </p>
-            </div>
+        {loading ? (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+            {[...Array(4)].map((_,i) => <div key={i} className="bg-purple-50 rounded-2xl h-24 animate-pulse" />)}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+            <StatCard icon="🎴" label="Active cards"    value={stats.active_cards || 0}  sub="collecting now" />
+            <StatCard icon="📋" label="Total cards"     value={stats.total_cards  || 0}  sub="all time" />
+            <StatCard icon="🚀" label="Cards sent"      value={stats.sent_cards   || 0}  sub="delivered" />
+            <StatCard icon="🎁" label="Gifts collected" value={formatNGN(stats.total_collected||0)} sub="total" highlight />
           </div>
         )}
 
-        {/* Filter tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto scrollbar-hide">
-          {['all', 'draft', 'active', 'sent'].map(f => (
+        {/* Filter pills */}
+        <div className="flex flex-wrap gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+          {FILTERS.map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
-                filter === f ? 'bg-primary-400 text-white' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+              className={`px-4 py-2 rounded-full text-xs font-bold capitalize whitespace-nowrap flex-shrink-0 border-2 transition-all ${
+                filter===f ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-warm-600 border-purple-200 hover:border-primary-300'
               }`}>
-              {f.charAt(0).toUpperCase() + f.slice(1)}
-              <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${filter === f ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'}`}>
-                {f === 'all' ? cards.length : cards.filter(c => c.status === f).length}
-              </span>
+              {f==='all' ? `All (${cards.length})` : `${f.charAt(0).toUpperCase()+f.slice(1)} (${cards.filter(c=>c.status===f).length})`}
             </button>
           ))}
         </div>
 
+        {/* Cards grid */}
         {loading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {[...Array(6)].map((_, i) => <div key={i} className="bg-white rounded-2xl h-48 animate-pulse border border-gray-100" />)}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_,i) => <div key={i} className="bg-white rounded-3xl h-52 animate-pulse border-2 border-purple-100"/>)}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-20">
+          <div className="text-center py-16 px-4">
             <div className="text-6xl mb-4">💌</div>
-            <h3 className="font-display text-xl font-semibold text-gray-900 mb-2">No cards yet</h3>
-            <p className="text-gray-500 mb-6 text-sm">Create your first group card to get started</p>
-            <Link to="/create" className="btn-primary">Create your first card</Link>
+            <h3 className="font-display text-xl font-bold text-warm-900 mb-3">
+              {filter==='all' ? 'No cards yet' : `No ${filter} cards`}
+            </h3>
+            <p className="text-warm-500 mb-7 text-sm">
+              {filter==='all' ? 'Create your first group card to get started!' : `You don't have any ${filter} cards.`}
+            </p>
+            <Link to="/create-card" className="btn-primary px-8 py-3">✨ Create your first card</Link>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filtered.map(card => (
-              <div key={card.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-md transition-shadow group">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-xl">
-                      {occasionIcons[card.occasion] || '💌'}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(card => {
+              const sc = statusConfig[card.status] || statusConfig.draft;
+              return (
+                <div key={card.id} className="bg-white rounded-3xl border-2 border-purple-100 hover:border-primary-300 hover:shadow-md transition-all overflow-hidden group">
+                  {/* Card header */}
+                  <div className="p-5 pb-4">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="w-11 h-11 rounded-2xl bg-primary-50 flex items-center justify-center text-2xl flex-shrink-0 border border-purple-100">
+                        {occasionEmoji[card.occasion] || '💌'}
+                      </div>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${sc.style}`}>{sc.label}</span>
                     </div>
-                    <div>
-                      <span className={statusColors[card.status] || 'badge-draft'}>{card.status}</span>
+                    <h3 className="font-bold text-warm-900 mb-1 line-clamp-1 text-sm">{card.title || `${card.recipient_name}'s Card`}</h3>
+                    <p className="text-xs text-warm-500">For <strong>{card.recipient_name}</strong></p>
+
+                    <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-warm-500">
+                      <span>✍️ {card.signed_count || 0} signed</span>
+                      {(card.total_collected||0) > 0 && (
+                        <span className="text-green-700 font-semibold">🎁 {formatNGN(card.total_collected)}</span>
+                      )}
+                      {card.created_at && <span>{format(new Date(card.created_at), 'MMM d, yy')}</span>}
                     </div>
                   </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => navigate(`/create?edit=${card.slug}`)} className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 text-xs">Edit</button>
-                    <button onClick={() => handleDelete(card.slug)} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400 text-xs">Del</button>
+
+                  {/* Card actions */}
+                  <div className="flex border-t-2 border-purple-50">
+                    {card.status==='active' && (
+                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${card.slug}`); toast.success('Invite link copied! 📲'); }}
+                        className="flex-1 py-3 text-xs font-bold text-primary-600 hover:bg-primary-50 transition-colors">
+                        📲 Copy invite link
+                      </button>
+                    )}
+                    <Link to={`/card/${card.slug}`}
+                      className="flex-1 py-3 text-xs font-bold text-warm-600 hover:bg-purple-50 transition-colors text-center border-l-2 border-purple-50 first:border-l-0">
+                      👁️ View
+                    </Link>
+                    {card.status==='draft' && (
+                      <Link to={`/create-card?edit=${card.slug}`}
+                        className="flex-1 py-3 text-xs font-bold text-warm-600 hover:bg-purple-50 transition-colors text-center border-l-2 border-purple-50">
+                        ✏️ Edit
+                      </Link>
+                    )}
                   </div>
                 </div>
+              );
+            })}
 
-                <h3 className="font-semibold text-gray-900 mb-1 line-clamp-1">{card.title}</h3>
-                <p className="text-sm text-gray-500 mb-4">For {card.recipient_name}</p>
-
-                <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
-                  <span>💬 {card.messages?.[0]?.count || 0} msgs</span>
-                  <span>💰 {formatUSD(card.total_collected || 0)}</span>
-                  {card.deadline && <span>⏰ {format(new Date(card.deadline), 'MMM d')}</span>}
-                </div>
-
-                {/* Progress bar */}
-                <div className="h-1.5 bg-gray-100 rounded-full mb-4">
-                  <div className="h-full bg-primary-400 rounded-full transition-all"
-                    style={{ width: `${Math.min((card.messages?.[0]?.count || 0) * 5, 100)}%` }} />
-                </div>
-
-                <div className="flex gap-2">
-                  <Link to={`/sign/${card.slug}`}
-                    className="flex-1 text-center py-2 text-xs font-medium border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-                    View card
-                  </Link>
-                  {card.status === 'active' && (
-                    <button onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/sign/${card.slug}`);
-                      toast.success('Link copied!');
-                    }} className="px-3 py-2 text-xs font-medium bg-primary-50 text-primary-600 rounded-xl hover:bg-primary-100 transition-colors">
-                      Copy link
-                    </button>
-                  )}
-                  {card.status === 'active' && card.recipient_email && (
-                    <button onClick={() => handleSend(card.slug)}
-                      className="px-3 py-2 text-xs font-medium bg-pink-50 text-pink-600 rounded-xl hover:bg-pink-100 transition-colors">
-                      Send
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Create new card CTA */}
-            <Link to="/create" className="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-5 flex flex-col items-center justify-center gap-3 hover:border-primary-300 hover:bg-primary-50/30 transition-all min-h-[200px] group">
-              <div className="w-12 h-12 bg-gray-100 group-hover:bg-primary-100 rounded-xl flex items-center justify-center text-2xl transition-colors">+</div>
-              <p className="text-sm text-gray-500 group-hover:text-primary-600 font-medium transition-colors">Create new card</p>
+            {/* Create new card tile */}
+            <Link to="/create-card"
+              className="border-2 border-dashed border-purple-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-3 hover:border-primary-400 hover:bg-primary-50 transition-all group min-h-[180px]">
+              <div className="w-12 h-12 rounded-2xl bg-primary-50 border-2 border-primary-200 flex items-center justify-center text-2xl group-hover:bg-primary-100 transition-colors">✨</div>
+              <p className="text-sm font-bold text-warm-700 group-hover:text-primary-600 text-center">Create new card</p>
             </Link>
           </div>
         )}

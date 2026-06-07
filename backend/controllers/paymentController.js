@@ -14,7 +14,7 @@ const initializeCardPurchase = async (req, res) => {
     const { plan_type } = req.body;
     // USD prices: single=$5, pack5=$20, business=$50
     // Converted to NGN at 1600/USD, then to kobo (*100)
-    const amounts = { single: 500000, pack5: 1000000, business: 20000000 }; // kobo — NGN: single=₦5k, pack=₦10k, business=₦200k
+    const amounts = { single: 500000, pack5: 2000000, business: 20000000 }; // kobo — NGN: single=₦5k, pack5=₦20k, business=₦200k
     const amount = amounts[plan_type];
     if (!amount) return res.status(400).json({ error: 'Invalid plan type' });
 

@@ -106,7 +106,7 @@ const App = () => (
 
             {/* ── Individual protected ────────────────────── */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/create"    element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
+            <Route path="/create-card" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
             <Route path="/admin"     element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
 
             {/* ── Company (HR) auth ────────────────────────── */}

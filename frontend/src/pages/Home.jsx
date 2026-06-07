@@ -158,12 +158,12 @@ const Home = () => {
 
           <p className="text-warm-600 mb-8 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(0.95rem,2.5vw,1.125rem)', lineHeight:1.65 }}>
             Create beautiful group cards, collect heartfelt messages, pool Naira gifts via Paystack.<br className="hidden sm:block"/>
-            <strong className="text-warm-800">Takes 2 minutes. Free to start.</strong>
+            <strong className="text-warm-800">Takes 2 minutes. From ₦5,000.</strong>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10 px-2">
             <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">
-              ✨ Create a card — it's free
+              ✨ Create a card from ₦5,000
             </Link>
             <button onClick={() => setShowDemo(true)} className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">
               📅 Book team demo
@@ -257,7 +257,7 @@ const Home = () => {
                 ))}
               </div>
               <Link to="/signup" className="btn-primary px-7 py-3.5 text-sm w-full sm:w-auto inline-flex">
-                ✨ Create your first card free →
+                ✨ Create your first card →
               </Link>
             </div>
 
@@ -386,14 +386,14 @@ const Home = () => {
             <div className="bg-gradient-to-br from-purple-50 to-rose-50 border-2 border-purple-200 rounded-3xl p-7">
               <div className="text-4xl mb-4">💜</div>
               <h3 className="font-display text-2xl font-bold text-warm-900 mb-2">For individuals</h3>
-              <p className="text-primary-600 font-bold text-sm mb-1">Free to start · ₦5,000 to send</p>
+              <p className="text-primary-600 font-bold text-sm mb-1">From ₦5,000 · One-time payment</p>
               <p className="text-warm-600 mb-5 text-sm leading-relaxed">Create a card for anyone — friend, colleague, family. No account needed to sign.</p>
               <ul className="space-y-2 mb-6">
-                {['✓ Free card creation','✓ Unlimited signers','✓ Naira gift pot','✓ Photo & video messages'].map(f => (
+                {['✓ Quick card creation','✓ Unlimited signers','✓ Naira gift pot','✓ Photo & video messages'].map(f => (
                   <li key={f} className="text-sm text-warm-700 flex gap-2"><span className="text-primary-500 font-bold">{f.slice(0,1)}</span>{f.slice(1)}</li>
                 ))}
               </ul>
-              <Link to="/signup" className="btn-primary px-7 py-3 w-full sm:w-auto inline-flex">Create free card →</Link>
+              <Link to="/signup" className="btn-primary px-7 py-3 w-full sm:w-auto inline-flex">Get started →</Link>
             </div>
             <div className="rounded-3xl p-7 border-2 border-primary-800" style={{ background:'linear-gradient(135deg,#1A1035,#2E1F6B)' }}>
               <div className="text-4xl mb-4">🏢</div>
@@ -428,9 +428,9 @@ const Home = () => {
               genuinely loved
             </span>
           </h2>
-          <p className="text-warm-500 mb-8 text-base sm:text-lg">Free to start. No credit card. Your first card is on us.</p>
+          <p className="text-warm-500 mb-8 text-base sm:text-lg">From ₦5,000 per card. Pay only when you send.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">✨ Start free — takes 2 min</Link>
+            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">✨ Get started — takes 2 min</Link>
             <Link to="/pricing" className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">💳 See pricing</Link>
           </div>
           <p className="text-xs text-warm-400 mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">

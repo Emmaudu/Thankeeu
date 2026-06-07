@@ -10,35 +10,21 @@ import toast from 'react-hot-toast';
 
 const INDIVIDUAL_PLANS = [
   {
-    id:'free', name:'Free', price:'₦0', label:'Create and explore',
-    btn:'Start for free', btnStyle:'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
-    features:[
-      { text:'Create unlimited draft cards', ok:true },
-      { text:'Collect messages & contributions', ok:true },
-      { text:'10 basic card designs', ok:true },
-      { text:'Gift pot enabled', ok:true },
-      { text:'Video and voice messages', ok:false },
-      { text:'Scheduled sending', ok:false },
-      { text:'Premium designs (100+)', ok:false },
-      { text:'Auto reminders to contributors', ok:false },
-    ]
-  },
-  {
     id:'single', name:'Classic', price:'₦5,000', label:'Per card, one-time', popular:true,
     btn:'Get Classic ✨', btnStyle:'bg-primary-500 text-white hover:bg-primary-600',
     features:[
-      { text:'Everything in Free', ok:true },
-      { text:'Unlimited contributors', ok:true },
-      { text:'100+ premium designs', ok:true },
-      { text:'Video and voice messages', ok:true },
-      { text:'Scheduled sending', ok:true },
+      { text:'Unlimited contributors — anyone can sign', ok:true },
+      { text:'100+ premium card designs', ok:true },
+      { text:'Video, photo & voice messages', ok:true },
+      { text:'Scheduled delivery on any date', ok:true },
       { text:'Auto reminders to contributors', ok:true },
       { text:'Gift pot up to ₦10,000,000', ok:true },
-      { text:'WhatsApp and email invites', ok:true },
+      { text:'WhatsApp and email invite links', ok:true },
+      { text:'Download card as PDF', ok:true },
     ]
   },
   {
-    id:'pack5', name:'Pack of 5', price:'₦10,000', label:'Save ₦5,000',
+    id:'pack5', name:'Pack of 5', price:'₦20,000', label:'₦4,000 per card — save ₦5,000',
     btn:'Buy pack 🎁', btnStyle:'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
     features:[
       { text:'Everything in Classic', ok:true },
@@ -47,8 +33,8 @@ const INDIVIDUAL_PLANS = [
       { text:'Priority support', ok:true },
       { text:'Exclusive seasonal designs', ok:true },
       { text:'GIF and sticker support', ok:true },
-      { text:'Download card as PDF', ok:true },
       { text:'Bulk invite via CSV', ok:true },
+      { text:'Dedicated card manager', ok:true },
     ]
   },
 ];
@@ -75,8 +61,8 @@ const FAQ = [
 
 const Pricing = () => {
   useSEO({
-    title:'Pricing — Group Cards from ₦5,000 · Teams from ₦200,000/month',
-    description:'Simple Naira pricing for group cards and gifts. Individual card ₦5,000, pack of 5 for ₦10,000. Company plans from ₦200,000/month.',
+    title:'Pricing — Group Cards from ₦5,000 · No Free Tier · Teams from ₦200,000/month',
+    description:'Simple Naira pricing for group cards and gifts. Individual card from ₦5,000, pack of 5 for ₦20,000. Company plans from ₦200,000/month.',
     canonical:'/pricing',
   });
 
@@ -89,7 +75,6 @@ const Pricing = () => {
 
   const handleIndividualPurchase = async (planId) => {
     if (!user) { navigate('/signup'); return; }
-    if (planId === 'free') { navigate('/create-card'); return; }
     setLoadingPlan(planId);
     try {
       const res = await paymentsAPI.initPurchase(planId);
@@ -155,7 +140,7 @@ const Pricing = () => {
                   <p className="text-warm-500 text-xs mb-4">{plan.label}</p>
                   <div className="flex items-end gap-1 mb-1">
                     <span className="font-display text-3xl sm:text-4xl font-bold text-warm-900">{plan.price}</span>
-                    {plan.id !== 'free' && <span className="text-warm-400 text-sm pb-1">one-time</span>}
+                    <span className="text-warm-400 text-sm pb-1">one-time</span>
                   </div>
                   {plan.id==='pack5' && <p className="text-green-600 text-xs font-bold mb-4">₦2,000 per card — save ₦15,000 vs singles</p>}
                   <div className="h-px bg-purple-100 my-4" />

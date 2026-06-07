@@ -5,11 +5,21 @@ import { memberAPI, memberCardsAPI, deductionsAPI } from '../../utils/api';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
+import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../../utils/cardDesigns';
 
 const OCCASION_ICONS = {
   birthday: '🎂', leaving: '👋', work_anniversary: '🏆', promotion: '🌟',
   wedding: '💍', valentines_day: '💝', womens_day: '👩', mens_day: '👨',
   workers_day: '✊', graduation: '🎓', new_baby: '👶', retirement: '🏖️', other: '🎉',
+};
+
+const CARD_OCCASION_MAP = {
+  work_anniversary: 'anniversary',
+  valentines_day: 'valentine',
+  womens_day: 'other',
+  mens_day: 'other',
+  workers_day: 'other',
+  new_baby: 'baby_shower',
 };
 
 const MemberOccasionsPage = () => {
@@ -24,6 +34,7 @@ const MemberOccasionsPage = () => {
   const [cardForm, setCardForm]     = useState({
     recipient_name: '', recipient_email: '', occasion: 'birthday',
     title: '', is_gift_enabled: true, notification_scope: 'department',
+    design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
   });
 
   useEffect(() => {
@@ -42,12 +53,12 @@ const MemberOccasionsPage = () => {
 
       // If cross-dept scope, it will need HR approval — handled server-side
       const res = await memberCardsAPI.create({
-        ...cardForm, title,
+        ...cardForm,
+        occasion: CARD_OCCASION_MAP[cardForm.occasion] || cardForm.occasion,
+        title,
         company_id: member.company_id,
         created_by_member_id: member.id,
         status: 'active',
-        design_theme: 'rose_love',
-        background_color: '#FBEAF0',
         allow_private_messages: true,
         send_reminders: true,
       });
@@ -69,7 +80,11 @@ const MemberOccasionsPage = () => {
       // Copy link to clipboard
       navigator.clipboard.writeText(`${window.location.origin}/sign/${slug}`).catch(() => {});
       setShowCreate(false);
-      setCardForm({ recipient_name: '', recipient_email: '', occasion: 'birthday', title: '', is_gift_enabled: true, notification_scope: 'department' });
+      setCardForm({
+        recipient_name: '', recipient_email: '', occasion: 'birthday', title: '',
+        is_gift_enabled: true, notification_scope: 'department',
+        design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
+      });
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to create card');
     } finally { setCreating(false); }
@@ -189,6 +204,41 @@ const MemberOccasionsPage = () => {
                 <label className="block text-sm font-medium text-warm-700 mb-1.5">Card title <span className="text-warm-400 font-normal text-xs">(optional)</span></label>
                 <input className="input" placeholder={`Happy ${cardForm.occasion.replace(/_/g,' ')} ${cardForm.recipient_name || ''}!`}
                   value={cardForm.title} onChange={e => setCardForm(p => ({ ...p, title: e.target.value }))} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-warm-700 mb-2">Art design</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {CARD_DESIGNS.map(design => (
+                    <button key={design.id} type="button"
+                      onClick={() => setCardForm(p => ({ ...p, design_theme: design.id, background_color: design.background }))}
+                      className={`rounded-2xl overflow-hidden border-2 transition-all ${cardForm.design_theme === design.id ? 'border-primary-500 shadow-md' : 'border-white'}`}
+                      title={design.name}>
+                      <span className={`card-art ${cardArtClass(design)} h-14 grid place-items-center text-2xl`} style={{ background: design.background }}>{design.icon}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-warm-700 mb-2">Lettering</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {FONT_STYLES.map(font => (
+                    <button key={font.id} type="button" onClick={() => setCardForm(p => ({ ...p, font_style: font.id }))}
+                      className={`rounded-xl border-2 px-2 py-2 text-xs ${cardForm.font_style === font.id ? 'border-primary-500 bg-primary-50' : 'border-purple-100'}`}
+                      style={{ fontFamily: font.family }}>
+                      {font.id === 'calligraphy' ? 'With love' : font.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className={`card-art ${cardArtClass(getCardDesign(cardForm.design_theme))} rounded-3xl p-5 text-center min-h-[150px] flex flex-col justify-center`}
+                style={{ background: getCardDesign(cardForm.design_theme).background, color: getCardDesign(cardForm.design_theme).ink }}>
+                <span className="text-3xl mb-2">{getCardDesign(cardForm.design_theme).icon}</span>
+                <p className="text-xl" style={{ color: getCardDesign(cardForm.design_theme).ink, fontFamily: getFontStyle(cardForm.font_style).family }}>
+                  {cardForm.title || `A special card for ${cardForm.recipient_name || 'your colleague'}`}
+                </p>
               </div>
 
               {/* Notification scope */}

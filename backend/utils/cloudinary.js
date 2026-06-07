@@ -16,8 +16,8 @@ const storage = new CloudinaryStorage({
     return {
       folder: 'thankeeu/messages',
       resource_type: isVideo ? 'video' : isAudio ? 'video' : 'image',
-      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'webm', 'mp3', 'wav'],
-      transformation: isVideo ? [] : [{ width: 1200, crop: 'limit', quality: 'auto' }]
+      allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'mov', 'webm', 'mp3', 'wav', 'm4a', 'aac', 'ogg'],
+      transformation: isVideo || isAudio ? [] : [{ width: 1200, crop: 'limit', quality: 'auto' }]
     };
   }
 });

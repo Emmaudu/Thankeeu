@@ -6,6 +6,7 @@ import { cardsAPI, paymentsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
+import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 
 const OCCASIONS = [
   { id: 'birthday', icon: '🎂', label: 'Birthday' },
@@ -69,7 +70,7 @@ const CreateCard = () => {
   const [paymentStage, setPaymentStage] = useState('opening');
   const [inviteEmails, setInviteEmails] = useState('');
   const [form, setForm] = useState({
-    occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0',
+    occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
     title: `${user?.full_name?.split(' ')[0] || 'Someone'}'s Birthday Card`,
     recipient_name: '', recipient_email: '', send_date: '',
     deadline: '', is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
@@ -94,7 +95,7 @@ const CreateCard = () => {
 
   const handleDesignSelect = (d) => {
     set('design_theme', d.id);
-    set('background_color', d.bg);
+    set('background_color', d.background || d.bg);
   };
 
   const handleSubmit = async () => {
@@ -193,7 +194,7 @@ const CreateCard = () => {
     }
   };
 
-  const selectedDesign = DESIGNS.find(d => d.id === form.design_theme);
+  const selectedDesign = CARD_DESIGNS.find(d => d.id === form.design_theme);
 
   return (
     <div className="min-h-screen">
@@ -236,25 +237,38 @@ const CreateCard = () => {
             <h2 className="font-display text-xl font-semibold text-warm-900 mb-1">Pick a design</h2>
             <p className="text-warm-500 text-sm mb-6">Choose from our beautiful templates</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-              {DESIGNS.map(d => (
+              {CARD_DESIGNS.map(d => (
                 <button key={d.id} onClick={() => handleDesignSelect(d)}
-                  className={`rounded-3xl overflow-hidden border-2 transition-all ${
+                  className={`rounded-3xl overflow-hidden border-2 transition-all bg-white ${
                     form.design_theme === d.id ? 'border-primary-400 shadow-md' : 'border-transparent'
                   }`}>
-                  <div className="h-20 flex items-center justify-center text-4xl" style={{ background: d.bg }}>{d.emoji}</div>
+                  <div className={`card-art ${cardArtClass(d)} h-24 flex items-center justify-center text-4xl`} style={{ background: d.background }}>{d.icon}</div>
                   <div className="py-2 px-1 text-center">
                     <span className="text-xs font-medium text-warm-700">{d.name}</span>
                   </div>
                 </button>
               ))}
             </div>
+            <p className="text-sm font-semibold text-warm-700 mb-3">Choose the card lettering</p>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-6">
+              {FONT_STYLES.map(font => (
+                <button key={font.id} type="button" onClick={() => set('font_style', font.id)}
+                  className={`rounded-2xl border-2 px-2 py-3 transition-all ${
+                    form.font_style === font.id ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-purple-100 text-warm-600'
+                  }`}
+                  style={{ fontFamily: font.family }}>
+                  {font.id === 'calligraphy' ? 'With love' : font.name}
+                </button>
+              ))}
+            </div>
             {selectedDesign && (
-              <div className="rounded-3xl p-4 mb-6 flex items-center gap-3" style={{ background: selectedDesign.bg }}>
-                <span className="text-2xl">{selectedDesign.emoji}</span>
-                <div>
-                  <p className="font-medium text-sm" style={{ color: selectedDesign.accent }}>Preview: {selectedDesign.name}</p>
-                  <p className="text-xs opacity-70" style={{ color: selectedDesign.accent }}>This will be your card's background</p>
-                </div>
+              <div className={`card-art ${cardArtClass(selectedDesign)} celebration-shell rounded-3xl p-7 mb-6 text-center min-h-[210px] flex flex-col justify-center`} style={{ background: selectedDesign.background, color: selectedDesign.ink }}>
+                <span className="text-4xl mb-3">{selectedDesign.icon}</span>
+                <p className="text-xs font-bold uppercase tracking-[.2em] mb-2" style={{ color: selectedDesign.accent }}>{selectedDesign.name}</p>
+                <h3 className="text-2xl" style={{ color: selectedDesign.ink, fontFamily: getFontStyle(form.font_style).family }}>
+                  {form.title || `A beautiful card for ${form.recipient_name || 'someone special'}`}
+                </h3>
+                <p className="text-xs opacity-70 mt-2" style={{ color: selectedDesign.ink }}>This artwork and lettering follows the card everywhere.</p>
               </div>
             )}
             <div className="flex justify-between">
@@ -383,7 +397,7 @@ const CreateCard = () => {
             <div className="rounded-3xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-6">
               {[
                 ['Occasion', OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion],
-                ['Design', DESIGNS.find(d => d.id === form.design_theme)?.name || form.design_theme],
+                ['Design', CARD_DESIGNS.find(d => d.id === form.design_theme)?.name || form.design_theme],
                 ['Recipient', form.recipient_name],
                 ['Gift enabled', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount)} suggested` : 'No'],
                 ['Card fee', '₦5,000 one-time'],

@@ -44,7 +44,7 @@ const grantCardCredits = async ({ userId, planType, reference }) => {
   return { credits, alreadyProcessed: false };
 };
 
-const verifyContribution = async ({ contributionId, reference }) => {
+const verifyContribution = async ({ contributionId, reference, transaction }) => {
   const { data: contribution, error: lookupError } = await supabase
     .from('contributions')
     .select('*')
@@ -52,6 +52,12 @@ const verifyContribution = async ({ contributionId, reference }) => {
     .single();
 
   if (lookupError || !contribution) throw lookupError || new Error('Contribution not found');
+  if (transaction) {
+    if (transaction.status !== 'success') throw new Error('Payment not successful');
+    if (transaction.currency !== 'NGN') throw new Error('Invalid contribution currency');
+    if (transaction.amount !== contribution.amount * 100) throw new Error('Contribution amount does not match');
+    if (transaction.metadata?.contribution_id !== contribution.id) throw new Error('Invalid contribution reference');
+  }
   if (contribution.status === 'success') {
     return { contribution, alreadyProcessed: true };
   }
@@ -64,6 +70,13 @@ const verifyContribution = async ({ contributionId, reference }) => {
     .single();
 
   if (error) throw error;
+  if (updated.message_id) {
+    const { error: messageError } = await supabase
+      .from('messages')
+      .update({ contributed_amount: updated.amount, payment_reference: reference, payment_verified: true })
+      .eq('id', updated.message_id);
+    if (messageError) throw messageError;
+  }
   return { contribution: updated, alreadyProcessed: false };
 };
 
@@ -272,7 +285,7 @@ const verifyPayment = async (req, res) => {
     const { type, contribution_id, user_id, plan_type, card_slug } = txn.metadata || {};
 
     if (type === 'gift_contribution' && contribution_id) {
-      const result = await verifyContribution({ contributionId: contribution_id, reference });
+      const result = await verifyContribution({ contributionId: contribution_id, reference, transaction: txn });
       return res.json({
         success: true,
         type: 'contribution',
@@ -312,7 +325,7 @@ const webhook = async (req, res) => {
       const { type, contribution_id, card_slug, user_id } = metadata;
 
       if (type === 'gift_contribution' && contribution_id) {
-        await verifyContribution({ contributionId: contribution_id, reference });
+        await verifyContribution({ contributionId: contribution_id, reference, transaction: event.data });
       }
       if (type === 'card_purchase' && card_slug && user_id) {
         const purchase = validateCardPurchase({ txn: event.data });

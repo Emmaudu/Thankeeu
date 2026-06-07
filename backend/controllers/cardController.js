@@ -11,7 +11,7 @@ const createCard = async (req, res) => {
   try {
     const {
       recipient_name, recipient_email, occasion, title, design_theme,
-      background_color, is_gift_enabled, gift_type, suggested_amount,
+      background_color, font_style, is_gift_enabled, gift_type, suggested_amount,
       send_date, deadline, allow_private_messages, send_reminders, hide_amounts,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus
@@ -34,7 +34,7 @@ const createCard = async (req, res) => {
         recipient_email: recipient_email?.trim() || null,
         occasion,
         title: title?.trim() || `${recipient_name}'s Card`,
-        design_theme, background_color, is_gift_enabled,
+        design_theme, background_color, font_style: font_style || 'elegant', is_gift_enabled,
         gift_type, suggested_amount,
         send_date: send_date || null,
         deadline: deadline || null,
@@ -156,8 +156,9 @@ const getCard = async (req, res) => {
     }
 
     // Hide contribution amounts if configured
-    if (card.hide_amounts && !isCreator) {
+    if (card.hide_amounts && !isCreator && !isRecipient) {
       card.contributions = card.contributions?.map(c => ({ ...c, amount: null }));
+      card.messages = card.messages?.map(message => ({ ...message, contributed_amount: null }));
     }
 
     res.json({ ...card, isCreator, isRecipient });
@@ -286,7 +287,7 @@ const getPublicCard = async (req, res) => {
     const { slug } = req.params;
     const { data: card, error } = await supabase
       .from('cards')
-      .select('id, slug, recipient_name, occasion, title, design_theme, background_color, is_gift_enabled, gift_type, suggested_amount, total_collected, deadline, status, allow_private_messages, hide_amounts, messages(id, author_name, content, is_private, media_url, media_type, reactions, created_at), contributions(amount, contributor_name, status)')
+      .select('id, slug, recipient_name, occasion, title, design_theme, background_color, font_style, is_gift_enabled, gift_type, suggested_amount, total_collected, deadline, status, allow_private_messages, hide_amounts, messages(id, author_name, content, is_private, font_style, media_url, media_type, reactions, contributed_amount, created_at), contributions(amount, contributor_name, status)')
       .eq('slug', slug)
       .in('status', ['active', 'sent'])
       .single();
@@ -297,9 +298,13 @@ const getPublicCard = async (req, res) => {
     const verifiedContribs = card.contributions?.filter(c => c.status === 'success') || [];
     const totalCollected = verifiedContribs.reduce((s, c) => s + (c.amount || 0), 0);
 
+    const publicMessages = (card.messages || [])
+      .filter(message => !message.is_private)
+      .map(message => card.hide_amounts ? { ...message, contributed_amount: null } : message);
+
     res.json({
       ...card,
-      messages: card.messages?.filter(m => !m.is_private) || [],
+      messages: publicMessages,
       signed_count: signedCount,
       total_collected: totalCollected,
       contributors: card.hide_amounts ? [] : verifiedContribs.map(c => c.contributor_name)

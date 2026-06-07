@@ -476,3 +476,6 @@ npm run test:coverage
 ✅ **Paystack kobo amounts** — all verified in both kobo and naira  
 ✅ **Subscription periods** — monthly ~30 days, yearly ~365 days  
 ✅ **Company code** — UUID format, used for member signup URL  
+## Existing database migrations
+
+Run the SQL migrations in `database/` against an existing Supabase project. The card redesign and voice-note release requires `migration_card_art_and_voice.sql` in addition to the payment-verification and recipient-claim migrations.

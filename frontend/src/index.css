@@ -1,5 +1,5 @@
 /* ── Google Fonts — must be BEFORE @tailwind ──────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500;1,600&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400;1,9..144,600&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -279,6 +279,149 @@
 .animate-pop        { animation: pop 0.25s cubic-bezier(0.34,1.56,0.64,1); }
 /* Legacy aliases */
 .animate-glow       { animation: none; }
+
+/* Rich card artwork */
+.card-art {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+.card-art::before,
+.card-art::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+.card-art-petals::before {
+  width: 260px; height: 260px; right: -90px; top: -110px; border-radius: 46% 54% 50% 50%;
+  background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.9), rgba(244,63,94,.24) 35%, transparent 68%);
+  transform: rotate(24deg);
+}
+.card-art-petals::after {
+  width: 190px; height: 190px; left: -70px; bottom: -95px; border-radius: 60% 40%;
+  background: radial-gradient(circle, rgba(168,85,247,.24), transparent 70%);
+}
+.card-art-stars::before {
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,.9) 1px, transparent 1.5px), radial-gradient(circle, rgba(250,204,21,.8) 1px, transparent 2px);
+  background-size: 31px 31px, 67px 67px;
+  background-position: 5px 8px, 18px 25px;
+}
+.card-art-stars::after {
+  width: 260px; height: 260px; right: -100px; bottom: -130px; border-radius: 50%;
+  background: rgba(255,255,255,.1); box-shadow: inset 28px 0 0 rgba(250,204,21,.14);
+}
+.card-art-leaves::before {
+  width: 230px; height: 320px; right: -85px; top: -65px;
+  background: repeating-radial-gradient(ellipse at bottom left, transparent 0 18px, rgba(5,150,105,.16) 19px 25px, transparent 26px 42px);
+  transform: rotate(-18deg);
+}
+.card-art-leaves::after {
+  width: 210px; height: 210px; left: -100px; bottom: -100px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(250,204,21,.25), transparent 68%);
+}
+.card-art-sunburst::before {
+  width: 420px; height: 420px; right: -230px; top: -250px; border-radius: 50%;
+  background: repeating-conic-gradient(rgba(245,158,11,.18) 0 8deg, transparent 8deg 18deg);
+}
+.card-art-sunburst::after {
+  width: 180px; height: 180px; left: -75px; bottom: -90px; border: 22px double rgba(217,119,6,.14); border-radius: 50%;
+}
+.card-art-waves::before {
+  width: 420px; height: 190px; left: -30px; bottom: -105px; border-radius: 50%;
+  background: rgba(249,115,22,.16); box-shadow: 0 -35px 0 rgba(244,63,94,.1), 0 -70px 0 rgba(124,58,237,.08);
+}
+.card-art-facets::before {
+  inset: 0;
+  background: linear-gradient(35deg, transparent 56%, rgba(37,99,235,.12) 57% 70%, transparent 71%),
+              linear-gradient(145deg, transparent 60%, rgba(6,182,212,.16) 61%);
+}
+.card-art-arches::before {
+  width: 270px; height: 270px; right: -100px; top: -100px; border: 28px double rgba(250,204,21,.18); border-radius: 50%;
+}
+.card-art-arches::after {
+  width: 220px; height: 220px; left: -120px; bottom: -110px; border: 1px solid rgba(255,255,255,.28); border-radius: 50%;
+  box-shadow: 0 0 0 25px rgba(255,255,255,.05), 0 0 0 50px rgba(255,255,255,.04);
+}
+.card-art-confetti::before {
+  inset: 0;
+  background-image: radial-gradient(#ec4899 2px, transparent 2px), radial-gradient(#8b5cf6 2px, transparent 2px), radial-gradient(#f59e0b 2px, transparent 2px);
+  background-position: 0 0, 18px 23px, 37px 7px;
+  background-size: 72px 72px;
+  opacity: .3;
+}
+
+.celebration-shell {
+  box-shadow: 0 30px 90px rgba(76,29,149,.18), inset 0 1px 0 rgba(255,255,255,.75);
+}
+.message-art-card {
+  height: 470px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform .25s ease, box-shadow .25s ease;
+  box-shadow: 0 14px 34px rgba(76,29,149,.1);
+}
+.message-art-card:hover {
+  transform: translateY(-4px) rotate(0deg) !important;
+  box-shadow: 0 22px 48px rgba(76,29,149,.18);
+}
+.message-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+}
+.message-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(24, 10, 51, .72);
+  backdrop-filter: blur(10px);
+}
+.glass-panel {
+  background: rgba(255,255,255,.86);
+  border: 1px solid rgba(255,255,255,.72);
+  box-shadow: 0 24px 70px rgba(76,29,149,.14);
+  backdrop-filter: blur(18px);
+}
+.voice-record-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  min-height: 44px;
+  padding: .65rem .9rem;
+  border-radius: 1rem;
+  border: 1.5px solid #ddd6fe;
+  background: #f5f0ff;
+  color: #6d28d9;
+  font-size: .75rem;
+  font-weight: 800;
+  transition: all .2s ease;
+}
+.voice-record-button:hover { border-color: #a78bfa; background: #ede9fe; }
+.voice-record-button.is-recording { color: #be123c; border-color: #fda4af; background: #fff1f2; }
+.voice-record-icon { font-size: 1rem; }
+.voice-record-pulse {
+  width: 8px; height: 8px; border-radius: 50%; background: #e11d48;
+  animation: recorderPulse 1.1s ease-out infinite;
+}
+@keyframes recorderPulse { 0%{box-shadow:0 0 0 0 rgba(225,29,72,.45)} 100%{box-shadow:0 0 0 10px rgba(225,29,72,0)} }
+.font-calligraphy { font-family: 'Great Vibes', cursive; }
+.font-handwritten { font-family: 'Caveat', cursive; }
+.font-classic { font-family: 'Cormorant Garamond', Georgia, serif; }
+.font-elegant { font-family: 'Fraunces', Georgia, serif; }
+.font-modern { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+@media print {
+  nav, footer, .no-print { display: none !important; }
+  .message-art-card { break-inside: avoid; box-shadow: none; }
+}
 
 /* ── Scrollbar ────────────────────────────────────────────────── */
 .messages-grid::-webkit-scrollbar { width: 4px; }

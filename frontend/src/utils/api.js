@@ -98,7 +98,7 @@ export const messagesAPI = {
 // ─── Payments ─────────────────────────────────────────────────────────────
 export const paymentsAPI = {
   initPurchase:     (plan_type, card_slug) => api.post('/payments/initialize/purchase', { plan_type, card_slug }),
-  initContribution: (data)      => api.post('/payments/initialize/contribution', data),
+  initContribution: (data)      => publicAxios.post('/payments/initialize/contribution', data),
   verifyPurchase:   (reference) => api.get(`/payments/verify/purchase/${reference}`),
   verify:           (reference) => api.get(`/payments/verify/${reference}`),
 };

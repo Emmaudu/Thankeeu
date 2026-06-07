@@ -6,7 +6,7 @@ const parseBoolean = value => value === true || value === 'true' || value === '1
 const addMessage = async (req, res) => {
   try {
     const { card_slug } = req.params;
-    const { author_name, author_email, content, is_private } = req.body;
+    const { author_name, author_email, content, is_private, font_style } = req.body;
 
     const { data: card } = await supabase
       .from('cards').select('id, status, allow_private_messages')
@@ -35,6 +35,7 @@ const addMessage = async (req, res) => {
         author_email,
         content,
         is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
+        font_style: font_style || 'handwritten',
         media_url,
         media_type
       })

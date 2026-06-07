@@ -229,8 +229,8 @@ const CreateCard = () => {
               <div className="rounded-2xl border border-gray-100 divide-y divide-gray-100">
                 {[
                   { key: 'allow_private_messages', label: 'Allow private messages', desc: 'Contributors can mark messages visible only to recipient' },
-                  { key: 'send_reminders', label: 'Auto-send reminders', desc: 'Nudge people who haven't signed 2 days before deadline' },
-                  { key: 'hide_amounts', label: 'Hide gift amounts', desc: 'Contributors won't see how much others gave' },
+                  { key: 'send_reminders', label: 'Auto-send reminders', desc: "Nudge people who haven't signed 2 days before deadline" },
+                  { key: 'hide_amounts', label: 'Hide gift amounts', desc: "Contributors won't see how much others gave" },
                 ].map(({ key, label, desc }) => (
                   <div key={key} className="flex items-center justify-between p-4">
                     <div>

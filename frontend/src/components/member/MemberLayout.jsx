@@ -17,6 +17,8 @@ const MemberLayout = ({ children, title, subtitle }) => {
       { path: '/member/approvals',  icon: '✅', label: 'Approvals' },
       { path: '/member/deductions', icon: '💰', label: 'Deductions' },
     ] : []),
+    { path: '/member/settings',   icon: '⚙️', label: 'Settings' },
+    { path: '/member/support',    icon: '💬', label: 'Support' },
   ];
 
   const handleLogout = () => { logout(); navigate('/member/login'); };

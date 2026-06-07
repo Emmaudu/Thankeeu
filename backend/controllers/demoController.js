@@ -29,7 +29,7 @@ const submitDemoRequest = async (req, res) => {
 
     // Notify admin
     await sendEmail({
-      to: process.env.SUPPORT_EMAIL || 'support@thankeeu.ng',
+      to: process.env.SUPPORT_EMAIL || 'support@thankeeu.com',
       template: 'demoRequest',
       data: { company_name, contact_name, email, phone, team_size, message, demoId: demo.id },
     }).catch(() => {}); // don't fail if email fails

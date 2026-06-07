@@ -1,3 +1,4 @@
+import { formatUSD } from '../../utils/currency';
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { deductionsAPI } from '../../utils/api';
@@ -138,7 +139,7 @@ const DeductionRequestsPage = () => {
                           </p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-xl font-bold text-gray-900">₦{(d.amount || 0).toLocaleString()}</p>
+                          <p className="text-xl font-bold text-gray-900">{formatUSD(d.amount || 0)}</p>
                           <p className="text-xs text-gray-400">requested deduction</p>
                         </div>
                       </div>
@@ -189,7 +190,7 @@ const DeductionRequestsPage = () => {
                             </div>
                             <p className="text-xs text-gray-400 mt-0.5">{d.reason?.slice(0, 60)}{d.reason?.length > 60 ? '...' : ''}</p>
                           </div>
-                          <p className="text-sm font-bold text-gray-700 flex-shrink-0">₦{(d.amount || 0).toLocaleString()}</p>
+                          <p className="text-sm font-bold text-gray-700 flex-shrink-0">{formatUSD(d.amount || 0)}</p>
                         </div>
                       ))}
                     </div>

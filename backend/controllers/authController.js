@@ -131,3 +131,49 @@ const resetPassword = async (req, res) => {
 };
 
 module.exports = { signup, login, getMe, updateProfile, forgotPassword, resetPassword };
+
+// Admin seed — creates admin user if none exists (one-time setup)
+const seedAdmin = async (req, res) => {
+  try {
+    const { data: existingAdmin } = await supabase
+      .from('users').select('id').eq('role', 'admin').limit(1).maybeSingle();
+    
+    if (existingAdmin) {
+      return res.json({ message: 'Admin already exists', seeded: false });
+    }
+    
+    const adminEmail = 'admin@thankeeu.com';
+    const adminPassword = 'Thankeeu@Admin2025!';
+    const password_hash = await bcrypt.hash(adminPassword, 12);
+    
+    // Check if email exists
+    const { data: existingUser } = await supabase
+      .from('users').select('id').eq('email', adminEmail).maybeSingle();
+    
+    if (existingUser) {
+      // Upgrade existing user to admin
+      await supabase.from('users').update({ role: 'admin' }).eq('id', existingUser.id);
+      return res.json({ message: 'Existing user upgraded to admin', email: adminEmail, seeded: true });
+    }
+    
+    const { data: user, error } = await supabase
+      .from('users')
+      .insert({ 
+        full_name: 'Thankeeu Admin', 
+        email: adminEmail, 
+        password_hash, 
+        role: 'admin',
+        is_verified: true 
+      })
+      .select('id, email, full_name, role')
+      .single();
+    
+    if (error) throw error;
+    res.status(201).json({ message: 'Admin created', email: adminEmail, seeded: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to seed admin' });
+  }
+};
+
+module.exports.seedAdmin = seedAdmin;

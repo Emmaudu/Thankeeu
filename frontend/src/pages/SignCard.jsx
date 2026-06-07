@@ -1,34 +1,16 @@
-import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { useSEO } from '../hooks/useSEO';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { cardsAPI, messagesAPI, paymentsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
+import { usdToNgn, ngnToUsd, formatUSD } from '../utils/currency';
 
-const AMOUNTS = [500, 1000, 2500, 5000, 10000];
+// Amounts shown to user in USD; converted to NGN before sending to Paystack
+const AMOUNTS_USD = [5, 10, 25, 50, 100];
 
 const SignCard = () => {
-  // Dynamic SEO — title updates when card loads so WhatsApp previews are accurate
-  useSEO({
-    title:       card ? `Sign ${card.recipient_name}'s ${card.occasion?.replace(/_/g,' ')} card` : 'Sign a Card on Thankeeu',
-    description: card
-      ? `You've been invited to sign a group card for ${card.recipient_name}. Add your message${card.is_gift_enabled ? ' and chip into a shared gift pot' : ''} on Thankeeu.`
-      : 'Sign a group card and add a gift on Thankeeu.',
-    twitterCard: 'summary_large_image',
-    noIndex:     false,
-    jsonLd: card ? [
-      SCHEMAS.organization,
-      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: `Sign ${card.recipient_name}'s card`, url: `/sign/${card.slug}` }]),
-      SCHEMAS.webPage(
-        `Sign ${card.recipient_name}'s ${(card.occasion||'').replace(/_/g,' ')} card`,
-        `Sign a group card for ${card.recipient_name} and leave a heartfelt message${card.is_gift_enabled ? ' or contribute to the gift pot' : ''}.`,
-        `/sign/${card.slug}`
-      ),
-      SCHEMAS.cardEvent(card.recipient_name, card.occasion, card.slug, card.signed_count || 0),
-    ] : null,
-  });
-
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
   const [card, setCard] = useState(null);
@@ -44,6 +26,16 @@ const SignCard = () => {
     author_name: '', author_email: '', content: '', is_private: false
   });
 
+  // Dynamic SEO — title updates when card loads so WhatsApp previews are accurate
+  useSEO({
+    title:       card ? `Sign ${card.recipient_name}'s ${card.occasion?.replace(/_/g,' ')} card` : 'Sign a Card on Thankeeu',
+    description: card
+      ? `You've been invited to sign a group card for ${card.recipient_name}. Add your message${card.is_gift_enabled ? ' and chip into a shared gift pot' : ''} on Thankeeu.`
+      : 'Sign a group card and add a gift on Thankeeu.',
+    twitterCard: 'summary_large_image',
+    noIndex:     false,
+  });
+
   useEffect(() => {
     fetchCard();
     if (searchParams.get('contributed') === 'true') {
@@ -55,7 +47,7 @@ const SignCard = () => {
     try {
       const res = await cardsAPI.getPublic(slug);
       setCard(res.data);
-      setSelectedAmount(res.data.suggested_amount || 2500);
+      setSelectedAmount(ngnToUsd(res.data.suggested_amount) || 10);
     } catch { toast.error('Card not found'); }
     finally { setLoading(false); }
   };
@@ -86,13 +78,14 @@ const SignCard = () => {
       const msgRes = await messagesAPI.add(slug, fd);
       const messageId = msgRes.data.id;
 
-      const amount = customAmount ? parseInt(customAmount) : selectedAmount;
-      if (card.is_gift_enabled && amount && form.author_email) {
+      const amountUsd = customAmount ? parseInt(customAmount) : selectedAmount;
+      if (card.is_gift_enabled && amountUsd && form.author_email) {
+        const amountNgn = usdToNgn(amountUsd); // convert USD → NGN for Paystack
         const payRes = await paymentsAPI.initContribution({
           card_slug: slug,
           contributor_name: form.author_name,
           contributor_email: form.author_email,
-          amount,
+          amount: amountNgn,
           message_id: messageId
         });
         window.location.href = `https://checkout.paystack.com/${payRes.data.access_code}`;
@@ -169,7 +162,7 @@ const SignCard = () => {
             <div className="flex items-center gap-3 mt-1">
               <span className="text-xs text-gray-600">✅ {card.signed_count || 0} signed</span>
               {card.is_gift_enabled && card.total_collected > 0 && (
-                <span className="text-xs text-gray-600">🎁 ₦{card.total_collected.toLocaleString()} collected</span>
+                <span className="text-xs text-gray-600">🎁 {formatUSD(card.total_collected)} collected</span>
               )}
             </div>
           </div>
@@ -273,23 +266,23 @@ const SignCard = () => {
                   <p className="text-xs text-green-600">{card.signed_count || 0} contributors so far</p>
                 </div>
               </div>
-              <span className="font-bold text-green-700">₦{(card.total_collected || 0).toLocaleString()}</span>
+              <span className="font-bold text-green-700">{formatUSD(card.total_collected || 0)}</span>
             </div>
             <p className="text-xs text-gray-500 mb-3">How much would you like to add?</p>
             <div className="flex flex-wrap gap-2 mb-3">
-              {AMOUNTS.map(a => (
+              {AMOUNTS_USD.map(a => (
                 <button key={a} onClick={() => { setSelectedAmount(a); setCustomAmount(''); }}
                   className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
                     selectedAmount === a && !customAmount ? 'bg-primary-400 text-white border-primary-400' : 'border-gray-200 text-gray-700 hover:border-primary-300'
                   }`}>
-                  ₦{a.toLocaleString()}
+                  ${a}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-500">₦</span>
-              <input type="number" className="input" placeholder="Custom amount (min ₦100)"
-                value={customAmount} min="100"
+              <span className="text-sm font-medium text-gray-500">$</span>
+              <input type="number" className="input" placeholder="Custom amount (min $1)"
+                value={customAmount} min="1"
                 onChange={e => { setCustomAmount(e.target.value); setSelectedAmount(null); }} />
             </div>
             <p className="text-xs text-gray-400 mt-2">💳 Payment via Paystack · Secure checkout</p>
@@ -301,7 +294,7 @@ const SignCard = () => {
           className="w-full btn-pink py-4 text-base flex items-center justify-center gap-2 mb-3">
           {submitting
             ? <><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Signing...</>
-            : <>❤️ Sign card{card.is_gift_enabled && (customAmount || selectedAmount) ? ` + contribute ₦${(customAmount || selectedAmount).toLocaleString()}` : ''}</>
+            : <>❤️ Sign card{card.is_gift_enabled && (customAmount || selectedAmount) ? ` + contribute $${customAmount || selectedAmount}` : ''}</>
           }
         </button>
         <p className="text-center text-xs text-gray-400">No account needed · Takes 30 seconds</p>

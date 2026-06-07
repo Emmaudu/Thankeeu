@@ -1,7 +1,7 @@
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { memberAPI, cardsAPI } from '../../utils/api';
+import { memberAPI, memberCardsAPI } from '../../utils/api';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
@@ -41,7 +41,7 @@ const MemberOccasionsPage = () => {
       const title = cardForm.title || `${cardForm.recipient_name}'s ${cardForm.occasion.replace('_', ' ')} Card`;
 
       // If cross-dept scope, it will need HR approval — handled server-side
-      const res = await cardsAPI.create({
+      const res = await memberCardsAPI.create({
         ...cardForm, title,
         company_id: member.company_id,
         created_by_member_id: member.id,
@@ -120,7 +120,7 @@ const MemberOccasionsPage = () => {
                   <p className="text-sm font-semibold text-gray-900">{m.first_name} {m.last_name}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {m.occasion_types?.label} · {m.department} ·{' '}
-                    {new Date(m.occasion_date).toLocaleDateString('en-NG', { day: 'numeric', month: 'long' })}
+                    {new Date(m.occasion_date).toLocaleDateString('en', { day: 'numeric', month: 'long' })}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 flex-shrink-0">

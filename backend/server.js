@@ -11,20 +11,9 @@ const app = express();
 
 // Security
 app.use(helmet());
-const allowedOrigins = [
-  ...(process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean),
-  'http://localhost:5173',
-];
-
 app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
-    cb(new Error(`CORS blocked: ${origin}`));
-  },
-  credentials: true,
+  origin: [process.env.FRONTEND_URL, 'http://localhost:5173'],
+  credentials: true
 }));
 
 // Rate limiting
@@ -170,8 +159,8 @@ cron.schedule('0 7 * * *', async () => {
       await supabase.from('birthday_automations').upsert({ company_id: m.company_id, member_id: m.id, card_slug: slug, year, department_notified_at: new Date() }, { onConflict: 'member_id,year' });
 
       const { data: colleagues } = await supabase.from('team_members').select('email,first_name').eq('company_id', m.company_id).eq('department', m.department).eq('is_active', true).neq('id', m.id);
-      const bdStr = twoDays.toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' });
-      const dlStr = deadline.toLocaleDateString('en-NG', { day: 'numeric', month: 'long' });
+      const bdStr = twoDays.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
+      const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
 
       for (const col of (colleagues || [])) {
         await sendEmail({ to: col.email, template: 'birthdayDeptNotice', data: { celebrantName: `${m.first_name} ${m.last_name}`, celebrantFirstName: m.first_name, department: m.department, birthdayDate: bdStr, companyName: company.name, cardSlug: slug, giftEnabled: true, deadline: dlStr } });
@@ -250,7 +239,7 @@ cron.schedule('0 6 * * *', async () => {
         const { nanoid } = require('nanoid');
         const slug = `${m.first_name.toLowerCase()}-${ot.name.replace('_','-')}-${nanoid(6)}`;
         const deadline = new Date(notifyDate.getTime() + notifyDays * 86400000);
-        const occasionDateStr = new Date(m.occasion_date).toLocaleDateString('en-NG', { weekday: 'long', day: 'numeric', month: 'long' });
+        const occasionDateStr = new Date(m.occasion_date).toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
 
         // Create card
         const { data: card } = await supabase.from('cards').insert({
@@ -300,7 +289,7 @@ cron.schedule('0 6 * * *', async () => {
         ]);
         allEmails.delete(m.email);
 
-        const dlStr = deadline.toLocaleDateString('en-NG', { day: 'numeric', month: 'long' });
+        const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
 
         // Use occasion-specific email templates for new_hire and leaving
         for (const email of allEmails) {

@@ -10,9 +10,9 @@ const Footer = () => (
         <div className="col-span-2 md:col-span-1">
           <ThankeeuLogo size={32} textSize="text-lg" className="[&_span]:text-white mb-3" />
           <p className="text-sm leading-relaxed mb-4 text-gray-500">
-            Nigeria's home for group cards and gifts. Celebrate every milestone, together.
+            The world's group card and gift platform. Celebrate every milestone, together.
           </p>
-          <p className="text-xs text-gray-600">Made with 💜 for Nigeria 🇳🇬</p>
+          <p className="text-xs text-gray-600">Made with 💜 worldwide 🌍</p>
         </div>
 
         {/* Product */}
@@ -44,8 +44,8 @@ const Footer = () => (
           <ul className="space-y-3 text-sm">
             <li><Link to="/policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
             <li><Link to="/policy" className="hover:text-white transition-colors">Terms of Service</Link></li>
-            <li><a href="mailto:support@thankeeu.ng" className="hover:text-white transition-colors">Contact us</a></li>
-            <li><a href="mailto:support@thankeeu.ng" className="hover:text-white transition-colors">Support</a></li>
+            <li><a href="mailto:support@thankeeu.com" className="hover:text-white transition-colors">Contact us</a></li>
+            <li><a href="mailto:support@thankeeu.com" className="hover:text-white transition-colors">Support</a></li>
           </ul>
         </div>
       </div>

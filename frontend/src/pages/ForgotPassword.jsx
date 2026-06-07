@@ -1,6 +1,7 @@
 import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
 import ThankeeuLogo from '../components/ThankeeuLogo';
+import Navbar from '../components/Navbar';
 import { Link } from 'react-router-dom';
 import { authAPI } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -24,10 +25,9 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/"><ThankeeuLogo size={36} textSize="text-2xl" className="mb-5 mx-auto" /></Link>
           <h1 className="font-display text-3xl font-semibold text-gray-900 mb-2">Reset your password</h1>
           <p className="text-gray-500 text-sm">We'll send a reset link to your email</p>
         </div>
@@ -60,6 +60,7 @@ const ForgotPassword = () => {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 };

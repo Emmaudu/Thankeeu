@@ -7,12 +7,21 @@ const createTicket = async (req, res) => {
     if (!subject || !message) return res.status(400).json({ error: 'Subject and message are required' });
 
     const isCompany = !!req.company;
-    const sender = isCompany ? req.company : req.user;
+    const isMember = !!req.member;
+    const sender = isCompany ? req.company : isMember ? req.member : req.user;
+
+    const senderName = isCompany
+      ? sender.name
+      : isMember
+      ? `${sender.first_name} ${sender.last_name}`
+      : sender.full_name;
+
+    const senderType = isCompany ? 'company' : isMember ? 'member' : 'user';
 
     const { data: ticket, error } = await supabase.from('support_tickets').insert({
-      sender_type: isCompany ? 'company' : 'user',
+      sender_type: senderType,
       sender_id: sender.id,
-      sender_name: isCompany ? sender.name : sender.full_name,
+      sender_name: senderName,
       sender_email: sender.email,
       subject,
       message
@@ -22,12 +31,12 @@ const createTicket = async (req, res) => {
 
     // Email support team
     await sendEmail({
-      to: process.env.SUPPORT_EMAIL || 'support@thankeeu.ng',
+      to: process.env.SUPPORT_EMAIL || 'support@thankeeu.com',
       template: 'supportTicket',
       data: {
-        senderName: isCompany ? sender.name : sender.full_name,
+        senderName,
         senderEmail: sender.email,
-        senderType: isCompany ? 'Company' : 'User',
+        senderType: isCompany ? 'Company (HR)' : isMember ? 'Team Member' : 'User',
         subject,
         message,
         ticketId: ticket.id
@@ -39,7 +48,7 @@ const createTicket = async (req, res) => {
       to: sender.email,
       template: 'supportConfirm',
       data: {
-        name: isCompany ? sender.name : sender.full_name,
+        name: senderName,
         subject,
         ticketId: ticket.id
       }

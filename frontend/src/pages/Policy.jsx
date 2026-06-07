@@ -39,7 +39,7 @@ const Policy = () => {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="font-display text-4xl font-semibold text-gray-900 mb-3">Legal & Policies</h1>
-          <p className="text-gray-500">Last updated: January 2025 · Thankeeu Nigeria</p>
+          <p className="text-gray-500">Last updated: January 2025 · Thankeeu</p>
         </div>
 
         {/* Quick links */}
@@ -53,7 +53,7 @@ const Policy = () => {
         </div>
 
         <Section id="privacy" title="Privacy Policy">
-          <p>Thankeeu ("we", "our", "us") is committed to protecting your privacy. This policy explains how we collect, use, and protect your personal information when you use our platform at thankeeu.ng.</p>
+          <p>Thankeeu ("we", "our", "us") is committed to protecting your privacy. This policy explains how we collect, use, and protect your personal information when you use our platform at thankeeu.com.</p>
           <h3 className="font-semibold text-gray-800 text-base">Information we collect</h3>
           <p>We collect information you provide directly: your name, email address, and password when you create an account. We also collect information about the cards you create, including recipient details and messages. When processing payments, we use Paystack — we do not store your card details on our servers.</p>
           <h3 className="font-semibold text-gray-800 text-base">How we use your information</h3>
@@ -67,7 +67,7 @@ const Policy = () => {
           <h3 className="font-semibold text-gray-800 text-base">Data sharing</h3>
           <p>We do not sell your personal data. We share limited data with: Paystack (for payment processing), Cloudinary (for media file storage), Resend (for email delivery), and Supabase (for database hosting). All partners are GDPR-compliant.</p>
           <h3 className="font-semibold text-gray-800 text-base">Your rights</h3>
-          <p>You may request access to, correction of, or deletion of your personal data by emailing privacy@thankeeu.ng. We will respond within 30 days.</p>
+          <p>You may request access to, correction of, or deletion of your personal data by emailing privacy@thankeeu.com. We will respond within 30 days.</p>
           <h3 className="font-semibold text-gray-800 text-base">Data retention</h3>
           <p>We retain your account data for as long as your account is active. Card data is retained for 2 years after the card is sent. You can delete your account and all associated data at any time from your settings.</p>
         </Section>
@@ -89,13 +89,13 @@ const Policy = () => {
           <h3 className="font-semibold text-gray-800 text-base">Content ownership</h3>
           <p>You retain ownership of all content (messages, photos, videos) you submit to Thankeeu. By submitting content, you grant us a limited licence to display and deliver that content to the intended card recipients.</p>
           <h3 className="font-semibold text-gray-800 text-base">Card fees</h3>
-          <p>The card creation fee (₦1,500 per card or ₦5,000 for a pack of 5) is charged to activate and send a card. This fee is non-refundable once the card has been activated and the share link has been generated.</p>
+          <p>The card creation fee ($5 per card or $20 for a pack of 5) is charged to activate and send a card. This fee is non-refundable once the card has been activated and the share link has been generated.</p>
           <h3 className="font-semibold text-gray-800 text-base">Limitation of liability</h3>
           <p>Thankeeu is provided "as is". We are not liable for any indirect, incidental, or consequential damages arising from your use of the platform. Our liability is limited to the amount you paid for the relevant card or service.</p>
           <h3 className="font-semibold text-gray-800 text-base">Termination</h3>
           <p>We reserve the right to suspend or terminate accounts that violate these terms, with or without notice.</p>
           <h3 className="font-semibold text-gray-800 text-base">Governing law</h3>
-          <p>These terms are governed by the laws of the Federal Republic of Nigeria. Any disputes shall be resolved in Nigerian courts.</p>
+          <p>These terms are governed by the laws of the applicable laws in your jurisdiction.</p>
         </Section>
 
         <Section id="cookies" title="Cookie Policy">
@@ -114,20 +114,20 @@ const Policy = () => {
 
         <Section id="refund" title="Refund Policy">
           <h3 className="font-semibold text-gray-800 text-base">Card fees</h3>
-          <p>Card fees (₦1,500 per card, ₦5,000 for a pack of 5) are non-refundable once a card has been activated — that is, once the shareable signing link has been generated and the card is open for contributions.</p>
-          <p>If you experience a technical error during payment and your card was not activated, please contact us at support@thankeeu.ng within 48 hours with your Paystack transaction reference and we will issue a full refund.</p>
+          <p>Card fees ($5 per card, $20 for a pack of 5) are non-refundable once a card has been activated — that is, once the shareable signing link has been generated and the card is open for contributions.</p>
+          <p>If you experience a technical error during payment and your card was not activated, please contact us at support@thankeeu.com within 48 hours with your Paystack transaction reference and we will issue a full refund.</p>
           <h3 className="font-semibold text-gray-800 text-base">Gift contributions</h3>
           <p>Gift contributions made by card signers can be refunded within 24 hours of payment, provided the card has not yet been delivered to the recipient. After delivery, contributions are non-refundable.</p>
-          <p>To request a contribution refund, email refunds@thankeeu.ng with your Paystack reference number and the card link.</p>
+          <p>To request a contribution refund, email refunds@thankeeu.com with your Paystack reference number and the card link.</p>
           <h3 className="font-semibold text-gray-800 text-base">Business plans</h3>
           <p>Monthly business plan fees are non-refundable. However, if you are dissatisfied with the service, contact us within 7 days of your first payment and we will work to resolve the issue or offer a credit.</p>
           <h3 className="font-semibold text-gray-800 text-base">Contact us</h3>
-          <p>For all refund requests and enquiries: <a href="mailto:support@thankeeu.ng" className="text-primary-400 hover:underline">support@thankeeu.ng</a></p>
+          <p>For all refund requests and enquiries: <a href="mailto:support@thankeeu.com" className="text-primary-400 hover:underline">support@thankeeu.com</a></p>
         </Section>
 
         <div className="bg-primary-50 rounded-2xl p-6 text-center">
           <p className="text-sm text-gray-600">Questions about our policies?</p>
-          <a href="mailto:legal@thankeeu.ng" className="text-primary-400 font-medium hover:text-primary-600 text-sm">legal@thankeeu.ng</a>
+          <a href="mailto:legal@thankeeu.com" className="text-primary-400 font-medium hover:text-primary-600 text-sm">legal@thankeeu.com</a>
         </div>
       </div>
       <Footer />

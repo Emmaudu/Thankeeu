@@ -12,7 +12,9 @@ const createCard = async (req, res) => {
     const {
       recipient_name, recipient_email, occasion, title, design_theme,
       background_color, is_gift_enabled, gift_type, suggested_amount,
-      send_date, deadline, allow_private_messages, send_reminders, hide_amounts
+      send_date, deadline, allow_private_messages, send_reminders, hide_amounts,
+      // Member-created card extras
+      company_id, created_by_member_id, notification_scope, status: reqStatus
     } = req.body;
 
     const slug = generateSlug(recipient_name, occasion);
@@ -20,15 +22,75 @@ const createCard = async (req, res) => {
     const { data: card, error } = await supabase
       .from('cards')
       .insert({
-        slug, creator_id: req.user.id, recipient_name, recipient_email,
+        slug,
+        creator_id: req.user?.id || null,
+        recipient_name, recipient_email,
         occasion, title, design_theme, background_color, is_gift_enabled,
         gift_type, suggested_amount, send_date, deadline,
-        allow_private_messages, send_reminders, hide_amounts, status: 'draft'
+        allow_private_messages, send_reminders, hide_amounts,
+        status: reqStatus || 'draft',
+        // Member card fields (these columns must exist in DB)
+        ...(company_id && { company_id }),
+        ...(created_by_member_id && { created_by_member_id }),
+        ...(notification_scope && { notification_scope }),
       })
       .select()
       .single();
 
     if (error) throw error;
+
+    // --- Notify department/company members when a member creates a card ---
+    if (created_by_member_id && company_id && notification_scope) {
+      try {
+        // Get the creator member info
+        const { data: creator } = await supabase
+          .from('company_members')
+          .select('first_name, last_name, department, email')
+          .eq('id', created_by_member_id)
+          .single();
+
+        if (creator) {
+          let memberQuery = supabase
+            .from('company_members')
+            .select('email, first_name, last_name, department')
+            .eq('company_id', company_id)
+            .eq('status', 'approved');
+
+          if (notification_scope === 'department') {
+            memberQuery = memberQuery.eq('department', creator.department);
+          }
+          // 'company_wide' — no extra filter, notify everyone
+
+          const { data: membersToNotify } = await memberQuery;
+
+          const signLink = `${process.env.FRONTEND_URL}/sign/${slug}`;
+          const creatorFullName = `${creator.first_name} ${creator.last_name}`;
+
+          for (const m of (membersToNotify || [])) {
+            // Don't email the creator themselves
+            if (m.email === creator.email) continue;
+            await sendEmail({
+              to: m.email,
+              template: 'cardInvite',
+              data: {
+                creatorName: creatorFullName,
+                recipientName: recipient_name,
+                occasion,
+                cardSlug: slug,
+                giftEnabled: is_gift_enabled,
+                deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
+                signLink,
+                scope: notification_scope === 'department' ? `${creator.department} department` : 'your company',
+              }
+            }).catch(() => {}); // don't fail card creation if email fails
+          }
+        }
+      } catch (notifyErr) {
+        // Log but don't fail the card creation
+        console.error('Notification error:', notifyErr);
+      }
+    }
+
     res.status(201).json(card);
   } catch (err) {
     console.error(err);
@@ -121,7 +183,7 @@ const activateCard = async (req, res) => {
 
     // Send invites if emails provided
     if (inviteEmails?.length) {
-      const deadline = card.deadline ? new Date(card.deadline).toLocaleDateString('en-NG') : 'soon';
+      const deadline = card.deadline ? new Date(card.deadline).toLocaleDateString('en') : 'soon';
       for (const email of inviteEmails) {
         await sendEmail({
           to: email,
@@ -223,4 +285,22 @@ const getPublicCard = async (req, res) => {
   }
 };
 
-module.exports = { createCard, getUserCards, getCard, updateCard, activateCard, sendCard, deleteCard, getPublicCard };
+// Get cards created by a team member (for their history tab)
+const getMemberCards = async (req, res) => {
+  try {
+    const memberId = req.member.id;
+    const { data: cards, error } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, is_gift_enabled')
+      .eq('created_by_member_id', memberId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(cards || []);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch card history' });
+  }
+};
+
+module.exports = { createCard, getUserCards, getCard, updateCard, activateCard, sendCard, deleteCard, getPublicCard, getMemberCards };

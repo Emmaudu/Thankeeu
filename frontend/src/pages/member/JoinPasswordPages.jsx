@@ -1,4 +1,5 @@
 import { useSEO } from '../../hooks/useSEO';
+import Navbar from '../../components/Navbar';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { memberAPI } from '../../utils/api';
@@ -20,7 +21,7 @@ export const JoinForgotPassword = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
@@ -67,7 +68,7 @@ export const JoinResetPassword = () => {
   const [done, setDone] = useState(false);
 
   if (!token) return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="text-center">
         <div className="text-5xl mb-4">🔗</div>
         <h2 className="font-display text-2xl font-semibold text-gray-900 mb-2">Invalid reset link</h2>
@@ -92,7 +93,7 @@ export const JoinResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">

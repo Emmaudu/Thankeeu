@@ -11,7 +11,7 @@ import toast from 'react-hot-toast';
 const INDIVIDUAL_PLANS = [
   {
 
-    id: 'free', name: 'Free', price: '₦0', label: 'Create and explore',
+    id: 'free', name: 'Free', price: '$0', label: 'Create and explore',
     btn: 'Start for free', btnStyle: 'border border-gray-200 text-gray-700 hover:bg-gray-50',
     features: [
       { text: 'Create unlimited draft cards', ok: true },
@@ -25,7 +25,7 @@ const INDIVIDUAL_PLANS = [
     ]
   },
   {
-    id: 'single', name: 'Classic', price: '₦1,500', label: 'Per card, one-time',
+    id: 'single', name: 'Classic', price: '$5', label: 'Per card, one-time',
     popular: true,
     btn: 'Get Classic', btnStyle: 'bg-primary-400 text-white hover:bg-primary-600',
     features: [
@@ -35,12 +35,12 @@ const INDIVIDUAL_PLANS = [
       { text: 'Video and voice messages', ok: true },
       { text: 'Scheduled sending', ok: true },
       { text: 'Auto reminders to contributors', ok: true },
-      { text: 'Gift pot up to ₦500,000', ok: true },
+      { text: 'Gift pot up to $10,000', ok: true },
       { text: 'WhatsApp and email invites', ok: true },
     ]
   },
   {
-    id: 'pack5', name: 'Pack of 5', price: '₦5,000', label: 'Save ₦2,500',
+    id: 'pack5', name: 'Pack of 5', price: '$20', label: 'Save $5',
     btn: 'Buy pack', btnStyle: 'border border-gray-200 text-gray-700 hover:bg-gray-50',
     features: [
       { text: 'Everything in Classic', ok: true },
@@ -57,7 +57,7 @@ const INDIVIDUAL_PLANS = [
 
 const COMPANY_PLANS = [
   {
-    id: 'monthly', name: 'Monthly', price: '₦20,000', period: '/month', saving: null,
+    id: 'monthly', name: 'Monthly', price: '$50', period: '/month', saving: null,
     features: [
       'Unlimited employees',
       'Automated birthday emails to departments',
@@ -69,7 +69,7 @@ const COMPANY_PLANS = [
     ]
   },
   {
-    id: 'yearly', name: 'Yearly', price: '₦200,000', period: '/year', saving: 'Save ₦40,000 vs monthly',
+    id: 'yearly', name: 'Yearly', price: '$500', period: '/year', saving: 'Save $100 vs monthly',
     popular: true,
     features: [
       'Everything in Monthly',
@@ -86,7 +86,7 @@ const COMPANY_PLANS = [
 const FAQ = [
   { q: 'How does the gift pot work?', a: 'Contributors pay via Paystack when they sign the card. The money is securely held and the recipient can redeem it for vouchers, flowers, or a bank transfer.' },
   { q: 'Does the recipient need an account?', a: 'No — recipients open and enjoy their card without any account. Only the card creator needs one.' },
-  { q: 'What payment methods are supported?', a: 'All Nigerian debit/credit cards, bank transfers, USSD, and mobile money via Paystack. No international card needed.' },
+  { q: 'What payment methods are supported?', a: 'All major credit/debit cards, bank transfers, and mobile money via Paystack.' },
   { q: 'Is the team data import free?', a: 'Yes, always. You can upload your entire team for free. You only pay the subscription to activate the automated birthday email sending.' },
   { q: 'What happens if I cancel my company subscription?', a: 'Automation stops after your current period ends, but all your team data is preserved. You can resubscribe at any time to restart automations.' },
   { q: 'Can I get a refund?', a: 'Individual card fees are non-refundable once activated. Company subscription fees are non-refundable but access continues until the period ends.' },
@@ -94,25 +94,25 @@ const FAQ = [
 
 const Pricing = () => {
   useSEO({
-    title:       'Pricing — Group Cards from ₦1,500 · Teams from ₦20,000/month',
-    description: 'Simple pricing for group cards and gifts. Individual card ₦1,500, pack of 5 for ₦5,000. Company plans from ₦20,000/month with unlimited employees and HRIS integration.',
+    title:       'Pricing — Group Cards from $5 · Teams from $50/month',
+    description: 'Simple pricing for group cards and gifts. Individual card $5, pack of 5 for $20. Company plans from $50/month with unlimited employees and HRIS integration.',
     canonical:   '/pricing',
     jsonLd:      [
       SCHEMAS.organization,
       SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Pricing', url: '/pricing' }]),
       SCHEMAS.product('Thankeeu Classic Card', 'Group card with unlimited signatures, gift pot, media uploads and scheduled delivery.', 1500),
-      SCHEMAS.product('Thankeeu Card Pack of 5', 'Five group card credits — save ₦2,500 vs buying individually. Credits never expire.', 5000),
+      SCHEMAS.product('Thankeeu Card Pack of 5', 'Five group card credits — save $5 vs buying individually. Credits never expire.', 5000),
       SCHEMAS.product('Thankeeu Classic Card', 'Send a group card to one recipient with unlimited signatures, gift pot, media uploads and scheduled delivery.', 1500),
-      SCHEMAS.product('Thankeeu Card Pack of 5', 'Five group card credits — save ₦2,500 vs buying individually. Credits never expire. Perfect for regular use.', 5000),
-      SCHEMAS.product('Thankeeu for Teams Monthly', 'Unlimited employees, automated birthday and farewell cards, HRIS integration. ₦20,000/month.', 20000),
+      SCHEMAS.product('Thankeeu Card Pack of 5', 'Five group card credits — save $5 vs buying individually. Credits never expire. Perfect for regular use.', 5000),
+      SCHEMAS.product('Thankeeu for Teams Monthly', 'Unlimited employees, automated birthday and farewell cards, HRIS integration. $50/month.', 20000),
       SCHEMAS.faqPage([
-        { q: 'Is Thankeeu free to use?',                         a: 'Creating a card and collecting messages is completely free. You only pay ₦1,500 when you want to send the finished card to the recipient.' },
+        { q: 'Is Thankeeu free to use?',                         a: 'Creating a card and collecting messages is completely free. You only pay $5 when you want to send the finished card to the recipient.' },
         { q: 'How much does the gift pot cost?',                 a: 'Setting up a gift pot is free. Thankeeu takes a 4% platform fee from the contributions collected. There are no hidden charges or setup fees.' },
-        { q: 'How does the card pack of 5 work?',               a: 'Buy 5 card credits for ₦5,000 (saving ₦2,500 vs buying 5 cards individually at ₦1,500 each). Credits are linked to your account and never expire.' },
-        { q: 'How does the company subscription work?',          a: 'Pay ₦20,000/month or ₦200,000/year for unlimited employees and automated occasion cards. Connect your HRIS, Thankeeu handles everything. Cancel any time.' },
+        { q: 'How does the card pack of 5 work?',               a: 'Buy 5 card credits for $20 (saving $5 vs buying 5 cards individually at $5 each). Credits are linked to your account and never expire.' },
+        { q: 'How does the company subscription work?',          a: 'Pay $50/month or $500/year for unlimited employees and automated occasion cards. Connect your HRIS, Thankeeu handles everything. Cancel any time.' },
         { q: 'Can I cancel my company subscription?',           a: 'Yes, you can cancel at any time from your company dashboard. Your subscription remains active until the end of the current billing period.' },
         { q: 'What HRIS systems does Thankeeu integrate with?', a: 'Thankeeu integrates with SeamlessHR, BambooHR, Zoho People, WorkPay and SAP SuccessFactors. One connection syncs all employee data into all occasion tables automatically.' },
-        { q: 'Is the ₦200,000 yearly plan paid upfront?',       a: 'Yes, the yearly plan is billed upfront at ₦200,000 saving you ₦40,000 compared to paying monthly. You get 12 months of uninterrupted service.' },
+        { q: 'Is the $500 yearly plan paid upfront?',       a: 'Yes, the yearly plan is billed upfront at $500 saving you $100 compared to paying monthly. You get 12 months of uninterrupted service.' },
         { q: 'Can I use Thankeeu for Teams for free?',     a: 'There is no free trial currently, but you can book a free demo to see the platform before subscribing.' },
         { q: 'Do card credits expire?',                    a: 'No. Purchased card credits never expire and can be used at any time.' },
       ]),
@@ -202,7 +202,7 @@ const Pricing = () => {
                     {plan.id !== 'free' && <span className="text-gray-400 text-sm pb-1">one-time</span>}
                   </div>
                   {plan.id === 'pack5' && (
-                    <p className="text-green-600 text-xs font-medium -mt-4 mb-4">₦1,000 per card — save ₦2,500</p>
+                    <p className="text-green-600 text-xs font-medium -mt-4 mb-4">$4 per card — save $5</p>
                   )}
                   <ul className="space-y-3 mb-8">
                     {plan.features.map((f, i) => (

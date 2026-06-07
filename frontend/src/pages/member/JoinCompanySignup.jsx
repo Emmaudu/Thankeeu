@@ -1,6 +1,7 @@
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
+import Navbar from '../../components/Navbar';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { memberAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
@@ -70,10 +71,9 @@ const JoinCompanySignup = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/"><ThankeeuLogo size={36} textSize="text-2xl" className="mb-5 mx-auto" /></Link>
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
             👥 Join your company
           </div>
@@ -193,6 +193,7 @@ const JoinCompanySignup = () => {
             <p className="text-xs text-gray-400">HR? <Link to="/company/login" className="text-primary-400">Company login →</Link></p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

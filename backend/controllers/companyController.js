@@ -19,30 +19,34 @@ const companySignup = async (req, res) => {
     const password_hash = await bcrypt.hash(password, 12);
     const { data: company, error } = await supabase
       .from('companies')
-      .insert({ name, email, password_hash, contact_person, phone, industry, city, state, country: country || 'Nigeria' })
+      .insert({ name, email, password_hash, contact_person, phone, industry, city, state, country: country || '' })
       .select('id, name, email, contact_person, phone, industry, logo_url, theme, role')
       .single();
 
     if (error) throw error;
 
-    if (branch_name?.trim()) {
-      const { error: branchErr } = await supabase
-        .from('company_branches')
-        .insert({ company_id: company.id, name: branch_name.trim(), city, state, is_default: true });
-      if (branchErr) console.error('Branch insert failed:', branchErr);
-    }
-
-    const { error: seedErr } = await supabase.rpc('seed_occasion_types', { p_company_id: company.id });
-    if (seedErr) console.error('seed_occasion_types failed:', seedErr);
-
-    const token = generateToken(company.id);
-    res.status(201).json({ token, company });
-
-    sendEmail({
+    // Send welcome email
+    await sendEmail({
       to: email,
       template: 'companyWelcome',
       data: { companyName: name, contactPerson: contact_person }
-    }).catch(err => console.error('Welcome email failed:', err));
+    });
+
+    // Create default branch if branch_name provided
+    if (branch_name?.trim()) {
+      await supabase.from('company_branches').insert({ company_id: company.id, name: branch_name.trim(), city, state, is_default: true }).catch(() => {});
+    }
+
+    // Update company with location
+    if (city || state || country) {
+      await supabase.from('companies').update({ city, state, country: country || '' }).eq('id', company.id);
+    }
+
+    // Seed all default occasion types for this company
+    await supabase.rpc('seed_occasion_types', { p_company_id: company.id }).catch(() => {});
+
+    const token = generateToken(company.id);
+    res.status(201).json({ token, company });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error during company signup' });
@@ -58,6 +62,7 @@ const companyLogin = async (req, res) => {
     const valid = await bcrypt.compare(password, company.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
+    // Get subscription status
     const { data: sub } = await supabase
       .from('company_subscriptions')
       .select('*')
@@ -67,10 +72,9 @@ const companyLogin = async (req, res) => {
       .maybeSingle();
 
     const token = generateToken(company.id);
-    const { password_hash, reset_token, reset_token_expires, ...safeCompany } = company;
+    const { password_hash, reset_token, ...safeCompany } = company;
     res.json({ token, company: { ...safeCompany, subscription: sub || null } });
   } catch (err) {
-    console.error('Company login error:', err);
     res.status(500).json({ error: 'Server error during login' });
   }
 };

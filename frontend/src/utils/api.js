@@ -131,6 +131,12 @@ export const userSupportAPI = {
   getMine: () => api.get('/support/mine'),
 };
 
+// Member support (uses member token)
+export const memberSupportAPI = {
+  create: (data) => memberAxios.post('/support', data),
+  getMine: () => memberAxios.get('/support/mine'),
+};
+
 // Admin company management
 export const adminCompanyAPI = {
   getAll: () => api.get('/admin/companies'),
@@ -171,9 +177,17 @@ export const memberAPI = {
   getDeptPending: ()   => memberAxios.get('/members/dept-pending'),
   forgotPassword: (e)  => memberAxios.post('/members/forgot-password', { email: e }),
   resetPassword: (d)   => memberAxios.post('/members/reset-password', d),
+  getMyCards: ()       => memberAxios.get('/cards/member-history'),
+  updateProfile: (d)   => memberAxios.put('/members/profile', d),
+  changePassword: (d)  => memberAxios.put('/members/password', d),
   // Public
   getDepartments: (companyId) => axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' })
     .get(`/members/departments?companyId=${companyId}`),
+};
+
+// Cards API for team members — uses member token
+export const memberCardsAPI = {
+  create: (data) => memberAxios.post('/cards', data),
 };
 
 export const occasionsAPI = {

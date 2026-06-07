@@ -9,7 +9,7 @@ const PLANS = [
   {
     id: 'monthly',
     label: 'Monthly',
-    price: '₦20,000',
+    price: '$50',
     period: '/month',
     saving: null,
     features: [
@@ -24,9 +24,9 @@ const PLANS = [
   {
     id: 'yearly',
     label: 'Yearly',
-    price: '₦200,000',
+    price: '$500',
     period: '/year',
-    saving: 'Save ₦40,000 vs monthly',
+    saving: 'Save $100 vs monthly',
     popular: true,
     features: [
       'Everything in Monthly',
@@ -53,10 +53,22 @@ const SubscriptionPage = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('sub') === 'success') {
       const ref = params.get('reference');
+      // Clear the URL params so refresh doesn't re-verify
+      window.history.replaceState({}, '', '/company/subscription');
       if (ref) {
         subscriptionAPI.verify(ref)
-          .then(() => { toast.success('Subscription activated! Birthday automations are now live.'); fetchSub(); })
-          .catch(() => toast.error('Could not verify payment. Contact support.'));
+          .then(() => {
+            toast.success('🎉 Subscription activated! Birthday automations are now live.');
+            fetchSub();
+          })
+          .catch(() => {
+            // Even if verify fails, try fetching sub — payment may have been processed
+            fetchSub();
+            toast('Payment received. Your subscription should activate shortly.', { icon: '⏳' });
+          });
+      } else {
+        toast.success('Subscription successful!');
+        fetchSub();
       }
     }
   }, []);
@@ -73,8 +85,12 @@ const SubscriptionPage = () => {
     setPaying(plan);
     try {
       const res = await subscriptionAPI.initialize(plan);
+      // Redirect to Paystack checkout — page will unload, no need to reset state
       window.location.href = `https://checkout.paystack.com/${res.data.access_code}`;
-    } catch { toast.error('Failed to start payment. Please try again.'); setPaying(null); }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to start payment. Please try again.');
+      setPaying(null);
+    }
   };
 
   const handleCancel = async () => {
@@ -192,7 +208,7 @@ const SubscriptionPage = () => {
           </div>
           <div className="flex items-start gap-2">
             <span className="text-green-500 font-bold">✓</span>
-            <span>Pay via Nigerian debit card, bank transfer, or USSD</span>
+            <span>Pay via card, bank transfer, or mobile payment</span>
           </div>
           <div className="flex items-start gap-2">
             <span className="text-green-500 font-bold">✓</span>
@@ -214,7 +230,7 @@ const SubscriptionPage = () => {
           <div className="px-5 py-4">
             <div className="flex items-center justify-between text-sm">
               <div>
-                <p className="font-medium text-gray-900">{sub?.plan === 'yearly' ? 'Yearly plan — ₦200,000' : 'Monthly plan — ₦20,000'}</p>
+                <p className="font-medium text-gray-900">{sub?.plan === 'yearly' ? 'Yearly plan — $500' : 'Monthly plan — $50'}</p>
                 <p className="text-gray-400 text-xs mt-0.5">Ref: {sub?.paystack_reference}</p>
               </div>
               <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">Paid</span>

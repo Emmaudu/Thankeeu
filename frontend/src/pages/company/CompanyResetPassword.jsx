@@ -1,6 +1,7 @@
 import { useSEO } from '../../hooks/useSEO';
 import { useState } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
+import Navbar from '../../components/Navbar';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { companyAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
@@ -17,7 +18,7 @@ const CompanyResetPassword = () => {
   const [done, setDone] = useState(false);
 
   if (!token) return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="text-center">
         <div className="text-5xl mb-4">🔗</div>
         <h2 className="font-display text-2xl font-semibold text-gray-900 mb-2">Invalid reset link</h2>
@@ -42,10 +43,9 @@ const CompanyResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/"><ThankeeuLogo size={36} textSize="text-2xl" className="mb-5 mx-auto" /></Link>
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
             🏢 For Teams
           </div>
@@ -106,6 +106,7 @@ const CompanyResetPassword = () => {
             </form>
           )}
         </div>
+      </div>
       </div>
     </div>
   );

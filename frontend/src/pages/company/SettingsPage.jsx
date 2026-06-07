@@ -1,5 +1,5 @@
 import { useSEO } from '../../hooks/useSEO';
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 import { companyAPI, hrisAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
@@ -15,10 +15,11 @@ const SettingsPage = () => {
   const [branchForm, setBranchForm] = useState({ name: '', city: '', state: '', is_default: false });
   const [savingBranch, setSavingBranch] = useState(false);
 
+  const fileRef = useRef();
+
   useEffect(() => {
     hrisAPI.getBranches().then(r => setBranches(r.data || [])).catch(() => {});
   }, []);
-  const fileRef = useRef();
 
   const [profile, setProfile] = useState({
     name: company?.name || '',

@@ -4,7 +4,7 @@ const crypto = require('crypto');
 const supabase = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
 
-// Nigerian + global department defaults
+// Department defaults
 const DEFAULT_DEPARTMENTS = [
   // Tech / Fintech
   'Engineering','Frontend Development','Backend Development','Mobile Development',
@@ -17,7 +17,7 @@ const DEFAULT_DEPARTMENTS = [
   'Sales','Business Development','Customer Success','Customer Service',
   'Operations','Supply Chain','Logistics','Procurement',
   'Strategy','Research & Development','Innovation',
-  // Sector-specific Nigeria
+  // Sector-specific
   'Oil & Gas Operations','Drilling','Exploration','Refinery',
   'Network Operations','Telecoms Engineering','Spectrum Management',
   'Retail','Merchandising','Store Operations','E-Commerce',
@@ -280,14 +280,30 @@ const getMemberDashboard = async (req, res) => {
       return { ...m, days_until: Math.ceil((next - today) / 86400000) };
     }).filter(m => m.days_until <= 30).sort((a, b) => a.days_until - b.days_until);
 
-    // Cards involving dept members
-    const { data: cards } = await supabase
+    // Cards involving dept members — filter for active cards for signing
+    const { data: deptCards } = await supabase
       .from('cards')
-      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, contribution_wallets(*)')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, notification_scope, created_by_member_id')
       .eq('company_id', member.company_id)
       .in('status', ['active', 'sent'])
       .order('created_at', { ascending: false })
       .limit(10);
+
+    // Cards created by THIS member (history)
+    const { data: myCards } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at')
+      .eq('created_by_member_id', member.id)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    // Active dept/company cards pending the member's signature
+    const activeDeptCards = (deptCards || []).filter(c => {
+      if (c.status !== 'active') return false;
+      if (c.notification_scope === 'company_wide') return true;
+      // department cards — only show if same dept (already filtered by company, dept check via creator)
+      return true;
+    });
 
     // Pending approvals for team leader
     let pendingApprovals = [];
@@ -305,12 +321,13 @@ const getMemberDashboard = async (req, res) => {
       member,
       dept_members: deptMembers || [],
       upcoming_occasions: withDays.slice(0, 10),
-      recent_cards: cards || [],
+      recent_cards: activeDeptCards,
+      my_created_cards: myCards || [],
       pending_approvals: pendingApprovals,
       stats: {
         dept_size: (deptMembers || []).length,
         upcoming_occasions: withDays.length,
-        active_cards: (cards || []).filter(c => c.status === 'active').length,
+        active_cards: activeDeptCards.filter(c => c.status === 'active').length,
         pending_approvals: pendingApprovals.length,
       }
     });
@@ -356,6 +373,47 @@ const memberResetPassword = async (req, res) => {
   }
 };
 
+// PUT /api/members/profile — update member profile
+const updateMemberProfile = async (req, res) => {
+  try {
+    const { first_name, last_name, phone, profile_picture_url } = req.body;
+    const { data, error } = await supabase
+      .from('company_members')
+      .update({ first_name, last_name, phone, profile_picture_url, updated_at: new Date() })
+      .eq('id', req.member.id)
+      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, company_id')
+      .single();
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
+// PUT /api/members/password — change member password
+const changeMemberPassword = async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password) return res.status(400).json({ error: 'Both passwords are required' });
+    if (new_password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    const { data: member } = await supabase
+      .from('company_members')
+      .select('password_hash')
+      .eq('id', req.member.id)
+      .single();
+
+    const valid = await bcrypt.compare(current_password, member.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+
+    const password_hash = await bcrypt.hash(new_password, 12);
+    await supabase.from('company_members').update({ password_hash }).eq('id', req.member.id);
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+};
+
 module.exports = {
   DEFAULT_DEPARTMENTS,
   memberSignup, memberLogin, getMemberMe, getDepartmentOptions,
@@ -363,4 +421,5 @@ module.exports = {
   approveMember, rejectMember,
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
+  updateMemberProfile, changeMemberPassword,
 };

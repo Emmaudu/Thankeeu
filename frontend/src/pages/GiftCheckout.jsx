@@ -5,12 +5,13 @@ import { cardsAPI, paymentsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
+import { formatUSD } from '../utils/currency';
 
 const GIFT_OPTIONS = [
-  { id: 'jumia', icon: '🛒', label: 'Jumia Voucher', desc: 'Shop anything on Jumia Nigeria' },
-  { id: 'spa', icon: '💆', label: 'Spa Treatment', desc: 'Relax at a top Lagos or Abuja spa' },
-  { id: 'flowers', icon: '🌹', label: 'Flower Delivery', desc: 'Fresh bouquet delivered to your door' },
-  { id: 'food', icon: '🍽️', label: 'Restaurant Voucher', desc: 'Dinner for two at a top restaurant' },
+  { id: 'shopping', icon: '🛒', label: 'Shopping Voucher', desc: 'Shop anything online' },
+  { id: 'spa', icon: '💆', label: 'Spa Treatment', desc: 'Relax at a top spa near you' },
+  { id: 'flowers', icon: '🌹', label: 'Flower Delivery', desc: 'Fresh bouquet delivered to their door' },
+  { id: 'food', icon: '🍽️', label: 'Restaurant Voucher', desc: 'Dinner for two at a great restaurant' },
   { id: 'transfer', icon: '🏦', label: 'Bank Transfer', desc: 'Get the money sent to your account' },
 ];
 
@@ -56,7 +57,7 @@ const GiftCheckout = () => {
 
         <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-8 text-center">
           <p className="text-sm text-green-600 mb-1">Total collected for you</p>
-          <p className="font-display text-4xl font-bold text-green-700">₦{(card?.total_collected || 0).toLocaleString()}</p>
+          <p className="font-display text-4xl font-bold text-green-700">{formatUSD(card?.total_collected || 0)}</p>
           <p className="text-xs text-green-500 mt-1">From {card?.signed_count || 0} contributors</p>
         </div>
 
@@ -87,7 +88,7 @@ const GiftCheckout = () => {
         )}
 
         <button onClick={handleRedeem} disabled={submitting || !selected} className="btn-primary w-full py-4 text-base">
-          {submitting ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />Processing...</span> : `Redeem ₦${(card?.total_collected || 0).toLocaleString()}`}
+          {submitting ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />Processing...</span> : `Redeem ${formatUSD(card?.total_collected || 0)}`}
         </button>
         <p className="text-xs text-center text-gray-400 mt-3">Gift redemptions are processed within 24 hours</p>
       </div>

@@ -105,7 +105,7 @@ const getDashboardStats = async (req, res) => {
     // Monthly breakdown
     const monthly = {};
     (contributions || []).forEach(c => {
-      const month = new Date(c.created_at).toLocaleDateString('en-NG', { month: 'short', year: 'numeric' });
+      const month = new Date(c.created_at).toLocaleDateString('en', { month: 'short', year: 'numeric' });
       monthly[month] = (monthly[month] || 0) + (c.amount || 0);
     });
 

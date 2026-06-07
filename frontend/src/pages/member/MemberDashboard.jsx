@@ -1,3 +1,4 @@
+import { formatUSD } from '../../utils/currency';
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -129,7 +130,7 @@ const MemberDashboard = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{card.title || `${card.recipient_name}'s card`}</p>
                     <p className="text-xs text-gray-400">
-                      {(card.total_collected || 0) > 0 ? `₦${card.total_collected.toLocaleString()} collected · ` : ''}
+                      {(card.total_collected || 0) > 0 ? `${formatUSD(card.total_collected)} collected · ` : ''}
                       {card.status}
                     </p>
                   </div>
@@ -143,6 +144,40 @@ const MemberDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Cards I created — history */}
+      {(data?.my_created_cards || []).length > 0 && (
+        <div className="mt-6 bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-50">
+            <h3 className="font-semibold text-gray-900">Cards you created</h3>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {(data.my_created_cards).map(card => (
+              <div key={card.id} className="flex items-center gap-3 px-5 py-3">
+                <div className="w-9 h-9 bg-primary-50 rounded-xl flex items-center justify-center text-lg flex-shrink-0">🎉</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{card.title || `${card.recipient_name}'s card`}</p>
+                  <p className="text-xs text-gray-400">
+                    For {card.recipient_name} · {card.occasion?.replace('_', ' ')}
+                    {(card.total_collected || 0) > 0 ? ` · ${formatUSD(card.total_collected)} collected` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                    card.status === 'active' ? 'bg-green-100 text-green-700' :
+                    card.status === 'sent' ? 'bg-blue-100 text-blue-700' :
+                    'bg-gray-100 text-gray-500'
+                  }`}>{card.status}</span>
+                  <a href={`/sign/${card.slug}`} target="_blank" rel="noreferrer"
+                    className="text-xs text-primary-400 hover:text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-50 transition-colors">
+                    View →
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Dept members (leader only) */}
       {isLeader && (

@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
 const { createTicket, getMyTickets, getAllTickets, replyToTicket } = require('../controllers/supportController');
 
-// Flexible auth middleware — works for individual users AND company accounts
+// Flexible auth middleware — works for individual users, company accounts, AND team members
 const flexAuth = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -20,6 +20,15 @@ const flexAuth = async (req, res, next) => {
         .single();
       if (error || !company) return res.status(401).json({ error: 'Invalid token' });
       req.company = company;
+    } else if (decoded.type === 'company_member') {
+      const { data: member, error } = await supabase
+        .from('company_members')
+        .select('id, first_name, last_name, email, role, department, status, company_id')
+        .eq('id', decoded.memberId)
+        .single();
+      if (error || !member) return res.status(401).json({ error: 'Invalid token' });
+      if (member.status !== 'approved') return res.status(403).json({ error: 'Account not approved' });
+      req.member = member;
     } else {
       const { data: user, error } = await supabase
         .from('users')

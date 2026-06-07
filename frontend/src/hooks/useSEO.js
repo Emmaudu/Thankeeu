@@ -14,9 +14,9 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://thankeeu.ng';
+const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://thankeeu.com';
 const SITE_NAME  = 'Thankeeu';
-const SITE_DESC  = "Nigeria's home for group cards and gifts — birthdays, farewells, promotions, new hires and more. Powered by Paystack.";
+const SITE_DESC  = "The world's group card and gift platform — birthdays, farewells, promotions, and more. Powered by Paystack.";
 const OG_IMAGE   = `${BASE_URL}/og-image.png`;
 const TWITTER_HANDLE = '@thankeeu_ng';
 
@@ -97,7 +97,7 @@ export function useSEO({
   useEffect(() => {
     const fullTitle = title
       ? `${title} | ${SITE_NAME}`
-      : `${SITE_NAME} — Group Cards & Gifts for Nigeria 💜`;
+      : `${SITE_NAME} — Group Cards & Gifts for Every Occasion 💜`;
 
     const desc = (description || SITE_DESC).slice(0, 160);
 
@@ -151,8 +151,8 @@ export function useSEO({
     // ── Canonical ─────────────────────────────────────────────────────────────
     setLink('canonical', canonicalPath);
 
-    // ── hreflang (Nigerian English primary) ───────────────────────────────────
-    setLink('alternate', canonicalPath, { hreflang: 'en-NG' });
+    // ── hreflang (Primary language) ───────────────────────────────────
+    setLink('alternate', canonicalPath, { hreflang: 'en' });
     setLink('alternate', canonicalPath, { hreflang: 'x-default' });
 
     // ── JSON-LD ───────────────────────────────────────────────────────────────
@@ -189,26 +189,26 @@ export const SCHEMAS = {
     address: {
       '@type':           'PostalAddress',
       addressCountry:    'NG',
-      addressRegion:     'Lagos',
-      addressLocality:   'Lagos Island',
+      addressRegion:     'Global',
+      addressLocality:   'Worldwide',
     },
     areaServed: [
-      { '@type': 'Country', name: 'Nigeria' },
+      { '@type': 'Country', name: 'Worldwide' },
     ],
     contactPoint: [{
       '@type':            'ContactPoint',
       contactType:        'customer support',
-      email:              'support@thankeeu.ng',
+      email:              'support@thankeeu.com',
       availableLanguage:  [{ '@type': 'Language', name: 'English' }],
     },{
       '@type':            'ContactPoint',
       contactType:        'sales',
-      email:              'teams@thankeeu.ng',
+      email:              'teams@thankeeu.com',
       availableLanguage:  [{ '@type': 'Language', name: 'English' }],
     }],
     sameAs: [
       'https://twitter.com/thankeeu_ng',
-      'https://www.instagram.com/thankeeu.ng',
+      'https://www.instagram.com/thankeeu',
       'https://www.linkedin.com/company/thankeeu',
     ],
   },
@@ -220,7 +220,7 @@ export const SCHEMAS = {
     name:       SITE_NAME,
     description: SITE_DESC,
     publisher:  { '@id': `${BASE_URL}/#organization` },
-    inLanguage: 'en-NG',
+    inLanguage: 'en',
     potentialAction: {
       '@type':  'SearchAction',
       target:   { '@type': 'EntryPoint', urlTemplate: `${BASE_URL}/sign/{search_term_string}` },
@@ -235,7 +235,7 @@ export const SCHEMAS = {
     applicationCategory: 'BusinessApplication',
     operatingSystem:     'Web, iOS, Android',
     url:                 BASE_URL,
-    description:         'Group cards and gift collection platform for Nigerian businesses and individuals.',
+    description:         'Group cards and gift collection platform for businesses and individuals worldwide.',
     screenshot:          `${BASE_URL}/og-image.png`,
     featureList: [
       'Group e-cards with unlimited signers',
@@ -249,7 +249,7 @@ export const SCHEMAS = {
       '@type':       'Offer',
       price:         '0',
       priceCurrency: 'NGN',
-      description:   'Free to create. ₦1,500 to send a card.',
+      description:   'Free to create. $5 to send a card.',
     },
     aggregateRating: {
       '@type':       'AggregateRating',
@@ -284,7 +284,7 @@ export const SCHEMAS = {
       description,
       isPartOf:      { '@id': `${BASE_URL}/#website` },
       publisher:     { '@id': `${BASE_URL}/#organization` },
-      inLanguage:    'en-NG',
+      inLanguage:    'en',
       potentialAction: {
         '@type':  'ReadAction',
         target:   [`${BASE_URL}${path}`],
@@ -354,13 +354,13 @@ export const SCHEMAS = {
     paymentAccepted:    'Paystack (Cards, Bank Transfer, USSD)',
     areaServed: {
       '@type': 'Country',
-      name:    'Nigeria',
+      name:    'Global',
     },
     address: {
       '@type':         'PostalAddress',
       addressCountry:  'NG',
-      addressLocality: 'Lagos',
-      addressRegion:   'Lagos State',
+      addressLocality: 'Worldwide',
+      addressRegion:   'Global',
     },
   },
 
@@ -376,7 +376,7 @@ export const SCHEMAS = {
       author:            { '@id': `${BASE_URL}/#organization` },
       publisher:         { '@id': `${BASE_URL}/#organization` },
       mainEntityOfPage:  { '@type': 'WebPage', '@id': `${BASE_URL}${path}` },
-      inLanguage:        'en-NG',
+      inLanguage:        'en',
     };
   },
 };

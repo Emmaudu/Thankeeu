@@ -3,6 +3,7 @@ import { useState } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
+import Navbar from '../../components/Navbar';
 import toast from 'react-hot-toast';
 
 const CompanyLogin = () => {
@@ -33,16 +34,17 @@ const CompanyLogin = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link to="/"><ThankeeuLogo size={36} textSize="text-2xl" className="mb-5 mx-auto" /></Link>
-          <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
-            🏢 For Teams
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="flex items-center justify-center p-4 py-12 md:py-20">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
+              🏢 For Teams
+            </div>
+            <h1 className="font-display text-3xl font-semibold text-gray-900 mb-2">Company sign in</h1>
+            <p className="text-gray-500 text-sm">Access your HR dashboard</p>
           </div>
-          <h1 className="font-display text-3xl font-semibold text-gray-900 mb-2">Company sign in</h1>
-          <p className="text-gray-500 text-sm">Access your HR dashboard</p>
-        </div>
 
         <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -79,6 +81,7 @@ const CompanyLogin = () => {
             <Link to="/login" className="text-primary-400 font-medium">Sign in here →</Link>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

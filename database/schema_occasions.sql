@@ -197,7 +197,7 @@ BEGIN
     (p_company_id, 'work_anniversary','Work Anniversary',    '🏆', 7,  NULL,     'department',   TRUE),
     (p_company_id, 'promotion',       'Promotion',           '🌟', 7,  NULL,     'department',   TRUE),
     (p_company_id, 'wedding',         'Wedding Celebration', '💍', 7,  NULL,     'department',   TRUE),
-    (p_company_id, 'valentines_day',  'Valentine''s Day',    '💝', 7,  NULL,     'company_wide', TRUE),
+    (p_company_id, 'valentines_day',  'Valentine\'s Day',    '💝', 7,  NULL,     'company_wide', TRUE),
     (p_company_id, 'womens_day',      'Women''s Day',        '👩', 7,  'female', 'company_wide', TRUE),
     (p_company_id, 'mens_day',        'Men''s Day',          '👨', 7,  'male',   'company_wide', TRUE),
     (p_company_id, 'workers_day',     'Workers'' Day',       '✊', 7,  NULL,     'company_wide', TRUE),

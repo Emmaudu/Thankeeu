@@ -2,6 +2,7 @@ import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 // JoinCompanyLogin.jsx
 import { useState } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
+import Navbar from '../../components/Navbar';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import toast from 'react-hot-toast';
@@ -34,10 +35,9 @@ const JoinCompanyLogin = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/"><ThankeeuLogo size={36} textSize="text-2xl" className="mb-5 mx-auto" /></Link>
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">👥 Team account</div>
           <h1 className="font-display text-2xl font-semibold text-gray-900 mb-1">Team member sign in</h1>
           <p className="text-gray-500 text-sm">Sign in to your company workspace</p>

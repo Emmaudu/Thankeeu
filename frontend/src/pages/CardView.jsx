@@ -1,11 +1,12 @@
 import { useSEO, SCHEMAS, BASE_URL } from '../hooks/useSEO';
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { cardsAPI, messagesAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { formatUSD } from '../utils/currency';
 
 const occasionLabel = {
   birthday: 'Birthday', valentine: "Valentine's Day", leaving: 'Farewell',
@@ -64,22 +65,6 @@ const MessageCard = ({ msg, onReact, isPrivate }) => {
 };
 
 const CardView = () => {
-  // Dynamic SEO — updates when card data loads
-  useSEO({
-    title:      card ? `${card.title || `${card.recipient_name}'s ${card.occasion} Card`}` : 'View Card',
-    description: card
-      ? `A group card for ${card.recipient_name} on Thankeeu — signed by ${messages?.length || 0} people. ${card.is_gift_enabled ? 'A gift pot was collected.' : ''}`
-      : 'View a group card on Thankeeu.',
-    ogType:    'article',
-    twitterCard: 'summary_large_image',
-    noIndex:   false,
-    jsonLd:    card ? [
-      SCHEMAS.organization,
-      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: card.recipient_name || 'Card', url: `/card/${card.slug}` }]),
-      SCHEMAS.cardEvent(card, messages?.length || 0),
-    ] : null,
-  });
-
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
@@ -88,6 +73,21 @@ const CardView = () => {
   const [showAll, setShowAll] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
+
+  // Dynamic SEO — updates when card data loads
+  useSEO({
+    title:      card ? `${card.title || `${card.recipient_name}'s ${card.occasion} Card`}` : 'View Card',
+    description: card
+      ? `A group card for ${card.recipient_name} on Thankeeu — signed by ${card.messages?.length || 0} people. ${card.is_gift_enabled ? 'A gift pot was collected.' : ''}`
+      : 'View a group card on Thankeeu.',
+    ogType:    'article',
+    twitterCard: 'summary_large_image',
+    noIndex:   false,
+    jsonLd:    card ? [
+      SCHEMAS.organization,
+      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: card.recipient_name || 'Card', url: `/card/${card.slug}` }]),
+    ] : null,
+  });
 
   useEffect(() => { fetchCard(); }, [slug]);
 
@@ -148,6 +148,7 @@ const CardView = () => {
 
   const messages = card.messages || [];
   const displayMessages = showAll ? messages : messages.slice(0, 6);
+  const totalCollected = card.total_collected || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -170,31 +171,61 @@ const CardView = () => {
           </p>
           <div className="flex items-center justify-center gap-6 text-sm text-gray-500">
             <span>💬 {messages.length} messages</span>
-            {card.total_collected > 0 && <span>🎁 ₦{card.total_collected.toLocaleString()} gift</span>}
+            {totalCollected > 0 && <span>🎁 {formatUSD(totalCollected)} gift</span>}
           </div>
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-10">
 
-        {/* Gift banner */}
-        {card.total_collected > 0 && (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-5 mb-8 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-200 rounded-xl flex items-center justify-center text-2xl">🎁</div>
-              <div>
-                <p className="font-semibold text-green-800">A gift was collected for you!</p>
-                <p className="text-sm text-green-600">Redeem for a Jumia voucher, spa treatment, or flowers</p>
+        {/* Gift banner — visible to recipient (token) or anyone if collected */}
+        {totalCollected > 0 && (
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-5 mb-8">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-green-200 rounded-xl flex items-center justify-center text-3xl">🎁</div>
+                <div>
+                  <p className="font-semibold text-green-800 text-lg">A gift was collected for you!</p>
+                  <p className="text-sm text-green-600">From {messages.length} people who love you</p>
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <p className="text-3xl font-display font-bold text-green-700">{formatUSD(totalCollected)}</p>
               </div>
             </div>
-            <div className="text-right flex-shrink-0">
-              <p className="text-2xl font-display font-bold text-green-700">₦{card.total_collected.toLocaleString()}</p>
-              <button className="mt-2 text-xs bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700 transition-colors font-medium">
-                Redeem gift
-              </button>
-            </div>
+            {token && (
+              <div className="mt-4 pt-4 border-t border-green-200">
+                <p className="text-sm text-green-700 mb-3">Choose how to claim your gift:</p>
+                <div className="flex flex-wrap gap-2">
+                  <Link to={`/gift/${slug}?token=${token}`}
+                    className="inline-flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-xl hover:bg-green-700 transition-colors font-medium text-sm">
+                    🏦 Claim to bank account
+                  </Link>
+                  <Link to={`/gift/${slug}?token=${token}`}
+                    className="inline-flex items-center gap-2 bg-white text-green-700 border border-green-300 px-5 py-2.5 rounded-xl hover:bg-green-50 transition-colors font-medium text-sm">
+                    🛒 Redeem as voucher
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         )}
+
+        {/* Summary stats */}
+        <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+            <p className="text-2xl font-display font-bold text-gray-900">{messages.length}</p>
+            <p className="text-xs text-gray-500 mt-1">Messages</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+            <p className="text-2xl font-display font-bold text-gray-900">{messages.filter(m => m.media_url).length}</p>
+            <p className="text-xs text-gray-500 mt-1">Photos & Videos</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+            <p className="text-2xl font-display font-bold text-primary-600">{formatUSD(totalCollected)}</p>
+            <p className="text-xs text-gray-500 mt-1">Gift Total</p>
+          </div>
+        </div>
 
         {/* Share actions */}
         <div className="flex gap-3 mb-8 overflow-x-auto scrollbar-hide">
@@ -239,7 +270,7 @@ const CardView = () => {
           )}
         </div>
 
-        {/* Reply box */}
+        {/* Reply box — for recipient */}
         {token && (
           <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-8">
             <h3 className="font-semibold text-gray-900 mb-4">Send a thank you back 💌</h3>
@@ -261,7 +292,7 @@ const CardView = () => {
         {/* Footer brand */}
         <div className="text-center py-6 border-t border-gray-100">
           <p className="text-sm text-gray-400">Made with 💜 using <span className="font-semibold text-primary-400">Thankeeu</span></p>
-          <p className="text-xs text-gray-300 mt-1">Nigeria's home for group cards & gifts</p>
+          <p className="text-xs text-gray-300 mt-1">Group cards & gifts for every occasion, worldwide</p>
         </div>
       </div>
       <Footer />

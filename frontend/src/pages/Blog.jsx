@@ -113,25 +113,25 @@ const Blog = () => {
 
   useSEO({
     title:       'Blog — Tips, Guides & Updates from Thankeeu',
-    description: "The Thankeeu blog. Expert guides on workplace celebrations, HRIS integration, group gifting with Paystack, and HR best practices for Nigerian companies.",
+    description: "The Thankeeu blog. Expert guides on workplace celebrations, HRIS integration, group gifting with Paystack, and HR best practices for companies worldwide.",
     canonical:   '/blog',
-    keywords:    'thankeeu blog, workplace culture nigeria, hr tips nigeria, group cards guide, paystack gifting, birthday office nigeria',
+    keywords:    'thankeeu blog, workplace culture, hr tips, group cards guide, paystack gifting, birthday office celebrations',
     jsonLd: [
       SCHEMAS.organization,
       SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog' }]),
       SCHEMAS.webPage(
         'Blog — Tips, Guides & Updates from Thankeeu',
-        'The Thankeeu blog. Guides on workplace celebrations, HRIS integration, and group gifting for Nigerian companies.',
+        'The Thankeeu blog. Guides on workplace celebrations, HRIS integration, and group gifting for companies worldwide.',
         '/blog'
       ),
       {
         '@type':       'Blog',
-        '@id':         'https://thankeeu.ng/blog#blog',
+        '@id':         'https://thankeeu.com/blog#blog',
         name:          'Thankeeu Blog',
         description:   'Workplace celebration tips, HRIS guides, and product updates.',
-        url:           'https://thankeeu.ng/blog',
-        publisher:     { '@id': 'https://thankeeu.ng/#organization' },
-        inLanguage:    'en-NG',
+        url:           'https://thankeeu.com/blog',
+        publisher:     { '@id': 'https://thankeeu.com/#organization' },
+        inLanguage:    'en',
       },
     ],
   });
@@ -170,7 +170,7 @@ const Blog = () => {
               📚 Thankeeu Blog
             </div>
             <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-semibold text-gray-900 mb-3 leading-tight">
-              Insights for modern<br className="hidden sm:block" /> Nigerian workplaces
+              Insights for modern<br className="hidden sm:block" /> modern workplaces
             </h1>
             <p className="text-gray-600 text-base md:text-lg leading-relaxed">
               Guides on workplace celebrations, HRIS integration, group gifting, and building better team cultures.
@@ -256,7 +256,7 @@ const Blog = () => {
             Get new articles in your inbox
           </h3>
           <p className="text-primary-100 text-sm mb-5 max-w-md mx-auto">
-            HR tips, product updates, and celebration ideas for Nigerian teams — delivered weekly.
+            HR tips, product updates, and celebration ideas for teams worldwide — delivered weekly.
           </p>
           <div className="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto">
             <input type="email" placeholder="your@company.com"

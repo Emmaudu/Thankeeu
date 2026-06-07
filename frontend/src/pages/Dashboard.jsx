@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { formatUSD } from '../utils/currency';
 
 const statusColors = {
 
@@ -46,11 +47,27 @@ const Dashboard = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'success') {
       const ref = params.get('reference');
-      if (ref) {
-        paymentsAPI.verify(ref).then(() => toast.success('Payment confirmed! Card credits added.')).catch(() => {});
-      } else {
-        toast.success('Payment successful!');
-      }
+      const handlePaymentSuccess = async () => {
+        try {
+          if (ref) await paymentsAPI.verify(ref);
+          // Check for pending card to activate
+          const pendingRaw = localStorage.getItem('thankeeu_pending_card');
+          if (pendingRaw) {
+            const pending = JSON.parse(pendingRaw);
+            localStorage.removeItem('thankeeu_pending_card');
+            await cardsAPI.activate(pending.slug, { inviteEmails: pending.inviteEmails || [] });
+            toast.success('Payment confirmed! Your card is now live! 🎉');
+            fetchDashboard();
+          } else {
+            toast.success('Payment confirmed! Card credits added.');
+          }
+        } catch {
+          toast.success('Payment successful!');
+        }
+        // Clean URL
+        window.history.replaceState({}, '', '/dashboard');
+      };
+      handlePaymentSuccess();
     }
   }, []);
 
@@ -113,7 +130,7 @@ const Dashboard = () => {
           <StatCard label="Active cards" value={stats.active_cards} sub="currently collecting" />
           <StatCard label="Total cards" value={stats.total_cards} sub="all time" />
           <StatCard label="Cards sent" value={stats.sent_cards} sub="delivered" />
-          <StatCard label="Gifts collected" value={`₦${(stats.total_collected || 0).toLocaleString()}`} sub="total volume" color="bg-primary-50" />
+          <StatCard label="Gifts collected" value={formatUSD(stats.total_collected || 0)} sub="total volume" color="bg-primary-50" />
         </div>
 
         {/* Closing soon alert */}
@@ -179,7 +196,7 @@ const Dashboard = () => {
 
                 <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
                   <span>💬 {card.messages?.[0]?.count || 0} msgs</span>
-                  <span>💰 ₦{(card.total_collected || 0).toLocaleString()}</span>
+                  <span>💰 {formatUSD(card.total_collected || 0)}</span>
                   {card.deadline && <span>⏰ {format(new Date(card.deadline), 'MMM d')}</span>}
                 </div>
 

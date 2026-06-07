@@ -117,11 +117,11 @@
 
 @layer utilities {
   .gradient-hero {
-    background: linear-gradient(135deg, #EEEDFE 0%, #FBEAF0 50%, #E1F5EE 100%);
+    background: linear-gradient(135deg, #EEEAFF 0%, #FDE8F0 50%, #E1F5EE 100%);
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #7F77DD, #D4537E);
+    background: linear-gradient(135deg, #6C5CE7, #E84393);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -156,7 +156,7 @@
 /* Custom scrollbar for card grid */
 .messages-grid::-webkit-scrollbar { width: 4px; }
 .messages-grid::-webkit-scrollbar-track  { background: #f1f1f1; border-radius: 2px; }
-.messages-grid::-webkit-scrollbar-thumb  { background: #7F77DD; border-radius: 2px; }
+.messages-grid::-webkit-scrollbar-thumb  { background: #6C5CE7; border-radius: 2px; }
 
 /* Float animation for hero */
 @keyframes float {

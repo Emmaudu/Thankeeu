@@ -82,7 +82,7 @@ const MembersApprovalPage = () => {
             <p className="font-semibold text-primary-800 text-sm mb-1">🔑 Your company code</p>
             <p className="text-xs text-primary-600 leading-relaxed">
               Share this code with team members and leaders so they can join your workspace at
-              <strong> thankeeu.ng/member/signup</strong>
+              <strong> thankeeu.com/member/signup</strong>
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">

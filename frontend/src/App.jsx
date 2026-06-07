@@ -17,6 +17,7 @@ import SignCard         from './pages/SignCard';
 import Pricing          from './pages/Pricing';
 import Policy           from './pages/Policy';
 import Admin            from './pages/Admin';
+import AdminLogin       from './pages/AdminLogin';
 import GiftCheckout     from './pages/GiftCheckout';
 import NotFound         from './pages/NotFound';
 
@@ -42,6 +43,8 @@ import JoinCompanyLogin       from './pages/member/JoinCompanyLogin';
 import { JoinForgotPassword, JoinResetPassword } from './pages/member/JoinPasswordPages';
 import MemberDashboard        from './pages/member/MemberDashboard';
 import MemberOccasionsPage    from './pages/member/MemberOccasionsPage';
+import MemberSettingsPage     from './pages/member/MemberSettingsPage';
+import MemberSupportPage      from './pages/member/MemberSupportPage';
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -99,6 +102,7 @@ const App = () => (
             <Route path="/signup"            element={<Signup />} />
             <Route path="/forgot-password"   element={<ForgotPassword />} />
             <Route path="/reset-password"    element={<ResetPassword />} />
+            <Route path="/admin/login"       element={<AdminLogin />} />
 
             {/* ── Individual protected ────────────────────── */}
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -132,6 +136,8 @@ const App = () => (
             {/* ── Team member / leader protected ───────────── */}
             <Route path="/member/dashboard"  element={<MemberProtectedRoute><MemberDashboard /></MemberProtectedRoute>} />
             <Route path="/member/occasions"  element={<MemberProtectedRoute><MemberOccasionsPage /></MemberProtectedRoute>} />
+            <Route path="/member/settings"   element={<MemberProtectedRoute><MemberSettingsPage /></MemberProtectedRoute>} />
+            <Route path="/member/support"    element={<MemberProtectedRoute><MemberSupportPage /></MemberProtectedRoute>} />
 
             {/* ── 404 ─────────────────────────────────────── */}
             <Route path="*" element={<NotFound />} />

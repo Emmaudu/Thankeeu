@@ -124,7 +124,7 @@ const BlogPost = () => {
         },
         keywords:          (post.tags || []).join(', '),
         articleSection:    post.category,
-        inLanguage:        'en-NG',
+        inLanguage:        'en',
         timeRequired:      `PT${post.read_time || 3}M`,
         wordCount:         Math.round((post.read_time || 3) * 200),
         isAccessibleForFree: true,
@@ -278,7 +278,7 @@ const BlogPost = () => {
                 <div>
                   <p className="font-semibold text-gray-900 mb-1">{post.author_name}</p>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    The Thankeeu team writes about workplace celebrations, HR best practices, group gifting, and building better cultures at Nigerian companies.
+                    The Thankeeu team writes about workplace celebrations, HR best practices, group gifting, and building better cultures at companies worldwide.
                   </p>
                   <Link to="/blog" className="text-primary-500 text-sm font-medium hover:underline mt-1 inline-block">
                     View all articles →

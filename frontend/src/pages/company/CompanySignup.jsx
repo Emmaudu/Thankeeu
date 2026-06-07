@@ -3,6 +3,7 @@ import { useState } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
+import Navbar from '../../components/Navbar';
 import toast from 'react-hot-toast';
 
 const INDUSTRIES = ['Technology','Finance & Banking','Healthcare','Education','Manufacturing','Retail & FMCG','Oil & Gas','Telecoms','Media & Entertainment','Construction','Logistics','Hospitality','Other'];
@@ -47,10 +48,9 @@ const CompanySignup = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-10 md:py-16">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/"><ThankeeuLogo size={36} textSize="text-2xl" className="mb-5 mx-auto" /></Link>
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
             🏢 For Teams
           </div>
@@ -80,7 +80,7 @@ const CompanySignup = () => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Company name <span className="text-red-400">*</span></label>
-                <input className="input" placeholder="e.g. Zenith Bank Nigeria" value={form.name} onChange={e => set('name', e.target.value)} />
+                <input className="input" placeholder="e.g. Your Company Name" value={form.name} onChange={e => set('name', e.target.value)} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Company email <span className="text-red-400">*</span></label>
@@ -155,6 +155,7 @@ const CompanySignup = () => {
             <Link to="/signup" className="text-primary-400 font-medium">Personal account →</Link>
           </p>
         </div>
+      </div>
       </div>
     </div>
   );

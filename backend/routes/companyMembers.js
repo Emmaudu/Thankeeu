@@ -8,6 +8,7 @@ const {
   approveMember, rejectMember,
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
+  updateMemberProfile, changeMemberPassword,
 } = require('../controllers/companyMembersController');
 
 // Public
@@ -21,6 +22,8 @@ router.post('/reset-password', memberResetPassword);
 router.get('/me', memberAuth, getMemberMe);
 router.get('/dashboard', memberAuth, getMemberDashboard);
 router.get('/dept-pending', leaderAuth, getDeptPendingMembers);
+router.put('/profile', memberAuth, updateMemberProfile);
+router.put('/password', memberAuth, changeMemberPassword);
 
 // HR: full member management
 router.get('/all', companyAuth, getPendingMembers);

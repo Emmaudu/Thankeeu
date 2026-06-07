@@ -1,3 +1,4 @@
+import { formatUSD } from '../../utils/currency';
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -38,9 +39,21 @@ const CompanyDashboard = () => {
     // Handle subscription return from Paystack
     const params = new URLSearchParams(window.location.search);
     if (params.get('sub') === 'success') {
+      window.history.replaceState({}, '', '/company/dashboard');
       const ref = params.get('reference');
-      if (ref) subscriptionAPI.verify(ref).then(() => toast.success('Subscription activated!')).catch(() => {});
-      else toast.success('Subscription successful!');
+      if (ref) {
+        subscriptionAPI.verify(ref)
+          .then(() => {
+            toast.success('🎉 Subscription activated!');
+            subscriptionAPI.get().then(r => setSub(r.data)).catch(() => {});
+          })
+          .catch(() => {
+            subscriptionAPI.get().then(r => setSub(r.data)).catch(() => {});
+            toast('Payment received. Subscription activating...', { icon: '⏳' });
+          });
+      } else {
+        toast.success('Subscription successful!');
+      }
     }
   }, []);
 
@@ -169,7 +182,7 @@ const CompanyDashboard = () => {
                     </p>
                     <p className="text-xs text-gray-400">
                       {a.celebrant_notified_at ? `Card delivered · ${a.total_signed} signed` : `Dept notified · collecting signatures`}
-                      {a.total_gift_collected > 0 ? ` · ₦${a.total_gift_collected.toLocaleString()} gift` : ''}
+                      {a.total_gift_collected > 0 ? ` · ${formatUSD(a.total_gift_collected)} gift` : ''}
                     </p>
                   </div>
                   <div className="text-xs text-gray-400 flex-shrink-0">

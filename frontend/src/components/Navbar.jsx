@@ -45,7 +45,7 @@ const Navbar = ({ onBookDemo }) => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100" style={{ backdropFilter: 'none' }}>
         <div className="section-container">
           <div className="flex items-center justify-between h-14 md:h-16 gap-3">
 
@@ -74,7 +74,7 @@ const Navbar = ({ onBookDemo }) => {
                   </svg>
                 </button>
                 {forOpen && (
-                  <div className="absolute left-0 mt-0 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-50 animate-fade-in">
+                  <div className="absolute left-0 mt-0 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-[60] animate-fade-in">
                     <div className="px-3 py-1.5 mb-1">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Company</p>
                     </div>
@@ -125,7 +125,7 @@ const Navbar = ({ onBookDemo }) => {
                       </svg>
                     </button>
                     {dropOpen && (
-                      <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-50 animate-fade-in">
+                    <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-[60] animate-fade-in">
                         <Link to="/dashboard" onClick={() => setDropOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50">
                           <span>📊</span> Dashboard
                         </Link>
@@ -181,9 +181,9 @@ const Navbar = ({ onBookDemo }) => {
 
       {/* Mobile drawer overlay */}
       {open && (
-        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-[60] md:hidden" onClick={() => setOpen(false)}>
           <div className="mobile-nav-overlay absolute inset-0" />
-          <div className="absolute right-0 top-0 h-full w-72 bg-white shadow-2xl flex flex-col animate-slide-up" onClick={e => e.stopPropagation()}>
+          <div className="absolute right-0 top-0 h-full w-72 bg-white shadow-2xl flex flex-col animate-slide-up z-[61]" onClick={e => e.stopPropagation()}>
             {/* Drawer header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
               <ThankeeuLogo size={28} textSize="text-base" />

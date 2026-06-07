@@ -1,19 +1,26 @@
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Currency helper: stored amounts are NGN, display as USD (1 USD ≈ 1,600 NGN)
+const fmtUSD = (ngnAmount) => {
+  if (!ngnAmount) return '$0';
+  const usd = Math.round(ngnAmount / 1600);
+  return `$${usd.toLocaleString()}`;
+};
+
 const BASE = (content) => `
 <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eee;">
-  <div style="background:linear-gradient(135deg,#7F77DD,#9F77DD);padding:32px;text-align:center;">
+  <div style="background:linear-gradient(135deg,#6C5CE7,#9F77DD);padding:32px;text-align:center;">
     <h1 style="color:#fff;margin:0;font-size:24px;font-weight:600;">Thankeeu 💜</h1>
-    <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:13px;">Nigeria's home for group cards & gifts</p>
+    <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:13px;">Group cards & gifts for every occasion</p>
   </div>
   <div style="padding:32px 36px;">${content}</div>
   <div style="background:#f9f9f9;padding:20px 36px;text-align:center;border-top:1px solid #f0f0f0;">
-    <p style="color:#aaa;font-size:12px;margin:0;">Sent with 💜 by <strong style="color:#7F77DD;">Thankeeu</strong> · Nigeria 🇳🇬</p>
+    <p style="color:#aaa;font-size:12px;margin:0;">Sent with 💜 by <strong style="color:#6C5CE7;">Thankeeu</strong> · Worldwide 🌍</p>
   </div>
 </div>`;
 
-const btn = (text, url, color = '#7F77DD') =>
+const btn = (text, url, color = '#6C5CE7') =>
   `<a href="${url}" style="display:inline-block;background:${color};color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin-top:20px;">${text}</a>`;
 
 const emailTemplates = {
@@ -32,9 +39,9 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">You have been invited to sign a card!</h2>
       <p style="color:#555;line-height:1.7;"><strong>${data.creatorName}</strong> is putting together a special group card for <strong>${data.recipientName}</strong>'s ${data.occasion}.</p>
-      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in as little as ₦500</p></div>` : ''}
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in as little as $500</p></div>` : ''}
       <p style="color:#555;font-size:13px;">Closes on ${data.deadline}</p>
-      ${btn('Sign the card now', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#D4537E')}
+      ${btn('Sign the card now', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
     `)
   }),
 
@@ -42,7 +49,7 @@ const emailTemplates = {
     subject: `You have a special card waiting for you, ${data.recipientName}!`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:22px;margin:0 0 12px;">Happy ${data.occasion}, ${data.recipientName}!</h2>
-      <p style="color:#555;line-height:1.7;"><strong>${data.senderCount} people</strong> came together to create something special for you.${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">&#x20A6;${data.giftAmount.toLocaleString()}</strong>!` : ''}</p>
+      <p style="color:#555;line-height:1.7;"><strong>${data.senderCount} people</strong> came together to create something special for you.${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong>!` : ''}</p>
       ${btn('Open my card', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`)}
     `)
   }),
@@ -52,7 +59,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Card closing in ${data.hoursLeft} hours!</h2>
       <p style="color:#555;line-height:1.7;">Do not miss your chance to add a message to <strong>${data.recipientName}</strong>'s card.</p>
-      ${btn('Sign now', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#D4537E')}
+      ${btn('Sign now', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
     `)
   }),
 
@@ -101,7 +108,7 @@ const emailTemplates = {
       <div style="background:#fff8e1;border-radius:8px;padding:14px 16px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Please keep this a surprise — do not mention the card to ${data.celebrantFirstName} before their birthday!</p>
       </div>
-      ${btn(`Sign ${data.celebrantFirstName}'s card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#D4537E')}
+      ${btn(`Sign ${data.celebrantFirstName}'s card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}</p>
     `)
   }),
@@ -111,14 +118,14 @@ const emailTemplates = {
     html: BASE(`
       <div style="text-align:center;margin-bottom:24px;">
         <div style="font-size:56px;line-height:1;margin-bottom:12px;">🎂🎉🎊</div>
-        <h2 style="color:#7F77DD;font-size:26px;margin:0 0 8px;font-weight:700;">Happy Birthday, ${data.firstName}!</h2>
+        <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Happy Birthday, ${data.firstName}!</h2>
       </div>
-      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">&#x20A6;${data.giftAmount.toLocaleString()}</strong> just for you!` : ''}</p>
+      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> just for you!` : ''}</p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your birthday card is waiting!</p>
-        <p style="color:#7F77DD;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
+        <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
       </div>
-      ${btn('Open my birthday card', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#D4537E')}
+      ${btn('Open my birthday card', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
       <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">From everyone at <strong>${data.companyName}</strong> — we hope today is as amazing as you are!</p>
     `)
   }),
@@ -131,7 +138,7 @@ const emailTemplates = {
         ${[['Ticket ID','#'+data.ticketId.slice(0,8).toUpperCase()],['From',data.senderName],['Email',data.senderEmail],['Type',data.senderType],['Subject',data.subject]].map(([k,v])=>
           `<tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;color:#555;border:1px solid #eee;width:110px;">${k}</td><td style="padding:8px 12px;border:1px solid #eee;color:#333;">${v}</td></tr>`).join('')}
       </table>
-      <div style="background:#f5f5f5;border-radius:8px;padding:16px;border-left:4px solid #7F77DD;">
+      <div style="background:#f5f5f5;border-radius:8px;padding:16px;border-left:4px solid #6C5CE7;">
         <p style="color:#333;font-size:13px;line-height:1.8;margin:0;white-space:pre-line;">${data.message}</p>
       </div>
       ${btn('Reply in Admin Panel', `${process.env.APP_URL}/admin`)}
@@ -154,7 +161,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Reply from Thankeeu Support</h2>
       <p style="color:#555;line-height:1.7;">Hi <strong>${data.name}</strong>, here is our response to ticket <strong>#${data.ticketId.slice(0,8).toUpperCase()}</strong> — "${data.subject}":</p>
-      <div style="background:#f5f5f5;border-radius:8px;padding:16px;border-left:4px solid #7F77DD;margin:16px 0;">
+      <div style="background:#f5f5f5;border-radius:8px;padding:16px;border-left:4px solid #6C5CE7;margin:16px 0;">
         <p style="color:#333;font-size:13px;line-height:1.8;margin:0;white-space:pre-line;">${data.reply}</p>
       </div>
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Need more help? Reply to this email or open another ticket in your dashboard.</p>
@@ -230,12 +237,12 @@ const teamsTemplates = {
   }),
 
   deductionRequest: (data) => ({
-    subject: `[Deduction Request] ${data.leaderName} requests ₦${data.amount?.toLocaleString()} from ${data.recipientName}'s celebration`,
+    subject: `[Deduction Request] ${data.leaderName} requests ${fmtUSD(data.amount)} from ${data.recipientName}'s celebration`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:18px;margin:0 0 12px;">Deduction request for review 💰</h2>
       <p style="color:#555;line-height:1.8;"><strong>${data.leaderName}</strong> (Team Leader) has requested a deduction from the gift pot collected for <strong>${data.recipientName}</strong>'s celebration.</p>
       <table style="width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;">
-        ${[['Card',data.cardTitle],['Amount Requested',`₦${data.amount?.toLocaleString()}`],['Reason',data.reason]].map(([k,v])=>
+        ${[['Card',data.cardTitle],['Amount Requested',`${fmtUSD(data.amount)}`],['Reason',data.reason]].map(([k,v])=>
           `<tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;color:#555;border:1px solid #eee;width:130px;">${k}</td><td style="padding:8px 12px;border:1px solid #eee;color:#333;">${v}</td></tr>`).join('')}
       </table>
       <p style="color:#555;font-size:13px;line-height:1.7;">Note: The 20% platform fee has already been deducted from the gross total before this request.</p>
@@ -244,20 +251,20 @@ const teamsTemplates = {
   }),
 
   deductionApproved: (data) => ({
-    subject: `Your deduction request of ₦${data.amount?.toLocaleString()} has been approved`,
+    subject: `Your deduction request of ${fmtUSD(data.amount)} has been approved`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Deduction approved ✅</h2>
-      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>₦${data.amount?.toLocaleString()}</strong> for physical celebration has been approved by HR.</p>
+      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>${fmtUSD(data.amount)}</strong> for physical celebration has been approved by HR.</p>
       ${data.note ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;"><strong>HR note:</strong> ${data.note}</p></div>` : ''}
       <p style="color:#555;font-size:13px;">The remaining balance will be disbursed to the celebrant.</p>
     `)
   }),
 
   deductionRejected: (data) => ({
-    subject: `Your deduction request of ₦${data.amount?.toLocaleString()} was not approved`,
+    subject: `Your deduction request of ${fmtUSD(data.amount)} was not approved`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Deduction request rejected</h2>
-      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>₦${data.amount?.toLocaleString()}</strong> was not approved at this time.</p>
+      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>${fmtUSD(data.amount)}</strong> was not approved at this time.</p>
       ${data.note ? `<div style="background:#FEF2F2;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #FCA5A5;"><p style="color:#991B1B;font-size:13px;margin:0;"><strong>HR note:</strong> ${data.note}</p></div>` : ''}
     `)
   }),
@@ -282,7 +289,7 @@ const teamsTemplates = {
       <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Keep this a surprise — please do not mention the card to ${data.memberFirstName}!</p>
       </div>
-      ${btn(`Sign ${data.memberFirstName}'s card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#D4537E')}
+      ${btn(`Sign ${data.memberFirstName}'s card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. You do not need an account to sign.</p>
     `)
   }),
@@ -292,15 +299,15 @@ const teamsTemplates = {
     html: BASE(`
       <div style="text-align:center;margin-bottom:24px;">
         <div style="font-size:56px;line-height:1;margin-bottom:12px;">${data.icon}🎉🎊</div>
-        <h2 style="color:#7F77DD;font-size:26px;margin:0 0 8px;font-weight:700;">Happy ${data.occasionLabel}, ${data.firstName}!</h2>
+        <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Happy ${data.occasionLabel}, ${data.firstName}!</h2>
       </div>
-      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">₦${data.giftAmount.toLocaleString()}</strong> for you!` : ''}</p>
+      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> for you!` : ''}</p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your card is waiting!</p>
-        <p style="color:#7F77DD;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
+        <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
       </div>
-      ${btn(`Open my ${data.occasionLabel} card`, `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#D4537E')}
-      ${data.giftAmount ? `<p style="color:#555;font-size:13px;margin-top:16px;">To claim your gift of <strong>₦${data.giftAmount.toLocaleString()}</strong>, open the card and click "Claim gift".</p>` : ''}
+      ${btn(`Open my ${data.occasionLabel} card`, `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
+      ${data.giftAmount ? `<p style="color:#555;font-size:13px;margin-top:16px;">To claim your gift of <strong>${fmtUSD(data.giftAmount)}</strong>, open the card and click "Claim gift".</p>` : ''}
     `)
   }),
 
@@ -310,7 +317,7 @@ const teamsTemplates = {
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">A card was created for ${data.recipientName}!</h2>
       <p style="color:#555;line-height:1.8;"><strong>${data.creatorName}</strong> created a group card for <strong>${data.recipientName}</strong> (${data.occasion}). Add your message and help make it special!</p>
       ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 Gift pot is open — you can contribute too</p></div>` : ''}
-      ${btn('Sign the card', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#D4537E')}
+      ${btn('Sign the card', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
       <p style="color:#aaa;font-size:12px;margin-top:12px;">You do not need an account to sign. Creating a card requires a company account.</p>
     `)
   }),
@@ -335,7 +342,7 @@ const additionalTeamsTemplates = {
       <div style="background:#EEEDFE;border-radius:8px;padding:14px 16px;margin:16px 0;">
         <p style="color:#534AB7;font-size:13px;margin:0;">🎁 A welcome gift pot is open — chip in to help them get settled in their new role!</p>
       </div>
-      ${btn(`Sign ${data.newHireFirstName}'s welcome card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#7F77DD')}
+      ${btn(`Sign ${data.newHireFirstName}'s welcome card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. No account needed to sign.</p>
     `)
   }),
@@ -346,19 +353,19 @@ const additionalTeamsTemplates = {
     html: BASE(`
       <div style="text-align:center;margin-bottom:24px;">
         <div style="font-size:56px;line-height:1;margin-bottom:12px;">🌟🎉✨</div>
-        <h2 style="color:#7F77DD;font-size:26px;margin:0 0 8px;font-weight:700;">Welcome to the team, ${data.firstName}!</h2>
+        <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Welcome to the team, ${data.firstName}!</h2>
         <p style="color:#555;font-size:15px;margin:0;">We are so excited to have you at ${data.companyName}</p>
       </div>
       <p style="color:#555;line-height:1.8;font-size:14px;">
         Your new colleagues in <strong>${data.department}</strong> wanted to make your first day extra special.
         <strong>${data.signerCount} people</strong> signed a welcome card just for you!
-        ${data.giftAmount ? `They also pooled together a welcome gift of <strong style="color:#3B6D11;">₦${data.giftAmount.toLocaleString()}</strong> to help you settle in!` : ''}
+        ${data.giftAmount ? `They also pooled together a welcome gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> to help you settle in!` : ''}
       </p>
       <div style="background:linear-gradient(135deg,#EEEDFE,#F0F0FF);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your welcome card is waiting!</p>
-        <p style="color:#7F77DD;font-size:13px;margin:0;">Click below to read all the lovely messages from your team</p>
+        <p style="color:#6C5CE7;font-size:13px;margin:0;">Click below to read all the lovely messages from your team</p>
       </div>
-      ${btn('Open my welcome card 🌟', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7F77DD')}
+      ${btn('Open my welcome card 🌟', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
       <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">From everyone at <strong>${data.companyName}</strong> — welcome aboard. We are glad you are here! 🙌</p>
     `)
   }),
@@ -379,7 +386,7 @@ const additionalTeamsTemplates = {
       <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Please keep this a surprise until we present the card on their last day! 🤫</p>
       </div>
-      ${btn(`Sign ${data.leavingFirstName}'s farewell card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#D4537E')}
+      ${btn(`Sign ${data.leavingFirstName}'s farewell card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. No account needed to sign.</p>
     `)
   }),
@@ -390,19 +397,19 @@ const additionalTeamsTemplates = {
     html: BASE(`
       <div style="text-align:center;margin-bottom:24px;">
         <div style="font-size:56px;line-height:1;margin-bottom:12px;">👋💜🌟</div>
-        <h2 style="color:#D4537E;font-size:26px;margin:0 0 8px;font-weight:700;">Goodbye and good luck, ${data.firstName}!</h2>
+        <h2 style="color:#E84393;font-size:26px;margin:0 0 8px;font-weight:700;">Goodbye and good luck, ${data.firstName}!</h2>
         <p style="color:#555;font-size:15px;margin:0;">Your ${data.companyName} family wishes you all the best</p>
       </div>
       <p style="color:#555;line-height:1.8;font-size:14px;">
         As you move on to your next chapter, your colleagues at <strong>${data.companyName}</strong> wanted you to know how much you meant to the team.
         <strong>${data.signerCount} people</strong> signed your farewell card and left you heartfelt messages!
-        ${data.giftAmount ? `They also pooled together a farewell gift of <strong style="color:#3B6D11;">₦${data.giftAmount.toLocaleString()}</strong> just for you!` : ''}
+        ${data.giftAmount ? `They also pooled together a farewell gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> just for you!` : ''}
       </p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your farewell card is waiting!</p>
-        <p style="color:#7F77DD;font-size:13px;margin:0;">Click to read all the messages and memories your colleagues left for you</p>
+        <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to read all the messages and memories your colleagues left for you</p>
       </div>
-      ${btn('Open my farewell card 💜', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#D4537E')}
+      ${btn('Open my farewell card 💜', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
       <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">
         From everyone at <strong>${data.companyName}</strong> — thank you for everything. The door is always open. 🙏
       </p>
@@ -427,7 +434,7 @@ const demoTemplates = {
           ['Team Size', data.team_size || 'Not specified'],
         ].map(([k,v]) => `<tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;color:#555;border:1px solid #eee;width:110px;">${k}</td><td style="padding:8px 12px;border:1px solid #eee;color:#333;">${v}</td></tr>`).join('')}
       </table>
-      ${data.message ? `<div style="background:#f5f5f5;border-radius:8px;padding:16px;border-left:4px solid #7F77DD;margin-bottom:20px;"><p style="color:#333;font-size:13px;margin:0;line-height:1.7;">${data.message}</p></div>` : ''}
+      ${data.message ? `<div style="background:#f5f5f5;border-radius:8px;padding:16px;border-left:4px solid #6C5CE7;margin-bottom:20px;"><p style="color:#333;font-size:13px;margin:0;line-height:1.7;">${data.message}</p></div>` : ''}
       ${btn('View in Admin Dashboard', `${process.env.APP_URL}/admin`)}
     `)
   }),
@@ -446,8 +453,8 @@ const demoTemplates = {
           <li>Free trial period to test with your data</li>
         </ul>
       </div>
-      <p style="color:#555;font-size:13px;line-height:1.7;">In the meantime, feel free to explore the platform at <a href="${process.env.APP_URL}" style="color:#7F77DD;">${process.env.APP_URL}</a>.</p>
-      <p style="color:#aaa;font-size:12px;margin-top:16px;">Questions? Reply to this email or contact us at <a href="mailto:support@thankeeu.ng" style="color:#7F77DD;">support@thankeeu.ng</a></p>
+      <p style="color:#555;font-size:13px;line-height:1.7;">In the meantime, feel free to explore the platform at <a href="${process.env.APP_URL}" style="color:#6C5CE7;">${process.env.APP_URL}</a>.</p>
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Questions? Reply to this email or contact us at <a href="mailto:support@thankeeu.ng" style="color:#6C5CE7;">support@thankeeu.ng</a></p>
     `)
   }),
 };

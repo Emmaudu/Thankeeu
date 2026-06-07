@@ -1,6 +1,7 @@
 import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
 import ThankeeuLogo from '../components/ThankeeuLogo';
+import Navbar from '../components/Navbar';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authAPI } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -18,7 +19,7 @@ const ResetPassword = () => {
   const [done, setDone] = useState(false);
 
   if (!token) return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="text-center">
         <div className="text-5xl mb-4">🔗</div>
         <h2 className="font-display text-2xl font-semibold text-gray-900 mb-2">Invalid reset link</h2>
@@ -44,10 +45,9 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen gradient-hero flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link to="/"><ThankeeuLogo size={36} textSize="text-2xl" className="mb-5 mx-auto" /></Link>
           <h1 className="font-display text-3xl font-semibold text-gray-900 mb-2">Set new password</h1>
           <p className="text-gray-500 text-sm">Choose a strong password for your account</p>
         </div>
@@ -121,6 +121,7 @@ const ResetPassword = () => {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 };

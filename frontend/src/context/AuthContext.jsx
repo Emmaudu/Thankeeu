@@ -40,6 +40,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('thankeeu_token');
     localStorage.removeItem('thankeeu_user');
+    localStorage.removeItem('thankeeu_pending_card');
     setUser(null);
   };
 

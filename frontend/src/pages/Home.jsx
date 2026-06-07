@@ -20,20 +20,20 @@ const STEPS = [
   { num: '01', icon: '🎨', title: 'Create your card',       desc: 'Pick an occasion, choose a beautiful design, set your delivery date. Takes 2 minutes.' },
   { num: '02', icon: '📲', title: 'Invite people to sign',  desc: 'Share a link on WhatsApp or email. Everyone adds their message, photo, or video.' },
   { num: '03', icon: '🎁', title: 'Collect a gift together',desc: 'Anyone can chip in from $1 into a shared gift pot. No awkward collecting.' },
-  { num: '04', icon: '💌', title: 'Deliver the surprise',   desc: 'Schedule delivery or send instantly. One beautiful card with everyone's love.' },
+  { num: '04', icon: '💌', title: 'Deliver the surprise',   desc: "Schedule delivery or send instantly. One beautiful card with everyone's love." },
 ];
 
 const TESTIMONIALS = [
-  { name: 'Adaeze O.', location: 'London',         text: 'My team used Thankeeu for our colleague's farewell and she literally cried. Everyone contributed to a spa voucher. So easy!', av: 'AO' },
-  { name: 'Emeka T.',  location: 'New York',          text: 'Organised my girlfriend's birthday card from London. 22 people signed and we raised $500 for her. She was shocked!',     av: 'ET' },
-  { name: 'Kemi B.',   location: 'Toronto',  text: 'No more Google forms and chasing people for money. Paystack makes it seamless.',       av: 'KB' },
+  { name: 'Adaeze O.', location: 'London',         text: "My team used Thankeeu for our colleague's farewell and she literally cried. Everyone contributed to a spa voucher. So easy!", av: 'AO' },
+  { name: 'Emeka T.',  location: 'New York',          text: "Organised my girlfriend's birthday card from London. 22 people signed and we raised $500 for her. She was shocked!",     av: 'ET' },
+  { name: 'Kemi B.',   location: 'Toronto',  text: "No more Google forms and chasing people for money. Paystack makes it seamless.",       av: 'KB' },
 ];
 
 const TEAM_FEATURES = [
-  { icon: '📥', title: 'Upload employee data',       desc: 'Import your entire team via Excel or connect your HRIS — SeamlessHR, BambooHR, Zoho People, WorkPay.' },
-  { icon: '🎉', title: '12 occasions automated',     desc: 'Birthdays, farewells, promotions, new hires, Women's Day and more — all handled automatically.' },
-  { icon: '💌', title: 'Cards delivered on the day', desc: 'The whole department gets notified to sign. The celebrant receives their card on the special day.' },
-  { icon: '🎁', title: 'Gift pot included',           desc: 'Colleagues chip in via Paystack. HR never has to chase anyone for money again.' },
+  { icon: '📥', title: 'Upload employee data',       desc: "Import your entire team via Excel or connect your HRIS — SeamlessHR, BambooHR, Zoho People, WorkPay." },
+  { icon: '🎉', title: '12 occasions automated',     desc: "Birthdays, farewells, promotions, new hires, Women's Day and more — all handled automatically." },
+  { icon: '💌', title: 'Cards delivered on the day', desc: 'The whole department gets notified to sign. The celebrant receives their card on the special day"' },
+  { icon: '🎁', title: 'Gift pot included',           desc: "Colleagues chip in via Paystack. HR never has to chase anyone for money again." },
 ];
 
 const TEAM_SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '500+'];
@@ -41,7 +41,7 @@ const TEAM_SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '500+']
 const DemoModal = ({ onClose }) => {
   useSEO({
     title:       'Group Cards & Gifts — Celebrate Every Milestone Together',
-    description: 'The world's favorite group card and gift platform. Create beautiful online group cards, collect heartfelt messages and gift pots. Birthdays, farewells, promotions and more.',
+    description: "The world's favorite group card and gift platform. Create beautiful online group cards, collect heartfelt messages and gift pots. Birthdays, farewells, promotions and more.",
     canonical:   '/',
     keywords:    'group card, birthday card online, farewell card, group gift, thankeeu, team celebration, online group card, office birthday card, group greeting card',
     jsonLd:      [

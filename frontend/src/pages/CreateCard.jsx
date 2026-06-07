@@ -1,7 +1,7 @@
 import { useSEO } from '../hooks/useSEO';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { paymentsAPI } from '../utils/api';
+import { cardsAPI, paymentsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
@@ -73,6 +73,12 @@ const CreateCard = () => {
     allow_private_messages: true, send_reminders: true, hide_amounts: false
   });
 
+  useEffect(() => {
+    const resetCheckoutState = () => setLoading(false);
+    window.addEventListener('pageshow', resetCheckoutState);
+    return () => window.removeEventListener('pageshow', resetCheckoutState);
+  }, []);
+
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleOccasionSelect = (occ) => {
@@ -95,17 +101,28 @@ const CreateCard = () => {
         title: form.title.trim() || `${form.recipient_name}'s ${occasionLabel} Card`,
       };
 
-      // Save the payload before leaving for Paystack, then create after verification.
-      localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+      const pendingCard = {
         cardData,
         inviteEmails: inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean)
-      }));
-      const payRes = await paymentsAPI.initPurchase('single');
+      };
+      let savedPending = null;
+      try {
+        savedPending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || 'null');
+      } catch {
+        localStorage.removeItem('thankeeu_pending_card');
+      }
+      const canReuseDraft = savedPending?.slug
+        && JSON.stringify(savedPending.cardData) === JSON.stringify(cardData);
+      const slug = canReuseDraft
+        ? savedPending.slug
+        : (await cardsAPI.create(cardData)).data.slug;
+
+      localStorage.setItem('thankeeu_pending_card', JSON.stringify({ ...pendingCard, slug }));
+      const payRes = await paymentsAPI.initPurchase('single', slug);
       const checkoutUrl = payRes.data.authorization_url
         || `https://checkout.paystack.com/${payRes.data.access_code}`;
       window.location.assign(checkoutUrl);
     } catch (err) {
-      localStorage.removeItem('thankeeu_pending_card');
       toast.error(err.response?.data?.error || 'Could not open payment. Please try again.');
       setLoading(false);
     }

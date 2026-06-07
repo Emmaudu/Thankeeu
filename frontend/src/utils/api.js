@@ -97,7 +97,7 @@ export const messagesAPI = {
 
 // ─── Payments ─────────────────────────────────────────────────────────────
 export const paymentsAPI = {
-  initPurchase:     (plan_type) => api.post('/payments/initialize/purchase', { plan_type }),
+  initPurchase:     (plan_type, card_slug) => api.post('/payments/initialize/purchase', { plan_type, card_slug }),
   initContribution: (data)      => api.post('/payments/initialize/contribution', data),
   verify:           (reference) => api.get(`/payments/verify/${reference}`),
 };

@@ -66,13 +66,53 @@ const verifyContribution = async ({ contributionId, reference }) => {
   return { contribution: updated, alreadyProcessed: false };
 };
 
+const activatePurchasedCard = async ({ cardSlug, userId }) => {
+  const { data: card, error: cardError } = await supabase
+    .from('cards')
+    .select('slug, creator_id, status')
+    .eq('slug', cardSlug)
+    .eq('creator_id', userId)
+    .single();
+
+  if (cardError || !card) throw cardError || new Error('Paid card could not be found');
+  if (card.status === 'active') return { card, alreadyProcessed: true };
+
+  const { data: activated, error: activateError } = await supabase
+    .from('cards')
+    .update({ status: 'active', updated_at: new Date() })
+    .eq('slug', cardSlug)
+    .eq('creator_id', userId)
+    .select('slug, creator_id, status')
+    .single();
+
+  if (activateError) throw activateError;
+  return { card: activated, alreadyProcessed: false };
+};
+
 // Initialize card purchase in Nigerian naira (Paystack receives kobo).
 const initializeCardPurchase = async (req, res) => {
   try {
-    const { plan_type } = req.body;
+    const { plan_type, card_slug } = req.body;
     const amounts = { single: 500000, pack5: 2000000, business: 20000000 };
     const amount = amounts[plan_type];
     if (!amount) return res.status(400).json({ error: 'Invalid plan type' });
+
+    if (card_slug) {
+      const { data: card, error } = await supabase
+        .from('cards')
+        .select('slug, creator_id, status')
+        .eq('slug', card_slug)
+        .single();
+      if (error || !card || card.creator_id !== req.user.id) {
+        return res.status(403).json({ error: 'Card is not available for this payment' });
+      }
+      if (!['draft', 'active'].includes(card.status)) {
+        return res.status(400).json({ error: 'Card cannot be purchased in its current state' });
+      }
+    }
+
+    const frontendUrl = (req.get('origin') || process.env.FRONTEND_URL || process.env.APP_URL || '').replace(/\/$/, '');
+    if (!frontendUrl) return res.status(500).json({ error: 'Payment callback URL is not configured' });
 
     const response = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, {
       email: req.user.email,
@@ -81,9 +121,10 @@ const initializeCardPurchase = async (req, res) => {
         user_id: req.user.id,
         plan_type,
         type: 'card_purchase',
+        ...(card_slug && { card_slug }),
         custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: plan_type }]
       },
-      callback_url: `${process.env.FRONTEND_URL}/dashboard?payment=success`
+      callback_url: `${frontendUrl}/dashboard?payment=success`
     }, { headers: paystackHeaders(), timeout: PAYSTACK_TIMEOUT_MS });
 
     res.json(response.data.data);
@@ -161,7 +202,7 @@ const verifyPayment = async (req, res) => {
     const txn = response.data.data;
     if (txn.status !== 'success') return res.status(400).json({ error: 'Payment not successful' });
 
-    const { type, contribution_id, user_id, plan_type } = txn.metadata || {};
+    const { type, contribution_id, user_id, plan_type, card_slug } = txn.metadata || {};
 
     if (type === 'gift_contribution' && contribution_id) {
       const result = await verifyContribution({ contributionId: contribution_id, reference });
@@ -174,6 +215,18 @@ const verifyPayment = async (req, res) => {
     }
 
     if (type === 'card_purchase' && user_id) {
+      if (card_slug) {
+        const result = await activatePurchasedCard({ cardSlug: card_slug, userId: user_id });
+
+        return res.json({
+          success: true,
+          type: 'card_purchase',
+          card_slug,
+          card_activated: true,
+          already_processed: result.alreadyProcessed
+        });
+      }
+
       const result = await grantCardCredits({ userId: user_id, planType: plan_type, reference });
       return res.json({
         success: true,
@@ -207,10 +260,13 @@ const webhook = async (req, res) => {
       : req.body;
     if (event.event === 'charge.success') {
       const { reference, metadata = {} } = event.data;
-      const { type, contribution_id } = metadata;
+      const { type, contribution_id, card_slug, user_id } = metadata;
 
       if (type === 'gift_contribution' && contribution_id) {
         await verifyContribution({ contributionId: contribution_id, reference });
+      }
+      if (type === 'card_purchase' && card_slug && user_id) {
+        await activatePurchasedCard({ cardSlug: card_slug, userId: user_id });
       }
     }
 

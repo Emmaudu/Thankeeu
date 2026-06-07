@@ -1,5 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { dashboardAPI, cardsAPI, paymentsAPI } from '../utils/api';
@@ -45,35 +45,61 @@ const Dashboard = () => {
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const completingPayment = useRef(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'success') {
+      if (completingPayment.current) return;
+      completingPayment.current = true;
       const ref = params.get('reference') || params.get('trxref');
       const activatePending = async () => {
         try {
           if (!ref) throw new Error('Payment reference is missing');
-          await paymentsAPI.verify(ref);
+          let verification;
+          for (let attempt = 0; attempt < 4; attempt += 1) {
+            try {
+              verification = await paymentsAPI.verify(ref);
+              break;
+            } catch (verifyError) {
+              if (attempt === 3) throw verifyError;
+              await new Promise(resolve => setTimeout(resolve, 750 * (attempt + 1)));
+            }
+          }
 
           const pendingRaw = localStorage.getItem('thankeeu_pending_card');
-          if (!pendingRaw) throw new Error('Card details were not found on this device');
+          let pending = null;
+          try {
+            pending = pendingRaw ? JSON.parse(pendingRaw) : null;
+          } catch {
+            localStorage.removeItem('thankeeu_pending_card');
+          }
+          let slug = verification?.data?.card_slug || pending?.slug;
+          const activatedByVerification = verification?.data?.card_activated === true;
 
-          const pending = JSON.parse(pendingRaw);
-          let slug = pending.slug;
+          // Backward compatibility for payments initialized before this fix.
           if (!slug) {
-            if (!pending.cardData) throw new Error('Card details are incomplete');
+            if (!pending?.cardData) throw new Error('Card details were not found on this device');
             const createRes = await cardsAPI.create(pending.cardData);
             slug = createRes.data.slug;
             localStorage.setItem('thankeeu_pending_card', JSON.stringify({ ...pending, slug }));
           }
 
-          await cardsAPI.activate(slug, { inviteEmails: pending.inviteEmails || [] });
+          if (!activatedByVerification) {
+            await cardsAPI.activate(slug, { inviteEmails: pending?.inviteEmails || [] });
+          } else if (pending?.inviteEmails?.length) {
+            // The card is already live; invitation delivery should not hold up the redirect.
+            cardsAPI.activate(slug, { inviteEmails: pending.inviteEmails }).catch(err => {
+              console.error('Could not send saved invitations:', err);
+            });
+          }
           localStorage.removeItem('thankeeu_pending_card');
           toast.success('Payment confirmed! Your card is live.');
           navigate(`/card/${slug}`, { replace: true });
         } catch (err) {
           console.error('Payment completion failed:', err);
           toast.error(err.response?.data?.error || err.message || 'Could not finish creating your card. Reload to retry.');
+          completingPayment.current = false;
           setLoading(false);
         }
       };

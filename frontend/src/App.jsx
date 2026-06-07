@@ -43,6 +43,8 @@ import JoinCompanyLogin       from './pages/member/JoinCompanyLogin';
 import { JoinForgotPassword, JoinResetPassword } from './pages/member/JoinPasswordPages';
 import MemberDashboard        from './pages/member/MemberDashboard';
 import MemberOccasionsPage    from './pages/member/MemberOccasionsPage';
+import MemberApprovalsPage    from './pages/member/MemberApprovalsPage';
+import MemberDeductionsPage   from './pages/member/MemberDeductionsPage';
 import MemberSettingsPage     from './pages/member/MemberSettingsPage';
 import MemberSupportPage      from './pages/member/MemberSupportPage';
 
@@ -134,10 +136,12 @@ const App = () => (
             <Route path="/member/reset-password"  element={<JoinResetPassword />} />
 
             {/* ── Team member / leader protected ───────────── */}
-            <Route path="/member/dashboard"  element={<MemberProtectedRoute><MemberDashboard /></MemberProtectedRoute>} />
-            <Route path="/member/occasions"  element={<MemberProtectedRoute><MemberOccasionsPage /></MemberProtectedRoute>} />
-            <Route path="/member/settings"   element={<MemberProtectedRoute><MemberSettingsPage /></MemberProtectedRoute>} />
-            <Route path="/member/support"    element={<MemberProtectedRoute><MemberSupportPage /></MemberProtectedRoute>} />
+            <Route path="/member/dashboard"   element={<MemberProtectedRoute><MemberDashboard /></MemberProtectedRoute>} />
+            <Route path="/member/occasions"   element={<MemberProtectedRoute><MemberOccasionsPage /></MemberProtectedRoute>} />
+            <Route path="/member/approvals"   element={<MemberProtectedRoute leaderOnly><MemberApprovalsPage /></MemberProtectedRoute>} />
+            <Route path="/member/deductions"  element={<MemberProtectedRoute leaderOnly><MemberDeductionsPage /></MemberProtectedRoute>} />
+            <Route path="/member/settings"    element={<MemberProtectedRoute><MemberSettingsPage /></MemberProtectedRoute>} />
+            <Route path="/member/support"     element={<MemberProtectedRoute><MemberSupportPage /></MemberProtectedRoute>} />
 
             {/* ── 404 ─────────────────────────────────────── */}
             <Route path="*" element={<NotFound />} />

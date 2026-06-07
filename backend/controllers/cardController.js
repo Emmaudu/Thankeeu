@@ -302,6 +302,134 @@ const getPublicCard = async (req, res) => {
   }
 };
 
+const getRecipientCard = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { token } = req.query;
+    if (!token) return res.status(401).json({ error: 'Recipient token required' });
+
+    const { data: card, error } = await supabase
+      .from('cards')
+      .select('*, messages(*), contributions(amount, status, contributor_name)')
+      .eq('slug', slug)
+      .eq('access_token', token)
+      .single();
+
+    if (error || !card) return res.status(403).json({ error: 'Invalid recipient link' });
+
+    const verifiedContributions = (card.contributions || []).filter(c => c.status === 'success');
+    const totalCollected = verifiedContributions.reduce((sum, contribution) => sum + (contribution.amount || 0), 0);
+    const { data: wallet } = await supabase
+      .from('contribution_wallets')
+      .select('amount_to_celebrant, disbursed')
+      .eq('card_id', card.id)
+      .maybeSingle();
+    const { data: claim } = await supabase
+      .from('gift_claims')
+      .select('status, claim_type, amount, created_at')
+      .eq('card_id', card.id)
+      .maybeSingle();
+
+    const { access_token: _accessToken, ...recipientCard } = card;
+
+    res.json({
+      ...recipientCard,
+      isRecipient: true,
+      signed_count: card.messages?.length || 0,
+      total_collected: totalCollected,
+      claimable_amount: wallet?.amount_to_celebrant ?? totalCollected,
+      gift_claim: claim || null,
+      wallet_disbursed: wallet?.disbursed || false
+    });
+  } catch (err) {
+    console.error('Recipient card error:', err);
+    res.status(500).json({ error: 'Failed to fetch recipient card' });
+  }
+};
+
+const claimGift = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { token, claim_type, bank_name, account_number, account_name } = req.body;
+    const validClaimTypes = ['transfer', 'shopping', 'spa', 'flowers', 'food'];
+
+    if (!token) return res.status(401).json({ error: 'Recipient token required' });
+    if (!validClaimTypes.includes(claim_type)) {
+      return res.status(400).json({ error: 'Select a valid gift option' });
+    }
+    if (
+      claim_type === 'transfer'
+      && (!bank_name?.trim() || !account_number?.trim() || !account_name?.trim())
+    ) {
+      return res.status(400).json({ error: 'Complete your bank details to claim by transfer' });
+    }
+    if (claim_type === 'transfer' && !/^\d{10}$/.test(account_number.trim())) {
+      return res.status(400).json({ error: 'Enter a valid 10-digit account number' });
+    }
+
+    const { data: card, error: cardError } = await supabase
+      .from('cards')
+      .select('id, recipient_name, recipient_email, access_token, company_id')
+      .eq('slug', slug)
+      .eq('access_token', token)
+      .single();
+    if (cardError || !card) return res.status(403).json({ error: 'Invalid recipient link' });
+
+    const { data: existingClaim } = await supabase
+      .from('gift_claims')
+      .select('id, status')
+      .eq('card_id', card.id)
+      .maybeSingle();
+    if (existingClaim) {
+      return res.status(409).json({ error: `This gift already has a ${existingClaim.status} claim` });
+    }
+
+    const { data: wallet } = await supabase
+      .from('contribution_wallets')
+      .select('amount_to_celebrant, disbursed')
+      .eq('card_id', card.id)
+      .maybeSingle();
+    if (wallet?.disbursed) return res.status(409).json({ error: 'This gift has already been paid out' });
+
+    const { data: contributions, error: contributionError } = await supabase
+      .from('contributions')
+      .select('amount')
+      .eq('card_id', card.id)
+      .eq('status', 'success');
+    if (contributionError) throw contributionError;
+
+    const totalCollected = (contributions || []).reduce((sum, contribution) => sum + (contribution.amount || 0), 0);
+    const amount = wallet?.amount_to_celebrant ?? totalCollected;
+    if (amount <= 0) return res.status(400).json({ error: 'There is no gift balance available to claim' });
+
+    const { data: claim, error } = await supabase
+      .from('gift_claims')
+      .insert({
+        card_id: card.id,
+        company_id: card.company_id || null,
+        recipient_name: card.recipient_name,
+        recipient_email: card.recipient_email,
+        claim_type,
+        amount,
+        bank_name: claim_type === 'transfer' ? bank_name.trim() : null,
+        account_number: claim_type === 'transfer' ? account_number.trim() : null,
+        account_name: claim_type === 'transfer' ? account_name.trim() : null,
+        status: 'pending'
+      })
+      .select('id, claim_type, amount, status, created_at')
+      .single();
+
+    if (error) throw error;
+    res.status(201).json({
+      message: 'Your gift claim was submitted successfully. We will process it within 24 hours.',
+      claim
+    });
+  } catch (err) {
+    console.error('Gift claim error:', err);
+    res.status(500).json({ error: 'Failed to submit gift claim' });
+  }
+};
+
 // Get cards created by a team member (for their history tab)
 const getMemberCards = async (req, res) => {
   try {
@@ -320,4 +448,7 @@ const getMemberCards = async (req, res) => {
   }
 };
 
-module.exports = { createCard, getUserCards, getCard, updateCard, activateCard, sendCard, deleteCard, getPublicCard, getMemberCards };
+module.exports = {
+  createCard, getUserCards, getCard, updateCard, activateCard, sendCard,
+  deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards
+};

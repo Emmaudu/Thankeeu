@@ -72,7 +72,7 @@ const Navbar = ({ onBookDemo }) => {
             <div className="hidden md:flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
-                  <Link to="/dashboard" className="btn-secondary text-xs py-2 px-4">🎉 My Cards</Link>
+                  <Link to="/dashboard" className="btn-secondary text-xs py-2 px-4">📊 Dashboard</Link>
                   <div className="relative">
                     <button onClick={() => setDropdownOpen(!dropdownOpen)}
                       className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
@@ -144,7 +144,7 @@ const Navbar = ({ onBookDemo }) => {
             <div className="p-4 pt-0 space-y-2">
               {user ? (
                 <>
-                  <Link to="/dashboard" className="btn-primary w-full text-sm">🎉 My Cards</Link>
+                  <Link to="/dashboard" className="btn-primary w-full text-sm">📊 Dashboard</Link>
                   <Link to="/create-card" className="btn-secondary w-full text-sm text-center">✨ Create card</Link>
                   <button onClick={handleLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5 hover:bg-rose-50 rounded-xl transition-colors">👋 Sign out</button>
                 </>

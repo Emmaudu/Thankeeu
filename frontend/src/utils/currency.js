@@ -12,14 +12,5 @@ export const formatNGN = (amount) => {
   return `₦${n}`;
 };
 
-/** Alias used by pages that still call formatUSD — returns Naira string */
-export const formatUSD = formatNGN;
-
 /** Convert NGN → kobo for Paystack */
 export const toKobo = (ngn) => Math.round(ngn * 100);
-
-/** No-op aliases for backward compatibility */
-export const usdToNgn    = (x) => x;
-export const ngnToUsd    = (x) => x;
-export const formatUSDDirect = formatNGN;
-export const NGN_PER_USD = 1;

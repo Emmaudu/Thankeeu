@@ -97,7 +97,7 @@ const getCompanyMe = async (req, res) => {
   try {
     const { data: company, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, bank_name, account_number, account_name, created_at')
+      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, created_at')
       .eq('id', req.company.id)
       .single();
     if (error) throw error;
@@ -124,12 +124,12 @@ const getCompanyMe = async (req, res) => {
 
 const updateCompanyProfile = async (req, res) => {
   try {
-    const { name, contact_person, phone, industry, logo_url, theme, bank_name, account_number, account_name } = req.body;
+    const { name, contact_person, phone, industry, logo_url, theme } = req.body;
     const { data, error } = await supabase
       .from('companies')
-      .update({ name, contact_person, phone, industry, logo_url, theme, bank_name, account_number, account_name, updated_at: new Date() })
+      .update({ name, contact_person, phone, industry, logo_url, theme, updated_at: new Date() })
       .eq('id', req.company.id)
-      .select('id, name, email, contact_person, phone, industry, logo_url, theme, bank_name, account_number, account_name')
+      .select('id, name, email, contact_person, phone, industry, logo_url, theme')
       .single();
     if (error) throw error;
     res.json(data);

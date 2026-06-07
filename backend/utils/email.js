@@ -1,11 +1,10 @@
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Currency helper: stored amounts are NGN, display as USD (1 USD ≈ 1,600 NGN)
-const fmtUSD = (ngnAmount) => {
-  if (!ngnAmount) return '$0';
-  const usd = Math.round(ngnAmount / 1600);
-  return `$${usd.toLocaleString()}`;
+// Currency helper: all stored and displayed amounts are Nigerian naira.
+const fmtNGN = (ngnAmount) => {
+  if (!ngnAmount) return '₦0';
+  return `₦${Number(ngnAmount).toLocaleString('en-NG')}`;
 };
 
 const BASE = (content) => `
@@ -39,7 +38,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">You have been invited to sign a card!</h2>
       <p style="color:#555;line-height:1.7;"><strong>${data.creatorName}</strong> is putting together a special group card for <strong>${data.recipientName}</strong>'s ${data.occasion}.</p>
-      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in as little as $500</p></div>` : ''}
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in from ₦2,500</p></div>` : ''}
       <p style="color:#555;font-size:13px;">Closes on ${data.deadline}</p>
       ${btn('Sign the card now', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
     `)
@@ -49,7 +48,7 @@ const emailTemplates = {
     subject: `You have a special card waiting for you, ${data.recipientName}!`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:22px;margin:0 0 12px;">Happy ${data.occasion}, ${data.recipientName}!</h2>
-      <p style="color:#555;line-height:1.7;"><strong>${data.senderCount} people</strong> came together to create something special for you.${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong>!` : ''}</p>
+      <p style="color:#555;line-height:1.7;"><strong>${data.senderCount} people</strong> came together to create something special for you.${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong>!` : ''}</p>
       ${btn('Open my card', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`)}
     `)
   }),
@@ -120,7 +119,7 @@ const emailTemplates = {
         <div style="font-size:56px;line-height:1;margin-bottom:12px;">🎂🎉🎊</div>
         <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Happy Birthday, ${data.firstName}!</h2>
       </div>
-      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> just for you!` : ''}</p>
+      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> just for you!` : ''}</p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your birthday card is waiting!</p>
         <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
@@ -237,12 +236,12 @@ const teamsTemplates = {
   }),
 
   deductionRequest: (data) => ({
-    subject: `[Deduction Request] ${data.leaderName} requests ${fmtUSD(data.amount)} from ${data.recipientName}'s celebration`,
+    subject: `[Deduction Request] ${data.leaderName} requests ${fmtNGN(data.amount)} from ${data.recipientName}'s celebration`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:18px;margin:0 0 12px;">Deduction request for review 💰</h2>
       <p style="color:#555;line-height:1.8;"><strong>${data.leaderName}</strong> (Team Leader) has requested a deduction from the gift pot collected for <strong>${data.recipientName}</strong>'s celebration.</p>
       <table style="width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;">
-        ${[['Card',data.cardTitle],['Amount Requested',`${fmtUSD(data.amount)}`],['Reason',data.reason]].map(([k,v])=>
+        ${[['Card',data.cardTitle],['Amount Requested',`${fmtNGN(data.amount)}`],['Reason',data.reason]].map(([k,v])=>
           `<tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;color:#555;border:1px solid #eee;width:130px;">${k}</td><td style="padding:8px 12px;border:1px solid #eee;color:#333;">${v}</td></tr>`).join('')}
       </table>
       <p style="color:#555;font-size:13px;line-height:1.7;">Note: The 20% platform fee has already been deducted from the gross total before this request.</p>
@@ -251,20 +250,20 @@ const teamsTemplates = {
   }),
 
   deductionApproved: (data) => ({
-    subject: `Your deduction request of ${fmtUSD(data.amount)} has been approved`,
+    subject: `Your deduction request of ${fmtNGN(data.amount)} has been approved`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Deduction approved ✅</h2>
-      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>${fmtUSD(data.amount)}</strong> for physical celebration has been approved by HR.</p>
+      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>${fmtNGN(data.amount)}</strong> for physical celebration has been approved by HR.</p>
       ${data.note ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;"><strong>HR note:</strong> ${data.note}</p></div>` : ''}
       <p style="color:#555;font-size:13px;">The remaining balance will be disbursed to the celebrant.</p>
     `)
   }),
 
   deductionRejected: (data) => ({
-    subject: `Your deduction request of ${fmtUSD(data.amount)} was not approved`,
+    subject: `Your deduction request of ${fmtNGN(data.amount)} was not approved`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Deduction request rejected</h2>
-      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>${fmtUSD(data.amount)}</strong> was not approved at this time.</p>
+      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>${fmtNGN(data.amount)}</strong> was not approved at this time.</p>
       ${data.note ? `<div style="background:#FEF2F2;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #FCA5A5;"><p style="color:#991B1B;font-size:13px;margin:0;"><strong>HR note:</strong> ${data.note}</p></div>` : ''}
     `)
   }),
@@ -301,13 +300,13 @@ const teamsTemplates = {
         <div style="font-size:56px;line-height:1;margin-bottom:12px;">${data.icon}🎉🎊</div>
         <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Happy ${data.occasionLabel}, ${data.firstName}!</h2>
       </div>
-      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> for you!` : ''}</p>
+      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> for you!` : ''}</p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your card is waiting!</p>
         <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
       </div>
       ${btn(`Open my ${data.occasionLabel} card`, `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
-      ${data.giftAmount ? `<p style="color:#555;font-size:13px;margin-top:16px;">To claim your gift of <strong>${fmtUSD(data.giftAmount)}</strong>, open the card and click "Claim gift".</p>` : ''}
+      ${data.giftAmount ? `<p style="color:#555;font-size:13px;margin-top:16px;">To claim your gift of <strong>${fmtNGN(data.giftAmount)}</strong>, open the card and click "Claim gift".</p>` : ''}
     `)
   }),
 
@@ -359,7 +358,7 @@ const additionalTeamsTemplates = {
       <p style="color:#555;line-height:1.8;font-size:14px;">
         Your new colleagues in <strong>${data.department}</strong> wanted to make your first day extra special.
         <strong>${data.signerCount} people</strong> signed a welcome card just for you!
-        ${data.giftAmount ? `They also pooled together a welcome gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> to help you settle in!` : ''}
+        ${data.giftAmount ? `They also pooled together a welcome gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> to help you settle in!` : ''}
       </p>
       <div style="background:linear-gradient(135deg,#EEEDFE,#F0F0FF);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your welcome card is waiting!</p>
@@ -403,7 +402,7 @@ const additionalTeamsTemplates = {
       <p style="color:#555;line-height:1.8;font-size:14px;">
         As you move on to your next chapter, your colleagues at <strong>${data.companyName}</strong> wanted you to know how much you meant to the team.
         <strong>${data.signerCount} people</strong> signed your farewell card and left you heartfelt messages!
-        ${data.giftAmount ? `They also pooled together a farewell gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> just for you!` : ''}
+        ${data.giftAmount ? `They also pooled together a farewell gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> just for you!` : ''}
       </p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your farewell card is waiting!</p>

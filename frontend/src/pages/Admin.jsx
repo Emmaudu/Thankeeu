@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { adminAPI, adminCompanyAPI, adminSupportAPI, demoAPI, blogAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
-import { formatUSD } from '../utils/currency';
+import { formatNGN } from '../utils/currency';
 
 const StatCard = ({ label, value, sub, color = 'bg-white' }) => (
   <div className={`${color} rounded-3xl p-5 border border-purple-100`}>
@@ -200,8 +200,8 @@ const Admin = () => {
           <StatCard label="Total users" value={(stats.total_users || 0).toLocaleString()} />
           <StatCard label="Total cards" value={(stats.total_cards || 0).toLocaleString()} sub={`${stats.active_cards || 0} active`} />
           <StatCard label="Cards sent" value={(stats.sent_cards || 0).toLocaleString()} />
-          <StatCard label="Gift volume" value={formatUSD(stats.total_gift_volume || 0)}
-            sub={`${formatUSD(stats.platform_revenue || 0)} platform cut`} color="bg-primary-50" />
+          <StatCard label="Gift volume" value={formatNGN(stats.total_gift_volume || 0)}
+            sub={`${formatNGN(stats.platform_revenue || 0)} platform cut`} color="bg-primary-50" />
         </div>
 
         {/* Tabs */}
@@ -256,7 +256,7 @@ const Admin = () => {
                     <div className="w-8 h-8 bg-pink-50 rounded-xl flex items-center justify-center text-base flex-shrink-0">💌</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-warm-800 truncate">{c.title || c.slug}</p>
-                      <p className="text-xs text-warm-400">{formatUSD(c.total_collected || 0)} collected</p>
+                      <p className="text-xs text-warm-400">{formatNGN(c.total_collected || 0)} collected</p>
                     </div>
                     <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
                       c.status === 'active' ? 'bg-green-100 text-green-700' :
@@ -343,7 +343,7 @@ const Admin = () => {
                           c.status === 'draft'  ? 'bg-purple-50 text-warm-500' : 'bg-red-100 text-red-600'
                         }`}>{c.status}</span>
                       </td>
-                      <td className="px-5 py-3 text-sm font-medium text-green-700">{formatUSD(c.total_collected || 0)}</td>
+                      <td className="px-5 py-3 text-sm font-medium text-green-700">{formatNGN(c.total_collected || 0)}</td>
                       <td className="px-5 py-3 text-xs text-warm-400 whitespace-nowrap">{format(new Date(c.created_at), 'MMM d, yyyy')}</td>
                       <td className="px-5 py-3">
                         <div className="flex gap-2">
@@ -394,7 +394,7 @@ const Admin = () => {
                     {co.subscription?.expires_at && (
                       <p className="text-xs text-warm-400 mt-0.5">
                         Subscription expires: {format(new Date(co.subscription.expires_at), 'MMM d, yyyy')}
-                        {co.subscription?.amount ? ` · ${formatUSD(co.subscription.amount / 100)}` : ''}
+                        {co.subscription?.amount ? ` · ${formatNGN(co.subscription.amount / 100)}` : ''}
                       </p>
                     )}
                   </div>

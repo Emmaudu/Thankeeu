@@ -30,12 +30,6 @@ const SettingsPage = () => {
     theme: company?.theme || 'light',
   });
 
-  const [bank, setBank] = useState({
-    bank_name: company?.bank_name || '',
-    account_number: company?.account_number || '',
-    account_name: company?.account_name || '',
-  });
-
   const [passwords, setPasswords] = useState({
     current_password: '',
     new_password: '',
@@ -45,7 +39,7 @@ const SettingsPage = () => {
   const saveProfile = async () => {
     setSaving(true);
     try {
-      const res = await companyAPI.updateProfile({ ...profile, ...bank });
+      const res = await companyAPI.updateProfile(profile);
       updateCompany(res.data);
       toast.success('Profile updated!');
     } catch (err) {
@@ -74,7 +68,6 @@ const SettingsPage = () => {
   const TABS = [
     { id: 'profile',  label: '🏢 Profile', },
     { id: 'branches', label: '📍 Branches', },
-    { id: 'bank',     label: '🏦 Bank details', },
     { id: 'password', label: '🔒 Password', },
     { id: 'theme',    label: '🎨 Theme', },
   ];
@@ -164,35 +157,6 @@ const SettingsPage = () => {
             <button onClick={saveProfile} disabled={saving} className="btn-primary w-full py-3">
               {saving ? 'Saving...' : 'Save profile'}
             </button>
-          </div>
-        )}
-
-        {/* Bank details tab */}
-        {tab === 'bank' && (
-          <div className="bg-white rounded-3xl border border-purple-100 p-6">
-            <div className="bg-blue-50 rounded-xl p-4 mb-6">
-              <p className="text-sm text-blue-700 font-medium mb-1">ℹ️ Why add bank details?</p>
-              <p className="text-xs text-blue-600 leading-relaxed">
-                When employees redeem gift pots via bank transfer, payouts will be sent to this account. This is optional — employees can also redeem via vouchers.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-warm-700 mb-1.5">Bank name</label>
-                <input className="input" placeholder="e.g. GTBank, Access Bank, Zenith" value={bank.bank_name} onChange={e => setBank(p => ({ ...p, bank_name: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-warm-700 mb-1.5">Account number</label>
-                <input className="input" placeholder="10-digit account number" maxLength={10} value={bank.account_number} onChange={e => setBank(p => ({ ...p, account_number: e.target.value }))} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-warm-700 mb-1.5">Account name</label>
-                <input className="input" placeholder="As it appears on your bank account" value={bank.account_name} onChange={e => setBank(p => ({ ...p, account_name: e.target.value }))} />
-              </div>
-              <button onClick={saveProfile} disabled={saving} className="btn-primary w-full py-3">
-                {saving ? 'Saving...' : 'Save bank details'}
-              </button>
-            </div>
           </div>
         )}
 

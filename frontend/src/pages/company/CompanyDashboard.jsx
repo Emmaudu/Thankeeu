@@ -1,4 +1,4 @@
-import { formatUSD } from '../../utils/currency';
+import { formatNGN } from '../../utils/currency';
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -182,7 +182,7 @@ const CompanyDashboard = () => {
                     </p>
                     <p className="text-xs text-warm-400">
                       {a.celebrant_notified_at ? `Card delivered · ${a.total_signed} signed` : `Dept notified · collecting signatures`}
-                      {a.total_gift_collected > 0 ? ` · ${formatUSD(a.total_gift_collected)} gift` : ''}
+                      {a.total_gift_collected > 0 ? ` · ${formatNGN(a.total_gift_collected)} gift` : ''}
                     </p>
                   </div>
                   <div className="text-xs text-warm-400 flex-shrink-0">

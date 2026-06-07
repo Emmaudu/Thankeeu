@@ -5,7 +5,7 @@ const { memberAuth } = require('../middleware/memberAuth');
 const {
   createCard, getUserCards, getCard, updateCard,
   activateCard, sendCard, deleteCard, getPublicCard,
-  getMemberCards
+  getRecipientCard, claimGift, getMemberCards
 } = require('../controllers/cardController');
 
 // Flexible auth — accepts both individual user token AND member token
@@ -42,6 +42,8 @@ const flexUserAuth = async (req, res, next) => {
 
 // Public
 router.get('/public/:slug', getPublicCard);
+router.get('/recipient/:slug', getRecipientCard);
+router.post('/recipient/:slug/claim', claimGift);
 
 // Member card history (member token only)
 router.get('/member-history', memberAuth, getMemberCards);

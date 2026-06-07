@@ -91,7 +91,7 @@ function getNavItems(navState) {
   const common = [{ path: '/', label: 'Home' }, { path: '/pricing', label: 'Pricing' }];
   if (navState === 'company') return [...common, { path: '/company/dashboard', label: 'Dashboard' }, { path: '/company/teams', label: 'Occasions' }];
   if (navState === 'member')  return [...common, { path: '/member/dashboard', label: 'Dashboard' }];
-  if (navState === 'user')    return [...common, { path: '/dashboard', label: 'My Cards' }, { path: '/create', label: 'Create Card' }];
+  if (navState === 'user')    return [...common, { path: '/dashboard', label: 'Dashboard' }, { path: '/create', label: 'Create Card' }];
   return [...common, { path: '/login', label: 'Sign in' }, { path: '/signup', label: 'Get started' }];
 }
 

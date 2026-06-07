@@ -4,7 +4,7 @@ const supabase = require('../utils/supabase');
 const PAYSTACK_BASE = 'https://api.paystack.co';
 const headers = () => ({ Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' });
 
-// USD prices converted to NGN kobo: $50/mo = 50*1600*100=8,000,000; $500/yr = 500*1600*100=80,000,000
+// Subscription prices in Paystack kobo.
 const PLANS = {
   monthly: { amount: 20000000, label: '₦200,000/month', naira: 200000 },
   yearly:  { amount: 240000000, label: '₦2,400,000/year', naira: 2400000 }

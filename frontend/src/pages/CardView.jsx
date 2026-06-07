@@ -89,7 +89,7 @@ const CardView = () => {
   const fetchCard = async () => {
     try {
       const res = token
-        ? await cardsAPI.getOne(slug, token)
+        ? await cardsAPI.getRecipient(slug, token)
         : await cardsAPI.getPublic(slug);
       setCard(res.data);
     } catch { toast.error('Card not found or not available'); }
@@ -175,7 +175,7 @@ const CardView = () => {
                 <p className="font-display text-2xl sm:text-3xl font-bold text-green-700">{formatNGN(totalCollected)}</p>
               </div>
             </div>
-            {token && (
+            {token && !card.gift_claim && (
               <div className="mt-4 pt-4 border-t border-green-200">
                 <p className="text-sm text-green-700 font-semibold mb-3">Claim your gift 🎊</p>
                 <div className="flex flex-col sm:flex-row gap-2">
@@ -188,6 +188,13 @@ const CardView = () => {
                     🛒 Redeem as voucher
                   </Link>
                 </div>
+              </div>
+            )}
+            {token && card.gift_claim && (
+              <div className="mt-4 pt-4 border-t border-green-200">
+                <p className="text-sm font-semibold text-green-700">
+                  Gift claim submitted · {card.gift_claim.status}
+                </p>
               </div>
             )}
           </div>

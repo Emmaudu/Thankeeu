@@ -1,4 +1,4 @@
-import { formatUSD } from '../../utils/currency';
+import { formatNGN } from '../../utils/currency';
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
@@ -130,7 +130,7 @@ const MemberDashboard = () => {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-warm-900 truncate">{card.title || `${card.recipient_name}'s card`}</p>
                     <p className="text-xs text-warm-400">
-                      {(card.total_collected || 0) > 0 ? `${formatUSD(card.total_collected)} collected · ` : ''}
+                      {(card.total_collected || 0) > 0 ? `${formatNGN(card.total_collected)} collected · ` : ''}
                       {card.status}
                     </p>
                   </div>
@@ -159,7 +159,7 @@ const MemberDashboard = () => {
                   <p className="text-sm font-medium text-warm-900 truncate">{card.title || `${card.recipient_name}'s card`}</p>
                   <p className="text-xs text-warm-400">
                     For {card.recipient_name} · {card.occasion?.replace('_', ' ')}
-                    {(card.total_collected || 0) > 0 ? ` · ${formatUSD(card.total_collected)} collected` : ''}
+                    {(card.total_collected || 0) > 0 ? ` · ${formatNGN(card.total_collected)} collected` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">

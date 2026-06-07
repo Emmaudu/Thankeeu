@@ -249,7 +249,7 @@ export const SCHEMAS = {
       '@type':       'Offer',
       price:         '0',
       priceCurrency: 'NGN',
-      description:   'Free to create. $5 to send a card.',
+      description:   'Create and send a group card for ₦5,000.',
     },
     aggregateRating: {
       '@type':       'AggregateRating',

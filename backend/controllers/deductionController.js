@@ -52,7 +52,7 @@ const requestDeduction = async (req, res) => {
     const available = wallet.net_after_fee - wallet.total_deducted - pendingTotal;
 
     if (amount > available)
-      return res.status(400).json({ error: `Amount exceeds available balance ($${Math.round(available/1600).toLocaleString()} available)` });
+      return res.status(400).json({ error: `Amount exceeds available balance (₦${available.toLocaleString('en-NG')} available)` });
 
     const { data: request, error } = await supabase.from('deduction_requests').insert({
       card_id, wallet_id: wallet.id,
@@ -116,7 +116,7 @@ const approveDeduction = async (req, res) => {
       }});
     }
 
-    res.json({ message: `Deduction of $${Math.round(dr.amount/1600).toLocaleString()} approved` });
+    res.json({ message: `Deduction of ₦${dr.amount.toLocaleString('en-NG')} approved` });
   } catch (err) {
     res.status(500).json({ error: 'Failed to approve deduction' });
   }

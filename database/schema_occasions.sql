@@ -109,6 +109,28 @@ CREATE TABLE contribution_wallets (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- RECIPIENT GIFT CLAIMS: submitted directly by the employee from their delivery link
+CREATE TABLE gift_claims (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  card_id UUID NOT NULL UNIQUE REFERENCES cards(id) ON DELETE CASCADE,
+  company_id UUID REFERENCES companies(id) ON DELETE SET NULL,
+  recipient_name TEXT NOT NULL,
+  recipient_email TEXT,
+  claim_type TEXT NOT NULL CHECK (claim_type IN ('transfer', 'shopping', 'spa', 'flowers', 'food')),
+  amount INTEGER NOT NULL CHECK (amount > 0),
+  bank_name TEXT,
+  account_number TEXT,
+  account_name TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'paid', 'rejected')),
+  processed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  CHECK (
+    claim_type <> 'transfer'
+    OR (bank_name IS NOT NULL AND account_number IS NOT NULL AND account_name IS NOT NULL)
+  )
+);
+
 -- DEDUCTION REQUESTS (team leader asks to take some money for physical celebration)
 CREATE TABLE deduction_requests (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -134,6 +156,8 @@ CREATE INDEX idx_company_members_company ON company_members(company_id);
 CREATE INDEX idx_company_members_dept ON company_members(company_id, department);
 CREATE INDEX idx_company_members_email ON company_members(email);
 CREATE INDEX idx_contribution_wallets_card ON contribution_wallets(card_id);
+CREATE INDEX idx_gift_claims_status ON gift_claims(status);
+CREATE INDEX idx_gift_claims_company ON gift_claims(company_id);
 CREATE INDEX idx_deduction_requests_card ON deduction_requests(card_id);
 CREATE INDEX idx_deduction_requests_status ON deduction_requests(status);
 CREATE INDEX idx_notification_approvals_card ON notification_approvals(card_id);
@@ -147,6 +171,9 @@ CREATE TRIGGER company_members_updated_at BEFORE UPDATE ON company_members
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 CREATE TRIGGER wallets_updated_at BEFORE UPDATE ON contribution_wallets
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER gift_claims_updated_at BEFORE UPDATE ON gift_claims
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- FUNCTION: recalculate wallet totals whenever contributions change

@@ -18,10 +18,6 @@ CREATE TABLE companies (
   is_verified BOOLEAN DEFAULT FALSE,
   reset_token TEXT,
   reset_token_expires TIMESTAMPTZ,
-  -- Bank details (optional)
-  bank_name TEXT,
-  account_number TEXT,
-  account_name TEXT,
   -- Theme preference
   theme TEXT DEFAULT 'light' CHECK (theme IN ('light', 'dark')),
   created_at TIMESTAMPTZ DEFAULT NOW(),

@@ -79,6 +79,8 @@ export const cardsAPI = {
   getAll:   ()             => api.get('/cards'),
   getOne:   (slug, token)  => api.get(`/cards/${slug}${token ? `?token=${token}` : ''}`),
   getPublic:(slug)         => publicAxios.get(`/cards/public/${slug}`),
+  getRecipient: (slug, token) => publicAxios.get(`/cards/recipient/${slug}`, { params: { token } }),
+  claimGift: (slug, data)  => publicAxios.post(`/cards/recipient/${slug}/claim`, data),
   update:   (slug, data)   => api.put(`/cards/${slug}`, data),
   activate: (slug, data)   => api.post(`/cards/${slug}/activate`, data),
   send:     (slug)         => api.post(`/cards/${slug}/send`),

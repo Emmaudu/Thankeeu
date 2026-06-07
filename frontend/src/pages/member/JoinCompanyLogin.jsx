@@ -71,7 +71,7 @@ const JoinCompanyLogin = () => {
           </div>
         </div>
       </div>
-    </div>
+    </div></div>
   );
 };
 

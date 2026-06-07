@@ -55,7 +55,7 @@ const CompanyForgotPassword = () => {
           )}
         </div>
       </div>
-    </div>
+    </div></div>
   );
 };
 

@@ -608,7 +608,7 @@ const Admin = () => {
                     {post.status === 'published' ? 'Unpublish' : 'Publish'}
                   </button>
                   <button onClick={async () => {
-                    if (!confirm(\`Delete "${post.title}"? This cannot be undone.\`)) return;
+                    if (!confirm(`Delete "${post.title}"? This cannot be undone.`)) return;
                     try {
                       await blogAPI.admin.deletePost(post.id);
                       setBlogPosts(prev => prev.filter(p => p.id!==post.id));

@@ -26,14 +26,14 @@ const STEPS = [
 const TESTIMONIALS = [
   { name: 'Adaeze O.', location: 'London',         text: "My team used Thankeeu for our colleague's farewell and she literally cried. Everyone contributed to a spa voucher. So easy!", av: 'AO' },
   { name: 'Emeka T.',  location: 'New York',          text: "Organised my girlfriend's birthday card from London. 22 people signed and we raised $500 for her. She was shocked!",     av: 'ET' },
-  { name: 'Kemi B.',   location: 'Toronto',  text: "No more Google forms and chasing people for money. Paystack makes it seamless.",       av: 'KB' },
+  { name: 'Kemi B.',   location: 'Toronto',  text: 'No more Google forms and chasing people for money. Paystack makes it seamless.',       av: 'KB' },
 ];
 
 const TEAM_FEATURES = [
-  { icon: '📥', title: 'Upload employee data',       desc: "Import your entire team via Excel or connect your HRIS — SeamlessHR, BambooHR, Zoho People, WorkPay." },
+  { icon: '📥', title: 'Upload employee data',       desc: 'Import your entire team via Excel or connect your HRIS — SeamlessHR, BambooHR, Zoho People, WorkPay.' },
   { icon: '🎉', title: '12 occasions automated',     desc: "Birthdays, farewells, promotions, new hires, Women's Day and more — all handled automatically." },
-  { icon: '💌', title: 'Cards delivered on the day', desc: 'The whole department gets notified to sign. The celebrant receives their card on the special day"' },
-  { icon: '🎁', title: 'Gift pot included',           desc: "Colleagues chip in via Paystack. HR never has to chase anyone for money again." },
+  { icon: '💌', title: 'Cards delivered on the day', desc: 'The whole department gets notified to sign. The celebrant receives their card on the special day.' },
+  { icon: '🎁', title: 'Gift pot included',           desc: 'Colleagues chip in via Paystack. HR never has to chase anyone for money again.' },
 ];
 
 const TEAM_SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '500+'];

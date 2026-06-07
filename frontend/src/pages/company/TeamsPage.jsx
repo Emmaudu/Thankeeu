@@ -2,7 +2,6 @@ import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { occasionsAPI, subscriptionAPI, hrisAPI } from '../../utils/api';
-import { Link } from 'react-router-dom';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 

@@ -1,7 +1,7 @@
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { memberAPI, memberCardsAPI } from '../../utils/api';
+import { memberAPI, memberCardsAPI, deductionsAPI } from '../../utils/api';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
@@ -57,9 +57,7 @@ const MemberOccasionsPage = () => {
       // If cross-dept, submit approval request automatically
       if (cardForm.notification_scope === 'company_wide') {
         try {
-          await import('../../utils/api').then(({ deductionsAPI }) =>
-            deductionsAPI.requestCrossDept({ card_id: res.data.id, reason: `Card created by ${member.first_name} ${member.last_name} for ${cardForm.recipient_name}` })
-          );
+          await deductionsAPI.requestCrossDept({ card_id: res.data.id, reason: `Card created by ${member.first_name} ${member.last_name} for ${cardForm.recipient_name}` });
           toast.success('Card created! Company-wide notification request sent to HR for approval.');
         } catch {
           toast.success('Card created! Sent to your department.');

@@ -26,7 +26,7 @@ const ResetPassword = () => {
         <p className="text-gray-500 mb-6 text-sm">This link is invalid or has already been used.</p>
         <Link to="/forgot-password" className="btn-primary">Request a new link</Link>
       </div>
-    </div>
+    </div></div>
   );
 
   const handleSubmit = async (e) => {

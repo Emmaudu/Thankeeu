@@ -54,7 +54,7 @@ export const JoinForgotPassword = () => {
           )}
         </div>
       </div>
-    </div>
+    </div></div>
   );
 };
 
@@ -74,7 +74,7 @@ export const JoinResetPassword = () => {
         <h2 className="font-display text-2xl font-semibold text-gray-900 mb-2">Invalid reset link</h2>
         <Link to="/member/forgot-password" className="btn-primary mt-4 inline-block">Request new link</Link>
       </div>
-    </div>
+    </div></div>
   );
 
   const handleSubmit = async (e) => {
@@ -133,6 +133,6 @@ export const JoinResetPassword = () => {
           )}
         </div>
       </div>
-    </div>
+    </div></div>
   );
 };

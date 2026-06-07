@@ -247,7 +247,7 @@ export const SCHEMAS = {
     ],
     offers: {
       '@type':       'Offer',
-      price:         '0',
+      price:         '5000',
       priceCurrency: 'NGN',
       description:   'Create and send a group card for ₦5,000.',
     },

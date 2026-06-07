@@ -1,6 +1,8 @@
 const supabase = require('../utils/supabase');
 const { upload } = require('../utils/cloudinary');
 
+const parseBoolean = value => value === true || value === 'true' || value === '1';
+
 const addMessage = async (req, res) => {
   try {
     const { card_slug } = req.params;
@@ -32,7 +34,7 @@ const addMessage = async (req, res) => {
         author_name,
         author_email,
         content,
-        is_private: card.allow_private_messages ? Boolean(is_private) : false,
+        is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
         media_url,
         media_type
       })

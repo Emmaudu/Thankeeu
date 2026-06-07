@@ -96,7 +96,7 @@ const createAxiosMock = (responses = {}) => ({
           status: true,
           data: {
             status: 'success',
-            amount: 150000,
+            amount: 500000,
             reference: 'mock-ref-123',
             metadata: { type: 'card_purchase', plan_type: 'single', user_id: 'mock-user-id' },
           },

@@ -95,6 +95,11 @@ thankeeu/
 3. Then paste and run `database/schema_teams.sql`
 4. Copy your **Project URL** and **Service Role Key** from Settings → API
 
+For an existing database, run these migrations before deploying the updated code:
+
+1. `database/migration_card_payment_verification.sql`
+2. `database/migration_recipient_gift_claims.sql`
+
 ### 2. Set up Paystack
 1. Create account at [paystack.com](https://paystack.com)
 2. Get your **Secret Key** and **Public Key** from Settings → API Keys

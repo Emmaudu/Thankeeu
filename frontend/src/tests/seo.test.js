@@ -274,13 +274,13 @@ describe('JSON-LD schema builders (SCHEMAS object)', () => {
   });
 
   it('Product has NGN price currency', () => {
-    const p = product('Classic Card', 'A group card.', 1500);
+    const p = product('Classic Card', 'A group card.', 5000);
     expect(p.offers.priceCurrency).toBe('NGN');
-    expect(p.offers.price).toBe('1500');
+    expect(p.offers.price).toBe('5000');
   });
 
   it('Product price is a string (JSON-LD spec)', () => {
-    const p = product('Card', 'desc', 1500);
+    const p = product('Card', 'desc', 5000);
     expect(typeof p.offers.price).toBe('string');
   });
 });

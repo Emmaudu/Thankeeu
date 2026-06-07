@@ -53,7 +53,7 @@ router.post('/', flexUserAuth, createCard);
 
 // All other routes — regular user auth
 router.get('/', auth, getUserCards);
-router.get('/:slug', auth, getCard);
+router.get('/:slug', flexUserAuth, getCard);
 router.put('/:slug', auth, updateCard);
 router.post('/:slug/activate', auth, activateCard);
 router.post('/:slug/send', auth, sendCard);

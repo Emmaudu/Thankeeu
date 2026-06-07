@@ -99,6 +99,7 @@ export const messagesAPI = {
 export const paymentsAPI = {
   initPurchase:     (plan_type, card_slug) => api.post('/payments/initialize/purchase', { plan_type, card_slug }),
   initContribution: (data)      => api.post('/payments/initialize/contribution', data),
+  verifyPurchase:   (reference) => api.get(`/payments/verify/purchase/${reference}`),
   verify:           (reference) => api.get(`/payments/verify/${reference}`),
 };
 
@@ -215,6 +216,7 @@ export const memberAPI = {
 // Member card creation (uses member token)
 export const memberCardsAPI = {
   create: (data) => memberAxios.post('/cards', data),
+  getOne: (slug) => memberAxios.get(`/cards/${slug}`),
 };
 
 // Member support tickets

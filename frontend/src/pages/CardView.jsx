@@ -1,7 +1,9 @@
 import { useSEO } from '../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
-import { cardsAPI, messagesAPI } from '../utils/api';
+import { cardsAPI, memberCardsAPI, messagesAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import { useMemberAuth } from '../context/MemberAuthContext';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
@@ -22,11 +24,11 @@ const occasionEmoji = {
   promotion:'🌟', christmas:'🎄', get_well:'🌷', new_year:'✨', other:'💌',
 };
 
-const MessageCard = ({ msg, onReact, recipientToken }) => {
+const MessageCard = ({ msg, onReact, canViewPrivate }) => {
   const [reacted, setReacted] = useState(false);
   return (
-    <div className={`rounded-2xl p-4 border-2 ${msg.is_private && recipientToken ? 'border-amber-300 bg-amber-50' : 'bg-white border-purple-100'}`}>
-      {msg.is_private && recipientToken && (
+    <div className={`rounded-2xl p-4 border-2 ${msg.is_private && canViewPrivate ? 'border-amber-300 bg-amber-50' : 'bg-white border-purple-100'}`}>
+      {msg.is_private && canViewPrivate && (
         <div className="flex items-center gap-2 mb-3 text-amber-700 bg-amber-100 rounded-xl px-3 py-1.5 text-xs font-bold">
           🔒 Private — only you see this
         </div>
@@ -68,6 +70,8 @@ const MessageCard = ({ msg, onReact, recipientToken }) => {
 
 const CardView = () => {
   const { slug } = useParams();
+  const { user } = useAuth();
+  const { member } = useMemberAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [card, setCard] = useState(null);
@@ -84,15 +88,30 @@ const CardView = () => {
     noIndex: false,
   });
 
-  useEffect(() => { fetchCard(); }, [slug]);
+  useEffect(() => {
+    fetchCard();
+    const refresh = () => fetchCard(true);
+    const interval = window.setInterval(refresh, 10000);
+    window.addEventListener('focus', refresh);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [slug, token, user?.id, member?.id]);
 
-  const fetchCard = async () => {
+  const fetchCard = async (silent = false) => {
     try {
       const res = token
         ? await cardsAPI.getRecipient(slug, token)
+        : user
+        ? await cardsAPI.getOne(slug)
+        : member
+        ? await memberCardsAPI.getOne(slug)
         : await cardsAPI.getPublic(slug);
       setCard(res.data);
-    } catch { toast.error('Card not found or not available'); }
+    } catch {
+      if (!silent) toast.error('Card not found or not available');
+    }
     finally { setLoading(false); }
   };
 
@@ -251,7 +270,7 @@ const CardView = () => {
                 {displayMessages.map(msg => (
                   <MessageCard key={msg.id} msg={msg}
                     onReact={(id) => messagesAPI.react(id,{emoji:'heart'})}
-                    recipientToken={token} />
+                    canViewPrivate={Boolean(token || card.isCreator)} />
                 ))}
               </div>
               {messages.length > 8 && !showAll && (

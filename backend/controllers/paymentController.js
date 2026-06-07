@@ -5,6 +5,7 @@ const supabase = require('../utils/supabase');
 const PAYSTACK_BASE = 'https://api.paystack.co';
 const PAYSTACK_TIMEOUT_MS = 10000;
 const PLAN_CREDITS = { single: 1, pack5: 5, business: 999 };
+const PLAN_AMOUNTS = { single: 500000, pack5: 2000000, business: 20000000 };
 const paystackHeaders = () => ({
   Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
   'Content-Type': 'application/json'
@@ -66,47 +67,79 @@ const verifyContribution = async ({ contributionId, reference }) => {
   return { contribution: updated, alreadyProcessed: false };
 };
 
-const activatePurchasedCard = async ({ cardSlug, userId }) => {
+const activatePurchasedCard = async ({ cardSlug, userId, reference }) => {
   const { data: card, error: cardError } = await supabase
     .from('cards')
-    .select('slug, creator_id, status')
+    .select('slug, creator_id, status, payment_reference, payment_verified')
     .eq('slug', cardSlug)
     .eq('creator_id', userId)
     .single();
 
   if (cardError || !card) throw cardError || new Error('Paid card could not be found');
-  if (card.status === 'active') return { card, alreadyProcessed: true };
+  if (card.payment_verified) {
+    if (card.payment_reference && card.payment_reference !== reference) {
+      throw new Error('Card was already paid with a different transaction');
+    }
+    return { card, alreadyProcessed: true };
+  }
 
   const { data: activated, error: activateError } = await supabase
     .from('cards')
-    .update({ status: 'active', updated_at: new Date() })
+    .update({
+      status: 'active',
+      payment_reference: reference,
+      payment_verified: true,
+      updated_at: new Date()
+    })
     .eq('slug', cardSlug)
     .eq('creator_id', userId)
-    .select('slug, creator_id, status')
+    .select('slug, creator_id, status, payment_reference, payment_verified')
     .single();
 
   if (activateError) throw activateError;
   return { card: activated, alreadyProcessed: false };
 };
 
+const fetchPaystackTransaction = async reference => {
+  const response = await axios.get(
+    `${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`,
+    { headers: paystackHeaders(), timeout: PAYSTACK_TIMEOUT_MS }
+  );
+  return response.data.data;
+};
+
+const validateCardPurchase = ({ txn, userId }) => {
+  const { type, user_id, plan_type, card_slug } = txn.metadata || {};
+  if (txn.status !== 'success') throw new Error('Payment not successful');
+  if (type !== 'card_purchase' || !user_id) throw new Error('Invalid card purchase');
+  if (userId && user_id !== userId) throw new Error('Payment does not belong to this account');
+  if (txn.currency !== 'NGN') throw new Error('Invalid payment currency');
+  if (!PLAN_AMOUNTS[plan_type] || txn.amount !== PLAN_AMOUNTS[plan_type]) {
+    throw new Error('Payment amount does not match the selected plan');
+  }
+  return { userId: user_id, planType: plan_type, cardSlug: card_slug };
+};
+
 // Initialize card purchase in Nigerian naira (Paystack receives kobo).
 const initializeCardPurchase = async (req, res) => {
   try {
     const { plan_type, card_slug } = req.body;
-    const amounts = { single: 500000, pack5: 2000000, business: 20000000 };
-    const amount = amounts[plan_type];
+    const amount = PLAN_AMOUNTS[plan_type];
     if (!amount) return res.status(400).json({ error: 'Invalid plan type' });
 
     if (card_slug) {
       const { data: card, error } = await supabase
         .from('cards')
-        .select('slug, creator_id, status')
+        .select('slug, creator_id, status, payment_verified')
         .eq('slug', card_slug)
         .single();
       if (error || !card || card.creator_id !== req.user.id) {
         return res.status(403).json({ error: 'Card is not available for this payment' });
       }
-      if (!['draft', 'active'].includes(card.status)) {
+      if (card.payment_verified) {
+        return res.json({ already_active: true, card_slug: card.slug });
+      }
+      if (card.status !== 'draft') {
         return res.status(400).json({ error: 'Card cannot be purchased in its current state' });
       }
     }
@@ -131,6 +164,45 @@ const initializeCardPurchase = async (req, res) => {
   } catch (err) {
     console.error(err.response?.data || err);
     res.status(500).json({ error: 'Failed to initialize payment' });
+  }
+};
+
+// Verify an authenticated card purchase immediately after Paystack succeeds.
+const verifyPurchase = async (req, res) => {
+  try {
+    const txn = await fetchPaystackTransaction(req.params.reference);
+    const purchase = validateCardPurchase({ txn, userId: req.user.id });
+
+    if (purchase.cardSlug) {
+      const result = await activatePurchasedCard({
+        cardSlug: purchase.cardSlug,
+        userId: purchase.userId,
+        reference: txn.reference
+      });
+      return res.json({
+        success: true,
+        type: 'card_purchase',
+        card_slug: purchase.cardSlug,
+        card_activated: true,
+        already_processed: result.alreadyProcessed
+      });
+    }
+
+    const result = await grantCardCredits({
+      userId: purchase.userId,
+      planType: purchase.planType,
+      reference: txn.reference
+    });
+    res.json({
+      success: true,
+      type: 'card_purchase',
+      credits_added: result.alreadyProcessed ? 0 : result.credits,
+      already_processed: result.alreadyProcessed
+    });
+  } catch (err) {
+    console.error(err.response?.data || err);
+    const message = err.response ? 'Failed to verify payment' : err.message;
+    res.status(400).json({ error: message || 'Failed to verify payment' });
   }
 };
 
@@ -194,12 +266,7 @@ const verifyPayment = async (req, res) => {
   try {
     const { reference } = req.params;
 
-    const response = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: paystackHeaders(),
-      timeout: PAYSTACK_TIMEOUT_MS
-    });
-
-    const txn = response.data.data;
+    const txn = await fetchPaystackTransaction(reference);
     if (txn.status !== 'success') return res.status(400).json({ error: 'Payment not successful' });
 
     const { type, contribution_id, user_id, plan_type, card_slug } = txn.metadata || {};
@@ -214,26 +281,8 @@ const verifyPayment = async (req, res) => {
       });
     }
 
-    if (type === 'card_purchase' && user_id) {
-      if (card_slug) {
-        const result = await activatePurchasedCard({ cardSlug: card_slug, userId: user_id });
-
-        return res.json({
-          success: true,
-          type: 'card_purchase',
-          card_slug,
-          card_activated: true,
-          already_processed: result.alreadyProcessed
-        });
-      }
-
-      const result = await grantCardCredits({ userId: user_id, planType: plan_type, reference });
-      return res.json({
-        success: true,
-        type: 'card_purchase',
-        credits_added: result.alreadyProcessed ? 0 : result.credits,
-        already_processed: result.alreadyProcessed
-      });
+    if (type === 'card_purchase') {
+      return res.status(401).json({ error: 'Sign in to verify this card purchase' });
     }
 
     res.json({ success: true });
@@ -266,7 +315,12 @@ const webhook = async (req, res) => {
         await verifyContribution({ contributionId: contribution_id, reference });
       }
       if (type === 'card_purchase' && card_slug && user_id) {
-        await activatePurchasedCard({ cardSlug: card_slug, userId: user_id });
+        const purchase = validateCardPurchase({ txn: event.data });
+        await activatePurchasedCard({
+          cardSlug: purchase.cardSlug,
+          userId: purchase.userId,
+          reference
+        });
       }
     }
 
@@ -277,4 +331,6 @@ const webhook = async (req, res) => {
   }
 };
 
-module.exports = { initializeCardPurchase, initializeContribution, verifyPayment, webhook };
+module.exports = {
+  initializeCardPurchase, initializeContribution, verifyPurchase, verifyPayment, webhook
+};

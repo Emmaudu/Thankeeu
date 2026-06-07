@@ -62,8 +62,8 @@ function validateCardCreateForm(form) {
 const PRICING = {
   individual: [
     { id: 'free',   name: 'Free',       price: 0,      popular: false, credits: 0 },
-    { id: 'single', name: 'Classic',    price: 1500,   popular: true,  credits: 1 },
-    { id: 'pack5',  name: 'Pack of 5',  price: 5000,   popular: false, credits: 5 },
+    { id: 'single', name: 'Classic',    price: 5000,   popular: true,  credits: 1 },
+    { id: 'pack5',  name: 'Pack of 5',  price: 20000,  popular: false, credits: 5 },
   ],
   company: [
     { id: 'monthly', name: 'Monthly', price: 20000,  period: '/month', popular: false },
@@ -581,10 +581,10 @@ describe('SEO: JSON-LD structured data', () => {
   it('Product schema has priceCurrency NGN', () => {
     const product = {
       '@type': 'Product',
-      offers: { '@type': 'Offer', price: '1500', priceCurrency: 'NGN' },
+      offers: { '@type': 'Offer', price: '5000', priceCurrency: 'NGN' },
     };
     expect(product.offers.priceCurrency).toBe('NGN');
-    expect(parseInt(product.offers.price)).toBe(1500);
+    expect(parseInt(product.offers.price)).toBe(5000);
   });
 
   it('BreadcrumbList schema has correct ListItem structure', () => {

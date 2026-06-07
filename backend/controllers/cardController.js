@@ -21,6 +21,8 @@ const createCard = async (req, res) => {
       return res.status(400).json({ error: 'Recipient name and occasion are required' });
     }
 
+    const effectiveCompanyId = req.member?.company_id || company_id;
+    const effectiveMemberId = req.member?.id || created_by_member_id;
     const slug = generateSlug(recipient_name, occasion);
 
     const { data: card, error } = await supabase
@@ -39,8 +41,8 @@ const createCard = async (req, res) => {
         allow_private_messages, send_reminders, hide_amounts,
         status: reqStatus || 'draft',
         // Member card fields (these columns must exist in DB)
-        ...(company_id && { company_id }),
-        ...(created_by_member_id && { created_by_member_id }),
+        ...(effectiveCompanyId && { company_id: effectiveCompanyId }),
+        ...(effectiveMemberId && { created_by_member_id: effectiveMemberId }),
         ...(notification_scope && { notification_scope }),
       })
       .select()
@@ -49,20 +51,20 @@ const createCard = async (req, res) => {
     if (error) throw error;
 
     // --- Notify department/company members when a member creates a card ---
-    if (created_by_member_id && company_id && notification_scope) {
+    if (effectiveMemberId && effectiveCompanyId && notification_scope) {
       try {
         // Get the creator member info
         const { data: creator } = await supabase
           .from('company_members')
           .select('first_name, last_name, department, email')
-          .eq('id', created_by_member_id)
+          .eq('id', effectiveMemberId)
           .single();
 
         if (creator) {
           let memberQuery = supabase
             .from('company_members')
             .select('email, first_name, last_name, department')
-            .eq('company_id', company_id)
+            .eq('company_id', effectiveCompanyId)
             .eq('status', 'approved');
 
           if (notification_scope === 'department') {
@@ -116,7 +118,11 @@ const getUserCards = async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json(cards);
+    res.json((cards || []).map(card => ({
+      ...card,
+      signed_count: card.messages?.[0]?.count || 0,
+      messages: undefined
+    })));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch cards' });
   }
@@ -135,7 +141,8 @@ const getCard = async (req, res) => {
 
     if (error || !card) return res.status(404).json({ error: 'Card not found' });
 
-    const isCreator = req.user?.id === card.creator_id;
+    const isCreator = req.user?.id === card.creator_id
+      || req.member?.id === card.created_by_member_id;
     const isRecipient = token && token === card.access_token;
     const isContributor = true;
 
@@ -436,12 +443,16 @@ const getMemberCards = async (req, res) => {
     const memberId = req.member.id;
     const { data: cards, error } = await supabase
       .from('cards')
-      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, is_gift_enabled')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, is_gift_enabled, messages(count)')
       .eq('created_by_member_id', memberId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json(cards || []);
+    res.json((cards || []).map(card => ({
+      ...card,
+      signed_count: card.messages?.[0]?.count || 0,
+      messages: undefined
+    })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch card history' });

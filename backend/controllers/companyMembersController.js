@@ -292,7 +292,7 @@ const getMemberDashboard = async (req, res) => {
     // Cards created by THIS member (history)
     const { data: myCards } = await supabase
       .from('cards')
-      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, messages(count)')
       .eq('created_by_member_id', member.id)
       .order('created_at', { ascending: false })
       .limit(20);
@@ -322,7 +322,11 @@ const getMemberDashboard = async (req, res) => {
       dept_members: deptMembers || [],
       upcoming_occasions: withDays.slice(0, 10),
       recent_cards: activeDeptCards,
-      my_created_cards: myCards || [],
+      my_created_cards: (myCards || []).map(card => ({
+        ...card,
+        signed_count: card.messages?.[0]?.count || 0,
+        messages: undefined
+      })),
       pending_approvals: pendingApprovals,
       stats: {
         dept_size: (deptMembers || []).length,

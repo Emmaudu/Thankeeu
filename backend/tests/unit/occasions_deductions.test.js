@@ -294,12 +294,12 @@ describe('Deduction Controller', () => {
   });
 
   describe('Subscription plans', () => {
-    it('monthly plan is ₦20,000', () => {
-      assert.equal(2000000 / 100, 20000); // kobo to naira
+    it('monthly plan is ₦200,000', () => {
+      assert.equal(20000000 / 100, 200000); // kobo to naira
     });
 
-    it('yearly plan is ₦200,000', () => {
-      assert.equal(20000000 / 100, 200000);
+    it('yearly plan is ₦2,400,000', () => {
+      assert.equal(240000000 / 100, 2400000);
     });
 
     it('yearly saves ₦40,000 vs 12 monthly', () => {

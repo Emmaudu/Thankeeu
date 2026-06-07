@@ -33,8 +33,8 @@ function handleUnauthorized(tokenKey, dataKey, redirectPath) {
 
 // Plan pricing helpers
 const PLANS = {
-  single:  { price: 1500,  label: '₦1,500',   credits: 1 },
-  pack5:   { price: 5000,  label: '₦5,000',   credits: 5 },
+  single:  { price: 5000,  label: '₦5,000',   credits: 1 },
+  pack5:   { price: 20000, label: '₦20,000',  credits: 5 },
   monthly: { price: 20000, label: '₦20,000/month' },
   yearly:  { price: 200000,label: '₦200,000/year' },
 };
@@ -125,8 +125,8 @@ describe('Token management (api.js)', () => {
 });
 
 describe('Price & fee calculations (api.js / Pricing.jsx)', () => {
-  it('single card is ₦1,500', () => {
-    expect(PLANS.single.price).toBe(1500);
+  it('single card is ₦5,000', () => {
+    expect(PLANS.single.price).toBe(5000);
   });
 
   it('pack5 is ₦5,000 (₦1,000/card)', () => {

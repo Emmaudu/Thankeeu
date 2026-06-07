@@ -59,12 +59,20 @@ const Dashboard = () => {
           let verification;
           for (let attempt = 0; attempt < 4; attempt += 1) {
             try {
-              verification = await paymentsAPI.verify(ref);
+              verification = await paymentsAPI.verifyPurchase(ref);
               break;
             } catch (verifyError) {
               if (attempt === 3) throw verifyError;
               await new Promise(resolve => setTimeout(resolve, 750 * (attempt + 1)));
             }
+          }
+
+          if (!verification?.data?.card_slug && verification?.data?.type === 'card_purchase') {
+            localStorage.removeItem('thankeeu_pending_card');
+            toast.success('Payment confirmed! Your card credits are ready.');
+            navigate('/dashboard', { replace: true });
+            await fetchDashboard();
+            return;
           }
 
           const pendingRaw = localStorage.getItem('thankeeu_pending_card');

@@ -1,5 +1,6 @@
 import { useSEO } from '../hooks/useSEO';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { cardsAPI, paymentsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
@@ -62,8 +63,10 @@ const CreateCard = () => {
   useSEO({ title: 'Create a Card', description: 'Create a new group card.', noIndex: true });
 
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [paymentStage, setPaymentStage] = useState('opening');
   const [inviteEmails, setInviteEmails] = useState('');
   const [form, setForm] = useState({
     occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0',
@@ -74,7 +77,10 @@ const CreateCard = () => {
   });
 
   useEffect(() => {
-    const resetCheckoutState = () => setLoading(false);
+    const resetCheckoutState = () => {
+      setLoading(false);
+      setPaymentStage('opening');
+    };
     window.addEventListener('pageshow', resetCheckoutState);
     return () => window.removeEventListener('pageshow', resetCheckoutState);
   }, []);
@@ -94,6 +100,7 @@ const CreateCard = () => {
   const handleSubmit = async () => {
     if (!form.recipient_name) return toast.error('Add recipient name');
     setLoading(true);
+    setPaymentStage('creating');
     try {
       const occasionLabel = OCCASIONS.find(o => o.id === form.occasion)?.label || 'Celebration';
       const cardData = {
@@ -118,13 +125,71 @@ const CreateCard = () => {
         : (await cardsAPI.create(cardData)).data.slug;
 
       localStorage.setItem('thankeeu_pending_card', JSON.stringify({ ...pendingCard, slug }));
+      setPaymentStage('opening');
       const payRes = await paymentsAPI.initPurchase('single', slug);
-      const checkoutUrl = payRes.data.authorization_url
-        || `https://checkout.paystack.com/${payRes.data.access_code}`;
-      window.location.assign(checkoutUrl);
+      if (payRes.data.already_active) {
+        localStorage.removeItem('thankeeu_pending_card');
+        toast.success('Your payment was already confirmed.');
+        navigate(`/card/${payRes.data.card_slug || slug}`, { replace: true });
+        return;
+      }
+      const { access_code: accessCode, reference, authorization_url: checkoutUrl } = payRes.data;
+
+      const finishPurchase = async (paymentReference) => {
+        setPaymentStage('verifying');
+        let verifyRes;
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+          try {
+            verifyRes = await paymentsAPI.verifyPurchase(paymentReference);
+            break;
+          } catch (verifyError) {
+            if (attempt === 3) throw verifyError;
+            await new Promise(resolve => setTimeout(resolve, 600 * (attempt + 1)));
+          }
+        }
+        const activatedSlug = verifyRes.data.card_slug || slug;
+
+        if (pendingCard.inviteEmails.length) {
+          cardsAPI.activate(activatedSlug, { inviteEmails: pendingCard.inviteEmails }).catch(err => {
+            console.error('Could not send card invitations:', err);
+          });
+        }
+
+        localStorage.removeItem('thankeeu_pending_card');
+        toast.success('Payment confirmed! Your card is ready.');
+        navigate(`/card/${activatedSlug}`, { replace: true });
+      };
+
+      if (window.PaystackPop && accessCode) {
+        const popup = new window.PaystackPop();
+        popup.resumeTransaction(accessCode, {
+          onSuccess: async transaction => {
+            try {
+              await finishPurchase(transaction.reference || reference);
+            } catch (verifyError) {
+              toast.error(verifyError.response?.data?.error || 'Payment was made, but verification failed. Please retry.');
+              setLoading(false);
+              setPaymentStage('opening');
+            }
+          },
+          onCancel: () => {
+            setLoading(false);
+            setPaymentStage('opening');
+          },
+          onError: error => {
+            toast.error(error?.message || 'Could not load Paystack. Please try again.');
+            setLoading(false);
+            setPaymentStage('opening');
+          }
+        });
+        return;
+      }
+
+      window.location.assign(checkoutUrl || `https://checkout.paystack.com/${accessCode}`);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not open payment. Please try again.');
       setLoading(false);
+      setPaymentStage('opening');
     }
   };
 
@@ -334,7 +399,7 @@ const CreateCard = () => {
               <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
               <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1">
                 {loading
-                  ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Opening secure payment...</span>
+                  ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{paymentStage === 'creating' ? 'Preparing your card...' : paymentStage === 'verifying' ? 'Confirming payment...' : 'Opening secure payment...'}</span>
                   : '🔒 Pay ₦5,000 & Create Card'}
               </button>
             </div>

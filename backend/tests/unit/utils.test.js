@@ -212,22 +212,22 @@ describe('Wallet fee calculations', () => {
 
 describe('Subscription plan amounts', () => {
   const PLANS = {
-    monthly: { amount: 2000000, naira: 20000 },  // 2M kobo = ₦20k
-    yearly:  { amount: 20000000, naira: 200000 }, // 20M kobo = ₦200k
+    monthly: { amount: 20000000, naira: 200000 },
+    yearly:  { amount: 240000000, naira: 2400000 },
   };
 
-  it('monthly plan is ₦20,000 (2,000,000 kobo)', () => {
+  it('monthly plan is ₦200,000 (20,000,000 kobo)', () => {
     assert.equal(PLANS.monthly.amount / 100, PLANS.monthly.naira);
   });
 
-  it('yearly plan is ₦200,000 (20,000,000 kobo)', () => {
+  it('yearly plan is ₦2,400,000 (240,000,000 kobo)', () => {
     assert.equal(PLANS.yearly.amount / 100, PLANS.yearly.naira);
   });
 
-  it('yearly saves ₦40,000 vs 12 × monthly', () => {
-    const monthlyTotal = PLANS.monthly.naira * 12; // 240,000
+  it('yearly equals 12 monthly payments', () => {
+    const monthlyTotal = PLANS.monthly.naira * 12;
     const savings = monthlyTotal - PLANS.yearly.naira;
-    assert.equal(savings, 40000);
+    assert.equal(savings, 0);
   });
 });
 

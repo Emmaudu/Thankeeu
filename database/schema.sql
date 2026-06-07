@@ -51,6 +51,8 @@ CREATE TABLE cards (
   allow_private_messages BOOLEAN DEFAULT TRUE,
   send_reminders BOOLEAN DEFAULT TRUE,
   hide_amounts BOOLEAN DEFAULT FALSE,
+  payment_reference TEXT UNIQUE,
+  payment_verified BOOLEAN DEFAULT FALSE,
   access_token TEXT UNIQUE DEFAULT uuid_generate_v4()::TEXT,
   recipient_notified BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW(),

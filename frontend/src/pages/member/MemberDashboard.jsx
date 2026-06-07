@@ -157,6 +157,7 @@ const MemberDashboard = () => {
                 <div className="w-9 h-9 bg-primary-50 rounded-xl flex items-center justify-center text-lg flex-shrink-0">🎉</div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-warm-900 truncate">{card.title || `${card.recipient_name}'s card`}</p>
+                  <p className="text-xs text-primary-500 mt-0.5">{card.signed_count || 0} signed</p>
                   <p className="text-xs text-warm-400">
                     For {card.recipient_name} · {card.occasion?.replace('_', ' ')}
                     {(card.total_collected || 0) > 0 ? ` · ${formatNGN(card.total_collected)} collected` : ''}
@@ -168,7 +169,7 @@ const MemberDashboard = () => {
                     card.status === 'sent' ? 'bg-blue-100 text-blue-700' :
                     'bg-purple-50 text-warm-500'
                   }`}>{card.status}</span>
-                  <a href={`/sign/${card.slug}`} target="_blank" rel="noreferrer"
+                  <a href={`/card/${card.slug}`} target="_blank" rel="noreferrer"
                     className="text-xs text-primary-400 hover:text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-50 transition-colors">
                     View →
                   </a>

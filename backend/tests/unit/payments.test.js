@@ -7,10 +7,10 @@ const { FIXTURES } = require('../mocks');
 
 // ─── Pure payment logic ───────────────────────────────────────────────────────
 const PLAN_AMOUNTS = {
-  single: { kobo: 150000,  naira: 1500  },
-  pack5:  { kobo: 500000,  naira: 5000  },
-  monthly:{ kobo: 2000000, naira: 20000 },
-  yearly: { kobo: 20000000,naira: 200000},
+  single: { kobo: 500000,    naira: 5000    },
+  pack5:  { kobo: 2000000,   naira: 20000   },
+  monthly:{ kobo: 20000000,  naira: 200000  },
+  yearly: { kobo: 240000000, naira: 2400000 },
 };
 
 const PLAN_CREDITS = { single: 1, pack5: 5, business: 999 };
@@ -33,8 +33,9 @@ function verifyWebhookSignature(body, signature, secret) {
 }
 
 function processChargeSuccess(metadata) {
-  const { type, plan_type, contribution_id, user_id, card_id, amount } = metadata;
+  const { type, plan_type, contribution_id, user_id, card_id, card_slug } = metadata;
   if (type === 'card_purchase') {
+    if (card_slug) return { action: 'activate_card', userId: user_id, cardSlug: card_slug };
     const credits = PLAN_CREDITS[plan_type] || 1;
     return { action: 'add_credits', userId: user_id, credits };
   }
@@ -57,34 +58,34 @@ function calculateContributionFeeGross(amountNaira) {
 describe('Payment Controller', () => {
 
   describe('Plan amounts (Paystack uses kobo)', () => {
-    it('single card = ₦1,500 = 150,000 kobo', () => {
-      assert.equal(PLAN_AMOUNTS.single.kobo,  150000);
-      assert.equal(PLAN_AMOUNTS.single.naira, 1500);
+    it('single card = ₦5,000 = 500,000 kobo', () => {
+      assert.equal(PLAN_AMOUNTS.single.kobo,  500000);
+      assert.equal(PLAN_AMOUNTS.single.naira, 5000);
       assert.equal(PLAN_AMOUNTS.single.kobo / 100, PLAN_AMOUNTS.single.naira);
     });
 
-    it('pack of 5 = ₦5,000 = 500,000 kobo', () => {
-      assert.equal(PLAN_AMOUNTS.pack5.kobo,  500000);
-      assert.equal(PLAN_AMOUNTS.pack5.naira, 5000);
+    it('pack of 5 = ₦20,000 = 2,000,000 kobo', () => {
+      assert.equal(PLAN_AMOUNTS.pack5.kobo,  2000000);
+      assert.equal(PLAN_AMOUNTS.pack5.naira, 20000);
     });
 
-    it('monthly subscription = ₦20,000 = 2,000,000 kobo', () => {
-      assert.equal(PLAN_AMOUNTS.monthly.kobo,  2000000);
-      assert.equal(PLAN_AMOUNTS.monthly.naira, 20000);
+    it('monthly subscription = ₦200,000 = 20,000,000 kobo', () => {
+      assert.equal(PLAN_AMOUNTS.monthly.kobo,  20000000);
+      assert.equal(PLAN_AMOUNTS.monthly.naira, 200000);
     });
 
-    it('yearly subscription = ₦200,000 = 20,000,000 kobo', () => {
-      assert.equal(PLAN_AMOUNTS.yearly.kobo,  20000000);
-      assert.equal(PLAN_AMOUNTS.yearly.naira, 200000);
+    it('yearly subscription = ₦2,400,000 = 240,000,000 kobo', () => {
+      assert.equal(PLAN_AMOUNTS.yearly.kobo,  240000000);
+      assert.equal(PLAN_AMOUNTS.yearly.naira, 2400000);
     });
 
-    it('pack5 is ₦1,000/card (₦5,000 / 5)', () => {
-      assert.equal(PLAN_AMOUNTS.pack5.naira / 5, 1000);
+    it('pack5 is ₦4,000/card (₦20,000 / 5)', () => {
+      assert.equal(PLAN_AMOUNTS.pack5.naira / 5, 4000);
     });
 
-    it('pack5 saves ₦2,500 vs 5 single cards', () => {
+    it('pack5 saves ₦5,000 vs 5 single cards', () => {
       const savings = (PLAN_AMOUNTS.single.naira * 5) - PLAN_AMOUNTS.pack5.naira;
-      assert.equal(savings, 2500);
+      assert.equal(savings, 5000);
     });
   });
 
@@ -105,7 +106,7 @@ describe('Payment Controller', () => {
   describe('initializePayment()', () => {
     it('returns correct amount in kobo for single plan', () => {
       const result = initializePayment('single', 'user@test.com');
-      assert.equal(result.amount, 150000);
+      assert.equal(result.amount, 500000);
       assert.equal(result.email,  'user@test.com');
     });
 
@@ -155,6 +156,17 @@ describe('Payment Controller', () => {
   });
 
   describe('processChargeSuccess() webhook handling', () => {
+    it('card purchase with a slug activates that card', () => {
+      const result = processChargeSuccess({
+        type: 'card_purchase',
+        plan_type: 'single',
+        user_id: 'uid-001',
+        card_slug: 'ada-birthday-123'
+      });
+      assert.equal(result.action, 'activate_card');
+      assert.equal(result.cardSlug, 'ada-birthday-123');
+    });
+
     it('card_purchase → adds credits to user', () => {
       const meta   = { type: 'card_purchase', plan_type: 'single', user_id: 'uid-001' };
       const result = processChargeSuccess(meta);

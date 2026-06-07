@@ -19,6 +19,17 @@ function filterMessagesForRecipient(messages) {
   return messages; // recipient sees all
 }
 
+function parseMultipartBoolean(value) {
+  return value === true || value === 'true' || value === '1';
+}
+
+function normalizeDashboardCard(card) {
+  return {
+    ...card,
+    signed_count: card.messages?.[0]?.count || 0,
+  };
+}
+
 function computeCardStats(card, messages, contributions) {
   const verifiedContribs = contributions.filter(c => c.status === 'success');
   const totalCollected   = verifiedContribs.reduce((s, c) => s + (c.amount || 0), 0);
@@ -80,6 +91,14 @@ describe('Card Controller', () => {
       const visible = filterMessagesForNonRecipient(messages);
       assert.ok(!visible.some(m => m.content === 'Private msg'));
     });
+
+    it('multipart string false remains public', () => {
+      assert.equal(parseMultipartBoolean('false'), false);
+    });
+
+    it('multipart string true is private', () => {
+      assert.equal(parseMultipartBoolean('true'), true);
+    });
   });
 
   describe('Card statistics', () => {
@@ -99,6 +118,11 @@ describe('Card Controller', () => {
       const messages = [{ id: '1' }, { id: '2' }, { id: '3' }];
       const stats    = computeCardStats(FIXTURES.card, messages, []);
       assert.equal(stats.signed_count, 3);
+    });
+
+    it('dashboard signed_count is read from the Supabase count relation', () => {
+      const card = normalizeDashboardCard({ id: 'card-1', messages: [{ count: 4 }] });
+      assert.equal(card.signed_count, 4);
     });
 
     it('total_collected is 0 when no successful contributions', () => {

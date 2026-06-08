@@ -125,6 +125,7 @@ const Home = () => {
     jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp],
   });
   const [showDemo, setShowDemo] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
 
   return (
     <div className="min-h-screen" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 20%)' }}>
@@ -163,14 +164,8 @@ const Home = () => {
               📅 Book team demo
             </button>
           </div>
-                <div className="font-display text-lg sm:text-xl font-bold text-primary-500">{s.value}</div>
-                <div className="text-xs text-warm-500 mt-0.5">{s.label}</div>
-              </div>
-            ))}
           </div>
-        </div>
       </section>
-
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 
       {/* ── OCCASIONS ───────────────────────── */}
@@ -456,15 +451,15 @@ const Home = () => {
             { q:'Can I schedule the card to send on a specific date?', a:'Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget.' },
             { q:'Is there a limit on how many people can sign?', a:'No limit. Invite your entire company if you want. The more signatures, the more meaningful the card.' },
           ].map((item, i) => {
-            const [open, setOpen] = useState(false);
+            
             return (
               <div key={i} className="border-b border-purple-100">
-                <button onClick={() => setOpen(!open)}
+                <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   className="w-full text-left flex items-center justify-between py-4 gap-4 hover:text-primary-600 transition-colors">
                   <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:'0.9rem', color:'#1A1035' }}>{item.q}</span>
-                  <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${open ? 'rotate-45' : ''}`}>+</span>
+                  <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${openFaq === i ? 'rotate-45' : ''}`}>+</span>
                 </button>
-                {open && <p className="text-sm text-warm-600 leading-relaxed pb-4">{item.a}</p>}
+                {openFaq === i && <p className="text-sm text-warm-600 leading-relaxed pb-4">{item.a}</p>}
               </div>
             );
           })}

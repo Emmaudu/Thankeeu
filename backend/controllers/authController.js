@@ -58,6 +58,42 @@ const signup = async (req, res) => {
   }
 };
 
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ error: 'Email and password are required' });
+
+    const { data: user } = await supabase
+      .from('users').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
+    if (!user) return res.status(401).json({ error: 'Invalid email or password' });
+
+    const valid = await bcrypt.compare(password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
+
+    const token = generateToken(user.id);
+    const { password_hash, verification_token, reset_token, reset_token_expires, ...safeUser } = user;
+    res.json({ token, user: safeUser });
+  } catch (err) {
+    console.error('Login error:', err);
+    res.status(500).json({ error: 'Server error during login' });
+  }
+};
+
+const getMe = async (req, res) => {
+  try {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, email, full_name, username, role, avatar_url, bio, created_at')
+      .eq('id', req.user.id)
+      .single();
+    if (error || !user) return res.status(404).json({ error: 'User not found' });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+};
+
 const updateProfile = async (req, res) => {
   try {
     const { full_name, avatar_url, username, bio } = req.body;
@@ -97,6 +133,33 @@ const searchUsers = async (req, res) => {
     res.json(data || []);
   } catch (err) {
     res.status(500).json({ error: 'Search failed' });
+  }
+};
+
+const changePassword = async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password)
+      return res.status(400).json({ error: 'Both passwords are required' });
+    if (new_password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    const { data: user } = await supabase.from('users').select('password_hash').eq('id', req.user.id).single();
+    const valid = await bcrypt.compare(current_password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+    const password_hash = await bcrypt.hash(new_password, 12);
+    await supabase.from('users').update({ password_hash }).eq('id', req.user.id);
+    res.json({ message: 'Password changed' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to change password' });
+  }
+};
+
+const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    res.json({ url: req.file.path }); // Cloudinary returns path as URL
+  } catch (err) {
+    res.status(500).json({ error: 'Upload failed' });
   }
 };
 
@@ -143,44 +206,40 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, getMe, updateProfile, searchUsers, changePassword, uploadAvatar, forgotPassword, resetPassword, seedAdmin };
-
 // Admin seed — creates admin user if none exists (one-time setup)
 const seedAdmin = async (req, res) => {
   try {
     const { data: existingAdmin } = await supabase
       .from('users').select('id').eq('role', 'admin').limit(1).maybeSingle();
-    
+
     if (existingAdmin) {
       return res.json({ message: 'Admin already exists', seeded: false });
     }
-    
+
     const adminEmail = 'admin@thankeeu.com';
     const adminPassword = 'Thankeeu@Admin2025!';
     const password_hash = await bcrypt.hash(adminPassword, 12);
-    
-    // Check if email exists
+
     const { data: existingUser } = await supabase
       .from('users').select('id').eq('email', adminEmail).maybeSingle();
-    
+
     if (existingUser) {
-      // Upgrade existing user to admin
       await supabase.from('users').update({ role: 'admin' }).eq('id', existingUser.id);
       return res.json({ message: 'Existing user upgraded to admin', email: adminEmail, seeded: true });
     }
-    
+
     const { data: user, error } = await supabase
       .from('users')
-      .insert({ 
-        full_name: 'Thankeeu Admin', 
-        email: adminEmail, 
-        password_hash, 
+      .insert({
+        full_name: 'Thankeeu Admin',
+        email: adminEmail,
+        password_hash,
         role: 'admin',
-        is_verified: true 
+        is_verified: true
       })
       .select('id, email, full_name, role')
       .single();
-    
+
     if (error) throw error;
     res.status(201).json({ message: 'Admin created', email: adminEmail, seeded: true });
   } catch (err) {
@@ -189,27 +248,8 @@ const seedAdmin = async (req, res) => {
   }
 };
 
-module.exports.seedAdmin = seedAdmin;
-
-const changePassword = async (req, res) => {
-  try {
-    const { current_password, new_password } = req.body;
-    if (!current_password || !new_password) return res.status(400).json({ error: 'Both passwords are required' });
-    if (new_password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
-    const { data: user } = await supabase.from('users').select('password_hash').eq('id', req.user.id).single();
-    const valid = await bcrypt.compare(current_password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
-    const password_hash = await bcrypt.hash(new_password, 12);
-    await supabase.from('users').update({ password_hash }).eq('id', req.user.id);
-    res.json({ message: 'Password changed' });
-  } catch (err) { res.status(500).json({ error: 'Failed to change password' }); }
-};
-
-const uploadAvatar = async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-    res.json({ url: req.file.path }); // Cloudinary returns path as URL
-  } catch (err) {
-    res.status(500).json({ error: 'Upload failed' });
-  }
+// Single export at the end — after ALL functions are defined
+module.exports = {
+  signup, login, getMe, updateProfile, searchUsers,
+  changePassword, uploadAvatar, forgotPassword, resetPassword, seedAdmin
 };

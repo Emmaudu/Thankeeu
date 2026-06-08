@@ -3,21 +3,40 @@ const { sendEmail } = require('../utils/email');
 
 // Calculate and ensure wallet exists for a card
 const ensureWallet = async (cardId, companyId) => {
-  const { data: existing } = await supabase
-    .from('contribution_wallets').select('*').eq('card_id', cardId).maybeSingle();
-  if (existing) return existing;
+  try {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('contribution_wallets').select('*').eq('card_id', cardId).maybeSingle();
 
-  const { data: contribs } = await supabase
-    .from('contributions').select('amount').eq('card_id', cardId).eq('status', 'success');
-  const total = (contribs || []).reduce((s, c) => s + (c.amount || 0), 0);
-  const fee   = Math.round(total * 0.035); // 3.5% platform fee
+    // Table doesn't exist yet — return a synthetic wallet from contributions
+    if (fetchErr && (fetchErr.code === '42P01' || fetchErr.message?.includes('does not exist') || fetchErr.message?.includes('contribution_wallets'))) {
+      const { data: contribs } = await supabase
+        .from('contributions').select('amount').eq('card_id', cardId).eq('status', 'success');
+      const total = (contribs || []).reduce((s, c) => s + (c.amount || 0), 0);
+      const fee   = Math.round(total * 0.035);
+      return { id: null, card_id: cardId, total_contributed: total, platform_fee: fee, net_after_fee: total - fee, total_deducted: 0, _synthetic: true };
+    }
 
-  const { data: wallet } = await supabase.from('contribution_wallets').insert({
-    card_id: cardId, company_id: companyId,
-    total_contributed: total, platform_fee: fee,
-    net_after_fee: total - fee, amount_to_celebrant: total - fee,
-  }).select().single();
-  return wallet;
+    if (existing) return existing;
+
+    const { data: contribs } = await supabase
+      .from('contributions').select('amount').eq('card_id', cardId).eq('status', 'success');
+    const total = (contribs || []).reduce((s, c) => s + (c.amount || 0), 0);
+    const fee   = Math.round(total * 0.035); // 3.5% platform fee
+
+    const { data: wallet, error: insertErr } = await supabase.from('contribution_wallets').insert({
+      card_id: cardId, company_id: companyId,
+      total_contributed: total, platform_fee: fee,
+      net_after_fee: total - fee, amount_to_celebrant: total - fee,
+    }).select().single();
+
+    // If insert fails (table missing), return synthetic
+    if (insertErr) {
+      return { id: null, card_id: cardId, total_contributed: total, platform_fee: fee, net_after_fee: total - fee, total_deducted: 0, _synthetic: true };
+    }
+    return wallet;
+  } catch (e) {
+    return null;
+  }
 };
 
 // GET /api/deductions/wallet/:cardId
@@ -53,6 +72,11 @@ const requestDeduction = async (req, res) => {
 
     if (amount > available)
       return res.status(400).json({ error: `Amount exceeds available balance (₦${available.toLocaleString('en-NG')} available)` });
+
+    // If wallet is synthetic (table not migrated yet), return clear error
+    if (wallet?._synthetic || !wallet?.id) {
+      return res.status(503).json({ error: 'Deduction tables not set up yet. Please ask your admin to run schema_occasions.sql in Supabase.' });
+    }
 
     const { data: request, error } = await supabase.from('deduction_requests').insert({
       card_id, wallet_id: wallet.id,
@@ -286,6 +310,11 @@ const getLeaderRequests = async (req, res) => {
       .select('id, card_id, amount, reason, status, created_at, approved_at, note, withdrawal_requested, withdrawal_id, card:cards(title, recipient_name, slug)')
       .eq('requested_by_id', req.member.id)
       .order('created_at', { ascending: false });
+
+    // Table doesn't exist yet — return empty array instead of crashing
+    if (error && (error.code === '42P01' || error.message?.includes('does not exist') || error.message?.includes('deduction_requests'))) {
+      return res.json([]);
+    }
     if (error) throw error;
     res.json(data || []);
   } catch (err) {

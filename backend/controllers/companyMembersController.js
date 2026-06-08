@@ -644,32 +644,57 @@ const deleteMemberReminder = async (req, res) => {
 // GET /api/members/finances — financial history for this member
 const getMemberFinances = async (req, res) => {
   try {
-    // Contributions this member made
+    // Contributions this member made as a signer
     const { data: contributions } = await supabase
       .from('contributions')
-      .select('id, amount, contributor_name, contributor_email, created_at, card:cards(id,slug,title,recipient_name,occasion)')
+      .select('id, amount, contributor_name, contributor_email, created_at, card_id')
       .eq('contributor_email', req.member.email)
+      .eq('status', 'success')
       .order('created_at', { ascending: false })
       .limit(50);
 
-    // Gift wallet — cards created by this member with collected amounts
-    const { data: myCardWallets } = await supabase
-      .from('cards')
-      .select('id, slug, title, recipient_name, occasion, total_collected, status, created_at')
-      .eq('created_by_member_id', req.member.id)
-      .gt('total_collected', 0)
-      .order('created_at', { ascending: false });
+    // Cards created by this member — try created_by_member_id, fall back to empty
+    let myCardWallets = [];
+    try {
+      const { data: memberCards, error: colErr } = await supabase
+        .from('cards')
+        .select('id, slug, title, recipient_name, occasion, total_collected, status, created_at')
+        .eq('created_by_member_id', req.member.id)
+        .gt('total_collected', 0)
+        .order('created_at', { ascending: false });
 
-    const totalContributed = (contributions || []).reduce((sum, c) => sum + (c.amount || 0), 0);
-    const totalCollected   = (myCardWallets || []).reduce((sum, c) => sum + (c.total_collected || 0), 0);
+      if (!colErr) myCardWallets = memberCards || [];
+    } catch (e) {
+      // Column doesn't exist yet — skip silently
+    }
+
+    // Enrich contributions with card titles
+    let enrichedContributions = contributions || [];
+    if (enrichedContributions.length > 0) {
+      const cardIds = [...new Set(enrichedContributions.map(c => c.card_id).filter(Boolean))];
+      if (cardIds.length > 0) {
+        const { data: cards } = await supabase
+          .from('cards').select('id, title, recipient_name, occasion').in('id', cardIds);
+        const cardMap = Object.fromEntries((cards || []).map(c => [c.id, c]));
+        enrichedContributions = enrichedContributions.map(c => ({
+          ...c, card: cardMap[c.card_id] || null,
+        }));
+      }
+    }
+
+    const totalContributed = enrichedContributions.reduce((s, c) => s + (c.amount || 0), 0);
+    const totalCollected   = myCardWallets.reduce((s, c) => s + (c.total_collected || 0), 0);
 
     res.json({
-      contributions:     contributions || [],
-      my_card_wallets:   myCardWallets || [],
+      contributions:     enrichedContributions,
+      my_card_wallets:   myCardWallets,
       total_contributed: totalContributed,
       total_collected:   totalCollected,
     });
-  } catch (err) { res.status(500).json({ error: 'Failed to load financial history' }); }
+  } catch (err) {
+    console.error('getMemberFinances error:', err);
+    res.status(500).json({ error: 'Failed to load financial history' });
+  }
 };
 
 module.exports = {

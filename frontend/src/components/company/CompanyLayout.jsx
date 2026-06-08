@@ -28,9 +28,8 @@ const CompanyLayout = ({ children, title, subtitle }) => {
     <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#1E1438 0%,#14102E 100%)' }}>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(124,110,255,0.12)' }}>
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', boxShadow: '0 0 14px rgba(92,75,223,0.5)' }}>
-          <span style={{ color: '#fff', fontWeight: 700, fontSize: 12, fontFamily: 'Space Grotesk,sans-serif' }}>T</span>
+        <div style={{width:36,height:36,borderRadius:10,flexShrink:0,background:'linear-gradient(135deg,#A855F7,#7C3AED)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 14px rgba(124,58,237,0.45)'}}>
+          <span style={{fontSize:20}}>💌</span>
         </div>
         <div>
           <span style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, fontSize: 14, color: '#E4E2F6' }}>
@@ -48,14 +47,28 @@ const CompanyLayout = ({ children, title, subtitle }) => {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate" style={{ color: '#E4E2F6' }}>{company?.name || 'Company'}</p>
+            <p className="text-sm font-semibold truncate" style={{ color: '#E4E2F6' }}>{company?.name || 'Company'}</p>
             <p className="text-xs" style={{ color: '#6B678A' }}>HR Admin</p>
           </div>
         </div>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto">
+      
+
+      {/* ─── Sign Out — above nav for easy access ─── */}
+      <div className="px-3 pt-1 pb-2 flex-shrink-0">
+        <button onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all"
+          style={{ fontSize:15, color:'#FF8A80', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}>
+          <span style={{fontSize:18}}>🚪</span>
+          <span>Sign out</span>
+        </button>
+      </div>
+
+<nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto">
         {NAV.map(({ path, icon, label }) => (
           <Link key={path} to={path}
             onClick={() => setMobileOpen(false)}
@@ -76,18 +89,11 @@ const CompanyLayout = ({ children, title, subtitle }) => {
       {/* Bottom */}
       <div className="px-3 pb-5 flex-shrink-0 space-y-2">
         <Link to="/company/subscription"
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold"
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold"
           style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff', boxShadow: '0 2px 10px rgba(92,75,223,0.35)' }}>
           💳 Manage subscription
         </Link>
-        <button onClick={handleLogout}
-          className="w-full text-left px-3 py-2 rounded-xl text-xs transition-all"
-          style={{ color: '#4A4870' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#E4E2F6'}
-          onMouseLeave={e => e.currentTarget.style.color = '#4A4870'}>
-          🚪 Sign out
-        </button>
-      </div>
+</div>
     </div>
   );
 
@@ -118,7 +124,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
           <span style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, color: '#1A1730', fontSize: 14 }}>
             Thank<span style={{ color: '#7C6EFF' }}>eeu</span> Teams
           </span>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold"
+          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold"
             style={{ background: 'linear-gradient(135deg,#EC4899,#7C6EFF)', color: '#fff' }}>{initials}</div>
         </div>
 

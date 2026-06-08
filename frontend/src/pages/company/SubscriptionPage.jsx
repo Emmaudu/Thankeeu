@@ -48,6 +48,7 @@ const SubscriptionPage = () => {
   const [paying, setPaying] = useState(null);
   const [cancelling, setCancelling] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -122,7 +123,23 @@ const SubscriptionPage = () => {
     finally { setCancelling(false); }
   };
 
-  const isActive = sub?.status === 'active';
+
+  const handleManualVerify = async () => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get('reference') || params.get('trxref') || prompt('Enter your Paystack transaction reference:');
+    if (!ref) return;
+    setVerifying(true);
+    try {
+      await subscriptionAPI.verify(ref);
+      toast.success('✅ Subscription activated! Redirecting to HRIS...');
+      await fetchSub();
+      setTimeout(() => navigate('/company/hris'), 2000);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Verification failed. Contact support if payment was charged.');
+    } finally { setVerifying(false); }
+  };
+
+  const isActive = sub?.is_active === true || sub?.status === 'active';
   const expiresAt = sub?.expires_at ? new Date(sub.expires_at) : null;
   const daysLeft = expiresAt ? differenceInDays(expiresAt, new Date()) : 0;
 
@@ -163,15 +180,25 @@ const SubscriptionPage = () => {
       )}
 
       {!loading && !isActive && (
-        <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 mb-8">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">💡</span>
-            <div>
-              <p className="font-semibold text-amber-800">No active subscription</p>
-              <p className="text-sm text-amber-600 mt-0.5">
-                Team data import is always free. Subscribe below to activate automated birthday emails.
-              </p>
+        <div className="rounded-3xl p-5 mb-8 border" style={{ background:'#FFFBEB', borderColor:'#FDE68A' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <span className="text-2xl">💡</span>
+              <div>
+                <p className="font-semibold text-amber-800 text-base">No active subscription</p>
+                <p className="text-sm text-amber-600 mt-0.5">
+                  Team data import is always free. Subscribe below to activate birthday automations.
+                </p>
+              </div>
             </div>
+            <button
+              onClick={handleManualVerify}
+              disabled={verifying}
+              className="flex-shrink-0 text-sm font-semibold px-4 py-2.5 rounded-xl border-2 transition-colors"
+              style={{ borderColor:'#D97706', color:'#92400E', background:'#FEF3C7' }}
+              title="Already paid? Click to confirm your payment manually">
+              {verifying ? '⏳ Verifying…' : '🔄 Already paid? Verify payment'}
+            </button>
           </div>
         </div>
       )}

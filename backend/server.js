@@ -39,13 +39,15 @@ app.use(cors({
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use('/api/', limiter);
 
-// Body parsing (skip for webhook route)
+// Body parsing (skip for webhook route which needs raw body)
 app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+app.use('/webhook/paystack', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/webhook', require('./routes/webhook'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/cards', require('./routes/cards'));
 app.use('/api/messages', require('./routes/messages'));

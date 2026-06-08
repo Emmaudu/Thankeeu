@@ -129,6 +129,8 @@ const App = () => (
             <Route path="/faq"           element={<FAQ />} />
             <Route path="/sign/:slug"    element={<SignCard />} />
             <Route path="/gift/:slug"    element={<GiftCheckout />} />
+            {/* Email verification — public, no auth needed */}
+            <Route path="/verify-email"  element={<VerifyEmail />} />
 
             {/* ── Card view — requires auth, preserves token for recipient links ── */}
             <Route path="/card/:slug"    element={<CardViewGate />} />

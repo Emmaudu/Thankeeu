@@ -34,12 +34,11 @@ const MemberLayout = ({ children, title, subtitle }) => {
     <div className="flex flex-col h-full" style={{ background:'linear-gradient(180deg,#1A1438 0%,#120E2A 100%)', minHeight:'100vh' }}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 flex-shrink-0" style={{ borderBottom:'1px solid rgba(124,110,255,0.15)' }}>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', boxShadow:'0 0 14px rgba(92,75,223,0.5)' }}>
-          <span style={{ color:'#fff', fontWeight:800, fontSize:14, fontFamily:'Space Grotesk,sans-serif' }}>T</span>
+        <div style={{width:36,height:36,borderRadius:10,flexShrink:0,background:'linear-gradient(135deg,#A855F7,#7C3AED)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 14px rgba(124,58,237,0.45)'}}>
+          <span style={{fontSize:20}}>💌</span>
         </div>
         <div>
-          <span style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, fontSize:16, color:'#E4E2F6' }}>
+          <span style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, fontSize:17, color:'#E4E2F6' }}>
             Thank<span style={{ color:'#7C6EFF' }}>eeu</span>
           </span>
           <span className="block text-xs" style={{ color:'#6B678A', marginTop:-2 }}>for Teams</span>
@@ -62,6 +61,19 @@ const MemberLayout = ({ children, title, subtitle }) => {
             </p>
           </div>
         </Link>
+      </div>
+
+
+      {/* Sign Out — top of sidebar for easy access */}
+      <div className="px-3 pb-2 flex-shrink-0">
+        <button onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all"
+          style={{ fontSize:15, color:'#FF8A80', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}>
+          <span style={{fontSize:18}}>🚪</span>
+          <span>Sign out</span>
+        </button>
       </div>
 
       {/* Nav — scrollable */}
@@ -87,17 +99,10 @@ const MemberLayout = ({ children, title, subtitle }) => {
       {/* Company tag + Sign out */}
       <div className="px-3 pb-5 pt-2 flex-shrink-0" style={{ borderTop:'1px solid rgba(124,110,255,0.1)' }}>
         {member?.company?.name && (
-          <div className="px-3 py-2 mb-3 rounded-xl text-xs" style={{ background:'rgba(255,255,255,0.04)', color:'#4A4870' }}>
+          <div className="px-3 py-2 rounded-xl text-sm" style={{ background:'rgba(255,255,255,0.04)', color:'#6B678A' }}>
             🏢 {member.company.name}
           </div>
         )}
-        <button onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all"
-          style={{ color:'#FF7B7B', background:'rgba(239,68,68,0.10)', border:'1px solid rgba(239,68,68,0.20)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.20)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.10)'}>
-          <span className="text-xl">🚪</span> Sign out
-        </button>
       </div>
     </div>
   );
@@ -124,7 +129,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
         {/* Mobile topbar */}
         <div className="md:hidden flex items-center justify-between px-5 py-4 sticky top-0 z-30"
           style={{ background:'#F5F3FF', borderBottom:'1px solid #EDE9FF' }}>
-          <div style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, color:'#1A1730', fontSize:16 }}>
+          <div style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, color:'#1A1730', fontSize:17 }}>
             Thank<span style={{ color:'#7C6EFF' }}>eeu</span>
           </div>
           {/* Hamburger on RIGHT for mobile */}

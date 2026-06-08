@@ -10,13 +10,14 @@ export default function MemberReceivedPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Use member token for received cards
-    import('../../utils/api').then(({ memberAPI }) => {
-      memberAPI.getReceivedCards?.()
-        .then(r => setCards(r.data || []))
-        .catch(() => {})
-        .finally(() => setLoading(false));
-    });
+    // getReceived (not getReceivedCards) is the correct method name
+    memberAPI.getReceived()
+      .then(r => setCards(r.data || []))
+      .catch(err => {
+        console.error('Received cards error:', err);
+        // show empty state instead of crash
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (

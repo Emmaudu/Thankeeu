@@ -19,6 +19,9 @@ const BASE = (content) => `
   </div>
 </div>`;
 
+// Alias — many templates use wrap() instead of BASE()
+const wrap = BASE;
+
 const btn = (text, url, color = '#6C5CE7') =>
   `<a href="${url}" style="display:inline-block;background:${color};color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin-top:20px;">${text}</a>`;
 
@@ -195,19 +198,30 @@ const emailTemplates = {
   }),
 };
 
-const sendEmail = async ({ to, template, data }) => {
+const sendEmail = async ({ to, template, data, subject, html }) => {
   try {
-    const tmpl = emailTemplates[template]?.(data);
-    if (!tmpl) throw new Error(`Template "${template}" not found`);
+    let emailSubject = subject;
+    let emailHtml    = html;
+
+    // If a named template is supplied, resolve it
+    if (template) {
+      const tmpl = emailTemplates[template]?.(data);
+      if (!tmpl) throw new Error(`Template "${template}" not found`);
+      emailSubject = tmpl.subject;
+      emailHtml    = tmpl.html;
+    }
+
+    if (!emailSubject || !emailHtml) throw new Error('Email requires either a template or both subject and html');
+
     const result = await resend.emails.send({
       from: `${process.env.EMAIL_FROM_NAME || 'Thankeeu'} <${process.env.EMAIL_FROM || 'hello@thankeeu.com'}>`,
       to,
-      subject: tmpl.subject,
-      html: tmpl.html
+      subject: emailSubject,
+      html:    emailHtml,
     });
     return { success: true, id: result.id };
   } catch (error) {
-    console.error('Email error:', error);
+    console.error('Email error:', error?.message || error);
     return { success: false, error };
   }
 };

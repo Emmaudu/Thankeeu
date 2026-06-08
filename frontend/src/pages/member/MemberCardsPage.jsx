@@ -13,7 +13,7 @@ export default function MemberCardsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    memberCardsAPI.getHistory?.()
+    memberCardsAPI.getHistory()
       .then(r => setCards(r.data || []))
       .catch(() => toast.error('Failed to load cards'))
       .finally(() => setLoading(false));

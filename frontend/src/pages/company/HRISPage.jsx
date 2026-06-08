@@ -186,7 +186,12 @@ const HRISPage = () => {
             <Link to="/company/subscription" className="btn-primary px-8 py-3.5 text-base w-full inline-flex items-center justify-center">
               💳 Subscribe to unlock →
             </Link>
-            <p className="text-xs text-warm-400 mt-3">Already paid? <Link to="/company/subscription" className="text-primary-500 font-semibold">Check subscription status →</Link></p>
+            <p className="text-sm text-warm-400 mt-3">
+              Already paid?{' '}
+              <Link to="/company/subscription" className="text-primary-500 font-semibold">
+                Verify your payment →
+              </Link>
+            </p>
           </div>
         </div>
       )}

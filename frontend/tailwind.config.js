@@ -3,6 +3,18 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontSize: {
+        'xs':   ['13px', { lineHeight: '1.5' }],
+        'sm':   ['15px', { lineHeight: '1.55' }],
+        'base': ['17px', { lineHeight: '1.6' }],
+        'lg':   ['19px', { lineHeight: '1.6' }],
+        'xl':   ['21px', { lineHeight: '1.55' }],
+        '2xl':  ['24px', { lineHeight: '1.4' }],
+        '3xl':  ['30px', { lineHeight: '1.3' }],
+        '4xl':  ['36px', { lineHeight: '1.2' }],
+        '5xl':  ['48px', { lineHeight: '1.1' }],
+        '6xl':  ['60px', { lineHeight: '1.05' }],
+      },
       colors: {
         primary: {
           50:  '#F5F0FF',

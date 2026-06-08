@@ -29,9 +29,8 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5" style={{ borderBottom: '1px solid rgba(124,110,255,0.12)' }}>
-        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', boxShadow: '0 0 14px rgba(92,75,223,0.5)' }}>
-          <span className="text-white font-bold text-sm" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>T</span>
+        <div style={{width:36,height:36,borderRadius:10,flexShrink:0,background:'linear-gradient(135deg,#A855F7,#7C3AED)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 14px rgba(124,58,237,0.45)'}}>
+          <span style={{fontSize:20}}>💌</span>
         </div>
         <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 15, color: '#E4E2F6' }}>
           Thank<span style={{ color: '#7C6EFF' }}>eeu</span>
@@ -48,14 +47,26 @@ const DashboardLayout = ({ children, title, subtitle }) => {
               : user?.full_name?.[0] || '?'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold truncate" style={{ color: '#E4E2F6' }}>{user?.full_name}</p>
+            <p className="text-sm font-semibold truncate" style={{ color: '#E4E2F6' }}>{user?.full_name}</p>
             <p className="text-xs truncate" style={{ color: '#6B678A' }}>@{user?.username || 'no username'}</p>
           </div>
         </Link>
       </div>
 
       {/* Nav links */}
-      <nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+      
+      {/* ─── Sign Out — above nav for easy access ─── */}
+      <div className="px-3 pt-1 pb-2 flex-shrink-0">
+        <button onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all"
+          style={{ fontSize:15, color:'#FF8A80', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}>
+          <span style={{fontSize:18}}>🚪</span>
+          <span>Sign out</span>
+        </button>
+      </div>
+<nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
         {NAV.map(({ to, icon, label }) => (
           <Link key={to} to={to}
             onClick={() => setSidebarOpen(false)}
@@ -80,16 +91,9 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       </div>
 
       {/* Logout */}
-      <div className="px-3 pb-5">
-        <button onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-base font-bold transition-all text-left"
-          style={{ color: '#FF7B7B', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}>
-          <span style={{fontSize:18}}>🚪</span> Sign out
-        </button>
-      </div>
+      
     </aside>
+
   );
 
   return (
@@ -125,7 +129,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
               fetchFn={() => import('../utils/api').then(m => m.api.get('/notifications'))}
               markReadFn={() => import('../utils/api').then(m => m.api.post('/notifications/mark-read'))}
             />
-            <Link to="/create-card" className="text-xs font-semibold px-3 py-1.5 rounded-xl"
+            <Link to="/create-card" className="text-sm font-semibold px-3 py-1.5 rounded-xl"
               style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff' }}>+ Card</Link>
           </div>
         </div>

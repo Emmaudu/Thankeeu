@@ -16,7 +16,7 @@ const initializeSubscription = async (req, res) => {
     if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
 
     const { amount, label } = PLANS[plan];
-    const frontendUrl = process.env.FRONTEND_URL || 'https://thankeeu.com';
+    const frontendUrl = (process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com').replace(/\/$/, '');
 
     const response = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, {
       email: req.company.email,
@@ -103,8 +103,12 @@ const verifySubscription = async (req, res) => {
 
     res.json({ success: true, plan: resolvedPlan, expires_at });
   } catch (err) {
-    console.error(err.response?.data || err);
-    res.status(500).json({ error: 'Failed to verify subscription' });
+    console.error('Subscription verify error:', {
+      message: err.message,
+      paystack: err.response?.data,
+      reference: req.params?.reference,
+    });
+    res.status(500).json({ error: 'Failed to verify subscription. Please contact support if payment was charged.' });
   }
 };
 

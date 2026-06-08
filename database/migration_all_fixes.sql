@@ -165,3 +165,29 @@ ALTER TABLE deduction_requests ADD COLUMN IF NOT EXISTS withdrawal_id        UUI
 
 -- Done
 SELECT 'Migration complete' AS result;
+
+
+-- ── company_subscriptions table (required for HR subscription payments) ──
+CREATE TABLE IF NOT EXISTS company_subscriptions (
+  id                   UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id           UUID NOT NULL,
+  plan                 TEXT NOT NULL CHECK (plan IN ('monthly','yearly')),
+  status               TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','expired','cancelled')),
+  amount               NUMERIC DEFAULT 0,
+  paystack_reference   TEXT,
+  auto_renew           BOOLEAN DEFAULT TRUE,
+  starts_at            TIMESTAMPTZ DEFAULT NOW(),
+  expires_at           TIMESTAMPTZ,
+  cancelled_at         TIMESTAMPTZ,
+  created_at           TIMESTAMPTZ DEFAULT NOW(),
+  updated_at           TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_company_subs_company ON company_subscriptions(company_id);
+CREATE INDEX IF NOT EXISTS idx_company_subs_status  ON company_subscriptions(company_id, status);
+
+-- Subscription columns on companies table
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_status     TEXT DEFAULT 'inactive';
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_plan       TEXT;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ;
+
+SELECT 'Migration complete ✅' AS result;

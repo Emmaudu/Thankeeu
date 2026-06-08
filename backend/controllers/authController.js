@@ -9,35 +9,44 @@ const generateToken = (userId) =>
 
 const signup = async (req, res) => {
   try {
-    const { full_name, email, password } = req.body;
+    const { full_name, email, password, username } = req.body;
 
     if (!full_name || !email || !password)
       return res.status(400).json({ error: 'Name, email and password are required' });
+    if (!username || username.trim().length < 3)
+      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    if (!/^[a-zA-Z0-9_]+$/.test(username.trim()))
+      return res.status(400).json({ error: 'Username can only contain letters, numbers and underscores' });
     if (password.length < 8)
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
 
-    // Use maybeSingle — single() throws if no row found
+    const cleanUsername = username.trim().toLowerCase();
+    const cleanEmail = email.toLowerCase().trim();
+
     const { data: existing } = await supabase
-      .from('users').select('id').eq('email', email.toLowerCase().trim()).maybeSingle();
+      .from('users').select('id').eq('email', cleanEmail).maybeSingle();
     if (existing) return res.status(400).json({ error: 'Email already registered' });
+
+    const { data: existingUsername } = await supabase
+      .from('users').select('id').eq('username', cleanUsername).maybeSingle();
+    if (existingUsername) return res.status(400).json({ error: 'Username already taken' });
 
     const password_hash = await bcrypt.hash(password, 12);
     const verification_token = crypto.randomBytes(32).toString('hex');
 
     const { data: user, error } = await supabase
       .from('users')
-      .insert({ full_name, email: email.toLowerCase().trim(), password_hash, verification_token })
-      .select('id, email, full_name, role, avatar_url')
+      .insert({ full_name, email: cleanEmail, username: cleanUsername, password_hash, verification_token })
+      .select('id, email, full_name, username, role, avatar_url')
       .single();
 
     if (error) {
       console.error('Signup DB error:', error);
-      if (error.code === '23505') return res.status(400).json({ error: 'Email already registered' });
+      if (error.code === '23505') return res.status(400).json({ error: 'Email or username already registered' });
       throw error;
     }
 
-    // Send welcome email — don't fail signup if email fails
-    sendEmail({ to: email, template: 'welcome', data: { name: full_name } }).catch(e =>
+    sendEmail({ to: cleanEmail, template: 'welcome', data: { name: full_name } }).catch(e =>
       console.error('Welcome email failed:', e)
     );
 
@@ -49,57 +58,45 @@ const signup = async (req, res) => {
   }
 };
 
-const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: 'Email and password are required' });
-
-    const { data: user, error } = await supabase
-      .from('users').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
-    if (error || !user) return res.status(401).json({ error: 'Invalid email or password' });
-
-    const valid = await bcrypt.compare(password, user.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
-
-    const token = generateToken(user.id);
-    const { password_hash, verification_token, reset_token, ...safeUser } = user;
-    res.json({ token, user: safeUser });
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error during login' });
-  }
-};
-
-const getMe = async (req, res) => {
-  try {
-    const { data: credits } = await supabase
-      .from('card_credits')
-      .select('credits_remaining')
-      .eq('user_id', req.user.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    res.json({ ...req.user, credits_remaining: credits?.credits_remaining || 0 });
-  } catch {
-    res.json(req.user);
-  }
-};
-
 const updateProfile = async (req, res) => {
   try {
-    const { full_name, avatar_url } = req.body;
+    const { full_name, avatar_url, username, bio } = req.body;
+
+    if (username) {
+      const clean = username.trim().toLowerCase();
+      if (!/^[a-zA-Z0-9_]+$/.test(clean))
+        return res.status(400).json({ error: 'Username can only contain letters, numbers and underscores' });
+      const { data: taken } = await supabase.from('users').select('id').eq('username', clean).neq('id', req.user.id).maybeSingle();
+      if (taken) return res.status(400).json({ error: 'Username already taken' });
+    }
+
     const { data: user, error } = await supabase
       .from('users')
-      .update({ full_name, avatar_url, updated_at: new Date() })
+      .update({ full_name, avatar_url, bio, ...(username && { username: username.trim().toLowerCase() }), updated_at: new Date() })
       .eq('id', req.user.id)
-      .select('id, email, full_name, role, avatar_url')
+      .select('id, email, full_name, username, role, avatar_url, bio')
       .single();
     if (error) throw error;
     res.json(user);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+};
+
+const searchUsers = async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2)
+      return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+    const { data } = await supabase
+      .from('users')
+      .select('id, username, full_name, avatar_url')
+      .ilike('username', `%${q.trim()}%`)
+      .neq('id', req.user.id)
+      .limit(8);
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Search failed' });
   }
 };
 
@@ -146,7 +143,7 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { signup, login, getMe, updateProfile, forgotPassword, resetPassword };
+module.exports = { signup, login, getMe, updateProfile, searchUsers, changePassword, uploadAvatar, forgotPassword, resetPassword, seedAdmin };
 
 // Admin seed — creates admin user if none exists (one-time setup)
 const seedAdmin = async (req, res) => {
@@ -193,3 +190,26 @@ const seedAdmin = async (req, res) => {
 };
 
 module.exports.seedAdmin = seedAdmin;
+
+const changePassword = async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    if (!current_password || !new_password) return res.status(400).json({ error: 'Both passwords are required' });
+    if (new_password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    const { data: user } = await supabase.from('users').select('password_hash').eq('id', req.user.id).single();
+    const valid = await bcrypt.compare(current_password, user.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+    const password_hash = await bcrypt.hash(new_password, 12);
+    await supabase.from('users').update({ password_hash }).eq('id', req.user.id);
+    res.json({ message: 'Password changed' });
+  } catch (err) { res.status(500).json({ error: 'Failed to change password' }); }
+};
+
+const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    res.json({ url: req.file.path }); // Cloudinary returns path as URL
+  } catch (err) {
+    res.status(500).json({ error: 'Upload failed' });
+  }
+};

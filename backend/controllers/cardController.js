@@ -25,28 +25,41 @@ const createCard = async (req, res) => {
     const effectiveMemberId = req.member?.id || created_by_member_id;
     const slug = generateSlug(recipient_name, occasion);
 
-    const { data: card, error } = await supabase
+    // Build insert object — font_style is optional (requires migration)
+    const insertData = {
+      slug,
+      creator_id: req.user?.id || null,
+      recipient_name: recipient_name.trim(),
+      recipient_email: recipient_email?.trim() || null,
+      occasion,
+      title: title?.trim() || `${recipient_name}'s Card`,
+      design_theme, background_color, is_gift_enabled,
+      gift_type, suggested_amount,
+      send_date: send_date || null,
+      deadline: deadline || null,
+      allow_private_messages, send_reminders, hide_amounts,
+      status: reqStatus || 'draft',
+      ...(effectiveCompanyId && { company_id: effectiveCompanyId }),
+      ...(effectiveMemberId && { created_by_member_id: effectiveMemberId }),
+      ...(notification_scope && { notification_scope }),
+    };
+
+    // Try with font_style first, fall back without if column doesn't exist
+    let card, error;
+    ({ data: card, error } = await supabase
       .from('cards')
-      .insert({
-        slug,
-        creator_id: req.user?.id || null,
-        recipient_name: recipient_name.trim(),
-        recipient_email: recipient_email?.trim() || null,
-        occasion,
-        title: title?.trim() || `${recipient_name}'s Card`,
-        design_theme, background_color, font_style: font_style || 'elegant', is_gift_enabled,
-        gift_type, suggested_amount,
-        send_date: send_date || null,
-        deadline: deadline || null,
-        allow_private_messages, send_reminders, hide_amounts,
-        status: reqStatus || 'draft',
-        // Member card fields (these columns must exist in DB)
-        ...(effectiveCompanyId && { company_id: effectiveCompanyId }),
-        ...(effectiveMemberId && { created_by_member_id: effectiveMemberId }),
-        ...(notification_scope && { notification_scope }),
-      })
+      .insert({ ...insertData, font_style: font_style || 'elegant' })
       .select()
-      .single();
+      .single());
+
+    // If font_style column doesn't exist, retry without it
+    if (error && error.message && error.message.includes('font_style')) {
+      ({ data: card, error } = await supabase
+        .from('cards')
+        .insert(insertData)
+        .select()
+        .single());
+    }
 
     if (error) throw error;
 
@@ -287,7 +300,7 @@ const getPublicCard = async (req, res) => {
     const { slug } = req.params;
     const { data: card, error } = await supabase
       .from('cards')
-      .select('id, slug, recipient_name, occasion, title, design_theme, background_color, font_style, is_gift_enabled, gift_type, suggested_amount, total_collected, deadline, status, allow_private_messages, hide_amounts, messages(id, author_name, content, is_private, font_style, media_url, media_type, reactions, contributed_amount, created_at), contributions(amount, contributor_name, status)')
+      .select('*, messages(id, author_name, content, is_private, media_url, media_type, reactions, contributed_amount, created_at), contributions(amount, contributor_name, status)')
       .eq('slug', slug)
       .in('status', ['active', 'sent'])
       .single();

@@ -16,6 +16,8 @@ const initializeSubscription = async (req, res) => {
     if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
 
     const { amount, label } = PLANS[plan];
+    const frontendUrl = process.env.FRONTEND_URL || 'https://thankeeu.com';
+
     const response = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, {
       email: req.company.email,
       amount,
@@ -29,7 +31,7 @@ const initializeSubscription = async (req, res) => {
           { display_name: 'Plan', variable_name: 'plan', value: label }
         ]
       },
-      callback_url: `${process.env.FRONTEND_URL}/company/dashboard?sub=success&plan=${plan}`
+      callback_url: `${frontendUrl}/company/subscription?sub=success&plan=${plan}`
     }, { headers: headers() });
 
     res.json(response.data.data);

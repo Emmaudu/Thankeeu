@@ -2,16 +2,23 @@ const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
 const {
-  getDashboard,
-  markNotificationsRead,
-  getDashboardStats
+  getDashboard, markNotificationsRead, getDashboardStats,
+  getFinancialHistory, getDeliveredCards, getReceivedCards,
+  getPendingToSign, transferCard, trackCardOpened
 } = require('../controllers/dashboardController');
 
-// All dashboard routes require authentication
-router.use(auth);
+// Public: track card opened (no auth required - called by anyone viewing card)
+router.post('/card-opened/:slug', trackCardOpened);
 
-router.get('/', getDashboard);                          // GET /api/dashboard — main dashboard data
-router.get('/stats', getDashboardStats);                // GET /api/dashboard/stats — charts & history
-router.post('/notifications/read', markNotificationsRead); // POST /api/dashboard/notifications/read
+router.use(auth);
+router.get('/', getDashboard);
+router.get('/stats', getDashboardStats);
+router.post('/notifications/read', markNotificationsRead);
+router.get('/financial-history', getFinancialHistory);
+router.get('/delivered', getDeliveredCards);
+router.get('/received', getReceivedCards);
+router.get('/pending-to-sign', getPendingToSign);
+router.post('/transfer-card', transferCard);
+
 
 module.exports = router;

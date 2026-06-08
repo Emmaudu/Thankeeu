@@ -1,7 +1,8 @@
 import { useSEO } from '../hooks/useSEO';
 import { useEffect, useRef, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { cardsAPI, messagesAPI, paymentsAPI } from '../utils/api';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI } from '../utils/api';
 import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import VoiceRecorder from '../components/VoiceRecorder';
 import Navbar from '../components/Navbar';
@@ -13,13 +14,16 @@ const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
 
 const SignCard = () => {
   const { slug } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const currentPath = `/sign/${slug}`;
   const [searchParams] = useSearchParams();
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [mediaFile, setMediaFile] = useState(null);
-  const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaFiles, setMediaFiles] = useState([]); // array of {file, preview, type}
+  const [mediaFile, setMediaFile] = useState(null); // backward compat
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [customAmount, setCustomAmount] = useState('');
   const fileRef = useRef();
@@ -61,6 +65,8 @@ const SignCard = () => {
       const res = await cardsAPI.getPublic(slug);
       setCard(res.data);
       setSelectedAmount(res.data.suggested_amount || 2500);
+      // Track card opened
+      dashboardAPI.trackCardOpened(slug).catch(()=>{});
     } catch {
       toast.error('Card not found or no longer active');
     } finally {
@@ -68,22 +74,29 @@ const SignCard = () => {
     }
   };
 
-  const setAttachment = file => {
-    if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Attachment is too large (maximum 50MB)');
-      return;
+  const addMediaFiles = files => {
+    const newItems = [];
+    for (const file of Array.from(files)) {
+      if (file.size > 50 * 1024 * 1024) { toast.error(`${file.name} is too large (max 50MB)`); continue; }
+      const mime = file.type;
+      let type = 'image';
+      if (mime.startsWith('video/')) type = 'video';
+      else if (mime.startsWith('audio/')) type = 'voice';
+      else if (mime === 'image/gif') type = 'gif';
+      newItems.push({ file, preview: URL.createObjectURL(file), type, name: file.name });
     }
-    if (mediaPreview) URL.revokeObjectURL(mediaPreview);
-    setMediaFile(file);
-    setMediaPreview(URL.createObjectURL(file));
+    setMediaFiles(prev => [...prev, ...newItems].slice(0, 5)); // max 5 items
   };
 
-  const clearAttachment = () => {
-    if (mediaPreview) URL.revokeObjectURL(mediaPreview);
-    setMediaFile(null);
-    setMediaPreview(null);
-    if (fileRef.current) fileRef.current.value = '';
+  // keep backward compat
+  const setAttachment = file => { if (file) addMediaFiles([file]); };
+  const clearAttachment = idx => {
+    setMediaFiles(prev => {
+      const next = [...prev];
+      URL.revokeObjectURL(next[idx].preview);
+      next.splice(idx, 1);
+      return next;
+    });
   };
 
   const verifyContribution = async reference => {
@@ -110,7 +123,12 @@ const SignCard = () => {
     try {
       const msgData = new FormData();
       Object.entries(form).forEach(([key, value]) => msgData.append(key, value));
-      if (mediaFile) msgData.append('media', mediaFile);
+      if (mediaFiles.length > 0) {
+        msgData.append('media', mediaFiles[0].file);
+        mediaFiles.slice(1).forEach((m, i) => msgData.append(`media_gallery_${i}`, m.file));
+      } else if (mediaFile) {
+        msgData.append('media', mediaFile);
+      }
       const msgRes = await messagesAPI.add(slug, msgData);
 
       if (!wantsGift) {
@@ -161,6 +179,29 @@ const SignCard = () => {
       setSubmitting(false);
     }
   };
+
+  // Require login to sign
+  if (!user) {
+    return (
+      <div style={{ minHeight:'100vh', background:'#12102A', display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}>
+        <div style={{ maxWidth:380, width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(124,110,255,0.25)', borderRadius:20, padding:'2rem', textAlign:'center' }}>
+          <div style={{ fontSize:48, marginBottom:12 }}>✍️</div>
+          <h2 style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:700, fontSize:'1.4rem', color:'#E4E2F6', marginBottom:8 }}>Sign this card</h2>
+          <p style={{ color:'#9490C8', fontSize:14, lineHeight:1.6, marginBottom:20 }}>
+            Create a quick account to sign — you'll also be able to <strong style={{color:'#B8B4FF'}}>track the progress</strong> of the card and see all messages!
+          </p>
+          <a href={`/signup?returnTo=${encodeURIComponent(currentPath)}`}
+            style={{ display:'block', background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontWeight:700, padding:'12px 24px', borderRadius:12, textDecoration:'none', marginBottom:10 }}>
+            ✨ Create account to sign →
+          </a>
+          <a href={`/login?returnTo=${encodeURIComponent(currentPath)}`}
+            style={{ display:'block', color:'#7C6EFF', fontSize:14, fontWeight:500, padding:'8px' }}>
+            Already have an account? Sign in →
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return (
     <div className="min-h-screen grid place-items-center bg-violet-50">
@@ -287,25 +328,26 @@ const SignCard = () => {
 
             <div className="flex flex-wrap gap-2 mb-4">
               <button type="button" onClick={() => fileRef.current.click()} className="voice-record-button">
-                <span>{'\uD83D\uDCF7'}</span> Add photo, video, or audio
+                <span>📷</span> Add media {mediaFiles.length > 0 && `(${mediaFiles.length}/5)`}
               </button>
-              <VoiceRecorder onRecorded={setAttachment} disabled={submitting} />
-              <input ref={fileRef} type="file" accept="image/*,video/*,audio/*,.m4a,.ogg,.webm" className="hidden" onChange={e => setAttachment(e.target.files?.[0])} />
+              <VoiceRecorder onRecorded={f => addMediaFiles([f])} disabled={submitting} />
+              <input ref={fileRef} type="file" accept="image/*,video/*,audio/*,.m4a,.ogg,.webm" multiple className="hidden" onChange={e => addMediaFiles(e.target.files)} />
             </div>
 
-            {mediaPreview && (
-              <div className="relative bg-warm-100 border border-purple-100 rounded-2xl p-3 mb-5">
-                {mediaFile?.type.startsWith('video/') ? (
-                  <video src={mediaPreview} controls className="w-full max-h-56 rounded-xl object-cover" />
-                ) : mediaFile?.type.startsWith('audio/') ? (
-                  <div className="flex items-center gap-3 p-3">
-                    <span className="text-3xl">{'\uD83C\uDFA7'}</span>
-                    <audio src={mediaPreview} controls className="w-full" />
+            {mediaFiles.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {mediaFiles.map((m, i) => (
+                  <div key={i} className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '1' }}>
+                    {m.type === 'video'
+                      ? <video src={m.preview} className="w-full h-full object-cover" />
+                      : m.type === 'voice'
+                      ? <div className="w-full h-full flex items-center justify-center text-3xl" style={{ background: '#F5F3FF' }}>🎙️</div>
+                      : <img src={m.preview} alt="" className="w-full h-full object-cover" />
+                    }
+                    <button type="button" onClick={() => clearAttachment(i)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center">✕</button>
                   </div>
-                ) : (
-                  <img src={mediaPreview} alt="Attachment preview" className="w-full max-h-56 rounded-xl object-cover" />
-                )}
-                <button type="button" onClick={clearAttachment} className="absolute top-1 right-1 bg-warm-900 text-white w-8 h-8 rounded-full font-bold">x</button>
+                ))}
               </div>
             )}
 
@@ -326,9 +368,20 @@ const SignCard = () => {
                 <span className="text-3xl">{design.icon}</span>
                 <span className="text-[10px] font-extrabold tracking-[.18em] uppercase opacity-60">Live preview</span>
               </div>
-              <p className="flex-1 whitespace-pre-wrap break-words" style={{ color: design.ink, fontFamily: messageFont.family, fontSize: form.font_style === 'calligraphy' ? '2rem' : form.font_style === 'handwritten' ? '1.55rem' : '1.05rem', lineHeight: 1.55 }}>
+              <p className="whitespace-pre-wrap break-words" style={{ color: design.ink, fontFamily: messageFont.family, fontSize: form.font_style === 'calligraphy' ? '2rem' : form.font_style === 'handwritten' ? '1.55rem' : '1.05rem', lineHeight: 1.55 }}>
                 {form.content || `Your beautiful message for ${card.recipient_name} will appear here...`}
               </p>
+              {mediaFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {mediaFiles[0].type === 'image' || mediaFiles[0].type === 'gif'
+                    ? <img src={mediaFiles[0].preview} alt="" className="w-full rounded-xl object-cover max-h-48" />
+                    : mediaFiles[0].type === 'video'
+                    ? <video src={mediaFiles[0].preview} className="w-full rounded-xl max-h-48 object-cover" />
+                    : <div className="flex items-center gap-2 p-2 rounded-xl text-sm" style={{background:'rgba(255,255,255,0.3)'}}>🎙️ Voice note</div>
+                  }
+                  {mediaFiles.length > 1 && <p className="text-xs opacity-60">+{mediaFiles.length - 1} more</p>}
+                </div>
+              )}
               <div className="border-t mt-5 pt-4" style={{ borderColor: `${design.accent}35` }}>
                 <p className="font-bold" style={{ color: design.ink }}>{form.author_name || 'Your name'}</p>
                 {mediaFile?.type.startsWith('audio/') && <p className="text-xs mt-1 opacity-70">{'\uD83C\uDFA4'} Voice note attached</p>}

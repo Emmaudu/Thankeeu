@@ -27,20 +27,31 @@ const addMessage = async (req, res) => {
       else media_type = 'image';
     }
 
-    const { data: message, error } = await supabase
+    const msgData = {
+      card_id: card.id,
+      author_name,
+      author_email,
+      content,
+      is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
+      media_url,
+      media_type
+    };
+
+    // Try with font_style, fall back without if column doesn't exist
+    let message, error;
+    ({ data: message, error } = await supabase
       .from('messages')
-      .insert({
-        card_id: card.id,
-        author_name,
-        author_email,
-        content,
-        is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
-        font_style: font_style || 'handwritten',
-        media_url,
-        media_type
-      })
+      .insert({ ...msgData, font_style: font_style || 'handwritten' })
       .select()
-      .single();
+      .single());
+
+    if (error && error.message && error.message.includes('font_style')) {
+      ({ data: message, error } = await supabase
+        .from('messages')
+        .insert(msgData)
+        .select()
+        .single());
+    }
 
     if (error) throw error;
     res.status(201).json(message);

@@ -458,3 +458,63 @@ const demoTemplates = {
   }),
 };
 Object.assign(emailTemplates, demoTemplates);
+
+// ── NEW FEATURE TEMPLATES ──────────────────────────────────────────────────
+const newFeatureTemplates = {
+
+  reminder: ({ userName, recipientName, occasion, occasionDate, daysUntil, createLink }) => ({
+    subject: `⏰ Reminder: ${recipientName}'s ${occasion} is in ${daysUntil} days!`,
+    html: wrap(`
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">⏰ Don't forget!</h2>
+      <p>Hey ${userName},</p>
+      <p>Just a heads up — <strong>${recipientName}'s ${occasion}</strong> is coming up on <strong>${occasionDate}</strong> (in about ${daysUntil} days).</p>
+      <p>Now is the perfect time to create a beautiful group card and start collecting messages and gifts!</p>
+      ${btn('Create a card now 🎉', createLink)}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">You're receiving this because you set a reminder on Thankeeu. <a href="${process.env.APP_URL}/dashboard" style="color:#6C5CE7;">Manage reminders →</a></p>
+    `)
+  }),
+
+  cardOpened: ({ name, cardTitle, cardSlug, appUrl }) => ({
+    subject: `👀 Your card "${cardTitle}" was just opened!`,
+    html: wrap(`
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">👀 They opened it!</h2>
+      <p>Hey ${name},</p>
+      <p>The recipient just opened your card <strong>"${cardTitle}"</strong>. They're reading all the beautiful messages right now! 💜</p>
+      ${btn('View your card', `${appUrl}/card/${cardSlug}`)}
+    `)
+  }),
+
+  cardScheduled: ({ name, cardTitle, sendDate, cardSlug, appUrl }) => ({
+    subject: `📅 Card "${cardTitle}" is scheduled and ready!`,
+    html: wrap(`
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">📅 Your card is scheduled!</h2>
+      <p>Hey ${name},</p>
+      <p>Your card <strong>"${cardTitle}"</strong> is scheduled for delivery on <strong>${sendDate}</strong>.</p>
+      <p>Keep sharing the invite link so more people can sign before it's delivered!</p>
+      ${btn('View & share your card', `${appUrl}/card/${cardSlug}`)}
+    `)
+  }),
+
+  cardSent: ({ name, cardTitle, recipientName, cardSlug, appUrl }) => ({
+    subject: `🚀 Your card "${cardTitle}" was delivered to ${recipientName}!`,
+    html: wrap(`
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">🚀 Delivered!</h2>
+      <p>Hey ${name},</p>
+      <p>Your card <strong>"${cardTitle}"</strong> has been delivered to <strong>${recipientName}</strong>. We'll let you know when they open it 👀</p>
+      ${btn('View delivered card', `${appUrl}/card/${cardSlug}`)}
+    `)
+  }),
+
+  pendingToSign: ({ signerName, creatorName, recipientName, occasion, cardSlug, appUrl }) => ({
+    subject: `✍️ You're invited to sign ${recipientName}'s ${occasion} card!`,
+    html: wrap(`
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">✍️ You're invited to sign!</h2>
+      <p>Hey ${signerName},</p>
+      <p><strong>${creatorName}</strong> invited you to sign <strong>${recipientName}'s ${occasion} card</strong> on Thankeeu.</p>
+      <p>Create your free account (or log in) to sign — it only takes a minute!</p>
+      ${btn('Sign the card →', `${appUrl}/sign/${cardSlug}`)}
+    `)
+  }),
+
+};
+Object.assign(emailTemplates, newFeatureTemplates);

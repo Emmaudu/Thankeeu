@@ -51,8 +51,8 @@ const SubscriptionPage = () => {
   useEffect(() => {
     fetchSub();
     const params = new URLSearchParams(window.location.search);
-    if (params.get('sub') === 'success') {
-      const ref = params.get('reference');
+    if (params.get('sub') === 'success' || params.get('reference') || params.get('trxref')) {
+      const ref = params.get('reference') || params.get('trxref');
       // Clear the URL params so refresh doesn't re-verify
       window.history.replaceState({}, '', '/company/subscription');
       if (ref) {
@@ -62,7 +62,6 @@ const SubscriptionPage = () => {
             fetchSub();
           })
           .catch(() => {
-            // Even if verify fails, try fetching sub — payment may have been processed
             fetchSub();
             toast('Payment received. Your subscription should activate shortly.', { icon: '⏳' });
           });
@@ -85,10 +84,18 @@ const SubscriptionPage = () => {
     setPaying(plan);
     try {
       const res = await subscriptionAPI.initialize(plan);
-      // Redirect to Paystack checkout — page will unload, no need to reset state
-      window.location.href = `https://checkout.paystack.com/${res.data.access_code}`;
+      const { access_code, authorization_url } = res.data;
+
+      if (authorization_url) {
+        // Paystack returns both — authorization_url is the full redirect URL (most reliable)
+        window.location.href = authorization_url;
+      } else if (access_code) {
+        window.location.href = `https://checkout.paystack.com/${access_code}`;
+      } else {
+        throw new Error('No payment URL received');
+      }
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to start payment. Please try again.');
+      toast.error(err.response?.data?.error || err.message || 'Failed to start payment. Please try again.');
       setPaying(null);
     }
   };

@@ -1,109 +1,160 @@
 import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
 
 const Signup = () => {
-  useSEO({ title: 'Create Free Account — Thankeeu', description: 'Join 50,000+ people using Thankeeu to celebrate every milestone together.', canonical: '/signup' });
+  useSEO({ title: 'Create a Free Account — Thankeeu', noIndex: false });
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ full_name: '', email: '', password: '' });
-  const [loading, setLoading] = useState(false);
-  const [show, setShow] = useState(false);
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
 
-  const handleSubmit = async (e) => {
+  const [form, setForm] = useState({ full_name: '', email: '', username: '', password: '', confirm_password: '' });
+  const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const pwMatch = form.password && form.confirm_password && form.password === form.confirm_password;
+  const pwNoMatch = form.confirm_password && form.password !== form.confirm_password;
+
+  const handleSubmit = async e => {
     e.preventDefault();
+    if (!form.username.trim()) return toast.error('Username is required');
     if (form.password.length < 8) return toast.error('Password must be at least 8 characters');
+    if (form.password !== form.confirm_password) return toast.error('Passwords do not match');
     setLoading(true);
     try {
-      await signup(form.full_name, form.email, form.password);
-      toast.success('Account created! Welcome to Thankeeu 🎉');
-      navigate('/dashboard');
+      await signup(form.full_name, form.email, form.password, form.username);
+      toast.success('Account created! Welcome 💜');
+      navigate(returnTo || '/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to create account');
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const strength = form.password.length >= 12 ? 4 : form.password.length >= 10 ? 3 : form.password.length >= 8 ? 2 : form.password.length >= 4 ? 1 : 0;
-  const strengthColors = ['bg-gray-200','bg-rose-400','bg-amber-400','bg-teal-400','bg-primary-500'];
-  const strengthLabels = ['','Weak','Fair','Good','Strong 💪'];
-
   return (
-    <div className="min-h-screen flex flex-col" style={{ background:'linear-gradient(160deg,#F5F0FF 0%,#FDFCFF 50%,#FFF1F3 100%)' }}>
+    <div style={{ minHeight: '100vh', background: '#12102A', color: '#E4E2F6' }}>
       <Navbar />
-
-      <div className="flex-1 flex items-center justify-center p-4 py-12">
+      <div className="fixed inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(92,75,223,0.2) 0%, transparent 60%)' }} />
+      <div className="relative flex items-center justify-center p-4 py-10">
         <div className="w-full max-w-md">
 
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex justify-center gap-1 text-3xl mb-4">
-              {['🎂','💌','🎁','🎊','💜'].map((e,i) => (
-                <span key={i} className="animate-float" style={{ animationDelay:`${i*0.15}s` }}>{e}</span>
-              ))}
+          {returnTo && (
+            <div className="mb-5 p-4 rounded-2xl text-center" style={{ background: 'rgba(124,110,255,0.1)', border: '1px solid rgba(124,110,255,0.25)' }}>
+              <p className="text-sm font-semibold" style={{ color: '#B8B4FF' }}>✍️ Create an account to sign this card</p>
+              <p className="text-xs mt-1" style={{ color: '#7A7898' }}>Takes 1 minute · You'll be redirected back to sign</p>
             </div>
-            <h1 className="font-display text-3xl font-bold text-warm-900 mb-2">Start celebrating</h1>
-            <p className="text-warm-500 text-sm">Free to join · No credit card needed</p>
+          )}
+
+          <div className="text-center mb-6">
+            <div className="pill mx-auto mb-3">✨ Free forever</div>
+            <h1 style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, fontSize: '1.8rem', color: '#E4E2F6' }}>Create your account</h1>
+            <p className="text-sm mt-1" style={{ color: '#7A7898' }}>No credit card needed</p>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-lg border border-purple-100 p-8">
-            <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="rounded-2xl p-7" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(124,110,255,0.2)' }}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+
+              {/* Full name */}
               <div>
-                <label className="block text-sm font-bold text-warm-800 mb-1.5">Your name 👤</label>
-                <input type="text" className="input" placeholder="Your full name" required
-                  value={form.full_name} onChange={e => setForm({...form, full_name: e.target.value})} />
+                <label className="text-xs font-medium block mb-1.5" style={{ color: '#9490C8' }}>Full name</label>
+                <input className="input" placeholder="Your full name" required
+                  value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />
               </div>
+
+              {/* Username */}
               <div>
-                <label className="block text-sm font-bold text-warm-800 mb-1.5">Email address 📧</label>
-                <input type="email" className="input" placeholder="you@example.com" required
-                  value={form.email} onChange={e => setForm({...form, email: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-warm-800 mb-1.5">Password 🔐</label>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: '#9490C8' }}>
+                  Username <span style={{ color: '#EC4899' }}>*</span>
+                </label>
                 <div className="relative">
-                  <input type={show ? 'text' : 'password'} className="input pr-16" placeholder="At least 8 characters" required minLength={8}
-                    value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
-                  <button type="button" onClick={() => setShow(!show)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold px-2.5 py-1 rounded-lg bg-primary-50 text-primary-600">
-                    {show ? 'Hide' : 'Show'}
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: '#6B678A' }}>@</span>
+                  <input className="input pl-7" placeholder="yourname" required
+                    value={form.username}
+                    onChange={e => setForm({ ...form, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })} />
+                </div>
+                <p className="text-xs mt-1" style={{ color: '#6B678A' }}>Letters, numbers, underscores only. Used for card transfers.</p>
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: '#9490C8' }}>Email address</label>
+                <input type="email" className="input" placeholder="you@example.com" required
+                  value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: '#9490C8' }}>Password</label>
+                <div className="relative">
+                  <input type={showPw ? 'text' : 'password'} className="input pr-14"
+                    placeholder="At least 8 characters" required minLength={8}
+                    value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
+                  <button type="button" onClick={() => setShowPw(!showPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-lg"
+                    style={{ color: '#6B678A', background: 'rgba(124,110,255,0.1)' }}>
+                    {showPw ? 'Hide' : 'Show'}
                   </button>
                 </div>
+                {/* Strength bar */}
                 {form.password.length > 0 && (
-                  <div className="mt-2">
-                    <div className="flex flex-wrap gap-1 mb-1">
-                      {[1,2,3,4].map(i => (
-                        <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= strength ? strengthColors[strength] : 'bg-gray-200'}`} />
-                      ))}
-                    </div>
-                    <p className="text-xs text-warm-500">{strengthLabels[strength]}</p>
+                  <div className="flex gap-1 mt-1.5">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="h-1 flex-1 rounded-full transition-all" style={{
+                        background: form.password.length > i * 2 + 3
+                          ? i < 2 ? '#F59E0B' : '#10B981'
+                          : 'rgba(255,255,255,0.08)'
+                      }} />
+                    ))}
+                    <span className="text-xs ml-1" style={{ color: form.password.length >= 12 ? '#10B981' : form.password.length >= 8 ? '#F59E0B' : '#EF4444' }}>
+                      {form.password.length >= 12 ? 'Strong' : form.password.length >= 8 ? 'Good' : 'Weak'}
+                    </span>
                   </div>
                 )}
               </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full py-3.5 text-base">
+
+              {/* Confirm password */}
+              <div>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: '#9490C8' }}>Confirm password</label>
+                <div className="relative">
+                  <input type={showConfirm ? 'text' : 'password'} className="input pr-14"
+                    placeholder="Repeat your password" required
+                    value={form.confirm_password} onChange={e => setForm({ ...form, confirm_password: e.target.value })}
+                    style={{ borderColor: pwNoMatch ? '#EF4444' : pwMatch ? '#10B981' : undefined }} />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-lg"
+                    style={{ color: '#6B678A', background: 'rgba(124,110,255,0.1)' }}>
+                    {showConfirm ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+                {pwNoMatch && <p className="text-xs mt-1" style={{ color: '#EF4444' }}>⚠ Passwords do not match</p>}
+                {pwMatch && <p className="text-xs mt-1" style={{ color: '#10B981' }}>✓ Passwords match</p>}
+              </div>
+
+              <button type="submit" disabled={loading || pwNoMatch}
+                className="btn-primary w-full py-3.5 mt-1 disabled:opacity-50">
                 {loading
-                  ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creating account…</span>
-                  : '🎉 Create free account'}
+                  ? <span className="flex items-center justify-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Creating account...
+                    </span>
+                  : '✨ Create account'}
               </button>
             </form>
-            <p className="text-center text-xs text-warm-400 mt-4">
-              By signing up you agree to our{' '}
-              <Link to="/policy#terms" className="text-primary-500 font-semibold">Terms</Link> &{' '}
-              <Link to="/policy#privacy" className="text-primary-500 font-semibold">Privacy</Link>
+
+            <p className="text-center text-sm mt-4" style={{ color: '#6B678A' }}>
+              Already have an account?{' '}
+              <Link to={`/login${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+                style={{ color: '#7C6EFF' }} className="font-medium">Sign in →</Link>
             </p>
-            <div className="mt-6 pt-6 border-t border-purple-50 text-center">
-              <p className="text-sm text-warm-600">
-                Already have an account?{' '}
-                <Link to="/login" className="font-bold text-primary-500 hover:text-primary-700">Sign in →</Link>
-              </p>
-            </div>
           </div>
-          <p className="text-center text-xs text-warm-400 mt-5">🔒 Secure · 50,000+ people worldwide</p>
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

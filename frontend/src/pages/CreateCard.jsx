@@ -73,7 +73,7 @@ const CreateCard = () => {
     occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
     title: `${user?.full_name?.split(' ')[0] || 'Someone'}'s Birthday Card`,
     recipient_name: '', recipient_email: '', send_date: '',
-    deadline: '', is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
+    send_time: '09:00', deadline: '', deadline_time: '23:59', is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
     allow_private_messages: true, send_reminders: true, hide_amounts: false
   });
 
@@ -309,10 +309,22 @@ const CreateCard = () => {
                     onChange={e => set('send_date', e.target.value)} />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Delivery time</label>
+                  <input type="time" className="input" value={form.send_time || '09:00'}
+                    onChange={e => set('send_time', e.target.value)} />
+                  <p className="text-xs text-warm-400 mt-1">Time card is delivered to recipient</p>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-warm-700 mb-1.5">Signing deadline</label>
                   <input type="date" className="input" value={form.deadline}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={e => set('deadline', e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Deadline time</label>
+                  <input type="time" className="input" value={form.deadline_time || '23:59'}
+                    onChange={e => set('deadline_time', e.target.value)} />
+                  <p className="text-xs text-warm-400 mt-1">Time reminder is sent to unsigned invitees</p>
                 </div>
               </div>
               {/* Toggles */}

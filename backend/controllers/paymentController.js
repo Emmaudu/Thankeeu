@@ -71,24 +71,37 @@ const verifyContribution = async ({ contributionId, reference, transaction }) =>
 
   if (error) throw error;
   if (updated.message_id) {
-    const { error: messageError } = await supabase
+    // Try updating with payment columns, fall back without if they don't exist
+    let messageError;
+    ({ error: messageError } = await supabase
       .from('messages')
       .update({ contributed_amount: updated.amount, payment_reference: reference, payment_verified: true })
-      .eq('id', updated.message_id);
+      .eq('id', updated.message_id));
+    if (messageError && messageError.message &&
+      (messageError.message.includes('payment_verified') || messageError.message.includes('payment_reference'))) {
+      ({ error: messageError } = await supabase
+        .from('messages')
+        .update({ contributed_amount: updated.amount })
+        .eq('id', updated.message_id));
+    }
     if (messageError) throw messageError;
   }
   return { contribution: updated, alreadyProcessed: false };
 };
 
 const activatePurchasedCard = async ({ cardSlug, userId, reference }) => {
-  const { data: card, error: cardError } = await supabase
+  // Select card — try with payment columns, fall back without
+  let card, cardError;
+  ({ data: card, error: cardError } = await supabase
     .from('cards')
-    .select('slug, creator_id, status, payment_reference, payment_verified')
+    .select('*')
     .eq('slug', cardSlug)
     .eq('creator_id', userId)
-    .single();
+    .single());
 
   if (cardError || !card) throw cardError || new Error('Paid card could not be found');
+
+  // If payment_verified exists and is true, card already paid
   if (card.payment_verified) {
     if (card.payment_reference && card.payment_reference !== reference) {
       throw new Error('Card was already paid with a different transaction');
@@ -96,18 +109,34 @@ const activatePurchasedCard = async ({ cardSlug, userId, reference }) => {
     return { card, alreadyProcessed: true };
   }
 
-  const { data: activated, error: activateError } = await supabase
+  // Activate the card — try full update, fall back to minimal if columns missing
+  const fullUpdate = {
+    status: 'active',
+    payment_reference: reference,
+    payment_verified: true,
+    updated_at: new Date()
+  };
+
+  let activated, activateError;
+  ({ data: activated, error: activateError } = await supabase
     .from('cards')
-    .update({
-      status: 'active',
-      payment_reference: reference,
-      payment_verified: true,
-      updated_at: new Date()
-    })
+    .update(fullUpdate)
     .eq('slug', cardSlug)
     .eq('creator_id', userId)
-    .select('slug, creator_id, status, payment_reference, payment_verified')
-    .single();
+    .select('*')
+    .single());
+
+  // If payment columns don't exist, retry with just status update
+  if (activateError && activateError.message &&
+    (activateError.message.includes('payment_verified') || activateError.message.includes('payment_reference'))) {
+    ({ data: activated, error: activateError } = await supabase
+      .from('cards')
+      .update({ status: 'active', updated_at: new Date() })
+      .eq('slug', cardSlug)
+      .eq('creator_id', userId)
+      .select('*')
+      .single());
+  }
 
   if (activateError) throw activateError;
   return { card: activated, alreadyProcessed: false };
@@ -141,12 +170,24 @@ const initializeCardPurchase = async (req, res) => {
     if (!amount) return res.status(400).json({ error: 'Invalid plan type' });
 
     if (card_slug) {
-      const { data: card, error } = await supabase
+      // Try select with payment_verified, fall back to without if column doesn't exist
+      let card, cardErr;
+      ({ data: card, error: cardErr } = await supabase
         .from('cards')
         .select('slug, creator_id, status, payment_verified')
         .eq('slug', card_slug)
-        .single();
-      if (error || !card || card.creator_id !== req.user.id) {
+        .single());
+
+      // If payment_verified column doesn't exist, retry without it
+      if (cardErr && cardErr.message && cardErr.message.includes('payment_verified')) {
+        ({ data: card, error: cardErr } = await supabase
+          .from('cards')
+          .select('slug, creator_id, status')
+          .eq('slug', card_slug)
+          .single());
+      }
+
+      if (cardErr || !card || card.creator_id !== req.user.id) {
         return res.status(403).json({ error: 'Card is not available for this payment' });
       }
       if (card.payment_verified) {
@@ -259,7 +300,7 @@ const initializeContribution = async (req, res) => {
           { display_name: 'Occasion', variable_name: 'occasion', value: card.occasion }
         ]
       },
-      callback_url: `${process.env.FRONTEND_URL}/sign/${card_slug}?contributed=true`
+      callback_url: `${req.get('origin') || process.env.FRONTEND_URL || 'https://thankeeu.com'}/sign/${card_slug}?contributed=true`
     }, { headers: paystackHeaders(), timeout: PAYSTACK_TIMEOUT_MS });
 
     await supabase.from('contributions').update({

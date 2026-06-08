@@ -53,26 +53,68 @@ const memberSignup = async (req, res) => {
     const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', company_code).single();
     if (!company) return res.status(404).json({ error: 'Company not found. Check your company code.' });
 
-    // Domain validation
-    const domainOk = await validateDomain(email, company.id);
-    if (!domainOk) {
-      const companyDomain = getDomain(company.email);
-      return res.status(400).json({
-        error: `Your email must use your company domain (@${companyDomain}). Personal emails are not allowed.`
-      });
+    // Check if employee was pre-imported by HR (skip domain validation for pre-seeded members)
+    const { data: preImported } = await supabase
+      .from('company_members')
+      .select('id, status')
+      .eq('company_id', company.id)
+      .eq('email', email.toLowerCase().trim())
+      .maybeSingle();
+
+    // If not pre-imported, do domain validation as fallback
+    if (!preImported) {
+      const domainOk = await validateDomain(email, company.id);
+      if (!domainOk) {
+        const companyDomain = getDomain(company.email);
+        // Soft warning — allow if HR explicitly added them, block only unknown outsiders
+        // We warn but still check whether company allows open join
+        const { data: companySettings } = await supabase
+          .from('companies').select('allow_any_domain').eq('id', company.id).maybeSingle();
+        if (!companySettings?.allow_any_domain) {
+          return res.status(400).json({
+            error: `Your email must match your company domain (@${companyDomain}), or ask your HR to import your email first. Company code: ${company_code}`
+          });
+        }
+      }
     }
 
-    // Check not already registered
-    const { data: existing } = await supabase.from('company_members').select('id').eq('email', email).maybeSingle();
-    if (existing) return res.status(400).json({ error: 'Email already registered' });
-
     const password_hash = await bcrypt.hash(password, 12);
-    const { data: member, error } = await supabase
-      .from('company_members')
-      .insert({ company_id: company.id, first_name, last_name, email, password_hash, role, department, profile_picture_url: profile_picture_url || null, status: 'pending' })
-      .select('id, first_name, last_name, email, role, department, status, company_id')
-      .single();
-    if (error) throw error;
+    let member, memberError;
+
+    if (preImported) {
+      // Employee was pre-imported by HR — update their record with password + personal details
+      if (preImported.status === 'approved') {
+        // Already approved (imported + approved by HR), just set password
+        const { data: updated, error } = await supabase
+          .from('company_members')
+          .update({ first_name, last_name, password_hash, department: department || undefined, profile_picture_url: profile_picture_url || null })
+          .eq('id', preImported.id)
+          .select('id, first_name, last_name, email, role, department, status, company_id')
+          .single();
+        member = updated; memberError = error;
+      } else {
+        // Pre-imported but not yet approved — update details, keep status as pending
+        const { data: updated, error } = await supabase
+          .from('company_members')
+          .update({ first_name, last_name, password_hash, role, department: department || undefined, profile_picture_url: profile_picture_url || null, status: 'pending' })
+          .eq('id', preImported.id)
+          .select('id, first_name, last_name, email, role, department, status, company_id')
+          .single();
+        member = updated; memberError = error;
+      }
+    } else {
+      // New employee — check not already registered with a password
+      const { data: existing } = await supabase.from('company_members').select('id, password_hash').eq('email', email.toLowerCase().trim()).eq('company_id', company.id).maybeSingle();
+      if (existing?.password_hash) return res.status(400).json({ error: 'Email already registered in this company' });
+
+      const { data: inserted, error } = await supabase
+        .from('company_members')
+        .insert({ company_id: company.id, first_name, last_name, email: email.toLowerCase().trim(), password_hash, role, department, profile_picture_url: profile_picture_url || null, status: 'pending' })
+        .select('id, first_name, last_name, email, role, department, status, company_id')
+        .single();
+      member = inserted; memberError = error;
+    }
+    if (memberError) throw memberError;
 
     // Notify HR + team leader
     const { data: hrCompany } = await supabase.from('companies').select('email, name, contact_person').eq('id', company.id).single();

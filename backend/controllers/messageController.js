@@ -15,32 +15,58 @@ const addMessage = async (req, res) => {
     if (!card) return res.status(404).json({ error: 'Card not found' });
     if (card.status === 'draft') return res.status(403).json({ error: 'Card is not yet active' });
 
+    // Primary media file — first file named 'media', or first file of any name
+    const primaryFile = req.files?.find(f => f.fieldname === 'media') || req.files?.[0] || req.file;
     let media_url = null;
     let media_type = null;
 
-    if (req.file) {
-      media_url = req.file.path;
-      const mime = req.file.mimetype;
+    if (primaryFile) {
+      media_url = primaryFile.path;
+      const mime = primaryFile.mimetype;
       if (mime.startsWith('video/')) media_type = 'video';
       else if (mime.startsWith('audio/')) media_type = 'voice';
       else if (mime === 'image/gif') media_type = 'gif';
       else media_type = 'image';
     }
 
-    const { data: message, error } = await supabase
+    // Additional gallery files
+    const galleryFiles = (req.files || []).filter(f => f.fieldname !== 'media' && f.fieldname.startsWith('media_gallery'));
+    const media_gallery = galleryFiles.length > 0
+      ? JSON.stringify(galleryFiles.map(f => ({
+          media_url: f.path,
+          media_type: f.mimetype.startsWith('video/') ? 'video'
+            : f.mimetype.startsWith('audio/') ? 'voice'
+            : f.mimetype === 'image/gif' ? 'gif'
+            : 'image'
+        })))
+      : null;
+
+    const msgData = {
+      card_id: card.id,
+      author_name,
+      author_email,
+      content,
+      is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
+      media_url,
+      media_type,
+      ...(media_gallery && { media_gallery }),
+    };
+
+    // Try with font_style, fall back without if column doesn't exist
+    let message, error;
+    ({ data: message, error } = await supabase
       .from('messages')
-      .insert({
-        card_id: card.id,
-        author_name,
-        author_email,
-        content,
-        is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
-        font_style: font_style || 'handwritten',
-        media_url,
-        media_type
-      })
+      .insert({ ...msgData, font_style: font_style || 'handwritten' })
       .select()
-      .single();
+      .single());
+
+    if (error && error.message && error.message.includes('font_style')) {
+      ({ data: message, error } = await supabase
+        .from('messages')
+        .insert(msgData)
+        .select()
+        .single());
+    }
 
     if (error) throw error;
     res.status(201).json(message);

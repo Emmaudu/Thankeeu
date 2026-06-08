@@ -1,12 +1,12 @@
 import { useSEO } from '../hooks/useSEO';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { cardsAPI, memberCardsAPI, messagesAPI } from '../utils/api';
+import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
@@ -19,16 +19,47 @@ const occasionLabel = {
   new_year: 'New Year', other: 'Special Day',
 };
 
-const Media = ({ message, large = false }) => {
-  if (!message.media_url) return null;
-  if (message.media_type === 'video') return <video src={message.media_url} controls className={`w-full rounded-2xl object-cover ${large ? 'max-h-[60vh]' : 'h-36'}`} />;
-  if (message.media_type === 'voice') return (
-    <div className="rounded-2xl bg-white/75 border border-white p-3 flex items-center gap-3">
-      <span className="text-2xl">{'\uD83C\uDFA7'}</span>
-      <audio src={message.media_url} controls className="w-full" />
+const MediaCarousel = ({ items, large = false }) => {
+  const [idx, setIdx] = useState(0);
+  if (!items || items.length === 0) return null;
+  const item = items[idx];
+  return (
+    <div className="relative">
+      {item.media_type === 'video' && <video src={item.media_url} controls className={`w-full rounded-2xl object-cover ${large ? 'max-h-[60vh]' : 'h-36'}`} />}
+      {item.media_type === 'voice' && (
+        <div className="rounded-2xl bg-white/75 border border-white p-3 flex items-center gap-3">
+          <span className="text-2xl">🎧</span><audio src={item.media_url} controls className="w-full" />
+        </div>
+      )}
+      {(!item.media_type || item.media_type === 'image' || item.media_type === 'gif') && (
+        <img src={item.media_url} alt="" className={`w-full rounded-2xl object-cover ${large ? 'max-h-[60vh]' : 'h-36'}`} />
+      )}
+      {items.length > 1 && (
+        <>
+          <button onClick={e => { e.stopPropagation(); setIdx(i => (i - 1 + items.length) % items.length); }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white text-xs flex items-center justify-center">‹</button>
+          <button onClick={e => { e.stopPropagation(); setIdx(i => (i + 1) % items.length); }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white text-xs flex items-center justify-center">›</button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {items.map((_, i) => <div key={i} className="w-1.5 h-1.5 rounded-full transition-all" style={{ background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)' }} />)}
+          </div>
+          <div className="absolute top-2 right-2 bg-black/40 text-white text-xs px-2 py-0.5 rounded-full">{idx + 1}/{items.length}</div>
+        </>
+      )}
     </div>
   );
-  return <img src={message.media_url} alt={`From ${message.author_name}`} className={`w-full rounded-2xl object-cover ${large ? 'max-h-[60vh]' : 'h-36'}`} />;
+};
+
+const Media = ({ message, large = false }) => {
+  const items = [];
+  if (message.media_url) items.push({ media_url: message.media_url, media_type: message.media_type });
+  if (message.media_gallery) {
+    try {
+      const g = typeof message.media_gallery === 'string' ? JSON.parse(message.media_gallery) : message.media_gallery;
+      if (Array.isArray(g)) items.push(...g);
+    } catch {}
+  }
+  return <MediaCarousel items={items} large={large} />;
 };
 
 const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }) => {
@@ -98,6 +129,77 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
   );
 };
 
+const TransferCardButton = ({ slug }) => {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [transferring, setTransferring] = useState(false);
+
+  const search = async q => {
+    if (q.trim().length < 2) { setResults([]); return; }
+    setSearching(true);
+    try { const r = await authAPI.searchUsers(q); setResults(r.data||[]); }
+    catch {} finally { setSearching(false); }
+  };
+
+  const transfer = async username => {
+    setTransferring(true);
+    try {
+      await dashboardAPI.transferCard({ card_slug: slug, recipient_username: username });
+      toast.success(`Card transferred to @${username}! 🎉`);
+      setOpen(false);
+    } catch(err) { toast.error(err.response?.data?.error||'Transfer failed'); }
+    finally { setTransferring(false); }
+  };
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className="btn-secondary text-sm">🎁 Transfer card</button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}>
+          <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg" style={{ fontFamily:'Space Grotesk,sans-serif' }}>Transfer card box</h3>
+              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">Search for a Thankeeu user by username. The full card box will appear in their Received tab.</p>
+            <div className="relative mb-3">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">@</span>
+              <input className="input-light pl-7 w-full" placeholder="username" value={query}
+                onChange={e => { setQuery(e.target.value); search(e.target.value); }} />
+            </div>
+            {searching && <p className="text-xs text-center text-gray-400 mb-2">Searching...</p>}
+            {results.length > 0 && (
+              <div className="space-y-2 mb-3 max-h-48 overflow-y-auto">
+                {results.map(u => (
+                  <button key={u.id} onClick={() => transfer(u.username)} disabled={transferring}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border hover:bg-purple-50 text-left transition-all"
+                    style={{ borderColor:'#EDE9FF' }}>
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                      style={{ background:'linear-gradient(135deg,#7C6EFF,#EC4899)', color:'#fff' }}>
+                      {u.avatar_url ? <img src={u.avatar_url} className="w-full h-full rounded-full object-cover" alt="" /> : u.full_name?.[0]}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{u.full_name}</p>
+                      <p className="text-xs text-gray-400">@{u.username}</p>
+                    </div>
+                    <span className="ml-auto text-xs font-semibold" style={{ color:'#5B4BDF' }}>Transfer →</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {query.length >= 2 && !searching && results.length === 0 && (
+              <p className="text-xs text-center text-gray-400 mb-3">No users found for "@{query}"</p>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+
 const CardView = () => {
   const { slug } = useParams();
   const { user } = useAuth();
@@ -127,8 +229,10 @@ const CardView = () => {
         ? await memberCardsAPI.getOne(slug)
         : await cardsAPI.getPublic(slug);
       setCard(response.data);
-    } catch {
-      if (!silent) toast.error('Card not found or not available');
+      // Track card opened — notifies creator via dashboard + email
+      dashboardAPI.trackCardOpened(slug).catch(() => {});
+    } catch (err) {
+      if (!silent) toast.error(err.response?.data?.error || 'Card not found or not available');
     } finally {
       setLoading(false);
     }
@@ -242,6 +346,7 @@ const CardView = () => {
           </button>
           <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied'); }} className="btn-secondary">Copy link</button>
           <button onClick={() => window.print()} className="btn-secondary">Save or print</button>
+          {card.isCreator && <TransferCardButton slug={slug} />}
         </div>
 
         <section>
@@ -295,8 +400,8 @@ const CardView = () => {
       {openMessage && (
         <div className="message-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setOpenMessage(null)}>
           <div
-            className={`card-art ${cardArtClass(design)} celebration-shell w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[2rem] p-6 sm:p-9`}
-            style={{ background: design.background, color: design.ink }}
+            className={`card-art ${cardArtClass(design)} celebration-shell w-full max-w-2xl rounded-[2rem] p-6 sm:p-9`}
+            style={{ background: design.background, color: design.ink, maxHeight: '90vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
             onClick={event => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 mb-6">
@@ -328,7 +433,7 @@ const CardView = () => {
         </div>
       )}
 
-      <Footer />
+
     </div>
   );
 };

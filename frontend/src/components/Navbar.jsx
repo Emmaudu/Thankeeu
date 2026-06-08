@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
@@ -8,16 +8,25 @@ const Navbar = ({ onBookDemo }) => {
   const { company, logout: coLogout } = useCompanyAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
-  const [open, setOpen]       = useState(false);
+  const [open, setOpen]         = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [teamsOpen, setTeamsOpen]       = useState(false);
+  const teamsRef = useRef(null);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
-  useEffect(() => { setOpen(false); setDropdownOpen(false); }, [location.pathname]);
+  useEffect(() => { setOpen(false); setDropdownOpen(false); setTeamsOpen(false); }, [location.pathname]);
+
+  // Close teams dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => { if (teamsRef.current && !teamsRef.current.contains(e.target)) setTeamsOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
   useEffect(() => {
     if (open) document.body.classList.add('no-scroll');
     else       document.body.classList.remove('no-scroll');
@@ -53,9 +62,8 @@ const Navbar = ({ onBookDemo }) => {
             {/* Desktop nav links */}
             <div className="hidden md:flex items-center gap-0.5">
               {[
-                { to: '/pricing',        label: 'Pricing',  icon: '✨' },
-                { to: '/company/signup', label: 'For Teams', icon: '🏢' },
-                { to: '/blog',           label: 'Blog',      icon: '📝' },
+                { to: '/pricing', label: 'Pricing', icon: '✨' },
+                { to: '/blog',    label: 'Blog',    icon: '📝' },
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to}
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
@@ -66,6 +74,63 @@ const Navbar = ({ onBookDemo }) => {
                   <span>{icon}</span>{label}
                 </Link>
               ))}
+
+              {/* Teams dropdown */}
+              <div className="relative" ref={teamsRef}>
+                <button
+                  onClick={() => setTeamsOpen(!teamsOpen)}
+                  className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
+                    teamsOpen ? 'bg-primary-50 text-primary-600' : 'text-warm-700 hover:text-primary-600 hover:bg-primary-50'
+                  }`}>
+                  🏢 Teams
+                  <span className="text-xs opacity-60" style={{ marginLeft: 2 }}>{teamsOpen ? '▲' : '▼'}</span>
+                </button>
+                {teamsOpen && (
+                  <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-purple-100 py-2 z-[60] animate-fade-in">
+                    <div className="px-4 py-2 mb-1" style={{ borderBottom: '1px solid #F3F0FF' }}>
+                      <p className="text-xs font-bold uppercase tracking-wider text-primary-400">Thankeeu for Teams</p>
+                    </div>
+
+                    <p className="px-4 pt-2 pb-1 text-xs font-semibold text-warm-400 uppercase tracking-wider">Team Members</p>
+                    <Link to="/member/login" onClick={() => setTeamsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                      <span className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-base">👤</span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">Team Member Login</p>
+                        <p className="text-xs text-warm-400">Access your team workspace</p>
+                      </div>
+                    </Link>
+                    <Link to="/member/signup" onClick={() => setTeamsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                      <span className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center text-base">✍️</span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">Join Your Company</p>
+                        <p className="text-xs text-warm-400">Sign up with your company code</p>
+                      </div>
+                    </Link>
+
+                    <div className="mx-4 my-1" style={{ borderTop: '1px solid #F3F0FF' }} />
+
+                    <p className="px-4 pt-2 pb-1 text-xs font-semibold text-warm-400 uppercase tracking-wider">HR / Company</p>
+                    <Link to="/company/login" onClick={() => setTeamsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                      <span className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-base">🏢</span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">Company (HR) Login</p>
+                        <p className="text-xs text-warm-400">Manage your team account</p>
+                      </div>
+                    </Link>
+                    <Link to="/company/signup" onClick={() => setTeamsOpen(false)}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                      <span className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-base">🚀</span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">Create Company Account</p>
+                        <p className="text-xs text-warm-400">Set up Thankeeu for Teams</p>
+                      </div>
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* CTA cluster */}
@@ -130,15 +195,35 @@ const Navbar = ({ onBookDemo }) => {
 
             <div className="p-4 space-y-1">
               {[
-                { to: '/pricing',        label: 'Pricing',  icon: '✨' },
-                { to: '/company/signup', label: 'For Teams', icon: '🏢' },
-                { to: '/blog',           label: 'Blog',      icon: '📝' },
+                { to: '/pricing', label: 'Pricing', icon: '✨' },
+                { to: '/blog',    label: 'Blog',    icon: '📝' },
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to}
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-primary-50 hover:text-primary-600 transition-all">
                   <span className="text-base">{icon}</span>{label}
                 </Link>
               ))}
+
+              {/* Teams section in mobile */}
+              <div className="pt-2 pb-1">
+                <p className="px-4 py-1 text-xs font-bold text-warm-400 uppercase tracking-wider">🏢 Teams</p>
+              </div>
+              <Link to="/member/login" className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-blue-50 hover:text-blue-700 transition-all">
+                <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-sm">👤</span>
+                Team Member Login
+              </Link>
+              <Link to="/member/signup" className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-green-50 hover:text-green-700 transition-all">
+                <span className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center text-sm">✍️</span>
+                Join Your Company
+              </Link>
+              <Link to="/company/login" className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-purple-50 hover:text-primary-600 transition-all">
+                <span className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-sm">🏢</span>
+                Company (HR) Login
+              </Link>
+              <Link to="/company/signup" className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-amber-50 hover:text-amber-700 transition-all">
+                <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-sm">🚀</span>
+                Create Company Account
+              </Link>
             </div>
 
             <div className="p-4 pt-0 space-y-2">

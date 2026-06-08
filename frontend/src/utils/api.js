@@ -69,6 +69,10 @@ export const authAPI = {
   login:          (data)   => api.post('/auth/login', data),
   getMe:          ()       => api.get('/auth/me'),
   updateProfile:  (data)   => api.put('/auth/profile', data),
+  changePassword: (data)   => api.put('/auth/password', data),
+  searchUsers:          (q)      => api.get(`/auth/search?q=${encodeURIComponent(q)}`),
+  verifyEmail:          (token)  => publicAxios.get(`/auth/verify-email?token=${token}`),
+  resendVerification:   ()       => api.post('/auth/resend-verification'),
   forgotPassword: (email)  => api.post('/auth/forgot-password', { email }),
   resetPassword:  (data)   => api.post('/auth/reset-password', data),
 };
@@ -105,9 +109,22 @@ export const paymentsAPI = {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────
 export const dashboardAPI = {
-  get:                    ()  => api.get('/dashboard'),
-  getStats:               ()  => api.get('/dashboard/stats'),
-  markNotificationsRead:  ()  => api.post('/dashboard/notifications/read'),
+  get:                    ()           => api.get('/dashboard'),
+  getStats:               ()           => api.get('/dashboard/stats'),
+  markNotificationsRead:  ()           => api.post('/dashboard/notifications/read'),
+  getFinancialHistory:    ()           => api.get('/dashboard/financial-history'),
+  getDeliveredCards:      ()           => api.get('/dashboard/delivered'),
+  getReceivedCards:       ()           => api.get('/dashboard/received'),
+  getPendingToSign:       ()           => api.get('/dashboard/pending-to-sign'),
+  transferCard:           (data)       => api.post('/dashboard/transfer-card', data),
+  trackCardOpened: (slug) => publicAxios.post(`/dashboard/card-opened/${slug}`),
+};
+
+export const remindersAPI = {
+  getAll:   ()      => api.get('/reminders'),
+  create:   (data)  => api.post('/reminders', data),
+  update:   (id, d) => api.put(`/reminders/${id}`, d),
+  delete:   (id)    => api.delete(`/reminders/${id}`),
 };
 
 // ─── Admin (user) ─────────────────────────────────────────────────────────

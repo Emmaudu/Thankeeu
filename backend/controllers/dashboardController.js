@@ -119,3 +119,129 @@ const getDashboardStats = async (req, res) => {
 };
 
 module.exports = { getDashboard, markNotificationsRead, getDashboardStats };
+
+// Financial history — all gift contributions on creator's cards
+const getFinancialHistory = async (req, res) => {
+  try {
+    const { data } = await supabase
+      .from('contributions')
+      .select('id, amount, contributor_name, contributor_email, status, created_at, cards!inner(slug, title, recipient_name, occasion)')
+      .eq('cards.creator_id', req.user.id)
+      .eq('status', 'success')
+      .order('created_at', { ascending: false });
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to load financial history' }); }
+};
+
+// Delivered cards — sent cards (never expire)
+const getDeliveredCards = async (req, res) => {
+  try {
+    const { data } = await supabase
+      .from('cards')
+      .select('*, messages(count)')
+      .eq('creator_id', req.user.id)
+      .eq('status', 'sent')
+      .order('updated_at', { ascending: false });
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to load delivered cards' }); }
+};
+
+// Received cards (transferred to this user)
+const getReceivedCards = async (req, res) => {
+  try {
+    const { data } = await supabase
+      .from('received_cards')
+      .select('*, cards(*, messages(count))')
+      .eq('recipient_user_id', req.user.id)
+      .order('transferred_at', { ascending: false });
+    res.json((data || []).map(r => ({ ...r.cards, received_at: r.transferred_at, received_id: r.id })));
+  } catch (err) { res.status(500).json({ error: 'Failed to load received cards' }); }
+};
+
+// Pending to sign — cards where this user was invited via email
+const getPendingToSign = async (req, res) => {
+  try {
+    const { data } = await supabase
+      .from('card_invites')
+      .select('*, cards(slug, title, recipient_name, occasion, design_theme, background_color, status, deadline)')
+      .eq('user_id', req.user.id)
+      .eq('signed', false)
+      .order('created_at', { ascending: false });
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to load pending cards' }); }
+};
+
+// Transfer card to another user by username
+const transferCard = async (req, res) => {
+  try {
+    const { card_slug, recipient_username } = req.body;
+    if (!card_slug || !recipient_username)
+      return res.status(400).json({ error: 'Card and recipient username are required' });
+
+    const { data: card } = await supabase.from('cards').select('id, creator_id, title').eq('slug', card_slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    if (card.creator_id !== req.user.id) return res.status(403).json({ error: 'Only the card creator can transfer it' });
+
+    const { data: recipient } = await supabase.from('users').select('id, email, full_name').eq('username', recipient_username.toLowerCase()).maybeSingle();
+    if (!recipient) return res.status(404).json({ error: `User @${recipient_username} not found` });
+
+    const { error } = await supabase.from('received_cards').upsert({
+      card_id: card.id,
+      recipient_user_id: recipient.id,
+      transferred_by: req.user.id,
+      transferred_at: new Date()
+    }, { onConflict: 'card_id,recipient_user_id' });
+    if (error) throw error;
+
+    // Notify recipient
+    await supabase.from('notifications').insert({
+      user_id: recipient.id,
+      type: 'card_received',
+      title: `🎉 You received a card box!`,
+      body: `${req.user.full_name} transferred "${card.title}" to your Received tab.`,
+      meta: { card_slug, transferred_by: req.user.id }
+    });
+
+    res.json({ message: `Card transferred to @${recipient_username} successfully` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to transfer card' });
+  }
+};
+
+// Track when recipient opens the card
+const trackCardOpened = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { data: card } = await supabase.from('cards').select('id, creator_id, title, opened_at, opened_notified').eq('slug', slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    if (!card.opened_at) {
+      await supabase.from('cards').update({ opened_at: new Date() }).eq('id', card.id);
+    }
+
+    if (!card.opened_notified && card.creator_id) {
+      await supabase.from('cards').update({ opened_notified: true }).eq('id', card.id);
+      await supabase.from('notifications').insert({
+        user_id: card.creator_id,
+        type: 'card_opened',
+        title: `👀 Your card was opened!`,
+        body: `The recipient just opened "${card.title}"`,
+        meta: { card_slug: slug }
+      });
+      // Email creator
+      const { data: creator } = await supabase.from('users').select('email, full_name').eq('id', card.creator_id).single();
+      if (creator) {
+        const { sendEmail } = require('../utils/email');
+        sendEmail({ to: creator.email, template: 'cardOpened', data: { name: creator.full_name, cardTitle: card.title, cardSlug: slug, appUrl: process.env.APP_URL } }).catch(() => {});
+      }
+    }
+    res.json({ opened: true });
+  } catch (err) { res.status(500).json({ error: 'Failed to track open' }); }
+};
+
+module.exports = {
+  getDashboard, markNotificationsRead, getDashboardStats,
+  getFinancialHistory, getDeliveredCards, getReceivedCards,
+  getPendingToSign, transferCard, trackCardOpened
+};

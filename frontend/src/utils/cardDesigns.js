@@ -81,6 +81,51 @@ export const CARD_DESIGNS = [
     soft: '#fafafa',
     art: 'confetti',
   },
+  {
+    id: 'cherry_blossom', name: 'Cherry Blossom', icon: '🌸',
+    background: 'linear-gradient(145deg, #fff0f6 0%, #ffd6e7 45%, #ffeaa7 100%)',
+    ink: '#831843', accent: '#f472b6', soft: '#fff0f6', art: 'petals',
+  },
+  {
+    id: 'ocean_breeze', name: 'Ocean Breeze', icon: '🌊',
+    background: 'linear-gradient(145deg, #e0f7fa 0%, #b2ebf2 45%, #e8f5e9 100%)',
+    ink: '#004d61', accent: '#0097a7', soft: '#e0f7fa', art: 'waves',
+  },
+  {
+    id: 'sunset_vibes', name: 'Sunset Vibes', icon: '🌅',
+    background: 'linear-gradient(145deg, #fff3e0 0%, #ffe0b2 35%, #ffccbc 65%, #f8bbd0 100%)',
+    ink: '#4a1942', accent: '#e64a19', soft: '#fff3e0', art: 'sunburst',
+  },
+  {
+    id: 'lavender_dream', name: 'Lavender Dream', icon: '💜',
+    background: 'linear-gradient(145deg, #f3e5f5 0%, #e1bee7 45%, #d1c4e9 100%)',
+    ink: '#4a148c', accent: '#8e24aa', soft: '#f3e5f5', art: 'stars',
+  },
+  {
+    id: 'neon_party', name: 'Neon Party', icon: '🎊',
+    background: 'linear-gradient(145deg, #1a0533 0%, #2d0052 45%, #0d002b 100%)',
+    ink: '#ffffff', accent: '#e040fb', soft: '#2d0052', art: 'confetti', dark: true,
+  },
+  {
+    id: 'mint_freshness', name: 'Mint Freshness', icon: '🌿',
+    background: 'linear-gradient(145deg, #e8f5e9 0%, #c8e6c9 45%, #dcedc8 100%)',
+    ink: '#1b5e20', accent: '#43a047', soft: '#e8f5e9', art: 'leaves',
+  },
+  {
+    id: 'rose_gold', name: 'Rose Gold', icon: '✨',
+    background: 'linear-gradient(145deg, #fff8f5 0%, #fdddd3 45%, #f8c8b8 100%)',
+    ink: '#5d1e1e', accent: '#c2715a', soft: '#fff8f5', art: 'petals',
+  },
+  {
+    id: 'cosmic_joy', name: 'Cosmic Joy', icon: '🌌',
+    background: 'linear-gradient(145deg, #0d0221 0%, #1a0533 45%, #2d1050 100%)',
+    ink: '#ffffff', accent: '#7c4dff', soft: '#1a0533', art: 'stars', dark: true,
+  },
+  {
+    id: 'tropical_paradise', name: 'Tropical Paradise', icon: '🌺',
+    background: 'linear-gradient(145deg, #fff9c4 0%, #fff176 30%, #a5d6a7 65%, #80cbc4 100%)',
+    ink: '#1a4734', accent: '#00897b', soft: '#fff9c4', art: 'leaves',
+  },
 ];
 
 export const FONT_STYLES = [

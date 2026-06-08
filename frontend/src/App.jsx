@@ -10,7 +10,14 @@ import Login            from './pages/Login';
 import Signup           from './pages/Signup';
 import ForgotPassword   from './pages/ForgotPassword';
 import ResetPassword    from './pages/ResetPassword';
-import Dashboard        from './pages/Dashboard';
+import DashboardHome      from './pages/dashboard/DashboardHome';
+import DashboardCards     from './pages/dashboard/DashboardCards';
+import DashboardDelivered from './pages/dashboard/DashboardDelivered';
+import DashboardReceived  from './pages/dashboard/DashboardReceived';
+import DashboardPending   from './pages/dashboard/DashboardPending';
+import DashboardFinances  from './pages/dashboard/DashboardFinances';
+import DashboardReminders from './pages/dashboard/DashboardReminders';
+import DashboardSettings  from './pages/dashboard/DashboardSettings';
 import CreateCard       from './pages/CreateCard';
 import CardView         from './pages/CardView';
 import SignCard         from './pages/SignCard';
@@ -20,6 +27,7 @@ import Admin            from './pages/Admin';
 import AdminLogin       from './pages/AdminLogin';
 import GiftCheckout     from './pages/GiftCheckout';
 import NotFound         from './pages/NotFound';
+import VerifyEmail      from './pages/VerifyEmail';
 
 // Company (HR) pages
 import CompanySignup          from './pages/company/CompanySignup';
@@ -107,7 +115,14 @@ const App = () => (
             <Route path="/admin/login"       element={<AdminLogin />} />
 
             {/* ── Individual protected ────────────────────── */}
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/dashboard"            element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
+            <Route path="/dashboard/cards"       element={<ProtectedRoute><DashboardCards /></ProtectedRoute>} />
+            <Route path="/dashboard/delivered"   element={<ProtectedRoute><DashboardDelivered /></ProtectedRoute>} />
+            <Route path="/dashboard/received"    element={<ProtectedRoute><DashboardReceived /></ProtectedRoute>} />
+            <Route path="/dashboard/pending"     element={<ProtectedRoute><DashboardPending /></ProtectedRoute>} />
+            <Route path="/dashboard/finances"    element={<ProtectedRoute><DashboardFinances /></ProtectedRoute>} />
+            <Route path="/dashboard/reminders"   element={<ProtectedRoute><DashboardReminders /></ProtectedRoute>} />
+            <Route path="/dashboard/settings"    element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
             <Route path="/create-card" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
             <Route path="/admin"     element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
 

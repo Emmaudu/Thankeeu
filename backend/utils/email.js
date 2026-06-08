@@ -518,8 +518,6 @@ const newFeatureTemplates = {
 
 };
 Object.assign(emailTemplates, newFeatureTemplates);
-<<<<<<< HEAD
-=======
 
 // ── EMAIL VERIFICATION TEMPLATES ──────────────────────────────────────────
 const verificationTemplates = {
@@ -544,4 +542,3 @@ const verificationTemplates = {
   }),
 };
 Object.assign(emailTemplates, verificationTemplates);
->>>>>>> 1dd5bef (revamp user dashboard)

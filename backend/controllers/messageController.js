@@ -29,8 +29,6 @@ const addMessage = async (req, res) => {
       else media_type = 'image';
     }
 
-<<<<<<< HEAD
-=======
     // Additional gallery files
     const galleryFiles = (req.files || []).filter(f => f.fieldname !== 'media' && f.fieldname.startsWith('media_gallery'));
     const media_gallery = galleryFiles.length > 0
@@ -43,7 +41,6 @@ const addMessage = async (req, res) => {
         })))
       : null;
 
->>>>>>> 1dd5bef (revamp user dashboard)
     const msgData = {
       card_id: card.id,
       author_name,
@@ -51,12 +48,8 @@ const addMessage = async (req, res) => {
       content,
       is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
       media_url,
-<<<<<<< HEAD
-      media_type
-=======
       media_type,
       ...(media_gallery && { media_gallery }),
->>>>>>> 1dd5bef (revamp user dashboard)
     };
 
     // Try with font_style, fall back without if column doesn't exist

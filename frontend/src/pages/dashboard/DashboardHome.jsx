@@ -1,11 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-<<<<<<< HEAD
-import { dashboardAPI, cardsAPI, paymentsAPI } from '../../utils/api';
-=======
 import { dashboardAPI, cardsAPI, paymentsAPI, authAPI } from '../../utils/api';
->>>>>>> 1dd5bef (revamp user dashboard)
 import DashboardLayout from '../../components/DashboardLayout';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../../utils/currency';
@@ -57,8 +53,6 @@ export default function DashboardHome() {
   const stats = data?.stats || {};
   const cards = data?.recent_cards || [];
   const notifications = data?.notifications || [];
-<<<<<<< HEAD
-=======
   const [dismissed, setDismissed] = useState([]);
   const [resending, setResending] = useState(false);
   const [resentOk, setResentOk] = useState(false);
@@ -92,24 +86,10 @@ export default function DashboardHome() {
   };
 
   const visibleNotifs = notifications.filter(n => !dismissed.includes(n.id));
->>>>>>> 1dd5bef (revamp user dashboard)
 
   return (
     <DashboardLayout title={`Hey ${user?.full_name?.split(' ')[0] || 'there'} 👋`} subtitle="Here's what's happening with your cards">
 
-<<<<<<< HEAD
-      {/* Notification strip */}
-      {notifications.length > 0 && (
-        <div className="space-y-2 mb-5">
-          {notifications.slice(0,3).map(n => (
-            <div key={n.id} className="flex items-start gap-3 p-3 rounded-2xl" style={{ background:'rgba(124,110,255,0.06)', border:'1px solid rgba(124,110,255,0.15)' }}>
-              <span className="text-lg">🔔</span>
-              <div>
-                <p className="text-sm font-semibold" style={{ color:'#1A1730' }}>{n.title}</p>
-                <p className="text-xs mt-0.5" style={{ color:'#7A7898' }}>{n.body}</p>
-              </div>
-            </div>
-=======
       {/* ── Email verification banner ── */}
       {user && user.is_verified === false && (
         <div className="mb-5 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-3"
@@ -152,7 +132,6 @@ export default function DashboardHome() {
                 ✕
               </button>
             </Link>
->>>>>>> 1dd5bef (revamp user dashboard)
           ))}
         </div>
       )}

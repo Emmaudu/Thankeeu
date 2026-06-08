@@ -37,11 +37,7 @@ const signup = async (req, res) => {
     const { data: user, error } = await supabase
       .from('users')
       .insert({ full_name, email: cleanEmail, username: cleanUsername, password_hash, verification_token })
-<<<<<<< HEAD
-      .select('id, email, full_name, username, role, avatar_url')
-=======
       .select('id, email, full_name, username, role, avatar_url, is_verified')
->>>>>>> 1dd5bef (revamp user dashboard)
       .single();
 
     if (error) {
@@ -50,11 +46,6 @@ const signup = async (req, res) => {
       throw error;
     }
 
-<<<<<<< HEAD
-    sendEmail({ to: cleanEmail, template: 'welcome', data: { name: full_name } }).catch(e =>
-      console.error('Welcome email failed:', e)
-    );
-=======
     // Send welcome + verification email
     const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com';
     const verifyLink = `${appUrl}/verify-email?token=${verification_token}`;
@@ -62,7 +53,6 @@ const signup = async (req, res) => {
       .catch(e => console.error('Verification email failed:', e));
     sendEmail({ to: cleanEmail, template: 'welcome', data: { name: full_name } })
       .catch(e => console.error('Welcome email failed:', e));
->>>>>>> 1dd5bef (revamp user dashboard)
 
     const token = generateToken(user.id);
     res.status(201).json({ token, user });
@@ -98,11 +88,7 @@ const getMe = async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from('users')
-<<<<<<< HEAD
-      .select('id, email, full_name, username, role, avatar_url, bio, created_at')
-=======
       .select('id, email, full_name, username, role, avatar_url, bio, is_verified, created_at')
->>>>>>> 1dd5bef (revamp user dashboard)
       .eq('id', req.user.id)
       .single();
     if (error || !user) return res.status(404).json({ error: 'User not found' });
@@ -266,12 +252,6 @@ const seedAdmin = async (req, res) => {
   }
 };
 
-<<<<<<< HEAD
-// Single export at the end — after ALL functions are defined
-module.exports = {
-  signup, login, getMe, updateProfile, searchUsers,
-  changePassword, uploadAvatar, forgotPassword, resetPassword, seedAdmin
-=======
 const verifyEmail = async (req, res) => {
   try {
     const { token } = req.query;
@@ -333,5 +313,4 @@ module.exports = {
   signup, login, getMe, updateProfile, searchUsers,
   changePassword, uploadAvatar, forgotPassword, resetPassword, seedAdmin,
   verifyEmail, resendVerification
->>>>>>> 1dd5bef (revamp user dashboard)
 };

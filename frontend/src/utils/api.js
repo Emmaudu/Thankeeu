@@ -70,13 +70,9 @@ export const authAPI = {
   getMe:          ()       => api.get('/auth/me'),
   updateProfile:  (data)   => api.put('/auth/profile', data),
   changePassword: (data)   => api.put('/auth/password', data),
-<<<<<<< HEAD
-  searchUsers:    (q)      => api.get(`/auth/search?q=${encodeURIComponent(q)}`),
-=======
   searchUsers:          (q)      => api.get(`/auth/search?q=${encodeURIComponent(q)}`),
   verifyEmail:          (token)  => publicAxios.get(`/auth/verify-email?token=${token}`),
   resendVerification:   ()       => api.post('/auth/resend-verification'),
->>>>>>> 1dd5bef (revamp user dashboard)
   forgotPassword: (email)  => api.post('/auth/forgot-password', { email }),
   resetPassword:  (data)   => api.post('/auth/reset-password', data),
 };

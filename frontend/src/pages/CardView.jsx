@@ -231,12 +231,8 @@ const CardView = () => {
       setCard(response.data);
       // Track card opened — notifies creator via dashboard + email
       dashboardAPI.trackCardOpened(slug).catch(() => {});
-<<<<<<< HEAD
-      if (!silent) toast.error('Card not found or not available');
-=======
     } catch (err) {
       if (!silent) toast.error(err.response?.data?.error || 'Card not found or not available');
->>>>>>> 1dd5bef (revamp user dashboard)
     } finally {
       setLoading(false);
     }

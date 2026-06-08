@@ -11,13 +11,6 @@ const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('returnTo');
-<<<<<<< HEAD
-
-  const [form, setForm] = useState({ full_name:'', email:'', username:'', password:'' });
-  const [loading, setLoading] = useState(false);
-  const [show, setShow] = useState(false);
-
-=======
 
   const [form, setForm] = useState({ full_name: '', email: '', username: '', password: '', confirm_password: '' });
   const [loading, setLoading] = useState(false);
@@ -27,7 +20,6 @@ const Signup = () => {
   const pwMatch = form.password && form.confirm_password && form.password === form.confirm_password;
   const pwNoMatch = form.confirm_password && form.password !== form.confirm_password;
 
->>>>>>> 1dd5bef (revamp user dashboard)
   const handleSubmit = async e => {
     e.preventDefault();
     if (!form.username.trim()) return toast.error('Username is required');
@@ -38,34 +30,6 @@ const Signup = () => {
       await signup(form.full_name, form.email, form.password, form.username);
       toast.success('Account created! Welcome 💜');
       navigate(returnTo || '/dashboard');
-<<<<<<< HEAD
-    } catch (err) { toast.error(err.response?.data?.error || 'Failed to create account'); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <div style={{ minHeight:'100vh', background:'#12102A', color:'#E4E2F6' }}>
-      <Navbar />
-      <div className="fixed inset-0 pointer-events-none" style={{ background:'radial-gradient(ellipse 60% 40% at 50% 0%, rgba(92,75,223,0.2) 0%, transparent 60%)' }} />
-      <div className="relative flex items-center justify-center p-4 py-12">
-        <div className="w-full max-w-md">
-          {returnTo && (
-            <div className="mb-5 p-4 rounded-2xl text-center" style={{ background:'rgba(124,110,255,0.1)', border:'1px solid rgba(124,110,255,0.25)' }}>
-              <p className="text-sm font-semibold" style={{ color:'#B8B4FF' }}>✍️ Create an account to sign this card</p>
-              <p className="text-xs mt-1" style={{ color:'#7A7898' }}>Takes 1 minute · You'll be redirected back to sign</p>
-            </div>
-          )}
-          <div className="text-center mb-6">
-            <div className="pill mx-auto mb-3">✨ Free account</div>
-            <h1 style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:700, fontSize:'1.8rem', color:'#E4E2F6' }}>Create your account</h1>
-            <p className="text-sm mt-1" style={{ color:'#7A7898' }}>No credit card needed</p>
-          </div>
-          <div className="rounded-2xl p-7" style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(124,110,255,0.2)' }}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs font-medium block mb-1.5" style={{ color:'#9490C8' }}>Full name</label>
-                <input className="input" placeholder="Your full name" required value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} />
-=======
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to create account');
     } finally {
@@ -101,38 +65,10 @@ const Signup = () => {
                 <label className="text-xs font-medium block mb-1.5" style={{ color: '#9490C8' }}>Full name</label>
                 <input className="input" placeholder="Your full name" required
                   value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />
->>>>>>> 1dd5bef (revamp user dashboard)
               </div>
 
               {/* Username */}
               <div>
-<<<<<<< HEAD
-                <label className="text-xs font-medium block mb-1.5" style={{ color:'#9490C8' }}>Username <span style={{ color:'#EC4899' }}>*</span></label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color:'#6B678A' }}>@</span>
-                  <input className="input pl-7" placeholder="yourname" required value={form.username}
-                    onChange={e=>setForm({...form,username:e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,'')})} />
-                </div>
-                <p className="text-xs mt-1" style={{ color:'#6B678A' }}>Used for card transfers & search. Letters, numbers, underscore only.</p>
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1.5" style={{ color:'#9490C8' }}>Email address</label>
-                <input type="email" className="input" placeholder="you@example.com" required value={form.email} onChange={e=>setForm({...form,email:e.target.value})} />
-              </div>
-              <div>
-                <label className="text-xs font-medium block mb-1.5" style={{ color:'#9490C8' }}>Password</label>
-                <div className="relative">
-                  <input type={show?'text':'password'} className="input pr-14" placeholder="At least 8 characters" required minLength={8} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} />
-                  <button type="button" onClick={()=>setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs px-2 py-1 rounded-lg" style={{ color:'#6B678A', background:'rgba(124,110,255,0.1)' }}>{show?'Hide':'Show'}</button>
-                </div>
-              </div>
-              <button type="submit" disabled={loading} className="btn-primary w-full py-3.5 mt-1">
-                {loading ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Creating...</span> : '✨ Create account'}
-              </button>
-            </form>
-            <p className="text-center text-sm mt-4" style={{ color:'#6B678A' }}>
-              Already have an account? <Link to={`/login${returnTo?`?returnTo=${encodeURIComponent(returnTo)}`:''}`} style={{ color:'#7C6EFF' }} className="font-medium">Sign in →</Link>
-=======
                 <label className="text-xs font-medium block mb-1.5" style={{ color: '#9490C8' }}>
                   Username <span style={{ color: '#EC4899' }}>*</span>
                 </label>
@@ -215,7 +151,6 @@ const Signup = () => {
               Already have an account?{' '}
               <Link to={`/login${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
                 style={{ color: '#7C6EFF' }} className="font-medium">Sign in →</Link>
->>>>>>> 1dd5bef (revamp user dashboard)
             </p>
           </div>
         </div>

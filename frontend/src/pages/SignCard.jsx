@@ -132,6 +132,7 @@ const SignCard = () => {
       const msgRes = await messagesAPI.add(slug, msgData);
 
       if (!wantsGift) {
+        setSubmitting(false);
         setSubmitted(true);
         return;
       }

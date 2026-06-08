@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+<<<<<<< HEAD
 import { dashboardAPI, cardsAPI, paymentsAPI } from '../../utils/api';
+=======
+import { dashboardAPI, cardsAPI, paymentsAPI, authAPI } from '../../utils/api';
+>>>>>>> 1dd5bef (revamp user dashboard)
 import DashboardLayout from '../../components/DashboardLayout';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../../utils/currency';
@@ -53,10 +57,47 @@ export default function DashboardHome() {
   const stats = data?.stats || {};
   const cards = data?.recent_cards || [];
   const notifications = data?.notifications || [];
+<<<<<<< HEAD
+=======
+  const [dismissed, setDismissed] = useState([]);
+  const [resending, setResending] = useState(false);
+  const [resentOk, setResentOk] = useState(false);
+
+  const resendVerification = async () => {
+    setResending(true);
+    try {
+      await authAPI.resendVerification();
+      setResentOk(true);
+      toast.success('Verification email sent! Check your inbox 📬');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send. Try again.');
+    } finally { setResending(false); }
+  };
+
+  const getNotifLink = (n) => {
+    const type = n.type || '';
+    if (type === 'card_opened' || type === 'card_scheduled' || type === 'card_sent') {
+      return n.meta?.card_slug ? `/card/${n.meta.card_slug}` : '/dashboard/cards';
+    }
+    if (type === 'card_received') return '/dashboard/received';
+    if (type === 'reminder_due' || type === 'reminder_set') return '/dashboard/reminders';
+    if (type === 'pending_sign') return '/dashboard/pending';
+    return '/dashboard';
+  };
+
+  const dismissNotif = async (id, e) => {
+    e.preventDefault(); e.stopPropagation();
+    setDismissed(prev => [...prev, id]);
+    try { await dashboardAPI.markNotificationsRead(); } catch {}
+  };
+
+  const visibleNotifs = notifications.filter(n => !dismissed.includes(n.id));
+>>>>>>> 1dd5bef (revamp user dashboard)
 
   return (
     <DashboardLayout title={`Hey ${user?.full_name?.split(' ')[0] || 'there'} 👋`} subtitle="Here's what's happening with your cards">
 
+<<<<<<< HEAD
       {/* Notification strip */}
       {notifications.length > 0 && (
         <div className="space-y-2 mb-5">
@@ -68,6 +109,50 @@ export default function DashboardHome() {
                 <p className="text-xs mt-0.5" style={{ color:'#7A7898' }}>{n.body}</p>
               </div>
             </div>
+=======
+      {/* ── Email verification banner ── */}
+      {user && user.is_verified === false && (
+        <div className="mb-5 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-3"
+          style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)' }}>
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <span className="text-xl flex-shrink-0">📬</span>
+            <div>
+              <p className="text-sm font-semibold" style={{ color: '#1A1730' }}>Please verify your email address</p>
+              <p className="text-xs mt-0.5" style={{ color: '#7A7898' }}>
+                Check your inbox for a verification link. You can still use Thankeeu normally — verification just confirms your account.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={resendVerification}
+            disabled={resending || resentOk}
+            className="flex-shrink-0 text-xs font-semibold px-4 py-2 rounded-xl transition-all disabled:opacity-60"
+            style={{ background: resentOk ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.15)', color: resentOk ? '#059669' : '#d97706', border: `1px solid ${resentOk ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}` }}>
+            {resending ? '⏳ Sending...' : resentOk ? '✓ Email sent!' : '📧 Resend verification email'}
+          </button>
+        </div>
+      )}
+
+      {/* Notifications */}
+      {visibleNotifs.length > 0 && (
+        <div className="space-y-2 mb-5">
+          {visibleNotifs.slice(0,5).map(n => (
+            <Link key={n.id} to={getNotifLink(n)}
+              className="flex items-start gap-3 p-3 rounded-2xl group relative no-underline block transition-all hover:opacity-90"
+              style={{ background:'rgba(124,110,255,0.06)', border:'1px solid rgba(124,110,255,0.15)' }}>
+              <span className="text-lg flex-shrink-0">🔔</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold" style={{ color:'#1A1730' }}>{n.title}</p>
+                <p className="text-xs mt-0.5" style={{ color:'#7A7898' }}>{n.body}</p>
+              </div>
+              <button
+                onClick={(e) => dismissNotif(n.id, e)}
+                className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background:'rgba(0,0,0,0.12)', color:'#7A7898' }}>
+                ✕
+              </button>
+            </Link>
+>>>>>>> 1dd5bef (revamp user dashboard)
           ))}
         </div>
       )}

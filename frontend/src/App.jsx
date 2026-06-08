@@ -27,6 +27,7 @@ import Admin            from './pages/Admin';
 import AdminLogin       from './pages/AdminLogin';
 import GiftCheckout     from './pages/GiftCheckout';
 import NotFound         from './pages/NotFound';
+import VerifyEmail      from './pages/VerifyEmail';
 
 // Company (HR) pages
 import CompanySignup          from './pages/company/CompanySignup';

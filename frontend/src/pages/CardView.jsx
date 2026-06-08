@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
+
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
@@ -231,7 +231,12 @@ const CardView = () => {
       setCard(response.data);
       // Track card opened — notifies creator via dashboard + email
       dashboardAPI.trackCardOpened(slug).catch(() => {});
+<<<<<<< HEAD
       if (!silent) toast.error('Card not found or not available');
+=======
+    } catch (err) {
+      if (!silent) toast.error(err.response?.data?.error || 'Card not found or not available');
+>>>>>>> 1dd5bef (revamp user dashboard)
     } finally {
       setLoading(false);
     }
@@ -432,7 +437,7 @@ const CardView = () => {
         </div>
       )}
 
-      <Footer />
+
     </div>
   );
 };

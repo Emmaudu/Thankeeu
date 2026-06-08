@@ -37,7 +37,11 @@ const signup = async (req, res) => {
     const { data: user, error } = await supabase
       .from('users')
       .insert({ full_name, email: cleanEmail, username: cleanUsername, password_hash, verification_token })
+<<<<<<< HEAD
       .select('id, email, full_name, username, role, avatar_url')
+=======
+      .select('id, email, full_name, username, role, avatar_url, is_verified')
+>>>>>>> 1dd5bef (revamp user dashboard)
       .single();
 
     if (error) {
@@ -46,9 +50,19 @@ const signup = async (req, res) => {
       throw error;
     }
 
+<<<<<<< HEAD
     sendEmail({ to: cleanEmail, template: 'welcome', data: { name: full_name } }).catch(e =>
       console.error('Welcome email failed:', e)
     );
+=======
+    // Send welcome + verification email
+    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com';
+    const verifyLink = `${appUrl}/verify-email?token=${verification_token}`;
+    sendEmail({ to: cleanEmail, template: 'emailVerification', data: { name: full_name, verifyLink } })
+      .catch(e => console.error('Verification email failed:', e));
+    sendEmail({ to: cleanEmail, template: 'welcome', data: { name: full_name } })
+      .catch(e => console.error('Welcome email failed:', e));
+>>>>>>> 1dd5bef (revamp user dashboard)
 
     const token = generateToken(user.id);
     res.status(201).json({ token, user });
@@ -84,7 +98,11 @@ const getMe = async (req, res) => {
   try {
     const { data: user, error } = await supabase
       .from('users')
+<<<<<<< HEAD
       .select('id, email, full_name, username, role, avatar_url, bio, created_at')
+=======
+      .select('id, email, full_name, username, role, avatar_url, bio, is_verified, created_at')
+>>>>>>> 1dd5bef (revamp user dashboard)
       .eq('id', req.user.id)
       .single();
     if (error || !user) return res.status(404).json({ error: 'User not found' });
@@ -248,8 +266,72 @@ const seedAdmin = async (req, res) => {
   }
 };
 
+<<<<<<< HEAD
 // Single export at the end — after ALL functions are defined
 module.exports = {
   signup, login, getMe, updateProfile, searchUsers,
   changePassword, uploadAvatar, forgotPassword, resetPassword, seedAdmin
+=======
+const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ error: 'Verification token required' });
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, full_name, email, is_verified')
+      .eq('verification_token', token)
+      .maybeSingle();
+
+    if (error || !user) return res.status(400).json({ error: 'Invalid or expired verification link' });
+    if (user.is_verified) return res.json({ message: 'Email already verified', alreadyVerified: true });
+
+    await supabase.from('users')
+      .update({ is_verified: true, verification_token: null })
+      .eq('id', user.id);
+
+    // Confirmation email
+    sendEmail({ to: user.email, template: 'emailVerified', data: { name: user.full_name } }).catch(() => {});
+
+    res.json({ message: 'Email verified successfully!', user: { id: user.id, email: user.email } });
+  } catch (err) {
+    console.error('Verify email error:', err);
+    res.status(500).json({ error: 'Server error during verification' });
+  }
+};
+
+const resendVerification = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { data: user } = await supabase
+      .from('users')
+      .select('id, full_name, email, is_verified, verification_token')
+      .eq('id', userId)
+      .single();
+
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.is_verified) return res.status(400).json({ error: 'Email already verified' });
+
+    // Generate fresh token
+    const newToken = crypto.randomBytes(32).toString('hex');
+    await supabase.from('users').update({ verification_token: newToken }).eq('id', userId);
+
+    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com';
+    const verifyLink = `${appUrl}/verify-email?token=${newToken}`;
+    await sendEmail({ to: user.email, template: 'emailVerification', data: { name: user.full_name, verifyLink } });
+
+    res.json({ message: 'Verification email sent! Check your inbox.' });
+  } catch (err) {
+    console.error('Resend verification error:', err);
+    res.status(500).json({ error: 'Failed to resend verification email' });
+  }
+};
+
+
+// Single export at the end — after ALL functions are defined
+module.exports = {
+  signup, login, getMe, updateProfile, searchUsers,
+  changePassword, uploadAvatar, forgotPassword, resetPassword, seedAdmin,
+  verifyEmail, resendVerification
+>>>>>>> 1dd5bef (revamp user dashboard)
 };

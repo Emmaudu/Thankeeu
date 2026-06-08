@@ -518,3 +518,30 @@ const newFeatureTemplates = {
 
 };
 Object.assign(emailTemplates, newFeatureTemplates);
+<<<<<<< HEAD
+=======
+
+// ── EMAIL VERIFICATION TEMPLATES ──────────────────────────────────────────
+const verificationTemplates = {
+  emailVerification: ({ name, verifyLink }) => ({
+    subject: '✉️ Verify your Thankeeu account',
+    html: wrap(`
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">Verify your email ✉️</h2>
+      <p>Hey ${name},</p>
+      <p>Thanks for joining Thankeeu! Click the button below to verify your email address and unlock full access.</p>
+      <p style="margin-top:8px;color:#aaa;font-size:13px;">This link expires in 24 hours.</p>
+      ${btn('Verify my email →', verifyLink)}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">If you didn't create a Thankeeu account, you can safely ignore this email.</p>
+    `)
+  }),
+  emailVerified: ({ name }) => ({
+    subject: '🎉 Email verified — welcome to Thankeeu!',
+    html: wrap(`
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">You're all verified! 🎉</h2>
+      <p>Hey ${name}, your email is confirmed and your Thankeeu account is fully active.</p>
+      ${btn('Go to your dashboard', `${process.env.APP_URL}/dashboard`)}
+    `)
+  }),
+};
+Object.assign(emailTemplates, verificationTemplates);
+>>>>>>> 1dd5bef (revamp user dashboard)

@@ -55,6 +55,27 @@ const signup = async (req, res) => {
       .catch(e => console.error('Welcome email failed:', e));
 
     const token = generateToken(user.id);
+
+    // Auto-link any cards sent to this email address
+    setImmediate(async () => {
+      try {
+        const { data: sentCards } = await supabase
+          .from('cards')
+          .select('id, slug, creator_id')
+          .eq('recipient_email', cleanEmail)
+          .in('status', ['sent', 'active']);
+        
+        for (const card of (sentCards || [])) {
+          await supabase.from('received_cards').upsert({
+            card_id: card.id,
+            recipient_user_id: user.id,
+            transferred_by: card.creator_id,
+            transferred_at: new Date(),
+          }, { onConflict: 'card_id,recipient_user_id' });
+        }
+      } catch (e) { console.error('Auto-link cards on signup failed:', e); }
+    });
+
     res.status(201).json({ token, user });
   } catch (err) {
     console.error('Signup error:', err);
@@ -77,6 +98,22 @@ const login = async (req, res) => {
 
     const token = generateToken(user.id);
     const { password_hash, verification_token, reset_token, reset_token_expires, ...safeUser } = user;
+
+    // Auto-link any newly sent cards to this user
+    setImmediate(async () => {
+      try {
+        const { data: sentCards } = await supabase
+          .from('cards').select('id, creator_id')
+          .eq('recipient_email', user.email.toLowerCase()).in('status', ['sent', 'active']);
+        for (const card of (sentCards || [])) {
+          await supabase.from('received_cards').upsert({
+            card_id: card.id, recipient_user_id: user.id,
+            transferred_by: card.creator_id, transferred_at: new Date(),
+          }, { onConflict: 'card_id,recipient_user_id' });
+        }
+      } catch (e) {}
+    });
+
     res.json({ token, user: safeUser });
   } catch (err) {
     console.error('Login error:', err);

@@ -45,11 +45,38 @@ const emailTemplates = {
   }),
 
   cardDelivery: (data) => ({
-    subject: `You have a special card waiting for you, ${data.recipientName}!`,
+    subject: `🎉 Happy ${data.occasion}, ${data.recipientName}! ${data.senderCount} people made something special for you`,
     html: BASE(`
-      <h2 style="color:#1a1a1a;font-size:22px;margin:0 0 12px;">Happy ${data.occasion}, ${data.recipientName}!</h2>
-      <p style="color:#555;line-height:1.7;"><strong>${data.senderCount} people</strong> came together to create something special for you.${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong>!` : ''}</p>
-      ${btn('Open my card', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`)}
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:8px;">${data.occasionEmoji || '🎉'}</div>
+        <h1 style="color:#1a1a1a;font-size:26px;margin:0 0 6px;font-weight:700;">Happy ${data.occasion}, ${data.recipientName}!</h1>
+        <p style="color:#7C6EFF;font-size:15px;font-weight:600;margin:0;">You have something very special waiting for you</p>
+      </div>
+
+      <p style="color:#555;line-height:1.8;font-size:15px;"><strong>${data.senderCount} people</strong> who care about you came together to create a beautiful group card just for you. They've left you heartfelt messages, warm wishes, and memories you'll want to keep forever.</p>
+
+      ${data.giftAmount ? `
+      <div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #4CAF50;border-radius:12px;padding:18px 20px;margin:20px 0;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🎁</div>
+        <p style="color:#2E7D32;font-weight:700;font-size:18px;margin:0 0 4px;">Gift pot: <span style="color:#1B5E20;">${fmtNGN(data.giftAmount)}</span></p>
+        <p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>
+      </div>` : ''}
+
+      ${btn('🎉 Open my card now', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
+
+      <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
+        <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>
+        <ol style="color:#555;line-height:2;margin:0;padding-left:20px;font-size:14px;">
+          <li><strong>Sign up or sign in</strong> at <a href="${process.env.APP_URL}/signup" style="color:#7C6EFF;">thankeeu.com</a> using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
+          <li><strong>Set your username</strong> in your dashboard settings — your friends can transfer cards to you by username</li>
+          <li>Your card will appear in your <strong>Received tab</strong> in your dashboard automatically</li>
+          ${data.giftAmount ? '<li>Add your <strong>bank account</strong> in settings to withdraw your gift pot 💰</li>' : ''}
+        </ol>
+      </div>
+
+      <p style="color:#888;font-size:13px;line-height:1.7;"><strong>⚠️ Important:</strong> Please sign up with <strong>${data.recipientEmail || 'this email address'}</strong> to automatically access your card and gift pot. If you use a different email, ask the card creator to transfer the card to your username.</p>
+
+      <p style="color:#555;line-height:1.7;margin-top:16px;">If you already have a Thankeeu account, simply <a href="${process.env.APP_URL}/login" style="color:#7C6EFF;">sign in here</a> and check your Received tab.</p>
     `)
   }),
 

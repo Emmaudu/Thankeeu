@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const jwt     = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
-const { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal } = require('../controllers/bankController');
+const { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal, withdrawGift } = require('../controllers/bankController');
 
 // Auth — user or member
 const userOrMemberAuth = async (req, res, next) => {
@@ -29,5 +29,6 @@ router.post('/save',     userOrMemberAuth, saveBankAccount);
 router.get('/my',        userOrMemberAuth, getMyAccounts);
 router.delete('/:id',    userOrMemberAuth, deleteBankAccount);
 router.post('/withdraw', userOrMemberAuth, initiateWithdrawal);
+router.post('/withdraw-gift', userOrMemberAuth, withdrawGift);
 
 module.exports = router;

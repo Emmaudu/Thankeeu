@@ -228,7 +228,10 @@ const getCard = async (req, res) => {
 
     const isCreator = req.user?.id === card.creator_id
       || req.member?.id === card.created_by_member_id;
-    const isRecipient = token && token === card.access_token;
+    // isRecipient: either valid access_token OR logged-in user email matches recipient_email
+    const isRecipient = (token && token === card.access_token)
+      || (req.user?.email && card.recipient_email &&
+          req.user.email.toLowerCase() === card.recipient_email.toLowerCase());
     const isContributor = true;
 
     if (!isCreator && !isRecipient && card.status === 'draft') {
@@ -316,6 +319,12 @@ const activateCard = async (req, res) => {
   }
 };
 
+const OCCASION_EMOJI = {
+  birthday: '🎂', anniversary: '💍', leaving: '👋', promotion: '🌟',
+  wedding: '💒', baby_shower: '👶', retirement: '🏖️', graduation: '🎓',
+  valentine: '💝', christmas: '🎄', get_well: '🌷', other: '🎉',
+};
+
 const sendCard = async (req, res) => {
   try {
     const { slug } = req.params;
@@ -334,21 +343,37 @@ const sendCard = async (req, res) => {
       status: 'sent', recipient_notified: true, updated_at: new Date()
     }).eq('slug', slug);
 
+    // Auto-link card to recipient's account if they already have one
+    const { data: existingUser } = await supabase
+      .from('users').select('id').eq('email', card.recipient_email.toLowerCase()).maybeSingle();
+    if (existingUser) {
+      await supabase.from('received_cards').upsert({
+        card_id: card.id,
+        recipient_user_id: existingUser.id,
+        transferred_by: req.user.id,
+        transferred_at: new Date(),
+      }, { onConflict: 'card_id,recipient_user_id' });
+    }
+
     await sendEmail({
       to: card.recipient_email,
       template: 'cardDelivery',
       data: {
         recipientName: card.recipient_name,
-        occasion: card.occasion,
+        recipientEmail: card.recipient_email,
+        occasion: card.occasion.replace(/_/g, ' '),
+        occasionEmoji: OCCASION_EMOJI[card.occasion] || '🎉',
         cardSlug: card.slug,
         accessToken: card.access_token,
         senderCount: messages?.[0]?.count || 0,
-        giftAmount: card.total_collected > 0 ? card.total_collected : null
+        giftAmount: card.total_collected > 0 ? card.total_collected : null,
+        appUrl: process.env.APP_URL || 'https://thankeeu.com',
       }
     });
 
     res.json({ message: 'Card sent to recipient!' });
   } catch (err) {
+    console.error('sendCard error:', err);
     res.status(500).json({ error: 'Failed to send card' });
   }
 };

@@ -252,3 +252,91 @@ const initiateWithdrawal = async (req, res) => {
 };
 
 module.exports = { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal };
+
+// POST /api/banks/withdraw-gift — recipient withdraws their gift pot
+const withdrawGift = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+
+    const { card_slug } = req.body;
+    if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
+
+    // Verify this user is the recipient of this card (email match or received_cards entry)
+    const { data: card } = await supabase
+      .from('cards').select('*').eq('slug', card_slug).single();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    const { data: receivedEntry } = await supabase
+      .from('received_cards')
+      .select('id')
+      .eq('card_id', card.id)
+      .eq('recipient_user_id', userId)
+      .maybeSingle();
+
+    const { data: userInfo } = await supabase
+      .from('users').select('email').eq('id', userId).single();
+
+    const isEmailRecipient = card.recipient_email?.toLowerCase() === userInfo?.email?.toLowerCase();
+
+    if (!receivedEntry && !isEmailRecipient) {
+      return res.status(403).json({ error: 'You are not the recipient of this card' });
+    }
+
+    if ((card.total_collected || 0) <= 0) {
+      return res.status(400).json({ error: 'No gift pot to withdraw' });
+    }
+
+    if (card.gift_withdrawn) {
+      return res.status(400).json({ error: 'Gift pot has already been withdrawn' });
+    }
+
+    // Get recipient's saved bank account
+    const { data: bank } = await supabase
+      .from('bank_accounts')
+      .select('*')
+      .eq('owner_id', userId)
+      .eq('is_default', true)
+      .maybeSingle();
+
+    if (!bank?.paystack_recipient_code) {
+      return res.status(400).json({ error: 'Please add and verify your bank account in Settings before withdrawing' });
+    }
+
+    // Calculate payout: total minus 3.5% platform fee
+    const gross = card.total_collected;
+    const fee = Math.round(gross * 0.035);
+    const net = gross - fee;
+
+    // Initiate Paystack transfer
+    const transferRef = `gift_${card.id}_${Date.now()}`;
+    const r = await axios.post(`${PAYSTACK}/transfer`, {
+      source: 'balance',
+      amount: net * 100, // kobo
+      recipient: bank.paystack_recipient_code,
+      reason: `Gift pot withdrawal — ${card.title || card.recipient_name + "'s card"}`,
+      reference: transferRef,
+    }, { headers: psHeaders() });
+
+    if (!r.data.status) throw new Error(r.data.message || 'Transfer initiation failed');
+
+    // Mark as withdrawn
+    await supabase.from('cards').update({
+      gift_withdrawn: true,
+      gift_withdrawn_at: new Date(),
+      gift_payout_reference: transferRef,
+      gift_payout_amount: net,
+    }).eq('id', card.id);
+
+    res.json({
+      message: `₦${net.toLocaleString('en-NG')} is on its way to your account!`,
+      amount: net,
+      fee,
+      gross,
+      reference: transferRef,
+    });
+  } catch (err) {
+    console.error('withdrawGift error:', err.response?.data || err.message);
+    res.status(500).json({ error: err.response?.data?.message || 'Withdrawal failed. Please try again.' });
+  }
+};

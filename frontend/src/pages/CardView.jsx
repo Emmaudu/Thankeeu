@@ -27,13 +27,17 @@ const GiftWithdrawButton = ({ slug, token, amount, cardId }) => {
     finally { setLoading(false); setShowPanel(true); }
   };
 
+  const platformFee = Math.round(amount * 0.035);
+  const netAmount = amount - platformFee;
+
   const handleWithdraw = async () => {
     const acc = accounts?.find(a => a.is_default) || accounts?.[0];
     if (!acc) { toast.error('Add a bank account in your Settings first to withdraw.'); return; }
     setWithdrawing(true);
     try {
-      const res = await banksAPI.withdraw({ amount, source_type: 'gift_pot', source_id: cardId, bank_account_id: acc.id });
-      toast.success(res.data?.message || `${formatNGN(amount)} transfer initiated! 🎉`);
+      // Use new withdrawGift endpoint which uses card_slug
+      const res = await banksAPI.withdrawGift({ card_slug: slug });
+      toast.success(res.data?.message || `${formatNGN(netAmount)} is on its way to your account! 🎉`);
       setShowPanel(false);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Withdrawal failed. Try again or contact support.');
@@ -68,9 +72,14 @@ const GiftWithdrawButton = ({ slug, token, amount, cardId }) => {
                 </div>
               ))}
               <button onClick={handleWithdraw} disabled={withdrawing} className="btn-primary w-full text-sm py-2.5">
-                {withdrawing ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Processing…</span> : `💸 Withdraw ${formatNGN(amount)}`}
+                {withdrawing ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Processing…</span> : `💸 Withdraw ${formatNGN(netAmount)} (after 3.5% fee)`}
               </button>
-              <p className="text-xs text-warm-400 mt-2 text-center">Processed within 1–2 business days</p>
+              <div className="text-xs text-warm-400 mt-2 space-y-0.5">
+                <div className="flex justify-between"><span>Gift pot total</span><span>{formatNGN(amount)}</span></div>
+                <div className="flex justify-between"><span>Platform fee (3.5%)</span><span>-{formatNGN(platformFee)}</span></div>
+                <div className="flex justify-between font-semibold text-warm-700"><span>You receive</span><span>{formatNGN(netAmount)}</span></div>
+                <p className="text-center pt-1">Processed within 1–2 business days</p>
+              </div>
             </div>
           )}
         </div>

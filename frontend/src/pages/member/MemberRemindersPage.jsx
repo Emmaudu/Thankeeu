@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { remindersAPI } from '../../utils/api';
+import { memberAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 
@@ -19,7 +19,7 @@ export default function MemberRemindersPage() {
 
   useEffect(() => {
     // Use member-aware reminders API
-    remindersAPI.getAll()
+    memberAPI.getReminders()
       .then(r => setReminders(r.data || []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -30,7 +30,7 @@ export default function MemberRemindersPage() {
     if (!form.recipient_name || !form.occasion_date) return toast.error('Name and date required');
     setSaving(true);
     try {
-      const r = await remindersAPI.create(form);
+      const r = await memberAPI.createReminder(form);
       setReminders(p => [r.data, ...p]);
       setShowForm(false);
       setForm(EMPTY);
@@ -41,7 +41,7 @@ export default function MemberRemindersPage() {
 
   const del = async id => {
     if (!confirm('Delete this reminder?')) return;
-    await remindersAPI.delete(id).catch(() => {});
+    await memberAPI.deleteReminder(id).catch(() => {});
     setReminders(p => p.filter(r => r.id !== id));
     toast.success('Deleted');
   };

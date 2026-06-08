@@ -82,11 +82,11 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       {/* Logout */}
       <div className="px-3 pb-5">
         <button onClick={handleLogout}
-          className="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-xs transition-all text-left"
-          style={{ color: '#4A4870' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#E4E2F6'}
-          onMouseLeave={e => e.currentTarget.style.color = '#4A4870'}>
-          🚪 Sign out
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-base font-bold transition-all text-left"
+          style={{ color: '#FF7B7B', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.15)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}>
+          <span style={{fontSize:18}}>🚪</span> Sign out
         </button>
       </div>
     </aside>

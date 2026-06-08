@@ -120,20 +120,68 @@ const deleteMessage = async (req, res) => {
 const sendReply = async (req, res) => {
   try {
     const { card_slug } = req.params;
-    const { content, media_url } = req.body;
+    const { content } = req.body;
+
+    if (!content?.trim()) return res.status(400).json({ error: 'Reply message is required' });
+
+    // Allow reply from card creator (user or member) or recipient
+    const senderId = req.user?.id || req.member?.id;
+    const senderName = req.user?.full_name || (req.member ? `${req.member.first_name} ${req.member.last_name}` : 'The recipient');
 
     const { data: card } = await supabase
-      .from('cards').select('id, creator_id, recipient_name')
+      .from('cards').select('id, creator_id, recipient_name, title, slug, created_by_member_id')
       .eq('slug', card_slug).single();
 
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    // Get all unique emails of people who signed (contributors)
     const { data: messages } = await supabase
-      .from('messages').select('author_email').eq('card_id', card.id).not('author_email', 'is', null);
+      .from('messages')
+      .select('author_name, author_email')
+      .eq('card_id', card.id)
+      .not('author_email', 'is', null);
 
-    const { sendEmail } = require('../utils/email');
-    const uniqueEmails = [...new Set(messages.map(m => m.author_email).filter(Boolean))];
+    const uniqueSigners = [];
+    const seen = new Set();
+    for (const m of (messages || [])) {
+      if (m.author_email && !seen.has(m.author_email)) {
+        seen.add(m.author_email);
+        uniqueSigners.push({ name: m.author_name, email: m.author_email });
+      }
+    }
 
-    res.json({ message: 'Reply sent', recipients: uniqueEmails.length });
+    // Send thank-you reply email to each signer
+    const cardTitle = card.title || `${card.recipient_name}'s card`;
+    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com';
+
+    const emailPromises = uniqueSigners.map(signer =>
+      sendEmail({
+        to: signer.email,
+        subject: `${senderName} replied to "${cardTitle}" 💌`,
+        html: `
+          <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;">
+            <div style="text-align:center;margin-bottom:20px;">
+              <div style="font-size:40px;">💌</div>
+              <h2 style="color:#5B4BDF;margin:8px 0;">${senderName} sent you a thank-you!</h2>
+              <p style="color:#888;font-size:14px;">In response to your message on "${cardTitle}"</p>
+            </div>
+            <div style="background:#F5F3FF;border-radius:16px;padding:20px 24px;margin:20px 0;border-left:4px solid #7C6EFF;">
+              <p style="color:#1A1730;font-size:16px;line-height:1.7;margin:0;">"${content}"</p>
+              <p style="color:#888;font-size:13px;margin-top:12px 0 0;">— ${senderName}</p>
+            </div>
+            <div style="text-align:center;margin-top:24px;">
+              <a href="${appUrl}/card/${card_slug}" style="background:#6C5CE7;color:white;padding:12px 28px;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;">View the card</a>
+            </div>
+            <p style="color:#ccc;font-size:12px;text-align:center;margin-top:20px;">You signed a card on Thankeeu &middot; <a href="${appUrl}" style="color:#7C6EFF;">thankeeu.com</a></p>
+          </div>`
+      }).catch(e => console.warn('Reply email failed for', signer.email, e.message))
+    );
+
+    await Promise.allSettled(emailPromises);
+
+    res.json({ message: `Thank-you reply sent to ${uniqueSigners.length} contributor${uniqueSigners.length !== 1 ? 's' : ''}!`, recipients: uniqueSigners.length });
   } catch (err) {
+    console.error('sendReply error:', err);
     res.status(500).json({ error: 'Failed to send reply' });
   }
 };

@@ -65,19 +65,19 @@ const MemberLayout = ({ children, title, subtitle }) => {
       </div>
 
       {/* Nav — scrollable */}
-      <nav className="flex-1 px-3 py-1 overflow-y-auto" style={{ scrollbarWidth:'none' }}>
+      <nav className="flex-1 px-3 py-1 overflow-y-auto" style={{ scrollbarWidth:'none', msOverflowStyle:'none' }}>
         <div className="space-y-0.5 pb-4">
           {NAV.map(({ path, icon, label }) => (
             <Link key={path} to={path}
               onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 py-3 rounded-xl text-sm font-semibold transition-all"
+              className="flex items-center gap-3 py-3 rounded-xl text-base font-semibold transition-all"
               style={{
                 paddingLeft: isActive(path) ? 9 : 13, paddingRight: 12,
                 borderLeft: `3px solid ${isActive(path) ? '#7C6EFF' : 'transparent'}`,
                 background: isActive(path) ? 'rgba(124,110,255,0.16)' : 'transparent',
                 color: isActive(path) ? '#B8B4FF' : '#7A7898',
               }}>
-              <span className="text-lg flex-shrink-0">{icon}</span>
+              <span className="text-xl flex-shrink-0">{icon}</span>
               <span>{label}</span>
             </Link>
           ))}
@@ -92,11 +92,11 @@ const MemberLayout = ({ children, title, subtitle }) => {
           </div>
         )}
         <button onClick={handleLogout}
-          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ color:'#7A7898', background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.12)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.12)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.06)'}>
-          🚪 <span>Sign out</span>
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all"
+          style={{ color:'#FF7B7B', background:'rgba(239,68,68,0.10)', border:'1px solid rgba(239,68,68,0.20)' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.20)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.10)'}>
+          <span className="text-xl">🚪</span> Sign out
         </button>
       </div>
     </div>

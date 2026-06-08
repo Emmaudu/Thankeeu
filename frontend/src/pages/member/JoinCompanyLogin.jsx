@@ -31,6 +31,11 @@ const JoinCompanyLogin = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    // Clear any existing individual/company sessions
+    localStorage.removeItem('thankeeu_token');
+    localStorage.removeItem('thankeeu_user');
+    localStorage.removeItem('thankeeu_company_token');
+    localStorage.removeItem('thankeeu_company');
     try {
       const res = await login(form.email, form.password);
       toast.success(`Welcome back, ${res.member.first_name}!`);

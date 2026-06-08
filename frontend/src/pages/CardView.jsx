@@ -5,7 +5,11 @@ import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI 
 import { useAuth } from '../context/AuthContext';
 import { Link as RouterLink } from 'react-router-dom';
 import { useMemberAuth } from '../context/MemberAuthContext';
+import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
+import DashboardLayout from '../components/DashboardLayout';
+import MemberLayout from '../components/member/MemberLayout';
+import CompanyLayout from '../components/company/CompanyLayout';
 
 
 import toast from 'react-hot-toast';
@@ -287,8 +291,9 @@ const TransferCardButton = ({ slug }) => {
 
 const CardView = () => {
   const { slug } = useParams();
-  const { user } = useAuth();
-  const { member } = useMemberAuth();
+  const { user }    = useAuth();
+  const { member }  = useMemberAuth();
+  const { company } = useCompanyAuth();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
   const [card, setCard] = useState(null);
@@ -357,10 +362,10 @@ const CardView = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen grid place-items-center bg-violet-50">
+    <div className="min-h-screen grid place-items-center" style={{ background:'#F5F3FF' }}>
       <div className="text-center">
         <div className="w-14 h-14 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-warm-500">Unwrapping your card...</p>
+        <p className="text-warm-500 text-lg">Opening your card...</p>
       </div>
     </div>
   );
@@ -381,8 +386,17 @@ const CardView = () => {
   const titleFont = getFontStyle(card.font_style);
   const canViewPrivate = Boolean(token || card.isCreator || card.isRecipient);
 
+
+  // Choose layout wrapper based on who is authenticated
+  const cardTitle = card?.title || `${card?.recipient_name || ''}'s Card`;
+  const LayoutWrapper = member
+    ? ({ children }) => <MemberLayout title={cardTitle} subtitle="Card view">{children}</MemberLayout>
+    : company
+    ? ({ children }) => <CompanyLayout title={cardTitle} subtitle="Card view">{children}</CompanyLayout>
+    : ({ children }) => <DashboardLayout title={cardTitle} subtitle="Card view">{children}</DashboardLayout>;
+
   return (
-    <div className="min-h-screen flex flex-col bg-[#faf8ff]">
+    <LayoutWrapper><div className="min-h-screen-0 flex flex-col bg-[#faf8ff]">
 
       <header className={`card-art ${cardArtClass(design)} relative px-4 py-16 sm:py-24`} style={{ background: design.background, color: design.ink }}>
         <div className="max-w-5xl mx-auto text-center relative z-10">
@@ -523,7 +537,7 @@ const CardView = () => {
       )}
 
 
-    </div>
+    </div></LayoutWrapper>
   );
 };
 

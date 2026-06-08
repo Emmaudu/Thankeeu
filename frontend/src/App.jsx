@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth }               from './context/AuthContext';
 import { CompanyAuthProvider, useCompanyAuth } from './context/CompanyAuthContext';
@@ -69,6 +69,21 @@ const Spinner = () => (
   </div>
 );
 
+// CardViewGate: requires any authentication, preserves ?token= for recipient links
+const CardViewGate = () => {
+  const { user, loading: uLoading }     = useAuth();
+  const { company, loading: cLoading }  = useCompanyAuth();
+  const { member, loading: mLoading }   = useMemberAuth();
+  const location = useLocation();
+
+  if (uLoading || cLoading || mLoading) return <Spinner />;
+  if (!user && !company && !member) {
+    // Preserve the full path including ?token= so after login they come back here
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
+  return <CardView />;
+};
+
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth();
   if (loading) return <Spinner />;
@@ -106,15 +121,17 @@ const App = () => (
             }}
           />
           <Routes>
-            {/* ── Public ─────────────────────────────────── */}
+            {/* ── Public (no auth required) ─────────────────── */}
             <Route path="/"              element={<Home />} />
             <Route path="/pricing"       element={<Pricing />} />
             <Route path="/policy"        element={<Policy />} />
             <Route path="/how-it-works"  element={<HowItWorks />} />
             <Route path="/faq"           element={<FAQ />} />
-            <Route path="/card/:slug"    element={<CardView />} />
             <Route path="/sign/:slug"    element={<SignCard />} />
             <Route path="/gift/:slug"    element={<GiftCheckout />} />
+
+            {/* ── Card view — requires auth, preserves token for recipient links ── */}
+            <Route path="/card/:slug"    element={<CardViewGate />} />
 
             {/* ── Individual auth ─────────────────────────── */}
             <Route path="/login"             element={<Login />} />

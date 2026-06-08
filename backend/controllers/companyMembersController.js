@@ -425,7 +425,7 @@ const updateMemberProfile = async (req, res) => {
     const { first_name, last_name, phone, profile_picture_url, username, job_title, bio, date_of_birth } = req.body;
 
     // Validate username uniqueness if provided
-    if (username) {
+    if (username && username.trim()) {
       const { data: existing } = await supabase
         .from('company_members')
         .select('id')
@@ -435,23 +435,41 @@ const updateMemberProfile = async (req, res) => {
       if (existing) return res.status(400).json({ error: 'Username already taken. Choose another.' });
     }
 
-    const updateData = {
-      first_name, last_name,
-      updated_at: new Date()
-    };
-    if (phone        !== undefined) updateData.phone         = phone;
+    // Build update — only include defined fields
+    const updateData = { updated_at: new Date() };
+    if (first_name !== undefined) updateData.first_name = first_name;
+    if (last_name  !== undefined) updateData.last_name  = last_name;
+    if (phone      !== undefined) updateData.phone      = phone;
     if (profile_picture_url !== undefined) updateData.profile_picture_url = profile_picture_url;
-    if (username     !== undefined) updateData.username      = username?.toLowerCase().trim() || null;
-    if (job_title    !== undefined) updateData.job_title     = job_title;
-    if (bio          !== undefined) updateData.bio           = bio;
-    if (date_of_birth !== undefined) updateData.date_of_birth = date_of_birth || null;
+    if (username !== undefined) updateData.username = username?.toLowerCase().trim() || null;
 
-    const { data, error } = await supabase
+    // These columns may not exist yet — try with them, fall back without if schema error
+    const extendedData = { ...updateData };
+    if (job_title    !== undefined) extendedData.job_title    = job_title;
+    if (bio          !== undefined) extendedData.bio          = bio;
+    if (date_of_birth !== undefined) extendedData.date_of_birth = date_of_birth || null;
+
+    let data, error;
+
+    // Try with extended fields first
+    ({ data, error } = await supabase
       .from('company_members')
-      .update(updateData)
+      .update(extendedData)
       .eq('id', req.member.id)
-      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, username, phone, job_title, bio, date_of_birth, company_id')
-      .single();
+      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, username, phone, company_id')
+      .single());
+
+    // If schema error on extended fields, retry with base fields only
+    if (error && (error.code === 'PGRST204' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
+      console.warn('Extended profile columns not yet in schema, falling back to base fields:', error.message);
+      ({ data, error } = await supabase
+        .from('company_members')
+        .update(updateData)
+        .eq('id', req.member.id)
+        .select('id, first_name, last_name, email, role, department, status, profile_picture_url, username, phone, company_id')
+        .single());
+    }
+
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -662,7 +680,7 @@ module.exports = {
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
   updateMemberProfile, changeMemberPassword,
-  getMemberReceivedCards, getMemberPendingToSign,
+  getMemberReceivedCards, getMemberPendingToSign, getMemberFinancialHistory,
   // Extended features
   getMemberMyCards, getMemberPendingToSign, getMemberReceivedCards,
   transferCardToMember, getMemberReminders, createMemberReminder,

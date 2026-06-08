@@ -14,7 +14,7 @@ const Login = () => {
   const { logout: companyLogout } = useCompanyAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('returnTo');
+  const returnTo = searchParams.get('returnTo') || searchParams.get('redirect');
 
   const [form, setForm] = useState({ email:'', password:'' });
   const [loading, setLoading] = useState(false);
@@ -24,8 +24,13 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     // Log out other session types first
+    // Force single-session: clear other auth sessions before logging in
     memberLogout();
     companyLogout();
+    localStorage.removeItem('thankeeu_member_token');
+    localStorage.removeItem('thankeeu_member');
+    localStorage.removeItem('thankeeu_company_token');
+    localStorage.removeItem('thankeeu_company');
     try {
       await login(form.email, form.password);
       toast.success('Welcome back! 💜');

@@ -58,8 +58,9 @@ const Footer = () => (
           <p className="font-bold text-warm-900 text-sm mb-4">🏢 Company</p>
           <ul className="space-y-2.5">
             {[
-              { to:'/policy',     label:'Privacy & Terms' },
-              { to:'/policy#faq', label:'FAQ' },
+              { to:'/how-it-works', label:'How it works' },
+              { to:'/faq',          label:'FAQ' },
+              { to:'/policy',       label:'Privacy & Terms' },
             ].map(({ to, label }) => (
               <li key={to}><Link to={to} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
             ))}

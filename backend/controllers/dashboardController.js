@@ -146,16 +146,60 @@ const getDeliveredCards = async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Failed to load delivered cards' }); }
 };
 
-// Received cards (transferred to this user)
+// Received cards — transferred OR auto-matched by recipient_email
 const getReceivedCards = async (req, res) => {
   try {
-    const { data } = await supabase
+    const userId    = req.user.id;
+    const userEmail = req.user.email?.toLowerCase();
+
+    // 1. Cards explicitly transferred to this user
+    const { data: transferred } = await supabase
       .from('received_cards')
-      .select('*, cards(*, messages(count))')
-      .eq('recipient_user_id', req.user.id)
+      .select('transferred_at, cards(id, slug, title, recipient_name, occasion, design_theme, background_color, status, total_collected, is_gift_enabled, access_token, messages(count))')
+      .eq('recipient_user_id', userId)
       .order('transferred_at', { ascending: false });
-    res.json((data || []).map(r => ({ ...r.cards, received_at: r.transferred_at, received_id: r.id })));
-  } catch (err) { res.status(500).json({ error: 'Failed to load received cards' }); }
+
+    // 2. Sent cards where recipient_email matches this user's email
+    let emailMatched = [];
+    if (userEmail) {
+      const { data: em } = await supabase
+        .from('cards')
+        .select('id, slug, title, recipient_name, occasion, design_theme, background_color, status, total_collected, is_gift_enabled, access_token, updated_at, messages(count)')
+        .eq('recipient_email', userEmail)
+        .in('status', ['sent', 'active'])
+        .order('updated_at', { ascending: false });
+      emailMatched = em || [];
+    }
+
+    // Merge, dedup by card id
+    const transferredCards = (transferred || []).map(r => ({
+      ...r.cards,
+      signed_count: r.cards?.messages?.[0]?.count || 0,
+      messages: undefined,
+      received_at: r.transferred_at,
+      source: 'transferred',
+    }));
+
+    const emailMatchedCards = emailMatched.map(c => ({
+      ...c,
+      signed_count: c.messages?.[0]?.count || 0,
+      messages: undefined,
+      received_at: c.updated_at,
+      source: 'email_match',
+    }));
+
+    // Combine and remove duplicates (prefer transferred over email_match)
+    const seen = new Set(transferredCards.map(c => c.id));
+    const combined = [
+      ...transferredCards,
+      ...emailMatchedCards.filter(c => !seen.has(c.id)),
+    ];
+
+    res.json(combined);
+  } catch (err) {
+    console.error('getReceivedCards error:', err);
+    res.status(500).json({ error: 'Failed to load received cards' });
+  }
 };
 
 // Pending to sign — cards where this user was invited via email

@@ -238,6 +238,11 @@ const approveCrossDept = async (req, res) => {
   }
 };
 
+module.exports = {
+  getWallet, requestDeduction, approveDeduction, rejectDeduction,
+  getPendingDeductions, requestCrossDept, getCrossDeptRequests, approveCrossDept,
+  getLeaderOccasions, getLeaderRequests,
+};
 
 // ── LEADER-FACING (uses memberAuth / leaderAuth) ─────────────────────
 
@@ -290,10 +295,4 @@ const getLeaderRequests = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to load requests' });
   }
-};
-
-module.exports = {
-  getWallet, requestDeduction, approveDeduction, rejectDeduction,
-  getPendingDeductions, requestCrossDept, getCrossDeptRequests, approveCrossDept,
-  getLeaderOccasions, getLeaderRequests,
 };

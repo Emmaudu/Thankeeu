@@ -680,11 +680,10 @@ module.exports = {
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
   updateMemberProfile, changeMemberPassword,
-  getMemberReceivedCards, getMemberPendingToSign, getMemberFinancialHistory,
-  // Extended features
   getMemberMyCards, getMemberPendingToSign, getMemberReceivedCards,
-  transferCardToMember, getMemberReminders, createMemberReminder,
-  deleteMemberReminder, getMemberFinances,
+  getMemberFinances,
+  transferCardToMember,
+  getMemberReminders, createMemberReminder, deleteMemberReminder,
 };
 
 // GET /api/members/received-cards

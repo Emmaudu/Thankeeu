@@ -10,9 +10,10 @@ const {
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
   updateMemberProfile, changeMemberPassword,
-  getMemberReceivedCards, getMemberPendingToSign, getMemberFinancialHistory,
+  getMemberMyCards, getMemberReceivedCards, getMemberPendingToSign,
+  getMemberFinances,
   transferCardToMember, getMemberReminders, createMemberReminder,
-  deleteMemberReminder, getMemberFinances,
+  deleteMemberReminder,
 } = require('../controllers/companyMembersController');
 
 // Public
@@ -29,7 +30,7 @@ router.get('/dept-pending', leaderAuth, getDeptPendingMembers);
 router.put('/profile', memberAuth, updateMemberProfile);
 router.get('/received-cards', memberAuth, getMemberReceivedCards);
 router.get('/pending-to-sign', memberAuth, getMemberPendingToSign);
-router.get('/financial-history', memberAuth, getMemberFinancialHistory);
+router.get('/financial-history', memberAuth, getMemberFinances);
 router.post('/upload-avatar', memberAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });

@@ -2,12 +2,16 @@ import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useMemberAuth } from '../context/MemberAuthContext';
+import { useCompanyAuth } from '../context/CompanyAuthContext';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 
 const Login = () => {
   useSEO({ title: 'Sign In — Thankeeu', noIndex: true });
   const { login } = useAuth();
+  const { logout: memberLogout } = useMemberAuth();
+  const { logout: companyLogout } = useCompanyAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('returnTo');
@@ -19,6 +23,9 @@ const Login = () => {
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
+    // Log out other session types first
+    memberLogout();
+    companyLogout();
     try {
       await login(form.email, form.password);
       toast.success('Welcome back! 💜');

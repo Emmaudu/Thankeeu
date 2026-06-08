@@ -4,6 +4,8 @@ import { useState } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
 import Navbar from '../../components/Navbar';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useCompanyAuth } from '../../context/CompanyAuthContext';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import toast from 'react-hot-toast';
 
@@ -17,6 +19,8 @@ const JoinCompanyLogin = () => {
 
 
   const { login } = useMemberAuth();
+  const { logout: userLogout } = useAuth();
+  const { logout: companyLogout } = useCompanyAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo = searchParams.get('returnTo');

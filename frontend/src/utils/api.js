@@ -126,10 +126,10 @@ export const dashboardAPI = {
 };
 
 export const remindersAPI = {
-  getAll:   ()      => api.get('/reminders'),
-  create:   (data)  => api.post('/reminders', data),
-  update:   (id, d) => api.put(`/reminders/${id}`, d),
-  delete:   (id)    => api.delete(`/reminders/${id}`),
+  getAll:   ()      => smartAxios.get('/reminders'),
+  create:   (data)  => smartAxios.post('/reminders', data),
+  update:   (id, d) => smartAxios.put(`/reminders/${id}`, d),
+  delete:   (id)    => smartAxios.delete(`/reminders/${id}`),
 };
 
 // ─── Admin (user) ─────────────────────────────────────────────────────────
@@ -240,11 +240,15 @@ export const memberAPI = {
   deleteReminder:   (id)       => memberAxios.delete(`/members/reminders/${id}`),
   getFinances:      ()         => memberAxios.get('/members/finances'),
   // Public endpoint — no token needed
-  getDepartments: (companyId)  => publicAxios.get(`/members/departments?companyId=${companyId}`),
+  getDepartments:     (companyId) => publicAxios.get(`/members/departments?companyId=${companyId}`),
+  getReceivedCards:   ()           => memberAxios.get('/members/received-cards'),
+  getPendingToSign:   ()           => memberAxios.get('/members/pending-to-sign'),
+  getFinancialHistory: ()          => memberAxios.get('/members/financial-history'),
 };
 
 // Member card creation (uses member token)
 export const memberCardsAPI = {
+  getHistory: () => memberAxios.get('/cards/member-history'),
   create: (data) => memberAxios.post('/cards', data),
   getOne: (slug) => memberAxios.get(`/cards/${slug}`),
 };
@@ -288,16 +292,22 @@ export const notificationsAPI = {
 };
 
 // Banks & withdrawals
+// Smart axios: uses member token if present, falls back to user token
+const smartAxios = axios.create({ baseURL: BASE });
+smartAxios.interceptors.request.use(config => {
+  const tok = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token');
+  if (tok) config.headers.Authorization = `Bearer ${tok}`;
+  return config;
+});
+
 export const banksAPI = {
-  getList:    ()     => publicAxios.get('/banks/list'),
-  verify:     (data) => {
-    const tok = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token');
-    return import('axios').then(({ default: ax }) => ax.post('/api/banks/verify', data, { headers: { Authorization: `Bearer ${tok}` } }));
-  },
-  save:       (data) => memberAxios.post('/banks/save', data).catch(() => api.post('/banks/save', data)),
-  getMy:      ()     => memberAxios.get('/banks/my').catch(() => api.get('/banks/my')),
-  delete:     (id)   => memberAxios.delete(`/banks/${id}`).catch(() => api.delete(`/banks/${id}`)),
-  withdraw:   (data) => memberAxios.post('/banks/withdraw', data).catch(() => api.post('/banks/withdraw', data)),
+  getList:      ()     => publicAxios.get('/banks/list'),
+  verify:       (data) => smartAxios.post('/banks/verify', data),
+  save:         (data) => smartAxios.post('/banks/save', data),
+  getMy:        ()     => smartAxios.get('/banks/my'),
+  delete:       (id)   => smartAxios.delete(`/banks/${id}`),
+  withdraw:     (data) => smartAxios.post('/banks/withdraw', data),
+  withdrawGift: (data) => smartAxios.post('/banks/withdraw-gift', data),
 };
 
 // ─── Demo / Blog (public, no token) ──────────────────────────────────────

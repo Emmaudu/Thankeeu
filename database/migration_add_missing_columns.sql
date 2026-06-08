@@ -56,3 +56,15 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 -- Company members username
 ALTER TABLE company_members ADD COLUMN IF NOT EXISTS username TEXT;
 ALTER TABLE company_members ADD COLUMN IF NOT EXISTS phone TEXT;
+
+-- Company members extra fields
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS job_title TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+
+-- Users extra fields  
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT UNIQUE;
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);

@@ -341,4 +341,7 @@ const withdrawGift = async (req, res) => {
   }
 };
 
-module.exports = { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal, withdrawGift };
+module.exports = {
+  getBankList, verifyAccount, saveBankAccount, getMyAccounts,
+  deleteBankAccount, initiateWithdrawal, withdrawGift,
+};

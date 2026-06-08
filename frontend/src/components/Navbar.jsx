@@ -67,7 +67,6 @@ const Navbar = ({ onBookDemo }) => {
               {[
                 { to: '/pricing',       label: 'Pricing',       icon: '✨' },
                 { to: '/how-it-works', label: 'How it works', icon: '💡' },
-                { to: '/faq',          label: 'FAQ',           icon: '❓' },
                 { to: '/blog',         label: 'Blog',          icon: '📝' },
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to}
@@ -229,7 +228,6 @@ const Navbar = ({ onBookDemo }) => {
               {[
                 { to: '/pricing',       label: 'Pricing',       icon: '✨' },
                 { to: '/how-it-works', label: 'How it works', icon: '💡' },
-                { to: '/faq',          label: 'FAQ',           icon: '❓' },
                 { to: '/blog',         label: 'Blog',          icon: '📝' },
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to}

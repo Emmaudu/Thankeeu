@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import { Link as RouterLink } from 'react-router-dom';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
-import Navbar from '../components/Navbar';
+
 
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -223,7 +224,14 @@ const TransferCardButton = ({ slug }) => {
   const transfer = async username => {
     setTransferring(true);
     try {
-      await dashboardAPI.transferCard({ card_slug: slug, recipient_username: username });
+      // Transfer using smart auth (works for both users and members)
+      const tok2 = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token');
+      const base2 = import.meta.env.VITE_API_URL || '/api';
+      const tr = await fetch(`${base2}/dashboard/transfer-card`, {
+        method: 'POST', headers: { Authorization: `Bearer ${tok2}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card_slug: slug, recipient_username: username })
+      });
+      if (!tr.ok) { const e = await tr.json(); throw new Error(e.error || 'Transfer failed'); }
       toast.success(`Card transferred to @${username}! 🎉`);
       setOpen(false);
     } catch(err) { toast.error(err.response?.data?.error||'Transfer failed'); }
@@ -375,7 +383,6 @@ const CardView = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#faf8ff]">
-      <Navbar />
 
       <header className={`card-art ${cardArtClass(design)} relative px-4 py-16 sm:py-24`} style={{ background: design.background, color: design.ink }}>
         <div className="max-w-5xl mx-auto text-center relative z-10">

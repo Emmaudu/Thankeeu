@@ -662,8 +662,11 @@ module.exports = {
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
   updateMemberProfile, changeMemberPassword,
+  getMemberReceivedCards, getMemberPendingToSign, getMemberFinancialHistory,
   // Extended features
   getMemberMyCards, getMemberPendingToSign, getMemberReceivedCards,
   transferCardToMember, getMemberReminders, createMemberReminder,
   deleteMemberReminder, getMemberFinances,
 };
+
+// GET /api/members/received-cards

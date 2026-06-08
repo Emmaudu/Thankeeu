@@ -10,7 +10,7 @@ const {
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
   updateMemberProfile, changeMemberPassword,
-  getMemberMyCards, getMemberPendingToSign, getMemberReceivedCards,
+  getMemberReceivedCards, getMemberPendingToSign, getMemberFinancialHistory,
   transferCardToMember, getMemberReminders, createMemberReminder,
   deleteMemberReminder, getMemberFinances,
 } = require('../controllers/companyMembersController');
@@ -27,6 +27,9 @@ router.get('/me', memberAuth, getMemberMe);
 router.get('/dashboard', memberAuth, getMemberDashboard);
 router.get('/dept-pending', leaderAuth, getDeptPendingMembers);
 router.put('/profile', memberAuth, updateMemberProfile);
+router.get('/received-cards', memberAuth, getMemberReceivedCards);
+router.get('/pending-to-sign', memberAuth, getMemberPendingToSign);
+router.get('/financial-history', memberAuth, getMemberFinancialHistory);
 router.post('/upload-avatar', memberAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
@@ -37,7 +40,6 @@ router.put('/password', memberAuth, changeMemberPassword);
 
 // Extended dashboard tab endpoints
 router.get('/my-cards',        memberAuth, getMemberMyCards);
-router.get('/pending-to-sign', memberAuth, getMemberPendingToSign);
 router.get('/received',        memberAuth, getMemberReceivedCards);
 router.post('/transfer-card',  memberAuth, transferCardToMember);
 router.get('/reminders',       memberAuth, getMemberReminders);

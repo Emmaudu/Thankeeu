@@ -57,6 +57,11 @@ import MemberApprovalsPage    from './pages/member/MemberApprovalsPage';
 import MemberDeductionsPage   from './pages/member/MemberDeductionsPage';
 import MemberSettingsPage     from './pages/member/MemberSettingsPage';
 import MemberSupportPage      from './pages/member/MemberSupportPage';
+import MemberCardsPage       from './pages/member/MemberCardsPage';
+import MemberReceivedPage    from './pages/member/MemberReceivedPage';
+import MemberPendingPage     from './pages/member/MemberPendingPage';
+import MemberFinancesPage    from './pages/member/MemberFinancesPage';
+import MemberRemindersPage   from './pages/member/MemberRemindersPage';
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -161,6 +166,11 @@ const App = () => (
             <Route path="/member/deductions"  element={<MemberProtectedRoute leaderOnly><MemberDeductionsPage /></MemberProtectedRoute>} />
             <Route path="/member/settings"    element={<MemberProtectedRoute><MemberSettingsPage /></MemberProtectedRoute>} />
             <Route path="/member/support"     element={<MemberProtectedRoute><MemberSupportPage /></MemberProtectedRoute>} />
+            <Route path="/member/cards"       element={<MemberProtectedRoute><MemberCardsPage /></MemberProtectedRoute>} />
+            <Route path="/member/received"    element={<MemberProtectedRoute><MemberReceivedPage /></MemberProtectedRoute>} />
+            <Route path="/member/pending"     element={<MemberProtectedRoute><MemberPendingPage /></MemberProtectedRoute>} />
+            <Route path="/member/finances"    element={<MemberProtectedRoute><MemberFinancesPage /></MemberProtectedRoute>} />
+            <Route path="/member/reminders"   element={<MemberProtectedRoute><MemberRemindersPage /></MemberProtectedRoute>} />
 
             {/* ── 404 ─────────────────────────────────────── */}
             <Route path="*" element={<NotFound />} />

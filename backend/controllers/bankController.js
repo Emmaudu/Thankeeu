@@ -251,7 +251,6 @@ const initiateWithdrawal = async (req, res) => {
   }
 };
 
-module.exports = { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal };
 
 // POST /api/banks/withdraw-gift — recipient withdraws their gift pot
 const withdrawGift = async (req, res) => {
@@ -340,3 +339,6 @@ const withdrawGift = async (req, res) => {
     res.status(500).json({ error: err.response?.data?.message || 'Withdrawal failed. Please try again.' });
   }
 };
+
+
+module.exports = { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal, withdrawGift};

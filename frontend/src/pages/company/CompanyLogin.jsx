@@ -1,7 +1,7 @@
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 import { useState } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 import Navbar from '../../components/Navbar';
 import toast from 'react-hot-toast';
@@ -17,6 +17,8 @@ const CompanyLogin = () => {
 
   const { login } = useCompanyAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
@@ -27,7 +29,7 @@ const CompanyLogin = () => {
     try {
       await login(form.email, form.password);
       toast.success('Welcome back!');
-      navigate('/company/dashboard');
+      navigate(returnTo || '/company/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Invalid email or password');
     } finally { setLoading(false); }

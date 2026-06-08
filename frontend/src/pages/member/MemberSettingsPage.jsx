@@ -1,5 +1,5 @@
 import { useSEO } from '../../hooks/useSEO';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { memberAPI } from '../../utils/api';
 import { useMemberAuth } from '../../context/MemberAuthContext';
@@ -10,6 +10,9 @@ const MemberSettingsPage = () => {
   useSEO({ title: 'Settings — Thankeeu for Teams', noIndex: true });
 
   const { member, logout } = useMemberAuth();
+  const fileRef = useRef();
+  const [avatarPreview, setAvatarPreview] = useState(member?.profile_picture_url || null);
+  const [avatarFile, setAvatarFile] = useState(null);
   const navigate = useNavigate();
   const [tab, setTab] = useState('profile');
   const [saving, setSaving] = useState(false);
@@ -18,8 +21,15 @@ const MemberSettingsPage = () => {
     first_name: member?.first_name || '',
     last_name: member?.last_name || '',
     phone: member?.phone || '',
-    profile_picture_url: member?.profile_picture_url || '',
   });
+
+  const handleAvatarChange = (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 5*1024*1024) return toast.error('Image must be under 5MB');
+    setAvatarFile(f);
+    setAvatarPreview(URL.createObjectURL(f));
+  };
 
   const [passwords, setPasswords] = useState({
     current_password: '',
@@ -36,8 +46,20 @@ const MemberSettingsPage = () => {
   const saveProfile = async () => {
     setSaving(true);
     try {
-      await memberAPI.updateProfile(profile);
-      toast.success('Profile updated!');
+      let profile_picture_url = member?.profile_picture_url;
+      if (avatarFile) {
+        const fd = new FormData();
+        fd.append('file', avatarFile);
+        const r = await fetch(`${import.meta.env.VITE_API_URL||'/api'}/members/upload-avatar`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${localStorage.getItem('thankeeu_member_token')}` },
+          body: fd,
+        });
+        const d = await r.json();
+        if (d.url) profile_picture_url = d.url;
+      }
+      await memberAPI.updateProfile({ ...profile, profile_picture_url });
+      toast.success('Profile updated! ✨');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to save profile');
     } finally { setSaving(false); }
@@ -80,6 +102,25 @@ const MemberSettingsPage = () => {
         {/* Profile tab */}
         {tab === 'profile' && (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 space-y-5">
+
+            {/* Avatar upload */}
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 bg-primary-100 flex items-center justify-center">
+                {avatarPreview
+                  ? <img src={avatarPreview} className="w-full h-full object-cover" alt="" />
+                  : <span className="text-2xl font-bold text-primary-600">{member?.first_name?.[0]||'?'}</span>
+                }
+              </div>
+              <div>
+                <button type="button" onClick={() => fileRef.current?.click()}
+                  className="text-sm font-semibold px-4 py-2 rounded-xl border-2 transition-all"
+                  style={{ borderColor:'#DDD8FF', color:'#5B4BDF' }}>
+                  📷 Change photo
+                </button>
+                <p className="text-xs mt-1 text-gray-400">JPG, PNG · max 5MB</p>
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+              </div>
+            </div>
 
             {/* Account info */}
             <div className="bg-primary-50 border border-primary-100 rounded-xl p-4">

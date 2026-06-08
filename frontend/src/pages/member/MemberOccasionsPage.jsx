@@ -35,11 +35,37 @@ const MemberOccasionsPage = () => {
     recipient_name: '', recipient_email: '', occasion: 'birthday',
     title: '', is_gift_enabled: true, notification_scope: 'department',
     design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
+    send_date: '', send_time: '09:00', deadline: '', deadline_time: '23:59',
   });
 
   useEffect(() => {
     memberAPI.getDashboard()
-      .then(res => setData(res.data))
+      .then(res => {
+        setData(res.data);
+        // Merge dept members as birthday occasions if not already in upcoming
+        const deptMembers = res.data?.dept_members || [];
+        const existing = res.data?.upcoming_occasions || [];
+        const existingNames = new Set(existing.map(o => `${o.first_name}${o.last_name}`));
+        const today = new Date();
+        const memberBdays = deptMembers
+          .filter(m => m.date_of_birth && !existingNames.has(`${m.first_name}${m.last_name}`))
+          .map(m => {
+            const bd = new Date(m.date_of_birth);
+            const next = new Date(today.getFullYear(), bd.getMonth(), bd.getDate());
+            if (next < today) next.setFullYear(today.getFullYear() + 1);
+            return {
+              ...m,
+              occasion: 'birthday',
+              occasion_date: m.date_of_birth,
+              days_until: Math.ceil((next - today) / 86400000),
+              occasion_types: { name: 'birthday', label: 'Birthday', icon: '🎂' },
+              _from_member: true,
+            };
+          })
+          .filter(m => m.days_until <= 60)
+          .sort((a, b) => a.days_until - b.days_until);
+        setData(prev => ({ ...res.data, upcoming_occasions: [...existing, ...memberBdays].sort((a,b)=>a.days_until-b.days_until) }));
+      })
       .catch(() => toast.error('Failed to load occasions'))
       .finally(() => setLoading(false));
   }, []);
@@ -61,6 +87,10 @@ const MemberOccasionsPage = () => {
         status: 'active',
         allow_private_messages: true,
         send_reminders: true,
+        send_date: cardForm.send_date || null,
+        send_time: cardForm.send_time || null,
+        deadline: cardForm.deadline || null,
+        deadline_time: cardForm.deadline_time || null,
       });
 
       const slug = res.data.slug;

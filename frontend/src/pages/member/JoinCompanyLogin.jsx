@@ -3,7 +3,7 @@ import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 import { useState } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
 import Navbar from '../../components/Navbar';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import toast from 'react-hot-toast';
 
@@ -18,6 +18,8 @@ const JoinCompanyLogin = () => {
 
   const { login } = useMemberAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
@@ -28,7 +30,7 @@ const JoinCompanyLogin = () => {
     try {
       const res = await login(form.email, form.password);
       toast.success(`Welcome back, ${res.member.first_name}!`);
-      navigate('/member/dashboard');
+      navigate(returnTo || '/member/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Invalid email or password');
     } finally { setLoading(false); }

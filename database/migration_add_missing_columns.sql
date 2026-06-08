@@ -13,3 +13,19 @@ ALTER TABLE cards ADD COLUMN IF NOT EXISTS notification_scope TEXT;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS font_style TEXT DEFAULT 'handwritten';
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS payment_verified BOOLEAN DEFAULT FALSE;
 ALTER TABLE messages ADD COLUMN IF NOT EXISTS payment_reference TEXT;
+
+-- Support tickets table (create if not exists)
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  sender_type TEXT NOT NULL CHECK (sender_type IN ('user', 'company', 'member')),
+  sender_id UUID NOT NULL,
+  sender_name TEXT NOT NULL,
+  sender_email TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  message TEXT NOT NULL,
+  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  admin_reply TEXT,
+  admin_replied_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_sender ON support_tickets(sender_id);

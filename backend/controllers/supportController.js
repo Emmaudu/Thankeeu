@@ -27,8 +27,12 @@ const createTicket = async (req, res) => {
       message
     }).select().single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Support ticket DB error:', error);
+      throw error;
+    }
 
+    // Send emails - don't fail ticket creation if email fails
     const emailResults = await Promise.allSettled([
       sendEmail({
         to: process.env.SUPPORT_EMAIL || 'support@thankeeu.com',

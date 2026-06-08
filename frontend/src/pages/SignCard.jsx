@@ -2,11 +2,11 @@ import { useSEO } from '../hooks/useSEO';
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useMemberAuth } from '../context/MemberAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI } from '../utils/api';
 import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import VoiceRecorder from '../components/VoiceRecorder';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
 
@@ -16,6 +16,8 @@ const SignCard = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { member } = useMemberAuth();
+  const isSignedIn = !!(user || member);
   const currentPath = `/sign/${slug}`;
   const [searchParams] = useSearchParams();
   const [card, setCard] = useState(null);
@@ -181,24 +183,48 @@ const SignCard = () => {
     }
   };
 
-  // Require login to sign
-  if (!user) {
+  // Require login to sign (check user OR member - team members are also valid)
+  if (!isSignedIn) {
+    const ret = encodeURIComponent(currentPath);
     return (
       <div style={{ minHeight:'100vh', background:'#12102A', display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}>
-        <div style={{ maxWidth:380, width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(124,110,255,0.25)', borderRadius:20, padding:'2rem', textAlign:'center' }}>
-          <div style={{ fontSize:48, marginBottom:12 }}>✍️</div>
-          <h2 style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:700, fontSize:'1.4rem', color:'#E4E2F6', marginBottom:8 }}>Sign this card</h2>
-          <p style={{ color:'#9490C8', fontSize:14, lineHeight:1.6, marginBottom:20 }}>
-            Create a quick account to sign — you'll also be able to <strong style={{color:'#B8B4FF'}}>track the progress</strong> of the card and see all messages!
-          </p>
-          <a href={`/signup?returnTo=${encodeURIComponent(currentPath)}`}
-            style={{ display:'block', background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontWeight:700, padding:'12px 24px', borderRadius:12, textDecoration:'none', marginBottom:10 }}>
-            ✨ Create account to sign →
-          </a>
-          <a href={`/login?returnTo=${encodeURIComponent(currentPath)}`}
-            style={{ display:'block', color:'#7C6EFF', fontSize:14, fontWeight:500, padding:'8px' }}>
-            Already have an account? Sign in →
-          </a>
+        <div style={{ maxWidth:420, width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(124,110,255,0.25)', borderRadius:20, padding:'2rem' }}>
+          <div style={{ textAlign:'center', marginBottom:20 }}>
+            <div style={{ fontSize:48, marginBottom:10 }}>✍️</div>
+            <h2 style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:700, fontSize:'1.3rem', color:'#E4E2F6', marginBottom:8 }}>Sign in to sign this card</h2>
+            <p style={{ color:'#9490C8', fontSize:13, lineHeight:1.6 }}>
+              Sign in to add your message and <strong style={{color:'#B8B4FF'}}>track the progress</strong> of the card. Already have an account? Pick your login below.
+            </p>
+          </div>
+
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <a href={`/login?returnTo=${ret}`} style={{ display:'flex', alignItems:'center', gap:12, background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontWeight:700, padding:'12px 18px', borderRadius:12, textDecoration:'none' }}>
+              <span style={{ fontSize:20 }}>👤</span>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700 }}>Sign in as Individual</div>
+                <div style={{ fontSize:11, opacity:.8 }}>Personal Thankeeu account</div>
+              </div>
+            </a>
+            <a href={`/member/login?returnTo=${ret}`} style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(99,179,237,0.12)', border:'1px solid rgba(99,179,237,0.3)', color:'#63B3ED', fontWeight:700, padding:'12px 18px', borderRadius:12, textDecoration:'none' }}>
+              <span style={{ fontSize:20 }}>👥</span>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700 }}>Sign in as Team Member / Leader</div>
+                <div style={{ fontSize:11, opacity:.8 }}>Your company team workspace</div>
+              </div>
+            </a>
+            <a href={`/company/login?returnTo=${ret}`} style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(236,72,153,0.1)', border:'1px solid rgba(236,72,153,0.25)', color:'#F472B6', fontWeight:700, padding:'12px 18px', borderRadius:12, textDecoration:'none' }}>
+              <span style={{ fontSize:20 }}>🏢</span>
+              <div>
+                <div style={{ fontSize:13, fontWeight:700 }}>Sign in as Company / HR</div>
+                <div style={{ fontSize:11, opacity:.8 }}>Company HR admin account</div>
+              </div>
+            </a>
+            <div style={{ textAlign:'center', marginTop:4 }}>
+              <a href={`/signup?returnTo=${ret}`} style={{ color:'#9490C8', fontSize:12 }}>
+                No account yet? <span style={{ color:'#7C6EFF', fontWeight:600 }}>Create one free →</span>
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -250,7 +276,6 @@ const SignCard = () => {
           </button>
         </div>
       </main>
-      <Footer />
     </div>
   );
 
@@ -364,12 +389,12 @@ const SignCard = () => {
           </section>
 
           <aside className="space-y-5 lg:sticky lg:top-24">
-            <div className={`card-art ${cardArtClass(design)} celebration-shell rounded-[2rem] p-6 min-h-[360px] flex flex-col`} style={{ background: design.background, color: design.ink }}>
+            <div className={`card-art ${cardArtClass(design)} celebration-shell rounded-[2rem] p-6 min-h-[360px] flex flex-col overflow-hidden`} style={{ background: design.background, color: design.ink }}>
               <div className="flex justify-between items-center mb-7">
                 <span className="text-3xl">{design.icon}</span>
                 <span className="text-[10px] font-extrabold tracking-[.18em] uppercase opacity-60">Live preview</span>
               </div>
-              <p className="whitespace-pre-wrap break-words" style={{ color: design.ink, fontFamily: messageFont.family, fontSize: form.font_style === 'calligraphy' ? '2rem' : form.font_style === 'handwritten' ? '1.55rem' : '1.05rem', lineHeight: 1.55 }}>
+              <p className="whitespace-pre-wrap break-words break-all w-full min-w-0" style={{ color: design.ink, fontFamily: messageFont.family, fontSize: form.font_style === 'calligraphy' ? '1.6rem' : form.font_style === 'handwritten' ? '1.3rem' : '1rem', lineHeight: 1.55, overflowWrap: 'anywhere', wordBreak: 'break-word' }}>
                 {form.content || `Your beautiful message for ${card.recipient_name} will appear here...`}
               </p>
               {mediaFiles.length > 0 && (
@@ -438,7 +463,6 @@ const SignCard = () => {
           </aside>
         </div>
       </main>
-      <Footer />
     </div>
   );
 };

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { companyAuth } = require('../middleware/companyAuth');
 const { memberAuth, leaderAuth, hrOrMemberAuth } = require('../middleware/memberAuth');
+const { upload } = require('../utils/cloudinary');
 const {
   memberSignup, memberLogin, getMemberMe, getDepartmentOptions,
   getPendingMembers, getDeptPendingMembers,
@@ -23,6 +24,12 @@ router.get('/me', memberAuth, getMemberMe);
 router.get('/dashboard', memberAuth, getMemberDashboard);
 router.get('/dept-pending', leaderAuth, getDeptPendingMembers);
 router.put('/profile', memberAuth, updateMemberProfile);
+router.post('/upload-avatar', memberAuth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    res.json({ url: req.file.path });
+  } catch (err) { res.status(500).json({ error: 'Upload failed' }); }
+});
 router.put('/password', memberAuth, changeMemberPassword);
 
 // HR: full member management

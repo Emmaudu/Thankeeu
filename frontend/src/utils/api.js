@@ -38,9 +38,12 @@ companyAxios.interceptors.request.use((config) => {
 });
 companyAxios.interceptors.response.use(res => res, err => {
   if (err.response?.status === 401) {
+    // Only redirect to company login if a company token actually existed
+    // (prevents redirecting team members who use memberAxios and accidentally hit a company route)
+    const hadCompanyToken = !!localStorage.getItem('thankeeu_company_token');
     localStorage.removeItem('thankeeu_company_token');
     localStorage.removeItem('thankeeu_company');
-    window.location.href = '/company/login';
+    if (hadCompanyToken) window.location.href = '/company/login';
   }
   return Promise.reject(err);
 });
@@ -89,11 +92,13 @@ export const cardsAPI = {
   activate: (slug, data)   => api.post(`/cards/${slug}/activate`, data),
   send:     (slug)         => api.post(`/cards/${slug}/send`),
   delete:   (slug)         => api.delete(`/cards/${slug}`),
+  approveScope: (slug)     => companyAxios.post(`/cards/${slug}/approve-scope`),
 };
 
 // ─── Messages ─────────────────────────────────────────────────────────────
 export const messagesAPI = {
-  add:    (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  // Do NOT set Content-Type manually — axios + FormData sets multipart/form-data with boundary automatically
+  add:    (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data),
   react:  (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
   delete: (messageId)       => api.delete(`/messages/${messageId}`),
   reply:  (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}/reply`, data),
@@ -223,9 +228,17 @@ export const memberAPI = {
   getDeptPending: ()           => memberAxios.get('/members/dept-pending'),
   forgotPassword: (email)      => memberAxios.post('/members/forgot-password', { email }),
   resetPassword:  (data)       => memberAxios.post('/members/reset-password', data),
-  getMyCards:     ()           => memberAxios.get('/cards/member-history'),
+  getMyCards:     ()           => memberAxios.get('/members/my-cards'),
   updateProfile:  (data)       => memberAxios.put('/members/profile', data),
   changePassword: (data)       => memberAxios.put('/members/password', data),
+  // Dashboard tabs
+  getPendingToSign: ()         => memberAxios.get('/members/pending-to-sign'),
+  getReceived:      ()         => memberAxios.get('/members/received'),
+  transferCard:     (data)     => memberAxios.post('/members/transfer-card', data),
+  getReminders:     ()         => memberAxios.get('/members/reminders'),
+  createReminder:   (data)     => memberAxios.post('/members/reminders', data),
+  deleteReminder:   (id)       => memberAxios.delete(`/members/reminders/${id}`),
+  getFinances:      ()         => memberAxios.get('/members/finances'),
   // Public endpoint — no token needed
   getDepartments: (companyId)  => publicAxios.get(`/members/departments?companyId=${companyId}`),
 };
@@ -251,6 +264,40 @@ export const deductionsAPI = {
   requestCrossDept:    (data)       => memberAxios.post('/deductions/cross-dept', data),
   getCrossDeptPending: ()           => companyAxios.get('/deductions/cross-dept'),
   approveCrossDept:    (id)         => companyAxios.post(`/deductions/cross-dept/${id}/approve`),
+  // Leader-specific (uses member token — no company token needed)
+  getLeaderOccasions:  ()           => memberAxios.get('/deductions/leader/occasions'),
+  getLeaderRequests:   ()           => memberAxios.get('/deductions/leader/requests'),
+};
+
+// Notifications
+export const notificationsAPI = {
+  getAll:     ()    => {
+    const token = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token') || localStorage.getItem('thankeeu_company_token');
+    const axios = require('axios');
+    return axios.get('/api/notifications', { headers: { Authorization: `Bearer ${token}` } });
+  },
+  getCount:   ()    => {
+    const mTok = localStorage.getItem('thankeeu_member_token');
+    const uTok = localStorage.getItem('thankeeu_token');
+    const cTok = localStorage.getItem('thankeeu_company_token');
+    const tok  = mTok || uTok || cTok;
+    if (!tok) return Promise.resolve({ data: { count: 0 } });
+    return import('axios').then(({ default: ax }) => ax.get('/api/notifications/count', { headers: { Authorization: `Bearer ${tok}` } }));
+  },
+  markAllRead: ()   => memberAxios.post('/notifications/mark-read').catch(() => api.post('/notifications/mark-read')),
+};
+
+// Banks & withdrawals
+export const banksAPI = {
+  getList:    ()     => publicAxios.get('/banks/list'),
+  verify:     (data) => {
+    const tok = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token');
+    return import('axios').then(({ default: ax }) => ax.post('/api/banks/verify', data, { headers: { Authorization: `Bearer ${tok}` } }));
+  },
+  save:       (data) => memberAxios.post('/banks/save', data).catch(() => api.post('/banks/save', data)),
+  getMy:      ()     => memberAxios.get('/banks/my').catch(() => api.get('/banks/my')),
+  delete:     (id)   => memberAxios.delete(`/banks/${id}`).catch(() => api.delete(`/banks/${id}`)),
+  withdraw:   (data) => memberAxios.post('/banks/withdraw', data).catch(() => api.post('/banks/withdraw', data)),
 };
 
 // ─── Demo / Blog (public, no token) ──────────────────────────────────────

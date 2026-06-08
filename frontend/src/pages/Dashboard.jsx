@@ -27,7 +27,7 @@ const StatCard = ({ icon, label, value, sub, highlight }) => (
     <div className="flex items-start justify-between gap-2">
       <div>
         <p className="text-xs font-semibold text-warm-500 mb-1">{label}</p>
-        <p className={`font-display text-xl sm:text-2xl font-bold ${highlight ? 'text-primary-600' : 'text-warm-900'}`}>{value}</p>
+        <p className={`text-xl sm:text-2xl font-bold ${highlight ? 'text-primary-600' : 'text-warm-900'}`}>{value}</p>
         {sub && <p className="text-xs text-warm-400 mt-1">{sub}</p>}
       </div>
       <span className="text-2xl flex-shrink-0">{icon}</span>
@@ -137,7 +137,7 @@ const Dashboard = () => {
         {/* Greeting */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-warm-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-warm-900">
               Hey {user?.full_name?.split(' ')[0] || 'there'} 👋
             </h1>
             <p className="text-warm-500 text-sm mt-1">Here's what's happening with your cards</p>
@@ -181,7 +181,7 @@ const Dashboard = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 px-4">
             <div className="text-6xl mb-4">💌</div>
-            <h3 className="font-display text-xl font-bold text-warm-900 mb-3">
+            <h3 className="text-xl font-bold text-warm-900 mb-3">
               {filter==='all' ? 'No cards yet' : `No ${filter} cards`}
             </h3>
             <p className="text-warm-500 mb-7 text-sm">

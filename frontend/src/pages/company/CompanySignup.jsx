@@ -54,7 +54,7 @@ const CompanySignup = () => {
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
             🏢 For Teams
           </div>
-          <h1 className="font-display text-3xl font-semibold text-warm-900 mb-2">Create a company account</h1>
+          <h1 className="text-3xl font-semibold text-warm-900 mb-2">Create a company account</h1>
           <p className="text-warm-500 text-sm">Automate birthday celebrations for your entire team</p>
         </div>
 

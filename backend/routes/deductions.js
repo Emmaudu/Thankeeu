@@ -5,10 +5,15 @@ const { memberAuth, leaderAuth, hrOrMemberAuth } = require('../middleware/member
 const {
   getWallet, requestDeduction, approveDeduction, rejectDeduction,
   getPendingDeductions, requestCrossDept, getCrossDeptRequests, approveCrossDept,
+  getLeaderOccasions, getLeaderRequests,
 } = require('../controllers/deductionController');
 
 // Wallet — HR or member can view
 router.get('/wallet/:cardId', hrOrMemberAuth, getWallet);
+
+// Leader routes — use leaderAuth (member token, not company token)
+router.get('/leader/occasions', leaderAuth, getLeaderOccasions);
+router.get('/leader/requests',  leaderAuth, getLeaderRequests);
 
 // Deduction requests
 router.post('/request', leaderAuth, requestDeduction);

@@ -243,7 +243,7 @@ const SignCard = () => {
     <div className="min-h-screen grid place-items-center px-4">
       <div className="text-center max-w-sm">
         <div className="text-6xl mb-4">{'\uD83D\uDC8C'}</div>
-        <h2 className="font-display text-2xl font-bold text-warm-900 mb-3">Card not found</h2>
+        <h2 className="text-2xl font-bold text-warm-900 mb-3">Card not found</h2>
         <p className="text-warm-500">This card may have expired or the link is incorrect.</p>
       </div>
     </div>
@@ -262,7 +262,7 @@ const SignCard = () => {
         <div className={`card-art ${cardArtClass(design)} celebration-shell glass-panel max-w-lg w-full rounded-[2.25rem] p-7 sm:p-10 text-center`}>
           <div className="w-20 h-20 bg-emerald-100 rounded-full grid place-items-center text-4xl mx-auto mb-5 animate-pop">{'\u2713'}</div>
           <p className="text-xs font-extrabold tracking-[.2em] uppercase mb-3" style={{ color: design.accent }}>Beautifully delivered</p>
-          <h2 className="font-display text-3xl font-bold text-warm-900 mb-3">You are on the card!</h2>
+          <h2 className="text-3xl font-bold text-warm-900 mb-3">You are on the card!</h2>
           <p className="text-warm-600 mb-7">Your note is now part of <strong>{card.recipient_name}'s</strong> celebration.</p>
           <button
             onClick={() => {

@@ -50,6 +50,8 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/cards', require('./routes/cards'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/payments', require('./routes/payments'));
+app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/banks', require('./routes/banks'));
 app.use('/api/admin', require('./routes/admin'));
 // Teams / Company routes
 app.use('/api/company', require('./routes/company'));

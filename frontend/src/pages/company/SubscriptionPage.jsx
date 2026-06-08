@@ -4,6 +4,7 @@ import { subscriptionAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import { format, differenceInDays } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 const PLANS = [
   {
@@ -47,28 +48,38 @@ const SubscriptionPage = () => {
   const [paying, setPaying] = useState(null);
   const [cancelling, setCancelling] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchSub();
     const params = new URLSearchParams(window.location.search);
-    if (params.get('sub') === 'success' || params.get('reference') || params.get('trxref')) {
-      const ref = params.get('reference') || params.get('trxref');
-      // Clear the URL params so refresh doesn't re-verify
+    const ref = params.get('reference') || params.get('trxref');
+    const isReturn = params.get('sub') === 'success' || !!ref;
+
+    if (isReturn) {
+      // Clear URL immediately
       window.history.replaceState({}, '', '/company/subscription');
-      if (ref) {
-        subscriptionAPI.verify(ref)
-          .then(() => {
-            toast.success('🎉 Subscription activated! Birthday automations are now live.');
-            fetchSub();
-          })
-          .catch(() => {
-            fetchSub();
-            toast('Payment received. Your subscription should activate shortly.', { icon: '⏳' });
-          });
-      } else {
-        toast.success('Subscription successful!');
-        fetchSub();
-      }
+
+      const verifyPayment = async () => {
+        if (!ref) {
+          toast.success('Subscription successful! 🎉');
+          fetchSub();
+          return;
+        }
+        try {
+          await subscriptionAPI.verify(ref);
+          toast.success('🎉 Subscription activated! Birthday automations are now live.');
+          await fetchSub();
+          // Redirect to HRIS after a short delay so user sees success
+          setTimeout(() => navigate('/company/hris'), 2500);
+        } catch (err) {
+          console.error('Verify error:', err);
+          // Even if verify fails, re-fetch — payment may have been processed
+          await fetchSub();
+          toast('Payment received! Your subscription should be active. Refresh if HRIS is still locked.', { icon: '⏳', duration: 6000 });
+        }
+      };
+      verifyPayment();
     }
   }, []);
 
@@ -174,10 +185,10 @@ const SubscriptionPage = () => {
                 Best value
               </div>
             )}
-            <h3 className="font-display text-xl font-semibold text-warm-900 mb-1">{plan.label}</h3>
+            <h3 className="text-xl font-semibold text-warm-900 mb-1">{plan.label}</h3>
             {plan.saving && <p className="text-xs text-green-600 font-medium mb-3">{plan.saving}</p>}
             <div className="flex items-end gap-1 mb-5">
-              <span className="font-display text-2xl sm:text-4xl font-semibold text-warm-900">{plan.price}</span>
+              <span className="text-2xl sm:text-4xl font-semibold text-warm-900">{plan.price}</span>
               <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
             </div>
             <ul className="space-y-2.5 mb-6">
@@ -251,7 +262,7 @@ const SubscriptionPage = () => {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
             <div className="text-4xl text-center mb-4">😢</div>
-            <h3 className="font-display text-xl font-semibold text-warm-900 text-center mb-2">Cancel subscription?</h3>
+            <h3 className="text-xl font-semibold text-warm-900 text-center mb-2">Cancel subscription?</h3>
             <p className="text-warm-500 text-sm text-center mb-6 leading-relaxed">
               Birthday automations will stop after your current period ends ({expiresAt ? format(expiresAt, 'MMM d, yyyy') : ''}). Your team data will be preserved.
             </p>

@@ -1,11 +1,44 @@
 const supabase = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
+const { pushNotification, pushNotificationBulk } = require('../utils/notify');
 const { nanoid } = require('nanoid');
 
 const generateSlug = (recipientName, occasion) => {
   const base = `${recipientName}-${occasion}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
   return `${base}-${nanoid(6)}`;
 };
+// Helper: notify all members in a company about a card (used after HR approval)
+const notifyAllCompany = async (companyId, card, slug, recipientName, occasion, title, giftEnabled, deadline, creatorName, creatorEmail, signLink) => {
+  const { data: allMembers } = await supabase
+    .from('company_members')
+    .select('id, email, first_name, last_name')
+    .eq('company_id', companyId)
+    .eq('status', 'approved');
+
+  const notifyRows = [];
+  for (const m of (allMembers || [])) {
+    if (m.email === creatorEmail) continue;
+    notifyRows.push({
+      recipient_id:   m.id,
+      recipient_type: 'member',
+      type:    'sign_card',
+      title:   `✍️ Sign ${recipientName}'s card`,
+      body:    `${creatorName} created a company-wide card for ${recipientName}. Add your message!`,
+      data:    { card_slug: slug, card_title: title || `${recipientName}'s Card` },
+    });
+    sendEmail({ to: m.email, template: 'cardInvite', data: {
+      memberName: m.first_name,
+      creatorName, recipientName, occasion,
+      scope: 'your entire company', signLink,
+      giftEnabled,
+      deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
+    }}).catch(() => {});
+  }
+  if (notifyRows.length) await pushNotificationBulk(notifyRows);
+  await supabase.from('cards').update({ scope_approved_at: new Date() }).eq('id', card.id);
+};
+
+
 
 const createCard = async (req, res) => {
   try {
@@ -63,54 +96,93 @@ const createCard = async (req, res) => {
 
     if (error) throw error;
 
-    // --- Notify department/company members when a member creates a card ---
-    if (effectiveMemberId && effectiveCompanyId && notification_scope) {
+    // --- Notify members when a member or HR creates a card ---
+    if ((effectiveMemberId || req.company) && effectiveCompanyId && notification_scope) {
       try {
-        // Get the creator member info
-        const { data: creator } = await supabase
-          .from('company_members')
-          .select('first_name, last_name, department, email')
-          .eq('id', effectiveMemberId)
-          .single();
+        let creatorDept   = null;
+        let creatorName   = 'Your colleague';
+        let creatorEmail  = null;
 
-        if (creator) {
-          let memberQuery = supabase
+        if (effectiveMemberId) {
+          const { data: creator } = await supabase
             .from('company_members')
-            .select('email, first_name, last_name, department')
+            .select('first_name, last_name, department, email')
+            .eq('id', effectiveMemberId)
+            .single();
+          if (creator) {
+            creatorDept  = creator.department;
+            creatorName  = `${creator.first_name} ${creator.last_name}`;
+            creatorEmail = creator.email;
+          }
+        } else if (req.company) {
+          creatorName  = req.company.contact_person || req.company.name;
+          creatorEmail = req.company.email;
+        }
+
+        const signLink = `${process.env.FRONTEND_URL || 'https://thankeeu.com'}/sign/${slug}`;
+
+        if (notification_scope === 'department' && creatorDept) {
+          // Notify only creator's department
+          const { data: deptMembers } = await supabase
+            .from('company_members')
+            .select('id, email, first_name, last_name')
             .eq('company_id', effectiveCompanyId)
+            .eq('department', creatorDept)
             .eq('status', 'approved');
 
-          if (notification_scope === 'department') {
-            memberQuery = memberQuery.eq('department', creator.department);
+          const notifyRows = [];
+          for (const m of (deptMembers || [])) {
+            if (m.email === creatorEmail) continue; // skip creator
+            // Dashboard notification
+            notifyRows.push({
+              recipient_id:   m.id,
+              recipient_type: 'member',
+              type:    'sign_card',
+              title:   `✍️ Sign ${recipient_name}'s card`,
+              body:    `${creatorName} created a card for ${recipient_name}. Add your message!`,
+              data:    { card_slug: slug, card_title: title || `${recipient_name}'s Card` },
+            });
+            // Email
+            sendEmail({ to: m.email, template: 'cardInvite', data: {
+              memberName: m.first_name,
+              creatorName, recipientName: recipient_name, occasion,
+              scope: `${creatorDept} department`, signLink,
+              giftEnabled: is_gift_enabled,
+              deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
+            }}).catch(() => {});
           }
-          // 'company_wide' — no extra filter, notify everyone
+          if (notifyRows.length) await pushNotificationBulk(notifyRows);
 
-          const { data: membersToNotify } = await memberQuery;
+        } else if (notification_scope === 'company_wide') {
+          // Create a notification_approval request for HR to approve
+          await supabase.from('notification_approvals').insert({
+            card_id:           card.id,
+            company_id:        effectiveCompanyId,
+            requested_by_id:   effectiveMemberId || req.company?.id,
+            requested_by_type: effectiveMemberId ? (creatorDept ? 'team_member' : 'hr') : 'hr',
+            status:            req.company ? 'approved' : 'pending', // HR auto-approved
+          });
 
-          const signLink = `${process.env.FRONTEND_URL}/sign/${slug}`;
-          const creatorFullName = `${creator.first_name} ${creator.last_name}`;
-
-          for (const m of (membersToNotify || [])) {
-            // Don't email the creator themselves
-            if (m.email === creator.email) continue;
-            await sendEmail({
-              to: m.email,
-              template: 'cardInvite',
-              data: {
-                creatorName: creatorFullName,
-                recipientName: recipient_name,
-                occasion,
-                cardSlug: slug,
-                giftEnabled: is_gift_enabled,
-                deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
-                signLink,
-                scope: notification_scope === 'department' ? `${creator.department} department` : 'your company',
-              }
-            }).catch(() => {}); // don't fail card creation if email fails
+          if (req.company) {
+            // HR created the card — auto-approve and notify all departments now
+            await notifyAllCompany(effectiveCompanyId, card, slug, recipient_name, occasion, title, is_gift_enabled, deadline, creatorName, creatorEmail, signLink);
+          } else {
+            // Member created — notify HR to approve
+            const { data: company } = await supabase.from('companies').select('email, contact_person, name, id').eq('id', effectiveCompanyId).single();
+            if (company) {
+              await sendEmail({ to: company.email, template: 'cardApprovalRequest', data: {
+                hrName: company.contact_person || 'HR', companyName: company.name,
+                creatorName, recipientName: recipient_name, occasion,
+                cardTitle: title || `${recipient_name}'s Card`, cardSlug: slug,
+              }}).catch(() => {});
+              // Dashboard notification for HR
+              await pushNotification(company.id, 'company', 'card_approval', `🏢 Approval needed: ${recipient_name}'s card`,
+                `${creatorName} wants to notify the whole company about ${recipient_name}'s ${occasion} card.`,
+                { card_slug: slug, creator_name: creatorName, recipient_name });
+            }
           }
         }
       } catch (notifyErr) {
-        // Log but don't fail the card creation
         console.error('Notification error:', notifyErr);
       }
     }
@@ -477,7 +549,55 @@ const getMemberCards = async (req, res) => {
   }
 };
 
+// POST /api/cards/:slug/approve-scope — HR approves company-wide notification
+const approveCardScope = async (req, res) => {
+  try {
+    if (!req.company) return res.status(403).json({ error: 'HR access required' });
+
+    const { slug } = req.params;
+    const { data: card } = await supabase
+      .from('cards')
+      .select('id, title, recipient_name, occasion, is_gift_enabled, deadline, company_id, created_by_member_id, notification_scope')
+      .eq('slug', slug)
+      .single();
+
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    if (card.company_id !== req.company.id) return res.status(403).json({ error: 'Not your company\'s card' });
+
+    // Update approval record
+    await supabase.from('notification_approvals')
+      .update({ status: 'approved', approved_at: new Date(), approved_by_id: req.company.id })
+      .eq('card_id', card.id)
+      .eq('status', 'pending');
+
+    // Get creator info
+    let creatorName  = req.company.contact_person || req.company.name;
+    let creatorEmail = req.company.email;
+    if (card.created_by_member_id) {
+      const { data: creator } = await supabase.from('company_members')
+        .select('first_name, last_name, email').eq('id', card.created_by_member_id).single();
+      if (creator) { creatorName = `${creator.first_name} ${creator.last_name}`; creatorEmail = creator.email; }
+
+      // Notify the creator that it was approved
+      await pushNotification(card.created_by_member_id, 'member', 'card_approved',
+        `✅ Company-wide card approved!`,
+        `HR approved your card for ${card.recipient_name}. All departments have been notified.`,
+        { card_slug: slug });
+    }
+
+    const signLink = `${process.env.FRONTEND_URL || 'https://thankeeu.com'}/sign/${slug}`;
+    await notifyAllCompany(card.company_id, card, slug, card.recipient_name, card.occasion,
+      card.title, card.is_gift_enabled, card.deadline, creatorName, creatorEmail, signLink);
+
+    res.json({ message: `Company-wide notifications sent for ${card.recipient_name}'s card` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to approve card scope' });
+  }
+};
+
 module.exports = {
   createCard, getUserCards, getCard, updateCard, activateCard, sendCard,
-  deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards
+  deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards,
+  approveCardScope, notifyAllCompany,
 };

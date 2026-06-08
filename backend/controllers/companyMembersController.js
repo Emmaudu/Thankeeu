@@ -298,10 +298,10 @@ const getMemberDashboard = async (req, res) => {
     const member = req.member;
     const isLeader = member.role === 'team_leader';
 
-    // Get dept members
+    // Get dept members — include date_of_birth for birthday calculation
     const { data: deptMembers } = await supabase
       .from('company_members')
-      .select('id, first_name, last_name, email, role, department, status, profile_picture_url')
+      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, date_of_birth, job_title, phone')
       .eq('company_id', member.company_id)
       .eq('department', member.department)
       .eq('status', 'approved');
@@ -422,17 +422,41 @@ const memberResetPassword = async (req, res) => {
 // PUT /api/members/profile — update member profile
 const updateMemberProfile = async (req, res) => {
   try {
-    const { first_name, last_name, phone, profile_picture_url } = req.body;
+    const { first_name, last_name, phone, profile_picture_url, username, job_title, bio, date_of_birth } = req.body;
+
+    // Validate username uniqueness if provided
+    if (username) {
+      const { data: existing } = await supabase
+        .from('company_members')
+        .select('id')
+        .eq('username', username.toLowerCase().trim())
+        .neq('id', req.member.id)
+        .maybeSingle();
+      if (existing) return res.status(400).json({ error: 'Username already taken. Choose another.' });
+    }
+
+    const updateData = {
+      first_name, last_name,
+      updated_at: new Date()
+    };
+    if (phone        !== undefined) updateData.phone         = phone;
+    if (profile_picture_url !== undefined) updateData.profile_picture_url = profile_picture_url;
+    if (username     !== undefined) updateData.username      = username?.toLowerCase().trim() || null;
+    if (job_title    !== undefined) updateData.job_title     = job_title;
+    if (bio          !== undefined) updateData.bio           = bio;
+    if (date_of_birth !== undefined) updateData.date_of_birth = date_of_birth || null;
+
     const { data, error } = await supabase
       .from('company_members')
-      .update({ first_name, last_name, phone, profile_picture_url, updated_at: new Date() })
+      .update(updateData)
       .eq('id', req.member.id)
-      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, company_id')
+      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, username, phone, job_title, bio, date_of_birth, company_id')
       .single();
     if (error) throw error;
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to update profile' });
+    console.error('Profile update error:', err);
+    res.status(500).json({ error: 'Failed to update profile. ' + (err.message || '') });
   }
 };
 
@@ -460,6 +484,176 @@ const changeMemberPassword = async (req, res) => {
   }
 };
 
+
+// ────────────────────────────────────────────────────────────────────
+// MEMBER DASHBOARD EXTENDED FEATURES
+// ────────────────────────────────────────────────────────────────────
+
+// GET /api/members/my-cards — cards created by this member
+const getMemberMyCards = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, background_color, messages(count)')
+      .eq('created_by_member_id', req.member.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json((data || []).map(c => ({ ...c, signed_count: c.messages?.[0]?.count || 0, messages: undefined })));
+  } catch (err) { res.status(500).json({ error: 'Failed to load cards' }); }
+};
+
+// GET /api/members/pending-to-sign — active dept/company cards not yet signed by this member
+const getMemberPendingToSign = async (req, res) => {
+  try {
+    const member = req.member;
+    // Get all active cards for this company
+    const { data: cards } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, background_color, deadline')
+      .eq('company_id', member.company_id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (!cards?.length) return res.json([]);
+
+    // Check which ones this member has already signed (by email)
+    const { data: signed } = await supabase
+      .from('messages')
+      .select('card_id')
+      .eq('author_email', member.email)
+      .in('card_id', cards.map(c => c.id));
+
+    const signedCardIds = new Set((signed || []).map(s => s.card_id));
+    const pending = cards.filter(c => !signedCardIds.has(c.id));
+    res.json(pending);
+  } catch (err) { res.status(500).json({ error: 'Failed to load pending cards' }); }
+};
+
+// GET /api/members/received — cards transferred to this member
+const getMemberReceivedCards = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('member_received_cards')
+      .select('id, transferred_at, opened_at, note, card:cards(id,slug,title,recipient_name,occasion,status,total_collected,created_at,background_color,messages(count))')
+      .eq('recipient_member_id', req.member.id)
+      .order('transferred_at', { ascending: false });
+    if (error) throw error;
+    res.json((data || []).map(r => ({
+      ...r,
+      card: r.card ? { ...r.card, signed_count: r.card.messages?.[0]?.count || 0, messages: undefined } : null
+    })));
+  } catch (err) { res.status(500).json({ error: 'Failed to load received cards' }); }
+};
+
+// POST /api/members/transfer-card — transfer a card to another team member
+const transferCardToMember = async (req, res) => {
+  try {
+    const { card_slug, recipient_username, note } = req.body;
+    if (!card_slug || !recipient_username) return res.status(400).json({ error: 'card_slug and recipient_username are required' });
+
+    // Find recipient
+    const { data: recipient } = await supabase
+      .from('company_members')
+      .select('id, first_name, last_name, email, company_id')
+      .eq('username', recipient_username.toLowerCase().trim())
+      .maybeSingle();
+    if (!recipient) return res.status(404).json({ error: `No member found with username @${recipient_username}` });
+    if (recipient.company_id !== req.member.company_id) return res.status(403).json({ error: 'Recipient must be in the same company' });
+
+    // Find card
+    const { data: card } = await supabase
+      .from('cards')
+      .select('id, title, recipient_name, created_by_member_id, company_id')
+      .eq('slug', card_slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    if (card.company_id !== req.member.company_id) return res.status(403).json({ error: 'Card is not in your company' });
+
+    // Upsert received card record
+    const { error } = await supabase
+      .from('member_received_cards')
+      .upsert({
+        card_id: card.id,
+        recipient_member_id: recipient.id,
+        transferred_by: req.member.id,
+        note: note || null,
+        transferred_at: new Date(),
+      }, { onConflict: 'card_id,recipient_member_id' });
+    if (error) throw error;
+
+    res.json({ message: `Card transferred to @${recipient_username} (${recipient.first_name} ${recipient.last_name}) ✓` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to transfer card' });
+  }
+};
+
+// GET /api/members/reminders — personal reminders for this member
+const getMemberReminders = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('member_reminders')
+      .select('*')
+      .eq('member_id', req.member.id)
+      .order('occasion_date', { ascending: true });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to load reminders' }); }
+};
+
+// POST /api/members/reminders — create reminder
+const createMemberReminder = async (req, res) => {
+  try {
+    const { recipient_name, recipient_email, occasion, occasion_date, frequency, notes } = req.body;
+    if (!recipient_name || !occasion || !occasion_date) return res.status(400).json({ error: 'Name, occasion, and date are required' });
+    const { data, error } = await supabase
+      .from('member_reminders')
+      .insert({ member_id: req.member.id, recipient_name, recipient_email, occasion, occasion_date, frequency: frequency || 'yearly', notes })
+      .select().single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (err) { res.status(500).json({ error: 'Failed to create reminder' }); }
+};
+
+// DELETE /api/members/reminders/:id
+const deleteMemberReminder = async (req, res) => {
+  try {
+    await supabase.from('member_reminders').delete().eq('id', req.params.id).eq('member_id', req.member.id);
+    res.json({ message: 'Reminder deleted' });
+  } catch (err) { res.status(500).json({ error: 'Failed to delete reminder' }); }
+};
+
+// GET /api/members/finances — financial history for this member
+const getMemberFinances = async (req, res) => {
+  try {
+    // Contributions this member made
+    const { data: contributions } = await supabase
+      .from('contributions')
+      .select('id, amount, contributor_name, contributor_email, created_at, card:cards(id,slug,title,recipient_name,occasion)')
+      .eq('contributor_email', req.member.email)
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    // Gift wallet — cards created by this member with collected amounts
+    const { data: myCardWallets } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, occasion, total_collected, status, created_at')
+      .eq('created_by_member_id', req.member.id)
+      .gt('total_collected', 0)
+      .order('created_at', { ascending: false });
+
+    const totalContributed = (contributions || []).reduce((sum, c) => sum + (c.amount || 0), 0);
+    const totalCollected   = (myCardWallets || []).reduce((sum, c) => sum + (c.total_collected || 0), 0);
+
+    res.json({
+      contributions:     contributions || [],
+      my_card_wallets:   myCardWallets || [],
+      total_contributed: totalContributed,
+      total_collected:   totalCollected,
+    });
+  } catch (err) { res.status(500).json({ error: 'Failed to load financial history' }); }
+};
+
 module.exports = {
   DEFAULT_DEPARTMENTS,
   memberSignup, memberLogin, getMemberMe, getDepartmentOptions,
@@ -468,4 +662,8 @@ module.exports = {
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
   updateMemberProfile, changeMemberPassword,
+  // Extended features
+  getMemberMyCards, getMemberPendingToSign, getMemberReceivedCards,
+  transferCardToMember, getMemberReminders, createMemberReminder,
+  deleteMemberReminder, getMemberFinances,
 };

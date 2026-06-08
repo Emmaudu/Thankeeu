@@ -1,12 +1,55 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMemberAuth } from '../../context/MemberAuthContext';
+import NotificationBell from '../NotificationBell';
+import { memberAPI } from '../../utils/api';
+
+const memberNotifFetch = () => memberAPI.getMe ? import('../../utils/api').then(m => m.memberAxios.get('/notifications')) : Promise.resolve({ data: [] });
+
+const MIN_W = 180;
+const MAX_W = 320;
+const DEF_W = 220;
 
 const MemberLayout = ({ children, title, subtitle }) => {
   const { member, logout } = useMemberAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarW, setSidebarW] = useState(() => {
+    const saved = parseInt(localStorage.getItem('tk_sidebar_w'), 10);
+    return (saved >= MIN_W && saved <= MAX_W) ? saved : DEF_W;
+  });
+  const dragging = useRef(false);
+  const startX  = useRef(0);
+  const startW  = useRef(DEF_W);
+
+  const onMouseDown = useCallback((e) => {
+    e.preventDefault();
+    dragging.current = true;
+    startX.current   = e.clientX;
+    startW.current   = sidebarW;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [sidebarW]);
+
+  useEffect(() => {
+    const onMove = (e) => {
+      if (!dragging.current) return;
+      const delta = e.clientX - startX.current;
+      const newW = Math.min(MAX_W, Math.max(MIN_W, startW.current + delta));
+      setSidebarW(newW);
+    };
+    const onUp = () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('tk_sidebar_w', sidebarW);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [sidebarW]);
 
   const isLeader = member?.role === 'team_leader';
   const handleLogout = () => { logout(); navigate('/member/login'); };
@@ -52,7 +95,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold truncate" style={{ color: '#E4E2F6' }}>{member?.first_name} {member?.last_name}</p>
             <p className="text-xs truncate" style={{ color: '#6B678A' }}>
-              {isLeader ? '👑 Team Leader' : '👤 Team Member'} · {member?.department}
+              {isLeader ? '👑 Leader' : '👤 Member'}{member?.username ? ` · @${member.username}` : ''}
             </p>
           </div>
         </Link>
@@ -99,10 +142,17 @@ const MemberLayout = ({ children, title, subtitle }) => {
 
   return (
     <div className="flex" style={{ minHeight: '100vh', background: '#0F0D24' }}>
-      {/* Desktop sidebar */}
-      <div className="hidden md:block flex-shrink-0" style={{ width: 220 }}>
-        <div className="fixed top-0 left-0 h-screen overflow-hidden" style={{ width: 220 }}>
+      {/* Desktop sidebar — draggable resize */}
+      <div className="hidden md:block flex-shrink-0 relative" style={{ width: sidebarW }}>
+        <div className="fixed top-0 left-0 h-screen overflow-hidden" style={{ width: sidebarW }}>
           <SidebarContent />
+        </div>
+        {/* Drag handle */}
+        <div onMouseDown={onMouseDown} title="Drag to resize"
+          className="absolute top-0 right-0 w-2 h-full z-10 cursor-col-resize group"
+          style={{ background: 'transparent' }}>
+          <div className="w-0.5 h-full mx-auto opacity-0 group-hover:opacity-100 transition-opacity"
+            style={{ background: 'rgba(124,110,255,0.5)' }} />
         </div>
       </div>
 
@@ -123,8 +173,14 @@ const MemberLayout = ({ children, title, subtitle }) => {
           <span style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, color: '#1A1730', fontSize: 14 }}>
             Thank<span style={{ color: '#7C6EFF' }}>eeu</span> Teams
           </span>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold"
-            style={{ background: 'linear-gradient(135deg,#7C6EFF,#EC4899)', color: '#fff' }}>{initials}</div>
+          <div className="flex items-center gap-1">
+            <NotificationBell
+              fetchFn={() => import('../../utils/api').then(m => m.memberAxios.get('/notifications'))}
+              markReadFn={() => import('../../utils/api').then(m => m.memberAxios.post('/notifications/mark-read'))}
+            />
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold"
+              style={{ background: 'linear-gradient(135deg,#7C6EFF,#EC4899)', color: '#fff' }}>{initials}</div>
+          </div>
         </div>
 
         <div className="px-4 md:px-8 py-6 md:py-8">

@@ -32,17 +32,11 @@ const FEATURES = [
 ];
 
 const TESTIMONIALS = [
-  { name:'Adaeze O.', role:'HR Manager', location:'London 🇬🇧', text:"Our colleague's farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy.", stars:5 },
-  { name:'Emeka T.',  role:'Engineer',   location:'New York 🇺🇸', text:"Organised my girlfriend's birthday from London. 22 people signed, raised ₦500k. She was genuinely shocked. 10/10.", stars:5 },
-  { name:'Kemi B.',   role:'People Ops', location:'Toronto 🇨🇦', text:"No more Google Forms and chasing receipts. Everything just works. The HRIS sync alone saved us hours per week.", stars:5 },
+  { name:'Adaeze O.', role:'HR Manager', location:'Lagos, Nigeria 🇳🇬', text:"Our colleague's farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy.", stars:5 },
+  { name:'Emeka T.',  role:'Engineer',   location:'Abuja, Nigeria 🇳🇬', text:"Organised my girlfriend's birthday from London. 22 people signed, raised ₦500k. She was genuinely shocked. 10/10.", stars:5 },
+  { name:'Kemi B.',   role:'People Ops', location:'Port Harcourt, Nigeria 🇳🇬', text:"No more Google Forms and chasing receipts. Everything just works. The HRIS sync alone saved us hours per week.", stars:5 },
 ];
 
-const STATS = [
-  { icon:'💌', value:'50K+', label:'Cards created' },
-  { icon:'✍️', value:'800K+', label:'Messages signed' },
-  { icon:'🎁', value:'₦2B+', label:'Gifts collected' },
-  { icon:'🏢', value:'200+', label:'Companies' },
-];
 
 const TEAM_SIZE_OPTIONS = ['1–10','11–50','51–200','201–500','500+'];
 
@@ -68,7 +62,7 @@ const DemoModal = ({ onClose }) => {
         {done ? (
           <div className="text-center py-8">
             <div className="text-6xl mb-4 animate-bounce-soft">🎉</div>
-            <h3 className="font-display text-2xl font-bold text-warm-900 mb-2">Request received!</h3>
+            <h3 className="text-2xl font-bold text-warm-900 mb-2">Request received!</h3>
             <p className="text-warm-500 text-sm mb-6">We'll reach out within 24 hours.</p>
             <button onClick={onClose} className="btn-primary px-8">Close</button>
           </div>
@@ -77,7 +71,7 @@ const DemoModal = ({ onClose }) => {
             <div className="flex items-start justify-between mb-5">
               <div>
                 <div className="pill mb-2">📅 Book a demo</div>
-                <h3 className="font-display text-xl font-bold text-warm-900">See Thankeeu for Teams live</h3>
+                <h3 className="text-xl font-bold text-warm-900">See Thankeeu for Teams live</h3>
                 <p className="text-warm-500 text-sm mt-1">Free · 30 min · Usually within 24hrs</p>
               </div>
               <button onClick={onClose} className="text-warm-400 hover:text-warm-700 text-2xl leading-none w-9 h-9 flex items-center justify-center rounded-xl hover:bg-warm-100 flex-shrink-0">✕</button>
@@ -148,7 +142,7 @@ const Home = () => {
             ✨ HRIS sync · 12 automated occasions · Paystack gifting
           </div>
 
-          <h1 className="font-display font-bold text-warm-900 mb-5 px-2"
+          <h1 className="font-bold text-warm-900 mb-5 px-2"
             style={{ fontSize:'clamp(2rem,7vw,3.75rem)', lineHeight:1.1 }}>
             Group cards &amp; gifts<br/>
             <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
@@ -169,12 +163,6 @@ const Home = () => {
               📅 Book team demo
             </button>
           </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto px-2">
-            {STATS.map(s => (
-              <div key={s.label} className="bg-white rounded-2xl p-3 sm:p-4 text-center border border-purple-100 shadow-sm">
-                <div className="text-2xl mb-1">{s.icon}</div>
                 <div className="font-display text-lg sm:text-xl font-bold text-primary-500">{s.value}</div>
                 <div className="text-xs text-warm-500 mt-0.5">{s.label}</div>
               </div>
@@ -190,7 +178,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="pill mx-auto mb-3">🎉 14 occasions</div>
-            <h2 className="font-display font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
+            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
               Whatever the moment,<br/><span className="text-primary-500">there's a card for it</span>
             </h2>
           </div>
@@ -213,7 +201,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3">⚡ Stupidly simple</div>
-            <h2 className="font-display font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
+            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
               From zero to delivered<br/><span className="text-primary-500">in under 5 minutes</span>
             </h2>
           </div>
@@ -225,7 +213,7 @@ const Home = () => {
                   <span className="text-2xl">{s.icon}</span>
                   <span className="text-xs font-bold uppercase tracking-wide text-primary-500">{s.label}</span>
                 </div>
-                <h3 className="font-display font-bold text-warm-900 mb-2 text-base">{s.title}</h3>
+                <h3 className="font-bold text-warm-900 mb-2 text-base">{s.title}</h3>
                 <p className="text-sm text-warm-500 leading-relaxed">{s.desc}</p>
               </div>
             ))}
@@ -241,7 +229,7 @@ const Home = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             <div>
               <div className="pill mb-4">💜 For individuals</div>
-              <h2 className="font-display font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.5rem,5vw,2.1rem)' }}>
+              <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.5rem,5vw,2.1rem)' }}>
                 Everything a group card<br/><span className="text-primary-500">should actually have</span>
               </h2>
               <p className="text-warm-500 mb-6 leading-relaxed">No generic e-cards. One link, everyone signs, gift collected — and it looks stunning.</p>
@@ -314,7 +302,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3">⭐ Real stories</div>
-            <h2 className="font-display font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
+            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
               People who actually<br/><span className="text-primary-500">made someone's day</span>
             </h2>
           </div>
@@ -345,7 +333,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3">🏢 For HR &amp; People teams</div>
-            <h2 className="font-display font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
+            <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
               Automate every celebration.<br/><span className="text-primary-500">Zero manual effort.</span>
             </h2>
             <p className="text-warm-500 max-w-xl mx-auto text-sm leading-relaxed">
@@ -385,7 +373,7 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="bg-gradient-to-br from-purple-50 to-rose-50 border-2 border-purple-200 rounded-3xl p-7">
               <div className="text-4xl mb-4">💜</div>
-              <h3 className="font-display text-2xl font-bold text-warm-900 mb-2">For individuals</h3>
+              <h3 className="text-2xl font-bold text-warm-900 mb-2">For individuals</h3>
               <p className="text-primary-600 font-bold text-sm mb-1">From ₦5,000 · One-time payment</p>
               <p className="text-warm-600 mb-5 text-sm leading-relaxed">Create a card for anyone — friend, colleague, family. No account needed to sign.</p>
               <ul className="space-y-2 mb-6">
@@ -414,6 +402,80 @@ const Home = () => {
         </div>
       </section>
 
+      {/* ── HOW IT WORKS ─────────────────────── */}
+      <section id="how-it-works" className="py-14 md:py-20 px-4" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="pill mx-auto mb-3">💡 How it works</div>
+            <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(1.6rem,5vw,2.5rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
+              From zero to celebration<br/><span className="text-primary-500">in under 3 minutes</span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {[
+              { num:'1', icon:'🎨', title:'Create your card', desc:'Pick an occasion, choose a design, set the recipient and delivery date. Takes 2 minutes flat.' },
+              { num:'2', icon:'📲', title:'Share the signing link', desc:'Copy a WhatsApp link or email it. No login needed — anyone can sign from their phone.' },
+              { num:'3', icon:'💜', title:'Watch messages roll in', desc:'Your signers add messages, photos, voice notes, GIFs and chip in to the gift pot via Paystack.' },
+              { num:'4', icon:'🎁', title:'Deliver the surprise', desc:'Card and gift arrive by email on the exact day. The recipient opens a beautiful card, reads every message and claims the gift.' },
+            ].map(s => (
+              <div key={s.num} className="bg-white rounded-3xl border-2 border-purple-100 p-6 flex gap-4 hover:border-primary-300 hover:shadow-md transition-all">
+                <div className="w-10 h-10 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-sm flex-shrink-0"
+                  style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900 }}>{s.num}</div>
+                <div>
+                  <div className="text-2xl mb-2">{s.icon}</div>
+                  <h3 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:800, fontSize:'1rem', color:'#1A1035', marginBottom:'0.3rem' }}>{s.title}</h3>
+                  <p className="text-sm text-warm-500 leading-relaxed">{s.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-xs text-warm-400 mt-8">
+            Need a walkthrough? <a href="/how-it-works" className="text-primary-500 font-semibold hover:underline">See the full guide →</a>
+          </p>
+        </div>
+      </section>
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+
+      {/* ── FAQ ───────────────────────────────── */}
+      <section id="faq" className="py-14 md:py-20 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="pill mx-auto mb-3">❓ FAQ</div>
+            <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(1.6rem,5vw,2.3rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
+              Questions we get all the time
+            </h2>
+          </div>
+          {[
+            { q:'Is it really free to create a card?', a:'Yes — creating a card and collecting messages is 100% free. You only pay ₦5,000 when you\'re ready to activate and send the card to the recipient.' },
+            { q:'Does the recipient need to create an account?', a:'No. The recipient simply opens a link, reads all the messages and can claim the gift — no sign-up required.' },
+            { q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Paystack.' },
+            { q:'Can people outside Nigeria contribute to the gift pot?', a:'Yes. Paystack supports international Visa and Mastercard cards. Your signers can contribute from anywhere in the world.' },
+            { q:'What types of media can contributors add?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs — all in one beautiful card.' },
+            { q:'How does the gift pot work for companies?', a:'Each celebration card has its own Paystack gift pot. Department members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account.' },
+            { q:'Can I schedule the card to send on a specific date?', a:'Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget.' },
+            { q:'Is there a limit on how many people can sign?', a:'No limit. Invite your entire company if you want. The more signatures, the more meaningful the card.' },
+          ].map((item, i) => {
+            const [open, setOpen] = useState(false);
+            return (
+              <div key={i} className="border-b border-purple-100">
+                <button onClick={() => setOpen(!open)}
+                  className="w-full text-left flex items-center justify-between py-4 gap-4 hover:text-primary-600 transition-colors">
+                  <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:'0.9rem', color:'#1A1035' }}>{item.q}</span>
+                  <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${open ? 'rotate-45' : ''}`}>+</span>
+                </button>
+                {open && <p className="text-sm text-warm-600 leading-relaxed pb-4">{item.a}</p>}
+              </div>
+            );
+          })}
+          <p className="text-center text-xs text-warm-400 mt-8">
+            More questions? <a href="/faq" className="text-primary-500 font-semibold hover:underline">See all FAQs →</a>
+          </p>
+        </div>
+      </section>
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+
       {/* ── BOTTOM CTA ───────────────────── */}
       <section className="py-16 md:py-24 px-4 text-center" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
@@ -422,7 +484,7 @@ const Home = () => {
               <span key={i} className="animate-float" style={{ animationDelay:`${i*0.15}s` }}>{e}</span>
             ))}
           </div>
-          <h2 className="font-display font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.75rem,6vw,3rem)' }}>
+          <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.75rem,6vw,3rem)' }}>
             Make someone feel<br/>
             <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
               genuinely loved

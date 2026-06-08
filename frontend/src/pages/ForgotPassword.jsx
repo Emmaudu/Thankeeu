@@ -28,7 +28,7 @@ const ForgotPassword = () => {
     <div className="min-h-screen"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="font-display text-3xl font-semibold text-warm-900 mb-2">Reset your password</h1>
+          <h1 className="text-3xl font-semibold text-warm-900 mb-2">Reset your password</h1>
           <p className="text-warm-500 text-sm">We'll send a reset link to your email</p>
         </div>
 
@@ -36,7 +36,7 @@ const ForgotPassword = () => {
           {sent ? (
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">📧</div>
-              <h3 className="font-display text-xl font-semibold text-warm-900 mb-2">Check your inbox</h3>
+              <h3 className="text-xl font-semibold text-warm-900 mb-2">Check your inbox</h3>
               <p className="text-warm-500 text-sm mb-6">If <strong>{email}</strong> has an account, we've sent a reset link. Check your spam folder if you don't see it.</p>
               <Link to="/login" className="btn-primary w-full inline-block text-center">Back to login</Link>
             </div>

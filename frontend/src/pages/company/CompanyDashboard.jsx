@@ -1,9 +1,10 @@
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { teamsAPI, subscriptionAPI, hrMembersAPI } from '../../utils/api';
+import { teamsAPI, subscriptionAPI, hrMembersAPI, cardsAPI } from '../../utils/api';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 import CompanyLayout from '../../components/company/CompanyLayout';
+import NotificationBell from '../../components/NotificationBell';
 import toast from 'react-hot-toast';
 import { format, differenceInDays } from 'date-fns';
 
@@ -28,10 +29,27 @@ const CompanyDashboard = () => {
   const [sub, setSub] = useState(null);
   const [pending, setPending] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [scopeApprovals, setScopeApprovals] = useState([]);
+  const [approvingScope, setApprovingScope] = useState(null);
 
   useEffect(() => {
-    Promise.all([teamsAPI.getDashboard(), subscriptionAPI.get(), hrMembersAPI.getAll()])
-      .then(([d, s, p]) => { setData(d.data); setSub(s.data); setPending((p.data||[]).filter(m=>m.status==='pending')); })
+    Promise.all([
+      teamsAPI.getDashboard(),
+      subscriptionAPI.get(),
+      hrMembersAPI.getAll(),
+      // Fetch cards pending company-wide scope approval
+      cardsAPI.getAll().catch(() => ({ data: [] })),
+    ])
+      .then(([d, s, p, cards]) => {
+        setData(d.data);
+        setSub(s.data);
+        setPending((p.data||[]).filter(m => m.status === 'pending'));
+        // Cards with pending_approval scope
+        const pending_scope = (cards.data || []).filter(c =>
+          c.notification_scope === 'company_wide' && !c.scope_approved_at
+        );
+        setScopeApprovals(pending_scope);
+      })
       .catch(() => toast.error('Failed to load dashboard'))
       .finally(() => setLoading(false));
 
@@ -61,8 +79,54 @@ const CompanyDashboard = () => {
     } catch { toast.error('Failed to approve'); }
   };
 
+  const handleApproveScope = async (slug) => {
+    setApprovingScope(slug);
+    try {
+      await cardsAPI.approveScope(slug);
+      setScopeApprovals(prev => prev.filter(c => c.slug !== slug));
+      toast.success('✅ Company-wide notifications sent to all departments!');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to approve');
+    } finally { setApprovingScope(null); }
+  };
+
   return (
     <CompanyLayout title={`Welcome, ${company?.contact_person?.split(' ')[0] || 'HR'} 👋`} subtitle="Here's your team overview for today">
+
+      {/* Company-wide card approvals */}
+      {scopeApprovals.length > 0 && (
+        <div className="mb-5 space-y-2">
+          {scopeApprovals.map(card => (
+            <div key={card.id} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-4">
+              <span className="text-2xl flex-shrink-0">🏢</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-amber-800 text-sm">Approval needed: Company-wide notification</p>
+                <p className="text-xs text-amber-600 mt-0.5">
+                  A team member wants to notify the entire company about <strong>{card.recipient_name}</strong>'s card. Approve to send emails + dashboard notifications to all departments.
+                </p>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => handleApproveScope(card.slug)}
+                  disabled={approvingScope === card.slug}
+                  className="text-xs font-bold px-3 py-2 rounded-xl text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors">
+                  {approvingScope === card.slug ? '…' : '✅ Approve & Notify all'}
+                </button>
+                <Link to={`/card/${card.slug}`} className="text-xs font-semibold px-3 py-2 rounded-xl border border-amber-300 text-amber-700 hover:bg-amber-100 transition-colors">
+                  View card
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* HR quick actions bar */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        <Link to="/member/occasions" className="btn-primary text-xs py-2.5 px-4">✨ Create card for team</Link>
+        <Link to="/company/hris" className="btn-secondary text-xs py-2.5 px-4">📥 HRIS &amp; Import</Link>
+        <Link to="/company/members" className="btn-secondary text-xs py-2.5 px-4">👥 Team members{pending.length > 0 && ` (${pending.length} pending)`}</Link>
+      </div>
 
       {/* Subscription alert */}
       {!isSubscribed && (

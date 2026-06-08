@@ -108,12 +108,18 @@ const approveDeduction = async (req, res) => {
     }).eq('id', requestId);
 
     // Notify team leader
-    const { data: leader } = await supabase.from('company_members').select('email, first_name').eq('id', dr.requested_by_id).single();
+    const { data: leader } = await supabase.from('company_members').select('email, first_name, id').eq('id', dr.requested_by_id).single();
     if (leader) {
       await sendEmail({ to: leader.email, template: 'deductionApproved', data: {
         leaderName: leader.first_name, amount: dr.amount,
         reason: dr.reason, note: note || null,
       }});
+      // Dashboard notification — prompt to withdraw
+      const { pushNotification } = require('../utils/notify');
+      await pushNotification(leader.id, 'member', 'deduction_approved',
+        `💸 Deduction approved — ₦${dr.amount.toLocaleString()} ready to withdraw`,
+        `HR approved your deduction request. Go to Deductions → Withdraw to receive the funds.`,
+        { deduction_id: requestId, amount: dr.amount });
     }
 
     res.json({ message: `Deduction of ₦${dr.amount.toLocaleString('en-NG')} approved` });
@@ -235,4 +241,58 @@ const approveCrossDept = async (req, res) => {
 module.exports = {
   getWallet, requestDeduction, approveDeduction, rejectDeduction,
   getPendingDeductions, requestCrossDept, getCrossDeptRequests, approveCrossDept,
+  getLeaderOccasions, getLeaderRequests,
+};
+
+// ── LEADER-FACING (uses memberAuth / leaderAuth) ─────────────────────
+
+// GET /api/deductions/leader/occasions — all dept cards with wallets
+const getLeaderOccasions = async (req, res) => {
+  try {
+    const member = req.member;
+    // Get all cards created for this leader's department + company-wide
+    const { data: cards } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, notification_scope')
+      .eq('company_id', member.company_id)
+      .in('status', ['active', 'sent'])
+      .order('created_at', { ascending: false });
+
+    // For each card, get wallet and any existing deduction by this leader
+    const results = [];
+    for (const card of (cards || [])) {
+      // Only show cards from THIS dept or company-wide
+      // (company-wide only if scope_approved_at is set)
+      const wallet = await ensureWallet(card.id, member.company_id).catch(() => null);
+      const { data: myDeductions } = await supabase
+        .from('deduction_requests')
+        .select('id, amount, reason, status, created_at, withdrawal_requested')
+        .eq('card_id', card.id)
+        .eq('requested_by_id', member.id)
+        .order('created_at', { ascending: false });
+
+      if (wallet && (wallet.net_after_fee - wallet.total_deducted) > 0) {
+        results.push({ ...card, wallet, my_deductions: myDeductions || [] });
+      }
+    }
+    res.json(results);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to load occasions' });
+  }
+};
+
+// GET /api/deductions/leader/requests — deduction requests by this leader
+const getLeaderRequests = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('deduction_requests')
+      .select('id, card_id, amount, reason, status, created_at, approved_at, note, withdrawal_requested, withdrawal_id, card:cards(title, recipient_name, slug)')
+      .eq('requested_by_id', req.member.id)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load requests' });
+  }
 };

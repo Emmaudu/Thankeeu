@@ -10,6 +10,9 @@ const {
   getMemberDashboard,
   memberForgotPassword, memberResetPassword,
   updateMemberProfile, changeMemberPassword,
+  getMemberMyCards, getMemberPendingToSign, getMemberReceivedCards,
+  transferCardToMember, getMemberReminders, createMemberReminder,
+  deleteMemberReminder, getMemberFinances,
 } = require('../controllers/companyMembersController');
 
 // Public
@@ -31,6 +34,16 @@ router.post('/upload-avatar', memberAuth, upload.single('file'), async (req, res
   } catch (err) { res.status(500).json({ error: 'Upload failed' }); }
 });
 router.put('/password', memberAuth, changeMemberPassword);
+
+// Extended dashboard tab endpoints
+router.get('/my-cards',        memberAuth, getMemberMyCards);
+router.get('/pending-to-sign', memberAuth, getMemberPendingToSign);
+router.get('/received',        memberAuth, getMemberReceivedCards);
+router.post('/transfer-card',  memberAuth, transferCardToMember);
+router.get('/reminders',       memberAuth, getMemberReminders);
+router.post('/reminders',      memberAuth, createMemberReminder);
+router.delete('/reminders/:id', memberAuth, deleteMemberReminder);
+router.get('/finances',        memberAuth, getMemberFinances);
 
 // HR: full member management
 router.get('/all', companyAuth, getPendingMembers);

@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
+import { useMemberAuth } from '../context/MemberAuthContext';
 
 const Navbar = ({ onBookDemo }) => {
   const { user, logout }              = useAuth();
   const { company, logout: coLogout } = useCompanyAuth();
+  const { member, logout: memLogout } = useMemberAuth();
   const navigate  = useNavigate();
   const location  = useLocation();
   const [open, setOpen]         = useState(false);
@@ -33,8 +35,9 @@ const Navbar = ({ onBookDemo }) => {
     return () => document.body.classList.remove('no-scroll');
   }, [open]);
 
-  const handleLogout        = () => { logout();   navigate('/'); };
-  const handleCompanyLogout = () => { coLogout(); navigate('/'); };
+  const handleLogout        = () => { logout();    navigate('/'); };
+  const handleCompanyLogout = () => { coLogout();  navigate('/'); };
+  const handleMemberLogout  = () => { memLogout(); navigate('/member/login'); };
 
   const isActive = (path) => location.pathname === path;
 
@@ -42,8 +45,8 @@ const Navbar = ({ onBookDemo }) => {
     <>
       <nav className={`sticky top-0 z-50 transition-all duration-300 ${
         scrolled
-          ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-purple-100'
-          : 'bg-white border-b border-purple-50'
+          ? 'bg-purple-50/95 backdrop-blur-md shadow-sm border-b border-purple-200'
+          : 'bg-purple-50 border-b border-purple-100'
       }`}>
         <div className="section-container">
           <div className="flex items-center justify-between h-16 gap-4">
@@ -54,16 +57,18 @@ const Navbar = ({ onBookDemo }) => {
                 style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)' }}>
                 <span className="text-xl">💌</span>
               </div>
-              <span className="font-display font-bold text-xl text-warm-900">
-                Thank<span className="text-primary-500">eeu</span>
+              <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:"1.25rem", color:"#1A1035", letterSpacing:"-0.01em" }}>
+                thank<span style={{ color:"#7C3AED" }}>eeu</span>
               </span>
             </Link>
 
             {/* Desktop nav links */}
             <div className="hidden md:flex items-center gap-0.5">
               {[
-                { to: '/pricing', label: 'Pricing', icon: '✨' },
-                { to: '/blog',    label: 'Blog',    icon: '📝' },
+                { to: '/pricing',       label: 'Pricing',       icon: '✨' },
+                { to: '/how-it-works', label: 'How it works', icon: '💡' },
+                { to: '/faq',          label: 'FAQ',           icon: '❓' },
+                { to: '/blog',         label: 'Blog',          icon: '📝' },
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to}
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
@@ -156,6 +161,28 @@ const Navbar = ({ onBookDemo }) => {
                     )}
                   </div>
                 </div>
+              ) : member ? (
+                <div className="flex items-center gap-2">
+                  <Link to="/member/dashboard" className="btn-secondary text-xs py-2 px-4">🏠 My Dashboard</Link>
+                  <div className="relative">
+                    <button onClick={() => setDropdownOpen(!dropdownOpen)}
+                      className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
+                      {member.first_name?.slice(0,1).toUpperCase() || '👤'}
+                    </button>
+                    {dropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-lg border border-purple-100 py-2 z-[60] animate-fade-in">
+                        <div className="px-4 py-2 border-b border-purple-50 mb-1">
+                          <p className="text-xs font-semibold text-warm-900 truncate">{member.first_name} {member.last_name}</p>
+                          <p className="text-xs text-warm-400 truncate">{member.company?.name} · {member.department}</p>
+                        </div>
+                        <Link to="/member/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">🏠 Dashboard</Link>
+                        <Link to="/member/occasions" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">🎉 Occasions</Link>
+                        <Link to="/member/settings" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">⚙️ Settings</Link>
+                        <button onClick={handleMemberLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors">👋 Sign out</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ) : company ? (
                 <div className="flex items-center gap-2">
                   <Link to="/company/dashboard" className="btn-secondary text-xs py-2 px-4">🏢 HR Dashboard</Link>
@@ -185,18 +212,25 @@ const Navbar = ({ onBookDemo }) => {
             style={{ background:'#FFFFFF', border:'1.5px solid #EDE5FF' }}
             onClick={e => e.stopPropagation()}>
 
-            {/* User info if logged in */}
-            {(user || company) && (
+            {/* User/company/member info if logged in */}
+            {(user || company || member) && (
               <div className="px-5 py-4 border-b border-purple-50" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF1F3)' }}>
-                <p className="font-bold text-warm-900 text-sm">{user?.full_name || company?.name}</p>
-                <p className="text-xs text-warm-500 mt-0.5">{user?.email || company?.email}</p>
+                <p className="font-bold text-warm-900 text-sm">
+                  {user?.full_name || company?.name || `${member?.first_name} ${member?.last_name}`}
+                </p>
+                <p className="text-xs text-warm-500 mt-0.5">
+                  {user?.email || company?.email || member?.email}
+                </p>
+                {member && <p className="text-xs text-primary-500 mt-0.5 font-medium">{member.company?.name} · {member.department}</p>}
               </div>
             )}
 
             <div className="p-4 space-y-1">
               {[
-                { to: '/pricing', label: 'Pricing', icon: '✨' },
-                { to: '/blog',    label: 'Blog',    icon: '📝' },
+                { to: '/pricing',       label: 'Pricing',       icon: '✨' },
+                { to: '/how-it-works', label: 'How it works', icon: '💡' },
+                { to: '/faq',          label: 'FAQ',           icon: '❓' },
+                { to: '/blog',         label: 'Blog',          icon: '📝' },
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to}
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-primary-50 hover:text-primary-600 transition-all">
@@ -232,6 +266,12 @@ const Navbar = ({ onBookDemo }) => {
                   <Link to="/dashboard" className="btn-primary w-full text-sm">📊 Dashboard</Link>
                   <Link to="/create-card" className="btn-secondary w-full text-sm text-center">✨ Create card</Link>
                   <button onClick={handleLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5 hover:bg-rose-50 rounded-xl transition-colors">👋 Sign out</button>
+                </>
+              ) : member ? (
+                <>
+                  <Link to="/member/dashboard" className="btn-primary w-full text-sm">🏠 My Dashboard</Link>
+                  <Link to="/member/occasions" className="btn-secondary w-full text-sm text-center">🎉 Occasions</Link>
+                  <button onClick={handleMemberLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5 hover:bg-rose-50 rounded-xl transition-colors">👋 Sign out</button>
                 </>
               ) : company ? (
                 <>

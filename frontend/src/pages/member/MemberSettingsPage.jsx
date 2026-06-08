@@ -6,6 +6,8 @@ import { useMemberAuth } from '../../context/MemberAuthContext';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 
+import BankAccountTab from '../../components/BankAccountTab';
+
 const MemberSettingsPage = () => {
   useSEO({ title: 'Settings — Thankeeu for Teams', noIndex: true });
 
@@ -18,9 +20,13 @@ const MemberSettingsPage = () => {
   const [saving, setSaving] = useState(false);
 
   const [profile, setProfile] = useState({
-    first_name: member?.first_name || '',
-    last_name: member?.last_name || '',
-    phone: member?.phone || '',
+    first_name:     member?.first_name     || '',
+    last_name:      member?.last_name      || '',
+    phone:          member?.phone          || '',
+    username:       member?.username       || '',
+    job_title:      member?.job_title      || '',
+    bio:            member?.bio            || '',
+    date_of_birth:  member?.date_of_birth  || '',
   });
 
   const handleAvatarChange = (e) => {
@@ -38,9 +44,10 @@ const MemberSettingsPage = () => {
   });
 
   const TABS = [
-    { id: 'profile', label: '👤 Profile' },
+    { id: 'profile',  label: '👤 Profile' },
+    { id: 'bank',     label: '🏦 Bank Account' },
     { id: 'password', label: '🔒 Password' },
-    { id: 'account', label: '⚠️ Account' },
+    { id: 'account',  label: '⚠️ Account' },
   ];
 
   const saveProfile = async () => {
@@ -58,8 +65,11 @@ const MemberSettingsPage = () => {
         const d = await r.json();
         if (d.url) profile_picture_url = d.url;
       }
-      await memberAPI.updateProfile({ ...profile, profile_picture_url });
-      toast.success('Profile updated! ✨');
+      const updated = await memberAPI.updateProfile({ ...profile, profile_picture_url });
+      // Update local member context
+      const updatedMember = { ...member, ...updated.data };
+      localStorage.setItem('thankeeu_member', JSON.stringify(updatedMember));
+      toast.success('Profile saved! ✨');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to save profile');
     } finally { setSaving(false); }
@@ -132,7 +142,7 @@ const MemberSettingsPage = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-warm-700 mb-1.5">First name</label>
                 <input className="input" value={profile.first_name}
@@ -146,15 +156,46 @@ const MemberSettingsPage = () => {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Username</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-warm-400 text-sm">@</span>
+                <input className="input pl-7" placeholder="yourname" value={profile.username}
+                  onChange={e => setProfile(p => ({ ...p, username: e.target.value.replace(/\s/g,'').toLowerCase() }))} />
+              </div>
+              <p className="text-xs text-warm-400 mt-1">Unique handle used when transferring cards to you</p>
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-warm-700 mb-1.5">Email address</label>
               <input className="input bg-warm-100 cursor-not-allowed" value={member?.email || ''} disabled />
               <p className="text-xs text-warm-400 mt-1">Email cannot be changed. Contact your HR admin if needed.</p>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Phone number</label>
+                <input className="input" placeholder="+234 800 000 0000" value={profile.phone}
+                  onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">Job title</label>
+                <input className="input" placeholder="e.g. Senior Engineer" value={profile.job_title}
+                  onChange={e => setProfile(p => ({ ...p, job_title: e.target.value }))} />
+              </div>
+            </div>
+
             <div>
-              <label className="block text-sm font-medium text-warm-700 mb-1.5">Phone number</label>
-              <input className="input" placeholder="+234 800 000 0000" value={profile.phone}
-                onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} />
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Date of birth 🎂</label>
+              <input type="date" className="input" value={profile.date_of_birth}
+                onChange={e => setProfile(p => ({ ...p, date_of_birth: e.target.value }))} />
+              <p className="text-xs text-warm-400 mt-1">Used for your team birthday card automation</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Bio</label>
+              <textarea className="input resize-none" rows={3} placeholder="A short bio about yourself..."
+                value={profile.bio}
+                onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))} />
             </div>
 
             <button onClick={saveProfile} disabled={saving} className="btn-primary w-full py-3">
@@ -164,6 +205,8 @@ const MemberSettingsPage = () => {
         )}
 
         {/* Password tab */}
+        {tab === 'bank' && <BankAccountTab />}
+
         {tab === 'password' && (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 space-y-4">
             <div>

@@ -201,7 +201,7 @@ const CreateCard = () => {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 sm:px-6 sm:px-6 py-10">
         <div className="mb-8">
-          <h1 className="font-display text-3xl font-semibold text-warm-900 mb-1">Create a Thankeeu card</h1>
+          <h1 className="text-3xl font-semibold text-warm-900 mb-1">Create a Thankeeu card</h1>
           <p className="text-warm-500 text-sm">Takes less than 3 minutes to set up</p>
         </div>
 
@@ -210,7 +210,7 @@ const CreateCard = () => {
         {/* Step 0: Occasion */}
         {step === 0 && (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="font-display text-xl font-semibold text-warm-900 mb-1">What's the occasion?</h2>
+            <h2 className="text-xl font-semibold text-warm-900 mb-1">What's the occasion?</h2>
             <p className="text-warm-500 text-sm mb-6">Pick the type of card you're creating</p>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-8">
               {OCCASIONS.map(o => (
@@ -234,7 +234,7 @@ const CreateCard = () => {
         {/* Step 1: Design */}
         {step === 1 && (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="font-display text-xl font-semibold text-warm-900 mb-1">Pick a design</h2>
+            <h2 className="text-xl font-semibold text-warm-900 mb-1">Pick a design</h2>
             <p className="text-warm-500 text-sm mb-6">Choose from our beautiful templates</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
               {CARD_DESIGNS.map(d => (
@@ -281,7 +281,7 @@ const CreateCard = () => {
         {/* Step 2: Details */}
         {step === 2 && (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="font-display text-xl font-semibold text-warm-900 mb-1">Card details</h2>
+            <h2 className="text-xl font-semibold text-warm-900 mb-1">Card details</h2>
             <p className="text-warm-500 text-sm mb-6">Tell us who this is for</p>
             <div className="space-y-4 mb-6">
               <div>
@@ -357,7 +357,7 @@ const CreateCard = () => {
         {/* Step 3: Gift & Send */}
         {step === 3 && (
           <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="font-display text-xl font-semibold text-warm-900 mb-1">Gift & send</h2>
+            <h2 className="text-xl font-semibold text-warm-900 mb-1">Gift & send</h2>
             <p className="text-warm-500 text-sm mb-6">Add a gift collection and invite people to sign</p>
 
             {/* Gift options */}

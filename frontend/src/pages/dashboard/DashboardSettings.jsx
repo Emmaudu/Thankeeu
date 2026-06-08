@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { authAPI } from '../../utils/api';
 import DashboardLayout from '../../components/DashboardLayout';
+import BankAccountTab from '../../components/BankAccountTab';
 import toast from 'react-hot-toast';
 
 export default function DashboardSettings() {
@@ -59,6 +60,7 @@ export default function DashboardSettings() {
 
   const TABS = [
     { id:'profile', label:'👤 Profile' },
+    { id:'bank',    label:'🏦 Bank Account' },
     { id:'password', label:'🔒 Password' },
   ];
 
@@ -124,6 +126,7 @@ export default function DashboardSettings() {
           </div>
         )}
 
+        {tab==='bank'     && <BankAccountTab />}
         {tab==='password' && (
           <div className="rounded-2xl p-6 border-2" style={{background:'#fff',borderColor:'#EDE9FF'}}>
             <div className="space-y-4">

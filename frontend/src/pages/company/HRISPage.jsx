@@ -1,9 +1,10 @@
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
-import { hrisAPI } from '../../utils/api';
+import { hrisAPI, subscriptionAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
 const PROVIDERS = [
   {
@@ -84,8 +85,16 @@ const HRISPage = () => {
   const [testResult, setTestResult]   = useState(null);
   const [syncResult, setSyncResult]   = useState(null);
   const [tab, setTab]                 = useState('integrations');
+  const [sub, setSub]                 = useState(null);
+  const [subLoading, setSubLoading]   = useState(true);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+    subscriptionAPI.get()
+      .then(r => setSub(r.data))
+      .catch(() => setSub(null))
+      .finally(() => setSubLoading(false));
+  }, []);
 
   const fetchAll = async () => {
     try {
@@ -153,8 +162,37 @@ const HRISPage = () => {
 
   const connectedProviderIds = connections.map(c => c.provider);
 
+  // Subscription paywall
+  const isSubActive = sub?.is_active === true || sub?.status === 'active';
+
   return (
     <CompanyLayout title="HRIS Integration" subtitle="Connect your HR system to auto-populate all celebration occasion tables">
+      {/* Paywall gate */}
+      {!subLoading && !isSubActive && (
+        <div className="max-w-xl mx-auto py-12 text-center px-4">
+          <div className="bg-white rounded-3xl border-2 border-primary-200 p-8 shadow-md">
+            <div className="text-5xl mb-4">🔒</div>
+            <h2 className="font-display text-2xl font-bold text-warm-900 mb-2">Subscription required</h2>
+            <p className="text-warm-500 mb-6 text-sm leading-relaxed">
+              HRIS integration and employee import are available on the <strong>Company subscription</strong> plan (₦200,000/month or ₦2,400,000/year).
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-left">
+              {['HRIS sync (SeamlessHR, BambooHR, Zoho…)','Auto birthday card creation','Gift pot per employee','12 automated occasions','HR analytics dashboard','Priority support'].map(f => (
+                <div key={f} className="flex items-start gap-2 text-sm text-warm-700">
+                  <span className="text-green-500 font-bold mt-0.5">✓</span>{f}
+                </div>
+              ))}
+            </div>
+            <Link to="/company/subscription" className="btn-primary px-8 py-3.5 text-base w-full inline-flex items-center justify-center">
+              💳 Subscribe to unlock →
+            </Link>
+            <p className="text-xs text-warm-400 mt-3">Already paid? <Link to="/company/subscription" className="text-primary-500 font-semibold">Check subscription status →</Link></p>
+          </div>
+        </div>
+      )}
+
+      {/* Main HRIS content — shown only when subscribed */}
+      {(subLoading || isSubActive) && (<>
 
       {/* Tabs */}
       <div className="flex gap-0 border-b border-purple-100 mb-6">
@@ -467,6 +505,8 @@ const HRISPage = () => {
           ))}
         </div>
       )}
+    </>
+    )}
     </CompanyLayout>
   );
 };

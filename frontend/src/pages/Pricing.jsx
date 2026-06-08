@@ -99,7 +99,7 @@ const Pricing = () => {
       <section className="py-12 md:py-16 px-4 text-center" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="max-w-xl mx-auto">
           <div className="pill mx-auto mb-4">💳 Simple Naira pricing</div>
-          <h1 className="font-display font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.75rem,6vw,3rem)' }}>Simple, fair pricing</h1>
+          <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(1.75rem,6vw,3rem)' }}>Simple, fair pricing</h1>
           <p className="text-warm-600">Pay only when you send. No subscriptions for individual cards.</p>
         </div>
       </section>
@@ -136,10 +136,10 @@ const Pricing = () => {
                       ⭐ Most popular
                     </div>
                   )}
-                  <h3 className="font-display text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
+                  <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
                   <p className="text-warm-500 text-xs mb-4">{plan.label}</p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="font-display text-3xl sm:text-4xl font-bold text-warm-900">{plan.price}</span>
+                    <span className="text-3xl sm:text-4xl font-bold text-warm-900">{plan.price}</span>
                     <span className="text-warm-400 text-sm pb-1">one-time</span>
                   </div>
                   {plan.id==='pack5' && <p className="text-green-600 text-xs font-bold mb-4">₦2,000 per card — save ₦15,000 vs singles</p>}
@@ -164,7 +164,7 @@ const Pricing = () => {
 
             {/* Gift pot info */}
             <div className="bg-green-50 border border-green-200 rounded-3xl p-5 sm:p-8 max-w-2xl mx-auto">
-              <h3 className="font-display text-xl font-bold text-warm-900 mb-1 text-center">🐷 Gift pot fees</h3>
+              <h3 className="text-xl font-bold text-warm-900 mb-1 text-center">🐷 Gift pot fees</h3>
               <p className="text-warm-500 text-center text-sm mb-6">A small platform cut keeps Thankeeu running</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[
@@ -190,7 +190,7 @@ const Pricing = () => {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <div className="pill mx-auto mb-3">🏢 Thankeeu for Teams</div>
-              <h2 className="font-display font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.5rem,5vw,2rem)' }}>Automate team celebrations</h2>
+              <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(1.5rem,5vw,2rem)' }}>Automate team celebrations</h2>
               <p className="text-warm-500 max-w-lg mx-auto text-sm leading-relaxed">Upload your employees once. Thankeeu handles everything — cards, emails, gift pots. All automatic.</p>
             </div>
 
@@ -219,10 +219,10 @@ const Pricing = () => {
                   {plan.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap">⭐ Best value</div>
                   )}
-                  <h3 className="font-display text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
+                  <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
                   {plan.saving && <p className="text-xs text-green-600 font-bold mb-3">{plan.saving}</p>}
                   <div className="flex items-end gap-1 mb-4">
-                    <span className="font-display text-3xl font-bold text-warm-900">{plan.price}</span>
+                    <span className="text-3xl font-bold text-warm-900">{plan.price}</span>
                     <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
                   </div>
                   <div className="h-px bg-purple-100 mb-4" />
@@ -259,7 +259,7 @@ const Pricing = () => {
       {/* FAQ */}
       <section className="py-12 md:py-16 px-4" style={{ background:'#F5F0FF' }}>
         <div className="max-w-2xl mx-auto">
-          <h3 className="font-display text-2xl sm:text-3xl font-bold text-warm-900 text-center mb-7">Frequently asked</h3>
+          <h3 className="text-2xl sm:text-3xl font-bold text-warm-900 text-center mb-7">Frequently asked</h3>
           <div className="space-y-3">
             {FAQ.map((f,i) => (
               <div key={i} className="bg-white border-2 border-purple-100 rounded-2xl overflow-hidden">
@@ -282,7 +282,7 @@ const Pricing = () => {
       {/* CTA */}
       <section className="py-14 px-4 text-center" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-xl mx-auto">
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-warm-900 mb-4">Ready to get started?</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-warm-900 mb-4">Ready to get started?</h2>
           <p className="text-warm-600 mb-7">Individual or company — Thankeeu has you covered.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">Create personal card 💜</Link>

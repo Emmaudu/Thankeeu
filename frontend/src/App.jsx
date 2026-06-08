@@ -6,6 +6,8 @@ import { MemberAuthProvider, useMemberAuth }   from './context/MemberAuthContext
 
 // Individual user pages
 import Home             from './pages/Home';
+import HowItWorks       from './pages/HowItWorks';
+import FAQ              from './pages/FAQ';
 import Login            from './pages/Login';
 import Signup           from './pages/Signup';
 import ForgotPassword   from './pages/ForgotPassword';
@@ -103,6 +105,8 @@ const App = () => (
             <Route path="/"              element={<Home />} />
             <Route path="/pricing"       element={<Pricing />} />
             <Route path="/policy"        element={<Policy />} />
+            <Route path="/how-it-works"  element={<HowItWorks />} />
+            <Route path="/faq"           element={<FAQ />} />
             <Route path="/card/:slug"    element={<CardView />} />
             <Route path="/sign/:slug"    element={<SignCard />} />
             <Route path="/gift/:slug"    element={<GiftCheckout />} />

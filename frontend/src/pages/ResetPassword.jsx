@@ -22,7 +22,7 @@ const ResetPassword = () => {
     <div className="min-h-screen"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="text-center">
         <div className="text-5xl mb-4">🔗</div>
-        <h2 className="font-display text-2xl font-semibold text-warm-900 mb-2">Invalid reset link</h2>
+        <h2 className="text-2xl font-semibold text-warm-900 mb-2">Invalid reset link</h2>
         <p className="text-warm-500 mb-6 text-sm">This link is invalid or has already been used.</p>
         <Link to="/forgot-password" className="btn-primary">Request a new link</Link>
       </div>
@@ -48,7 +48,7 @@ const ResetPassword = () => {
     <div className="min-h-screen"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="font-display text-3xl font-semibold text-warm-900 mb-2">Set new password</h1>
+          <h1 className="text-3xl font-semibold text-warm-900 mb-2">Set new password</h1>
           <p className="text-warm-500 text-sm">Choose a strong password for your account</p>
         </div>
 
@@ -56,7 +56,7 @@ const ResetPassword = () => {
           {done ? (
             <div className="text-center py-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
-              <h3 className="font-display text-xl font-semibold text-warm-900 mb-2">Password updated!</h3>
+              <h3 className="text-xl font-semibold text-warm-900 mb-2">Password updated!</h3>
               <p className="text-warm-500 text-sm mb-1">Your password has been reset successfully.</p>
               <p className="text-xs text-warm-400">Redirecting to login...</p>
             </div>

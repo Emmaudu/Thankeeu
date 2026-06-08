@@ -1,7 +1,7 @@
 import { useSEO } from '../hooks/useSEO';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI } from '../utils/api';
+import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
@@ -10,6 +10,74 @@ import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
+
+// Inline gift withdrawal button for card recipients
+const GiftWithdrawButton = ({ slug, token, amount, cardId }) => {
+  const [accounts, setAccounts] = useState(null);
+  const [loading,  setLoading]  = useState(false);
+  const [showPanel, setShowPanel] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+
+  const loadAccounts = async () => {
+    setLoading(true);
+    try {
+      const r = await banksAPI.getMy();
+      setAccounts(r.data || []);
+    } catch { setAccounts([]); }
+    finally { setLoading(false); setShowPanel(true); }
+  };
+
+  const handleWithdraw = async () => {
+    const acc = accounts?.find(a => a.is_default) || accounts?.[0];
+    if (!acc) { toast.error('Add a bank account in your Settings first to withdraw.'); return; }
+    setWithdrawing(true);
+    try {
+      const res = await banksAPI.withdraw({ amount, source_type: 'gift_pot', source_id: cardId, bank_account_id: acc.id });
+      toast.success(res.data?.message || `${formatNGN(amount)} transfer initiated! 🎉`);
+      setShowPanel(false);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Withdrawal failed. Try again or contact support.');
+    } finally { setWithdrawing(false); }
+  };
+
+  return (
+    <div className="relative">
+      <button onClick={accounts === null ? loadAccounts : () => setShowPanel(!showPanel)}
+        className="btn-white text-sm flex items-center gap-2">
+        {loading ? <span className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"/> : '💸'}
+        Withdraw to bank
+      </button>
+
+      {showPanel && (
+        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-purple-100 p-4 z-50 animate-fade-in">
+          <h4 className="font-semibold text-warm-900 text-sm mb-3">Withdraw {formatNGN(amount)}</h4>
+          {!accounts?.length ? (
+            <div>
+              <p className="text-xs text-warm-500 mb-3">No bank account saved yet. Add one in your Settings to receive this gift.</p>
+              <Link to="/dashboard/settings" className="btn-primary text-xs py-2 px-4 w-full text-center block">⚙️ Add bank account</Link>
+            </div>
+          ) : (
+            <div>
+              {accounts.map(acc => (
+                <div key={acc.id} className="flex items-center gap-2 p-2.5 rounded-xl bg-green-50 border border-green-200 mb-3">
+                  <span className="text-lg">🏦</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-warm-900 truncate">{acc.account_name}</p>
+                    <p className="text-xs text-warm-500">{acc.bank_name} · ****{acc.account_number?.slice(-4)}</p>
+                  </div>
+                </div>
+              ))}
+              <button onClick={handleWithdraw} disabled={withdrawing} className="btn-primary w-full text-sm py-2.5">
+                {withdrawing ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Processing…</span> : `💸 Withdraw ${formatNGN(amount)}`}
+              </button>
+              <p className="text-xs text-warm-400 mt-2 text-center">Processed within 1–2 business days</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const occasionLabel = {
   birthday: 'Birthday', valentine: "Valentine's Day", leaving: 'Farewell',
@@ -331,7 +399,12 @@ const CardView = () => {
                   <p className="text-emerald-100 text-sm">Attached to this card for {card.recipient_name}</p>
                 </div>
               </div>
-              {token && !card.gift_claim && <Link to={`/gift/${slug}?token=${token}`} className="btn-white">Claim your gift</Link>}
+              {token && !card.gift_claim && (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <GiftWithdrawButton slug={slug} token={token} amount={totalCollected} cardId={card.id} />
+                  <Link to={`/gift/${slug}?token=${token}`} className="btn-white text-sm text-center">🛒 Redeem as voucher</Link>
+                </div>
+              )}
               {token && card.gift_claim && <span className="bg-white/15 rounded-full px-4 py-2 text-sm font-bold">Claim {card.gift_claim.status}</span>}
             </div>
           </section>

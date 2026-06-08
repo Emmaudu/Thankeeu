@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
+const { companyAuth } = require('../middleware/companyAuth');
 const { memberAuth } = require('../middleware/memberAuth');
 const {
   createCard, getUserCards, getCard, updateCard,
   activateCard, sendCard, deleteCard, getPublicCard,
-  getRecipientCard, claimGift, getMemberCards
+  getRecipientCard, claimGift, getMemberCards, approveCardScope
 } = require('../controllers/cardController');
 
 // Flexible auth — accepts both individual user token AND member token
@@ -58,5 +59,7 @@ router.put('/:slug', auth, updateCard);
 router.post('/:slug/activate', auth, activateCard);
 router.post('/:slug/send', auth, sendCard);
 router.delete('/:slug', auth, deleteCard);
+// HR approves company-wide notification scope
+router.post('/:slug/approve-scope', companyAuth, approveCardScope);
 
 module.exports = router;

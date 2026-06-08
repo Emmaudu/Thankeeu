@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const NAV = [
   { to: '/dashboard',           icon: '🏠', label: 'Home' },
@@ -119,8 +120,14 @@ const DashboardLayout = ({ children, title, subtitle }) => {
           <Link to="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color: '#1A1730', fontSize: 15 }}>
             Thank<span style={{ color: '#7C6EFF' }}>eeu</span>
           </Link>
-          <Link to="/create-card" className="text-xs font-semibold px-3 py-1.5 rounded-xl"
-            style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff' }}>+ Card</Link>
+          <div className="flex items-center gap-1">
+            <NotificationBell
+              fetchFn={() => import('../utils/api').then(m => m.api.get('/notifications'))}
+              markReadFn={() => import('../utils/api').then(m => m.api.post('/notifications/mark-read'))}
+            />
+            <Link to="/create-card" className="text-xs font-semibold px-3 py-1.5 rounded-xl"
+              style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff' }}>+ Card</Link>
+          </div>
         </div>
 
         {/* Page content */}

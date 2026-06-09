@@ -91,6 +91,17 @@ smartAxios.interceptors.request.use(cfg => {
 });
 // Smart axios does NOT forcefully redirect on 401 — used for bank/shared endpoints
 
+// 6. Any-auth — tries company token, then member token, then user token. No forced redirect.
+const anyAxios = axios.create(axiosOptions);
+anyAxios.interceptors.request.use(cfg => {
+  const t =
+    localStorage.getItem('thankeeu_company_token') ||
+    localStorage.getItem('thankeeu_member_token') ||
+    localStorage.getItem('thankeeu_token');
+  if (t) cfg.headers.Authorization = `Bearer ${t}`;
+  return cfg;
+});
+
 export default api;
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
@@ -135,10 +146,10 @@ export const messagesAPI = {
 
 // ─── Payments ──────────────────────────────────────────────────────────────
 export const paymentsAPI = {
-  initPurchase:     (plan_type, card_slug) => api.post('/payments/initialize/purchase', { plan_type, card_slug }),
+  initPurchase:     (plan_type, card_slug) => anyAxios.post('/payments/initialize/purchase', { plan_type, card_slug }),
   initContribution: (data)      => publicAxios.post('/payments/initialize/contribution', data),
-  verifyPurchase:   (reference) => api.get(`/payments/verify/purchase/${reference}`),
-  verify:           (reference) => api.get(`/payments/verify/${reference}`),
+  verifyPurchase:   (reference) => anyAxios.get(`/payments/verify/purchase/${reference}`),
+  verify:           (reference) => anyAxios.get(`/payments/verify/${reference}`),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────

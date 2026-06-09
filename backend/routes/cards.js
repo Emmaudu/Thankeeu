@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/auth');
+const { auth, anyAuth } = require('../middleware/auth');
 const { companyAuth } = require('../middleware/companyAuth');
 const { memberAuth } = require('../middleware/memberAuth');
 const {
@@ -64,7 +64,7 @@ router.post('/', flexUserAuth, createCard);
 router.get('/', auth, getUserCards);
 router.get('/:slug', flexUserAuth, getCard);
 router.put('/:slug', auth, updateCard);
-router.post('/:slug/activate', auth, activateCard);
+router.post('/:slug/activate', anyAuth, activateCard);
 router.post('/:slug/send', auth, sendCard);
 router.delete('/:slug', auth, deleteCard);
 // HR approves company-wide notification scope

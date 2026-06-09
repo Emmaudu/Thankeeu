@@ -290,13 +290,24 @@ const activateCard = async (req, res) => {
     const { inviteEmails } = req.body;
 
     const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).single();
-    if (!card || card.creator_id !== req.user.id)
-      return res.status(403).json({ error: 'Not authorized' });
+
+    // Auth check: works for regular user, member, or HR company
+    const isOwner =
+      (req.user   && card.creator_id            === req.user.id)   ||
+      (req.member && card.created_by_member_id  === req.member.id) ||
+      (req.company && card.company_id           === req.company.id);
+    if (!card || !isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     if (card.status !== 'active') {
       const { error } = await supabase.from('cards').update({ status: 'active' }).eq('slug', slug);
       if (error) throw error;
     }
+
+    // Resolve creator display name for invite emails
+    const creatorName =
+      req.user?.full_name ||
+      (req.member ? `${req.member.first_name} ${req.member.last_name}`.trim() : null) ||
+      req.company?.contact_person || req.company?.name || 'Someone';
 
     // Send invites if emails provided
     if (inviteEmails?.length) {
@@ -306,7 +317,7 @@ const activateCard = async (req, res) => {
           to: email,
           template: 'cardInvite',
           data: {
-            creatorName: req.user.full_name,
+            creatorName,
             recipientName: card.recipient_name,
             occasion: card.occasion,
             cardSlug: card.slug,

@@ -1,5 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';

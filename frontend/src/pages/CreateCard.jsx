@@ -161,8 +161,8 @@ const CreateCard = () => {
         navigate(`/card/${activatedSlug}`, { replace: true });
       };
 
-      if (window.PaystackPop && accessCode) {
-        const popup = new window.PaystackPop();
+      if (window.FlutterwavePop && accessCode) {
+        const popup = new window.FlutterwavePop();
         popup.resumeTransaction(accessCode, {
           onSuccess: async transaction => {
             try {
@@ -178,7 +178,7 @@ const CreateCard = () => {
             setPaymentStage('opening');
           },
           onError: error => {
-            toast.error(error?.message || 'Could not load Paystack. Please try again.');
+            toast.error(error?.message || 'Could not load Flutterwave. Please try again.');
             setLoading(false);
             setPaymentStage('opening');
           }
@@ -186,7 +186,7 @@ const CreateCard = () => {
         return;
       }
 
-      window.location.assign(checkoutUrl || `https://checkout.paystack.com/${accessCode}`);
+      window.location.assign(checkoutUrl || `https://checkoutUrl`);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not open payment. Please try again.');
       setLoading(false);
@@ -429,7 +429,7 @@ const CreateCard = () => {
                   : '🔒 Pay ₦5,000 & Create Card'}
               </button>
             </div>
-            <p className="text-xs text-center text-warm-400 mt-3">Secured by Paystack · Card link will be ready immediately</p>
+            <p className="text-xs text-center text-warm-400 mt-3">Secured by Flutterwave · Card link will be ready immediately</p>
           </div>
         )}
       </div>

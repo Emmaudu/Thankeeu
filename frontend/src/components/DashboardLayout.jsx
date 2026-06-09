@@ -66,7 +66,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
           <span>Sign out</span>
         </button>
       </div>
-<nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto">
+<nav className="flex-1 px-3 py-2 space-y-0.5 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:"thin", scrollbarColor:"rgba(124,110,255,0.35) transparent" }}>
         {NAV.map(({ to, icon, label }) => (
           <Link key={to} to={to}
             onClick={() => setSidebarOpen(false)}
@@ -120,7 +120,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
         {/* Mobile top bar */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
           style={{ background: '#F5F3FF', borderBottom: '1px solid #EDE9FF' }}>
-          <button onClick={() => setSidebarOpen(true)} className="p-2 rounded-xl" style={{ background: 'rgba(124,110,255,0.1)', color: '#5B4BDF' }}>☰</button>
+          <button onClick={() => setSidebarOpen(true)} className="p-3 rounded-xl" style={{ background: 'rgba(124,110,255,0.1)', color: '#5B4BDF', fontSize: '1.5rem', lineHeight: 1, width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>☰</button>
           <Link to="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color: '#1A1730', fontSize: 15 }}>
             Thank<span style={{ color: '#7C6EFF' }}>eeu</span>
           </Link>

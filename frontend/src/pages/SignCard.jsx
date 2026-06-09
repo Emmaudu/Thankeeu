@@ -181,28 +181,36 @@ const SignCard = () => {
         amount:             amountNGN,
         message_id:         msgRes.data?.id,
       });
-      const { access_code, reference, authorization_url } = payRes.data;
+      const { payment_link, tx_ref, integrity_hash } = payRes.data;
 
-      if (window.PaystackPop && access_code) {
-        const popup = new window.PaystackPop();
-        popup.resumeTransaction(access_code, {
-          onSuccess: async txn => {
+      // Flutterwave inline checkout
+      if (window.FlutterwaveCheckout && payment_link) {
+        const cfg = {
+          public_key:      import.meta.env.VITE_FLW_PUBLIC_KEY,
+          tx_ref,
+          amount:          amountNGN,
+          currency:        'NGN',
+          payment_options: 'card,ussd,bank_transfer',
+          customer:        { email: form.author_email, name: form.author_name },
+          customizations:  { title: `Gift for ${card?.recipient_name}`, logo: '/logo.png' },
+          callback: async () => {
+            window.FlutterwaveCheckout?.close?.();
             try {
-              await verifyContribution(txn.reference || reference);
+              await verifyContribution(tx_ref);
               toast.success('Your message and gift are on the card! 🎉');
-              setSubmitted(true);
-              fetchCard();
+              setSubmitted(true); fetchCard();
             } catch {
               toast.error('Gift paid but verification pending — your card is saved!');
               setSubmitted(true);
             } finally { setSubmitting(false); }
           },
-          onCancel: () => { toast('Message saved. Gift was not completed.'); setSubmitted(true); setSubmitting(false); },
-          onError:  e => { toast.error(e?.message || 'Payment error'); setSubmitting(false); },
-        });
+          onclose: () => { toast('Message saved. Gift was not completed.'); setSubmitted(true); setSubmitting(false); },
+        };
+        if (integrity_hash) cfg.meta = { integrity_hash };
+        window.FlutterwaveCheckout(cfg);
         return;
       }
-      window.location.assign(authorization_url || `https://checkout.paystack.com/${access_code}`);
+      if (payment_link) window.location.assign(payment_link);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not sign card. Please try again.');
       setSubmitting(false);
@@ -458,7 +466,7 @@ const SignCard = () => {
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
                     <h3 className="text-xl font-bold text-warm-900">Add a gift 🎁</h3>
-                    <p className="text-sm text-warm-500 mt-1">Optional · Secure via Paystack</p>
+                    <p className="text-sm text-warm-500 mt-1">Optional · Secure via Flutterwave</p>
                   </div>
                 </div>
                 {card.total_collected > 0 && (
@@ -548,7 +556,7 @@ const SignCard = () => {
               </div>
             )}
 
-            <p className="text-center text-sm text-warm-400">Secured by Paystack · Your message is private until delivery</p>
+            <p className="text-center text-sm text-warm-400">Secured by Flutterwave · Your message is private until delivery</p>
           </aside>
         </div>
       </main>

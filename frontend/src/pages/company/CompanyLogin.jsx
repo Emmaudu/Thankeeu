@@ -50,6 +50,12 @@ const CompanyLogin = () => {
 
         <div className="bg-white rounded-3xl shadow-xl p-8 border border-purple-100">
           <form onSubmit={handleSubmit} className="space-y-5">
+          {searchParams.get('reason') === 'session_expired' && (
+            <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium bg-amber-50 border border-amber-200 text-amber-800">
+              ⏱️ Your session expired due to inactivity. Please sign in again.
+            </div>
+          )}
+
             <div>
               <label className="block text-sm font-medium text-warm-700 mb-1.5">Company email</label>
               <input type="email" className="input" placeholder="hr@company.com" required

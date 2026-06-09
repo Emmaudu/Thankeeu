@@ -294,7 +294,7 @@ const BlogPost = () => {
                 <p className="text-2xl mb-2">💜</p>
                 <p className="font-semibold text-lg mb-2">Try Thankeeu free</p>
                 <p className="text-primary-100 text-sm mb-4 leading-relaxed">
-                  Create a beautiful group card and Paystack gift pot for your next team occasion.
+                  Create a beautiful group card and Flutterwave gift pot for your next team occasion.
                 </p>
                 <Link to="/signup"
                   className="block bg-white text-primary-600 font-semibold text-sm px-4 py-3 rounded-xl text-center hover:bg-primary-50 transition-colors mb-2">

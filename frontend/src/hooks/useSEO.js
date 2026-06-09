@@ -16,7 +16,7 @@ import { useLocation } from 'react-router-dom';
 
 const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://thankeeu.com';
 const SITE_NAME  = 'Thankeeu';
-const SITE_DESC  = "The world's group card and gift platform — birthdays, farewells, promotions, and more. Powered by Paystack.";
+const SITE_DESC  = "The world's group card and gift platform — birthdays, farewells, promotions, and more. Powered by Flutterwave.";
 const OG_IMAGE   = `${BASE_URL}/og-image.png`;
 const TWITTER_HANDLE = '@thankeeu_ng';
 
@@ -239,7 +239,7 @@ export const SCHEMAS = {
     screenshot:          `${BASE_URL}/og-image.png`,
     featureList: [
       'Group e-cards with unlimited signers',
-      'Paystack gift pot collection',
+      'Flutterwave gift pot collection',
       'HRIS integration (SeamlessHR, BambooHR, Zoho People, WorkPay, SAP SuccessFactors)',
       '12 occasion types automated',
       'Scheduled delivery',
@@ -351,7 +351,7 @@ export const SCHEMAS = {
     url:             BASE_URL,
     description:     SITE_DESC,
     currenciesAccepted: 'NGN',
-    paymentAccepted:    'Paystack (Cards, Bank Transfer, USSD)',
+    paymentAccepted:    'Flutterwave (Cards, Bank Transfer, USSD)',
     areaServed: {
       '@type': 'Country',
       name:    'Global',

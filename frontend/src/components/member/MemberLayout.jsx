@@ -77,7 +77,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
       </div>
 
       {/* Nav — scrollable */}
-      <nav className="flex-1 px-3 py-1 overflow-y-auto" style={{ scrollbarWidth:'none', msOverflowStyle:'none' }}>
+      <nav className="flex-1 px-3 py-1 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }} style={{ scrollbarWidth:'none', msOverflowStyle:'none' }}>
         <div className="space-y-0.5 pb-4">
           {NAV.map(({ path, icon, label }) => (
             <Link key={path} to={path}
@@ -134,7 +134,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
           </div>
           {/* Hamburger on RIGHT for mobile */}
           <button onClick={() => setMobileOpen(true)}
-            className="p-2.5 rounded-xl"
+            className="p-3 rounded-xl" style={{ fontSize: '1.5rem', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             style={{ background:'rgba(124,110,255,0.1)', color:'#5B4BDF', fontSize:18 }}>
             ☰
           </button>

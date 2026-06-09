@@ -17,7 +17,7 @@ const PLANS = [
       'Unlimited employees',
       'Automated birthday emails to departments',
       'Birthday card delivery to celebrants',
-      'Gift pot collection via Paystack',
+      'Gift pot collection via Flutterwave',
       'HR dashboard & analytics',
       'Email support',
     ]
@@ -54,7 +54,7 @@ const SubscriptionPage = () => {
   useEffect(() => {
     fetchSub();
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get('reference') || params.get('trxref');
+    const ref = params.get('reference') || params.get('tx_ref');
     const isReturn = params.get('sub') === 'success' || !!ref;
 
     if (isReturn) {
@@ -99,10 +99,10 @@ const SubscriptionPage = () => {
       const { access_code, authorization_url } = res.data;
 
       if (authorization_url) {
-        // Paystack returns both — authorization_url is the full redirect URL (most reliable)
+        // Flutterwave returns both — authorization_url is the full redirect URL (most reliable)
         window.location.href = authorization_url;
       } else if (access_code) {
-        window.location.href = `https://checkout.paystack.com/${access_code}`;
+        window.location.href = payment_link || authorization_url;
       } else {
         throw new Error('No payment URL received');
       }
@@ -126,7 +126,7 @@ const SubscriptionPage = () => {
 
   const handleManualVerify = async () => {
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get('reference') || params.get('trxref') || prompt('Enter your Paystack transaction reference:');
+    const ref = params.get('reference') || params.get('tx_ref') || prompt('Enter your Flutterwave transaction reference:');
     if (!ref) return;
     setVerifying(true);
     try {
@@ -249,7 +249,7 @@ const SubscriptionPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-warm-600">
           <div className="flex items-start gap-2">
             <span className="text-green-500 font-bold">✓</span>
-            <span>Payments processed securely via Paystack</span>
+            <span>Payments processed securely via Flutterwave</span>
           </div>
           <div className="flex items-start gap-2">
             <span className="text-green-500 font-bold">✓</span>
@@ -267,7 +267,7 @@ const SubscriptionPage = () => {
       </div>
 
       {/* Billing history */}
-      {sub?.paystack_reference && (
+      {sub?.flw_reference && (
         <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden max-w-3xl">
           <div className="px-5 py-4 border-b border-gray-50">
             <h3 className="font-semibold text-warm-900 text-sm">Billing history</h3>
@@ -276,7 +276,7 @@ const SubscriptionPage = () => {
             <div className="flex items-center justify-between text-sm">
               <div>
                 <p className="font-medium text-warm-900">{sub?.plan === 'yearly' ? 'Yearly plan — ₦2,400,000' : 'Monthly plan — ₦200,000'}</p>
-                <p className="text-warm-400 text-xs mt-0.5">Ref: {sub?.paystack_reference}</p>
+                <p className="text-warm-400 text-xs mt-0.5">Ref: {sub?.flw_reference}</p>
               </div>
               <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">Paid</span>
             </div>

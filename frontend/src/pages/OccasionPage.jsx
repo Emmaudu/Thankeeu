@@ -25,7 +25,7 @@ const OCCASIONS = {
       ],
       giftTotal: 87500,
     },
-    seo: { title: 'Birthday Group Cards | Thankeeu', desc: 'Create a beautiful group birthday card. Collect messages, voice notes, photos and pool a Naira gift via Paystack. From ₦5,000.' },
+    seo: { title: 'Birthday Group Cards | Thankeeu', desc: 'Create a beautiful group birthday card. Collect messages, voice notes, photos and pool a Naira gift via Flutterwave. From ₦5,000.' },
   },
   farewell: {
     icon: '👋', accent: '#0EA5E9', bg: '#EFF6FF',
@@ -236,7 +236,7 @@ export default function OccasionPage() {
                   <p style={{ fontSize:'2rem', fontFamily:"'Nunito',sans-serif", fontWeight:900 }}>
                     {giftFmt(example.giftTotal)}
                   </p>
-                  <p className="text-sm opacity-75 mt-1">Withdrawn directly to {example.recipient}'s bank account via Paystack</p>
+                  <p className="text-sm opacity-75 mt-1">Withdrawn directly to {example.recipient}'s bank account via Flutterwave</p>
                 </div>
                 <span className="text-5xl opacity-90">🎁</span>
               </div>

@@ -149,14 +149,37 @@ const getCompanyTeamMembers = async (req, res) => {
 // GET /api/admin/visitors — admin view of card visitors (guest signers)
 const getVisitors = async (req, res) => {
   try {
+    // visitors table: guests who signed a card without creating an account
     const { data, error } = await supabase
-      .from('card_visitors')
-      .select('id, card_slug, occasion, author_name, author_email, converted, converted_at, emails_sent, last_email_at, created_at')
+      .from('visitors')
+      .select(`
+        id, email, full_name, card_id, card_slug,
+        occasion, creator_name, nudge_count,
+        last_nudged_at, converted_to_user, converted_at, created_at
+      `)
       .order('created_at', { ascending: false })
       .limit(500);
-    if (error) throw error;
-    res.json(data || []);
+
+    // Table may not exist yet — return empty gracefully
+    if (error) {
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        return res.json([]);
+      }
+      throw error;
+    }
+
+    // Decorate with converted status
+    const decorated = (data || []).map(v => ({
+      ...v,
+      converted: !!v.converted_to_user,
+      author_name:  v.full_name,
+      author_email: v.email,
+      emails_sent:  v.nudge_count || 0,
+    }));
+
+    res.json(decorated);
   } catch (err) {
+    console.error('getVisitors error:', err.message);
     res.status(500).json({ error: 'Failed to load visitors' });
   }
 };

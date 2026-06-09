@@ -9,11 +9,11 @@ const FAQS = [
   { cat:'Getting started', q:'Do I need a Thankeeu account to sign a card?', a:'No. Signers just need the link. They click it, write their message, and optionally contribute to the gift pot — no account or app required.' },
   { cat:'Getting started', q:'Does the recipient need an account?', a:'No. The recipient receives an email with a link to their card. They can read all messages, watch videos, listen to voice notes and claim the gift without signing up.' },
   { cat:'Getting started', q:'How long does it take to create a card?', a:'Less than 2 minutes. Pick an occasion, set the recipient\'s name, choose a design, set a delivery date, pay ₦5,000 and share the signing link. Done.' },
-  { cat:'Payments & gifts', q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Paystack. Paystack also accepts some international cards.' },
-  { cat:'Payments & gifts', q:'How does the gift pot work?', a:'When you create a card, you can optionally enable a gift pot. Contributors pay via Paystack when they sign the card. All contributions are pooled automatically. The recipient can withdraw the total to their bank account when the card arrives.' },
-  { cat:'Payments & gifts', q:'Is there a minimum gift contribution?', a:'Yes — ₦2,500 minimum per contributor. This ensures Paystack processing fees don\'t eat into small contributions.' },
-  { cat:'Payments & gifts', q:'Can people outside Nigeria contribute?', a:'Yes. Paystack accepts international Visa and Mastercard. Your signers can chip in from anywhere in the world.' },
-  { cat:'Payments & gifts', q:'How does the recipient withdraw their gift?', a:'The recipient saves their Nigerian bank account details in their Thankeeu profile (or when they first claim). Then they click "Withdraw to bank" and the money is transferred via Paystack usually within 1–2 business days.' },
+  { cat:'Payments & gifts', q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Flutterwave. Flutterwave also accepts some international cards.' },
+  { cat:'Payments & gifts', q:'How does the gift pot work?', a:'When you create a card, you can optionally enable a gift pot. Contributors pay via Flutterwave when they sign the card. All contributions are pooled automatically. The recipient can withdraw the total to their bank account when the card arrives.' },
+  { cat:'Payments & gifts', q:'Is there a minimum gift contribution?', a:'Yes — ₦2,500 minimum per contributor. This ensures payment processing fees don\'t eat into small contributions.' },
+  { cat:'Payments & gifts', q:'Can people outside Nigeria contribute?', a:'Yes. Flutterwave accepts international Visa and Mastercard. Your signers can chip in from anywhere in the world.' },
+  { cat:'Payments & gifts', q:'How does the recipient withdraw their gift?', a:'The recipient saves their Nigerian bank account details in their Thankeeu profile (or when they first claim). Then they click "Withdraw to bank" and the money is transferred via Flutterwave usually within 1–2 business days.' },
   { cat:'Cards & media', q:'What types of messages can contributors leave?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs. Multiple media files can be attached per message. Private messages are only visible to the recipient.' },
   { cat:'Cards & media', q:'Can I schedule a card to send on a specific date?', a:'Yes. Pick any future date and time during card creation. Thankeeu sends the card automatically even if you forget — great for birthdays you want to plan ahead.' },
   { cat:'Cards & media', q:'Is there a limit on how many people can sign?', a:'No. Invite your entire company, school, or friend group. The more signatures, the more meaningful the card.' },
@@ -29,7 +29,7 @@ const cats = ['All', ...new Set(FAQS.map(f => f.cat))];
 export default function FAQ() {
   useSEO({
     title: 'FAQ — Frequently Asked Questions about Thankeeu',
-    description: 'Everything you need to know about Thankeeu group cards, Naira gift pots, Paystack payments, company subscriptions and more.',
+    description: 'Everything you need to know about Thankeeu group cards, Naira gift pots, secure payments, company subscriptions and more.',
     canonical: '/faq',
   });
 

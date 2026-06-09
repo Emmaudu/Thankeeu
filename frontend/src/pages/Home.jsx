@@ -18,13 +18,13 @@ const OCCASIONS = [
 const STEPS = [
   { num:'01', icon:'🎨', label:'Create', title:'Pick occasion & design', desc:'14 occasions, beautiful designs, set delivery date. Done in 2 minutes.' },
   { num:'02', icon:'📲', label:'Invite', title:'Share signing link', desc:'WhatsApp, email, Slack. Anyone can sign — no account needed.' },
-  { num:'03', icon:'💜', label:'Collect', title:'Pool a gift together', desc:'Chip in from ₦500. Paystack handles everything — no cash chasing.' },
+  { num:'03', icon:'💜', label:'Collect', title:'Pool a gift together', desc:'Chip in from ₦500. Flutterwave handles everything — no cash chasing.' },
   { num:'04', icon:'🚀', label:'Deliver', title:'Deliver the surprise', desc:'Schedule or send instantly. Your recipient opens a full card with messages, media & gift.' },
 ];
 
 const FEATURES = [
   { icon:'⚡', title:'Instant signing links', desc:'Copy a WhatsApp link in one click. No account needed to sign.' },
-  { icon:'🎁', title:'Built-in gift pots', desc:'Everyone chips in via Paystack. Pooled automatically.' },
+  { icon:'🎁', title:'Built-in gift pots', desc:'Everyone chips in via Flutterwave. Pooled automatically.' },
   { icon:'📱', title:'Any media type', desc:'Text, photo, video, voice note, GIF — all in one card.' },
   { icon:'⏰', title:'Scheduled delivery', desc:'Set the date. Card arrives exactly when it should.' },
   { icon:'🔒', title:'Private messages', desc:'Contributors can mark personal notes visible only to the recipient.' },
@@ -149,7 +149,7 @@ const Home = () => {
           <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full text-xs font-bold text-primary-600"
             style={{ background:'rgba(124,58,237,0.08)', border:'1.5px solid rgba(124,58,237,0.15)' }}>
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            ✨ HRIS sync · 12 automated occasions · Paystack gifting
+            ✨ Group cards · Pooled gifts · Automated birthdays
           </div>
 
           <h1 className="font-bold text-warm-900 mb-5 px-2"
@@ -161,7 +161,7 @@ const Home = () => {
           </h1>
 
           <p className="text-warm-600 mb-8 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(0.95rem,2.5vw,1.125rem)', lineHeight:1.65 }}>
-            Create beautiful group cards, collect heartfelt messages, pool Naira gifts via Paystack.<br className="hidden sm:block"/>
+            Create beautiful group cards, collect heartfelt messages, pool Naira gifts via Flutterwave.<br className="hidden sm:block"/>
             <strong className="text-warm-800">Takes 2 minutes. From ₦5,000.</strong>
           </p>
 
@@ -351,7 +351,7 @@ const Home = () => {
               { icon:'🔗', title:'HRIS Integration', desc:'SeamlessHR, BambooHR, Zoho People, WorkPay — one sync and your whole org is in.' },
               { icon:'🎉', title:'12 Occasions Automated', desc:"Birthdays, farewells, promotions, new hires, Women's Day — zero manual effort." },
               { icon:'💌', title:'Whole-dept Notifications', desc:'Every department member gets an email to sign. No one left out.' },
-              { icon:'💳', title:'Gift pot per employee', desc:'Paystack handles Naira collections. HR never chases money again.' },
+              { icon:'💳', title:'Gift pot per employee', desc:'Flutterwave handles Naira collections. HR never chases money again.' },
               { icon:'📋', title:'HR Analytics Dashboard', desc:'Full visibility into automations, upcoming occasions, and spending.' },
               { icon:'🛡️', title:'Approval Workflows', desc:'Team leaders sign off on card creation. Full control maintained.' },
             ].map(f => (
@@ -421,7 +421,7 @@ const Home = () => {
             {[
               { num:'1', icon:'🎨', title:'Create your card', desc:'Pick an occasion, choose a design, set the recipient and delivery date. Takes 2 minutes flat.' },
               { num:'2', icon:'📲', title:'Share the signing link', desc:'Copy a WhatsApp link or email it. No login needed — anyone can sign from their phone.' },
-              { num:'3', icon:'💜', title:'Watch messages roll in', desc:'Your signers add messages, photos, voice notes, GIFs and chip in to the gift pot via Paystack.' },
+              { num:'3', icon:'💜', title:'Watch messages roll in', desc:'Your signers add messages, photos, voice notes, GIFs and chip in to the gift pot via Flutterwave.' },
               { num:'4', icon:'🎁', title:'Deliver the surprise', desc:'Card and gift arrive by email on the exact day. The recipient opens a beautiful card, reads every message and claims the gift.' },
             ].map(s => (
               <div key={s.num} className="bg-white rounded-3xl border-2 border-purple-100 p-6 flex gap-4 hover:border-primary-300 hover:shadow-md transition-all">
@@ -455,10 +455,10 @@ const Home = () => {
           {[
             { q:'Is it really free to create a card?', a:'Yes — creating a card and collecting messages is 100% free. You only pay ₦5,000 when you\'re ready to activate and send the card to the recipient.' },
             { q:'Does the recipient need to create an account?', a:'No. The recipient simply opens a link, reads all the messages and can claim the gift — no sign-up required.' },
-            { q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Paystack.' },
-            { q:'Can people outside Nigeria contribute to the gift pot?', a:'Yes. Paystack supports international Visa and Mastercard cards. Your signers can contribute from anywhere in the world.' },
+            { q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Flutterwave.' },
+            { q:'Can people outside Nigeria contribute to the gift pot?', a:'Yes. Flutterwave supports international Visa and Mastercard cards. Your signers can contribute from anywhere in the world.' },
             { q:'What types of media can contributors add?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs — all in one beautiful card.' },
-            { q:'How does the gift pot work for companies?', a:'Each celebration card has its own Paystack gift pot. Department members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account.' },
+            { q:'How does the gift pot work for companies?', a:'Each celebration card has its own Flutterwave gift pot. Department members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account.' },
             { q:'Can I schedule the card to send on a specific date?', a:'Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget.' },
             { q:'Is there a limit on how many people can sign?', a:'No limit. Invite your entire company if you want. The more signatures, the more meaningful the card.' },
           ].map((item, i) => {

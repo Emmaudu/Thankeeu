@@ -2,11 +2,17 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { memberAPI } from '../utils/api';
 
 
-const _SESSION_MS = 30 * 60 * 1000; // 30 min
+const _SESSION_MS = 2 * 60 * 1000; // 2 min inactivity
 let _actTimer = null;
-const _resetTimer = (logoutFn) => {
+const _resetTimer = (logoutFn, loginPath = '/member/login') => {
   clearTimeout(_actTimer);
-  _actTimer = setTimeout(logoutFn, _SESSION_MS);
+  _actTimer = setTimeout(() => {
+    logoutFn();
+    // Redirect to login — works even if the React tree doesn't re-render
+    if (!window.location.pathname.startsWith(loginPath)) {
+      window.location.href = loginPath + '?reason=session_expired';
+    }
+  }, _SESSION_MS);
 };
 const _EVENTS = ['click','keydown','mousemove','touchstart','scroll'];
 

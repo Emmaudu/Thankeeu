@@ -148,9 +148,12 @@ const sendReply = async (req, res) => {
 
     if (!content?.trim()) return res.status(400).json({ error: 'Reply message is required' });
 
-    // Allow reply from card creator (user or member) or recipient
-    const senderId = req.user?.id || req.member?.id;
-    const senderName = req.user?.full_name || (req.member ? `${req.member.first_name} ${req.member.last_name}` : 'The recipient');
+    // Determine sender identity: logged-in user, member, or access_token recipient
+    const senderId = req.user?.id || req.member?.id || null;
+    const senderName = req.user?.full_name
+      || (req.member ? `${req.member.first_name} ${req.member.last_name}` : null)
+      || req.recipientName
+      || 'The recipient';
 
     const { data: card } = await supabase
       .from('cards').select('id, creator_id, recipient_name, title, slug, created_by_member_id')

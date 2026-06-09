@@ -228,10 +228,18 @@ const getCard = async (req, res) => {
 
     const isCreator = req.user?.id === card.creator_id
       || req.member?.id === card.created_by_member_id;
-    // isRecipient: either valid access_token OR logged-in user email matches recipient_email
-    const isRecipient = (token && token === card.access_token)
+    // isRecipient: valid access_token, email match, OR card was transferred to this user
+    let isRecipient = (token && token === card.access_token)
       || (req.user?.email && card.recipient_email &&
           req.user.email.toLowerCase() === card.recipient_email.toLowerCase());
+
+    // Check received_cards table for transfers (different email case)
+    if (!isRecipient && req.user?.id) {
+      const { data: received } = await supabase
+        .from('received_cards').select('id')
+        .eq('card_id', card.id).eq('recipient_user_id', req.user.id).maybeSingle();
+      if (received) isRecipient = true;
+    }
     const isContributor = true;
 
     if (!isCreator && !isRecipient && card.status === 'draft') {

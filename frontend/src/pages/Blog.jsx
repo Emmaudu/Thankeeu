@@ -113,9 +113,9 @@ const Blog = () => {
 
   useSEO({
     title:       'Blog — Tips, Guides & Updates from Thankeeu',
-    description: "The Thankeeu blog. Expert guides on workplace celebrations, HRIS integration, group gifting with Paystack, and HR best practices for companies worldwide.",
+    description: "The Thankeeu blog. Expert guides on workplace celebrations, HRIS integration, group gifting with Flutterwave, and HR best practices for companies worldwide.",
     canonical:   '/blog',
-    keywords:    'thankeeu blog, workplace culture, hr tips, group cards guide, paystack gifting, birthday office celebrations',
+    keywords:    'thankeeu blog, workplace culture, hr tips, group cards guide, flutterwave gifting, birthday office celebrations',
     jsonLd: [
       SCHEMAS.organization,
       SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog' }]),

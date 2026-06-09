@@ -24,10 +24,25 @@ const flexAuth = async (req, res, next) => {
   } catch { next(); }
 };
 
-// Reply requires auth (user or member)
-const requireAuth = (req, res, next) => {
-  if (!req.user && !req.member) return res.status(401).json({ error: 'You must be signed in to send a reply' });
-  next();
+// Reply requires auth OR valid access_token (for email-link recipients)
+const requireAuth = async (req, res, next) => {
+  if (req.user || req.member) return next();
+
+  // Allow reply via URL access_token (card recipient opened via email link)
+  const accessToken = req.query.access_token;
+  if (accessToken) {
+    const slug = req.params.card_slug;
+    const { data: card } = await supabase
+      .from('cards').select('id, access_token, recipient_name')
+      .eq('slug', slug).maybeSingle().catch(() => ({ data: null }));
+    if (card && card.access_token === accessToken) {
+      req.accessTokenReply = true; // flag for sendReply to use
+      req.recipientName = card.recipient_name;
+      return next();
+    }
+  }
+
+  return res.status(401).json({ error: 'You must be signed in to send a reply' });
 };
 
 router.post('/:card_slug',       upload.any(), addMessage);

@@ -197,7 +197,8 @@ const Navbar = ({ onBookDemo }) => {
 
             {/* Mobile hamburger */}
             <button onClick={() => setOpen(!open)}
-              className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors font-bold">
+              className="md:hidden flex items-center justify-center rounded-xl border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors font-bold"
+              style={{ width: 48, height: 48, fontSize: '1.5rem' }}>
               {open ? '✕' : '☰'}
             </button>
           </div>

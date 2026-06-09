@@ -34,6 +34,8 @@ import FarewellPage    from './pages/occasions/Farewell';
 import AnniversaryPage from './pages/occasions/Anniversary';
 import PromotionPage   from './pages/occasions/Promotion';
 import WeddingPage     from './pages/occasions/Wedding';
+import GraduationPage  from './pages/occasions/Graduation';
+import NewBabyPage     from './pages/occasions/NewBaby';
 import VerifyEmail      from './pages/VerifyEmail';
 
 // Company (HR) pages
@@ -140,6 +142,8 @@ const App = () => (
             <Route path="/occasions/anniversary" element={<AnniversaryPage />} />
             <Route path="/occasions/promotion"   element={<PromotionPage />} />
             <Route path="/occasions/wedding"     element={<WeddingPage />} />
+            <Route path="/occasions/graduation"  element={<GraduationPage />} />
+            <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
             <Route path="/faq"            element={<FAQ />} />
             <Route path="/occasions/:occasion" element={<OccasionPage />} />
             <Route path="/sign/:slug"    element={<SignCard />} />

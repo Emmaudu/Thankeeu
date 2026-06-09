@@ -133,7 +133,7 @@ const BankAccountTab = ({ compact = false }) => {
               <span>{verified ? '✅' : '👤'}</span>
               <div>
                 <p className="text-sm font-semibold text-warm-900">{form.account_name}</p>
-                <p className="text-xs text-warm-500">{verified ? 'Account verified by Paystack' : 'Unverified'}</p>
+                <p className="text-xs text-warm-500">{verified ? 'Account verified ✓' : 'Unverified'}</p>
               </div>
             </div>
           )}
@@ -153,7 +153,7 @@ const BankAccountTab = ({ compact = false }) => {
 
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
         <p className="text-xs text-amber-700 leading-relaxed">
-          🔒 Bank account verification is powered by Paystack. Your details are securely stored and never shared. Withdrawals are processed within 1–2 business days.
+          🔒 Bank account verification is powered by Flutterwave. Your details are securely stored and never shared. Withdrawals are processed within 1–2 business days.
         </p>
       </div>
     </div>

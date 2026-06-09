@@ -7,7 +7,7 @@ const STEPS = [
   { num:'01', icon:'✨', title:'Create your card in 2 minutes', desc:'Choose from 14 occasions — birthday, farewell, graduation, promotion and more. Pick a beautiful design, add the recipient\'s name and set a delivery date.', tip:'Tip: You don\'t need the recipient\'s email yet. Just set it up and share the signing link first.' },
   { num:'02', icon:'📲', title:'Share the signing link', desc:'You\'ll get a unique signing link. Drop it in your WhatsApp group, Slack channel, or email thread. Your signers click it — no app download, no login needed.', tip:'Tip: Set a deadline so everyone signs before the card is sent.' },
   { num:'03', icon:'💬', title:'Everyone adds their message', desc:'Each person writes a heartfelt message. They can also attach a photo, video, voice note, or GIF. Private messages are only visible to the recipient.', tip:'Tip: Send reminders from your dashboard to nudge anyone who hasn\'t signed yet.' },
-  { num:'04', icon:'🎁', title:'Pool a gift — optional but loved', desc:'Enable the gift pot and signers can chip in any amount via Paystack. No awkward cash collection — it all pools automatically.', tip:'Tip: Set a suggested gift amount during card creation to make it easy for contributors.' },
+  { num:'04', icon:'🎁', title:'Pool a gift — optional but loved', desc:'Enable the gift pot and signers can chip in any amount via Flutterwave. No awkward cash collection — it all pools automatically.', tip:'Tip: Set a suggested gift amount during card creation to make it easy for contributors.' },
   { num:'05', icon:'🚀', title:'Send it — scheduled or instantly', desc:'When you\'re ready, pay the one-time ₦5,000 activation fee and send. Or schedule it for a specific date and time — even weeks in advance.', tip:'Tip: Schedule it for 8am on their birthday so they wake up to a surprise.' },
   { num:'06', icon:'🎊', title:'Recipient opens the card', desc:'Your recipient gets a beautiful email with a link to their card. They read every message, watch videos, listen to voice notes — and claim the gift to their bank account.', tip:'Tip: Share the card link on social media after — it makes a beautiful memory.' },
 ];
@@ -15,7 +15,7 @@ const STEPS = [
 export default function HowItWorks() {
   useSEO({
     title: 'How Thankeeu Works — Create, Sign, Gift in Minutes',
-    description: 'Step-by-step guide to creating a group card on Thankeeu. Create, invite signers, pool a Naira gift via Paystack, and deliver the surprise.',
+    description: 'Step-by-step guide to creating a group card on Thankeeu. Create, invite signers, pool a Naira gift via Flutterwave, and deliver the surprise.',
     canonical: '/how-it-works',
   });
 

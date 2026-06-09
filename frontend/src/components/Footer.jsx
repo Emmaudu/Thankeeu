@@ -82,7 +82,7 @@ const Footer = () => (
         </p>
         <span className="text-xs px-3 py-1.5 rounded-full font-bold"
           style={{ background:'#F5F0FF', color:'#7C3AED', border:'1.5px solid #DDD6FE' }}>
-          🔒 Secure Naira payments via Paystack
+          🔒 Secure Naira payments via Flutterwave
         </span>
       </div>
     </div>

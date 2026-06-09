@@ -1,13 +1,13 @@
 const axios = require('axios');
 const supabase = require('../utils/supabase');
 
-const PAYSTACK_BASE = 'https://api.paystack.co';
-const headers = () => ({ Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' });
+const FLW_BASE = 'https://api.flutterwave.com/v3';
+const headers = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
 
-// Subscription prices in Paystack kobo.
+// Subscription prices in Flutterwave (Naira).
 const PLANS = {
-  monthly: { amount: 20000000, label: '₦200,000/month', naira: 200000 },
-  yearly:  { amount: 240000000, label: '₦2,400,000/year', naira: 2400000 }
+  monthly: { naira: 200000,   label: '₦200,000/month'   },
+  yearly:  { naira: 2400000,  label: '₦2,400,000/year'  },
 };
 
 const initializeSubscription = async (req, res) => {
@@ -15,28 +15,35 @@ const initializeSubscription = async (req, res) => {
     const { plan } = req.body;
     if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
 
-    const { amount, label } = PLANS[plan];
-    const frontendUrl = (process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const { naira, label } = PLANS[plan];
+    const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const txRef  = `TK-SUB-${req.company.id.slice(0,8).toUpperCase()}-${Date.now()}`;
 
-    const response = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, {
-      email: req.company.email,
-      amount,
-      metadata: {
-        company_id: req.company.id,
-        company_name: req.company.name,
-        plan,
-        type: 'company_subscription',
-        custom_fields: [
-          { display_name: 'Company', variable_name: 'company', value: req.company.name },
-          { display_name: 'Plan', variable_name: 'plan', value: label }
-        ]
+    const response = await axios.post(`${FLW_BASE}/payments`, {
+      tx_ref:         txRef,
+      amount:         naira,           // Flutterwave uses Naira directly (NOT kobo)
+      currency:       'NGN',
+      redirect_url:   `${appUrl}/company/subscription?sub=success&plan=${plan}&reference=${txRef}`,
+      customer:       { email: req.company.email, name: req.company.name },
+      customizations: {
+        title:       'Thankeeu for Teams',
+        description: `${label} subscription`,
+        logo:        `${appUrl}/logo.png`,
       },
-      callback_url: `${frontendUrl}/company/subscription?sub=success&plan=${plan}`
+      meta: {
+        type:         'company_subscription',
+        company_id:   req.company.id,
+        plan,
+      },
     }, { headers: headers() });
 
-    res.json(response.data.data);
+    if (response.data.status !== 'success') throw new Error(response.data.message);
+
+    const payment_link = response.data.data.link;
+    // Return both payment_link (FLW) and authorization_url / access_code for backwards compat
+    res.json({ payment_link, authorization_url: payment_link, access_code: txRef, reference: txRef });
   } catch (err) {
-    console.error(err.response?.data || err);
+    console.error('initializeSubscription error:', err.response?.data || err.message);
     res.status(500).json({ error: 'Failed to initialize subscription payment' });
   }
 };
@@ -44,21 +51,21 @@ const initializeSubscription = async (req, res) => {
 const verifySubscription = async (req, res) => {
   try {
     const { reference } = req.params;
-    const response = await axios.get(`${PAYSTACK_BASE}/transaction/verify/${reference}`, { headers: headers() });
+    const response = await axios.get(`${FLW_BASE}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`, { headers: headers() });
     const txn = response.data.data;
 
-    if (!['success', 'test'].includes(txn.status)) {
-      if (['failed', 'abandoned', 'reversed'].includes(txn.status)) {
+    if (!['successful', 'success', 'test'].includes(txn.status)) {
+      if (['failed', 'abandoned', 'reversed', 'cancelled', 'error'].includes(txn.status)) {
         return res.status(400).json({ error: `Payment was not completed (status: ${txn.status})` });
       }
       // Other statuses (pending, processing) — allow through optimistically
       console.warn(`Subscription verify: unusual status "${txn.status}" for ref ${reference}`);
     }
 
-    // Always trust the authenticated company (req.company.id) — never rely solely on Paystack metadata
+    // Always trust the authenticated company (req.company.id) — never rely solely on Flutterwave metadata
     // which can occasionally be dropped or empty
     const resolvedCompanyId = req.company.id;
-    const resolvedPlan      = txn.metadata?.plan || req.query.plan || 'monthly';
+    const resolvedPlan      = txn.meta?.plan || req.query.plan || 'monthly';
 
     const now2 = new Date();
     const expires_at = resolvedPlan === 'yearly'
@@ -77,14 +84,14 @@ const verifySubscription = async (req, res) => {
     if (existing) {
       // Extend/renew existing
       await supabase.from('company_subscriptions').update({
-        expires_at, status: 'active', paystack_reference: reference,
+        expires_at, status: 'active', flw_reference: reference,
         plan: resolvedPlan, updated_at: new Date()
       }).eq('id', existing.id);
     } else {
       await supabase.from('company_subscriptions').insert({
         company_id: resolvedCompanyId, plan: resolvedPlan, status: 'active',
         amount: PLANS[resolvedPlan]?.naira || 200000,
-        paystack_reference: reference,
+        flw_reference: reference,
         starts_at: new Date(), expires_at
       });
     }
@@ -99,7 +106,7 @@ const verifySubscription = async (req, res) => {
   } catch (err) {
     console.error('Subscription verify error:', {
       message: err.message,
-      paystack: err.response?.data,
+      flw_error: err.response?.data,
       reference: req.params?.reference,
     });
     res.status(500).json({ error: 'Failed to verify subscription. Please contact support if payment was charged.' });

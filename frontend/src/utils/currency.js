@@ -1,6 +1,6 @@
 /**
  * Thankeeu Currency — Nigerian Naira (₦)
- * All amounts stored in NGN. Paystack processes in kobo (NGN × 100).
+ * All amounts stored in NGN. Flutterwave processes in Naira.
  */
 
 /** Format an NGN amount for display: ₦5,000 / ₦1.2M */
@@ -12,5 +12,5 @@ export const formatNGN = (amount) => {
   return `₦${n}`;
 };
 
-/** Convert NGN → kobo for Paystack */
+/** NGN format helper */
 export const toKobo = (ngn) => Math.round(ngn * 100);

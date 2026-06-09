@@ -335,3 +335,19 @@ ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS promotion_message TEXT;
 ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS promotion_scope TEXT DEFAULT 'all';
 
 -- Subscription columns on companies
+
+-- ── Flutterwave migration (replacing Paystack) ──────────────────────────────
+ALTER TABLE contributions    ADD COLUMN IF NOT EXISTS flw_reference TEXT;
+ALTER TABLE company_subscriptions ADD COLUMN IF NOT EXISTS flw_reference TEXT;
+ALTER TABLE withdrawals      ADD COLUMN IF NOT EXISTS flw_reference TEXT;
+ALTER TABLE withdrawals      ADD COLUMN IF NOT EXISTS flw_transfer_id TEXT;
+ALTER TABLE bank_accounts    ADD COLUMN IF NOT EXISTS flw_beneficiary_id TEXT;
+ALTER TABLE bank_accounts    ADD COLUMN IF NOT EXISTS bank_code TEXT;
+
+-- Index for fast webhook lookup
+CREATE INDEX IF NOT EXISTS idx_contributions_flw_ref    ON contributions(flw_reference);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_flw_ref    ON company_subscriptions(flw_reference);
+
+-- Deduction transfer tracking
+ALTER TABLE deduction_requests ADD COLUMN IF NOT EXISTS transferred_at TIMESTAMPTZ;
+ALTER TABLE deduction_requests ADD COLUMN IF NOT EXISTS withdrawal_id  TEXT;

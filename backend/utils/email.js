@@ -133,7 +133,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Your colleague's birthday is almost here!</h2>
       <p style="color:#555;line-height:1.8;"><strong>${data.celebrantName}</strong> from the <strong>${data.department}</strong> team celebrates their birthday on <strong>${data.birthdayDate}</strong>. ${data.companyName} is putting together a group card — add your message!</p>
-      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — contribute any amount via Paystack</p></div>` : ''}
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — contribute any amount via Flutterwave</p></div>` : ''}
       <div style="background:#fff8e1;border-radius:8px;padding:14px 16px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Please keep this a surprise — do not mention the card to ${data.celebrantFirstName} before their birthday!</p>
       </div>
@@ -285,18 +285,31 @@ const teamsTemplates = {
         ${[['Card',data.cardTitle],['Amount Requested',`${fmtNGN(data.amount)}`],['Reason',data.reason]].map(([k,v])=>
           `<tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;color:#555;border:1px solid #eee;width:130px;">${k}</td><td style="padding:8px 12px;border:1px solid #eee;color:#333;">${v}</td></tr>`).join('')}
       </table>
-      <p style="color:#555;font-size:13px;line-height:1.7;">Note: The 20% platform fee has already been deducted from the gross total before this request.</p>
+      <p style="color:#555;font-size:13px;line-height:1.7;">Note: A 3.5% platform fee has already been deducted from the gross total before this request.</p>
       ${btn('Review in HR Dashboard', `${process.env.APP_URL}/company/deductions`)}
     `)
   }),
 
   deductionApproved: (data) => ({
-    subject: `Your deduction request of ${fmtNGN(data.amount)} has been approved`,
+    subject: data.transferred
+      ? `💸 ₦${(data.amount||0).toLocaleString('en-NG')} sent to your bank — deduction approved!`
+      : `✅ Deduction approved — add your bank account to receive ₦${(data.amount||0).toLocaleString('en-NG')}`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Deduction approved ✅</h2>
-      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, your deduction request of <strong>${fmtNGN(data.amount)}</strong> for physical celebration has been approved by HR.</p>
+      <p style="color:#555;line-height:1.8;">Hi <strong>${data.leaderName}</strong>, HR approved your deduction request of <strong>${fmtNGN(data.amount)}</strong>.</p>
       ${data.note ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;"><strong>HR note:</strong> ${data.note}</p></div>` : ''}
-      <p style="color:#555;font-size:13px;">The remaining balance will be disbursed to the celebrant.</p>
+      ${data.transferred
+        ? `<div style="background:#EAF3DE;border-radius:12px;padding:16px 20px;margin:20px 0;">
+             <p style="color:#166534;font-weight:700;margin:0 0 4px;">💸 Transfer initiated!</p>
+             <p style="color:#166534;font-size:13px;margin:0;">₦${(data.amount||0).toLocaleString('en-NG')} has been sent to your registered bank account. It typically arrives within minutes to a few hours.</p>
+           </div>`
+        : `<div style="background:#FEF3C7;border-radius:12px;padding:16px 20px;margin:20px 0;border-left:4px solid #F59E0B;">
+             <p style="color:#92400E;font-weight:700;margin:0 0 6px;">⚠️ Action required: Add your bank account</p>
+             <p style="color:#92400E;font-size:13px;margin:0 0 12px;">We couldn't find a verified bank account for your profile. To receive your ₦${(data.amount||0).toLocaleString('en-NG')}, please log in and add your bank details.</p>
+             ${btn('Add bank account now', (data.appUrl||'https://thankeeu.com') + '/member/dashboard?tab=settings', '#F59E0B')}
+             <p style="color:#92400E;font-size:12px;margin-top:12px;">Once added, use the "Withdraw" button on your approved deduction card.</p>
+           </div>`
+      }
     `)
   }),
 
@@ -325,7 +338,7 @@ const teamsTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">${data.icon} Celebrate ${data.memberName}!</h2>
       <p style="color:#555;line-height:1.8;"><strong>${data.memberName}</strong> from <strong>${data.department}</strong> has an upcoming <strong>${data.occasionLabel}</strong> on <strong>${data.occasionDate}</strong>. ${data.companyName} is putting together a special group card!</p>
-      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 A gift pot is open — contribute any amount via Paystack</p></div>` : ''}
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 A gift pot is open — contribute any amount via Flutterwave</p></div>` : ''}
       <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Keep this a surprise — please do not mention the card to ${data.memberFirstName}!</p>
       </div>
@@ -421,7 +434,7 @@ const additionalTeamsTemplates = {
       </p>
       ${data.giftEnabled ? `
       <div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;">
-        <p style="color:#3B6D11;font-size:13px;margin:0;">🎁 A farewell gift pot is open — contribute any amount via Paystack</p>
+        <p style="color:#3B6D11;font-size:13px;margin:0;">🎁 A farewell gift pot is open — contribute any amount via Flutterwave</p>
       </div>` : ''}
       <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Please keep this a surprise until we present the card on their last day! 🤫</p>

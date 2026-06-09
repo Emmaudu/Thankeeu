@@ -105,7 +105,7 @@ const MemberDeductionsPage = () => {
     <MemberLayout title="Deductions 💰" subtitle="Manage gift pot deductions for your department">
 
       {/* Approved ready-to-withdraw banner */}
-      {approvedUnwithdrawn.length > 0 && (
+      {approvedUnwithdrawn.filter(r => !r.withdrawal_requested).length > 0 && (
         <div className="bg-green-50 border border-green-200 rounded-2xl p-4 mb-5 flex items-center gap-3">
           <span className="text-2xl">🎉</span>
           <div className="flex-1">
@@ -284,7 +284,7 @@ const MemberDeductionsPage = () => {
                         ****{(accounts.find(a=>a.is_default)||accounts[0])?.account_number?.slice(-4)}
                       </p>
                       <button
-                        onClick={() => handleWithdraw(req)}
+                        onClick={() => handleDeductionWithdraw(req)}
                         disabled={!!withdrawing}
                         className="btn-primary text-xs py-2 px-4 flex-shrink-0">
                         {withdrawing === req.id ? 'Withdrawing…' : '💸 Withdraw'}

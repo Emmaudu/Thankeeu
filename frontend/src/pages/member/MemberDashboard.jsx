@@ -157,6 +157,8 @@ const TabHome = ({ data, loading }) => {
 const TabMyCards = () => {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  useSEO({ title:'My Dashboard — Thankeeu for Teams', noIndex:true });
+
   useEffect(() => {
     memberAPI.getMyCards().then(r => setCards(r.data || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
   }, []);
@@ -551,7 +553,7 @@ const TABS = [
 ];
 
 const MemberDashboard = () => {
-  useSEO({ title:'My Dashboard — Thankeeu for Teams', noIndex:true });
+
   const { member } = useMemberAuth();
   const [homeData, setHomeData] = useState(null);
   const [homeLoading, setHomeLoading] = useState(true);

@@ -424,4 +424,6 @@ module.exports = {
   getOccasionTypes, createOccasionType,
   downloadOccasionTemplate, importOccasionMembers,
   getOccasionMembers, deleteOccasionMember,
+  downloadGeneralTemplate, importGeneralTemplate,
+  updateOccasionTypeScope, updateOccasionMember,
 };

@@ -96,7 +96,7 @@ export default function OccasionsPage() {
   const handleDownloadTemplate = () => {
     const a = document.createElement('a');
     a.href = `${BASE_URL}/occasions/bulk-template`;
-    a.download = 'thankeeu-team-import-template.csv';
+    a.download = 'thankeeu-team-import-template.xlsx';
     // Add auth header via anchor doesn't work — use fetch
     fetch(a.href, { headers:{ Authorization:`Bearer ${tok()}` } })
       .then(r => r.blob())
@@ -198,7 +198,7 @@ export default function OccasionsPage() {
             className="btn-primary text-sm py-2.5 px-4">
             {uploading ? '⏳ Syncing...' : '📤 Upload & sync'}
           </button>
-          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileUpload} />
+          <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden" onChange={handleFileUpload} />
         </div>
       </div>
 

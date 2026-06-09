@@ -43,10 +43,10 @@ const generalLimiter = rateLimit({
   message: { error: 'Too many requests. Please try again later.' },
 });
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 20,
+  windowMs: 60 * 60 * 1000, max: 5,  // 5 attempts per hour
   skipSuccessfulRequests: true,
   standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many sign-in attempts. Wait 15 minutes and try again.' },
+  message: { error: 'Too many sign-in attempts. Please wait 1 hour and try again.' },
 });
 const demoLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, max: 5,
@@ -87,6 +87,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/banks', require('./routes/banks'));
 app.use('/api/visitors', require('./routes/visitors'));
+app.use('/api/core-team', require('./routes/coreTeam'));
 app.use('/api/admin', require('./routes/admin'));
 // Teams / Company routes
 app.use('/api/company', require('./routes/company'));

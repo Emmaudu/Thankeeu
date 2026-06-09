@@ -1,10 +1,11 @@
 const express = require('express');
-const router = express.Router();
+const router  = express.Router();
 const { adminAuth } = require('../middleware/auth');
 const {
   getStats, getAllUsers, updateUserRole, deleteUser,
   getAllCards, deleteCard,
-  getAllCompanies, deleteCompany, getCompanyTeamMembers
+  getAllCompanies, deleteCompany, getCompanyTeamMembers,
+  getVisitors,
 } = require('../controllers/adminController');
 
 router.use(adminAuth);
@@ -13,21 +14,20 @@ router.use(adminAuth);
 router.get('/stats', getStats);
 
 // Users
-router.get('/users', getAllUsers);
-router.put('/users/:userId/role', updateUserRole);
-router.delete('/users/:userId', deleteUser);
+router.get('/users',                     getAllUsers);
+router.put('/users/:userId/role',        updateUserRole);
+router.delete('/users/:userId',          deleteUser);
 
 // Cards
-router.get('/cards', getAllCards);
-router.delete('/cards/:cardId', deleteCard);
+router.get('/cards',                     getAllCards);
+router.delete('/cards/:cardId',          deleteCard);
 
 // Companies
-router.get('/companies', getAllCompanies);
-router.delete('/companies/:companyId', deleteCompany);
+router.get('/companies',                 getAllCompanies);
+router.delete('/companies/:companyId',   deleteCompany);
 router.get('/companies/:companyId/members', getCompanyTeamMembers);
 
-module.exports = router;
+// Visitors (guests who signed cards without an account)
+router.get('/visitors',                  getVisitors);
 
-// Visitors
-const { getVisitors: getV } = require('../controllers/adminController');
-router.get('/visitors', adminAuth, getV);
+module.exports = router;

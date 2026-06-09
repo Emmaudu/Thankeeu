@@ -70,7 +70,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
         </button>
       </div>
 
-<nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto">
+<nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
         {NAV.map(({ path, icon, label }) => (
           <Link key={path} to={path}
             onClick={() => setMobileOpen(false)}
@@ -122,7 +122,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
         <div className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
           style={{ background: '#F5F3FF', borderBottom: '1px solid #EDE9FF' }}>
           <button onClick={() => setMobileOpen(true)} className="p-2 rounded-xl"
-            style={{ background: 'rgba(124,110,255,0.1)', color: '#5B4BDF' }}>☰</button>
+            style={{ background: 'rgba(124,110,255,0.1)', color: '#5B4BDF', fontSize: '1.5rem', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>☰</button>
           <span style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, color: '#1A1730', fontSize: 14 }}>
             Thank<span style={{ color: '#7C6EFF' }}>eeu</span> Teams
           </span>

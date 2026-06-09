@@ -55,17 +55,17 @@ const Policy = () => {
         <Section id="privacy" title="Privacy Policy">
           <p>Thankeeu ("we", "our", "us") is committed to protecting your privacy. This policy explains how we collect, use, and protect your personal information when you use our platform at thankeeu.com.</p>
           <h3 className="font-semibold text-warm-800 text-base">Information we collect</h3>
-          <p>We collect information you provide directly: your name, email address, and password when you create an account. We also collect information about the cards you create, including recipient details and messages. When processing payments, we use Paystack — we do not store your card details on our servers.</p>
+          <p>We collect information you provide directly: your name, email address, and password when you create an account. We also collect information about the cards you create, including recipient details and messages. When processing payments, we use Flutterwave — we do not store your card details on our servers.</p>
           <h3 className="font-semibold text-warm-800 text-base">How we use your information</h3>
           <ul className="list-disc pl-5 space-y-1">
             <li>To create and manage your account and cards</li>
             <li>To send transactional emails (card invites, delivery notifications)</li>
-            <li>To process payments securely via Paystack</li>
+            <li>To process payments securely via Flutterwave</li>
             <li>To improve our platform and user experience</li>
             <li>To send you service updates (you can opt out anytime)</li>
           </ul>
           <h3 className="font-semibold text-warm-800 text-base">Data sharing</h3>
-          <p>We do not sell your personal data. We share limited data with: Paystack (for payment processing), Cloudinary (for media file storage), Resend (for email delivery), and Supabase (for database hosting). All partners are GDPR-compliant.</p>
+          <p>We do not sell your personal data. We share limited data with: Flutterwave (for payment processing), Cloudinary (for media file storage), Resend (for email delivery), and Supabase (for database hosting). All partners are GDPR-compliant.</p>
           <h3 className="font-semibold text-warm-800 text-base">Your rights</h3>
           <p>You may request access to, correction of, or deletion of your personal data by emailing privacy@thankeeu.com. We will respond within 30 days.</p>
           <h3 className="font-semibold text-warm-800 text-base">Data retention</h3>
@@ -115,10 +115,10 @@ const Policy = () => {
         <Section id="refund" title="Refund Policy">
           <h3 className="font-semibold text-warm-800 text-base">Card fees</h3>
           <p>Card fees (₦5,000 per card, ₦20,000 for a pack of 5) are non-refundable once a card has been activated — that is, once the shareable signing link has been generated and the card is open for contributions.</p>
-          <p>If you experience a technical error during payment and your card was not activated, please contact us at support@thankeeu.com within 48 hours with your Paystack transaction reference and we will issue a full refund.</p>
+          <p>If you experience a technical error during payment and your card was not activated, please contact us at support@thankeeu.com within 48 hours with your Flutterwave transaction reference and we will issue a full refund.</p>
           <h3 className="font-semibold text-warm-800 text-base">Gift contributions</h3>
           <p>Gift contributions made by card signers can be refunded within 24 hours of payment, provided the card has not yet been delivered to the recipient. After delivery, contributions are non-refundable.</p>
-          <p>To request a contribution refund, email refunds@thankeeu.com with your Paystack reference number and the card link.</p>
+          <p>To request a contribution refund, email refunds@thankeeu.com with your Flutterwave reference number and the card link.</p>
           <h3 className="font-semibold text-warm-800 text-base">Business plans</h3>
           <p>Monthly business plan fees are non-refundable. However, if you are dissatisfied with the service, contact us within 7 days of your first payment and we will work to resolve the issue or offer a credit.</p>
           <h3 className="font-semibold text-warm-800 text-base">Contact us</h3>

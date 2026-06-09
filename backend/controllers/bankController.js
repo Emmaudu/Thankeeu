@@ -3,14 +3,15 @@ const supabase = require('../utils/supabase');
 const { pushNotification } = require('../utils/notify');
 const { sendEmail } = require('../utils/email');
 
-const PAYSTACK = 'https://api.paystack.co';
-const psHeaders = () => ({ Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' });
+const FLW = 'https://api.flutterwave.com/v3';
+const flwH = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
 
-// GET /api/banks/list — Nigerian bank list from Paystack
+// GET /api/banks/list — Nigerian bank list from Flutterwave
 const getBankList = async (req, res) => {
   try {
-    const r = await axios.get(`${PAYSTACK}/bank?country=nigeria&perPage=100`, { headers: psHeaders() });
-    res.json(r.data.data || []);
+    const r = await axios.get(`${FLW}/banks/NG`, { headers: flwH() });
+    // Flutterwave returns { data: [...] } with id, code, name
+    res.json((r.data.data || []).map(b => ({ id: b.id, code: b.code, name: b.name })));
   } catch (err) {
     // Fallback static list so the UI always has something
     res.json([
@@ -26,13 +27,13 @@ const getBankList = async (req, res) => {
   }
 };
 
-// POST /api/banks/verify — verify account number with Paystack
+// POST /api/banks/verify — resolve account number with Flutterwave
 const verifyAccount = async (req, res) => {
   try {
     const { account_number, bank_code } = req.body;
     if (!account_number || !bank_code) return res.status(400).json({ error: 'account_number and bank_code required' });
 
-    const r = await axios.get(`${PAYSTACK}/bank/resolve?account_number=${account_number}&bank_code=${bank_code}`, { headers: psHeaders() });
+    const r = await axios.post(`${FLW}/accounts/resolve`, { account_number, account_bank: bank_code }, { headers: flwH() });
     res.json({ account_name: r.data.data.account_name, account_number, bank_code });
   } catch (err) {
     res.status(400).json({ error: err.response?.data?.message || 'Could not verify account. Check number and bank.' });
@@ -50,10 +51,10 @@ const saveBankAccount = async (req, res) => {
     if (!bank_code || !bank_name || !account_number || !account_name)
       return res.status(400).json({ error: 'All fields required: bank_code, bank_name, account_number, account_name' });
 
-    // Create Paystack Transfer Recipient
+    // Create Flutterwave beneficiary
     let recipientCode = null;
     try {
-      const r = await axios.post(`${PAYSTACK}/transferrecipient`, {
+      const r = await axios.post(`${FLW}/transfersrecipient`, {
         type: 'nuban',
         name: account_name,
         account_number,
@@ -62,7 +63,7 @@ const saveBankAccount = async (req, res) => {
       }, { headers: psHeaders() });
       recipientCode = r.data.data?.recipient_code;
     } catch (e) {
-      console.warn('Paystack recipient creation failed:', e.response?.data?.message);
+      console.warn('FLW beneficiary creation failed:', e.response?.data?.message);
     }
 
     // Upsert bank account
@@ -72,7 +73,7 @@ const saveBankAccount = async (req, res) => {
         owner_id:   ownerId,
         owner_type: ownerType,
         bank_code, bank_name, account_number, account_name,
-        paystack_recipient_code: recipientCode,
+        flw_beneficiary_id: recipientCode,
         verified: !!recipientCode,
         is_default: true,
         updated_at: new Date(),
@@ -127,7 +128,7 @@ const deleteBankAccount = async (req, res) => {
   }
 };
 
-// POST /api/banks/withdraw — initiate Paystack Transfer to saved bank
+// POST /api/banks/withdraw — initiate Flutterwave bank transfer
 const initiateWithdrawal = async (req, res) => {
   try {
     const requesterId   = req.user?.id || req.member?.id;
@@ -146,8 +147,8 @@ const initiateWithdrawal = async (req, res) => {
       .eq('owner_id', requesterId)
       .single();
     if (baErr || !bankAccount) return res.status(404).json({ error: 'Bank account not found or not yours' });
-    if (!bankAccount.paystack_recipient_code) {
-      return res.status(400).json({ error: 'This bank account has not been verified with Paystack. Please re-save your account details.' });
+    if (!bankAccount.flw_beneficiary_id) {
+      return res.status(400).json({ error: 'Bank account not yet verified. Please re-save your account to link it with Flutterwave.' });
     }
 
     // For gift_pot source — verify card belongs to requester and has sufficient balance
@@ -198,14 +199,14 @@ const initiateWithdrawal = async (req, res) => {
         .eq('id', source_id);
     }
 
-    // Initiate Paystack Transfer
+    // Initiate Flutterwave bank transfer
     const ref = `TK-WD-${Date.now()}-${withdrawal.id.slice(0,8)}`;
     let transferCode = null;
     try {
-      const t = await axios.post(`${PAYSTACK}/transfer`, {
+      const t = await axios.post(`${FLW}/transfers`, {
         source:    'balance',
         amount:    Math.round(amount * 100), // kobo
-        recipient: bankAccount.paystack_recipient_code,
+        // account resolved via flw_beneficiary_id
         reason:    `Thankeeu ${source_type === 'gift_pot' ? 'gift pot' : 'deduction'} withdrawal`,
         reference: ref,
       }, { headers: psHeaders() });
@@ -215,8 +216,8 @@ const initiateWithdrawal = async (req, res) => {
       // Update withdrawal record
       await supabase.from('withdrawals').update({
         status: t.data.data?.status === 'success' ? 'success' : 'processing',
-        paystack_transfer_code: transferCode,
-        paystack_reference:     ref,
+        flw_transfer_id: transferCode,
+        flw_reference: ref,
       }).eq('id', withdrawal.id);
 
       // Reduce card total_collected if gift_pot
@@ -227,11 +228,11 @@ const initiateWithdrawal = async (req, res) => {
       }
 
     } catch (transferErr) {
-      console.error('Paystack transfer failed:', transferErr.response?.data);
+      console.error('FLW transfer failed:', transferErr.response?.data);
       await supabase.from('withdrawals').update({
         status: 'failed',
-        failure_reason: transferErr.response?.data?.message || 'Paystack transfer failed',
-        paystack_reference: ref,
+        failure_reason: transferErr.response?.data?.message || 'FLW transfer failed',
+        flw_reference: ref,
       }).eq('id', withdrawal.id);
 
       return res.status(500).json({ error: transferErr.response?.data?.message || 'Transfer failed. Please try again or contact support.' });
@@ -306,7 +307,7 @@ const withdrawGift = async (req, res) => {
       .eq('is_default', true)
       .maybeSingle();
 
-    if (!bank?.paystack_recipient_code) {
+    if (!bank?.flw_beneficiary_id) { // FLW beneficiary ID
       return res.status(400).json({ error: 'Please add and verify your bank account in Settings before withdrawing' });
     }
 
@@ -315,17 +316,24 @@ const withdrawGift = async (req, res) => {
     const fee = Math.round(gross * 0.035);
     const net = gross - fee;
 
-    // Initiate Paystack transfer
+    // Initiate Flutterwave gift pot transfer
     const transferRef = `gift_${card.id}_${Date.now()}`;
-    const r = await axios.post(`${PAYSTACK}/transfer`, {
-      source: 'balance',
-      amount: net * 100, // kobo
-      recipient: bank.paystack_recipient_code,
-      reason: `Gift pot withdrawal — ${card.title || card.recipient_name + "'s card"}`,
-      reference: transferRef,
-    }, { headers: psHeaders() });
+    if (!bank?.flw_beneficiary_id) {
+      return res.status(400).json({ error: 'Please add and verify your bank account in Settings before withdrawing' });
+    }
 
-    if (!r.data.status) throw new Error(r.data.message || 'Transfer initiation failed');
+    const r = await axios.post(`${FLW}/transfers`, {
+      account_bank:     bank.bank_code,
+      account_number:   bank.account_number,
+      amount:           net,
+      narration:        `Gift pot withdrawal — ${card.title || card.recipient_name + "'s card"}`,
+      currency:         'NGN',
+      reference:        transferRef,
+      beneficiary_name: bank.account_name,
+      debit_currency:   'NGN',
+    }, { headers: flwH() });
+
+    if (r.data.status !== 'success') throw new Error(r.data.message || 'Transfer initiation failed');
 
     // Mark as withdrawn
     await supabase.from('cards').update({

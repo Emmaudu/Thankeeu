@@ -510,3 +510,9 @@
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
   .safe-top    { padding-top:    env(safe-area-inset-top, 0); }
 }
+
+/* ── Themed sidebar scrollbar ── */
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(124,110,255,0.35); border-radius: 9999px; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(124,110,255,0.6); }

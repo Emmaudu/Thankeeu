@@ -1,14 +1,38 @@
 const express = require('express');
-const router = express.Router();
-const { auth } = require('../middleware/auth');
+const router  = express.Router();
+const { auth }          = require('../middleware/auth');
+const { memberAuth }    = require('../middleware/memberAuth');
 const {
-  initializeCardPurchase, initializeContribution, verifyPurchase, verifyPayment, webhook
+  initializePayment,    // generic init
+  verifyPayment,        // verify by tx_ref
+  initContribution,     // gift contribution init
+  verifyContribution,   // verify gift contribution
+  initCardFee,          // card creation fee
 } = require('../controllers/paymentController');
 
-router.post('/webhook', webhook);
-router.post('/initialize/purchase', auth, initializeCardPurchase);
-router.post('/initialize/contribution', initializeContribution);
-router.get('/verify/purchase/:reference', auth, verifyPurchase);
-router.get('/verify/:reference', verifyPayment);
+// ── Flutterwave webhook (handled separately in /webhook/flutterwave) ─────────
+// Legacy stub — real webhook is at /api/webhook/flutterwave
+router.post('/webhook', (req, res) => res.status(410).json({ message: 'Webhook moved to /api/webhook/flutterwave' }));
+
+// ── Card purchase / card creation fee ────────────────────────────────────────
+router.post('/initialize/purchase',      auth, initCardFee);
+router.post('/initialize/card-fee',      auth, initCardFee);
+router.get('/verify/purchase/:reference', auth, async (req, res) => {
+  // Map old verify/purchase to new verifyPayment
+  req.body = req.body || {};
+  return verifyPayment(req, res);
+});
+router.get('/verify/:txRef',             verifyPayment);   // e.g. after FLW redirect
+
+// ── Gift contributions (public — signers may not be logged in) ────────────────
+router.post('/initialize/contribution',  initContribution);
+router.post('/verify/contribution',      verifyContribution);
+
+// ── Generic initialize (used by CreateCard, Pricing, etc.) ───────────────────
+router.post('/initialize',               initializePayment);
+
+// ── Verify by tx_ref (called after Flutterwave redirect) ─────────────────────
+router.get('/verify-contribution/:txRef', verifyContribution);  // After FLW redirect
+router.get('/verify-contribution',         verifyContribution);  // With ?tx_ref= query param
 
 module.exports = router;

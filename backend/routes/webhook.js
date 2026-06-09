@@ -1,122 +1,103 @@
 /**
- * Paystack Webhook Route
- * Handles payment.success events so subscription activates even
- * if the browser redirect fails (user closes popup, bad network, etc.)
+ * Flutterwave Webhook Route
+ * Handles payment events so subscription/contributions activate
+ * even if the browser redirect fails.
  */
 const express  = require('express');
 const crypto   = require('crypto');
 const router   = express.Router();
 const supabase = require('../utils/supabase');
 
-router.post('/paystack', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/flutterwave', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     // 1. Verify webhook signature
-    const secret    = process.env.PAYSTACK_SECRET_KEY || '';
-    const signature = req.headers['x-paystack-signature'];
-    const hash      = crypto.createHmac('sha512', secret).update(req.body).digest('hex');
+    const secret    = process.env.FLW_SECRET_HASH || process.env.FLW_SECRET_KEY || '';
+    const signature = req.headers['verif-hash'];
 
-    if (signature !== hash) {
-      console.warn('Paystack webhook: invalid signature');
-      return res.sendStatus(400);
+    if (!signature || signature !== secret) {
+      console.warn('Flutterwave webhook: invalid signature');
+      return res.sendStatus(401);
     }
 
     const event = JSON.parse(req.body.toString());
-    console.log('Paystack webhook event:', event.event, event.data?.reference);
+    const { event: eventName, data: txn } = event;
+    console.log('FLW webhook event:', eventName, txn?.tx_ref);
 
     // 2. Only handle successful charges
-    if (event.event !== 'charge.success') return res.sendStatus(200);
+    if (eventName !== 'charge.completed' || txn.status !== 'successful') return res.sendStatus(200);
 
-    const txn      = event.data;
-    const meta     = txn.metadata || {};
+    const meta     = txn.meta || {};
     const type     = meta.type;
+    const txRef    = txn.tx_ref;
+    const amountNaira = Math.floor(txn.amount);
 
     // 3. Handle company subscriptions
     if (type === 'company_subscription') {
       const companyId = meta.company_id;
       const plan      = meta.plan;
+      if (!companyId || !plan) { console.warn('Webhook: missing company_id or plan'); return res.sendStatus(200); }
 
-      if (!companyId || !plan) {
-        console.warn('Webhook: missing company_id or plan in metadata');
-        return res.sendStatus(200);
-      }
-
-      const PLANS = {
-        monthly: { naira: 200000 },
-        yearly:  { naira: 2400000 },
-      };
-
+      const PLANS = { monthly: { naira: 200000 }, yearly: { naira: 2400000 } };
       const now = new Date();
       const expires_at = plan === 'yearly'
         ? new Date(new Date(now).setFullYear(now.getFullYear() + 1))
         : new Date(new Date(now).setMonth(now.getMonth() + 1));
 
-      // Upsert subscription
-      const { data: existing } = await supabase
-        .from('company_subscriptions')
-        .select('id')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data: existing } = await supabase.from('company_subscriptions')
+        .select('id').eq('company_id', companyId).order('created_at', { ascending: false }).limit(1).maybeSingle();
 
       if (existing) {
-        await supabase.from('company_subscriptions').update({
-          expires_at, status: 'active', paystack_reference: txn.reference,
-          plan, updated_at: new Date()
-        }).eq('id', existing.id);
+        await supabase.from('company_subscriptions')
+          .update({ expires_at, status: 'active', flw_reference: txRef, plan, updated_at: new Date() })
+          .eq('id', existing.id);
       } else {
         await supabase.from('company_subscriptions').insert({
-          company_id: companyId, plan, status: 'active',
-          amount:     PLANS[plan]?.naira || 200000,
-          paystack_reference: txn.reference,
-          starts_at:  new Date(), expires_at
+          company_id: companyId, plan, status: 'active', amount: PLANS[plan]?.naira || 200000,
+          flw_reference: txRef, starts_at: new Date(), expires_at,
         });
       }
 
-      // Update company row
       await supabase.from('companies')
-        .update({
-          subscription_status:     'active',
-          subscription_plan:        plan,
-          subscription_expires_at:  expires_at,
-        })
+        .update({ subscription_status: 'active', subscription_plan: plan, subscription_expires_at: expires_at })
         .eq('id', companyId)
-        .catch(e => console.warn('Webhook: company update warn:', e.message));
+        .catch(e => console.warn('Webhook company update:', e.message));
 
       console.log(`Webhook: subscription activated for company ${companyId}, plan=${plan}`);
     }
 
-    // 4. Handle gift contributions (card payments)
-    if (type === 'gift_contribution') {
-      const cardId   = meta.card_id;
-      const amount   = txn.amount / 100; // kobo → naira
-      const ref      = txn.reference;
+    // 4. Handle gift contributions
+    if (type === 'gift_contribution' && meta.card_id) {
+      const cardId = meta.card_id;
 
-      if (cardId) {
-        // Mark contribution as success
-        await supabase.from('contributions')
-          .update({ status: 'success' })
-          .eq('paystack_reference', ref)
-          .catch(() => {});
+      // Update or create contribution
+      const { data: existing } = await supabase.from('contributions')
+        .select('id').eq('flw_reference', txRef).maybeSingle();
 
-        // Update card total_collected
-        const { data: card } = await supabase.from('cards')
-          .select('total_collected').eq('id', cardId).single();
+      if (existing) {
+        await supabase.from('contributions').update({ status: 'success', amount: amountNaira }).eq('id', existing.id);
+      } else {
+        await supabase.from('contributions').insert({
+          card_id: cardId, flw_reference: txRef, amount: amountNaira,
+          contributor_name: txn.customer?.name, contributor_email: txn.customer?.email,
+          status: 'success',
+        });
+      }
 
-        if (card) {
-          await supabase.from('cards')
-            .update({ total_collected: (card.total_collected || 0) + amount })
-            .eq('id', cardId)
-            .catch(() => {});
-        }
+      // Update card total_collected
+      const { data: card } = await supabase.from('cards').select('total_collected').eq('id', cardId).single();
+      if (card) {
+        await supabase.from('cards').update({ total_collected: (card.total_collected || 0) + amountNaira }).eq('id', cardId);
       }
     }
 
     res.sendStatus(200);
   } catch (err) {
-    console.error('Webhook error:', err);
+    console.error('FLW Webhook error:', err);
     res.sendStatus(500);
   }
 });
+
+// Keep old paystack path as 404 redirect hint
+router.post('/paystack', (req, res) => res.status(410).json({ error: 'Paystack webhooks no longer active. Use /webhook/flutterwave' }));
 
 module.exports = router;

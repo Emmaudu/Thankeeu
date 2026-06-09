@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Link as RouterLink } from 'react-router-dom';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
@@ -393,11 +392,19 @@ const CardView = () => {
     if (!replyText.trim()) return;
     setReplyLoading(true);
     try {
-      await messagesAPI.reply(slug, { content: replyText });
-      toast.success('Your thank-you message was sent');
+      // Smart auth: use saved token if logged in, pass URL access_token as fallback
+      const savedTok = localStorage.getItem('thankeeu_token') || localStorage.getItem('thankeeu_member_token');
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const url = `${base}/messages/${slug}/reply${token && !savedTok ? `?access_token=${token}` : ''}`;
+      const headers = { 'Content-Type': 'application/json' };
+      if (savedTok) headers['Authorization'] = `Bearer ${savedTok}`;
+      const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ content: replyText }) });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Failed to send');
+      toast.success(`Your thank-you was sent to ${data.recipients || 'all'} signers! 💌`);
       setReplyText('');
-    } catch {
-      toast.error('Failed to send reply');
+    } catch (err) {
+      toast.error(err.message || 'Failed to send reply');
     } finally {
       setReplyLoading(false);
     }
@@ -477,6 +484,21 @@ const CardView = () => {
               {card.isRecipient && card.gift_withdrawn && (
                 <span className="bg-white/15 rounded-full px-4 py-2 text-sm font-bold">✓ Gift withdrawn</span>
               )}
+              {/* Show info to logged-in users whose email doesn't match — explain how to get access */}
+              {!card.isRecipient && (user || member) && card.recipient_email && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 mt-2">
+                  <p className="font-bold mb-1">🔒 You're viewing this card but you are not the recipient</p>
+                  <p className="text-xs leading-relaxed mb-2">
+                    This card was created for <strong>{card.recipient_name}</strong>.
+                    To access the gift pot and full recipient features, you must be signed in with the email the card was sent to.
+                  </p>
+                  <p className="text-xs leading-relaxed">
+                    If you are the recipient but used a different email, ask the card creator to <strong>transfer the card to your username</strong> using the Transfer button.
+                    Once transferred, you'll see the gift pot and can withdraw to your bank account.
+                  </p>
+                </div>
+              )}
+
               {!card.isRecipient && (user || member) && (
                 <div className="bg-white/10 rounded-2xl p-3 text-xs text-emerald-100 max-w-xs">
                   💡 This gift pot is reserved for {card.recipient_name}. Only the recipient can withdraw it.
@@ -537,12 +559,16 @@ const CardView = () => {
           )}
         </section>
 
-        {token && (
+        {(token || card.isRecipient) && (
           <section className="glass-panel rounded-[2rem] p-6 sm:p-8 mt-10">
-            <h3 className="text-2xl text-warm-900 mb-2">Send love back</h3>
-            <p className="text-sm text-warm-500 mb-4">Your thank-you note goes to everyone who signed.</p>
-            <textarea className="input h-28 resize-none mb-3" placeholder="Write your thank-you message..." value={replyText} onChange={event => setReplyText(event.target.value)} />
-            <button onClick={handleReply} disabled={replyLoading || !replyText.trim()} className="btn-primary">{replyLoading ? 'Sending...' : 'Send thank you'}</button>
+            <h3 className="text-2xl text-warm-900 mb-2">💌 Send love back</h3>
+            <p className="text-sm text-warm-500 mb-4">Write a thank-you note — it goes to everyone who signed your card.</p>
+            <textarea className="input h-28 resize-none mb-3" placeholder="Write your heartfelt thank-you here..." value={replyText} onChange={event => setReplyText(event.target.value)} />
+            <button onClick={handleReply} disabled={replyLoading || !replyText.trim()} className="btn-primary">
+              {replyLoading
+                ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Sending...</span>
+                : '💌 Send thank-you to all signers'}
+            </button>
           </section>
         )}
       </main>

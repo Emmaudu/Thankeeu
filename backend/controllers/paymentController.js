@@ -1,390 +1,275 @@
-const axios = require('axios');
-const crypto = require('crypto');
+const axios   = require('axios');
 const supabase = require('../utils/supabase');
 
-const PAYSTACK_BASE = 'https://api.paystack.co';
-const PAYSTACK_TIMEOUT_MS = 10000;
-const PLAN_CREDITS = { single: 1, pack5: 5, business: 999 };
-const PLAN_AMOUNTS = { single: 500000, pack5: 2000000, business: 20000000 };
-const paystackHeaders = () => ({
-  Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-  'Content-Type': 'application/json'
+const FLW_BASE    = 'https://api.flutterwave.com/v3';
+const FLW_TIMEOUT = 10000;
+
+const crypto = require('crypto');
+
+const flwHeaders = () => ({
+  Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
+  'Content-Type': 'application/json',
 });
 
-const grantCardCredits = async ({ userId, planType, reference }) => {
-  const credits = PLAN_CREDITS[planType] || 1;
-  const { data: existing, error: lookupError } = await supabase
-    .from('card_credits')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (lookupError) throw lookupError;
-  if (existing?.paystack_reference === reference) {
-    return { credits, alreadyProcessed: true };
+/**
+ * generateIntegrityHash
+ * Creates an HMAC-SHA256 signature of the checkout payload using FLW_ENCRYPTION_KEY.
+ * Passed as `meta.integrity_hash` to the frontend FlutterwaveCheckout() call.
+ * Flutterwave verifies this before processing — prevents users tampering with
+ * amount/tx_ref in the browser.
+ *
+ * @param {object} payload - The exact same payload sent to FlutterwaveCheckout on frontend
+ * @returns {string} hex-encoded HMAC signature
+ */
+const generateIntegrityHash = (payload) => {
+  const encKey = process.env.FLW_ENCRYPTION_KEY;
+  if (!encKey) {
+    console.warn('FLW_ENCRYPTION_KEY not set — integrity hash skipped');
+    return null;
   }
+  return crypto
+    .createHmac('sha256', encKey)
+    .update(JSON.stringify(payload))
+    .digest('hex');
+};
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+const fetchFlwTransaction = async (txRef) => {
+  // Verify by tx_ref
+  const r = await axios.get(
+    `${FLW_BASE}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(txRef)}`,
+    { headers: flwHeaders(), timeout: FLW_TIMEOUT }
+  );
+  if (r.data.status !== 'success') throw new Error(r.data.message || 'Verification failed');
+  return r.data.data;
+};
+
+// ── upsert contribution record ─────────────────────────────────────────────
+const upsertContribution = async ({ cardId, txRef, amount, contributorName, contributorEmail, status = 'pending' }) => {
+  const { data: existing } = await supabase
+    .from('contributions').select('id, flw_reference').eq('card_id', cardId).eq('flw_reference', txRef).maybeSingle();
 
   if (existing) {
-    const { error } = await supabase.from('card_credits').update({
-      credits_remaining: existing.credits_remaining + credits,
-      paystack_reference: reference,
-      plan_type: planType
-    }).eq('user_id', userId);
-    if (error) throw error;
-  } else {
-    const { error } = await supabase.from('card_credits').insert({
-      user_id: userId,
-      credits_remaining: credits,
-      paystack_reference: reference,
-      plan_type: planType
-    });
-    if (error) throw error;
+    const { data } = await supabase.from('contributions')
+      .update({ status, amount, updated_at: new Date() }).eq('id', existing.id).select().single();
+    return data;
   }
-
-  return { credits, alreadyProcessed: false };
+  const { data } = await supabase.from('contributions').insert({
+    card_id: cardId, flw_reference: txRef, amount, contributor_name: contributorName,
+    contributor_email: contributorEmail, status,
+  }).select().single();
+  return data;
 };
 
-const verifyContribution = async ({ contributionId, reference, transaction }) => {
-  const { data: contribution, error: lookupError } = await supabase
-    .from('contributions')
-    .select('*')
-    .eq('id', contributionId)
-    .single();
-
-  if (lookupError || !contribution) throw lookupError || new Error('Contribution not found');
-  if (transaction) {
-    if (transaction.status !== 'success') throw new Error('Payment not successful');
-    if (transaction.currency !== 'NGN') throw new Error('Invalid contribution currency');
-    if (transaction.amount !== contribution.amount * 100) throw new Error('Contribution amount does not match');
-    if (transaction.metadata?.contribution_id !== contribution.id) throw new Error('Invalid contribution reference');
-  }
-  if (contribution.status === 'success') {
-    return { contribution, alreadyProcessed: true };
-  }
-
-  const { data: updated, error } = await supabase
-    .from('contributions')
-    .update({ status: 'success', paystack_reference: reference })
-    .eq('id', contributionId)
-    .select()
-    .single();
-
-  if (error) throw error;
-  if (updated.message_id) {
-    // Try updating with payment columns, fall back without if they don't exist
-    let messageError;
-    ({ error: messageError } = await supabase
-      .from('messages')
-      .update({ contributed_amount: updated.amount, payment_reference: reference, payment_verified: true })
-      .eq('id', updated.message_id));
-    if (messageError && messageError.message &&
-      (messageError.message.includes('payment_verified') || messageError.message.includes('payment_reference'))) {
-      ({ error: messageError } = await supabase
-        .from('messages')
-        .update({ contributed_amount: updated.amount })
-        .eq('id', updated.message_id));
-    }
-    if (messageError) throw messageError;
-  }
-  return { contribution: updated, alreadyProcessed: false };
-};
-
-const activatePurchasedCard = async ({ cardSlug, userId, reference }) => {
-  // Select card — try with payment columns, fall back without
-  let card, cardError;
-  ({ data: card, error: cardError } = await supabase
-    .from('cards')
-    .select('*')
-    .eq('slug', cardSlug)
-    .eq('creator_id', userId)
-    .single());
-
-  if (cardError || !card) throw cardError || new Error('Paid card could not be found');
-
-  // If payment_verified exists and is true, card already paid
-  if (card.payment_verified) {
-    if (card.payment_reference && card.payment_reference !== reference) {
-      throw new Error('Card was already paid with a different transaction');
-    }
-    return { card, alreadyProcessed: true };
-  }
-
-  // Activate the card — try full update, fall back to minimal if columns missing
-  const fullUpdate = {
-    status: 'active',
-    payment_reference: reference,
-    payment_verified: true,
-    updated_at: new Date()
-  };
-
-  let activated, activateError;
-  ({ data: activated, error: activateError } = await supabase
-    .from('cards')
-    .update(fullUpdate)
-    .eq('slug', cardSlug)
-    .eq('creator_id', userId)
-    .select('*')
-    .single());
-
-  // If payment columns don't exist, retry with just status update
-  if (activateError && activateError.message &&
-    (activateError.message.includes('payment_verified') || activateError.message.includes('payment_reference'))) {
-    ({ data: activated, error: activateError } = await supabase
-      .from('cards')
-      .update({ status: 'active', updated_at: new Date() })
-      .eq('slug', cardSlug)
-      .eq('creator_id', userId)
-      .select('*')
-      .single());
-  }
-
-  if (activateError) throw activateError;
-  return { card: activated, alreadyProcessed: false };
-};
-
-const fetchPaystackTransaction = async reference => {
-  const response = await axios.get(
-    `${PAYSTACK_BASE}/transaction/verify/${encodeURIComponent(reference)}`,
-    { headers: paystackHeaders(), timeout: PAYSTACK_TIMEOUT_MS }
-  );
-  return response.data.data;
-};
-
-const validateCardPurchase = ({ txn, userId }) => {
-  const { type, user_id, plan_type, card_slug } = txn.metadata || {};
-  if (txn.status !== 'success') throw new Error('Payment not successful');
-  if (type !== 'card_purchase' || !user_id) throw new Error('Invalid card purchase');
-  if (userId && user_id !== userId) throw new Error('Payment does not belong to this account');
-  if (txn.currency !== 'NGN') throw new Error('Invalid payment currency');
-  if (!PLAN_AMOUNTS[plan_type] || txn.amount !== PLAN_AMOUNTS[plan_type]) {
-    throw new Error('Payment amount does not match the selected plan');
-  }
-  return { userId: user_id, planType: plan_type, cardSlug: card_slug };
-};
-
-// Initialize card purchase in Nigerian naira (Paystack receives kobo).
-const initializeCardPurchase = async (req, res) => {
+// ── Initialize card purchase / gift contribution ───────────────────────────
+// POST /api/payments/initialize
+const initializePayment = async (req, res) => {
   try {
-    const { plan_type, card_slug } = req.body;
-    const amount = PLAN_AMOUNTS[plan_type];
-    if (!amount) return res.status(400).json({ error: 'Invalid plan type' });
+    const {
+      card_id, card_slug, amount, email, name,
+      type = 'card_purchase', // 'card_purchase' | 'gift_contribution'
+    } = req.body;
 
-    if (card_slug) {
-      // Try select with payment_verified, fall back to without if column doesn't exist
-      let card, cardErr;
-      ({ data: card, error: cardErr } = await supabase
-        .from('cards')
-        .select('slug, creator_id, status, payment_verified')
-        .eq('slug', card_slug)
-        .single());
+    if (!amount || amount < 100) return res.status(400).json({ error: 'Minimum amount is ₦100' });
+    if (!email)                  return res.status(400).json({ error: 'Email is required' });
 
-      // If payment_verified column doesn't exist, retry without it
-      if (cardErr && cardErr.message && cardErr.message.includes('payment_verified')) {
-        ({ data: card, error: cardErr } = await supabase
-          .from('cards')
-          .select('slug, creator_id, status')
-          .eq('slug', card_slug)
-          .single());
-      }
+    const txRef = `TK-${type === 'gift_contribution' ? 'GIFT' : 'CARD'}-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+    const amountNaira = Number(amount);
 
-      if (cardErr || !card || card.creator_id !== req.user.id) {
-        return res.status(403).json({ error: 'Card is not available for this payment' });
-      }
-      if (card.payment_verified) {
-        return res.json({ already_active: true, card_slug: card.slug });
-      }
-      if (card.status !== 'draft') {
-        return res.status(400).json({ error: 'Card cannot be purchased in its current state' });
-      }
-    }
-
-    const frontendUrl = (req.get('origin') || process.env.FRONTEND_URL || process.env.APP_URL || '').replace(/\/$/, '');
-    if (!frontendUrl) return res.status(500).json({ error: 'Payment callback URL is not configured' });
-
-    const response = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, {
-      email: req.user.email,
-      amount,
-      metadata: {
-        user_id: req.user.id,
-        plan_type,
-        type: 'card_purchase',
-        ...(card_slug && { card_slug }),
-        custom_fields: [{ display_name: 'Plan', variable_name: 'plan', value: plan_type }]
+    const payload = {
+      tx_ref:          txRef,
+      amount:          amountNaira,
+      currency:        'NGN',
+      redirect_url:    `${process.env.APP_URL}/payment/callback`,
+      customer:        { email, name: name || email },
+      customizations:  { title: 'Thankeeu', logo: `${process.env.APP_URL}/logo.png` },
+      meta: {
+        type,
+        card_id:   card_id   || null,
+        card_slug: card_slug || null,
+        user_id:   req.user?.id || req.member?.id || null,
       },
-      callback_url: `${frontendUrl}/dashboard?payment=success`
-    }, { headers: paystackHeaders(), timeout: PAYSTACK_TIMEOUT_MS });
+    };
 
-    res.json(response.data.data);
-  } catch (err) {
-    console.error(err.response?.data || err);
-    res.status(500).json({ error: 'Failed to initialize payment' });
-  }
-};
+    const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
+    if (r.data.status !== 'success') throw new Error(r.data.message);
 
-// Verify an authenticated card purchase immediately after Paystack succeeds.
-const verifyPurchase = async (req, res) => {
-  try {
-    const txn = await fetchPaystackTransaction(req.params.reference);
-    const purchase = validateCardPurchase({ txn, userId: req.user.id });
-
-    if (purchase.cardSlug) {
-      const result = await activatePurchasedCard({
-        cardSlug: purchase.cardSlug,
-        userId: purchase.userId,
-        reference: txn.reference
-      });
-      return res.json({
-        success: true,
-        type: 'card_purchase',
-        card_slug: purchase.cardSlug,
-        card_activated: true,
-        already_processed: result.alreadyProcessed
-      });
+    // Pre-create pending contribution record for gift payments
+    if (type === 'gift_contribution' && card_id) {
+      await upsertContribution({ cardId: card_id, txRef, amount: amountNaira, contributorName: name, contributorEmail: email });
     }
 
-    const result = await grantCardCredits({
-      userId: purchase.userId,
-      planType: purchase.planType,
-      reference: txn.reference
-    });
     res.json({
-      success: true,
-      type: 'card_purchase',
-      credits_added: result.alreadyProcessed ? 0 : result.credits,
-      already_processed: result.alreadyProcessed
+      payment_link:    r.data.data.link,
+      tx_ref:          txRef,
+      reference:       txRef, // backwards compat
     });
   } catch (err) {
-    console.error(err.response?.data || err);
-    const message = err.response ? 'Failed to verify payment' : err.message;
-    res.status(400).json({ error: message || 'Failed to verify payment' });
+    console.error('initializePayment error:', err.response?.data || err.message);
+    res.status(500).json({ error: err.response?.data?.message || 'Payment initialization failed' });
   }
 };
 
-// Initialize gift contribution
-const initializeContribution = async (req, res) => {
-  try {
-    const { card_slug, contributor_name, contributor_email, amount, message_id } = req.body;
-
-    if (!contributor_email) return res.status(400).json({ error: 'Email required for payment' });
-    if (amount < 2500) return res.status(400).json({ error: 'Minimum contribution is ₦2,500' });
-
-    const { data: card, error: cardError } = await supabase
-      .from('cards')
-      .select('id, recipient_name, occasion')
-      .eq('slug', card_slug)
-      .single();
-    if (cardError || !card) return res.status(404).json({ error: 'Card not found' });
-
-    // Create pending contribution record
-    const { data: contribution, error: contributionError } = await supabase.from('contributions').insert({
-      card_id: card.id,
-      message_id: message_id || null,
-      contributor_name,
-      contributor_email,
-      amount,
-      status: 'pending'
-    }).select().single();
-    if (contributionError) throw contributionError;
-
-    const response = await axios.post(`${PAYSTACK_BASE}/transaction/initialize`, {
-      email: contributor_email,
-      amount: amount * 100, // convert to kobo
-      metadata: {
-        contribution_id: contribution.id,
-        card_id: card.id,
-        card_slug,
-        contributor_name,
-        type: 'gift_contribution',
-        custom_fields: [
-          { display_name: 'Recipient', variable_name: 'recipient', value: card.recipient_name },
-          { display_name: 'Occasion', variable_name: 'occasion', value: card.occasion }
-        ]
-      },
-      callback_url: `${req.get('origin') || process.env.FRONTEND_URL || 'https://thankeeu.com'}/sign/${card_slug}?contributed=true`
-    }, { headers: paystackHeaders(), timeout: PAYSTACK_TIMEOUT_MS });
-
-    await supabase.from('contributions').update({
-      paystack_reference: response.data.data.reference,
-      paystack_access_code: response.data.data.access_code
-    }).eq('id', contribution.id);
-
-    res.json(response.data.data);
-  } catch (err) {
-    console.error(err.response?.data || err);
-    res.status(500).json({ error: 'Failed to initialize contribution' });
-  }
-};
-
-// Verify payment (called by frontend after redirect)
+// POST /api/payments/verify/:txRef  — called after redirect
 const verifyPayment = async (req, res) => {
   try {
-    const { reference } = req.params;
+    const txRef = req.params.txRef || req.params.reference;
+    const txn   = await fetchFlwTransaction(txRef);
 
-    const txn = await fetchPaystackTransaction(reference);
-    if (txn.status !== 'success') return res.status(400).json({ error: 'Payment not successful' });
+    const status = txn.status; // 'successful' | 'failed' | 'cancelled'
+    const meta   = txn.meta || {};
+    const type   = meta.type;
 
-    const { type, contribution_id, user_id, plan_type, card_slug } = txn.metadata || {};
+    if (status !== 'successful') {
+      return res.status(400).json({ error: `Payment not completed (status: ${status})` });
+    }
 
-    if (type === 'gift_contribution' && contribution_id) {
-      const result = await verifyContribution({ contributionId: contribution_id, reference, transaction: txn });
-      return res.json({
-        success: true,
-        type: 'contribution',
-        amount: result.contribution.amount,
-        already_processed: result.alreadyProcessed
+    if (type === 'gift_contribution' && meta.card_id) {
+      const amountNaira = Math.floor(txn.amount);
+      await upsertContribution({
+        cardId: meta.card_id, txRef, amount: amountNaira,
+        contributorName: txn.customer?.name, contributorEmail: txn.customer?.email,
+        status: 'success',
       });
+      // Update card total_collected
+      const { data: card } = await supabase.from('cards').select('total_collected').eq('id', meta.card_id).single();
+      if (card) {
+        await supabase.from('cards').update({ total_collected: (card.total_collected || 0) + amountNaira }).eq('id', meta.card_id);
+      }
     }
 
-    if (type === 'card_purchase') {
-      return res.status(401).json({ error: 'Sign in to verify this card purchase' });
-    }
-
-    res.json({ success: true });
+    res.json({ status: 'success', type, meta, amount: txn.amount });
   } catch (err) {
-    console.error(err.response?.data || err);
-    res.status(500).json({ error: 'Failed to verify payment' });
+    console.error('verifyPayment error:', err.response?.data || err.message);
+    res.status(500).json({ error: err.response?.data?.message || 'Verification failed' });
   }
 };
 
-// Paystack webhook
-const webhook = async (req, res) => {
+// POST /api/payments/contribution — initialize a gift contribution
+const initContribution = async (req, res) => {
   try {
-    const rawBody = Buffer.isBuffer(req.body)
-      ? req.body
-      : Buffer.from(JSON.stringify(req.body));
-    const hash = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
-      .update(rawBody).digest('hex');
+    const { card_slug, amount, contributor_name, contributor_email } = req.body;
+    if (!card_slug || !amount || !contributor_email)
+      return res.status(400).json({ error: 'card_slug, amount and email are required' });
+    if (amount < 2500)
+      return res.status(400).json({ error: 'Minimum gift amount is ₦2,500' });
 
-    if (hash !== req.headers['x-paystack-signature'])
-      return res.status(400).send('Invalid signature');
+    const { data: card } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, is_gift_enabled, status').eq('slug', card_slug).single();
+    if (!card || !card.is_gift_enabled) return res.status(400).json({ error: 'Gift contributions not enabled' });
+    if (card.status === 'sent') return res.status(400).json({ error: 'Card already sent — no more contributions' });
 
-    const event = Buffer.isBuffer(req.body)
-      ? JSON.parse(req.body.toString('utf8'))
-      : req.body;
-    if (event.event === 'charge.success') {
-      const { reference, metadata = {} } = event.data;
-      const { type, contribution_id, card_slug, user_id } = metadata;
+    const txRef = `TK-GIFT-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
+    const amountNaira = Number(amount);
 
-      if (type === 'gift_contribution' && contribution_id) {
-        await verifyContribution({ contributionId: contribution_id, reference, transaction: event.data });
-      }
-      if (type === 'card_purchase' && card_slug && user_id) {
-        const purchase = validateCardPurchase({ txn: event.data });
-        await activatePurchasedCard({
-          cardSlug: purchase.cardSlug,
-          userId: purchase.userId,
-          reference
-        });
-      }
-    }
+    const payload = {
+      tx_ref:         txRef,
+      amount:         amountNaira,
+      currency:       'NGN',
+      redirect_url:   `${process.env.APP_URL}/sign/${card_slug}?contributed=1`,
+      customer:       { email: contributor_email, name: contributor_name || contributor_email },
+      customizations: {
+        title: `Gift for ${card.recipient_name}`,
+        description: `Contribute to ${card.title || card.recipient_name + "'s card"}`,
+        logo: `${process.env.APP_URL}/logo.png`,
+      },
+      meta: { type: 'gift_contribution', card_id: card.id, card_slug },
+    };
 
-    res.sendStatus(200);
+    const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
+    if (r.data.status !== 'success') throw new Error(r.data.message);
+
+    // Pre-create pending contribution
+    await upsertContribution({ cardId: card.id, txRef, amount: amountNaira, contributorName: contributor_name, contributorEmail: contributor_email });
+
+    // Generate integrity_hash to prevent frontend payload tampering
+    const checkoutPayload = {
+      public_key:     process.env.FLW_PUBLIC_KEY,
+      tx_ref:         txRef,
+      amount:         amountNaira,
+      currency:       'NGN',
+      payment_options:'card,ussd,bank_transfer',
+      customer:       { email: contributor_email, name: contributor_name || contributor_email },
+    };
+    const integrity_hash = generateIntegrityHash(checkoutPayload);
+
+    res.json({
+      payment_link:  r.data.data.link,
+      tx_ref:        txRef,
+      access_code:   txRef,
+      ...(integrity_hash && { integrity_hash }),
+    });
   } catch (err) {
-    console.error('Webhook error:', err);
-    res.sendStatus(500);
+    console.error('initContribution error:', err.response?.data || err.message);
+    res.status(500).json({ error: err.response?.data?.message || 'Failed to initialize contribution' });
   }
 };
 
-module.exports = {
-  initializeCardPurchase, initializeContribution, verifyPurchase, verifyPayment, webhook
+// GET /api/payments/verify-contribution/:txRef  (after FLW redirect)
+// POST /api/payments/verify-contribution         (manual call with body)
+const verifyContribution = async (req, res) => {
+  try {
+    // Support both GET (params) and POST (body)
+    const txRef = req.params.txRef || req.body?.tx_ref || req.body?.reference || req.query.tx_ref;
+    if (!txRef) return res.status(400).json({ error: 'tx_ref is required' });
+    const txn   = await fetchFlwTransaction(txRef);
+
+    if (txn.status !== 'successful') return res.status(400).json({ error: 'Payment not successful' });
+
+    const meta        = txn.meta || {};
+    const amountNaira = Math.floor(txn.amount);
+
+    await upsertContribution({
+      cardId: meta.card_id, txRef, amount: amountNaira,
+      contributorName: txn.customer?.name, contributorEmail: txn.customer?.email,
+      status: 'success',
+    });
+
+    const { data: card } = await supabase.from('cards').select('total_collected').eq('id', meta.card_id).single();
+    if (card) {
+      await supabase.from('cards').update({ total_collected: (card.total_collected || 0) + amountNaira }).eq('id', meta.card_id);
+    }
+    res.json({ verified: true, amount: amountNaira });
+  } catch (err) {
+    console.error('verifyContribution error:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Verification failed' });
+  }
 };
+
+// POST /api/payments/card-fee — initialize the ₦5,000 card creation fee
+const initCardFee = async (req, res) => {
+  try {
+    const { card_slug, email, name } = req.body;
+    if (!card_slug || !email) return res.status(400).json({ error: 'card_slug and email required' });
+
+    const txRef = `TK-FEE-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
+
+    const payload = {
+      tx_ref:         txRef,
+      amount:         5000,
+      currency:       'NGN',
+      redirect_url:   `${process.env.APP_URL}/dashboard/cards?fee_ref=${txRef}`,
+      customer:       { email, name: name || email },
+      customizations: { title: 'Thankeeu Card Fee', logo: `${process.env.APP_URL}/logo.png` },
+      meta:           { type: 'card_fee', card_slug },
+    };
+
+    const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
+    if (r.data.status !== 'success') throw new Error(r.data.message);
+
+    const integrityPayload = {
+      public_key: process.env.FLW_PUBLIC_KEY,
+      tx_ref: txRef, amount: 5000, currency: 'NGN',
+      customer: { email, name: name || email },
+    };
+    const integrity_hash = generateIntegrityHash(integrityPayload);
+
+    res.json({ payment_link: r.data.data.link, tx_ref: txRef, access_code: txRef, ...(integrity_hash && { integrity_hash }) });
+  } catch (err) {
+    console.error('initCardFee:', err.response?.data || err.message);
+    res.status(500).json({ error: 'Failed to initialize card fee' });
+  }
+};
+
+module.exports = { initializePayment, verifyPayment, initContribution, verifyContribution, initCardFee };

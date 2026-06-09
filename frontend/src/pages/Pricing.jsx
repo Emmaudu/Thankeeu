@@ -42,7 +42,7 @@ const INDIVIDUAL_PLANS = [
 const COMPANY_PLANS = [
   {
     id:'monthly', name:'Monthly', price:'₦200,000', period:'/month', saving:null,
-    features:['Unlimited employees','Automated birthday emails to departments','Birthday card delivered to celebrants','Gift pot collection via Paystack','HR dashboard and analytics','Import and re-import team data','Email support within 24 hours'],
+    features:['Unlimited employees','Automated birthday emails to departments','Birthday card delivered to celebrants','Gift pot collection via Flutterwave','HR dashboard and analytics','Import and re-import team data','Email support within 24 hours'],
   },
   {
     id:'yearly', name:'Yearly', price:'₦2,400,000', period:'/year', popular:true, saving:null,
@@ -51,9 +51,9 @@ const COMPANY_PLANS = [
 ];
 
 const FAQ = [
-  { q:'How does the gift pot work?', a:'Contributors pay via Paystack when they sign the card. Money is securely held and the recipient can redeem it for vouchers, flowers, or a bank transfer.' },
+  { q:'How does the gift pot work?', a:'Contributors pay via Flutterwave when they sign the card. Money is securely held and the recipient can redeem it for vouchers, flowers, or a bank transfer.' },
   { q:'Does the recipient need an account?', a:'No — recipients open and enjoy their card without any account. Only the card creator needs one.' },
-  { q:'What payment methods are supported?', a:'All Nigerian debit/credit cards, bank transfers, USSD, and mobile money via Paystack.' },
+  { q:'What payment methods are supported?', a:'All Nigerian debit/credit cards, bank transfers, USSD, and mobile money via Flutterwave.' },
   { q:'Is the team data import free?', a:'Yes, always. You only pay the subscription to activate automated birthday email sending.' },
   { q:'What happens if I cancel my company subscription?', a:'Automation stops after your current period ends, but all your team data is preserved.' },
   { q:'Can I get a refund?', a:'Individual card fees are non-refundable once activated. Company subscriptions remain active until the period ends.' },
@@ -78,7 +78,7 @@ const Pricing = () => {
     setLoadingPlan(planId);
     try {
       const res = await paymentsAPI.initPurchase(planId);
-      window.location.href = `https://checkout.paystack.com/${res.data.access_code}`;
+      window.location.href = res.data.payment_link || res.data.authorization_url;
     } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
   };
 
@@ -87,7 +87,7 @@ const Pricing = () => {
     setLoadingPlan(plan);
     try {
       const res = await subscriptionAPI.initialize(plan);
-      window.location.href = `https://checkout.paystack.com/${res.data.access_code}`;
+      window.location.href = res.data.payment_link || res.data.authorization_url;
     } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
   };
 
@@ -170,7 +170,7 @@ const Pricing = () => {
                 {[
                   { icon:'🌹', title:'Flower delivery', sub:'15% referral' },
                   { icon:'🎁', title:'Gift vouchers', sub:'3–5% cut' },
-                  { icon:'💳', title:'Cash gift pot', sub:'4% platform fee' },
+                  { icon:'💳', title:'Cash gift pot', sub:'3.5% platform fee' },
                 ].map(r => (
                   <div key={r.title} className="text-center">
                     <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 shadow-sm">{r.icon}</div>

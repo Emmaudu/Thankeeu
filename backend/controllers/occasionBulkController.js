@@ -33,46 +33,42 @@ const OCCASION_FIXED_DATES = {
  * Includes pre-filled dates for Valentine's, Women's Day, etc.
  */
 const downloadBulkTemplate = (req, res) => {
+  const XLSX = require('xlsx');
   const year = new Date().getFullYear();
   const valDate    = OCCASION_FIXED_DATES.valentine(year);
   const womensDate = OCCASION_FIXED_DATES.womens_day(year);
   const mothersDate = OCCASION_FIXED_DATES.mothers_day(year);
   const fathersDate = OCCASION_FIXED_DATES.fathers_day(year);
 
-  const headers = [
-    'first_name','last_name','email','department','role',
-    'gender','date_of_birth','job_title','phone',
-    'work_anniversary_date','promotion_date','leaving_date',
-    'notes',
-  ].join(',');
+  const wb = XLSX.utils.book_new();
 
-  const examples = [
-    `Adaeze,Okonkwo,adaeze@company.com,Marketing,member,female,1990-05-15,Content Writer,08012345678,2020-01-10,,,Welcome to the team`,
-    `Emeka,Chukwu,emeka@company.com,Engineering,leader,male,1985-11-22,Lead Developer,08098765432,2019-03-01,,,`,
-    `Kemi,Bello,kemi@company.com,HR,member,female,1993-07-08,HR Associate,07012345678,2021-06-01,,,`,
-  ].join('\n');
+  // Sheet 1: Main import sheet
+  const cols = ['First Name','Last Name','Email','Department','Role (member/leader)','Gender (male/female)','Date of Birth (YYYY-MM-DD)','Job Title','Phone','Work Anniversary Date (YYYY-MM-DD)','Promotion Date (leave blank)','Leaving Date (leave blank)','Notes'];
+  const rows = [
+    ['Adaeze','Okonkwo','adaeze@company.com','Marketing','member','female','1990-05-15','Content Writer','08012345678','2020-01-10','','','Welcome to the team'],
+    ['Emeka','Chukwu','emeka@company.com','Engineering','leader','male','1985-11-22','Lead Developer','08098765432','2019-03-01','','',''],
+    ['Kemi','Bello','kemi@company.com','HR','member','female','1993-07-08','HR Associate','07012345678','2021-06-01','','',''],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet([cols, ...rows]);
+  ws1['!cols'] = cols.map(() => ({ wch: 24 }));
+  XLSX.utils.book_append_sheet(wb, ws1, '📋 Team Import');
 
-  const notes = [
-    ``,
-    `# INSTRUCTIONS:`,
-    `# role: "member" for team member access, "leader" for team leader access`,
-    `# gender: "male" or "female" — used for Father's Day / Mother's Day tables`,
-    `# date_of_birth: YYYY-MM-DD format`,
-    `# work_anniversary_date: YYYY-MM-DD format (date they joined the company)`,
-    `# promotion_date and leaving_date: leave blank if not applicable`,
-    `# `,
-    `# PRE-FILLED FIXED DATES FOR ${year}:`,
-    `# Valentine's Day: ${valDate}`,
-    `# Women's Day:     ${womensDate}`,
-    `# Mother's Day:    ${mothersDate}`,
-    `# Father's Day:    ${fathersDate}`,
-  ].join('\n');
+  // Sheet 2: Fixed dates reference
+  const fixedCols = ['Occasion','Fixed Date for ' + year,'Notes'];
+  const fixedRows = [
+    ["Valentine's Day", valDate, 'Auto-applied to all employees'],
+    ["Women's Day",     womensDate, 'Auto-applied to female employees'],
+    ["Mother's Day",    mothersDate, 'Auto-applied to female employees'],
+    ["Father's Day",    fathersDate, 'Auto-applied to male employees'],
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet([fixedCols, ...fixedRows]);
+  ws2['!cols'] = [{ wch:22 },{ wch:18 },{ wch:36 }];
+  XLSX.utils.book_append_sheet(wb, ws2, '📅 Fixed Dates Reference');
 
-  const csvContent = `${headers}\n${examples}\n${notes}`;
-
-  res.setHeader('Content-Type', 'text/csv');
-  res.setHeader('Content-Disposition', `attachment; filename="thankeeu-team-import-template-${year}.csv"`);
-  res.send(csvContent);
+  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  res.setHeader('Content-Disposition', `attachment; filename="thankeeu-team-import-${year}.xlsx"`);
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.send(buf);
 };
 
 /**

@@ -27,7 +27,7 @@ export default function CoreTeamPage() {
 
   const load = async () => {
     try {
-      const r = await fetch(`${BASE}/company/core-team`, { headers: hdr() });
+      const r = await fetch(`${BASE}/core-team`, { headers: hdr() });
       const d = await r.json();
       setTeam(Array.isArray(d) ? d : []);
     } catch { toast.error('Failed to load core team'); }
@@ -41,7 +41,7 @@ export default function CoreTeamPage() {
     if (!form.email.trim()) return toast.error('Email is required');
     setInviting(true);
     try {
-      const r = await fetch(`${BASE}/company/core-team/invite`, {
+      const r = await fetch(`${BASE}/core-team/invite`, {
         method:'POST', headers: hdr(), body: JSON.stringify(form)
       });
       const d = await r.json();
@@ -65,7 +65,7 @@ export default function CoreTeamPage() {
         return Object.fromEntries(headers.map((h,i) => [h, vals[i]?.trim()||'']));
       }).filter(m => m.email);
 
-      const r = await fetch(`${BASE}/company/core-team/bulk-invite`, {
+      const r = await fetch(`${BASE}/core-team/bulk-invite`, {
         method:'POST', headers: hdr(), body: JSON.stringify({ members })
       });
       const d = await r.json();
@@ -80,7 +80,7 @@ export default function CoreTeamPage() {
   const remove = async (id, name) => {
     if (!confirm(`Remove ${name} from your core team?`)) return;
     try {
-      await fetch(`${BASE}/company/core-team/${id}`, { method:'DELETE', headers: hdr() });
+      await fetch(`${BASE}/core-team/${id}`, { method:'DELETE', headers: hdr() });
       toast.success('Removed');
       setTeam(p => p.filter(m => m.id !== id));
     } catch { toast.error('Failed'); }
@@ -88,7 +88,7 @@ export default function CoreTeamPage() {
 
   const updatePermission = async (id, permission_level) => {
     try {
-      await fetch(`${BASE}/company/core-team/${id}`, {
+      await fetch(`${BASE}/core-team/${id}`, {
         method:'PUT', headers: hdr(), body: JSON.stringify({ permission_level })
       });
       setTeam(p => p.map(m => m.id === id ? {...m, permission_level} : m));
@@ -98,7 +98,7 @@ export default function CoreTeamPage() {
 
   const toggleCelebrations = async (id, val) => {
     try {
-      await fetch(`${BASE}/company/core-team/${id}`, {
+      await fetch(`${BASE}/core-team/${id}`, {
         method:'PUT', headers: hdr(), body: JSON.stringify({ include_in_celebrations: val })
       });
       setTeam(p => p.map(m => m.id === id ? {...m, include_in_celebrations: val} : m));

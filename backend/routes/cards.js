@@ -9,7 +9,7 @@ const {
   getRecipientCard, claimGift, getMemberCards, approveCardScope
 } = require('../controllers/cardController');
 
-// Flexible auth — accepts both individual user token AND member token
+// Flexible auth — accepts individual user, team member, OR HR company token
 const flexUserAuth = async (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
@@ -18,7 +18,15 @@ const flexUserAuth = async (req, res, next) => {
     const supabase = require('../utils/supabase');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    if (decoded.type === 'company_member') {
+    if (decoded.type === 'company') {
+      const { data: company } = await supabase
+        .from('companies')
+        .select('id, name, email, contact_person')
+        .eq('id', decoded.companyId)
+        .single();
+      if (!company) return res.status(401).json({ error: 'Invalid token' });
+      req.company = company;
+    } else if (decoded.type === 'company_member') {
       const { data: member } = await supabase
         .from('company_members')
         .select('id, first_name, last_name, email, role, department, status, company_id')

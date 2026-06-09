@@ -1,7 +1,7 @@
 const express = require('express');
 const router  = express.Router();
-const { auth }          = require('../middleware/auth');
-const { memberAuth }    = require('../middleware/memberAuth');
+const { auth, anyAuth }     = require('../middleware/auth');
+const { memberAuth }        = require('../middleware/memberAuth');
 const {
   initializePayment,    // generic init
   verifyPayment,        // verify by tx_ref
@@ -15,9 +15,10 @@ const {
 router.post('/webhook', (req, res) => res.status(410).json({ message: 'Webhook moved to /api/webhook/flutterwave' }));
 
 // ── Card purchase / card creation fee ────────────────────────────────────────
-router.post('/initialize/purchase',      auth, initCardFee);
-router.post('/initialize/card-fee',      auth, initCardFee);
-router.get('/verify/purchase/:reference', auth, async (req, res) => {
+// anyAuth: accepts regular user, HR company, or team member token
+router.post('/initialize/purchase',      anyAuth, initCardFee);
+router.post('/initialize/card-fee',      anyAuth, initCardFee);
+router.get('/verify/purchase/:reference', anyAuth, async (req, res) => {
   // Map old verify/purchase to new verifyPayment
   req.body = req.body || {};
   return verifyPayment(req, res);

@@ -240,7 +240,24 @@ const verifyContribution = async (req, res) => {
 // POST /api/payments/card-fee — initialize the ₦5,000 card creation fee
 const initCardFee = async (req, res) => {
   try {
-    const { card_slug, email, name } = req.body;
+    const { card_slug, name } = req.body;
+
+    // Resolve email from body OR from authenticated identity
+    const email =
+      req.body.email ||
+      req.user?.email ||
+      req.member?.email ||
+      req.company?.email;
+
+    // Resolve display name similarly
+    const displayName =
+      name ||
+      req.user?.full_name ||
+      (req.member ? `${req.member.first_name} ${req.member.last_name}`.trim() : null) ||
+      req.company?.contact_person ||
+      req.company?.name ||
+      email;
+
     if (!card_slug || !email) return res.status(400).json({ error: 'card_slug and email required' });
 
     const txRef = `TK-FEE-${Date.now()}-${Math.random().toString(36).slice(2,8).toUpperCase()}`;
@@ -250,7 +267,7 @@ const initCardFee = async (req, res) => {
       amount:         5000,
       currency:       'NGN',
       redirect_url:   `${process.env.APP_URL}/dashboard/cards?fee_ref=${txRef}`,
-      customer:       { email, name: name || email },
+      customer:       { email, name: displayName },
       customizations: { title: 'Thankeeu Card Fee', logo: `${process.env.APP_URL}/logo.png` },
       meta:           { type: 'card_fee', card_slug },
     };
@@ -261,7 +278,7 @@ const initCardFee = async (req, res) => {
     const integrityPayload = {
       public_key: process.env.FLW_PUBLIC_KEY,
       tx_ref: txRef, amount: 5000, currency: 'NGN',
-      customer: { email, name: name || email },
+      customer: { email, name: displayName },
     };
     const integrity_hash = generateIntegrityHash(integrityPayload);
 

@@ -54,7 +54,7 @@ const createCard = async (req, res) => {
       return res.status(400).json({ error: 'Recipient name and occasion are required' });
     }
 
-    const effectiveCompanyId = req.member?.company_id || company_id;
+    const effectiveCompanyId = req.member?.company_id || req.company?.id || company_id;
     const effectiveMemberId = req.member?.id || created_by_member_id;
     const slug = generateSlug(recipient_name, occasion);
 
@@ -227,7 +227,8 @@ const getCard = async (req, res) => {
     if (error || !card) return res.status(404).json({ error: 'Card not found' });
 
     const isCreator = req.user?.id === card.creator_id
-      || req.member?.id === card.created_by_member_id;
+      || req.member?.id === card.created_by_member_id
+      || (req.company?.id && card.company_id === req.company.id);
     // isRecipient: valid access_token, email match, OR card was transferred to this user
     let isRecipient = (token && token === card.access_token)
       || (req.user?.email && card.recipient_email &&

@@ -151,7 +151,7 @@ const CreateCard = () => {
         navigate(`/card/${payRes.data.card_slug || slug}`, { replace: true });
         return;
       }
-      const { access_code: accessCode, reference, authorization_url: checkoutUrl } = payRes.data;
+      const { payment_link, tx_ref } = payRes.data;
 
       const finishPurchase = async (paymentReference) => {
         setPaymentStage('verifying');
@@ -178,32 +178,48 @@ const CreateCard = () => {
         navigate(`/card/${activatedSlug}`, { replace: true });
       };
 
-      if (window.FlutterwavePop && accessCode) {
-        const popup = new window.FlutterwavePop();
-        popup.resumeTransaction(accessCode, {
-          onSuccess: async transaction => {
+      // Use FlutterwaveCheckout inline popup if available (same pattern as SignCard)
+      if (window.FlutterwaveCheckout && payment_link && tx_ref) {
+        const creatorEmail =
+          user?.email || member?.email || company?.email || '';
+        const creatorDisplayName =
+          user?.full_name ||
+          (member ? `${member.first_name} ${member.last_name}`.trim() : null) ||
+          company?.contact_person || company?.name ||
+          creatorEmail;
+
+        window.FlutterwaveCheckout({
+          public_key:      import.meta.env.VITE_FLW_PUBLIC_KEY,
+          tx_ref,
+          amount:          5000,
+          currency:        'NGN',
+          payment_options: 'card,ussd,bank_transfer',
+          customer:        { email: creatorEmail, name: creatorDisplayName },
+          customizations:  { title: 'Thankeeu Card Creation', logo: '/logo.png' },
+          callback: async (transaction) => {
+            window.FlutterwaveCheckout?.close?.();
             try {
-              await finishPurchase(transaction.reference || reference);
+              await finishPurchase(transaction.tx_ref || tx_ref);
             } catch (verifyError) {
-              toast.error(verifyError.response?.data?.error || 'Payment was made, but verification failed. Please retry.');
+              toast.error(verifyError.response?.data?.error || 'Payment made but verification failed. Please retry.');
               setLoading(false);
               setPaymentStage('opening');
             }
           },
-          onCancel: () => {
+          onclose: () => {
             setLoading(false);
             setPaymentStage('opening');
           },
-          onError: error => {
-            toast.error(error?.message || 'Could not load Flutterwave. Please try again.');
-            setLoading(false);
-            setPaymentStage('opening');
-          }
         });
         return;
       }
 
-      window.location.assign(checkoutUrl || `https://checkoutUrl`);
+      // Fallback: redirect to Flutterwave hosted checkout page
+      if (payment_link) {
+        window.location.assign(payment_link);
+      } else {
+        throw new Error('No payment link returned. Please try again.');
+      }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not open payment. Please try again.');
       setLoading(false);

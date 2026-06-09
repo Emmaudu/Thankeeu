@@ -125,6 +125,20 @@ const verifyPayment = async (req, res) => {
       return res.status(400).json({ error: `Payment not completed (status: ${status})` });
     }
 
+    if (type === 'card_fee' && meta.card_slug) {
+      // Activate the card — update status from 'draft' to 'active'
+      const { data: card, error: cardErr } = await supabase
+        .from('cards')
+        .update({ status: 'active', activated_at: new Date() })
+        .eq('slug', meta.card_slug)
+        .select('slug, id')
+        .single();
+      if (cardErr || !card) {
+        return res.status(404).json({ error: 'Card not found for activation' });
+      }
+      return res.json({ status: 'success', type, card_slug: card.slug, meta });
+    }
+
     if (type === 'gift_contribution' && meta.card_id) {
       const amountNaira = Math.floor(txn.amount);
       await upsertContribution({

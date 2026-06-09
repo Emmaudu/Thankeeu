@@ -27,3 +27,7 @@ router.delete('/companies/:companyId', deleteCompany);
 router.get('/companies/:companyId/members', getCompanyTeamMembers);
 
 module.exports = router;
+
+// Visitors
+const { getVisitors: getV } = require('../controllers/adminController');
+router.get('/visitors', adminAuth, getV);

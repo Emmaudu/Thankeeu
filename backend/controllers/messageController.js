@@ -21,7 +21,12 @@ const addMessage = async (req, res) => {
     let media_type = null;
 
     if (primaryFile) {
-      media_url = primaryFile.path;
+      // For Cloudinary: file.path is already a full URL
+      // For local storage: file.path is an absolute filesystem path; convert to web URL
+      const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || '';
+      media_url = primaryFile.path?.startsWith('http')
+        ? primaryFile.path
+        : `${appUrl}/uploads/${require('path').basename(primaryFile.path)}`;
       const mime = primaryFile.mimetype;
       if (mime.startsWith('video/')) media_type = 'video';
       else if (mime.startsWith('audio/')) media_type = 'voice';
@@ -30,10 +35,13 @@ const addMessage = async (req, res) => {
     }
 
     // Additional gallery files
+    const appUrl2 = process.env.APP_URL || process.env.FRONTEND_URL || '';
     const galleryFiles = (req.files || []).filter(f => f.fieldname !== 'media' && f.fieldname.startsWith('media_gallery'));
     const media_gallery = galleryFiles.length > 0
       ? JSON.stringify(galleryFiles.map(f => ({
-          media_url: f.path,
+          media_url: f.path?.startsWith('http')
+            ? f.path
+            : `${appUrl2}/uploads/${require('path').basename(f.path)}`,
           media_type: f.mimetype.startsWith('video/') ? 'video'
             : f.mimetype.startsWith('audio/') ? 'voice'
             : f.mimetype === 'image/gif' ? 'gif'
@@ -69,6 +77,22 @@ const addMessage = async (req, res) => {
     }
 
     if (error) throw error;
+
+    // Track guest visitors for re-engagement emails
+    const isGuest = String(req.body.is_guest) === 'true';
+    if (isGuest && author_email) {
+      try {
+        const { data: cardInfo } = await supabase.from('cards')
+          .select('id, occasion').eq('slug', req.params.card_slug).maybeSingle();
+        if (cardInfo) {
+          await supabase.from('card_visitors').upsert({
+            card_id: cardInfo.id, card_slug: req.params.card_slug,
+            occasion: cardInfo.occasion, author_name, author_email, converted: false,
+          }, { onConflict: 'card_id,author_email', ignoreDuplicates: true });
+        }
+      } catch (ve) { console.warn('Visitor track:', ve.message); }
+    }
+
     res.status(201).json(message);
   } catch (err) {
     console.error(err);

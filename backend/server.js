@@ -36,24 +36,57 @@ app.use(cors({
 }));
 
 // Rate limiting
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
-app.use('/api/', limiter);
+// ── Tiered rate limiting ──────────────────────────────────────────────────
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 200,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+});
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 20,
+  skipSuccessfulRequests: true,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many sign-in attempts. Wait 15 minutes and try again.' },
+});
+const demoLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 5,
+  message: { error: 'Too many demo requests from this IP. Please try again later.' },
+});
+app.use('/api/', generalLimiter);
+app.use('/api/auth/login',           authLimiter);
+app.use('/api/auth/signup',          authLimiter);
+app.use('/api/company/login',        authLimiter);
+app.use('/api/members/login',        authLimiter);
+app.use('/api/members/signup',       authLimiter);
+app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/demo/request',         demoLimiter);
 
-// Body parsing (skip for webhook route which needs raw body)
-app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
-app.use('/webhook/paystack', express.raw({ type: 'application/json' }));
+// Query-string sanitisation
+app.use((req, _res, next) => {
+  if (req.query) {
+    for (const k of Object.keys(req.query)) {
+      if (typeof req.query[k] === 'string') req.query[k] = req.query[k].slice(0, 500);
+    }
+  }
+  next();
+});
+
+// Webhook must be mounted BEFORE express.json so the raw body is intact for HMAC verification
+app.use('/webhook', require('./routes/webhook'));
+
+// Body parsing (all other routes)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/webhook', require('./routes/webhook'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/cards', require('./routes/cards'));
 app.use('/api/messages', require('./routes/messages'));
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/banks', require('./routes/banks'));
+app.use('/api/visitors', require('./routes/visitors'));
 app.use('/api/admin', require('./routes/admin'));
 // Teams / Company routes
 app.use('/api/company', require('./routes/company'));
@@ -71,6 +104,14 @@ app.use('/api/reminders', require('./routes/reminders'));
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', app: 'Thankeeu API', time: new Date() }));
 
+// Serve local uploads when Cloudinary is not configured
+const path = require('path');
+const uploadsDir = path.join(__dirname, '../uploads');
+const fs = require('fs');
+if (fs.existsSync(uploadsDir)) {
+  app.use('/uploads', require('express').static(uploadsDir));
+}
+
 // 404
 app.use('*', (req, res) => res.status(404).json({ error: 'Route not found' }));
 
@@ -81,6 +122,9 @@ app.use((err, req, res, next) => {
 });
 
 // CRON: Auto-send cards on scheduled date + send reminders 2 days before deadline
+// Visitor nurture emails — weekly Mondays
+cron.schedule('0 9 * * 1', () => sendNudgeEmails().catch(console.error));
+
 cron.schedule('0 8 * * *', async () => {
   console.log('Running daily cron jobs...');
   const now = new Date();

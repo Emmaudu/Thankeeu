@@ -42,6 +42,8 @@ const Admin = () => {
   const [replying, setReplying] = useState(false);
   const [demos, setDemos] = useState([]);
   const [demosLoading, setDemosLoading] = useState(false);
+  const [visitors, setVisitors] = useState(null);
+  const [visitorsLoading, setVisitorsLoading] = useState(false);
   const [blogPosts, setBlogPosts] = useState([]);
   const [blogLoading, setBlogLoading] = useState(false);
   const [blogEditing, setBlogEditing] = useState(null);
@@ -54,6 +56,7 @@ const Admin = () => {
     if (tab === 'support' && tickets.length === 0) fetchTickets();
     if (tab === 'companies' && companies.length === 0) fetchCompanies();
     if (tab === 'demos'     && demos.length === 0)     fetchDemos();
+    if (tab === 'visitors'  && !visitors)              fetchVisitors();
     if (tab === 'blog'      && blogPosts.length === 0) fetchBlog();
   }, [tab]);
 
@@ -96,6 +99,18 @@ const Admin = () => {
       setDemos(res.data || []);
     } catch { toast.error('Failed to load demo requests'); }
     finally { setDemosLoading(false); }
+  };
+
+  const fetchVisitors = async () => {
+    setVisitorsLoading(true);
+    try {
+      const res = await import('axios').then(m => m.default.get(
+        (import.meta.env.VITE_API_URL || '/api') + '/admin/visitors',
+        { headers: { Authorization: `Bearer ${localStorage.getItem('thankeeu_token')}` } }
+      ));
+      setVisitors(res.data || []);
+    } catch { toast.error('Failed to load visitors'); setVisitors([]); }
+    finally { setVisitorsLoading(false); }
   };
 
   const fetchCompanies = async () => {
@@ -179,6 +194,7 @@ const Admin = () => {
     { id: 'companies', label: `Companies (${companies.length || '...'})` },
     { id: 'support',   label: `Support${openCount > 0 ? ` · ${openCount} open` : ''}` },
     { id: 'demos',     label: `Demos${demos.filter(d=>d.status==='new').length > 0 ? ` · ${demos.filter(d=>d.status==='new').length} new` : ''}` },
+    { id: 'visitors',  label: 'Guest Visitors' },
     { id: 'blog',      label: `Blog (${blogPosts.filter(p=>p.status==='published').length} live)` },
   ];
 
@@ -467,6 +483,69 @@ const Admin = () => {
         )}
 
         {/* ── Blog Management ── */}
+        {tab === 'visitors' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-warm-900 text-lg">Guest Visitors</h3>
+                <p className="text-sm text-warm-400">People who signed cards without creating an account</p>
+              </div>
+              <button onClick={fetchVisitors} className="btn-secondary text-sm py-2 px-4">🔄 Refresh</button>
+            </div>
+            {visitorsLoading ? (
+              <div className="h-32 rounded-2xl animate-pulse bg-purple-50" />
+            ) : !visitors || visitors.length === 0 ? (
+              <div className="bg-white rounded-2xl border-2 border-purple-100 p-10 text-center">
+                <div className="text-4xl mb-3">👤</div>
+                <p className="font-semibold text-warm-900">No guest visitors yet</p>
+                <p className="text-sm text-warm-400 mt-1">Guests who sign cards without creating accounts appear here.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border-2 border-purple-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-purple-50 text-xs font-semibold text-warm-500 uppercase">
+                      <tr>
+                        <th className="text-left px-4 py-3">Name / Email</th>
+                        <th className="text-left px-4 py-3">Card signed</th>
+                        <th className="text-left px-4 py-3">Occasion</th>
+                        <th className="text-left px-4 py-3">Status</th>
+                        <th className="text-left px-4 py-3">Emails sent</th>
+                        <th className="text-left px-4 py-3">Joined</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-purple-50">
+                      {visitors.map(v => (
+                        <tr key={v.id} className="hover:bg-purple-50/40">
+                          <td className="px-4 py-3">
+                            <p className="text-sm font-semibold text-warm-900">{v.author_name}</p>
+                            <p className="text-xs text-warm-400">{v.author_email}</p>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-warm-600">/{v.card_slug}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full capitalize font-medium">
+                              {v.occasion?.replace('_',' ')}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${v.converted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {v.converted ? '✓ Converted' : '○ Guest'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-warm-600">{v.emails_sent || 0}/4</td>
+                          <td className="px-4 py-3 text-xs text-warm-400">
+                            {v.created_at ? new Date(v.created_at).toLocaleDateString() : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === 'blog' && (
           <div className="space-y-4">
             {/* Header */}

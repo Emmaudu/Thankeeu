@@ -41,17 +41,21 @@ const TESTIMONIALS = [
 const TEAM_SIZE_OPTIONS = ['1–10','11–50','51–200','201–500','500+'];
 
 const DemoModal = ({ onClose }) => {
-  const [form, setForm] = useState({ name:'', email:'', company:'', team_size:'', message:'' });
+  const [form, setForm] = useState({ contact_name:'', email:'', company_name:'', phone:'', team_size:'', message:'' });
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.company) return toast.error('Please fill required fields');
+    if (!form.contact_name.trim() || !form.email.trim() || !form.company_name.trim())
+      return toast.error('Please fill in your name, email and company name');
     setLoading(true);
-    try { await demoAPI.submit(form); setDone(true); }
-    catch { toast.error('Failed to submit. Email us at hello@thankeeu.com'); }
-    finally { setLoading(false); }
+    try {
+      await demoAPI.submit(form);
+      setDone(true);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to submit. Email us at hello@thankeeu.com');
+    } finally { setLoading(false); }
   };
 
   return (
@@ -80,16 +84,22 @@ const DemoModal = ({ onClose }) => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-warm-700 mb-1.5">Full name *</label>
-                  <input className="input" placeholder="Your name" value={form.name} onChange={e => setForm(p=>({...p,name:e.target.value}))} required />
+                  <input className="input" placeholder="Your name" value={form.contact_name} onChange={e => setForm(p=>({...p,contact_name:e.target.value}))} required />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-warm-700 mb-1.5">Work email *</label>
                   <input type="email" className="input" placeholder="you@company.com" value={form.email} onChange={e => setForm(p=>({...p,email:e.target.value}))} required />
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-warm-700 mb-1.5">Company name *</label>
-                <input className="input" placeholder="Acme Corp" value={form.company} onChange={e => setForm(p=>({...p,company:e.target.value}))} required />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-warm-700 mb-1.5">Company name *</label>
+                  <input className="input" placeholder="Acme Corp" value={form.company_name} onChange={e => setForm(p=>({...p,company_name:e.target.value}))} required />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-warm-700 mb-1.5">Phone number</label>
+                  <input className="input" placeholder="+234..." value={form.phone} onChange={e => setForm(p=>({...p,phone:e.target.value}))} />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-warm-700 mb-1.5">Team size</label>
@@ -163,20 +173,7 @@ const Home = () => {
               📅 Book team demo
             </button>
           </div>
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl mx-auto">
-            {[
-              { value: '50K+', label: 'Cards created' },
-              { value: '800K+', label: 'Messages signed' },
-              { value: '₦2B+', label: 'Gifts sent' },
-              { value: '200+', label: 'Companies' },
-            ].map(s => (
-              <div key={s.label} className="text-center py-3 px-2 rounded-2xl" style={{ background:'rgba(124,58,237,0.06)', border:'1px solid rgba(124,58,237,0.1)' }}>
-                <div className="font-display text-lg sm:text-xl font-bold text-primary-500">{s.value}</div>
-                <div className="text-xs text-warm-500 mt-0.5">{s.label}</div>
-              </div>
-            ))}
-          </div>
+          {/* Stats removed — will be added back when live */}
         </div>
       </section>
 
@@ -209,7 +206,7 @@ const Home = () => {
       <section className="py-12 md:py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3">⚡ Stupidly simple</div>
+            <div className="pill mx-auto mb-3">⚡ Beautifully simple</div>
             <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
               From zero to delivered<br/><span className="text-primary-500">in under 5 minutes</span>
             </h2>

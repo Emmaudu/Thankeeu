@@ -1,0 +1,357 @@
+const crypto = require('crypto');
+const { sendEmail } = require('../utils/email');
+/**
+ * occasionBulkController.js
+ * HR can download Excel template, upload it, and sync it to populate all occasion tables.
+ * A single "general" template auto-populates birthday, farewell, promotion, valentine, etc.
+ */
+const supabase = require('../utils/supabase');
+
+// Fixed occasion dates (some are annual, some need year context)
+const OCCASION_FIXED_DATES = {
+  valentine:     (year) => `${year}-02-14`,
+  womens_day:    (year) => `${year}-03-08`,
+  mothers_day:   (year) => {
+    // Second Sunday of May
+    const d = new Date(year, 4, 1);
+    const day = d.getDay();
+    const offset = (7 - day + 0) % 7 + 7 + 1; // second Sunday
+    return `${year}-05-${String(offset).padStart(2,'0')}`;
+  },
+  fathers_day:   (year) => {
+    // Third Sunday of June
+    const d = new Date(year, 5, 1);
+    const day = d.getDay();
+    const offset = (7 - day + 0) % 7 + 14 + 1;
+    return `${year}-06-${String(offset).padStart(2,'0')}`;
+  },
+};
+
+/**
+ * GET /api/occasions/bulk-template
+ * Returns CSV template content for bulk import
+ * Includes pre-filled dates for Valentine's, Women's Day, etc.
+ */
+const downloadBulkTemplate = (req, res) => {
+  const year = new Date().getFullYear();
+  const valDate    = OCCASION_FIXED_DATES.valentine(year);
+  const womensDate = OCCASION_FIXED_DATES.womens_day(year);
+  const mothersDate = OCCASION_FIXED_DATES.mothers_day(year);
+  const fathersDate = OCCASION_FIXED_DATES.fathers_day(year);
+
+  const headers = [
+    'first_name','last_name','email','department','role',
+    'gender','date_of_birth','job_title','phone',
+    'work_anniversary_date','promotion_date','leaving_date',
+    'notes',
+  ].join(',');
+
+  const examples = [
+    `Adaeze,Okonkwo,adaeze@company.com,Marketing,member,female,1990-05-15,Content Writer,08012345678,2020-01-10,,,Welcome to the team`,
+    `Emeka,Chukwu,emeka@company.com,Engineering,leader,male,1985-11-22,Lead Developer,08098765432,2019-03-01,,,`,
+    `Kemi,Bello,kemi@company.com,HR,member,female,1993-07-08,HR Associate,07012345678,2021-06-01,,,`,
+  ].join('\n');
+
+  const notes = [
+    ``,
+    `# INSTRUCTIONS:`,
+    `# role: "member" for team member access, "leader" for team leader access`,
+    `# gender: "male" or "female" — used for Father's Day / Mother's Day tables`,
+    `# date_of_birth: YYYY-MM-DD format`,
+    `# work_anniversary_date: YYYY-MM-DD format (date they joined the company)`,
+    `# promotion_date and leaving_date: leave blank if not applicable`,
+    `# `,
+    `# PRE-FILLED FIXED DATES FOR ${year}:`,
+    `# Valentine's Day: ${valDate}`,
+    `# Women's Day:     ${womensDate}`,
+    `# Mother's Day:    ${mothersDate}`,
+    `# Father's Day:    ${fathersDate}`,
+  ].join('\n');
+
+  const csvContent = `${headers}\n${examples}\n${notes}`;
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="thankeeu-team-import-template-${year}.csv"`);
+  res.send(csvContent);
+};
+
+/**
+ * POST /api/occasions/bulk-sync
+ * Body: { employees: [{...}] } — parsed from uploaded CSV/Excel
+ * Syncs to company_members + all occasion tables
+ */
+const bulkSyncEmployees = async (req, res) => {
+  try {
+    const companyId = req.company.id;
+    const { employees } = req.body;
+
+    if (!Array.isArray(employees) || employees.length === 0) {
+      return res.status(400).json({ error: 'No employee data provided' });
+    }
+
+    const year = new Date().getFullYear();
+    const results = { created: 0, updated: 0, occasion_rows: 0, errors: [] };
+
+    for (const emp of employees) {
+      try {
+        const { first_name, last_name, email, department, role, gender,
+                date_of_birth, job_title, phone, work_anniversary_date,
+                promotion_date, leaving_date } = emp;
+
+        if (!first_name || !last_name || !email) {
+          results.errors.push(`Skipped: missing required fields for ${email || 'unknown'}`);
+          continue;
+        }
+
+        // Upsert company_member
+        const memberData = {
+          company_id: companyId, first_name: first_name.trim(), last_name: last_name.trim(),
+          email: email.trim().toLowerCase(), department: department?.trim() || 'General',
+          role: role === 'leader' ? 'leader' : 'member', status: 'approved',
+          ...(gender && { gender: gender.toLowerCase() }),
+          ...(job_title && { job_title }),
+          ...(phone && { phone }),
+          ...(date_of_birth && { date_of_birth }),
+          updated_at: new Date(),
+        };
+
+        const { data: member, error: mErr } = await supabase
+          .from('company_members')
+          .upsert(memberData, { onConflict: 'company_id,email' })
+          .select('id, status')
+          .single();
+
+        if (mErr) { results.errors.push(`Member upsert failed: ${email}`); continue; }
+        const memberId  = member.id;
+        const isNewUser = member.status === 'approved' && !memberData.password_hash;
+
+        // Send invite email to new members who don't have a password yet
+        if (!memberData.password_hash) {
+          try {
+            const inviteToken = crypto.randomBytes(32).toString('hex');
+            await supabase.from('company_members').update({ invite_token: inviteToken }).eq('id', memberId);
+            const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+            const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email.trim().toLowerCase())}`;
+            const { data: co } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
+            await sendEmail({
+              to: email.trim().toLowerCase(),
+              subject: `Welcome to ${co?.name || 'your company'}'s team on Thankeeu! 🎉`,
+              html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;">
+                <div style="font-size:48px;margin-bottom:16px;">🎉</div>
+                <h2 style="color:#1A1035;margin-bottom:8px;">Welcome, ${first_name}!</h2>
+                <p style="color:#666;font-size:14px;margin-bottom:20px;">
+                  ${co?.contact_person || co?.name || 'Your HR team'} has added you to <strong>${co?.name || 'your company'}</strong>'s celebration platform on Thankeeu.
+                  You'll receive birthday cards, farewell messages, and other celebrations from your team here.
+                </p>
+                <a href="${link}" style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#6C5CE7);color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:15px;margin-bottom:20px;">
+                  Set your password & get started 🚀
+                </a>
+                <p style="color:#aaa;font-size:12px;">This link expires in 7 days.</p>
+              </div>`
+            }).catch(e => console.warn('Invite email failed:', e.message));
+          } catch (emailErr) {
+            console.warn('Could not send invite:', emailErr.message);
+          }
+        }
+
+        // Increment counters
+        results.updated++;
+
+        // Birthday occasion row
+        if (date_of_birth) {
+          const bday = date_of_birth.slice(5); // MM-DD
+          await supabase.from('occasion_members').upsert({
+            company_id: companyId, member_id: memberId,
+            occasion_type: 'birthday', email, first_name, last_name,
+            department: department || 'General', gender: gender || null,
+            occasion_date: `${year}-${bday}`,
+            is_active: true,
+          }, { onConflict: 'company_id,member_id,occasion_type', ignoreDuplicates: false });
+          results.occasion_rows++;
+        }
+
+        // Work anniversary
+        if (work_anniversary_date) {
+          await supabase.from('occasion_members').upsert({
+            company_id: companyId, member_id: memberId,
+            occasion_type: 'work_anniversary', email, first_name, last_name,
+            department: department || 'General',
+            occasion_date: work_anniversary_date,
+            is_active: true,
+          }, { onConflict: 'company_id,member_id,occasion_type', ignoreDuplicates: false });
+          results.occasion_rows++;
+        }
+
+        // Father's Day (males)
+        if (gender?.toLowerCase() === 'male') {
+          await supabase.from('occasion_members').upsert({
+            company_id: companyId, member_id: memberId,
+            occasion_type: 'fathers_day', email, first_name, last_name,
+            department: department || 'General', gender: 'male',
+            occasion_date: OCCASION_FIXED_DATES.fathers_day(year),
+            is_active: true,
+          }, { onConflict: 'company_id,member_id,occasion_type', ignoreDuplicates: false });
+          results.occasion_rows++;
+        }
+
+        // Mother's Day (females)
+        if (gender?.toLowerCase() === 'female') {
+          await supabase.from('occasion_members').upsert({
+            company_id: companyId, member_id: memberId,
+            occasion_type: 'mothers_day', email, first_name, last_name,
+            department: department || 'General', gender: 'female',
+            occasion_date: OCCASION_FIXED_DATES.mothers_day(year),
+            is_active: true,
+          }, { onConflict: 'company_id,member_id,occasion_type', ignoreDuplicates: false });
+          results.occasion_rows++;
+        }
+
+        // Women's Day (females)
+        if (gender?.toLowerCase() === 'female') {
+          await supabase.from('occasion_members').upsert({
+            company_id: companyId, member_id: memberId,
+            occasion_type: 'womens_day', email, first_name, last_name,
+            department: department || 'General', gender: 'female',
+            occasion_date: OCCASION_FIXED_DATES.womens_day(year),
+            is_active: true,
+          }, { onConflict: 'company_id,member_id,occasion_type', ignoreDuplicates: false });
+          results.occasion_rows++;
+        }
+
+        // Valentine's Day (everyone)
+        await supabase.from('occasion_members').upsert({
+          company_id: companyId, member_id: memberId,
+          occasion_type: 'valentine', email, first_name, last_name,
+          department: department || 'General',
+          occasion_date: OCCASION_FIXED_DATES.valentine(year),
+          is_active: true,
+        }, { onConflict: 'company_id,member_id,occasion_type', ignoreDuplicates: false });
+        results.occasion_rows++;
+
+        // Promotion if date set
+        if (promotion_date) {
+          await supabase.from('occasion_members').upsert({
+            company_id: companyId, member_id: memberId,
+            occasion_type: 'promotion', email, first_name, last_name,
+            department: department || 'General',
+            occasion_date: promotion_date,
+            is_active: true,
+            meta: JSON.stringify({ promotion_level: 1 }),
+          }, { onConflict: 'company_id,member_id,occasion_type', ignoreDuplicates: false });
+          results.occasion_rows++;
+        }
+
+        // Leaving if date set
+        if (leaving_date) {
+          await supabase.from('occasion_members').upsert({
+            company_id: companyId, member_id: memberId,
+            occasion_type: 'leaving', email, first_name, last_name,
+            department: department || 'General',
+            occasion_date: leaving_date,
+            is_active: true,
+          }, { onConflict: 'company_id,member_id,occasion_type', ignoreDuplicates: false });
+          results.occasion_rows++;
+        }
+
+      } catch (empErr) {
+        results.errors.push(`Error for ${emp.email}: ${empErr.message}`);
+      }
+    }
+
+    res.json({
+      message: `Sync complete! ${results.updated} employees synced, ${results.occasion_rows} occasion entries created/updated.`,
+      results,
+    });
+  } catch (err) {
+    console.error('bulkSyncEmployees error:', err);
+    res.status(500).json({ error: err.message || 'Bulk sync failed' });
+  }
+};
+
+/**
+ * GET /api/occasions/tables
+ * Returns all populated occasion tables for the company
+ */
+const getOccasionTables = async (req, res) => {
+  try {
+    const companyId = req.company.id;
+    const types = ['birthday','work_anniversary','valentine','womens_day','mothers_day',
+                   'fathers_day','promotion','leaving','new_hire'];
+    const tables = {};
+
+    await Promise.all(types.map(async type => {
+      const { data } = await supabase
+        .from('occasion_members')
+        .select('id, member_id, first_name, last_name, email, department, gender, occasion_date, is_active, meta, notification_scope, occasion_type, company_members(role, username)')
+        .eq('company_id', companyId)
+        .eq('occasion_type', type)
+        .order('first_name', { ascending: true });
+      tables[type] = data || [];
+    }));
+
+    res.json(tables);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load occasion tables' });
+  }
+};
+
+/**
+ * PATCH /api/occasions/members/:id
+ * Update a single occasion member record (edit fields, set farewell, set notification scope, set promotion level)
+ */
+const updateOccasionMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { farewell, notification_scope, promotion_level, promotion_message, promotion_send_date, is_active, occasion_date, department } = req.body;
+
+    const updates = { updated_at: new Date() };
+    if (farewell !== undefined) updates.farewell = farewell;
+    if (notification_scope) updates.notification_scope = notification_scope;
+    if (is_active !== undefined) updates.is_active = is_active;
+    if (occasion_date) updates.occasion_date = occasion_date;
+    if (department) updates.department = department;
+
+    // Promotion level stored in meta
+    if (promotion_level !== undefined) {
+      const { data: existing } = await supabase.from('occasion_members').select('meta').eq('id', id).single();
+      const existingMeta = typeof existing?.meta === 'string' ? JSON.parse(existing.meta || '{}') : (existing?.meta || {});
+      updates.meta = JSON.stringify({
+        ...existingMeta,
+        promotion_level: Number(promotion_level),
+        ...(promotion_message && { promotion_message }),
+        ...(promotion_send_date && { promotion_send_date }),
+      });
+    }
+
+    const { data, error } = await supabase
+      .from('occasion_members')
+      .update(updates)
+      .eq('id', id)
+      .eq('company_id', req.company.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Update failed' });
+  }
+};
+
+/**
+ * DELETE /api/occasions/members/:id
+ */
+const deleteOccasionMember = async (req, res) => {
+  try {
+    const { id } = req.params;
+    await supabase.from('occasion_members').delete().eq('id', id).eq('company_id', req.company.id);
+    res.json({ message: 'Record deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Delete failed' });
+  }
+};
+
+module.exports = {
+  downloadBulkTemplate, bulkSyncEmployees, getOccasionTables,
+  updateOccasionMember, deleteOccasionMember,
+};

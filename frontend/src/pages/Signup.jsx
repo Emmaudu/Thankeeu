@@ -27,7 +27,8 @@ const Signup = () => {
     if (form.password !== form.confirm_password) return toast.error('Passwords do not match');
     setLoading(true);
     try {
-      await signup(form.full_name, form.email, form.password, form.username);
+    if (!form.terms_accepted) return toast.error('Please accept the Terms of Service to continue');
+      await signup(form.full_name, form.email, form.password, form.username, form.date_of_birth);
       toast.success('Account created! Welcome 💜');
       navigate(returnTo || '/dashboard');
     } catch (err) {
@@ -136,7 +137,35 @@ const Signup = () => {
                 {pwMatch && <p className="text-xs mt-1" style={{ color: '#10B981' }}>✓ Passwords match</p>}
               </div>
 
-              <button type="submit" disabled={loading || pwNoMatch}
+              {/* Birthday field */}
+              <div>
+                <label className="text-sm font-medium block mb-1.5" style={{ color: '#9490C8' }}>
+                  🎂 Your birthday <span className="text-xs opacity-70">(for birthday cards & reminders)</span>
+                </label>
+                <input type="date" className="input"
+                  value={form.date_of_birth || ''}
+                  onChange={e => setForm({ ...form, date_of_birth: e.target.value })}
+                  max={new Date(new Date().setFullYear(new Date().getFullYear()-13)).toISOString().split('T')[0]}
+                />
+                <p className="text-xs mt-1" style={{ color: '#6B678A' }}>
+                  We'll remind you 7 days before your birthday to create a card and collect wishes from your friends!
+                </p>
+              </div>
+
+              {/* Terms & Conditions */}
+              <div className="flex items-start gap-3 p-3.5 rounded-xl border" style={{ borderColor:'#EDE9FF', background:'rgba(124,110,255,0.03)' }}>
+                <input type="checkbox" id="terms" required
+                  checked={form.terms_accepted || false}
+                  onChange={e => setForm({ ...form, terms_accepted: e.target.checked })}
+                  className="w-5 h-5 mt-0.5 accent-violet-600 flex-shrink-0" />
+                <label htmlFor="terms" className="text-sm" style={{ color: '#6B678A', cursor:'pointer' }}>
+                  I agree to Thankeeu's{' '}
+                  <a href="/policy" target="_blank" rel="noopener noreferrer" style={{ color:'#7C6EFF' }} className="font-medium hover:underline">Terms of Service and Privacy Policy</a>
+                  . I understand my data is used to personalise celebration experiences.
+                </label>
+              </div>
+
+              <button type="submit" disabled={loading || pwNoMatch || !form.terms_accepted}
                 className="btn-primary w-full py-3.5 mt-1 disabled:opacity-50">
                 {loading
                   ? <span className="flex items-center justify-center gap-2">

@@ -4,9 +4,11 @@ import { useCompanyAuth } from '../../context/CompanyAuthContext';
 
 const NAV = [
   { path: '/company/dashboard',    icon: '🏠', label: 'Dashboard' },
-  { path: '/company/teams',        icon: '🎉', label: 'Occasions' },
-  { path: '/company/members',      icon: '👥', label: 'Team Members' },
-  { path: '/company/deductions',   icon: '💰', label: 'Requests' },
+  { path: '/company/occasions',    icon: '🎉', label: 'Occasions Manager' },
+  { path: '/company/team-members', icon: '👥', label: 'Team Members' },
+  { path: '/company/core-team',    icon: '🏢', label: 'Core Team' },
+  { path: '/company/members',      icon: '✅', label: 'Approvals' },
+  { path: '/company/deductions',   icon: '💰', label: 'Deductions' },
   { path: '/company/subscription', icon: '💳', label: 'Subscription' },
   { path: '/company/hris',         icon: '🔗', label: 'HRIS Sync' },
   { path: '/company/settings',     icon: '⚙️', label: 'Settings' },

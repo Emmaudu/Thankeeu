@@ -266,20 +266,28 @@ const withdrawGift = async (req, res) => {
       .from('cards').select('*').eq('slug', card_slug).single();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
-    const { data: receivedEntry } = await supabase
-      .from('received_cards')
-      .select('id')
-      .eq('card_id', card.id)
-      .eq('recipient_user_id', userId)
-      .maybeSingle();
-
     const { data: userInfo } = await supabase
-      .from('users').select('email').eq('id', userId).single();
+      .from('users').select('email, is_verified').eq('id', userId).single();
 
+    // Strict email match: authenticated user's email MUST match card.recipient_email
     const isEmailRecipient = card.recipient_email?.toLowerCase() === userInfo?.email?.toLowerCase();
 
-    if (!receivedEntry && !isEmailRecipient) {
-      return res.status(403).json({ error: 'You are not the recipient of this card' });
+    // OR: card was transferred to this user (appears in received_cards)
+    const { data: receivedEntry } = await supabase
+      .from('received_cards').select('id')
+      .eq('card_id', card.id).eq('recipient_user_id', userId).maybeSingle();
+
+    if (!isEmailRecipient && !receivedEntry) {
+      return res.status(403).json({
+        error: 'Access denied. Only the recipient whose email matches this card can withdraw the gift. If you used a different email, ask the card creator to transfer the card to your username first.'
+      });
+    }
+
+    // Check email is verified (only for users, members don't have email verification)
+    if (userInfo && userInfo.is_verified === false) {
+      return res.status(403).json({
+        error: 'Please verify your email address before withdrawing. Check your inbox for a verification link.'
+      });
     }
 
     if ((card.total_collected || 0) <= 0) {

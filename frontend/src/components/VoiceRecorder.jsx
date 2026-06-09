@@ -2,16 +2,16 @@ import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 
 const VoiceRecorder = ({ onRecorded, disabled = false }) => {
-  const recorderRef = useRef(null);
-  const streamRef = useRef(null);
-  const timerRef = useRef(null);
-  const chunksRef = useRef([]);
-  const mountedRef = useRef(true);
+  const recorderRef  = useRef(null);
+  const streamRef    = useRef(null);
+  const timerRef     = useRef(null);
+  const chunksRef    = useRef([]);
+  const mountedRef   = useRef(true);
   const [recording, setRecording] = useState(false);
-  const [seconds, setSeconds] = useState(0);
+  const [seconds, setSeconds]     = useState(0);
 
   const stopTracks = () => {
-    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
   };
 
@@ -23,54 +23,87 @@ const VoiceRecorder = ({ onRecorded, disabled = false }) => {
   }, []);
 
   const startRecording = async () => {
+    // 1. Browser support check
     if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
-      toast.error('Voice recording is not supported in this browser');
+      toast.error('Voice recording is not supported in this browser. Please use Chrome or Firefox.', { duration: 5000 });
+      return;
+    }
+    // 2. HTTPS check — getUserMedia is blocked on HTTP (except localhost)
+    const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+    if (window.location.protocol === 'http:' && !isLocalhost) {
+      toast.error(
+        'Voice recording requires a secure (HTTPS) connection. Please access this page via https://',
+        { duration: 7000 }
+      );
       return;
     }
 
     try {
+      // 3. Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
       const preferredType = [
         'audio/webm;codecs=opus',
         'audio/mp4',
         'audio/webm',
         'audio/ogg;codecs=opus',
-      ].find(type => MediaRecorder.isTypeSupported(type));
-      const recorder = new MediaRecorder(stream, preferredType ? { mimeType: preferredType } : undefined);
+      ].find(t => MediaRecorder.isTypeSupported(t));
 
-      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream, preferredType ? { mimeType: preferredType } : undefined);
+      streamRef.current  = stream;
       recorderRef.current = recorder;
-      chunksRef.current = [];
+      chunksRef.current  = [];
       setSeconds(0);
 
-      recorder.ondataavailable = event => {
-        if (event.data.size) chunksRef.current.push(event.data);
-      };
+      recorder.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
       recorder.onstop = () => {
-        const mimeType = recorder.mimeType || 'audio/webm';
+        const mimeType  = recorder.mimeType || 'audio/webm';
         const extension = mimeType.includes('mp4') ? 'm4a' : mimeType.includes('ogg') ? 'ogg' : 'webm';
         const blob = new Blob(chunksRef.current, { type: mimeType });
-        const file = new File([blob], `thankeeu-voice-note-${Date.now()}.${extension}`, { type: mimeType });
+        const file = new File([blob], `thankeeu-voice-${Date.now()}.${extension}`, { type: mimeType });
         if (mountedRef.current) onRecorded(file);
         stopTracks();
       };
 
       recorder.start(250);
       setRecording(true);
+
       timerRef.current = window.setInterval(() => {
-        setSeconds(value => {
-          if (value >= 119) {
+        setSeconds(v => {
+          if (v >= 119) {
             recorder.stop();
             window.clearInterval(timerRef.current);
             setRecording(false);
             return 120;
           }
-          return value + 1;
+          return v + 1;
         });
       }, 1000);
-    } catch {
-      toast.error('Microphone access is needed to record a voice note');
+
+    } catch (err) {
       stopTracks();
+      const name = err?.name || err?.constructor?.name || '';
+
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        toast.error(
+          '🎤 Microphone permission denied.\n\nOn desktop: click the lock/camera icon in your browser address bar → allow Microphone → refresh the page.',
+          { duration: 8000 }
+        );
+      } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        toast.error('No microphone found. Please connect a microphone and try again.', { duration: 6000 });
+      } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+        toast.error('Microphone is in use by another app. Close other apps using the mic, then try again.', { duration: 6000 });
+      } else if (name === 'SecurityError') {
+        toast.error('Voice recording blocked by browser security. Make sure you are on HTTPS.', { duration: 7000 });
+      } else if (name === 'OverconstrainedError') {
+        toast.error('Microphone settings not supported. Try a different browser.', { duration: 5000 });
+      } else {
+        // Generic fallback — most likely a desktop permission issue
+        toast.error(
+          `Could not access microphone. On desktop/laptop:\n1. Click the 🔒 lock in your browser's address bar\n2. Set Microphone → Allow\n3. Refresh the page and try again.`,
+          { duration: 9000 }
+        );
+      }
     }
   };
 
@@ -80,6 +113,8 @@ const VoiceRecorder = ({ onRecorded, disabled = false }) => {
     setRecording(false);
   };
 
+  const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+
   return (
     <button
       type="button"
@@ -87,8 +122,8 @@ const VoiceRecorder = ({ onRecorded, disabled = false }) => {
       onClick={recording ? stopRecording : startRecording}
       className={`voice-record-button ${recording ? 'is-recording' : ''}`}
     >
-      <span className="voice-record-icon">{recording ? '\u25A0' : '\uD83C\uDFA4'}</span>
-      <span>{recording ? `Stop recording  ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}` : 'Record voice note'}</span>
+      <span className="voice-record-icon">{recording ? '■' : '🎤'}</span>
+      <span>{recording ? `Stop  ${fmt(seconds)}` : 'Record voice note'}</span>
       {recording && <span className="voice-record-pulse" />}
     </button>
   );

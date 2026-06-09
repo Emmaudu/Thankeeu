@@ -583,3 +583,63 @@ const verificationTemplates = {
   }),
 };
 Object.assign(emailTemplates, verificationTemplates);
+
+// Visitor nurture (guests who signed a card without an account)
+Object.assign(emailTemplates, {
+  visitorNudge: (d) => ({
+    subject: `${d.name}, capture your ${d.occasion} wishes forever 🎉`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Hey ${d.name}! 👋</h2>
+      <p style="color:#555;line-height:1.8;">You recently signed ${d.creatorName}'s <strong>${d.occasion} card</strong> on Thankeeu.</p>
+      <p style="color:#555;line-height:1.8;">With a <strong>free account</strong>, when <em>your</em> birthday or special occasion comes around, all your heartfelt messages, photos, voice notes, and cash gifts from friends and colleagues will be in one beautiful place — instead of scattered across DMs and social media.</p>
+      <div style="background:#EEEDFE;border-radius:12px;padding:16px 20px;margin:20px 0;">
+        <ul style="color:#534AB7;font-size:13px;margin:0;padding-left:18px;line-height:2.2;">
+          <li>🎂 Get a group birthday card from your whole team</li>
+          <li>🎁 Receive a pooled cash gift to your bank account</li>
+          <li>💌 Keep all birthday wishes forever</li>
+          <li>📸 Photos, voice notes, heartfelt messages in one place</li>
+        </ul>
+      </div>
+      ${btn('Create my free account →', d.signupLink, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">You received this because you signed a card on Thankeeu. <a href="${d.appUrl}" style="color:#aaa;">Unsubscribe</a></p>
+    `)
+  }),
+});
+
+Object.assign(emailTemplates, {
+  teamMemberInvite: (d) => ({
+    subject: `You've been added to ${d.companyName} on Thankeeu — set up your account`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Welcome, ${d.name}! 🎉</h2>
+      <p style="color:#555;line-height:1.8;">Your HR team at <strong>${d.companyName}</strong> has added you to Thankeeu — the platform where your team celebrates milestones together!</p>
+      <p style="color:#555;line-height:1.8;">With Thankeeu, your colleagues can create beautiful group cards, pool gifts, and celebrate every birthday, promotion, and anniversary.</p>
+      <div style="background:#EEEDFE;border-radius:12px;padding:16px 20px;margin:20px 0;">
+        <p style="color:#534AB7;font-weight:700;margin:0 0 6px;">Getting started:</p>
+        <ol style="color:#534AB7;font-size:13px;margin:0;padding-left:18px;line-height:2;">
+          <li>Click the button below to set up your account</li>
+          <li>Use company code: <strong>${d.companyCode}</strong></li>
+          <li>Set your password and complete your profile</li>
+        </ol>
+      </div>
+      ${btn('Set up my account →', d.inviteLink, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Or visit: <a href="${d.appUrl}/member/signup?company=${d.companyCode}" style="color:#6C5CE7;">${d.appUrl}/member/signup</a></p>
+    `)
+  }),
+  coreTeamInvite: (d) => ({
+    subject: `You've been invited to manage ${d.companyName}'s Thankeeu account`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Welcome to the core team, ${d.name}! 👥</h2>
+      <p style="color:#555;line-height:1.8;">${d.hrName} has invited you as <strong>${d.roleLabel}</strong> with <strong>${d.privilege} access</strong> to help manage ${d.companyName}'s celebration platform.</p>
+      <div style="background:#EEEDFE;border-radius:12px;padding:16px 20px;margin:20px 0;">
+        <p style="color:#534AB7;font-weight:600;margin:0 0 6px;">Access level: ${d.privilege.toUpperCase()}</p>
+        <p style="color:#534AB7;font-size:13px;margin:0;">${
+          d.privilege==='full' ? 'Full access — manage all settings, billing, members, occasions.' :
+          d.privilege==='medium' ? 'Medium access — manage occasions and team members.' :
+          'Limited access — view-only access to occasions and events.'
+        }</p>
+      </div>
+      ${btn('Accept invitation & set up account', d.inviteLink, '#6C5CE7')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Sent by ${d.hrName} at ${d.companyName}.</p>
+    `)
+  }),
+});

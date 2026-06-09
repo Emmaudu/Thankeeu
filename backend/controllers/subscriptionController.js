@@ -55,16 +55,10 @@ const verifySubscription = async (req, res) => {
       console.warn(`Subscription verify: unusual status "${txn.status}" for ref ${reference}`);
     }
 
-    const { company_id, plan } = txn.metadata;
-    if (!company_id || !plan) {
-      // Fallback: use authenticated company from middleware
-      const fallbackCompanyId = req.company?.id;
-      if (!fallbackCompanyId) return res.status(400).json({ error: 'Cannot identify company from payment metadata' });
-      txn.metadata.company_id = fallbackCompanyId;
-    }
-
-    const resolvedCompanyId = txn.metadata.company_id || req.company?.id;
-    const resolvedPlan      = txn.metadata.plan       || plan;
+    // Always trust the authenticated company (req.company.id) — never rely solely on Paystack metadata
+    // which can occasionally be dropped or empty
+    const resolvedCompanyId = req.company.id;
+    const resolvedPlan      = txn.metadata?.plan || req.query.plan || 'monthly';
 
     const now2 = new Date();
     const expires_at = resolvedPlan === 'yearly'

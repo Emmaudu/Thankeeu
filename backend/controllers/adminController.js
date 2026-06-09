@@ -89,7 +89,6 @@ const deleteCard = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, getAllCards, deleteCard };
 
 // ── Company management ────────────────────────────────────────────────
 
@@ -145,8 +144,21 @@ const getCompanyTeamMembers = async (req, res) => {
   }
 };
 
-module.exports = {
-  getStats, getAllUsers, updateUserRole, deleteUser,
-  getAllCards, deleteCard,
-  getAllCompanies, deleteCompany, getCompanyTeamMembers
+
+
+// GET /api/admin/visitors — admin view of card visitors (guest signers)
+const getVisitors = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('card_visitors')
+      .select('id, card_slug, occasion, author_name, author_email, converted, converted_at, emails_sent, last_email_at, created_at')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load visitors' });
+  }
 };
+
+module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, getAllCards, deleteCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors };

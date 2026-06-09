@@ -16,14 +16,28 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
 
-// Inline gift withdrawal button for card recipients
-const GiftWithdrawButton = ({ slug, token, amount, cardId }) => {
-  const [accounts, setAccounts] = useState(null);
-  const [loading,  setLoading]  = useState(false);
-  const [showPanel, setShowPanel] = useState(false);
+// Inline gift withdrawal button — only for verified recipients
+const GiftWithdrawButton = ({ slug, token, amount, cardId, user, member }) => {
+  const [accounts,    setAccounts]  = useState(null);
+  const [loading,     setLoading]   = useState(false);
+  const [showPanel,   setShowPanel] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
 
+  const platformFee = Math.round(amount * 0.035);
+  const netAmount   = amount - platformFee;
+
+  // Determine verification status
+  const isVerified = user?.is_verified !== false; // members don't have email verification
+
   const loadAccounts = async () => {
+    // Pre-flight checks before showing the panel
+    if (!isVerified) {
+      toast.error(
+        '⚠️ Please verify your email address first. Check your inbox for the verification link, then come back to withdraw.',
+        { duration: 8000 }
+      );
+      return;
+    }
     setLoading(true);
     try {
       const r = await banksAPI.getMy();
@@ -32,20 +46,19 @@ const GiftWithdrawButton = ({ slug, token, amount, cardId }) => {
     finally { setLoading(false); setShowPanel(true); }
   };
 
-  const platformFee = Math.round(amount * 0.035);
-  const netAmount = amount - platformFee;
-
   const handleWithdraw = async () => {
     const acc = accounts?.find(a => a.is_default) || accounts?.[0];
-    if (!acc) { toast.error('Add a bank account in your Settings first to withdraw.'); return; }
+    if (!acc) {
+      toast.error('Please add your bank account details in your dashboard Settings first, then come back to withdraw.', { duration: 7000 });
+      return;
+    }
     setWithdrawing(true);
     try {
-      // Use new withdrawGift endpoint which uses card_slug
       const res = await banksAPI.withdrawGift({ card_slug: slug });
-      toast.success(res.data?.message || `${formatNGN(netAmount)} is on its way to your account! 🎉`);
+      toast.success(res.data?.message || `${formatNGN(netAmount)} is on its way to your account! 🎉`, { duration: 8000 });
       setShowPanel(false);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Withdrawal failed. Try again or contact support.');
+      toast.error(err.response?.data?.error || 'Withdrawal failed. Please try again or contact support.');
     } finally { setWithdrawing(false); }
   };
 
@@ -61,9 +74,14 @@ const GiftWithdrawButton = ({ slug, token, amount, cardId }) => {
         <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-purple-100 p-4 z-50 animate-fade-in">
           <h4 className="font-semibold text-warm-900 text-sm mb-3">Withdraw {formatNGN(amount)}</h4>
           {!accounts?.length ? (
-            <div>
-              <p className="text-xs text-warm-500 mb-3">No bank account saved yet. Add one in your Settings to receive this gift.</p>
-              <Link to="/dashboard/settings" className="btn-primary text-xs py-2 px-4 w-full text-center block">⚙️ Add bank account</Link>
+            <div className="space-y-3">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs font-semibold text-amber-800 mb-1">⚠️ No bank account saved</p>
+                <p className="text-xs text-amber-700">To receive your gift, you need to add your bank account details to your dashboard first.</p>
+              </div>
+              <Link to={user ? "/dashboard/settings" : "/member/settings"} className="btn-primary text-xs py-2.5 px-4 w-full text-center block">
+                🏦 Add bank account in Settings
+              </Link>
             </div>
           ) : (
             <div>
@@ -212,34 +230,58 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
 };
 
 const TransferCardButton = ({ slug }) => {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState([]);
+  const [open, setOpen]           = useState(false);
+  const [query, setQuery]         = useState('');
+  const [results, setResults]     = useState([]);
   const [searching, setSearching] = useState(false);
   const [transferring, setTransferring] = useState(false);
+  const debounceRef = useRef(null);
 
-  const search = async q => {
-    if (q.trim().length < 2) { setResults([]); return; }
-    setSearching(true);
-    try { const r = await authAPI.searchUsers(q); setResults(r.data||[]); }
-    catch {} finally { setSearching(false); }
+  // Debounced search — prevents rapid re-renders resetting the input
+  const handleQueryChange = (value) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (value.trim().length < 2) { setResults([]); return; }
+    // Use smart token — works for both individual users AND team members
+    // NEVER use api (user-only) here as it causes 401 + full-page redirect for members
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const tok = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token');
+        const base = import.meta.env.VITE_API_URL || '/api';
+        const r = await fetch(`${base}/auth/search?q=${encodeURIComponent(value.trim())}`, {
+          headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+        });
+        const data = await r.json();
+        setResults(Array.isArray(data) ? data : []);
+      } catch {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 400);
   };
 
-  const transfer = async username => {
+  const transfer = async (username) => {
     setTransferring(true);
     try {
-      // Transfer using smart auth (works for both users and members)
-      const tok2 = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token');
+      const tok = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token');
       const base2 = import.meta.env.VITE_API_URL || '/api';
       const tr = await fetch(`${base2}/dashboard/transfer-card`, {
-        method: 'POST', headers: { Authorization: `Bearer ${tok2}`, 'Content-Type': 'application/json' },
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ card_slug: slug, recipient_username: username })
       });
       if (!tr.ok) { const e = await tr.json(); throw new Error(e.error || 'Transfer failed'); }
       toast.success(`Card transferred to @${username}! 🎉`);
       setOpen(false);
-    } catch(err) { toast.error(err.response?.data?.error||'Transfer failed'); }
-    finally { setTransferring(false); }
+      setQuery('');
+      setResults([]);
+    } catch (err) {
+      toast.error(err.message || 'Transfer failed');
+    } finally {
+      setTransferring(false);
+    }
   };
 
   return (
@@ -256,7 +298,7 @@ const TransferCardButton = ({ slug }) => {
             <div className="relative mb-3">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">@</span>
               <input className="input-light pl-7 w-full" placeholder="username" value={query}
-                onChange={e => { setQuery(e.target.value); search(e.target.value); }} />
+                onChange={e => handleQueryChange(e.target.value)} autoFocus />
             </div>
             {searching && <p className="text-xs text-center text-gray-400 mb-2">Searching...</p>}
             {results.length > 0 && (
@@ -387,16 +429,11 @@ const CardView = () => {
   const canViewPrivate = Boolean(token || card.isCreator || card.isRecipient);
 
 
-  // Choose layout wrapper based on who is authenticated
   const cardTitle = card?.title || `${card?.recipient_name || ''}'s Card`;
-  const LayoutWrapper = member
-    ? ({ children }) => <MemberLayout title={cardTitle} subtitle="Card view">{children}</MemberLayout>
-    : company
-    ? ({ children }) => <CompanyLayout title={cardTitle} subtitle="Card view">{children}</CompanyLayout>
-    : ({ children }) => <DashboardLayout title={cardTitle} subtitle="Card view">{children}</DashboardLayout>;
+  const layoutType = member ? 'member' : company ? 'company' : 'user';
 
-  return (
-    <LayoutWrapper><div className="min-h-screen-0 flex flex-col bg-[#faf8ff]">
+  const content = (
+    <div className="min-h-0 flex flex-col bg-[#faf8ff]">
 
       <header className={`card-art ${cardArtClass(design)} relative px-4 py-16 sm:py-24`} style={{ background: design.background, color: design.ink }}>
         <div className="max-w-5xl mx-auto text-center relative z-10">
@@ -429,13 +466,23 @@ const CardView = () => {
                   <p className="text-emerald-100 text-sm">Attached to this card for {card.recipient_name}</p>
                 </div>
               </div>
-              {token && !card.gift_claim && (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <GiftWithdrawButton slug={slug} token={token} amount={totalCollected} cardId={card.id} />
-                  <Link to={`/gift/${slug}?token=${token}`} className="btn-white text-sm text-center">🛒 Redeem as voucher</Link>
+
+              {/* Only show withdraw if: user is the verified recipient (email match or received via transfer) */}
+              {card.isRecipient && !card.gift_withdrawn && (
+                <GiftWithdrawButton
+                  slug={slug} token={token} amount={totalCollected} cardId={card.id}
+                  user={user} member={member}
+                />
+              )}
+              {card.isRecipient && card.gift_withdrawn && (
+                <span className="bg-white/15 rounded-full px-4 py-2 text-sm font-bold">✓ Gift withdrawn</span>
+              )}
+              {!card.isRecipient && (user || member) && (
+                <div className="bg-white/10 rounded-2xl p-3 text-xs text-emerald-100 max-w-xs">
+                  💡 This gift pot is reserved for {card.recipient_name}. Only the recipient can withdraw it.
+                  {!user && !member && ' Sign in with the recipient email to access it.'}
                 </div>
               )}
-              {token && card.gift_claim && <span className="bg-white/15 rounded-full px-4 py-2 text-sm font-bold">Claim {card.gift_claim.status}</span>}
             </div>
           </section>
         )}
@@ -537,8 +584,12 @@ const CardView = () => {
       )}
 
 
-    </div></LayoutWrapper>
+    </div>
   );
+
+  if (layoutType === 'member')  return <MemberLayout title={cardTitle} subtitle="Card view">{content}</MemberLayout>;
+  if (layoutType === 'company') return <CompanyLayout title={cardTitle} subtitle="Card view">{content}</CompanyLayout>;
+  return <DashboardLayout title={cardTitle} subtitle="Card view">{content}</DashboardLayout>;
 };
 
 export default CardView;

@@ -47,8 +47,15 @@ const Footer = () => (
         <div>
           <p className="font-bold text-warm-900 text-sm mb-4">🎉 Occasions</p>
           <ul className="space-y-2.5">
-            {['🎂 Birthday','💼 Farewell','🎓 Graduation','💍 Anniversary','🌟 Promotion','👶 Baby shower'].map(l => (
-              <li key={l}><span className="text-sm text-warm-600 font-medium">{l}</span></li>
+            {[
+              { to:'/occasions/birthday',    label:'🎂 Birthday' },
+              { to:'/occasions/farewell',    label:'💼 Farewell' },
+              { to:'/occasions/graduation',  label:'🎓 Graduation' },
+              { to:'/occasions/anniversary', label:'💍 Anniversary' },
+              { to:'/occasions/promotion',   label:'🌟 Promotion' },
+              { to:'/occasions/new-baby',    label:'👶 Baby Shower' },
+            ].map(({ to, label }) => (
+              <li key={to}><Link to={to} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
             ))}
           </ul>
         </div>

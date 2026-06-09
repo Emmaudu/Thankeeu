@@ -2,6 +2,27 @@ import axios from 'axios';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
+// ─── Session expiry helper ───────────────────────────────────────────────────
+const isTokenExpired = (tokenKey) => {
+  try {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return true;
+    // Decode JWT payload (base64) without verifying signature
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // If exp is within 60 seconds, treat as expired
+    return payload.exp && payload.exp < (Date.now() / 1000) + 60;
+  } catch { return false; }
+};
+
+// Call on app start — clear any expired tokens
+(() => {
+  if (isTokenExpired('thankeeu_token'))         { localStorage.removeItem('thankeeu_token');         localStorage.removeItem('thankeeu_user'); }
+  if (isTokenExpired('thankeeu_company_token')) { localStorage.removeItem('thankeeu_company_token'); localStorage.removeItem('thankeeu_company'); }
+  if (isTokenExpired('thankeeu_member_token'))  { localStorage.removeItem('thankeeu_member_token');  localStorage.removeItem('thankeeu_member'); }
+})();
+
+
+
 const axiosOptions = {
   baseURL: BASE,
   timeout: 15000,
@@ -314,4 +335,8 @@ export const blogAPI = {
     toggleFeatured: (id, featured) => api.patch(`/blog/admin/posts/${id}/featured`, { is_featured: featured }),
     deletePost:     (id)           => api.delete(`/blog/admin/posts/${id}`),
   },
+};
+
+export const visitorsAPI = {
+  track: (data) => publicAxios.post('/visitors/track', data),
 };

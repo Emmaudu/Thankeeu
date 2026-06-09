@@ -17,3 +17,15 @@ router.put('/profile', companyAuth, updateCompanyProfile);
 router.put('/password', companyAuth, changeCompanyPassword);
 
 module.exports = router;
+
+// ── Core team management ──────────────────────────────────────────────
+const {
+  getCoreTeam, inviteCoreMember, bulkInviteCoreTeam,
+  removeCoreMember, updateCoreMember,
+} = require('../controllers/coreTeamController');
+
+router.get('/core-team',              companyAuth, getCoreTeam);
+router.post('/core-team/invite',      companyAuth, inviteCoreMember);
+router.post('/core-team/bulk-invite', companyAuth, bulkInviteCoreTeam);
+router.put('/core-team/:id',          companyAuth, updateCoreMember);
+router.delete('/core-team/:id',       companyAuth, removeCoreMember);

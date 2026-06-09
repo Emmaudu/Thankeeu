@@ -25,4 +25,26 @@ router.delete('/:occasionTypeId/members/:memberId', companyAuth, deleteOccasionM
 // HR or approved member: view members
 router.get('/:occasionTypeId/members', hrOrMemberAuth, getOccasionMembers);
 
+// General master template
+router.get('/general-template', companyAuth, downloadGeneralTemplate);
+router.post('/import-general', companyAuth, upload.single('file'), importGeneralTemplate);
+
+// Occasion type scope
+router.put('/types/:occasionTypeId/scope', companyAuth, updateOccasionTypeScope);
+
+// Edit individual occasion member
+router.put('/members/:memberId', companyAuth, updateOccasionMember);
+
 module.exports = router;
+
+// ── Bulk import / tables / member edit ───────────────────────────────
+const {
+  downloadBulkTemplate, bulkSyncEmployees, getOccasionTables,
+  updateOccasionMember: updateOM, deleteOccasionMember: deleteOM2,
+} = require('../controllers/occasionBulkController');
+
+router.get('/bulk-template',     companyAuth, downloadBulkTemplate);
+router.post('/bulk-sync',        companyAuth, bulkSyncEmployees);
+router.get('/tables',            companyAuth, getOccasionTables);
+router.patch('/members/:id',     companyAuth, updateOM);
+router.delete('/members/:id/bulk', companyAuth, deleteOM2);

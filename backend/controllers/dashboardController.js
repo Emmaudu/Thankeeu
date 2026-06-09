@@ -118,7 +118,6 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
-module.exports = { getDashboard, markNotificationsRead, getDashboardStats };
 
 // Financial history — all gift contributions on creator's cards
 const getFinancialHistory = async (req, res) => {

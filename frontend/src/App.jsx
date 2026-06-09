@@ -29,6 +29,11 @@ import Admin            from './pages/Admin';
 import AdminLogin       from './pages/AdminLogin';
 import GiftCheckout     from './pages/GiftCheckout';
 import NotFound         from './pages/NotFound';
+import BirthdayPage    from './pages/occasions/Birthday';
+import FarewellPage    from './pages/occasions/Farewell';
+import AnniversaryPage from './pages/occasions/Anniversary';
+import PromotionPage   from './pages/occasions/Promotion';
+import WeddingPage     from './pages/occasions/Wedding';
 import VerifyEmail      from './pages/VerifyEmail';
 
 // Company (HR) pages
@@ -42,6 +47,10 @@ import SubscriptionPage       from './pages/company/SubscriptionPage';
 import SettingsPage           from './pages/company/SettingsPage';
 import SupportPage            from './pages/company/SupportPage';
 import MembersApprovalPage    from './pages/company/MembersApprovalPage';
+import OccasionsPage          from './pages/company/OccasionsPage';
+import TeamMembersPage        from './pages/company/TeamMembersPage';
+import CoreTeamPage           from './pages/company/CoreTeamPage';
+import OccasionPage           from './pages/OccasionPage';
 import DeductionRequestsPage  from './pages/company/DeductionRequestsPage';
 import HRISPage               from './pages/company/HRISPage';
 import Blog                   from './pages/Blog';
@@ -126,7 +135,13 @@ const App = () => (
             <Route path="/pricing"       element={<Pricing />} />
             <Route path="/policy"        element={<Policy />} />
             <Route path="/how-it-works"  element={<HowItWorks />} />
-            <Route path="/faq"           element={<FAQ />} />
+            <Route path="/occasions/birthday"    element={<BirthdayPage />} />
+            <Route path="/occasions/farewell"    element={<FarewellPage />} />
+            <Route path="/occasions/anniversary" element={<AnniversaryPage />} />
+            <Route path="/occasions/promotion"   element={<PromotionPage />} />
+            <Route path="/occasions/wedding"     element={<WeddingPage />} />
+            <Route path="/faq"            element={<FAQ />} />
+            <Route path="/occasions/:occasion" element={<OccasionPage />} />
             <Route path="/sign/:slug"    element={<SignCard />} />
             <Route path="/gift/:slug"    element={<GiftCheckout />} />
             {/* Email verification — public, no auth needed */}
@@ -171,6 +186,9 @@ const App = () => (
           <Route path="/blog"          element={<Blog />} />
           <Route path="/blog/:slug"    element={<BlogPost />} />
           <Route path="/company/hris"        element={<CompanyProtectedRoute><HRISPage /></CompanyProtectedRoute>} />
+          <Route path="/company/occasions"   element={<CompanyProtectedRoute><OccasionsPage /></CompanyProtectedRoute>} />
+          <Route path="/company/team-members" element={<CompanyProtectedRoute><TeamMembersPage /></CompanyProtectedRoute>} />
+          <Route path="/company/core-team"    element={<CompanyProtectedRoute><CoreTeamPage /></CompanyProtectedRoute>} />
 
             {/* ── Team member / leader auth ────────────────── */}
             <Route path="/member/signup"          element={<JoinCompanySignup />} />

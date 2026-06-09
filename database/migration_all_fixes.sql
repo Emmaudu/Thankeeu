@@ -186,8 +186,152 @@ CREATE INDEX IF NOT EXISTS idx_company_subs_company ON company_subscriptions(com
 CREATE INDEX IF NOT EXISTS idx_company_subs_status  ON company_subscriptions(company_id, status);
 
 -- Subscription columns on companies table
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_status     TEXT DEFAULT 'inactive';
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_plan       TEXT;
-ALTER TABLE companies ADD COLUMN IF NOT EXISTS subscription_expires_at TIMESTAMPTZ;
 
 SELECT 'Migration complete ✅' AS result;
+
+-- ── Visitor tracking table ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS card_visitors (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  card_id         UUID REFERENCES cards(id) ON DELETE CASCADE,
+  card_slug       TEXT,
+  occasion        TEXT,
+  author_name     TEXT,
+  author_email    TEXT,
+  converted       BOOLEAN DEFAULT FALSE,
+  converted_user_id UUID,
+  converted_at    TIMESTAMPTZ,
+  emails_sent     INTEGER DEFAULT 0,
+  last_email_at   TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_card_visitors_email  ON card_visitors(author_email) WHERE author_email IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_card_visitors_converted ON card_visitors(converted);
+
+-- ── Birthday on users table ────────────────────────────────────────────
+ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+
+-- ── Terms accepted timestamp ───────────────────────────────────────────
+ALTER TABLE users ADD COLUMN IF NOT EXISTS terms_accepted_at TIMESTAMPTZ;
+
+-- ── Session tracking (optional) ───────────────────────────────────────
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMPTZ;
+
+-- ── occasion_members extra columns ────────────────────────────────────
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS notification_scope TEXT DEFAULT 'department';
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS farewell            BOOLEAN DEFAULT FALSE;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS meta               JSONB;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS gender             TEXT;
+
+-- ── HR core team table ────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS company_core_team (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id      UUID NOT NULL,
+  email           TEXT NOT NULL,
+  full_name       TEXT,
+  title           TEXT,                    -- CEO, CFO, COO, HR Assistant, etc.
+  permission_level TEXT DEFAULT 'medium' CHECK (permission_level IN ('full','medium','limited')),
+  include_in_celebrations BOOLEAN DEFAULT TRUE,
+  member_id       UUID REFERENCES company_members(id) ON DELETE SET NULL,
+  invite_token    TEXT,
+  invite_accepted BOOLEAN DEFAULT FALSE,
+  invited_at      TIMESTAMPTZ DEFAULT NOW(),
+  accepted_at     TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_core_team_company ON company_core_team(company_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_core_team_email ON company_core_team(company_id, email);
+
+-- ── invite_token column for company_members ───────────────────────────
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS invite_token TEXT;
+
+-- ── REQUIRED FOR ALL 21 FEATURES ────────────────────────────────────────────
+
+-- Demo requests table
+CREATE TABLE IF NOT EXISTS demo_requests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_name TEXT NOT NULL,
+  contact_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  team_size TEXT,
+  message TEXT,
+  status TEXT DEFAULT 'new' CHECK (status IN ('new','contacted','scheduled','converted','declined')),
+  admin_note TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_demo_requests_status ON demo_requests(status);
+CREATE INDEX IF NOT EXISTS idx_demo_requests_email  ON demo_requests(email);
+
+-- Visitors table (guest card signers — for nurture emails)
+CREATE TABLE IF NOT EXISTS visitors (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT NOT NULL,
+  full_name TEXT,
+  card_id UUID REFERENCES cards(id) ON DELETE SET NULL,
+  card_slug TEXT,
+  occasion TEXT,
+  creator_name TEXT,
+  nudge_count INTEGER DEFAULT 0,
+  last_nudged_at TIMESTAMPTZ,
+  converted_to_user UUID REFERENCES users(id) ON DELETE SET NULL,
+  converted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_visitors_email     ON visitors(email);
+CREATE INDEX IF NOT EXISTS idx_visitors_converted ON visitors(converted_to_user);
+
+-- Core team invites
+CREATE TABLE IF NOT EXISTS core_team_invites (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id UUID REFERENCES companies(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role_label TEXT DEFAULT 'Team Member',
+  privilege TEXT DEFAULT 'limited' CHECK (privilege IN ('full','medium','limited')),
+  invited_by UUID,
+  accepted_at TIMESTAMPTZ,
+  birthday_notifications BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(company_id, email)
+);
+
+-- Media gallery column for messages
+ALTER TABLE messages ADD COLUMN IF NOT EXISTS media_gallery JSONB;
+
+-- Birthday field for users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS birthday DATE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS birthday_reminded_7d BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS birthday_reminded_2d BOOLEAN DEFAULT FALSE;
+
+-- Occasion type default_scope
+ALTER TABLE occasion_types ADD COLUMN IF NOT EXISTS default_scope TEXT DEFAULT 'department';
+
+-- Team member extra columns
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS promotion_level INTEGER DEFAULT 0;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS promotion_message TEXT;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS promotion_scope TEXT DEFAULT 'all';
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS farewell_flagged BOOLEAN DEFAULT FALSE;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS farewell_scope TEXT DEFAULT 'department';
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS gender TEXT;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS job_title TEXT;
+ALTER TABLE team_members ADD COLUMN IF NOT EXISTS phone TEXT;
+
+-- Company members extra columns
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS bio TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS job_title TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS date_of_birth DATE;
+
+-- Occasion members extra columns
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS notification_scope TEXT DEFAULT 'department';
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS farewell BOOLEAN DEFAULT FALSE;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS farewell_scope TEXT DEFAULT 'department';
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS promotion_level INTEGER DEFAULT 0;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS promotion_message TEXT;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS promotion_scope TEXT DEFAULT 'all';
+
+-- Subscription columns on companies

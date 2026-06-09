@@ -9,7 +9,7 @@ const generateToken = (userId) =>
 
 const signup = async (req, res) => {
   try {
-    const { full_name, email, password, username } = req.body;
+    const { full_name, email, password, username, date_of_birth } = req.body;
 
     if (!full_name || !email || !password)
       return res.status(400).json({ error: 'Name, email and password are required' });
@@ -36,7 +36,11 @@ const signup = async (req, res) => {
 
     const { data: user, error } = await supabase
       .from('users')
-      .insert({ full_name, email: cleanEmail, username: cleanUsername, password_hash, verification_token })
+      .insert({
+        full_name, email: cleanEmail, username: cleanUsername, password_hash, verification_token,
+        ...(date_of_birth ? { date_of_birth } : {}),
+        terms_accepted_at: new Date(),
+      })
       .select('id, email, full_name, username, role, avatar_url, is_verified')
       .single();
 

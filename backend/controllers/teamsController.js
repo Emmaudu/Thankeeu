@@ -1,3 +1,4 @@
+const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
 const XLSX = require('xlsx');
 const { nanoid } = require('nanoid');
@@ -113,6 +114,21 @@ const importTeamMembers = async (req, res) => {
       .select();
 
     if (error) throw error;
+
+    // Point 21: Email every imported member
+    setImmediate(async () => {
+      const appUrl = process.env.APP_URL || 'https://thankeeu.com';
+      const { data: co } = await supabase.from('companies').select('name').eq('id', req.company.id).single().catch(()=>({data:null}));
+      for (const m of (data||[])) {
+        await sendEmail({ to: m.email, template:'teamMemberInvite', data:{
+          name: m.first_name,
+          companyName: co?.name || 'Your Company',
+          companyCode: req.company.id,
+          inviteLink: `${appUrl}/member/signup?company=${req.company.id}`,
+          appUrl,
+        }}).catch(()=>{});
+      }
+    });
 
     res.json({
       message: `Successfully imported ${data.length} team members`,

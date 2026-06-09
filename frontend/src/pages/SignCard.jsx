@@ -1,6 +1,6 @@
 import { useSEO } from '../hooks/useSEO';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI } from '../utils/api';
@@ -13,21 +13,24 @@ import { formatNGN } from '../utils/currency';
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
 
 const SignCard = () => {
-  const { slug }      = useParams();
-  const navigate      = useNavigate();
-  const { user }      = useAuth();
-  const { member }    = useMemberAuth();
-  const isSignedIn    = !!(user || member);
+  const { slug }       = useParams();
+  const { user }       = useAuth();
+  const { member }     = useMemberAuth();
+  const isSignedIn     = !!(user || member);
   const [searchParams] = useSearchParams();
 
-  const [card,       setCard]       = useState(null);
-  const [loading,    setLoading]    = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted,  setSubmitted]  = useState(false);
+  const [card,        setCard]        = useState(null);
+  const [loading,     setLoading]     = useState(true);
+  const [submitting,  setSubmitting]  = useState(false);
+  // 'idle' | 'sending' | 'paying' | 'verifying' | 'done'
+  const [stage,       setStage]       = useState('idle');
+  const [submitted,   setSubmitted]   = useState(false);
+  // track whether the signee created an account during this signing flow
+  const [createdAccount, setCreatedAccount] = useState(false);
 
   // Media files (up to 5, carousel)
-  const [mediaFiles, setMediaFiles] = useState([]);
-  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [mediaFiles,   setMediaFiles]   = useState([]);
+  const [carouselIdx,  setCarouselIdx]  = useState(0);
   const fileRef = useRef();
 
   const [selectedAmount, setSelectedAmount] = useState(null);
@@ -41,16 +44,13 @@ const SignCard = () => {
     font_style:   'handwritten',
   });
 
-  // Guest vs sign-up mode
-  // 'guest' | 'signup' | null (not chosen yet — shown just before submit)
-  const [submitMode, setSubmitMode] = useState(null); // null = pre-choice
-  const [showModeChooser, setShowModeChooser] = useState(false);
+  // 'guest' | 'signup' — radio selection shown after gift box
+  const [submitMode, setSubmitMode] = useState('guest');
 
-  // Sign-up form
+  // Sign-up form fields
   const [signupForm, setSignupForm] = useState({
-    full_name: '', email: '', password: '', date_of_birth: ''
+    full_name: '', username: '', email: '', password: '', confirm_password: '', date_of_birth: '',
   });
-  const [signingUp, setSigningUp] = useState(false);
 
   useSEO({
     title: card ? `Sign ${card.recipient_name}'s card on Thankeeu` : 'Sign a Card — Thankeeu',
@@ -90,7 +90,6 @@ const SignCard = () => {
     }
   };
 
-  // Media management — up to 5 files
   const addMediaFiles = useCallback((files) => {
     const items = [];
     for (const f of Array.from(files)) {
@@ -102,10 +101,7 @@ const SignCard = () => {
                  : 'image';
       items.push({ file: f, preview: URL.createObjectURL(f), type, name: f.name });
     }
-    setMediaFiles(prev => {
-      const combined = [...prev, ...items].slice(0, 5);
-      return combined;
-    });
+    setMediaFiles(prev => [...prev, ...items].slice(0, 5));
   }, []);
 
   const removeMedia = useCallback((idx) => {
@@ -113,79 +109,98 @@ const SignCard = () => {
       const next = [...prev];
       URL.revokeObjectURL(next[idx].preview);
       next.splice(idx, 1);
-      setCarouselIdx(i => Math.min(i, next.length - 1));
+      setCarouselIdx(i => Math.min(i, Math.max(0, next.length - 1)));
       return next;
     });
   }, []);
 
-  // Contribution verification
-  const verifyContribution = async (ref) => {
+  // Retry-loop verify for gift contribution
+  const verifyGiftContribution = async (txRef) => {
     for (let i = 0; i < 4; i++) {
-      try { await paymentsAPI.verify(ref); return; }
-      catch (e) { if (i === 3) throw e; await new Promise(r => setTimeout(r, 600 * (i + 1))); }
+      try { return await paymentsAPI.verify(txRef); }
+      catch (e) { if (i === 3) throw e; await new Promise(r => setTimeout(r, 800 * (i + 1))); }
     }
   };
 
-  // Pre-submit: show mode chooser if not already logged in
-  const handleSubmitClick = () => {
+  const handleSubmit = async () => {
     if (!form.author_name.trim()) return toast.error('Please add your name');
-    if (!form.content.trim()) return toast.error('Please write a message');
-    if (isSignedIn) { doSubmit('authenticated'); return; }
-    if (!showModeChooser) { setShowModeChooser(true); return; }
-    // already showing — user hasn't chosen yet
-  };
+    if (!form.content.trim())     return toast.error('Please write a message');
 
-  const doSubmit = async (mode) => {
     const amountNGN = Number(customAmount || selectedAmount || 0);
     const wantsGift = card.is_gift_enabled && amountNGN >= 2500;
-    const emailNeeded = wantsGift || mode === 'signup';
-    if (emailNeeded && !form.author_email.trim())
+
+    // Email required if paying or creating account
+    if ((wantsGift || submitMode === 'signup') && !form.author_email.trim())
       return toast.error('Please enter your email address');
 
+    // Validate signup fields if chosen
+    if (!isSignedIn && submitMode === 'signup') {
+      const { full_name, username, email, password, confirm_password } = signupForm;
+      const resolvedName  = full_name  || form.author_name;
+      const resolvedEmail = email      || form.author_email;
+      if (!resolvedName.trim())       return toast.error('Please enter your full name');
+      if (!username.trim())           return toast.error('Please choose a username');
+      if (username.trim().length < 3) return toast.error('Username must be at least 3 characters');
+      if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) return toast.error('Username can only contain letters, numbers and underscores');
+      if (!resolvedEmail.trim())      return toast.error('Please enter your email');
+      if (!password)                  return toast.error('Please choose a password');
+      if (password.length < 8)        return toast.error('Password must be at least 8 characters');
+      if (password !== confirm_password) return toast.error('Passwords do not match');
+    }
+
     setSubmitting(true);
+    setStage('sending');
+
     try {
+      // ── STEP 1: Upload message (no gift yet, message saved to DB) ──────────
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
-      // mark as guest if not authenticated
-      if (mode === 'guest' && !isSignedIn) fd.append('is_guest', 'true');
+      if (!isSignedIn && submitMode === 'guest') fd.append('is_guest', 'true');
 
       const msgRes = await messagesAPI.add(slug, fd);
+      const messageId = msgRes.data?.id;
 
-      // Attempt to create account if signup mode
-      if (mode === 'signup' && signupForm.password) {
-        setSigningUp(true);
+      // ── STEP 2: Create account if chosen (non-blocking on failure) ─────────
+      if (!isSignedIn && submitMode === 'signup') {
+        const resolvedName  = signupForm.full_name  || form.author_name;
+        const resolvedEmail = signupForm.email      || form.author_email;
         try {
           await authAPI.signup({
-            full_name:     signupForm.full_name || form.author_name,
-            email:         signupForm.email    || form.author_email,
+            full_name:     resolvedName,
+            username:      signupForm.username.trim().toLowerCase(),
+            email:         resolvedEmail,
             password:      signupForm.password,
             date_of_birth: signupForm.date_of_birth || null,
           });
+          setCreatedAccount(true);
           toast.success('Account created! Check your email to verify. 🎉');
         } catch (err) {
-          toast(err.response?.data?.error || 'Could not create account but your message was saved!');
-        } finally { setSigningUp(false); }
+          toast(err.response?.data?.error || 'Could not create account — your message was still saved!');
+        }
       }
 
+      // ── STEP 3: Payment (only if gift selected) ────────────────────────────
       if (!wantsGift) {
         setSubmitted(true);
+        setSubmitting(false);
+        setStage('idle');
         return;
       }
 
-      // Handle gift payment
+      setStage('paying');
       const payRes = await paymentsAPI.initContribution({
-        card_slug:          slug,
-        contributor_name:   form.author_name,
-        contributor_email:  form.author_email,
-        amount:             amountNGN,
-        message_id:         msgRes.data?.id,
+        card_slug:         slug,
+        contributor_name:  form.author_name,
+        contributor_email: form.author_email,
+        amount:            amountNGN,
+        message_id:        messageId,
       });
       const { payment_link, tx_ref, integrity_hash } = payRes.data;
 
-      // Flutterwave inline checkout
-      if (window.FlutterwaveCheckout && payment_link) {
-        const cfg = {
+      // ── STEP 4: Open Flutterwave inline checkout ───────────────────────────
+      if (window.FlutterwaveCheckout && payment_link && tx_ref) {
+        window.FlutterwaveCheckout({
           public_key:      import.meta.env.VITE_FLW_PUBLIC_KEY,
           tx_ref,
           amount:          amountNGN,
@@ -193,30 +208,54 @@ const SignCard = () => {
           payment_options: 'card,ussd,bank_transfer',
           customer:        { email: form.author_email, name: form.author_name },
           customizations:  { title: `Gift for ${card?.recipient_name}`, logo: '/logo.png' },
-          callback: async () => {
-            window.FlutterwaveCheckout?.close?.();
+          ...(integrity_hash ? { meta: { integrity_hash } } : {}),
+
+          // ── callback fires AFTER successful payment ────────────────────────
+          callback: async (response) => {
+            // DO NOT call close() here — FLW closes itself after callback resolves
+            setStage('verifying');
+            const ref = response?.tx_ref || tx_ref;
             try {
-              await verifyContribution(tx_ref);
+              await verifyGiftContribution(ref);
               toast.success('Your message and gift are on the card! 🎉');
-              setSubmitted(true); fetchCard();
-            } catch {
-              toast.error('Gift paid but verification pending — your card is saved!');
               setSubmitted(true);
-            } finally { setSubmitting(false); }
+              fetchCard(); // refresh gift pot total
+            } catch {
+              // Payment went through but verify timed out — still count as done
+              toast.success('Gift received! Verification is processing. 🎉');
+              setSubmitted(true);
+            } finally {
+              setSubmitting(false);
+              setStage('idle');
+            }
           },
-          onclose: () => { toast('Message saved. Gift was not completed.'); setSubmitted(true); setSubmitting(false); },
-        };
-        if (integrity_hash) cfg.meta = { integrity_hash };
-        window.FlutterwaveCheckout(cfg);
+
+          // ── onclose fires when user dismisses WITHOUT paying ───────────────
+          onclose: () => {
+            // Message was already saved (step 1) — show success without gift
+            toast('Message saved. Gift was not completed.');
+            setSubmitted(true);
+            setSubmitting(false);
+            setStage('idle');
+          },
+        });
+        // Do NOT setSubmitting(false) here — callback/onclose will handle it
         return;
       }
-      if (payment_link) window.location.assign(payment_link);
+
+      // Fallback: hosted checkout page (mobile browsers that block popups)
+      if (payment_link) {
+        window.location.assign(payment_link);
+      }
+
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not sign card. Please try again.');
       setSubmitting(false);
+      setStage('idle');
     }
   };
 
+  // ── Loading / not-found states ─────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen grid place-items-center" style={{ background:'#F5F3FF' }}>
       <div className="text-center">
@@ -236,12 +275,13 @@ const SignCard = () => {
     </div>
   );
 
-  const design     = getCardDesign(card.design_theme);
-  const cardFont   = getFontStyle(card.font_style);
-  const msgFont    = getFontStyle(form.font_style);
-  const deadline   = card.deadline ? new Date(card.deadline) : null;
-  const hoursLeft  = deadline ? Math.max(0, Math.round((deadline - new Date()) / 3600000)) : null;
+  const design   = getCardDesign(card.design_theme);
+  const cardFont = getFontStyle(card.font_style);
+  const msgFont  = getFontStyle(form.font_style);
+  const deadline = card.deadline ? new Date(card.deadline) : null;
+  const hoursLeft = deadline ? Math.max(0, Math.round((deadline - new Date()) / 3600000)) : null;
 
+  // ── Success / congrats screen ──────────────────────────────────────────────
   if (submitted) return (
     <div className="min-h-screen flex flex-col" style={{ background: design.background }}>
       <Navbar />
@@ -251,7 +291,9 @@ const SignCard = () => {
           <p className="text-xs font-extrabold tracking-[.2em] uppercase mb-2" style={{ color: design.accent }}>Message delivered!</p>
           <h2 className="text-3xl font-bold text-warm-900 mb-3">You are on {card.recipient_name}'s card! 🎉</h2>
           <p className="text-warm-600 mb-7">Your heartfelt note is now part of their special celebration.</p>
-          {!isSignedIn && (
+
+          {/* Only show "create account" promo if they signed as guest (not if they already created one) */}
+          {!isSignedIn && !createdAccount && (
             <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4 mb-6 text-left">
               <p className="text-sm font-semibold text-primary-700 mb-2">💡 Create a free account to:</p>
               <ul className="text-xs text-primary-600 space-y-1">
@@ -259,11 +301,12 @@ const SignCard = () => {
                 <li>✓ Receive group cards on your birthday</li>
                 <li>✓ Create cards for others easily</li>
               </ul>
-              <Link to={`/signup`} className="mt-3 block w-full text-center py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white">
+              <Link to="/signup" className="mt-3 block w-full text-center py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white">
                 Create free account →
               </Link>
             </div>
           )}
+
           <button
             onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Sign ${card.recipient_name}'s special card: ${window.location.origin}/sign/${slug}`)}`, '_blank')}
             className="w-full py-4 rounded-2xl font-bold text-white" style={{ background:'#25D366' }}>
@@ -274,8 +317,18 @@ const SignCard = () => {
     </div>
   );
 
+  const amountNGN = Number(customAmount || selectedAmount || 0);
+  const wantsGift = card.is_gift_enabled && amountNGN >= 2500;
+
+  const stageLabel = {
+    sending:   'Saving your message...',
+    paying:    'Opening payment...',
+    verifying: 'Confirming payment...',
+  }[stage];
+
+  // ── Main signing form ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col" style={{ background:'#F8F6FF' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: `linear-gradient(160deg, #F8F6FF 0%, ${design.background.includes("gradient") ? "#F0EDFF" : design.soft || "#F0EDFF"} 100%)` }}>
       <Navbar />
       <main className="flex-1">
 
@@ -292,9 +345,7 @@ const SignCard = () => {
             <h1 className="max-w-3xl mx-auto mb-4 text-3xl sm:text-4xl font-bold" style={{ color: design.ink, fontFamily: cardFont.family }}>
               {card.title || `A special card for ${card.recipient_name}`}
             </h1>
-            <p className="text-lg opacity-80 mb-6">
-              Add your words, a memory, a voice note, and an optional gift. ✨
-            </p>
+            <p className="text-lg opacity-80 mb-6">Add your words, a memory, a voice note, and an optional gift. ✨</p>
             <div className="flex flex-wrap justify-center gap-2">
               <span className="bg-white/80 text-warm-800 rounded-full px-4 py-2 text-sm font-bold shadow-sm">{card.signed_count || 0} people signed</span>
               {card.is_gift_enabled && card.total_collected > 0 && (
@@ -304,11 +355,11 @@ const SignCard = () => {
           </div>
         </section>
 
-        {/* Form */}
+        {/* Form — two-column on large screens */}
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 grid lg:grid-cols-[1fr_.82fr] gap-7 items-start">
-          <section className="glass-panel rounded-[2rem] p-5 sm:p-8">
 
-            {/* Identity */}
+          {/* ── Left: message form ── */}
+          <section className="rounded-[2rem] p-5 sm:p-8" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.97) 0%, rgba(245,240,255,0.95) 100%)", border: `2px solid ${design.accent}25`, boxShadow: `0 8px 40px ${design.accent}18` }}>
             <div className="mb-7">
               <span className="text-sm font-extrabold tracking-[.2em] uppercase text-primary-600">Your signature</span>
               <h2 className="text-2xl sm:text-3xl text-warm-900 mt-2 font-bold">Make it personal 💜</h2>
@@ -323,7 +374,7 @@ const SignCard = () => {
               </div>
               <div>
                 <label className="block text-sm font-bold text-warm-700 mb-2">
-                  Your email {card.is_gift_enabled ? '(for gifts)' : '(optional)'}
+                  Your email {card.is_gift_enabled ? '(required for gifts)' : '(optional)'}
                 </label>
                 <input type="email" className="input text-base" placeholder="kemi@email.com"
                   value={form.author_email} onChange={e => setForm(p=>({...p, author_email: e.target.value}))} />
@@ -364,10 +415,9 @@ const SignCard = () => {
                 multiple className="hidden" onChange={e => addMediaFiles(e.target.files)} />
             </div>
 
-            {/* Carousel preview of uploaded media */}
+            {/* Carousel preview */}
             {mediaFiles.length > 0 && (
               <div className="mb-5 rounded-2xl overflow-hidden border-2 border-purple-100 bg-white">
-                {/* Main preview */}
                 <div className="relative" style={{ aspectRatio:'16/9', background:'#1A1035' }}>
                   {mediaFiles[carouselIdx].type === 'video' ? (
                     <video src={mediaFiles[carouselIdx].preview} className="w-full h-full object-contain" controls />
@@ -379,12 +429,8 @@ const SignCard = () => {
                   ) : (
                     <img src={mediaFiles[carouselIdx].preview} alt="" className="w-full h-full object-contain" />
                   )}
-                  {/* Remove button */}
                   <button type="button" onClick={() => removeMedia(carouselIdx)}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-sm flex items-center justify-center hover:bg-red-500 transition-colors">
-                    ✕
-                  </button>
-                  {/* Navigation arrows */}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-sm flex items-center justify-center hover:bg-red-500 transition-colors">✕</button>
                   {mediaFiles.length > 1 && (
                     <>
                       <button type="button" onClick={() => setCarouselIdx(i => (i - 1 + mediaFiles.length) % mediaFiles.length)}
@@ -394,7 +440,6 @@ const SignCard = () => {
                     </>
                   )}
                 </div>
-                {/* Thumbnails */}
                 {mediaFiles.length > 1 && (
                   <div className="flex gap-2 p-2 overflow-x-auto" style={{ scrollbarWidth:'none' }}>
                     {mediaFiles.map((m, i) => (
@@ -431,41 +476,65 @@ const SignCard = () => {
             )}
           </section>
 
-          {/* Right panel */}
+          {/* ── Right: preview + gift + mode chooser + submit ── */}
           <aside className="space-y-5 lg:sticky lg:top-24">
 
-            {/* Live preview */}
-            <div className={`card-art ${cardArtClass(design)} celebration-shell rounded-[2rem] p-6 min-h-[320px] flex flex-col overflow-hidden`}
-              style={{ background: design.background, color: design.ink }}>
-              <div className="flex justify-between items-center mb-5">
-                <span className="text-3xl">{design.icon}</span>
-                <span className="text-xs font-extrabold tracking-[.18em] uppercase opacity-60">Live preview</span>
+            {/* Live preview — image first, text below, overflow-contained */}
+            <div
+              className={`card-art ${cardArtClass(design)} celebration-shell rounded-[2rem] overflow-hidden flex flex-col`}
+              style={{ background: design.background, color: design.ink, minWidth: 0, width: '100%' }}
+            >
+              {/* Header badge */}
+              <div className="flex justify-between items-center px-5 pt-5 pb-3 flex-shrink-0">
+                <span className="text-2xl">{design.icon}</span>
+                <span className="text-xs font-extrabold tracking-[.18em] uppercase opacity-60" style={{ color: design.ink }}>Live preview</span>
               </div>
-              <p className="whitespace-pre-wrap break-words w-full flex-1 text-base" style={{ color: design.ink, fontFamily: msgFont.family, fontSize: form.font_style === 'calligraphy' ? '1.5rem' : form.font_style === 'handwritten' ? '1.2rem' : '1rem', lineHeight: 1.55 }}>
-                {form.content || `Your beautiful message for ${card.recipient_name} will appear here...`}
-              </p>
+
+              {/* Media FIRST — shown above text */}
               {mediaFiles.length > 0 && (
-                <div className="mt-3">
-                  {mediaFiles[0].type === 'image' || mediaFiles[0].type === 'gif'
-                    ? <img src={mediaFiles[0].preview} alt="" className="w-full rounded-xl object-cover max-h-48" />
-                    : mediaFiles[0].type === 'video'
-                    ? <video src={mediaFiles[0].preview} className="w-full rounded-xl max-h-48 object-cover" />
-                    : <div className="flex items-center gap-2 p-2.5 rounded-xl text-sm" style={{background:'rgba(255,255,255,0.3)'}}>🎙️ Voice note attached</div>
-                  }
-                  {mediaFiles.length > 1 && <p className="text-xs opacity-60 mt-1 text-center">+{mediaFiles.length-1} more photo{mediaFiles.length > 2 ? 's' : ''}</p>}
+                <div className="flex-shrink-0 px-4 pb-3">
+                  {mediaFiles[0].type === 'image' || mediaFiles[0].type === 'gif' ? (
+                    <img src={mediaFiles[0].preview} alt="" className="w-full rounded-2xl object-cover max-h-52" />
+                  ) : mediaFiles[0].type === 'video' ? (
+                    <video src={mediaFiles[0].preview} className="w-full rounded-2xl max-h-52 object-cover" />
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 rounded-2xl text-sm font-medium" style={{background:'rgba(255,255,255,0.3)', color: design.ink}}>🎙️ Voice note attached</div>
+                  )}
+                  {mediaFiles.length > 1 && (
+                    <p className="text-xs opacity-60 mt-1 text-center" style={{ color: design.ink }}>+{mediaFiles.length-1} more photo{mediaFiles.length > 2 ? 's' : ''}</p>
+                  )}
                 </div>
               )}
-              <div className="border-t mt-4 pt-3" style={{ borderColor: `${design.accent}35` }}>
-                <p className="font-bold text-base" style={{ color: design.ink }}>{form.author_name || 'Your name'}</p>
+
+              {/* Text below media */}
+              <div className="flex-1 min-w-0 px-5 pb-3">
+                <p
+                  className="whitespace-pre-wrap break-words w-full"
+                  style={{
+                    color: design.ink,
+                    fontFamily: msgFont.family,
+                    fontSize: form.font_style === 'calligraphy' ? '1.4rem' : form.font_style === 'handwritten' ? '1.1rem' : '0.95rem',
+                    lineHeight: 1.55,
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {form.content || `Your beautiful message for ${card.recipient_name} will appear here...`}
+                </p>
+              </div>
+
+              {/* Author signature */}
+              <div className="border-t mx-5 mt-1 mb-4 pt-3 flex-shrink-0" style={{ borderColor: `${design.accent}35` }}>
+                <p className="font-bold text-sm" style={{ color: design.ink }}>{form.author_name || 'Your name'}</p>
               </div>
             </div>
 
             {/* Gift section */}
             {card.is_gift_enabled && (
-              <div className="glass-panel rounded-[2rem] p-5 sm:p-6">
+              <div className="rounded-[2rem] p-5 sm:p-6" style={{ background: `linear-gradient(135deg, ${design.background.includes("gradient") ? "rgba(255,255,255,0.96)" : design.background}, rgba(255,255,255,0.96))`, border: `2px solid ${design.accent}30`, boxShadow: `0 4px 24px ${design.accent}15` }}>
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
-                    <h3 className="text-xl font-bold text-warm-900">Add a gift 🎁</h3>
+                    <h3 className="text-xl font-bold" style={{ color: design.accent }}>Add a gift 🎁</h3>
                     <p className="text-sm text-warm-500 mt-1">Optional · Secure via Flutterwave</p>
                   </div>
                 </div>
@@ -493,68 +562,79 @@ const SignCard = () => {
               </div>
             )}
 
-            {/* Submit / Mode chooser */}
-            {!showModeChooser || isSignedIn ? (
-              <button onClick={handleSubmitClick} disabled={submitting}
-                className="w-full btn-rose py-4 text-base rounded-2xl font-bold">
-                {submitting
-                  ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Adding your magic...</span>
-                  : `✍️ Sign this card${card.is_gift_enabled && (customAmount || selectedAmount) ? ` + ${formatNGN(Number(customAmount||selectedAmount))} gift` : ''}`
-                }
-              </button>
-            ) : (
-              /* Mode chooser — shown just before submit for unauthenticated visitors */
-              <div className="glass-panel rounded-[2rem] p-5 border-2 border-primary-200 space-y-4">
-                <div className="text-center">
-                  <p className="text-base font-bold text-warm-900 mb-1">One more step! 🎉</p>
-                  <p className="text-sm text-warm-500">Choose how you'd like to continue</p>
-                </div>
+            {/* ── Continue mode — radio toggles shown for unauthenticated users ── */}
+            {!isSignedIn && (
+              <div className="rounded-[2rem] p-5 space-y-3" style={{ background: "rgba(255,255,255,0.95)", border: `2px solid ${design.accent}25`, boxShadow: `0 4px 20px ${design.accent}12` }}>
+                <p className="text-sm font-extrabold uppercase tracking-widest" style={{ color: design.accent }}>How to continue</p>
 
-                {/* Guest option */}
-                <button onClick={() => doSubmit('guest')} disabled={submitting}
-                  className="w-full flex items-start gap-3 p-4 rounded-xl border-2 border-purple-100 hover:border-primary-300 hover:bg-primary-50 transition-all text-left">
-                  <span className="text-2xl flex-shrink-0 mt-0.5">👤</span>
+                {/* Guest radio */}
+                <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${submitMode === 'guest' ? 'border-primary-400 bg-primary-50' : 'border-purple-100 bg-white hover:border-purple-200'}`}>
+                  <input type="radio" name="submitMode" value="guest"
+                    checked={submitMode === 'guest'} onChange={() => setSubmitMode('guest')}
+                    className="accent-violet-600 w-4 h-4 flex-shrink-0" />
                   <div>
-                    <p className="text-base font-bold text-warm-900">Continue as Guest</p>
-                    <p className="text-sm text-warm-500">Just sign the card. No account needed.</p>
+                    <p className="font-bold text-warm-900 text-sm">Continue as Guest</p>
+                    <p className="text-xs text-warm-500">Just sign the card. No account needed.</p>
                   </div>
-                </button>
+                </label>
 
-                {/* Sign up option */}
-                <div className="border-2 border-purple-200 rounded-xl overflow-hidden">
-                  <button onClick={() => setSubmitMode(submitMode === 'signup' ? null : 'signup')}
-                    className="w-full flex items-start gap-3 p-4 hover:bg-purple-50 transition-all text-left">
-                    <span className="text-2xl flex-shrink-0 mt-0.5">✨</span>
-                    <div className="flex-1">
-                      <p className="text-base font-bold text-warm-900">Create account &amp; sign card</p>
-                      <p className="text-sm text-warm-500">Get your own group cards &amp; gift pots!</p>
-                    </div>
-                    <span className="text-primary-500 font-bold text-lg">{submitMode === 'signup' ? '▲' : '▼'}</span>
-                  </button>
+                {/* Create account radio */}
+                <label className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${submitMode === 'signup' ? 'border-primary-400 bg-primary-50' : 'border-purple-100 bg-white hover:border-purple-200'}`}>
+                  <input type="radio" name="submitMode" value="signup"
+                    checked={submitMode === 'signup'} onChange={() => setSubmitMode('signup')}
+                    className="accent-violet-600 w-4 h-4 flex-shrink-0" />
+                  <div>
+                    <p className="font-bold text-warm-900 text-sm">Create account &amp; sign card</p>
+                    <p className="text-xs text-warm-500">Get your own group cards &amp; gift pots!</p>
+                  </div>
+                </label>
 
-                  {submitMode === 'signup' && (
-                    <div className="px-4 pb-4 pt-0 space-y-3 bg-purple-50 border-t border-purple-100">
-                      <input className="input text-base" placeholder="Full name *"
-                        value={signupForm.full_name} onChange={e => setSignupForm(p=>({...p,full_name:e.target.value}))} />
-                      <input type="email" className="input text-base" placeholder="Email address *"
-                        value={signupForm.email || form.author_email}
-                        onChange={e => setSignupForm(p=>({...p,email:e.target.value}))} />
-                      <input type="password" className="input text-base" placeholder="Create a password *"
-                        value={signupForm.password} onChange={e => setSignupForm(p=>({...p,password:e.target.value}))} />
-                      <div>
-                        <label className="block text-sm text-warm-600 mb-1">🎂 Your birthday (so we can celebrate you!)</label>
-                        <input type="date" className="input text-base"
-                          value={signupForm.date_of_birth} onChange={e => setSignupForm(p=>({...p,date_of_birth:e.target.value}))} />
-                      </div>
-                      <button onClick={() => doSubmit('signup')} disabled={submitting || !signupForm.password}
-                        className="w-full btn-primary py-3 text-base font-bold rounded-xl disabled:opacity-50">
-                        {submitting ? 'Signing card & creating account...' : '🚀 Sign card & create account'}
-                      </button>
+                {/* Signup form — shown when radio = signup */}
+                {submitMode === 'signup' && (
+                  <div className="rounded-2xl border-2 border-primary-200 bg-primary-50 p-4 space-y-3">
+                    <input className="input text-base" placeholder="Full name *"
+                      value={signupForm.full_name || form.author_name}
+                      onChange={e => setSignupForm(p=>({...p, full_name: e.target.value}))} />
+                    <input className="input text-base" placeholder="Username * (letters, numbers, _)"
+                      value={signupForm.username}
+                      onChange={e => setSignupForm(p=>({...p, username: e.target.value.replace(/[^a-zA-Z0-9_]/g,'')}))} />
+                    <input type="email" className="input text-base" placeholder="Email address *"
+                      value={signupForm.email || form.author_email}
+                      onChange={e => setSignupForm(p=>({...p, email: e.target.value}))} />
+                    <input type="password" className="input text-base" placeholder="Create a password * (min 8 chars)"
+                      value={signupForm.password}
+                      onChange={e => setSignupForm(p=>({...p, password: e.target.value}))} />
+                    <input type="password" className="input text-base" placeholder="Confirm password *"
+                      value={signupForm.confirm_password}
+                      onChange={e => setSignupForm(p=>({...p, confirm_password: e.target.value}))} />
+                    <div>
+                      <label className="block text-xs text-warm-600 mb-1">🎂 Your birthday (optional — so we celebrate you!)</label>
+                      <input type="date" className="input text-base"
+                        value={signupForm.date_of_birth}
+                        onChange={e => setSignupForm(p=>({...p, date_of_birth: e.target.value}))} />
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* ── Independent submit button ── */}
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full py-4 text-base rounded-2xl font-extrabold disabled:opacity-60 transition-all"
+              style={{ background: `linear-gradient(135deg, ${design.accent}, ${design.accent}cc)`, color: "#fff", boxShadow: `0 4px 20px ${design.accent}55`, border: "none" }}
+            >
+              {submitting
+                ? <span className="flex items-center justify-center gap-2">
+                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
+                    {stageLabel || 'Processing...'}
+                  </span>
+                : wantsGift
+                  ? `✍️ Sign card + pay ${formatNGN(amountNGN)} gift`
+                  : `✍️ Sign this card`
+              }
+            </button>
 
             <p className="text-center text-sm text-warm-400">Secured by Flutterwave · Your message is private until delivery</p>
           </aside>

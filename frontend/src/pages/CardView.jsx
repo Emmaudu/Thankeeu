@@ -164,65 +164,71 @@ const Media = ({ message, large = false }) => {
 const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }) => {
   const [reacted, setReacted] = useState(false);
   const font = getFontStyle(message.font_style);
-  const longMessage = message.content?.length > 120 || (message.content?.split('\n').length || 0) > 3;
+  const hasMedia = !!(message.media_url || message.media_gallery);
+  const truncateAt = hasMedia ? 100 : 160;
+  const isLong = (message.content?.length || 0) > truncateAt;
+  const preview = isLong ? message.content.slice(0, truncateAt).trimEnd() + '…' : message.content;
   const rotation = index % 3 === 0 ? '-.45deg' : index % 3 === 1 ? '.35deg' : '-.15deg';
 
   return (
     <article
-      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] p-5 border border-white/70`}
+      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border border-white/70 flex flex-col`}
       style={{ background: design.background, color: design.ink, transform: `rotate(${rotation})` }}
     >
-      <div className="flex items-start gap-3 mb-4">
-        <div className="w-11 h-11 rounded-full grid place-items-center text-sm font-extrabold bg-white/80 shadow-sm" style={{ color: design.accent }}>
-          {message.author_name?.slice(0, 2).toUpperCase() || '??'}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-extrabold truncate" style={{ color: design.ink }}>{message.author_name}</p>
-          <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{format(new Date(message.created_at), 'MMM d, yyyy')}</p>
-        </div>
-        {message.is_private && canViewPrivate && <span title="Private message" className="text-lg">{'\uD83D\uDD12'}</span>}
-      </div>
-
-      <button type="button" onClick={() => onOpen(message)} className="text-left flex-1 w-full min-h-0">
-        <p
-          className="message-preview whitespace-pre-wrap break-words"
-          style={{
-            color: design.ink,
-            fontFamily: font.family,
-            fontSize: message.font_style === 'calligraphy' ? '1.75rem' : message.font_style === 'handwritten' ? '1.4rem' : '1rem',
-            lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.65,
-          }}
-        >
-          {message.content}
-        </p>
-        {longMessage && <span className="inline-block mt-2 text-xs font-extrabold underline underline-offset-4" style={{ color: design.accent }}>See more...</span>}
-      </button>
-
-      {message.media_url && (
-        <div className="w-full mt-4">
+      {hasMedia && (
+        <button type="button" onClick={() => onOpen(message)} className="w-full block flex-shrink-0">
           <Media message={message} />
-        </div>
-      )}
-
-      <div className="mt-auto pt-4">
-        {message.contributed_amount > 0 && (
-          <div className="mb-3 rounded-xl bg-white/75 border border-white px-3 py-2 flex items-center justify-between">
-            <span className="text-xs font-bold" style={{ color: design.ink }}>{'\uD83C\uDF81'} Gift attached</span>
-            <span className="text-sm font-extrabold" style={{ color: design.accent }}>{formatNGN(message.contributed_amount)}</span>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={async () => {
-            if (reacted) return;
-            setReacted(true);
-            await onReact(message.id).catch(() => {});
-          }}
-          className="rounded-full bg-white/75 px-3 py-2 text-xs font-bold shadow-sm"
-          style={{ color: reacted ? '#e11d48' : design.ink }}
-        >
-          {'\u2764\uFE0F'} {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
         </button>
+      )}
+      <div className="p-5 flex flex-col flex-1">
+        <div className="flex items-start gap-3 mb-3">
+          <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold bg-white/80 shadow-sm flex-shrink-0" style={{ color: design.accent }}>
+            {message.author_name?.slice(0, 2).toUpperCase() || '??'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-extrabold truncate text-sm" style={{ color: design.ink }}>{message.author_name}</p>
+            <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{format(new Date(message.created_at), 'MMM d, yyyy')}</p>
+          </div>
+          {message.is_private && canViewPrivate && <span title="Private message" className="text-base flex-shrink-0">🔒</span>}
+        </div>
+        <button type="button" onClick={() => onOpen(message)} className="text-left flex-1 w-full">
+          <p
+            className="whitespace-pre-wrap break-words"
+            style={{
+              color: design.ink,
+              fontFamily: font.family,
+              fontSize: message.font_style === 'calligraphy' ? '1.5rem' : message.font_style === 'handwritten' ? '1.2rem' : '0.95rem',
+              lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
+            }}
+          >
+            {preview}
+          </p>
+          {isLong && (
+            <span className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2" style={{ color: design.accent }}>
+              See more...
+            </span>
+          )}
+        </button>
+        <div className="mt-auto pt-3">
+          {message.contributed_amount > 0 && (
+            <div className="mb-2 rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center justify-between">
+              <span className="text-xs font-bold" style={{ color: design.ink }}>🎁 Gift</span>
+              <span className="text-sm font-extrabold" style={{ color: design.accent }}>{formatNGN(message.contributed_amount)}</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={async () => {
+              if (reacted) return;
+              setReacted(true);
+              await onReact(message.id).catch(() => {});
+            }}
+            className="rounded-full bg-white/75 px-3 py-1.5 text-xs font-bold shadow-sm"
+            style={{ color: reacted ? '#e11d48' : design.ink }}
+          >
+            ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
+          </button>
+        </div>
       </div>
     </article>
   );
@@ -578,7 +584,7 @@ const CardView = () => {
       {openMessage && (
         <div className="message-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setOpenMessage(null)}>
           <div
-            className={`card-art ${cardArtClass(design)} celebration-shell w-full max-w-2xl rounded-[2rem] p-6 sm:p-9`}
+            className={`card-art ${cardArtClass(design)} celebration-shell w-full max-w-2xl rounded-[2rem] p-6 sm:p-9 message-modal-inner`}
             style={{ background: design.background, color: design.ink, maxHeight: '90vh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}
             onClick={event => event.stopPropagation()}
           >

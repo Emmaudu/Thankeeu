@@ -46,18 +46,21 @@ const fetchFlwTransaction = async (txRef) => {
 };
 
 // ── upsert contribution record ─────────────────────────────────────────────
-const upsertContribution = async ({ cardId, txRef, amount, contributorName, contributorEmail, status = 'pending' }) => {
+const upsertContribution = async ({ cardId, txRef, amount, contributorName, contributorEmail, status = 'pending', messageId = null }) => {
   const { data: existing } = await supabase
     .from('contributions').select('id, flw_reference').eq('card_id', cardId).eq('flw_reference', txRef).maybeSingle();
 
   if (existing) {
+    const updateData = { status, amount, updated_at: new Date() };
+    if (messageId) updateData.message_id = messageId;
     const { data } = await supabase.from('contributions')
-      .update({ status, amount, updated_at: new Date() }).eq('id', existing.id).select().single();
+      .update(updateData).eq('id', existing.id).select().single();
     return data;
   }
   const { data } = await supabase.from('contributions').insert({
     card_id: cardId, flw_reference: txRef, amount, contributor_name: contributorName,
     contributor_email: contributorEmail, status,
+    ...(messageId ? { message_id: messageId } : {}),
   }).select().single();
   return data;
 };
@@ -151,6 +154,14 @@ const verifyPayment = async (req, res) => {
       if (card) {
         await supabase.from('cards').update({ total_collected: (card.total_collected || 0) + amountNaira }).eq('id', meta.card_id);
       }
+      // Update message: mark payment verified and record contribution amount
+      const { data: contribution } = await supabase
+        .from('contributions').select('message_id').eq('flw_reference', txRef).maybeSingle();
+      if (contribution?.message_id) {
+        await supabase.from('messages')
+          .update({ payment_verified: true, contributed_amount: amountNaira })
+          .eq('id', contribution.message_id);
+      }
     }
 
     res.json({ status: 'success', type, meta, amount: txn.amount });
@@ -163,7 +174,7 @@ const verifyPayment = async (req, res) => {
 // POST /api/payments/contribution — initialize a gift contribution
 const initContribution = async (req, res) => {
   try {
-    const { card_slug, amount, contributor_name, contributor_email } = req.body;
+    const { card_slug, amount, contributor_name, contributor_email, message_id } = req.body;
     if (!card_slug || !amount || !contributor_email)
       return res.status(400).json({ error: 'card_slug, amount and email are required' });
     if (amount < 2500)
@@ -195,7 +206,7 @@ const initContribution = async (req, res) => {
     if (r.data.status !== 'success') throw new Error(r.data.message);
 
     // Pre-create pending contribution
-    await upsertContribution({ cardId: card.id, txRef, amount: amountNaira, contributorName: contributor_name, contributorEmail: contributor_email });
+    await upsertContribution({ cardId: card.id, txRef, amount: amountNaira, contributorName: contributor_name, contributorEmail: contributor_email, messageId: message_id || null });
 
     // Generate integrity_hash to prevent frontend payload tampering
     const checkoutPayload = {
@@ -244,6 +255,19 @@ const verifyContribution = async (req, res) => {
     if (card) {
       await supabase.from('cards').update({ total_collected: (card.total_collected || 0) + amountNaira }).eq('id', meta.card_id);
     }
+
+    // Update the message record: mark payment verified and record contribution amount
+    const { data: contribution } = await supabase
+      .from('contributions')
+      .select('message_id')
+      .eq('flw_reference', txRef)
+      .maybeSingle();
+    if (contribution?.message_id) {
+      await supabase.from('messages')
+        .update({ payment_verified: true, contributed_amount: amountNaira })
+        .eq('id', contribution.message_id);
+    }
+
     res.json({ verified: true, amount: amountNaira });
   } catch (err) {
     console.error('verifyContribution error:', err.response?.data || err.message);

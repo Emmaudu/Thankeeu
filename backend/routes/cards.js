@@ -63,10 +63,10 @@ router.post('/', flexUserAuth, createCard);
 // All other routes — regular user auth
 router.get('/', auth, getUserCards);
 router.get('/:slug', flexUserAuth, getCard);
-router.put('/:slug', auth, updateCard);
+router.put('/:slug', anyAuth, updateCard);
 router.post('/:slug/activate', anyAuth, activateCard);
-router.post('/:slug/send', auth, sendCard);
-router.delete('/:slug', auth, deleteCard);
+router.post('/:slug/send', anyAuth, sendCard);
+router.delete('/:slug', anyAuth, deleteCard);
 // HR approves company-wide notification scope
 router.post('/:slug/approve-scope', companyAuth, approveCardScope);
 

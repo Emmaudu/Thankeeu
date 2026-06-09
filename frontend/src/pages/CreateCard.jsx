@@ -197,7 +197,7 @@ const CreateCard = () => {
           customer:        { email: creatorEmail, name: creatorDisplayName },
           customizations:  { title: 'Thankeeu Card Creation', logo: '/logo.png' },
           callback: async (transaction) => {
-            window.FlutterwaveCheckout?.close?.();
+            // FLW closes the modal itself after callback resolves — do NOT call close() here
             try {
               await finishPurchase(transaction.tx_ref || tx_ref);
             } catch (verifyError) {

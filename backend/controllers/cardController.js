@@ -269,9 +269,9 @@ const updateCard = async (req, res) => {
     const { slug } = req.params;
     const updates = req.body;
 
-    const { data: card } = await supabase.from('cards').select('creator_id').eq('slug', slug).single();
-    if (!card || card.creator_id !== req.user.id)
-      return res.status(403).json({ error: 'Not authorized' });
+    const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).single();
+    const isOwner = (req.user && card.creator_id === req.user.id) || (req.member && card.created_by_member_id === req.member.id) || (req.company && card.company_id === req.company.id);
+    if (!card || !isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     const { data: updated, error } = await supabase
       .from('cards').update({ ...updates, updated_at: new Date() })
@@ -350,8 +350,12 @@ const sendCard = async (req, res) => {
     const { slug } = req.params;
     const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).single();
 
-    if (!card || card.creator_id !== req.user.id)
-      return res.status(403).json({ error: 'Not authorized' });
+    // Auth: regular user, team member, or HR company
+    const isOwner =
+      (req.user   && card.creator_id            === req.user.id)   ||
+      (req.member && card.created_by_member_id  === req.member.id) ||
+      (req.company && card.company_id           === req.company.id);
+    if (!card || !isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     if (!card.recipient_email)
       return res.status(400).json({ error: 'Recipient email required to send card' });
@@ -370,7 +374,7 @@ const sendCard = async (req, res) => {
       await supabase.from('received_cards').upsert({
         card_id: card.id,
         recipient_user_id: existingUser.id,
-        transferred_by: req.user.id,
+        transferred_by: req.user?.id || req.member?.id || null,
         transferred_at: new Date(),
       }, { onConflict: 'card_id,recipient_user_id' });
     }
@@ -401,9 +405,9 @@ const sendCard = async (req, res) => {
 const deleteCard = async (req, res) => {
   try {
     const { slug } = req.params;
-    const { data: card } = await supabase.from('cards').select('creator_id').eq('slug', slug).single();
-    if (!card || card.creator_id !== req.user.id)
-      return res.status(403).json({ error: 'Not authorized' });
+    const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).single();
+    const isOwner2 = (req.user && card.creator_id === req.user.id) || (req.member && card.created_by_member_id === req.member.id) || (req.company && card.company_id === req.company.id);
+    if (!card || !isOwner2) return res.status(403).json({ error: 'Not authorized' });
 
     await supabase.from('cards').delete().eq('slug', slug);
     res.json({ message: 'Card deleted' });
@@ -417,7 +421,7 @@ const getPublicCard = async (req, res) => {
     const { slug } = req.params;
     const { data: card, error } = await supabase
       .from('cards')
-      .select('*, messages(id, author_name, content, is_private, media_url, media_type, media_gallery, reactions, contributed_amount, created_at), contributions(amount, contributor_name, status)')
+      .select('*, messages(id, author_name, content, is_private, font_style, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at), contributions(amount, contributor_name, status)')
       .eq('slug', slug)
       .in('status', ['active', 'sent'])
       .single();

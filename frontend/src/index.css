@@ -385,6 +385,15 @@
   background: rgba(24, 10, 51, .72);
   backdrop-filter: blur(10px);
 }
+/* Modern thin scrollbar for the message modal inner scroll */
+.message-modal-inner {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124,110,255,0.5) transparent;
+}
+.message-modal-inner::-webkit-scrollbar { width: 5px; }
+.message-modal-inner::-webkit-scrollbar-track { background: transparent; }
+.message-modal-inner::-webkit-scrollbar-thumb { background: rgba(124,110,255,0.45); border-radius: 999px; }
+.message-modal-inner::-webkit-scrollbar-thumb:hover { background: rgba(124,110,255,0.75); }
 .glass-panel {
   background: rgba(255,255,255,.86);
   border: 1px solid rgba(255,255,255,.72);

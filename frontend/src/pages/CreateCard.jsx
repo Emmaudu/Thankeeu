@@ -2,8 +2,12 @@ import { useSEO } from '../hooks/useSEO';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useMemberAuth } from '../context/MemberAuthContext';
+import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, paymentsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
+import CompanyLayout from '../components/company/CompanyLayout';
+import MemberLayout from '../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
@@ -64,14 +68,18 @@ const CreateCard = () => {
   useSEO({ title: 'Create a Card', description: 'Create a new group card.', noIndex: true });
 
   const { user } = useAuth();
+  const { member } = useMemberAuth();
+  const { company } = useCompanyAuth();
   const navigate = useNavigate();
+  // Derive a display name for whoever is creating the card
+  const creatorName = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'Someone';
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [paymentStage, setPaymentStage] = useState('opening');
   const [inviteEmails, setInviteEmails] = useState('');
   const [form, setForm] = useState({
     occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
-    title: `${user?.full_name?.split(' ')[0] || 'Someone'}'s Birthday Card`,
+    title: `${creatorName.split(' ')[0]}'s Birthday Card`,
     recipient_name: '', recipient_email: '', send_date: '',
     send_time: '09:00', deadline: '', deadline_time: '23:59', is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
     allow_private_messages: true, send_reminders: true, hide_amounts: false
@@ -90,7 +98,7 @@ const CreateCard = () => {
 
   const handleOccasionSelect = (occ) => {
     set('occasion', occ.id);
-    if (!form.title) set('title', `${user.full_name?.split(' ')[0]}'s ${occ.label} Card`);
+    if (!form.title) set('title', `${creatorName.split(' ')[0]}'s ${occ.label} Card`);
   };
 
   const handleDesignSelect = (d) => {
@@ -121,9 +129,18 @@ const CreateCard = () => {
       }
       const canReuseDraft = savedPending?.slug
         && JSON.stringify(savedPending.cardData) === JSON.stringify(cardData);
-      const slug = canReuseDraft
-        ? savedPending.slug
-        : (await cardsAPI.create(cardData)).data.slug;
+
+      let slug;
+      if (canReuseDraft) {
+        slug = savedPending.slug;
+      } else if (company) {
+        slug = (await cardsAPI.createAsCompany(cardData)).data.slug;
+      } else if (member) {
+        const { memberCardsAPI } = await import('../utils/api');
+        slug = (await memberCardsAPI.create(cardData)).data.slug;
+      } else {
+        slug = (await cardsAPI.create(cardData)).data.slug;
+      }
 
       localStorage.setItem('thankeeu_pending_card', JSON.stringify({ ...pendingCard, slug }));
       setPaymentStage('opening');
@@ -196,16 +213,16 @@ const CreateCard = () => {
 
   const selectedDesign = CARD_DESIGNS.find(d => d.id === form.design_theme);
 
-  return (
-    <div className="min-h-screen">
-      <Navbar />
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 sm:px-6 py-10">
+  const inner = (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+      {!company && !member && (
         <div className="mb-8">
           <h1 className="text-3xl font-semibold text-warm-900 mb-1">Create a Thankeeu card</h1>
           <p className="text-warm-500 text-sm">Takes less than 3 minutes to set up</p>
         </div>
+      )}
 
-        <StepIndicator current={step} />
+      <StepIndicator current={step} />
 
         {/* Step 0: Occasion */}
         {step === 0 && (
@@ -433,6 +450,14 @@ const CreateCard = () => {
           </div>
         )}
       </div>
+  );
+
+  if (company) return <CompanyLayout title="Create a Card" subtitle="Takes less than 3 minutes">{inner}</CompanyLayout>;
+  if (member)  return <MemberLayout  title="Create a Card" subtitle="Takes less than 3 minutes">{inner}</MemberLayout>;
+  return (
+    <div className="min-h-screen">
+      <Navbar />
+      {inner}
     </div>
   );
 };

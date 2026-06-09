@@ -110,6 +110,18 @@ const CompanyProtectedRoute = ({ children }) => {
   return children;
 };
 
+// Allows any logged-in user: regular user, HR company, or team member
+const AnyAuthRoute = ({ children }) => {
+  const { user, loading: uL }    = useAuth();
+  const { company, loading: cL } = useCompanyAuth();
+  const { member, loading: mL }  = useMemberAuth();
+  const location = useLocation();
+  if (uL || cL || mL) return <Spinner />;
+  if (!user && !company && !member)
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+  return children;
+};
+
 const MemberProtectedRoute = ({ children, leaderOnly = false }) => {
   const { member, loading } = useMemberAuth();
   if (loading) return <Spinner />;
@@ -170,7 +182,7 @@ const App = () => (
             <Route path="/dashboard/finances"    element={<ProtectedRoute><DashboardFinances /></ProtectedRoute>} />
             <Route path="/dashboard/reminders"   element={<ProtectedRoute><DashboardReminders /></ProtectedRoute>} />
             <Route path="/dashboard/settings"    element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
-            <Route path="/create-card" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
+            <Route path="/create-card" element={<AnyAuthRoute><CreateCard /></AnyAuthRoute>} />
             <Route path="/admin"     element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
 
             {/* ── Company (HR) auth ────────────────────────── */}

@@ -109,9 +109,11 @@ export const authAPI = {
 
 // ─── Cards ─────────────────────────────────────────────────────────────────
 export const cardsAPI = {
-  create:       (data)         => api.post('/cards', data),
-  getAll:       ()             => api.get('/cards'),
-  getOne:       (slug, token)  => api.get(`/cards/${slug}${token ? `?token=${token}` : ''}`),
+  create:           (data)         => api.post('/cards', data),
+  createAsCompany:  (data)         => companyAxios.post('/cards', data),
+  getAll:           ()             => api.get('/cards'),
+  getOne:           (slug, token)  => api.get(`/cards/${slug}${token ? `?token=${token}` : ''}`),
+  getOneAsCompany:  (slug)         => companyAxios.get(`/cards/${slug}`),
   getPublic:    (slug)         => publicAxios.get(`/cards/public/${slug}`),
   getRecipient: (slug, token)  => publicAxios.get(`/cards/recipient/${slug}`, { params: { token } }),
   claimGift:    (slug, data)   => publicAxios.post(`/cards/recipient/${slug}/claim`, data),

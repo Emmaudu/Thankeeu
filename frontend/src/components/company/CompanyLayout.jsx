@@ -4,6 +4,7 @@ import { useCompanyAuth } from '../../context/CompanyAuthContext';
 
 const NAV = [
   { path: '/company/dashboard',    icon: '🏠', label: 'Dashboard' },
+  { path: '/create-card',          icon: '💌', label: 'Create Card' },
   { path: '/company/occasions',    icon: '🎉', label: 'Occasions Manager' },
   { path: '/company/team-members', icon: '👥', label: 'Team Members' },
   { path: '/company/core-team',    icon: '🏢', label: 'Core Team' },

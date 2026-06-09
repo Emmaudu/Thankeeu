@@ -358,6 +358,8 @@ const CardView = () => {
         ? await cardsAPI.getOne(slug)
         : member
         ? await memberCardsAPI.getOne(slug)
+        : company
+        ? await cardsAPI.getOneAsCompany(slug)
         : await cardsAPI.getPublic(slug);
       setCard(response.data);
       // Track card opened — notifies creator via dashboard + email
@@ -378,7 +380,7 @@ const CardView = () => {
       window.clearInterval(interval);
       window.removeEventListener('focus', refresh);
     };
-  }, [slug, token, user?.id, member?.id]);
+  }, [slug, token, user?.id, member?.id, company?.id]);
 
   useEffect(() => {
     const close = event => {

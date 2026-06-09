@@ -5,15 +5,14 @@ const multer  = require('multer');
 const upload  = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
 
 const {
-  inviteCoreTeamMember, bulkInviteCoreTeam, downloadCoreTeamTemplate,
-  getCoreTeam, removeCoreTeamMember,
+  inviteCoreMember, bulkInviteCoreTeam,
+  getCoreTeam, removeCoreMember,
 } = require('../controllers/coreTeamController');
 
 router.use(companyAuth);
 router.get('/',                getCoreTeam);
-router.get('/template',        downloadCoreTeamTemplate);
-router.post('/invite',         inviteCoreTeamMember);
+router.post('/invite',         inviteCoreMember);
 router.post('/invite-bulk',    upload.single('file'), bulkInviteCoreTeam);
-router.delete('/:id',          removeCoreTeamMember);
+router.delete('/:id',          removeCoreMember);
 
 module.exports = router;

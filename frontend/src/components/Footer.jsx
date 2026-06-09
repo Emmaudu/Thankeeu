@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 
+const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
+
 const Footer = () => (
   <footer style={{ background:'linear-gradient(180deg,#F5F0FF,#EDE5FF)' }} className="border-t border-purple-100 mt-auto">
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
         {/* Brand */}
         <div className="col-span-2 sm:col-span-1">
-          <Link to="/" className="flex items-center gap-2.5 mb-4">
+          <Link to="/" onClick={scrollTop} className="flex items-center gap-2.5 mb-4">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
               style={{ background:'linear-gradient(135deg,#A855F7,#7C3AED)' }}>
               <span className="text-xl">💌</span>
@@ -38,7 +40,7 @@ const Footer = () => (
               { to:'/company/signup', label:'For Teams' },
               { to:'/blog',        label:'Blog' },
             ].map(({ to, label }) => (
-              <li key={to}><Link to={to} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
+              <li key={to}><Link to={to} onClick={scrollTop} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
             ))}
           </ul>
         </div>
@@ -55,7 +57,7 @@ const Footer = () => (
               { to:'/occasions/promotion',   label:'🌟 Promotion' },
               { to:'/occasions/new-baby',    label:'👶 Baby Shower' },
             ].map(({ to, label }) => (
-              <li key={to}><Link to={to} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
+              <li key={to}><Link to={to} onClick={scrollTop} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
             ))}
           </ul>
         </div>
@@ -69,7 +71,7 @@ const Footer = () => (
               { to:'/faq',          label:'FAQ' },
               { to:'/policy',       label:'Privacy & Terms' },
             ].map(({ to, label }) => (
-              <li key={to}><Link to={to} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
+              <li key={to}><Link to={to} onClick={scrollTop} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
             ))}
             <li><a href="mailto:support@thankeeu.com" className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">📧 support@thankeeu.com</a></li>
           </ul>

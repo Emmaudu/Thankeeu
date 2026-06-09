@@ -76,7 +76,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all"
             style={{
-              paddingLeft: 12, paddingRight: 12,
+              paddingRight: 12,
               borderLeft: `3px solid ${isActive(path) ? '#7C6EFF' : 'transparent'}`,
               paddingLeft: isActive(path) ? 9 : 12,
               background: isActive(path) ? 'rgba(124,110,255,0.15)' : 'transparent',

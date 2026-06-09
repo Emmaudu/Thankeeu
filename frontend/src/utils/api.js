@@ -51,7 +51,7 @@ api.interceptors.response.use(res => res, err => {
 const publicAxios = axios.create(axiosOptions);
 
 // 3. Company / HR
-const companyAxios = axios.create(axiosOptions);
+export const companyAxios = axios.create(axiosOptions);
 companyAxios.interceptors.request.use(cfg => {
   const t = localStorage.getItem('thankeeu_company_token');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;

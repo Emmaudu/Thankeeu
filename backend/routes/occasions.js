@@ -13,7 +13,7 @@ const {
   downloadOccasionTemplate,
   importOccasionMembers, getOccasionMembers, deleteOccasionMember,
   downloadGeneralTemplate, importGeneralTemplate,
-  updateOccasionTypeScope, updateOccasionMember,
+  updateOccasionTypeScope, updateOccasionMember, triggerOccasionNow,
 } = require('../controllers/occasionController');
 
 // ── Bulk controller (bulk Excel sync, /tables endpoint) ─────────────────────

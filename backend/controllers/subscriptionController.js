@@ -62,7 +62,7 @@ const verifySubscription = async (req, res) => {
     const response = await axios.get(`${FLW_BASE}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(reference)}`, { headers: headers() });
     const txn = response.data.data;
 
-    if (!['successful', 'success', 'test'].includes(txn.status)) {
+    if (!['successful', 'success', 'completed', 'test'].includes(txn.status)) {
       if (['failed', 'abandoned', 'reversed', 'cancelled', 'error'].includes(txn.status)) {
         return res.status(400).json({ error: `Payment was not completed (status: ${txn.status})` });
       }

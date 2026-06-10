@@ -305,15 +305,8 @@ const verifyContribution = async (req, res) => {
       messageId,
     });
 
-    if (cardId && !alreadyDone) {
-      const { data: card } = await supabase.from('cards')
-        .select('total_collected').eq('id', cardId).single()
-        .catch(() => ({ data: null }));
-      await supabase.from('cards')
-        .update({ total_collected: (card?.total_collected || 0) + amountNaira })
-        .eq('id', cardId)
-        .catch(e => console.warn('total_collected update:', e.message));
-    }
+    // DB trigger (contribution_verified) automatically updates cards.total_collected
+    // when contribution status changes to 'success' — no manual update needed here
 
     await updateMessageAfterGift({
       txRef, cardId,

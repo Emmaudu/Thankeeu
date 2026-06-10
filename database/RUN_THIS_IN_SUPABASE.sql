@@ -298,6 +298,7 @@ WHERE creator_id IS NOT NULL
   AND (payment_verified = FALSE OR payment_verified IS NULL);
 
 -- Backfill contributed_amount on messages from successful contributions
+-- Primary: join via message_id
 UPDATE messages AS m
 SET contributed_amount = c.amount,
     payment_verified   = TRUE
@@ -305,6 +306,31 @@ FROM contributions AS c
 WHERE c.message_id = m.id
   AND c.status = 'success'
   AND COALESCE(m.payment_verified, FALSE) = FALSE;
+
+-- Fallback: join via card_id + contributor_email for old contributions without message_id
+UPDATE messages AS m
+SET contributed_amount = c.amount,
+    payment_verified   = TRUE
+FROM contributions AS c
+WHERE c.message_id IS NULL
+  AND c.card_id = m.card_id
+  AND c.contributor_email IS NOT NULL
+  AND c.contributor_email != ''
+  AND LOWER(c.contributor_email) = LOWER(m.author_email)
+  AND c.status = 'success'
+  AND COALESCE(m.payment_verified, FALSE) = FALSE;
+
+-- Backfill total_collected on cards from successful contributions (in case it's 0)
+UPDATE cards AS ca
+SET total_collected = COALESCE((
+  SELECT SUM(c.amount)
+  FROM contributions c
+  WHERE c.card_id = ca.id AND c.status = 'success'
+), 0)
+WHERE ca.total_collected = 0
+  AND EXISTS (
+    SELECT 1 FROM contributions c WHERE c.card_id = ca.id AND c.status = 'success'
+  );
 
 -- ── 8. Additional indexes ─────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_cards_company ON cards(company_id) WHERE company_id IS NOT NULL;

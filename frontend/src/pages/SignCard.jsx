@@ -69,7 +69,6 @@ const SignCard = () => {
   useEffect(() => {
     const run = async () => {
       // FLW redirects browser directly here with ?tx_ref=... after payment
-      // We call the backend to verify, then show the success screen
       const returnTxRef = searchParams.get('tx_ref') || searchParams.get('reference');
       if (returnTxRef) {
         setStage('verifying');
@@ -77,10 +76,11 @@ const SignCard = () => {
           await paymentsAPI.verifyContribution(returnTxRef);
           toast.success('Your message and gift are on the card! 🎉');
         } catch (e) {
-          // Payment may still be processing — show success anyway (webhook will catch it)
           toast.success('Gift received! 🎉');
         }
         window.history.replaceState({}, '', `/sign/${slug}`);
+        // Must fetch card first so card object exists (needed for success screen design/recipient)
+        await fetchCard();
         setSubmitted(true);
         setStage('idle');
         return;
@@ -216,10 +216,8 @@ const SignCard = () => {
       if (!payment_link) throw new Error('No payment link from server');
 
       // ── STEP 4: Redirect to FLW hosted checkout ────────────────────────────
-      // FLW redirects to Railway backend /api/payments/callback after payment
-      // Backend verifies, updates DB, then redirects to /sign/slug?success=1
-      // This page's useEffect detects ?success=1 and shows the success screen
-      // Same reliable approach as the old Paystack integration
+      // FLW redirects browser directly back to /sign/slug?tx_ref=TK-GIFT-...
+      // This page's useEffect detects ?tx_ref= and calls verifyContribution
       setStage('redirecting');
       window.location.assign(payment_link);
 

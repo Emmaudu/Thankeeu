@@ -43,7 +43,7 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
     res.sendStatus(200);
 
     // Only process successful charge.completed events
-    if (eventName !== 'charge.completed' || txn?.status !== 'successful') return;
+    if (eventName !== 'charge.completed' || !['successful', 'completed'].includes(txn?.status)) return;
 
     const meta        = txn.meta || {};
     const type        = meta.type;

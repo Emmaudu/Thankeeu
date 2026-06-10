@@ -1,5 +1,5 @@
-import { useSEO, SCHEMAS } from '../hooks/useSEO';
-import { useState } from 'react';
+import { useSEO } from '../hooks/useSEO';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
@@ -7,77 +7,138 @@ import { paymentsAPI, subscriptionAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
+import { CURRENCIES, formatCurrency, getCurrency } from '../utils/currency';
 
+// ── Plans ─────────────────────────────────────────────────────────────────────
 const INDIVIDUAL_PLANS = [
   {
-    id:'single', name:'Classic', price:'₦5,000', label:'Per card, one-time', popular:true,
-    btn:'Get Classic ✨', btnStyle:'bg-primary-500 text-white hover:bg-primary-600',
-    features:[
-      { text:'Unlimited contributors — anyone can sign', ok:true },
-      { text:'100+ premium card designs', ok:true },
-      { text:'Video, photo & voice messages', ok:true },
-      { text:'Scheduled delivery on any date', ok:true },
-      { text:'Auto reminders to contributors', ok:true },
-      { text:'Gift pot up to ₦10,000,000', ok:true },
-      { text:'WhatsApp and email invite links', ok:true },
-      { text:'Download card as PDF', ok:true },
-    ]
+    id: 'single', name: 'Classic', priceNGN: 5000, label: 'Per card · one-time',
+    btn: 'Get Classic ✨', popular: false,
+    btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
+    features: [
+      { text: 'Unlimited contributors — anyone can sign', ok: true },
+      { text: '100+ premium card designs', ok: true },
+      { text: 'Video, photo & voice messages', ok: true },
+      { text: 'Scheduled delivery on any date', ok: true },
+      { text: 'Auto reminders to contributors', ok: true },
+      { text: 'Gift pot up to ₦10,000,000', ok: true },
+      { text: 'WhatsApp & email invite links', ok: true },
+      { text: 'Download card as PDF', ok: true },
+    ],
   },
   {
-    id:'pack5', name:'Pack of 5', price:'₦20,000', label:'₦4,000 per card — save ₦5,000',
-    btn:'Buy pack 🎁', btnStyle:'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
-    features:[
-      { text:'Everything in Classic', ok:true },
-      { text:'5 card credits (never expire)', ok:true },
-      { text:'Birthday reminder assistant', ok:true },
-      { text:'Priority support', ok:true },
-      { text:'Exclusive seasonal designs', ok:true },
-      { text:'GIF and sticker support', ok:true },
-      { text:'Bulk invite via CSV', ok:true },
-      { text:'Dedicated card manager', ok:true },
-    ]
+    id: 'standard', name: 'Standard', priceNGN: 9000, label: 'Per card · one-time',
+    btn: 'Get Standard 🌟', popular: true,
+    btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
+    features: [
+      { text: 'Everything in Classic', ok: true },
+      { text: 'Priority support (12-hour response)', ok: true },
+      { text: 'Exclusive premium designs', ok: true },
+      { text: 'GIF and sticker support', ok: true },
+      { text: 'Bulk invite via CSV', ok: true },
+      { text: 'Card analytics (views, opens)', ok: true },
+      { text: 'Custom card title & branding', ok: true },
+      { text: 'Birthday reminder assistant', ok: true },
+    ],
+  },
+  {
+    id: 'pack5', name: 'Pack of 5', priceNGN: 19000, label: '₦3,800 per card · best value',
+    btn: 'Buy pack 🎁', popular: false,
+    btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
+    features: [
+      { text: 'Everything in Standard', ok: true },
+      { text: '5 card credits (never expire)', ok: true },
+      { text: 'Dedicated card manager', ok: true },
+      { text: 'Priority phone support', ok: true },
+      { text: 'Advanced gift pot analytics', ok: true },
+      { text: 'Team collaboration tools', ok: true },
+      { text: 'API access (beta)', ok: true },
+      { text: 'Custom email send address', ok: true },
+    ],
   },
 ];
 
 const COMPANY_PLANS = [
   {
-    id:'monthly', name:'Monthly', price:'₦200,000', period:'/month', saving:null,
-    features:['Unlimited employees','Automated birthday emails to departments','Birthday card delivered to celebrants','Gift pot collection via Flutterwave','HR dashboard and analytics','Import and re-import team data','Email support within 24 hours'],
+    id: 'monthly', name: 'Monthly', priceNGN: 200000, period: '/month',
+    features: ['Unlimited employees','Automated birthday emails','Birthday card delivery','Gift pot collection via Flutterwave','HR dashboard & analytics','Import & re-import team data','Email support within 24 hours'],
   },
   {
-    id:'yearly', name:'Yearly', price:'₦2,400,000', period:'/year', popular:true, saving:null,
-    features:['Everything in Monthly','2 months free vs monthly billing','Priority phone and email support','Custom email branding','Dedicated account manager','Advanced birthday analytics','Team data export anytime'],
+    id: 'yearly', name: 'Yearly', priceNGN: 2400000, period: '/year', popular: true,
+    features: ['Everything in Monthly','2 months FREE vs monthly','Priority phone & email support','Custom email branding','Dedicated account manager','Advanced birthday analytics','Team data export anytime'],
   },
 ];
 
 const FAQ = [
-  { q:'How does the gift pot work?', a:'Contributors pay via Flutterwave when they sign the card. Money is securely held and the recipient can redeem it for vouchers, flowers, or a bank transfer.' },
-  { q:'Does the recipient need an account?', a:'No — recipients open and enjoy their card without any account. Only the card creator needs one.' },
-  { q:'What payment methods are supported?', a:'All Nigerian debit/credit cards, bank transfers, USSD, and mobile money via Flutterwave.' },
-  { q:'Is the team data import free?', a:'Yes, always. You only pay the subscription to activate automated birthday email sending.' },
-  { q:'What happens if I cancel my company subscription?', a:'Automation stops after your current period ends, but all your team data is preserved.' },
-  { q:'Can I get a refund?', a:'Individual card fees are non-refundable once activated. Company subscriptions remain active until the period ends.' },
+  { q: 'Is Thankeeu for Nigerians only?', a: 'Not at all! Thankeeu works globally. Contributors can pay in NGN, USD, GBP, EUR, CAD, GHS, KES, ZAR and more. The card creator pays the card fee in their preferred currency — Flutterwave handles the conversion automatically.' },
+  { q: 'How does the gift pot work?', a: 'Contributors pay via Flutterwave when signing. Money is securely held and the recipient can withdraw to their bank account, buy airtime, or redeem a gift card — instantly.' },
+  { q: 'Does the recipient need an account?', a: 'No — recipients open and enjoy their card without any account. Only the card creator needs one.' },
+  { q: 'What payment methods are accepted?', a: 'Nigerian cards, bank transfer, USSD, mobile money. International: Visa, Mastercard, American Express. All via Flutterwave.' },
+  { q: 'What happens if I cancel my company subscription?', a: 'Automation stops after your current period ends, but all your team data is preserved.' },
 ];
 
+// ── Currency toggle component ─────────────────────────────────────────────────
+export const CurrencyToggle = ({ selected, onChange }) => (
+  <div className="flex flex-wrap gap-1.5 justify-center">
+    {CURRENCIES.map(c => (
+      <button key={c.code} onClick={() => onChange(c.code)}
+        className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+          selected === c.code
+            ? 'bg-primary-500 text-white shadow-sm'
+            : 'bg-white border border-purple-200 text-warm-600 hover:border-primary-300'
+        }`}>
+        <span>{c.flag}</span>
+        <span>{c.code}</span>
+      </button>
+    ))}
+  </div>
+);
+
+// ── Rotating price that cycles every 2s ───────────────────────────────────────
+export const RotatingPrice = ({ amountNGN, className = '' }) => {
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setIdx(i => (i + 1) % CURRENCIES.length), 2000);
+    return () => clearInterval(t);
+  }, []);
+
+  const cur = CURRENCIES[idx];
+  return (
+    <span key={cur.code} className={`inline-flex items-center gap-1 transition-all ${className}`}
+      style={{ animation: 'fadeSlideIn 0.4s ease' }}>
+      <span>{cur.flag}</span>
+      <span>{formatCurrency(amountNGN, cur.code)}</span>
+    </span>
+  );
+};
+
+// ── Main Pricing page ─────────────────────────────────────────────────────────
 const Pricing = () => {
   useSEO({
-    title:'Pricing — Group Cards from ₦5,000 · No Free Tier · Teams from ₦200,000/month',
-    description:'Simple Naira pricing for group cards and gifts. Individual card from ₦5,000, pack of 5 for ₦20,000. Company plans from ₦200,000/month.',
-    canonical:'/pricing',
+    title: 'Pricing — Group Cards for Everyone Worldwide · Thankeeu',
+    description: 'Send beautiful group cards from anywhere in the world. Pay in NGN, USD, GBP, EUR, CAD and more. Individual cards from ₦5,000. Team automation from ₦200,000/month.',
+    canonical: '/pricing',
   });
 
-  const { user } = useAuth();
+  const { user }    = useAuth();
   const { company } = useCompanyAuth();
-  const navigate = useNavigate();
-  const [tab, setTab] = useState('individual');
-  const [loadingPlan, setLoadingPlan] = useState(null);
-  const [openFAQ, setOpenFAQ] = useState(null);
+  const navigate    = useNavigate();
+
+  const [tab,          setTab]          = useState('individual');
+  const [currency,     setCurrency]     = useState('NGN');
+  const [loadingPlan,  setLoadingPlan]  = useState(null);
+  const [openFAQ,      setOpenFAQ]      = useState(null);
+
+  const cur = getCurrency(currency);
+
+  const fmt = (ngn) => formatCurrency(ngn, currency);
 
   const handleIndividualPurchase = async (planId) => {
     if (!user) { navigate('/signup'); return; }
     setLoadingPlan(planId);
     try {
-      const res = await paymentsAPI.initCardFee(planId);
+      const res = await paymentsAPI.initCardFee(planId, currency);
       window.location.href = res.data.payment_link || res.data.authorization_url;
     } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
   };
@@ -86,7 +147,7 @@ const Pricing = () => {
     if (!company) { navigate('/company/signup'); return; }
     setLoadingPlan(plan);
     try {
-      const res = await subscriptionAPI.initialize(plan);
+      const res = await subscriptionAPI.initialize(plan, currency);
       window.location.href = res.data.payment_link || res.data.authorization_url;
     } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
   };
@@ -96,25 +157,45 @@ const Pricing = () => {
       <Navbar />
 
       {/* Hero */}
-      <section className="py-12 md:py-16 px-4 text-center" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
-        <div className="max-w-xl mx-auto">
-          <div className="pill mx-auto mb-4">💳 Simple Naira pricing</div>
-          <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(1.75rem,6vw,3rem)' }}>Simple, fair pricing</h1>
-          <p className="text-warm-600">Pay only when you send. No subscriptions for individual cards.</p>
+      <section className="py-12 md:py-16 px-4 text-center" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
+        <div className="max-w-2xl mx-auto">
+          <div className="pill mx-auto mb-4">🌍 For everyone, everywhere</div>
+          <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.75rem,6vw,3rem)' }}>
+            Simple, fair pricing
+          </h1>
+          <p className="text-warm-600 mb-2">Pay only when you send. No subscriptions for individual cards.</p>
+          <p className="text-warm-500 text-sm mb-6">
+            Pay in your currency — NGN, USD, GBP, EUR, CAD, GHS and more.
+          </p>
+
+          {/* Rotating price showcase */}
+          <div className="inline-flex flex-col items-center bg-white rounded-2xl border-2 border-primary-100 px-6 py-4 shadow-sm mb-6">
+            <p className="text-xs text-warm-400 mb-1 font-medium">Individual card from</p>
+            <div className="text-3xl font-extrabold text-primary-600 min-w-[120px] text-center">
+              <RotatingPrice amountNGN={5000} />
+            </div>
+            <p className="text-xs text-warm-400 mt-1">· rotates every 2s so you see your currency ·</p>
+          </div>
+
+          {/* Currency selector */}
+          <div className="mb-2">
+            <p className="text-xs font-semibold text-warm-500 mb-2">Select your currency to see prices:</p>
+            <CurrencyToggle selected={currency} onChange={setCurrency} />
+          </div>
         </div>
       </section>
 
-      {/* Tab switcher — sticky */}
+      {/* Tab switcher */}
       <div className="bg-white border-b border-purple-100 sticky top-0 z-10 shadow-sm">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex">
             {[
-              { id:'individual', label:'💜 Individual', sub:'Personal cards & gifts' },
-              { id:'company', label:'🏢 For Teams', sub:'Birthday automation' },
+              { id: 'individual', label: '💜 Individual', sub: 'Personal cards & gifts' },
+              { id: 'company',    label: '🏢 For Teams',  sub: 'Birthday automation'    },
             ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={`flex-1 py-3 sm:py-4 text-center border-b-2 transition-all min-h-[56px] ${
-                  tab===t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-500'
+                  tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-500'
                 }`}>
                 <p className="font-bold text-sm">{t.label}</p>
                 <p className="text-xs text-warm-400 hidden sm:block mt-0.5">{t.sub}</p>
@@ -125,52 +206,84 @@ const Pricing = () => {
       </div>
 
       {/* Individual plans */}
-      {tab==='individual' && (
+      {tab === 'individual' && (
         <section className="py-10 md:py-16 px-4 bg-white">
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+          <div className="max-w-5xl mx-auto">
+
+            {/* Currency selector (repeated for convenience) */}
+            <div className="text-center mb-8">
+              <p className="text-xs font-semibold text-warm-500 mb-2">Showing prices in {cur.flag} {cur.name}</p>
+              <CurrencyToggle selected={currency} onChange={setCurrency} />
+              {currency !== 'NGN' && (
+                <p className="text-xs text-warm-400 mt-2">
+                  Approximate {cur.name} equivalent · Flutterwave charges at live rate
+                </p>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
               {INDIVIDUAL_PLANS.map(plan => (
-                <div key={plan.id} className={`relative rounded-3xl border-2 p-6 ${plan.popular ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-purple-100'}`}>
+                <div key={plan.id} className={`relative rounded-3xl border-2 p-6 flex flex-col ${
+                  plan.popular ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-purple-100'
+                }`}>
                   {plan.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap">
                       ⭐ Most popular
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
-                  <p className="text-warm-500 text-xs mb-4">{plan.label}</p>
+                  <p className="text-warm-500 text-xs mb-4">{
+                    plan.id === 'pack5'
+                      ? `${fmt(Math.round(plan.priceNGN / 5))} per card · best value`
+                      : plan.label
+                  }</p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-3xl sm:text-4xl font-bold text-warm-900">{plan.price}</span>
+                    <span className="text-3xl sm:text-4xl font-bold text-warm-900">
+                      {fmt(plan.priceNGN)}
+                    </span>
                     <span className="text-warm-400 text-sm pb-1">one-time</span>
                   </div>
-                  {plan.id==='pack5' && <p className="text-green-600 text-xs font-bold mb-4">₦2,000 per card — save ₦15,000 vs singles</p>}
+                  {currency !== 'NGN' && (
+                    <p className="text-xs text-warm-400 mb-1">≈ ₦{plan.priceNGN.toLocaleString('en-NG')} NGN</p>
+                  )}
+                  {plan.id === 'pack5' && (
+                    <p className="text-green-600 text-xs font-bold mb-1">
+                      Save {fmt(plan.priceNGN * 5 * 0.24)} vs 5 singles
+                    </p>
+                  )}
                   <div className="h-px bg-purple-100 my-4" />
-                  <ul className="space-y-2.5 mb-7">
-                    {plan.features.map((f,i) => (
+                  <ul className="space-y-2.5 mb-7 flex-1">
+                    {plan.features.map((f, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
-                        <span className={`flex-shrink-0 font-bold mt-0.5 ${f.ok ? 'text-green-500' : 'text-warm-300'}`}>{f.ok ? '✓' : '✕'}</span>
-                        <span className={f.ok ? 'text-warm-700' : 'text-warm-400 line-through decoration-warm-300'}>{f.text}</span>
+                        <span className={`flex-shrink-0 font-bold mt-0.5 ${f.ok ? 'text-green-500' : 'text-warm-300'}`}>
+                          {f.ok ? '✓' : '✕'}
+                        </span>
+                        <span className={f.ok ? 'text-warm-700' : 'text-warm-400 line-through'}>{f.text}</span>
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => handleIndividualPurchase(plan.id)} disabled={loadingPlan===plan.id}
+                  <button onClick={() => handleIndividualPurchase(plan.id)} disabled={loadingPlan === plan.id}
                     className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50 ${plan.btnStyle}`}>
-                    {loadingPlan===plan.id
-                      ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/>Processing…</span>
+                    {loadingPlan === plan.id
+                      ? <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Processing…
+                        </span>
                       : plan.btn}
                   </button>
                 </div>
               ))}
             </div>
 
-            {/* Gift pot info */}
+            {/* Gift pot fees */}
             <div className="bg-green-50 border border-green-200 rounded-3xl p-5 sm:p-8 max-w-2xl mx-auto">
               <h3 className="text-xl font-bold text-warm-900 mb-1 text-center">🐷 Gift pot fees</h3>
               <p className="text-warm-500 text-center text-sm mb-6">A small platform cut keeps Thankeeu running</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 {[
-                  { icon:'🌹', title:'Flower delivery', sub:'15% referral' },
-                  { icon:'🎁', title:'Gift vouchers', sub:'3–5% cut' },
-                  { icon:'💳', title:'Cash gift pot', sub:'3.5% platform fee' },
+                  { icon: '🎁', title: 'Gift vouchers',   sub: '3–5% cut'         },
+                  { icon: '💳', title: 'Cash withdrawal',  sub: '3.5% platform fee' },
+                  { icon: '🌍', title: 'Global payouts',   sub: 'FLW live FX rate'  },
                 ].map(r => (
                   <div key={r.title} className="text-center">
                     <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 shadow-sm">{r.icon}</div>
@@ -185,16 +298,26 @@ const Pricing = () => {
       )}
 
       {/* Company plans */}
-      {tab==='company' && (
+      {tab === 'company' && (
         <section className="py-10 md:py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <div className="pill mx-auto mb-3">🏢 Thankeeu for Teams</div>
-              <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(1.5rem,5vw,2rem)' }}>Automate team celebrations</h2>
-              <p className="text-warm-500 max-w-lg mx-auto text-sm leading-relaxed">Upload your employees once. Thankeeu handles everything — cards, emails, gift pots. All automatic.</p>
+              <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.5rem,5vw,2rem)' }}>
+                Automate team celebrations
+              </h2>
+              <p className="text-warm-500 max-w-lg mx-auto text-sm leading-relaxed">
+                Upload your employees once. Thankeeu handles everything — cards, emails, gift pots. All automatic.
+              </p>
+
+              {/* Currency toggle for company plans */}
+              <div className="mt-5">
+                <p className="text-xs font-semibold text-warm-500 mb-2">Showing prices in {cur.flag} {cur.name}</p>
+                <CurrencyToggle selected={currency} onChange={setCurrency} />
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-8">
               <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
                 <p className="font-bold text-green-800 text-sm mb-2">✅ Always free</p>
                 <ul className="space-y-1.5">
@@ -215,32 +338,48 @@ const Pricing = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto mb-10">
               {COMPANY_PLANS.map(plan => (
-                <div key={plan.id} className={`relative rounded-3xl border-2 p-6 ${plan.popular ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-purple-100'}`}>
+                <div key={plan.id} className={`relative rounded-3xl border-2 p-6 ${
+                  plan.popular ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-purple-100'
+                }`}>
                   {plan.popular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap">⭐ Best value</div>
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap">
+                      ⭐ Best value
+                    </div>
                   )}
                   <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
-                  {plan.saving && <p className="text-xs text-green-600 font-bold mb-3">{plan.saving}</p>}
-                  <div className="flex items-end gap-1 mb-4">
-                    <span className="text-3xl font-bold text-warm-900">{plan.price}</span>
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-3xl font-bold text-warm-900">{fmt(plan.priceNGN)}</span>
                     <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
                   </div>
+                  {currency !== 'NGN' && (
+                    <p className="text-xs text-warm-400 mb-3">≈ ₦{plan.priceNGN.toLocaleString('en-NG')} NGN</p>
+                  )}
+                  {plan.id === 'yearly' && (
+                    <p className="text-green-600 text-xs font-bold mb-3">
+                      Save {fmt(200000 * 2)} — 2 months free
+                    </p>
+                  )}
                   <div className="h-px bg-purple-100 mb-4" />
                   <ul className="space-y-2 mb-7">
-                    {plan.features.map((f,i) => (
+                    {plan.features.map((f, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
                         <span className="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
                         <span className="text-warm-700">{f}</span>
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => handleCompanySubscribe(plan.id)} disabled={loadingPlan===plan.id}
+                  <button onClick={() => handleCompanySubscribe(plan.id)} disabled={loadingPlan === plan.id}
                     className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50 ${
                       plan.popular ? 'bg-primary-500 text-white hover:bg-primary-600' : 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50'
                     }`}>
-                    {loadingPlan===plan.id
-                      ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/>Processing…</span>
-                      : company ? `Subscribe — ${plan.price}${plan.period}` : 'Create company account first'}
+                    {loadingPlan === plan.id
+                      ? <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Processing…
+                        </span>
+                      : company
+                        ? `Subscribe — ${fmt(plan.priceNGN)}${plan.period}`
+                        : 'Create company account first'}
                   </button>
                 </div>
               ))}
@@ -248,8 +387,12 @@ const Pricing = () => {
 
             {!company && (
               <div className="text-center">
-                <Link to="/company/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto inline-flex">🏢 Create free company account first</Link>
-                <p className="text-xs text-warm-400 mt-3">Already have one? <Link to="/company/login" className="text-primary-500 font-bold">Sign in →</Link></p>
+                <Link to="/company/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base inline-flex">
+                  🏢 Create free company account
+                </Link>
+                <p className="text-xs text-warm-400 mt-3">
+                  Already have one? <Link to="/company/login" className="text-primary-500 font-bold">Sign in →</Link>
+                </p>
               </div>
             )}
           </div>
@@ -257,18 +400,18 @@ const Pricing = () => {
       )}
 
       {/* FAQ */}
-      <section className="py-12 md:py-16 px-4" style={{ background:'#F5F0FF' }}>
+      <section className="py-12 md:py-16 px-4" style={{ background: '#F5F0FF' }}>
         <div className="max-w-2xl mx-auto">
           <h3 className="text-2xl sm:text-3xl font-bold text-warm-900 text-center mb-7">Frequently asked</h3>
           <div className="space-y-3">
-            {FAQ.map((f,i) => (
+            {FAQ.map((f, i) => (
               <div key={i} className="bg-white border-2 border-purple-100 rounded-2xl overflow-hidden">
-                <button onClick={() => setOpenFAQ(openFAQ===i ? null : i)}
+                <button onClick={() => setOpenFAQ(openFAQ === i ? null : i)}
                   className="w-full flex items-center justify-between p-4 sm:p-5 text-left gap-3 min-h-[56px]">
                   <span className="font-semibold text-warm-900 text-sm">{f.q}</span>
-                  <span className={`text-primary-400 flex-shrink-0 transition-transform text-lg ${openFAQ===i ? 'rotate-180' : ''}`}>▾</span>
+                  <span className={`text-primary-400 flex-shrink-0 transition-transform text-lg ${openFAQ === i ? 'rotate-180' : ''}`}>▾</span>
                 </button>
-                {openFAQ===i && (
+                {openFAQ === i && (
                   <div className="px-4 sm:px-5 pb-4 sm:pb-5">
                     <p className="text-sm text-warm-600 leading-relaxed">{f.a}</p>
                   </div>
@@ -280,16 +423,30 @@ const Pricing = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-14 px-4 text-center" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
+      <section className="py-14 px-4 text-center" style={{ background: 'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-xl mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-warm-900 mb-4">Ready to get started?</h2>
-          <p className="text-warm-600 mb-7">Individual or company — Thankeeu has you covered.</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-warm-900 mb-2">Ready to get started?</h2>
+          <p className="text-warm-500 mb-2">Works for Nigeria, UK, US, Canada, Ghana, Kenya, South Africa and beyond.</p>
+          <p className="text-warm-400 text-sm mb-7">Pay in your local currency. Celebrate anyone, anywhere.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">Create personal card 💜</Link>
-            <Link to="/company/signup" className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">Set up for my team 🏢</Link>
+            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto">
+              Create personal card 💜
+            </Link>
+            <Link to="/company/signup" className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto">
+              Set up for my team 🏢
+            </Link>
           </div>
         </div>
       </section>
+
+      {/* Fade-slide animation */}
+      <style>{`
+        @keyframes fadeSlideIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <Footer />
     </div>
   );

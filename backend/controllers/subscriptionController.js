@@ -68,16 +68,21 @@ const saveSubscription = async (companyId, plan, flwReference, expiresAt) => {
 // ── Initialize payment ───────────────────────────────────────────────────────
 const initializeSubscription = async (req, res) => {
   try {
-    const { plan } = req.body;
+    const { plan, currency: reqCurrency } = req.body;
     if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
+
+    const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
+    const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
+    const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
 
     const txRef = `TK-SUB-${req.company.id.slice(0,8).toUpperCase()}-${Date.now()}`;
     const { naira, label } = PLANS[plan];
+    const amount = currency === 'NGN' ? naira : parseFloat((naira * FX[currency]).toFixed(2));
 
     const response = await axios.post(`${FLW_BASE}/payments`, {
       tx_ref:       txRef,
-      amount:       naira,
-      currency:     'NGN',
+      amount,
+      currency,
       redirect_url: `${FRONTEND_URL}/company/subscription?sub=success&plan=${plan}&tx_ref=${txRef}`,
       customer:     { email: req.company.email, name: req.company.name },
       customizations: {

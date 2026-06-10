@@ -9,7 +9,7 @@ import Navbar from '../components/Navbar';
 import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
 import toast from 'react-hot-toast';
-import { formatNGN } from '../utils/currency';
+import { formatNGN, CURRENCIES, getFLWPaymentParams, formatCurrency } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 
 const OCCASIONS = [
@@ -76,6 +76,7 @@ const CreateCard = () => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [paymentStage, setPaymentStage] = useState('opening');
+  const [selectedCurrency, setSelectedCurrency] = useState('NGN');
   const [inviteEmails, setInviteEmails] = useState('');
   const [form, setForm] = useState({
     occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
@@ -164,7 +165,7 @@ const CreateCard = () => {
       setPaymentStage('opening');
 
       // Step 1: Get payment link from backend (same as old Paystack approach)
-      const payRes = await paymentsAPI.initCardFee(slug);
+      const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency);
       const { payment_link } = payRes.data;
       if (!payment_link) throw new Error('No payment link returned from server');
 

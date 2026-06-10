@@ -151,7 +151,7 @@ export const messagesAPI = {
 // ─── Payments ──────────────────────────────────────────────────────────────
 export const paymentsAPI = {
   // Card creation fee — returns { payment_link }
-  initCardFee:         (card_slug) => anyAxios.post('/payments/initialize/purchase', { card_slug }),
+  initCardFee:         (card_slug, currency) => anyAxios.post('/payments/initialize/purchase', { card_slug, currency: currency || 'NGN' }),
   verifyCardFee:       (txRef)     => anyAxios.get(`/payments/verify-card-fee?tx_ref=${encodeURIComponent(txRef)}`),
 
   // Gift contribution — returns { payment_link }
@@ -226,7 +226,7 @@ export const teamsAPI = {
 
 export const subscriptionAPI = {
   get:        ()          => companyAxios.get('/subscription'),
-  initialize: (plan)      => companyAxios.post('/subscription/initialize', { plan }),
+  initialize: (plan, currency) => companyAxios.post('/subscription/initialize', { plan, currency: currency || 'NGN' }),
   verify:     (reference) => companyAxios.get(`/subscription/verify/${reference}`),
   cancel:     ()          => companyAxios.post('/subscription/cancel'),
 };
@@ -328,6 +328,12 @@ export const notificationsAPI = {
 };
 
 // ─── Banks & Withdrawals ───────────────────────────────────────────────────
+export const giftcardsAPI = {
+  getProducts:    (country, currency) => publicAxios.get(`/giftcards/products?country=${country||''}&currency=${currency||''}`),
+  getProduct:     (productId)         => publicAxios.get(`/giftcards/product/${productId}`),
+  order:          (data)              => anyAxios.post('/giftcards/order', data),
+};
+
 export const banksAPI = {
   getList:      ()     => publicAxios.get('/banks/list'),
   verify:       (data) => smartAxios.post('/banks/verify', data),

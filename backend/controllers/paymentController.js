@@ -132,8 +132,15 @@ const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountN
 // ═══════════════════════════════════════════════════════════════════════════════
 const initCardFee = async (req, res) => {
   try {
-    const { card_slug } = req.body;
+    const { card_slug, currency: reqCurrency } = req.body;
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
+    // Currency: default NGN, support USD/GBP/EUR etc. for international users
+    const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
+    const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
+    // FX rates (approximate — FLW uses live rates at checkout)
+    const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
+    const feeNGN = 5000;
+    const feeInCurrency = currency === 'NGN' ? feeNGN : parseFloat((feeNGN * FX[currency]).toFixed(2));
 
     const email =
       req.body.email    ||
@@ -151,8 +158,8 @@ const initCardFee = async (req, res) => {
 
     const payload = {
       tx_ref:    txRef,
-      amount:    5000,
-      currency:  'NGN',
+      amount:    feeInCurrency,
+      currency,
       // FLW redirects browser directly to frontend — no backend hop needed
       redirect_url: `${FRONTEND_URL}/create-card/verify`,
       customer:  { email, name: callerName },
@@ -234,7 +241,8 @@ const verifyCardFee = async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 const initContribution = async (req, res) => {
   try {
-    const { card_slug, amount, contributor_name, contributor_email, message_id } = req.body;
+    const { card_slug, amount, contributor_name, contributor_email, message_id,
+            flw_amount, flw_currency, display_currency } = req.body;
 
     if (!card_slug)         return res.status(400).json({ error: 'card_slug is required' });
     if (!amount)            return res.status(400).json({ error: 'amount is required' });
@@ -252,10 +260,15 @@ const initContribution = async (req, res) => {
     const txRef       = `TK-GIFT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
     const amountNaira = Number(amount);
 
+    // Use flw_amount/flw_currency if provided (international user selected different currency)
+    const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
+    const payAmount   = (flw_amount && flw_currency && SUPPORTED.includes(flw_currency)) ? flw_amount : amountNaira;
+    const payCurrency = (flw_currency && SUPPORTED.includes(flw_currency)) ? flw_currency : 'NGN';
+
     const payload = {
       tx_ref:    txRef,
-      amount:    amountNaira,
-      currency:  'NGN',
+      amount:    payAmount,
+      currency:  payCurrency,
       // FLW redirects browser directly to the sign page on the frontend
       // Frontend reads ?tx_ref= and calls /api/payments/verify-contribution
       redirect_url: `${FRONTEND_URL}/sign/${card_slug}?tx_ref=${txRef}`,

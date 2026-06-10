@@ -1,7 +1,7 @@
 import { useSEO } from '../hooks/useSEO';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI } from '../utils/api';
+import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI, giftcardsAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
@@ -15,100 +15,258 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
 
-// Inline gift withdrawal button — only for verified recipients
-const GiftWithdrawButton = ({ slug, token, amount, cardId, user, member }) => {
-  const [accounts,    setAccounts]  = useState(null);
-  const [loading,     setLoading]   = useState(false);
-  const [showPanel,   setShowPanel] = useState(false);
-  const [withdrawing, setWithdrawing] = useState(false);
+// ── Gift Claim Panel — Bank Transfer (FLW) or Gift Card (Reloadly) ───────────
+const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
+  const [step,        setStep]        = useState('choose');   // choose | bank | giftcard | loading | done
+  const [accounts,    setAccounts]    = useState(null);
+  const [products,    setProducts]    = useState(null);
+  const [selectedProd,setSelectedProd]= useState(null);
+  const [country,     setCountry]     = useState('NG');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [recipEmail,  setRecipEmail]  = useState(user?.email || member?.email || '');
+  const [busy,        setBusy]        = useState(false);
+  const [result,      setResult]      = useState(null);
 
-  const platformFee = Math.round(amount * 0.035);
-  const netAmount   = amount - platformFee;
+  const fee     = Math.round(amount * 0.035);
+  const net     = amount - fee;
+  const isVerified = user ? user.is_verified !== false : true;
 
-  // Determine verification status
-  const isVerified = user?.is_verified !== false; // members don't have email verification
+  const COUNTRIES = [
+    { code:'NG', label:'🇳🇬 Nigeria (NGN)', currency:'NGN' },
+    { code:'GB', label:'🇬🇧 United Kingdom (GBP)', currency:'GBP' },
+    { code:'US', label:'🇺🇸 United States (USD)', currency:'USD' },
+  ];
 
-  const loadAccounts = async () => {
-    // Pre-flight checks before showing the panel
+  const loadBankAccounts = async () => {
     if (!isVerified) {
-      toast.error(
-        '⚠️ Please verify your email address first. Check your inbox for the verification link, then come back to withdraw.',
-        { duration: 8000 }
-      );
+      toast.error('Please verify your email before withdrawing. Check your inbox.', { duration: 8000 });
       return;
     }
-    setLoading(true);
+    setBusy(true);
     try {
       const r = await banksAPI.getMy();
       setAccounts(r.data || []);
     } catch { setAccounts([]); }
-    finally { setLoading(false); setShowPanel(true); }
+    finally { setBusy(false); setStep('bank'); }
   };
 
-  const handleWithdraw = async () => {
+  const loadGiftCards = async (countryCode) => {
+    setBusy(true);
+    try {
+      const cur = COUNTRIES.find(c => c.code === countryCode)?.currency || 'NGN';
+      const r = await giftcardsAPI.getProducts(countryCode, cur);
+      setProducts(r.data.products || []);
+    } catch { setProducts([]); }
+    finally { setBusy(false); setStep('giftcard'); }
+  };
+
+  const handleBankTransfer = async () => {
     const acc = accounts?.find(a => a.is_default) || accounts?.[0];
     if (!acc) {
-      toast.error('Please add your bank account details in your dashboard Settings first, then come back to withdraw.', { duration: 7000 });
+      toast.error('Add your bank account in Settings first.', { duration: 6000 });
       return;
     }
-    setWithdrawing(true);
+    setBusy(true);
+    setStep('loading');
     try {
-      // Bug 16 fix: also pass access token for recipients who came via email link
-      const res = await banksAPI.withdrawGift({ card_slug: slug, access_token: token || undefined });
-      toast.success(res.data?.message || `${formatNGN(netAmount)} is on its way to your account! 🎉`, { duration: 8000 });
-      setShowPanel(false);
+      const res = await banksAPI.withdrawGift({ card_slug: slug, access_token: token });
+      setResult({ type: 'transfer', message: res.data.message, amount: res.data.amount, fee: res.data.fee });
+      setStep('done');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Withdrawal failed. Please try again or contact support.');
-    } finally { setWithdrawing(false); }
+      toast.error(err.response?.data?.error || 'Transfer failed. Please try again.');
+      setStep('bank');
+    } finally { setBusy(false); }
   };
 
-  return (
-    <div className="relative">
-      <button onClick={accounts === null ? loadAccounts : () => setShowPanel(!showPanel)}
-        className="btn-white text-sm flex items-center gap-2">
-        {loading ? <span className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"/> : '💸'}
-        Withdraw to bank
+  const handleGiftCardOrder = async () => {
+    if (!selectedProd) { toast.error('Select a gift card first.'); return; }
+    setBusy(true);
+    setStep('loading');
+    try {
+      const payload = {
+        card_slug:       slug,
+        product_id:      selectedProd.id,
+        amount:          amount,
+        recipient_email: recipEmail,
+        access_token:    token,
+        ...(selectedProd.id.includes('AIRTIME') ? { phone_number: phoneNumber } : {}),
+      };
+      const res = await giftcardsAPI.order(payload);
+      setResult({ type: 'giftcard', message: res.data.message, product: res.data.product_name });
+      setStep('done');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Gift card order failed. Please try bank transfer instead.');
+      setStep('giftcard');
+    } finally { setBusy(false); }
+  };
+
+  if (step === 'loading') return (
+    <div className="flex flex-col items-center gap-3 py-6">
+      <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"/>
+      <p className="text-sm font-medium text-warm-700">Processing your claim…</p>
+    </div>
+  );
+
+  if (step === 'done') return (
+    <div className="text-center py-4 space-y-3">
+      <div className="text-5xl">🎉</div>
+      <p className="font-bold text-warm-900 text-base">{result?.type === 'transfer' ? 'Money on its way!' : 'Gift card sent!'}</p>
+      <p className="text-sm text-warm-600">{result?.message}</p>
+      {result?.type === 'transfer' && (
+        <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-warm-600 space-y-1">
+          <div className="flex justify-between"><span>Gift pot</span><span>{formatNGN(amount)}</span></div>
+          <div className="flex justify-between"><span>Platform fee (3.5%)</span><span>-{formatNGN(result.fee)}</span></div>
+          <div className="flex justify-between font-bold text-warm-900"><span>You receive</span><span>{formatNGN(result.amount)}</span></div>
+        </div>
+      )}
+      <p className="text-xs text-warm-400">Usually arrives within 1–3 minutes</p>
+    </div>
+  );
+
+  // ── Step 1: Choose method ───────────────────────────────────────────────
+  if (step === 'choose') return (
+    <div className="space-y-3">
+      <p className="text-xs text-warm-500 text-center mb-1">How would you like to receive your {formatNGN(net)}?</p>
+      <p className="text-xs text-warm-400 text-center -mt-2 mb-2">(After 3.5% platform fee on {formatNGN(amount)})</p>
+
+      <button onClick={loadBankAccounts} disabled={busy}
+        className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-green-200 bg-green-50 hover:bg-green-100 transition-all text-left">
+        <span className="text-2xl">🏦</span>
+        <div className="flex-1">
+          <p className="font-bold text-sm text-warm-900">Bank Transfer</p>
+          <p className="text-xs text-warm-500">Straight to your Nigerian bank account · Usually 1–3 mins</p>
+        </div>
+        <span className="text-warm-400">→</span>
       </button>
 
-      {showPanel && (
-        <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-purple-100 p-4 z-50 animate-fade-in">
-          <h4 className="font-semibold text-warm-900 text-sm mb-3">Withdraw {formatNGN(amount)}</h4>
-          {!accounts?.length ? (
-            <div className="space-y-3">
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-                <p className="text-xs font-semibold text-amber-800 mb-1">⚠️ No bank account saved</p>
-                <p className="text-xs text-amber-700">To receive your gift, you need to add your bank account details to your dashboard first.</p>
+      <button onClick={() => { setCountry('NG'); loadGiftCards('NG'); }} disabled={busy}
+        className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-primary-200 bg-primary-50 hover:bg-primary-100 transition-all text-left">
+        <span className="text-2xl">🎁</span>
+        <div className="flex-1">
+          <p className="font-bold text-sm text-warm-900">Gift Card or Airtime</p>
+          <p className="text-xs text-warm-500">Amazon, iTunes, Netflix, MTN Airtime, Jumia & more · Nigeria, UK, US</p>
+        </div>
+        <span className="text-warm-400">→</span>
+      </button>
+    </div>
+  );
+
+  // ── Step 2a: Bank transfer confirmation ────────────────────────────────
+  if (step === 'bank') return (
+    <div className="space-y-3">
+      <button onClick={() => setStep('choose')} className="text-xs text-warm-400 hover:text-warm-700 flex items-center gap-1">← Back</button>
+      <p className="font-semibold text-sm text-warm-900">Withdraw to bank account</p>
+      {!accounts?.length ? (
+        <div className="space-y-3">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <p className="text-xs font-bold text-amber-800 mb-1">⚠️ No bank account saved</p>
+            <p className="text-xs text-amber-700">Go to Settings → Bank Accounts, add your details, then come back.</p>
+          </div>
+          <Link to={user ? '/dashboard/settings' : '/member/settings'}
+            className="btn-primary text-xs py-2.5 px-4 w-full text-center block">
+            🏦 Add bank account in Settings
+          </Link>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {accounts.map(acc => (
+            <div key={acc.id} className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-200">
+              <span className="text-xl">🏦</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-warm-900 truncate">{acc.account_name}</p>
+                <p className="text-xs text-warm-500">{acc.bank_name} · ****{acc.account_number?.slice(-4)}</p>
               </div>
-              <Link to={user ? "/dashboard/settings" : "/member/settings"} className="btn-primary text-xs py-2.5 px-4 w-full text-center block">
-                🏦 Add bank account in Settings
-              </Link>
             </div>
-          ) : (
-            <div>
-              {accounts.map(acc => (
-                <div key={acc.id} className="flex items-center gap-2 p-2.5 rounded-xl bg-green-50 border border-green-200 mb-3">
-                  <span className="text-lg">🏦</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-warm-900 truncate">{acc.account_name}</p>
-                    <p className="text-xs text-warm-500">{acc.bank_name} · ****{acc.account_number?.slice(-4)}</p>
-                  </div>
-                </div>
-              ))}
-              <button onClick={handleWithdraw} disabled={withdrawing} className="btn-primary w-full text-sm py-2.5">
-                {withdrawing ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Processing…</span> : `💸 Withdraw ${formatNGN(netAmount)} (after 3.5% fee)`}
-              </button>
-              <div className="text-xs text-warm-400 mt-2 space-y-0.5">
-                <div className="flex justify-between"><span>Gift pot total</span><span>{formatNGN(amount)}</span></div>
-                <div className="flex justify-between"><span>Platform fee (3.5%)</span><span>-{formatNGN(platformFee)}</span></div>
-                <div className="flex justify-between font-semibold text-warm-700"><span>You receive</span><span>{formatNGN(netAmount)}</span></div>
-                <p className="text-center pt-1">Processed within 1–2 business days</p>
-              </div>
-            </div>
-          )}
+          ))}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs space-y-1 text-warm-600">
+            <div className="flex justify-between"><span>Gift pot</span><span>{formatNGN(amount)}</span></div>
+            <div className="flex justify-between"><span>Platform fee (3.5%)</span><span>-{formatNGN(fee)}</span></div>
+            <div className="flex justify-between font-bold text-warm-900 pt-1 border-t border-gray-200"><span>You receive</span><span>{formatNGN(net)}</span></div>
+          </div>
+          <button onClick={handleBankTransfer} disabled={busy}
+            className="btn-primary w-full text-sm py-3">
+            💸 Withdraw {formatNGN(net)} now
+          </button>
         </div>
       )}
     </div>
   );
+
+  // ── Step 2b: Gift card selection ───────────────────────────────────────
+  if (step === 'giftcard') return (
+    <div className="space-y-3">
+      <button onClick={() => setStep('choose')} className="text-xs text-warm-400 hover:text-warm-700 flex items-center gap-1">← Back</button>
+      <p className="font-semibold text-sm text-warm-900">Choose a gift card</p>
+
+      {/* Country selector */}
+      <div className="flex gap-1 flex-wrap">
+        {COUNTRIES.map(c => (
+          <button key={c.code} onClick={() => { setCountry(c.code); setSelectedProd(null); loadGiftCards(c.code); }}
+            className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all ${
+              country === c.code ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'
+            }`}>
+            {c.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Product grid */}
+      {busy ? (
+        <div className="flex items-center justify-center py-4">
+          <div className="w-6 h-6 border-2 border-primary-400 border-t-transparent rounded-full animate-spin"/>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+          {(products || []).map(p => (
+            <button key={p.id} onClick={() => setSelectedProd(p)}
+              className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 text-center transition-all ${
+                selectedProd?.id === p.id
+                  ? 'border-primary-400 bg-primary-50'
+                  : 'border-gray-100 bg-white hover:border-primary-200'
+              }`}>
+              <span className="text-2xl">{p.icon}</span>
+              <p className="text-xs font-semibold text-warm-900 leading-tight">{p.name}</p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Phone number for airtime */}
+      {selectedProd?.id?.includes('AIRTIME') && (
+        <div>
+          <label className="text-xs font-semibold text-warm-700 block mb-1">Phone number to top up</label>
+          <input type="tel" placeholder="e.g. 08012345678" value={phoneNumber}
+            onChange={e => setPhoneNumber(e.target.value)}
+            className="input text-sm py-2.5 w-full"/>
+        </div>
+      )}
+
+      {/* Recipient email */}
+      {selectedProd && !selectedProd.id.includes('AIRTIME') && (
+        <div>
+          <label className="text-xs font-semibold text-warm-700 block mb-1">Send code to email</label>
+          <input type="email" placeholder="your@email.com" value={recipEmail}
+            onChange={e => setRecipEmail(e.target.value)}
+            className="input text-sm py-2.5 w-full"/>
+        </div>
+      )}
+
+      {selectedProd && (
+        <div className="bg-primary-50 border border-primary-200 rounded-xl p-2.5">
+          <p className="text-xs text-primary-700">{selectedProd.note}</p>
+        </div>
+      )}
+
+      <button onClick={handleGiftCardOrder}
+        disabled={busy || !selectedProd || (selectedProd.id.includes('AIRTIME') && !phoneNumber) || (!selectedProd.id.includes('AIRTIME') && !recipEmail)}
+        className="btn-primary w-full text-sm py-3 disabled:opacity-50">
+        {busy ? 'Processing…' : `🎁 Claim ${formatNGN(net)} as ${selectedProd?.name || 'gift card'}`}
+      </button>
+      <p className="text-xs text-warm-400 text-center">Gift card code is delivered instantly to your email</p>
+    </div>
+  );
+
+  return null;
 };
 
 const occasionLabel = {
@@ -503,8 +661,8 @@ const CardView = () => {
 
               {/* Only show withdraw if: user is the verified recipient (email match or received via transfer) */}
               {card.isRecipient && !card.gift_withdrawn && (
-                <GiftWithdrawButton
-                  slug={slug} token={token} amount={totalCollected} cardId={card.id}
+                <GiftClaimPanel
+                  slug={slug} token={token} amount={totalCollected}
                   user={user} member={member}
                 />
               )}

@@ -9,7 +9,7 @@ import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils
 import VoiceRecorder from '../components/VoiceRecorder';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
-import { formatNGN } from '../utils/currency';
+import { formatNGN, CURRENCIES, formatCurrency, getFLWPaymentParams } from '../utils/currency';
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
 
@@ -27,6 +27,7 @@ const SignCard = () => {
   const [submitting,  setSubmitting]  = useState(false);
   // 'idle' | 'sending' | 'paying' | 'verifying' | 'done'
   const [stage,       setStage]       = useState('idle');
+  const [giftCurrency,setGiftCurrency] = useState('NGN');
   const [submitted,   setSubmitted]   = useState(false);
   // track whether the signee created an account during this signing flow
   const [createdAccount, setCreatedAccount] = useState(false);
@@ -205,11 +206,15 @@ const SignCard = () => {
 
       // ── STEP 3: Get payment link from backend ─────────────────────────
       setStage('paying');
+      const { amount: flwAmount, currency: flwCurrency } = getFLWPaymentParams(amountNGN, giftCurrency);
       const payRes = await paymentsAPI.initContribution({
         card_slug:         slug,
         contributor_name:  form.author_name,
         contributor_email: form.author_email,
-        amount:            amountNGN,
+        amount:            amountNGN,   // always store NGN in DB
+        display_currency:  giftCurrency,
+        flw_amount:        flwAmount,
+        flw_currency:      flwCurrency,
         message_id:        messageId,
       });
       const { payment_link } = payRes.data;

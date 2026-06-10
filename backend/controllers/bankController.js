@@ -270,14 +270,13 @@ const initiateWithdrawal = async (req, res) => {
 };
 
 
-// POST /api/banks/withdraw-gift — recipient withdraws their gift pot
+// POST /api/banks/withdraw-gift — recipient claims gift pot via BANK TRANSFER
+// (For gift CARD option, the frontend calls POST /api/giftcards/order instead)
 const withdrawGift = async (req, res) => {
   try {
-    // Bug 8 fix: support both users (regular) and members (team members) as recipients
     const userId     = req.user?.id;
     const memberId   = req.member?.id;
     const callerId   = userId || memberId;
-    const callerType = userId ? 'user' : 'member';
     if (!callerId) return res.status(401).json({ error: 'Not authenticated' });
 
     const { card_slug } = req.body;
@@ -287,102 +286,122 @@ const withdrawGift = async (req, res) => {
       .from('cards').select('*').eq('slug', card_slug).single();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
-    // Get caller email — from users table or members table
-    let callerEmail = null, is_verified = true;
+    // Get caller email — scoped correctly so no "userInfo not defined" bug
+    let callerEmail = null;
+    let emailVerified = true; // members skip email verification
     if (userId) {
-      const { data: userInfo } = await supabase.from('users').select('email, is_verified').eq('id', userId).single();
-      callerEmail = userInfo?.email;
-      is_verified = userInfo?.is_verified !== false;
+      const { data: userInfo } = await supabase.from('users')
+        .select('email, is_verified').eq('id', userId).single();
+      callerEmail   = userInfo?.email;
+      emailVerified = userInfo?.is_verified !== false;
     } else if (memberId) {
-      const { data: memberInfo } = await supabase.from('company_members').select('email').eq('id', memberId).single();
+      const { data: memberInfo } = await supabase.from('company_members')
+        .select('email').eq('id', memberId).single();
       callerEmail = memberInfo?.email;
-      // Members don't have email verification — treat as verified
     }
 
-    // Strict email match: authenticated caller's email MUST match card.recipient_email
+    // Recipient check: email match OR transferred card
     const isEmailRecipient = card.recipient_email && callerEmail &&
       card.recipient_email.toLowerCase() === callerEmail.toLowerCase();
+    const { data: received } = await supabase.from('received_cards')
+      .select('id').eq('card_id', card.id)
+      .eq('recipient_user_id', userId || '').maybeSingle();
 
-    // OR: card was transferred to this user (appears in received_cards)
-    const { data: receivedEntry } = await supabase
-      .from('received_cards').select('id')
-      .eq('card_id', card.id).eq('recipient_user_id', userId).maybeSingle();
-
-    if (!isEmailRecipient && !receivedEntry) {
+    if (!isEmailRecipient && !received) {
       return res.status(403).json({
-        error: 'Access denied. Only the recipient whose email matches this card can withdraw the gift. If you used a different email, ask the card creator to transfer the card to your username first.'
+        error: 'Only the recipient can claim this gift. If your email is different, ask the card creator to transfer it to your account.',
       });
     }
 
-    // Check email is verified (only for users, members don't have email verification)
-    if (userInfo && userInfo.is_verified === false) {
+    if (!emailVerified) {
       return res.status(403).json({
-        error: 'Please verify your email address before withdrawing. Check your inbox for a verification link.'
+        error: 'Please verify your email before withdrawing. Check your inbox for the verification link.',
       });
     }
 
-    if ((card.total_collected || 0) <= 0) {
-      return res.status(400).json({ error: 'No gift pot to withdraw' });
-    }
+    if ((card.total_collected || 0) <= 0) return res.status(400).json({ error: 'No gift pot to withdraw' });
+    if (card.gift_withdrawn)             return res.status(400).json({ error: 'Gift has already been claimed' });
 
-    if (card.gift_withdrawn) {
-      return res.status(400).json({ error: 'Gift pot has already been withdrawn' });
-    }
-
-    // Get recipient's saved bank account
-    const { data: bank } = await supabase
-      .from('bank_accounts')
+    // Get default bank account for the caller
+    const { data: bank } = await supabase.from('bank_accounts')
       .select('*')
-      .eq('owner_id', userId)
+      .eq('owner_id', callerId)
       .eq('is_default', true)
       .maybeSingle();
 
-    if (!bank?.flw_beneficiary_id) { // FLW beneficiary ID
-      return res.status(400).json({ error: 'Please add and verify your bank account in Settings before withdrawing' });
+    if (!bank) {
+      return res.status(400).json({ error: 'No bank account saved. Add your bank account in Settings first.' });
+    }
+    if (!bank.account_number || !bank.bank_code) {
+      return res.status(400).json({ error: 'Bank account details incomplete. Please re-save your bank account.' });
     }
 
-    // Calculate payout: total minus 3.5% platform fee
+    // Platform fee: 3.5%
     const gross = card.total_collected;
-    const fee = Math.round(gross * 0.035);
-    const net = gross - fee;
+    const fee   = Math.round(gross * 0.035);
+    const net   = gross - fee;
 
-    // Initiate Flutterwave gift pot transfer
-    const transferRef = `gift_${card.id}_${Date.now()}`;
-    if (!bank?.flw_beneficiary_id) {
-      return res.status(400).json({ error: 'Please add and verify your bank account in Settings before withdrawing' });
-    }
+    const transferRef = `TK-GIFT-WD-${card.id.slice(0,8).toUpperCase()}-${Date.now()}`;
 
+    // Initiate Flutterwave bank transfer
     const r = await axios.post(`${FLW}/transfers`, {
       account_bank:     bank.bank_code,
       account_number:   bank.account_number,
-      amount:           net,
-      narration:        `Gift pot withdrawal — ${card.title || card.recipient_name + "'s card"}`,
+      amount:           net, // FLW uses Naira directly (not kobo)
+      narration:        `Gift from "${card.title || card.recipient_name + "'s card"}"`,
       currency:         'NGN',
       reference:        transferRef,
-      beneficiary_name: bank.account_name,
+      beneficiary_name: bank.account_name || 'Recipient',
       debit_currency:   'NGN',
     }, { headers: flwH() });
 
-    if (r.data.status !== 'success') throw new Error(r.data.message || 'Transfer initiation failed');
+    if (!['NEW', 'success', 'PENDING'].includes(r.data?.data?.status || '') &&
+        r.data?.status !== 'success') {
+      throw new Error(r.data?.message || r.data?.data?.complete_message || 'Transfer failed');
+    }
 
-    // Mark as withdrawn
+    // Mark card gift as withdrawn
     await supabase.from('cards').update({
-      gift_withdrawn: true,
-      gift_withdrawn_at: new Date(),
+      gift_withdrawn:       true,
+      gift_withdrawn_at:    new Date(),
       gift_payout_reference: transferRef,
-      gift_payout_amount: net,
+      gift_payout_amount:   net,
     }).eq('id', card.id);
 
-    res.json({
-      message: `₦${net.toLocaleString('en-NG')} is on its way to your account!`,
-      amount: net,
+    // Also record in gift_claims table for admin visibility
+    await supabase.from('gift_claims').upsert({
+      card_id:         card.id,
+      recipient_name:  card.recipient_name,
+      recipient_email: callerEmail || card.recipient_email,
+      claim_type:      'transfer',
+      amount:          net,
+      bank_name:       bank.bank_name,
+      account_number:  bank.account_number,
+      account_name:    bank.account_name,
+      status:          'paid',
+      processed_at:    new Date(),
+    }, { onConflict: 'card_id' }).catch(() => {});
+
+    pushNotification(callerId, userId ? 'user' : 'member', 'gift_withdrawn',
+      '💸 Gift withdrawal initiated',
+      `₦${net.toLocaleString('en-NG')} is on its way to ${bank.bank_name} ****${bank.account_number.slice(-4)}`,
+      { amount: net }
+    );
+
+    return res.json({
+      success:   true,
+      type:      'transfer',
+      message:   `₦${net.toLocaleString('en-NG')} is on its way to ${bank.bank_name} ****${bank.account_number.slice(-4)}. Usually arrives in 1–3 minutes.`,
+      amount:    net,
       fee,
       gross,
       reference: transferRef,
     });
+
   } catch (err) {
-    console.error('withdrawGift error:', err.response?.data || err.message);
-    res.status(500).json({ error: err.response?.data?.message || 'Withdrawal failed. Please try again.' });
+    const msg = err.response?.data?.message || err.message;
+    console.error('withdrawGift error:', msg, err.response?.data);
+    return res.status(500).json({ error: msg || 'Withdrawal failed. Please try again or contact support.' });
   }
 };
 

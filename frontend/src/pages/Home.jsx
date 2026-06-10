@@ -1,5 +1,7 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { RotatingPrice, CurrencyToggle } from './Pricing';
+import { formatCurrency } from '../utils/currency';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -134,7 +136,8 @@ const Home = () => {
     canonical:'/',
     jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp],
   });
-  const [showDemo, setShowDemo] = useState(false);
+  const [showDemo,    setShowDemo]    = useState(false);
+  const [homeCurrency,setHomeCurrency] = useState('NGN');
 
   return (
     <div className="min-h-screen" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 20%)' }}>
@@ -161,13 +164,13 @@ const Home = () => {
           </h1>
 
           <p className="text-warm-600 mb-8 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(0.95rem,2.5vw,1.125rem)', lineHeight:1.65 }}>
-            Create beautiful group cards, collect heartfelt messages, pool Naira gifts via Flutterwave.<br className="hidden sm:block"/>
-            <strong className="text-warm-800">Takes 2 minutes. From ₦5,000.</strong>
+            Create beautiful group cards, collect heartfelt messages, pool gifts via Flutterwave — works in NGN, USD, GBP, EUR and more.<br className="hidden sm:block"/>
+            <strong className="text-warm-800">Takes 2 minutes. From <RotatingPrice amountNGN={5000} />.</strong>
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10 px-2">
             <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">
-              ✨ Create a card from ₦5,000
+              ✨ Create a card
             </Link>
             <button onClick={() => setShowDemo(true)} className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">
               📅 Book team demo
@@ -351,7 +354,7 @@ const Home = () => {
               { icon:'🔗', title:'HRIS Integration', desc:'SeamlessHR, BambooHR, Zoho People, WorkPay — one sync and your whole org is in.' },
               { icon:'🎉', title:'12 Occasions Automated', desc:"Birthdays, farewells, promotions, new hires, Women's Day — zero manual effort." },
               { icon:'💌', title:'Whole-dept Notifications', desc:'Every department member gets an email to sign. No one left out.' },
-              { icon:'💳', title:'Gift pot per employee', desc:'Flutterwave handles Naira collections. HR never chases money again.' },
+              { icon:'💳', title:'Gift pot per employee', desc:'Flutterwave handles multi-currency collections. HR never chases money again.' },
               { icon:'📋', title:'HR Analytics Dashboard', desc:'Full visibility into automations, upcoming occasions, and spending.' },
               { icon:'🛡️', title:'Approval Workflows', desc:'Team leaders sign off on card creation. Full control maintained.' },
             ].map(f => (
@@ -376,27 +379,52 @@ const Home = () => {
       {/* ── PRICING CALLOUT ──────────────── */}
       <section className="py-12 md:py-16 px-4">
         <div className="max-w-4xl mx-auto">
+          {/* Currency toggle */}
+          <div className="text-center mb-6">
+            <p className="text-xs font-semibold text-warm-500 mb-2 uppercase tracking-wide">See prices in your currency</p>
+            <CurrencyToggle selected={homeCurrency} onChange={setHomeCurrency} />
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Individual */}
             <div className="bg-gradient-to-br from-purple-50 to-rose-50 border-2 border-purple-200 rounded-3xl p-7">
               <div className="text-4xl mb-4">💜</div>
-              <h3 className="text-2xl font-bold text-warm-900 mb-2">For individuals</h3>
-              <p className="text-primary-600 font-bold text-sm mb-1">From ₦5,000 · One-time payment</p>
+              <h3 className="text-2xl font-bold text-warm-900 mb-1">For individuals</h3>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-primary-600 font-extrabold text-2xl">
+                  {formatCurrency(5000, homeCurrency)}
+                </span>
+                <span className="text-warm-400 text-sm">one-time</span>
+              </div>
+              {homeCurrency !== 'NGN' && <p className="text-xs text-warm-400 mb-3">≈ ₦5,000 · charged at live rate</p>}
               <p className="text-warm-600 mb-5 text-sm leading-relaxed">Create a card for anyone — friend, colleague, family. No account needed to sign.</p>
               <ul className="space-y-2 mb-6">
-                {['✓ Quick card creation','✓ Unlimited signers','✓ Naira gift pot','✓ Photo & video messages'].map(f => (
-                  <li key={f} className="text-sm text-warm-700 flex gap-2"><span className="text-primary-500 font-bold">{f.slice(0,1)}</span>{f.slice(1)}</li>
+                {['✓ Quick card creation','✓ Unlimited signers','✓ Global gift pot','✓ Photo & video messages'].map(f => (
+                  <li key={f} className="text-sm text-warm-700 flex gap-2">
+                    <span className="text-primary-500 font-bold">{f.slice(0,1)}</span>{f.slice(1)}
+                  </li>
                 ))}
               </ul>
               <Link to="/signup" className="btn-primary px-7 py-3 w-full sm:w-auto inline-flex">Get started →</Link>
             </div>
+
+            {/* Company */}
             <div className="rounded-3xl p-7 border-2 border-primary-800" style={{ background:'linear-gradient(135deg,#1A1035,#2E1F6B)' }}>
               <div className="text-4xl mb-4">🏢</div>
-              <h3 className="font-display text-2xl font-bold text-purple-100 mb-2">For companies</h3>
-              <p className="text-purple-300 font-bold text-sm mb-1">From ₦200,000/month</p>
+              <h3 className="font-display text-2xl font-bold text-purple-100 mb-1">For companies</h3>
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-purple-200 font-extrabold text-2xl">
+                  {formatCurrency(200000, homeCurrency)}
+                </span>
+                <span className="text-purple-400 text-sm">/month</span>
+              </div>
+              {homeCurrency !== 'NGN' && <p className="text-xs text-purple-400 mb-3">≈ ₦200,000 · charged at live rate</p>}
               <p className="text-purple-300 mb-5 text-sm leading-relaxed">Automate all team celebrations. Connect your HRIS. Never forget a birthday again.</p>
               <ul className="space-y-2 mb-6">
                 {['✓ Unlimited employees','✓ HRIS integration','✓ 12 automated occasions','✓ HR analytics dashboard'].map(f => (
-                  <li key={f} className="text-sm text-purple-200 flex gap-2"><span className="text-purple-400 font-bold">{f.slice(0,1)}</span>{f.slice(1)}</li>
+                  <li key={f} className="text-sm text-purple-200 flex gap-2">
+                    <span className="text-purple-400 font-bold">{f.slice(0,1)}</span>{f.slice(1)}
+                  </li>
                 ))}
               </ul>
               <div className="flex flex-wrap gap-2">
@@ -405,6 +433,10 @@ const Home = () => {
               </div>
             </div>
           </div>
+
+          <p className="text-center text-xs text-warm-400 mt-4">
+            🌍 Works in Nigeria, UK, US, Canada, Ghana, Kenya, South Africa and beyond · Pay in your local currency
+          </p>
         </div>
       </section>
 
@@ -496,7 +528,7 @@ const Home = () => {
               genuinely loved
             </span>
           </h2>
-          <p className="text-warm-500 mb-8 text-base sm:text-lg">From ₦5,000 per card. Pay only when you send.</p>
+          <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={5000} /> per card · Pay only when you send · Works worldwide 🌍</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">✨ Get started — takes 2 min</Link>
             <Link to="/pricing" className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto w-full sm:w-auto">💳 See pricing</Link>

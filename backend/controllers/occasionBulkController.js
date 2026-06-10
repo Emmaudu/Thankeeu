@@ -43,11 +43,11 @@ const downloadBulkTemplate = (req, res) => {
   const wb = XLSX.utils.book_new();
 
   // Sheet 1: Main import sheet
-  const cols = ['First Name','Last Name','Email','Department','Role (member/leader)','Gender (male/female)','Date of Birth (YYYY-MM-DD)','Job Title','Phone','Work Anniversary Date (YYYY-MM-DD)','Promotion Date (leave blank)','Leaving Date (leave blank)','Notes'];
+  const cols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (male/female)','Date of Birth (YYYY-MM-DD)','Work Start Date (YYYY-MM-DD)','New Hire Start Date (YYYY-MM-DD)','Promotion Date (leave blank if none)','Last Working Day (leave blank if none)','Farewell Message (optional)','Congratulatory Message (optional)'];
   const rows = [
-    ['Adaeze','Okonkwo','adaeze@company.com','Marketing','member','female','1990-05-15','Content Writer','08012345678','2020-01-10','','','Welcome to the team'],
-    ['Emeka','Chukwu','emeka@company.com','Engineering','leader','male','1985-11-22','Lead Developer','08098765432','2019-03-01','','',''],
-    ['Kemi','Bello','kemi@company.com','HR','member','female','1993-07-08','HR Associate','07012345678','2021-06-01','','',''],
+    ['Adaeze','Okonkwo','adaeze@company.com','08012345678','Marketing','member','Content Writer','female','1990-05-15','2020-01-10','','','','',''],
+    ['Emeka','Chukwu','emeka@company.com','08098765432','Engineering','leader','Lead Developer','male','1985-11-22','2019-03-01','','','','',''],
+    ['Kemi','Bello','kemi@company.com','07012345678','HR','member','HR Associate','female','1993-07-08','2021-06-01','','','','',''],
   ];
   const ws1 = XLSX.utils.aoa_to_sheet([cols, ...rows]);
   ws1['!cols'] = cols.map(() => ({ wch: 24 }));

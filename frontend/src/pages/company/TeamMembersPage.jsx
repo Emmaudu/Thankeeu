@@ -94,7 +94,7 @@ export default function TeamMembersPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-5">
-        <input className="input flex-1 min-w-48 text-base" placeholder="🔍 Search name or email..."
+        <input className="input w-full sm:flex-1 sm:min-w-48 text-base" placeholder="🔍 Search name or email..."
           value={search} onChange={e => setSearch(e.target.value)} />
         <select className="input text-base" value={deptF} onChange={e => setDeptF(e.target.value)}>
           <option value="">All departments</option>
@@ -128,7 +128,7 @@ export default function TeamMembersPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full" style={{minWidth:"700px"}}>
               <thead className="bg-purple-50 text-xs font-semibold text-warm-500 uppercase tracking-wide">
                 <tr>
                   <th className="text-left px-4 py-3">Employee</th>
@@ -147,7 +147,7 @@ export default function TeamMembersPage() {
                     <tr key={m.id} className="hover:bg-purple-50/40 transition-colors">
                       <td className="px-4 py-3">
                         {isEditing ? (
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-1.5">
                             <input className="input text-sm py-1.5 w-28" value={editData.first_name}
                               onChange={e => setEditData(d=>({...d,first_name:e.target.value}))} placeholder="First" />
                             <input className="input text-sm py-1.5 w-28" value={editData.last_name}

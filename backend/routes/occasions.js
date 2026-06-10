@@ -11,7 +11,8 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const {
   getOccasionTypes, createOccasionType,
   downloadOccasionTemplate,
-  importOccasionMembers, getOccasionMembers, deleteOccasionMember,
+  importOccasionMembers, importByOccasionName,
+  getOccasionMembers, deleteOccasionMember,
   downloadGeneralTemplate, importGeneralTemplate,
   updateOccasionTypeScope, updateOccasionMember, triggerOccasionNow,
 } = require('../controllers/occasionController');
@@ -30,8 +31,10 @@ router.get('/types',              companyAuth, getOccasionTypes);
 router.post('/types',             companyAuth, createOccasionType);
 
 // Per-type template download and import
-router.get('/template/:occasionName',         companyAuth, downloadOccasionTemplate);
-router.post('/:occasionTypeId/import',        companyAuth, upload.single('file'), importOccasionMembers);
+router.get('/template/:occasionName',              companyAuth, downloadOccasionTemplate);
+router.post('/:occasionTypeId/import',             companyAuth, upload.single('file'), importOccasionMembers);
+// New: import directly by occasion name (no UUID needed — used by per-tab upload buttons)
+router.post('/import-by-name/:occasionName',       companyAuth, upload.single('file'), importByOccasionName);
 router.delete('/:occasionTypeId/members/:memberId', companyAuth, deleteOccasionMember);
 
 // View members (HR or approved member)

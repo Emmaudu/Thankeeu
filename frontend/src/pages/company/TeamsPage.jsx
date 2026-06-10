@@ -123,7 +123,7 @@ const TeamsPage = () => {
       </div>
 
       {/* Occasion type tabs */}
-      <div className="flex flex-wrap gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex flex-wrap gap-2 mb-6 pb-1">
         {loading ? [...Array(6)].map((_, i) => <div key={i} className="h-10 w-32 bg-purple-50 rounded-xl animate-pulse flex-shrink-0" />) : (
           types.map(ot => (
             <button key={ot.id} onClick={() => { setSelected(ot); setImportResult(null); setSearch(''); setDeptFilter(''); }}
@@ -216,8 +216,8 @@ const TeamsPage = () => {
                 <button onClick={handleDownload} className="btn-primary text-sm py-2.5 px-6">📥 Download template</button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
+              <div className="overflow-x-auto -mx-0">
+                <table className="w-full" style={{minWidth:"600px"}}>
                   <thead>
                     <tr className="border-b border-purple-100 bg-warm-100">
                       {['Employee','Department','Email','Date','Days Away','Status',''].map(h => (

@@ -83,7 +83,7 @@ const DeductionRequestsPage = () => {
 
       {/* Info card */}
       <div className="bg-blue-50 border border-blue-100 rounded-3xl p-5 mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
             <p className="font-semibold text-blue-800 mb-1">💰 How deductions work</p>
             <p className="text-blue-700 text-xs leading-relaxed">
@@ -100,7 +100,7 @@ const DeductionRequestsPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-0 border-b border-purple-100 mb-6">
+      <div className="flex gap-0 border-b border-purple-100 mb-6 overflow-x-auto" style={{scrollbarWidth:"none"}}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${

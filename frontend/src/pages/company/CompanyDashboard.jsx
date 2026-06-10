@@ -121,7 +121,7 @@ const CompanyDashboard = () => {
       {scopeApprovals.length > 0 && (
         <div className="mb-5 space-y-2">
           {scopeApprovals.map(card => (
-            <div key={card.id} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-4">
+            <div key={card.id} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
               <span className="text-2xl flex-shrink-0">🏢</span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-amber-800 text-sm">Approval needed: Company-wide notification</p>
@@ -129,7 +129,7 @@ const CompanyDashboard = () => {
                   A team member wants to notify the entire company about <strong>{card.recipient_name}</strong>'s card. Approve to send emails + dashboard notifications to all departments.
                 </p>
               </div>
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex gap-2 flex-wrap flex-shrink-0">
                 <button
                   onClick={() => handleApproveScope(card.slug)}
                   disabled={approvingScope === card.slug}
@@ -147,7 +147,8 @@ const CompanyDashboard = () => {
 
       {/* HR quick actions bar */}
       <div className="flex flex-wrap gap-2 mb-5">
-        <Link to="/member/occasions" className="btn-primary text-xs py-2.5 px-4">✨ Create card for team</Link>
+        <Link to="/create-card" className="btn-primary text-xs py-2.5 px-4">💌 Create Card</Link>
+        <Link to="/company/occasions" className="btn-primary text-xs py-2.5 px-4">✨ Occasions</Link>
         <Link to="/company/hris" className="btn-secondary text-xs py-2.5 px-4">📥 HRIS &amp; Import</Link>
         <Link to="/company/members" className="btn-secondary text-xs py-2.5 px-4">👥 Team members{pending.length > 0 && ` (${pending.length} pending)`}</Link>
       </div>

@@ -81,41 +81,151 @@ const createOccasionType = async (req, res) => {
 // GET /api/occasions/:occasionTypeId/template — download Excel template
 const downloadOccasionTemplate = (req, res) => {
   const { occasionName } = req.params;
-  const config = OCCASION_CONFIGS[occasionName] || {
-    label: occasionName, dateCol: 'Date (DD-MM-YYYY)', genderCol: false
+  const year = new Date().getFullYear();
+  const wb   = XLSX.utils.book_new();
+
+  const BASE = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title'];
+
+  const hdStyle = (ws, cols) => {
+    cols.forEach((_, i) => {
+      const cell = XLSX.utils.encode_cell({ r: 0, c: i });
+      if (ws[cell]) ws[cell].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+    });
+    ws['!cols'] = cols.map(() => ({ wch: 24 }));
   };
 
-  const wb = XLSX.utils.book_new();
-  const cols = ['First Name', 'Last Name', 'Email Address', 'Department'];
-  if (config.genderCol) cols.push('Gender (male/female)');
-  cols.push(config.dateCol);
-  if (!['womens_day','mens_day','valentines_day','workers_day'].includes(occasionName)) {
-    cols.push('Notes (optional)');
+  let cols, sampleRows, sheetName, notes;
+
+  // Mother's Day: 2nd Sunday of May
+  const md = new Date(year,4,1); const mdOff = (7-md.getDay())%7+8;
+  const mothersDate = `${year}-05-${String(mdOff).padStart(2,'0')}`;
+  // Father's Day: 3rd Sunday of June
+  const fd = new Date(year,5,1); const fdOff = (7-fd.getDay())%7+15;
+  const fathersDate = `${year}-06-${String(fdOff).padStart(2,'0')}`;
+
+  switch (occasionName) {
+    case 'birthday':
+      cols = [...BASE, 'Date of Birth (YYYY-MM-DD)'];
+      sampleRows = [
+        ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Content Writer','1992-05-15'],
+        ['Tunde','Bello','tunde@co.com','08098765432','Marketing','leader','Marketing Lead','1988-11-22'],
+      ];
+      sheetName = '🎂 Birthday Import';
+      notes = ['BIRTHDAY TEMPLATE — filter column: Date of Birth','','Relevant column: "Date of Birth (YYYY-MM-DD)"',
+               'The system uses this to schedule birthday cards annually.','All genders included.','Format: YYYY-MM-DD  e.g. 1992-05-15'];
+      break;
+    case 'work_anniversary':
+      cols = [...BASE, 'Work Start Date (YYYY-MM-DD)'];
+      sampleRows = [
+        ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Content Writer','2020-03-01'],
+        ['Emeka','Eze','emeka@co.com','08098765432','Finance','leader','Finance Head','2018-07-15'],
+      ];
+      sheetName = '🏆 Work Anniversary Import';
+      notes = ['WORK ANNIVERSARY TEMPLATE — filter column: Work Start Date','','Relevant column: "Work Start Date (YYYY-MM-DD)"',
+               'Anniversary cards fire on the same month/day each year.','All genders included.','Format: YYYY-MM-DD  e.g. 2020-03-01'];
+      break;
+    case 'new_hire':
+      cols = [...BASE, 'Start Date (YYYY-MM-DD)'];
+      sampleRows = [
+        ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','member','HR Associate','2025-02-10'],
+        ['Segun','Ola','segun@co.com','08011122233','Product','member','Product Designer','2025-03-01'],
+      ];
+      sheetName = '🎉 New Hire Import';
+      notes = ['NEW HIRE TEMPLATE — filter column: Start Date','','Relevant column: "Start Date (YYYY-MM-DD)"',
+               'A welcome card is triggered on or just before the start date.','All genders included.','Format: YYYY-MM-DD'];
+      break;
+    case 'promotion':
+      cols = [...BASE, 'Promotion Date (YYYY-MM-DD)', 'New Job Title (optional)', 'Congratulatory Message (optional)'];
+      sampleRows = [
+        ['Tunde','Bello','tunde@co.com','08098765432','Engineering','leader','Engineering Manager',
+         '2025-03-01','Senior Manager','Congratulations on your well-deserved promotion!'],
+      ];
+      sheetName = '⭐ Promotion Import';
+      notes = ['PROMOTION TEMPLATE — filter column: Promotion Date','','Relevant column: "Promotion Date (YYYY-MM-DD)"',
+               'Cards are sent on or just before the Promotion Date.','All genders included.','Format: YYYY-MM-DD'];
+      break;
+    case 'leaving':
+      cols = [...BASE, 'Last Working Day (YYYY-MM-DD)', 'Farewell Message (optional)'];
+      sampleRows = [
+        ['Zainab','Ibrahim','z@co.com','08055544433','Finance','member','Finance Analyst',
+         '2025-02-28','We will miss you dearly! Wishing you all the best.'],
+      ];
+      sheetName = '👋 Farewell Import';
+      notes = ['FAREWELL / LEAVING TEMPLATE — filter column: Last Working Day','','Relevant column: "Last Working Day (YYYY-MM-DD)"',
+               'Farewell cards are triggered a few days before this date.','All genders included.','Format: YYYY-MM-DD'];
+      break;
+    case 'valentine':
+      cols = [...BASE, `Valentine Date (${year}-02-14 pre-filled)`];
+      sampleRows = [
+        ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer',`${year}-02-14`],
+        ['Emeka','Eze','emeka@co.com','08098765432','Marketing','member','Executive',`${year}-02-14`],
+        ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','leader','HR Lead',`${year}-02-14`],
+      ];
+      sheetName = "💝 Valentine's Day Import";
+      notes = [`VALENTINE'S DAY TEMPLATE — ALL employees (Male & Female)`,``,
+               `Date is pre-filled: ${year}-02-14 (February 14).`,
+               `Applies to EVERYONE — no gender filter.`,`Simply list all team members to include.`];
+      break;
+    case 'womens_day':
+      cols = [...BASE, 'Gender (must be: female)', `Women's Day Date (${year}-03-08 pre-filled)`];
+      sampleRows = [
+        ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer','female',`${year}-03-08`],
+        ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','leader','HR Lead','female',`${year}-03-08`],
+      ];
+      sheetName = "👩 Women's Day Import";
+      notes = [`WOMEN'S DAY TEMPLATE — FEMALE employees only`,``,
+               `Date is pre-filled: ${year}-03-08 (March 8).`,
+               `IMPORTANT: Only female employees belong here.`,
+               `Gender column must say "female" — other rows are skipped.`];
+      break;
+    case 'mothers_day':
+      cols = [...BASE, 'Gender (must be: female)', `Mother's Day Date (${mothersDate} pre-filled)`];
+      sampleRows = [
+        ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer','female',mothersDate],
+        ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','leader','HR Lead','female',mothersDate],
+      ];
+      sheetName = "🌹 Mother's Day Import";
+      notes = [`MOTHER'S DAY TEMPLATE — FEMALE employees only`,``,
+               `Mother's Day ${year}: ${mothersDate} (2nd Sunday of May).`,
+               `IMPORTANT: Only female employees belong here.`,
+               `Gender column must say "female" — other rows are skipped.`];
+      break;
+    case 'fathers_day':
+      cols = [...BASE, 'Gender (must be: male)', `Father's Day Date (${fathersDate} pre-filled)`];
+      sampleRows = [
+        ['Emeka','Eze','emeka@co.com','08098765432','Engineering','leader','Lead Dev','male',fathersDate],
+        ['Tunde','Bello','tunde@co.com','08055544433','Finance','member','Analyst','male',fathersDate],
+      ];
+      sheetName = "👔 Father's Day Import";
+      notes = [`FATHER'S DAY TEMPLATE — MALE employees only`,``,
+               `Father's Day ${year}: ${fathersDate} (3rd Sunday of June).`,
+               `IMPORTANT: Only male employees belong here.`,
+               `Gender column must say "male" — other rows are skipped.`];
+      break;
+    default:
+      cols = [...BASE, 'Date (YYYY-MM-DD)', 'Notes (optional)'];
+      sampleRows = [['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer','2025-06-01','']];
+      sheetName = 'Import Template';
+      notes = ['Fill in employee details and upload.'];
   }
 
-  const sampleRows = occasionName === 'womens_day'
-    ? [['Amaka', 'Okafor', 'amaka@company.com', 'Engineering', 'female', '08-03-2025']]
-    : occasionName === 'mens_day'
-    ? [['Emeka', 'Eze', 'emeka@company.com', 'Finance', 'male', '19-11-2025']]
-    : [
-        ['Amaka', 'Okafor', 'amaka@company.com', 'Engineering', '14-02-2025', ''],
-        ['Tunde', 'Bello', 'tunde@company.com', 'Marketing', '22-06-2025', ''],
-      ];
+  // Sheet 1: Data
+  const ws = XLSX.utils.aoa_to_sheet([cols, ...sampleRows]);
+  hdStyle(ws, cols);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-  const ws = XLSX.utils.aoa_to_sheet([[...cols], ...sampleRows]);
-  ws['!cols'] = cols.map(() => ({ wch: 22 }));
-  // Style header
-  cols.forEach((_, i) => {
-    const cell = XLSX.utils.encode_cell({ r: 0, c: i });
-    if (ws[cell]) ws[cell].s = { font: { bold: true }, fill: { fgColor: { rgb: '7F77DD' } } };
-  });
-  XLSX.utils.book_append_sheet(wb, ws, config.label.replace("'", ""));
-  const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+  // Sheet 2: Instructions
+  const instrRows = [...notes.map(n => [n]), [''], ['Column reference:'], ...cols.map((c,i) => [`  Column ${i+1}: ${c}`])];
+  const wi = XLSX.utils.aoa_to_sheet(instrRows);
+  wi['!cols'] = [{ wch: 72 }];
+  if (wi['A1']) wi['A1'].s = { font: { bold:true, sz:13, color:{ rgb:'5B4BDF' } } };
+  XLSX.utils.book_append_sheet(wb, wi, '📖 Instructions');
+
+  const buf = XLSX.write(wb, { type:'buffer', bookType:'xlsx' });
   res.setHeader('Content-Disposition', `attachment; filename="thankeeu_${occasionName}_template.xlsx"`);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
 };
-
 // POST /api/occasions/:occasionTypeId/import — upload Excel for occasion
 const importOccasionMembers = async (req, res) => {
   try {
@@ -272,161 +382,336 @@ const deleteOccasionMember = async (req, res) => {
 
 // ── GENERAL MASTER TEMPLATE ──────────────────────────────────────────────────
 
-// GET /api/occasions/general-template — download master Excel (6 sheets)
+// GET /api/occasions/general-template — Master Excel with ALL occasions
 const downloadGeneralTemplate = (req, res) => {
-  const wb = XLSX.utils.book_new();
+  const year = new Date().getFullYear();
+  const wb   = XLSX.utils.book_new();
 
-  const hdStyle = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
-  const applyHd = (ws, cols) => {
-    cols.forEach((_, i) => {
+  // Mother's Day: 2nd Sunday of May
+  const md = new Date(year,4,1); const mdOff = (7-md.getDay())%7+8;
+  const mothersDate = `${year}-05-${String(mdOff).padStart(2,'0')}`;
+  // Father's Day: 3rd Sunday of June
+  const fd = new Date(year,5,1); const fdOff = (7-fd.getDay())%7+15;
+  const fathersDate = `${year}-06-${String(fdOff).padStart(2,'0')}`;
+
+  const hd = (ws, cols) => {
+    cols.forEach((_,i) => {
       const cell = XLSX.utils.encode_cell({ r:0, c:i });
-      if (ws[cell]) ws[cell].s = hdStyle;
+      if (ws[cell]) ws[cell].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'3B2FA0' } } };
     });
     ws['!cols'] = cols.map(() => ({ wch:26 }));
   };
 
-  // Sheet 1: General — populates ALL tables
-  const g = ['First Name','Last Name','Email','Department','Role (member/leader)','Birthday (DD-MM-YYYY)','Gender (male/female)','Job Title','Phone'];
-  const gd = [
-    ['Amaka','Okafor','amaka@company.com','Engineering','leader','14-02-1990','female','Lead Engineer','08012345678'],
-    ['Emeka','Eze','emeka@company.com','Marketing','member','20-06-1988','male','Marketing Executive','08098765432'],
-    ['Kemi','Adeyemi','kemi@company.com','HR','member','05-11-1992','female','HR Officer','08023456789'],
+  // ── SHEET 1: General Master (ALL columns — imports into ALL occasion tables) ──
+  const masterCols = [
+    'First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title',
+    'Gender (male/female)',
+    'Date of Birth (YYYY-MM-DD)',         // → Birthday table
+    'Work Start Date (YYYY-MM-DD)',        // → Work Anniversary table
+    'New Hire Start Date (YYYY-MM-DD)',    // → New Hire table
+    'Promotion Date (YYYY-MM-DD)',         // → Promotion table (leave blank if not applicable)
+    'Last Working Day (YYYY-MM-DD)',       // → Farewell/Leaving table (leave blank if not applicable)
+    'Farewell Message (optional)',
+    'Congratulatory Message (optional)',
   ];
-  const ws1 = XLSX.utils.aoa_to_sheet([g, ...gd]); applyHd(ws1, g);
-  XLSX.utils.book_append_sheet(wb, ws1, '📋 General (All Tables)');
+  const masterRows = [
+    ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Content Writer',
+     'female','1992-05-15','2020-01-10','','','','',''],
+    ['Emeka','Eze','emeka@co.com','08098765432','Marketing','leader','Marketing Lead',
+     'male','1988-11-22','2019-03-01','','','','',''],
+    ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','member','HR Associate',
+     'female','1993-07-08','2021-06-01','','','','',''],
+    ['Tunde','Bello','tunde@co.com','08055544433','Finance','member','Analyst',
+     'male','1985-03-20','2018-09-01','','','','',''],
+    // Example: new hire (leave Date of Birth and Work Start Date blank if unknown)
+    ['Segun','Ola','segun@co.com','08011122233','Product','member','Product Designer',
+     'male','','','2025-03-01','','','',''],
+    // Example: employee being promoted
+    ['Zainab','Ibrahim','zainab@co.com','08055511100','Finance','leader','Finance Manager',
+     'female','1990-08-14','2017-05-01','','2025-03-01','','','Congratulations, Zainab!'],
+    // Example: employee leaving
+    ['Bola','Adeyemi','bola@co.com','08099988877','Operations','member','Operations Analyst',
+     'female','1991-02-28','2019-11-01','','','2025-02-28','We will miss you!',''],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet([masterCols, ...masterRows]);
+  hd(ws1, masterCols); XLSX.utils.book_append_sheet(wb, ws1, '📋 MASTER — Import All');
 
-  // Sheet 2: Promotions
-  const p = ['First Name','Last Name','Email','Department','Promotion Level (1-10)','Promotion Date (DD-MM-YYYY)','Congratulatory Message','Scope (all/department)'];
-  const pd = [['Tunde','Bello','tunde@co.com','Engineering','3','01-03-2025','Congratulations on your well-deserved promotion!','all']];
-  const ws2 = XLSX.utils.aoa_to_sheet([p,...pd]); applyHd(ws2, p);
-  XLSX.utils.book_append_sheet(wb, ws2, '🌟 Promotions');
+  // ── SHEET 2: How the master populates each table ──
+  const ruleRows = [
+    ['HOW THE MASTER TEMPLATE AUTO-POPULATES EACH OCCASION TABLE'],[''],
+    ['Occasion Table','Gender Filter','Relevant Column','Rule'],
+    ['Birthday','All (Male & Female)','Date of Birth','Added if Date of Birth is filled in'],
+    ['Work Anniversary','All (Male & Female)','Work Start Date','Added if Work Start Date is filled in'],
+    ['New Hire','All (Male & Female)','New Hire Start Date','Added if New Hire Start Date is filled in'],
+    ['Valentine\'s Day','All (Male & Female)','Auto — Feb 14','Every row automatically goes here'],
+    ['Women\'s Day','Female ONLY','Auto — Mar 8','Only rows where Gender = female'],
+    ['Mother\'s Day','Female ONLY','Auto — 2nd Sun May','Only rows where Gender = female'],
+    ['Father\'s Day','Male ONLY','Auto — 3rd Sun June','Only rows where Gender = male'],
+    ['Promotion','All (Male & Female)','Promotion Date','Added only if Promotion Date is filled in'],
+    ['Farewell / Leaving','All (Male & Female)','Last Working Day','Added only if Last Working Day is filled in'],
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(ruleRows);
+  ws2['!cols'] = [{ wch:28 },{ wch:22 },{ wch:32 },{ wch:55 }];
+  if (ws2['A1']) ws2['A1'].s = { font:{ bold:true, sz:13, color:{ rgb:'3B2FA0' } } };
+  if (ws2['A3']) ws2['A3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+  if (ws2['B3']) ws2['B3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+  if (ws2['C3']) ws2['C3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+  if (ws2['D3']) ws2['D3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+  XLSX.utils.book_append_sheet(wb, ws2, '📖 How It Works');
 
-  // Sheet 3: Farewells
-  const fa = ['First Name','Last Name','Email','Department','Last Working Day (DD-MM-YYYY)','Farewell Message','Scope (all/department)'];
-  const fd = [['Zainab','Ibrahim','z@co.com','Finance','28-02-2025','We will miss you dearly!','department']];
-  const ws3 = XLSX.utils.aoa_to_sheet([fa,...fd]); applyHd(ws3, fa);
-  XLSX.utils.book_append_sheet(wb, ws3, '👋 Farewells');
+  // ── SHEET 3: Birthday (Date of Birth) ──
+  const bCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Date of Birth (YYYY-MM-DD)'];
+  const ws3 = XLSX.utils.aoa_to_sheet([bCols,['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Content Writer','1992-05-15']]);
+  hd(ws3, bCols); XLSX.utils.book_append_sheet(wb, ws3, '🎂 Birthday');
 
-  // Sheet 4: Valentine's Day (Feb 14 — auto-filled)
-  const vd = ["First Name","Last Name","Email","Department","Date (14-02 pre-filled)","Scope (all/department)"];
-  const vdd = [['Amaka','Okafor','amaka@co.com','Engineering','14-02-2025','all'],['Emeka','Eze','emeka@co.com','Marketing','14-02-2025','all']];
-  const ws4 = XLSX.utils.aoa_to_sheet([vd,...vdd]); applyHd(ws4, vd);
-  XLSX.utils.book_append_sheet(wb, ws4, "💝 Valentine's Day (Feb 14)");
+  // ── SHEET 4: Work Anniversary (Work Start Date) ──
+  const waCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Work Start Date (YYYY-MM-DD)'];
+  const ws4 = XLSX.utils.aoa_to_sheet([waCols,['Emeka','Eze','emeka@co.com','08098765432','Finance','leader','Finance Head','2018-07-15']]);
+  hd(ws4, waCols); XLSX.utils.book_append_sheet(wb, ws4, '🏆 Work Anniversary');
 
-  // Sheet 5: Women's Day (Mar 8 — females only)
-  const wd = ["First Name (Female only)","Last Name","Email","Department","Date (08-03 pre-filled)"];
-  const wdd = [['Amaka','Okafor','amaka@co.com','Engineering','08-03-2025'],['Kemi','Adeyemi','kemi@co.com','HR','08-03-2025']];
-  const ws5 = XLSX.utils.aoa_to_sheet([wd,...wdd]); applyHd(ws5, wd);
-  XLSX.utils.book_append_sheet(wb, ws5, "👩 Women's Day (Mar 8)");
+  // ── SHEET 5: New Hire (Start Date) ──
+  const nhCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Start Date (YYYY-MM-DD)'];
+  const ws5 = XLSX.utils.aoa_to_sheet([nhCols,['Kemi','Adeyemi','kemi@co.com','07012345678','HR','member','HR Associate','2025-02-10']]);
+  hd(ws5, nhCols); XLSX.utils.book_append_sheet(wb, ws5, '🎉 New Hire');
 
-  // Sheet 6: Men's Day / Father's Day (Nov 19 — males only)
-  const md = ["First Name (Male only)","Last Name","Email","Department","Date (19-11 pre-filled)"];
-  const mdd = [['Emeka','Eze','emeka@co.com','Finance','19-11-2025'],['Tunde','Bello','tunde@co.com','Engineering','19-11-2025']];
-  const ws6 = XLSX.utils.aoa_to_sheet([md,...mdd]); applyHd(ws6, md);
-  XLSX.utils.book_append_sheet(wb, ws6, "👨 Men's/Father's Day (Nov 19)");
+  // ── SHEET 6: Valentine's Day (ALL employees, Feb 14) ──
+  const vCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title',`Valentine Date (${year}-02-14 pre-filled)`];
+  const ws6 = XLSX.utils.aoa_to_sheet([vCols,
+    ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer',`${year}-02-14`],
+    ['Emeka','Eze','emeka@co.com','08098765432','Marketing','member','Executive',`${year}-02-14`],
+  ]);
+  hd(ws6, vCols); XLSX.utils.book_append_sheet(wb, ws6, "💝 Valentine's Day (All)");
+
+  // ── SHEET 7: Women's Day (Female only, Mar 8) ──
+  const wdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: female)',`Women's Day Date (${year}-03-08 pre-filled)`];
+  const ws7 = XLSX.utils.aoa_to_sheet([wdCols,
+    ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer','female',`${year}-03-08`],
+  ]);
+  hd(ws7, wdCols); XLSX.utils.book_append_sheet(wb, ws7, "👩 Women's Day (Female)");
+
+  // ── SHEET 8: Mother's Day (Female only, 2nd Sun May) ──
+  const mdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: female)',`Mother's Day Date (${mothersDate} pre-filled)`];
+  const ws8 = XLSX.utils.aoa_to_sheet([mdCols,
+    ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','leader','HR Lead','female',mothersDate],
+  ]);
+  hd(ws8, mdCols); XLSX.utils.book_append_sheet(wb, ws8, "🌹 Mother's Day (Female)");
+
+  // ── SHEET 9: Father's Day (Male only, 3rd Sun June) ──
+  const fdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: male)',`Father's Day Date (${fathersDate} pre-filled)`];
+  const ws9 = XLSX.utils.aoa_to_sheet([fdCols,
+    ['Emeka','Eze','emeka@co.com','08098765432','Engineering','leader','Lead Dev','male',fathersDate],
+    ['Tunde','Bello','tunde@co.com','08055544433','Finance','member','Analyst','male',fathersDate],
+  ]);
+  hd(ws9, fdCols); XLSX.utils.book_append_sheet(wb, ws9, "👔 Father's Day (Male)");
+
+  // ── SHEET 10: Promotion ──
+  const prCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Promotion Date (YYYY-MM-DD)','New Job Title (optional)','Congratulatory Message (optional)'];
+  const ws10 = XLSX.utils.aoa_to_sheet([prCols,
+    ['Tunde','Bello','tunde@co.com','08098765432','Engineering','leader','Eng Manager','2025-03-01','Senior Manager','Congratulations on your well-deserved promotion!'],
+  ]);
+  hd(ws10, prCols); XLSX.utils.book_append_sheet(wb, ws10, '⭐ Promotion');
+
+  // ── SHEET 11: Farewell / Leaving ──
+  const faCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Last Working Day (YYYY-MM-DD)','Farewell Message (optional)'];
+  const ws11 = XLSX.utils.aoa_to_sheet([faCols,
+    ['Zainab','Ibrahim','z@co.com','08055544433','Finance','member','Finance Analyst','2025-02-28','We will miss you dearly!'],
+  ]);
+  hd(ws11, faCols); XLSX.utils.book_append_sheet(wb, ws11, '👋 Farewell / Leaving');
 
   const buf = XLSX.write(wb, { type:'buffer', bookType:'xlsx' });
   res.setHeader('Content-Disposition','attachment; filename="thankeeu_master_template.xlsx"');
   res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
 };
-
-// POST /api/occasions/import-general — populate all tables from master template
+// POST /api/occasions/import-general — import master template → all occasion tables
 const importGeneralTemplate = async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error:'No file uploaded' });
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const companyId = req.company.id;
-    const wb = XLSX.read(req.file.buffer, { type:'buffer' });
-    let totalImported = 0; const errors = [];
+    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
 
-    // Get occasion types for this company
-    const { data: octypes } = await supabase.from('occasion_types').select('*').eq('company_id', companyId);
-    const otMap = Object.fromEntries((octypes||[]).map(ot => [ot.name, ot]));
+    let totalImported = 0;
+    const errors = [];
 
-    // Process Sheet 1: General
-    const ws1 = wb.Sheets['📋 General (All Tables)'] || wb.Sheets[wb.SheetNames[0]];
-    if (ws1) {
-      const rows = XLSX.utils.sheet_to_json(ws1, { header:1, defval:'' });
-      const hdr = rows[0].map(h => String(h).toLowerCase());
-      const fi = hdr.findIndex(h=>h.includes('first')), li = hdr.findIndex(h=>h.includes('last'));
-      const ei = hdr.findIndex(h=>h.includes('email')), di = hdr.findIndex(h=>h.includes('dept'));
-      const ri = hdr.findIndex(h=>h.includes('role')), bi = hdr.findIndex(h=>h.includes('birth'));
-      const gi = hdr.findIndex(h=>h.includes('gender')), ji = hdr.findIndex(h=>h.includes('job'));
-      const pi = hdr.findIndex(h=>h.includes('phone'));
+    // Mother's Day: 2nd Sunday of May
+    const year = new Date().getFullYear();
+    const md = new Date(year,4,1); const mdOff = (7-md.getDay())%7+8;
+    const mothersDate = `${year}-05-${String(mdOff).padStart(2,'0')}`;
+    // Father's Day: 3rd Sunday of June
+    const fd = new Date(year,5,1); const fdOff = (7-fd.getDay())%7+15;
+    const fathersDate = `${year}-06-${String(fdOff).padStart(2,'0')}`;
 
-      const { sendEmail } = require('../utils/email');
-      const appUrl = process.env.APP_URL || 'https://thankeeu.com';
-      const { data: companyData } = await supabase.from('companies').select('name').eq('id', companyId).single();
+    // Helper: parse a cell that might be an Excel date serial or a YYYY-MM-DD string
+    const parseDate = (val) => {
+      if (!val && val !== 0) return null;
+      const s = String(val).trim();
+      if (!s) return null;
+      // Excel date serial
+      if (/^\d+(\.\d+)?$/.test(s) && Number(s) > 1000) {
+        try {
+          const d = XLSX.SSF.parse_date_code(Number(s));
+          return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
+        } catch { return null; }
+      }
+      // DD-MM-YYYY or DD/MM/YYYY
+      const dmy = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+      if (dmy) {
+        const y = dmy[3].length===2 ? `20${dmy[3]}` : dmy[3];
+        return `${y}-${String(dmy[2]).padStart(2,'0')}-${String(dmy[1]).padStart(2,'0')}`;
+      }
+      // YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+      return null;
+    };
 
-      for (let i = 1; i < rows.length; i++) {
-        const row = rows[i];
-        const fn = String(row[fi]||'').trim(), ln = String(row[li]||'').trim();
-        const email = String(row[ei]||'').trim().toLowerCase();
-        if (!fn||!ln||!email) continue;
-        const dept = String(row[di]||'').trim();
-        const role = String(row[ri]||'').trim().toLowerCase() === 'leader' ? 'team_leader' : 'member';
-        const bdRaw = row[bi]; const gender = String(row[gi]||'').trim().toLowerCase();
-        const jt = ji>=0 ? String(row[ji]||'').trim() : null;
-        const ph = pi>=0 ? String(row[pi]||'').trim() : null;
+    // Helper: upsert into occasion_members (using occasion_type string, not FK)
+    const upsertOccasion = async (type, row) => {
+      const { data: existing } = await supabase.from('occasion_members')
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('occasion_type', type)
+        .eq('email', row.email)
+        .maybeSingle();
+      if (existing) {
+        await supabase.from('occasion_members')
+          .update({ ...row, updated_at: new Date() }).eq('id', existing.id);
+      } else {
+        await supabase.from('occasion_members').insert({ ...row, company_id: companyId, occasion_type: type });
+      }
+    };
 
-        // Upsert into company_members
-        await supabase.from('company_members').upsert({
-          company_id: companyId, first_name: fn, last_name: ln, email,
-          department: dept, role, gender:gender||null, job_title:jt, phone:ph||null, status:'approved',
-        }, { onConflict:'company_id,email' });
+    // Process the MASTER sheet (Sheet 1)
+    const masterSheet = wb.Sheets['📋 MASTER — Import All'] || wb.Sheets[wb.SheetNames[0]];
+    if (!masterSheet) return res.status(400).json({ error: 'Master sheet not found. Please use the official master template.' });
 
-        // Birthday table
-        if (bdRaw && otMap['birthday']) {
-          const d = parseDateCol(bdRaw);
-          if (d) await supabase.from('occasion_members').upsert({
-            company_id:companyId, occasion_type_id:otMap['birthday'].id,
-            first_name:fn, last_name:ln, email, department:dept, gender:gender||null,
-            occasion_date: d.toISOString().split('T')[0],
-          }, { onConflict:'company_id,occasion_type_id,email' });
-        }
-        // Women's Day (females → Mar 8)
-        if (gender==='female' && otMap['womens_day']) {
-          await supabase.from('occasion_members').upsert({
-            company_id:companyId, occasion_type_id:otMap['womens_day'].id,
-            first_name:fn, last_name:ln, email, department:dept, gender:'female',
-            occasion_date:`${new Date().getFullYear()}-03-08`,
-          }, { onConflict:'company_id,occasion_type_id,email' });
-        }
-        // Men's/Father's Day (males → Nov 19)
-        if (gender==='male' && otMap['mens_day']) {
-          await supabase.from('occasion_members').upsert({
-            company_id:companyId, occasion_type_id:otMap['mens_day'].id,
-            first_name:fn, last_name:ln, email, department:dept, gender:'male',
-            occasion_date:`${new Date().getFullYear()}-11-19`,
-          }, { onConflict:'company_id,occasion_type_id,email' });
-        }
-        // Valentine's Day (all → Feb 14)
-        if (otMap['valentines_day']) {
-          await supabase.from('occasion_members').upsert({
-            company_id:companyId, occasion_type_id:otMap['valentines_day'].id,
-            first_name:fn, last_name:ln, email, department:dept, gender:gender||null,
-            occasion_date:`${new Date().getFullYear()}-02-14`,
-          }, { onConflict:'company_id,occasion_type_id,email' });
-        }
+    const rows = XLSX.utils.sheet_to_json(masterSheet, { header: 1, defval: '' });
+    if (rows.length < 2) return res.status(400).json({ error: 'No data rows found in master sheet.' });
 
-        // POINT 21: Send invite email
-        await sendEmail({ to: email, template:'teamMemberInvite', data:{
-          name: fn, companyName: companyData?.name||'Your Company',
-          companyCode: companyId,
-          inviteLink: `${appUrl}/member/signup?company=${companyId}`,
-          appUrl,
-        }}).catch(()=>{});
+    const hdr = rows[0].map(h => String(h).toLowerCase().trim());
+    const ci = (kw) => hdr.findIndex(h => h.includes(kw));
 
+    const fnI  = ci('first');    const lnI  = ci('last');      const emI = ci('email');
+    const phI  = ci('phone');    const dpI  = ci('department'); const roI = ci('role');
+    const jtI  = ci('job');      const gnI  = ci('gender');
+    const dobI = ci('birth');                      // Date of Birth → birthday
+    const wsI  = ci('work start');                 // Work Start Date → work_anniversary
+    const nhI  = ci('new hire') >= 0 ? ci('new hire') : ci('start date'); // New Hire Start Date
+    const prI  = ci('promotion date') >= 0 ? ci('promotion date') : ci('promotion');
+    const lwI  = ci('last working');               // Last Working Day → leaving
+    const fwI  = ci('farewell');                   // Farewell Message
+    const cgI  = ci('congratulat');                // Congratulatory Message
+
+    const { sendEmail } = require('../utils/email');
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const fn    = String(row[fnI] || '').trim();
+      const ln    = String(row[lnI] || '').trim();
+      const email = String(row[emI] || '').trim().toLowerCase();
+      if (!fn || !ln || !email) continue;
+
+      const dept   = dpI >= 0 ? String(row[dpI] || '').trim() || 'General' : 'General';
+      const role   = roI >= 0 && String(row[roI] || '').toLowerCase().includes('leader') ? 'leader' : 'member';
+      const jt     = jtI >= 0 ? String(row[jtI] || '').trim() || null : null;
+      const phone  = phI >= 0 ? String(row[phI] || '').trim() || null : null;
+      const gender = gnI >= 0 ? String(row[gnI] || '').trim().toLowerCase() : null;
+      const base   = { first_name: fn, last_name: ln, email, department: dept, gender: gender || null, is_active: true };
+
+      // Upsert company_member
+      const { data: member } = await supabase.from('company_members')
+        .upsert({ company_id: companyId, first_name: fn, last_name: ln, email, department: dept,
+                  role, gender: gender || null, job_title: jt, phone, status: 'approved' },
+                 { onConflict: 'company_id,email' })
+        .select('id').single()
+        .catch(() => ({ data: null }));
+      const memberId = member?.id;
+
+      // Send invite email
+      try {
+        const inviteToken = require('crypto').randomBytes(32).toString('hex');
+        if (memberId) await supabase.from('company_members').update({ invite_token: inviteToken }).eq('id', memberId);
+        const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email)}`;
+        await sendEmail({ to: email,
+          subject: `Welcome to ${companyData?.name || 'your company'} on Thankeeu! 🎉`,
+          html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;">
+            <h2>Welcome, ${fn}!</h2>
+            <p>${companyData?.contact_person || companyData?.name || 'Your HR team'} has added you to <strong>${companyData?.name || 'your company'}</strong> on Thankeeu.</p>
+            <a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;">Set your password 🚀</a>
+            <p style="color:#aaa;font-size:12px;">This link expires in 7 days.</p></div>`
+        }).catch(() => {});
+      } catch (_) {}
+
+      const oBase = { ...base, member_id: memberId || null };
+
+      // BIRTHDAY — filter: dobI filled
+      const dob = dobI >= 0 ? parseDate(row[dobI]) : null;
+      if (dob) {
+        const mmdd = dob.slice(5); // MM-DD
+        await upsertOccasion('birthday', { ...oBase, occasion_date: `${year}-${mmdd}` });
+        totalImported++;
+      }
+
+      // WORK ANNIVERSARY — filter: wsI filled
+      const wsd = wsI >= 0 ? parseDate(row[wsI]) : null;
+      if (wsd) {
+        await upsertOccasion('work_anniversary', { ...oBase, occasion_date: wsd });
+        totalImported++;
+      }
+
+      // NEW HIRE — filter: nhI filled
+      const nhd = nhI >= 0 ? parseDate(row[nhI]) : null;
+      if (nhd) {
+        await upsertOccasion('new_hire', { ...oBase, occasion_date: nhd });
+        totalImported++;
+      }
+
+      // VALENTINE'S DAY — ALL employees
+      await upsertOccasion('valentine', { ...oBase, occasion_date: `${year}-02-14` });
+      totalImported++;
+
+      // WOMEN'S DAY — females only
+      if (gender === 'female') {
+        await upsertOccasion('womens_day', { ...oBase, occasion_date: `${year}-03-08` });
+        await upsertOccasion('mothers_day', { ...oBase, occasion_date: mothersDate });
+        totalImported += 2;
+      }
+
+      // FATHER'S DAY — males only
+      if (gender === 'male') {
+        await upsertOccasion('fathers_day', { ...oBase, occasion_date: fathersDate });
+        totalImported++;
+      }
+
+      // PROMOTION — filter: prI filled
+      const prd = prI >= 0 ? parseDate(row[prI]) : null;
+      if (prd) {
+        const cgMsg = cgI >= 0 ? String(row[cgI] || '').trim() : '';
+        await upsertOccasion('promotion', { ...oBase, occasion_date: prd,
+          meta: JSON.stringify({ promotion_message: cgMsg || null }) });
+        totalImported++;
+      }
+
+      // LEAVING / FAREWELL — filter: lwI filled
+      const lwd = lwI >= 0 ? parseDate(row[lwI]) : null;
+      if (lwd) {
+        const fwMsg = fwI >= 0 ? String(row[fwI] || '').trim() : '';
+        await upsertOccasion('leaving', { ...oBase, occasion_date: lwd, farewell: fwMsg || null });
         totalImported++;
       }
     }
-    res.json({ message:`Imported ${totalImported} employees across all tables`, imported:totalImported, errors });
+
+    res.json({
+      message: `✅ Master import complete! ${totalImported} occasion entries created/updated across all tables.`,
+      imported: totalImported,
+      errors,
+    });
   } catch (err) {
-    console.error('importGeneralTemplate:', err);
-    res.status(500).json({ error:'Import failed: '+err.message });
+    console.error('importGeneralTemplate error:', err);
+    res.status(500).json({ error: `Import failed: ${err.message}` });
   }
 };
-
 // PUT /api/occasions/:occasionTypeId/scope — update notification scope for a whole table
 const updateOccasionTypeScope = async (req, res) => {
   try {
@@ -549,10 +834,184 @@ const triggerOccasionNow = async (req, res) => {
   }
 };
 
+// POST /api/occasions/import-by-name/:occasionName
+// Import a per-occasion xlsx template directly by occasion name (not UUID)
+// This is what the per-tab upload buttons call
+const importByOccasionName = async (req, res) => {
+  try {
+    const { occasionName } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const companyId = req.company.id;
+    const year      = new Date().getFullYear();
+
+    // Mother's / Father's Day dates
+    const md = new Date(year,4,1); const mdOff = (7-md.getDay())%7+8;
+    const mothersDate = `${year}-05-${String(mdOff).padStart(2,'0')}`;
+    const fd = new Date(year,5,1); const fdOff = (7-fd.getDay())%7+15;
+    const fathersDate = `${year}-06-${String(fdOff).padStart(2,'0')}`;
+
+    const parseDate = (val) => {
+      if (!val && val !== 0) return null;
+      const s = String(val).trim();
+      if (!s) return null;
+      if (/^\d+(\.\d+)?$/.test(s) && Number(s) > 1000) {
+        try { const d = XLSX.SSF.parse_date_code(Number(s)); return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`; } catch { return null; }
+      }
+      const dmy = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
+      if (dmy) { const y = dmy[3].length===2?`20${dmy[3]}`:dmy[3]; return `${y}-${String(dmy[2]).padStart(2,'0')}-${String(dmy[1]).padStart(2,'0')}`; }
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
+      return null;
+    };
+
+    const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (rows.length < 2) return res.status(400).json({ error: 'No data rows found. Use the official template.' });
+
+    const hdr = rows[0].map(h => String(h).toLowerCase().trim());
+    const ci  = (kw) => hdr.findIndex(h => h.includes(kw));
+
+    const fnI = ci('first');  const lnI = ci('last');  const emI = ci('email');
+    const phI = ci('phone');  const dpI = ci('depart'); const roI = ci('role');
+    const jtI = ci('job');    const gnI = ci('gender');
+
+    if (fnI<0 || lnI<0 || emI<0) {
+      return res.status(400).json({ error: 'Missing First Name, Last Name, or Email columns. Please use the official template.' });
+    }
+
+    const upsertOcc = async (type, row) => {
+      const { data: ex } = await supabase.from('occasion_members')
+        .select('id').eq('company_id', companyId).eq('occasion_type', type).eq('email', row.email).maybeSingle();
+      if (ex) {
+        await supabase.from('occasion_members').update({ ...row, updated_at: new Date() }).eq('id', ex.id);
+      } else {
+        await supabase.from('occasion_members').insert({ ...row, company_id: companyId, occasion_type: type });
+      }
+    };
+
+    let imported = 0; const errors = [];
+    const { sendEmail } = require('../utils/email');
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const { data: coData } = await supabase.from('companies').select('name,contact_person').eq('id', companyId).single();
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const fn    = String(row[fnI]||'').trim();
+      const ln    = String(row[lnI]||'').trim();
+      const email = String(row[emI]||'').trim().toLowerCase();
+      if (!fn||!ln||!email) continue;
+
+      const dept   = dpI>=0 ? String(row[dpI]||'').trim()||'General' : 'General';
+      const role   = roI>=0 && String(row[roI]||'').toLowerCase().includes('leader') ? 'leader' : 'member';
+      const jt     = jtI>=0 ? String(row[jtI]||'').trim()||null : null;
+      const phone  = phI>=0 ? String(row[phI]||'').trim()||null : null;
+      const gender = gnI>=0 ? String(row[gnI]||'').trim().toLowerCase()||null : null;
+
+      // Upsert member
+      const { data: member } = await supabase.from('company_members')
+        .upsert({ company_id:companyId, first_name:fn, last_name:ln, email, department:dept, role, gender:gender||null, job_title:jt, phone, status:'approved' },
+                 { onConflict:'company_id,email' }).select('id').single().catch(()=>({data:null}));
+      const memberId = member?.id;
+
+      // Send invite email
+      try {
+        const tok = require('crypto').randomBytes(32).toString('hex');
+        if (memberId) await supabase.from('company_members').update({invite_token:tok}).eq('id',memberId);
+        const link = `${frontendUrl}/member/reset-password?token=${tok}&email=${encodeURIComponent(email)}`;
+        await sendEmail({ to:email, subject:`Welcome to ${coData?.name||'your company'} on Thankeeu! 🎉`,
+          html:`<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;"><h2>Welcome, ${fn}!</h2><p>${coData?.contact_person||coData?.name||'HR'} added you to <strong>${coData?.name||'your company'}</strong> on Thankeeu.</p><a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;">Set your password 🚀</a><p style="color:#aaa;font-size:12px;">Expires in 7 days.</p></div>`
+        }).catch(()=>{});
+      } catch(_) {}
+
+      const base = { first_name:fn, last_name:ln, email, department:dept, gender:gender||null, is_active:true, member_id:memberId||null };
+
+      try {
+        switch(occasionName) {
+          case 'birthday': {
+            // date col: last column that has 'birth' or the last column overall
+            const dtI = ci('birth')>=0 ? ci('birth') : hdr.length-1;
+            const d = parseDate(row[dtI]);
+            if (!d) { errors.push(`Row ${i+1}: invalid date for ${fn} ${ln}`); continue; }
+            const mmdd = d.slice(5);
+            await upsertOcc('birthday', {...base, occasion_date:`${year}-${mmdd}`});
+            break;
+          }
+          case 'work_anniversary': {
+            const dtI = ci('work start')>=0 ? ci('work start') : ci('start')>=0 ? ci('start') : hdr.length-1;
+            const d = parseDate(row[dtI]);
+            if (!d) { errors.push(`Row ${i+1}: invalid date`); continue; }
+            await upsertOcc('work_anniversary', {...base, occasion_date:d});
+            break;
+          }
+          case 'new_hire': {
+            const dtI = ci('start')>=0 ? ci('start') : hdr.length-1;
+            const d = parseDate(row[dtI]);
+            if (!d) { errors.push(`Row ${i+1}: invalid date`); continue; }
+            await upsertOcc('new_hire', {...base, occasion_date:d});
+            break;
+          }
+          case 'promotion': {
+            const dtI = ci('promotion date')>=0?ci('promotion date'):ci('promotion')>=0?ci('promotion'):hdr.length-3;
+            const d = parseDate(row[dtI]);
+            if (!d) { errors.push(`Row ${i+1}: invalid date`); continue; }
+            const newTitle = hdr.findIndex(h=>h.includes('new job'))>=0 ? String(row[hdr.findIndex(h=>h.includes('new job'))]||'').trim() : null;
+            const msg = hdr.findIndex(h=>h.includes('congratul'))>=0 ? String(row[hdr.findIndex(h=>h.includes('congratul'))]||'').trim() : null;
+            await upsertOcc('promotion', {...base, occasion_date:d, meta:JSON.stringify({promotion_message:msg||null, new_title:newTitle||null})});
+            break;
+          }
+          case 'leaving': {
+            const dtI = ci('last working')>=0?ci('last working'):ci('leaving')>=0?ci('leaving'):hdr.length-2;
+            const d = parseDate(row[dtI]);
+            if (!d) { errors.push(`Row ${i+1}: invalid date`); continue; }
+            const fwI2 = ci('farewell');
+            const fw = fwI2>=0 ? String(row[fwI2]||'').trim()||null : null;
+            await upsertOcc('leaving', {...base, occasion_date:d, farewell:fw});
+            break;
+          }
+          case 'valentine': {
+            await upsertOcc('valentine', {...base, occasion_date:`${year}-02-14`});
+            break;
+          }
+          case 'womens_day': {
+            if (gender && gender !== 'female') { errors.push(`Row ${i+1}: ${fn} skipped — not female`); continue; }
+            await upsertOcc('womens_day', {...base, gender:'female', occasion_date:`${year}-03-08`});
+            break;
+          }
+          case 'mothers_day': {
+            if (gender && gender !== 'female') { errors.push(`Row ${i+1}: ${fn} skipped — not female`); continue; }
+            await upsertOcc('mothers_day', {...base, gender:'female', occasion_date:mothersDate});
+            break;
+          }
+          case 'fathers_day': {
+            if (gender && gender !== 'male') { errors.push(`Row ${i+1}: ${fn} skipped — not male`); continue; }
+            await upsertOcc('fathers_day', {...base, gender:'male', occasion_date:fathersDate});
+            break;
+          }
+          default:
+            errors.push(`Row ${i+1}: unknown occasion type ${occasionName}`);
+            continue;
+        }
+        imported++;
+      } catch(rowErr) {
+        errors.push(`Row ${i+1}: ${rowErr.message}`);
+      }
+    }
+
+    res.json({
+      message: `✅ ${imported} records imported into ${occasionName.replace('_',' ')} table.`,
+      imported, errors,
+    });
+  } catch(err) {
+    console.error('importByOccasionName error:', err);
+    res.status(500).json({ error: `Import failed: ${err.message}` });
+  }
+};
+
 module.exports = {
   OCCASION_CONFIGS,
   getOccasionTypes, createOccasionType,
-  downloadOccasionTemplate, importOccasionMembers,
+  downloadOccasionTemplate, importOccasionMembers, importByOccasionName,
   getOccasionMembers, deleteOccasionMember,
   downloadGeneralTemplate, importGeneralTemplate,
   updateOccasionTypeScope, updateOccasionMember, triggerOccasionNow,

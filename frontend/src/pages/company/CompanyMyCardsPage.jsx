@@ -18,15 +18,15 @@ const statusColor = {
   sent: 'bg-green-50 text-green-700',
 };
 
-const CardRow = ({ card, onCopyLink, onTransfer, onNotify }) => {
-  const FRONTEND = import.meta.env.VITE_API_URL?.replace('/api','') || 'https://thankeeu.com';
-  return (
-    <div className="bg-white rounded-2xl border border-purple-100 p-4 hover:shadow-sm transition-shadow">
-      <div className="flex flex-wrap items-start gap-3">
+const CardRow = ({ card, onCopyLink, onTransfer, onNotify }) => (
+  <div className="bg-white rounded-2xl border border-purple-100 p-4 hover:shadow-sm transition-shadow">
+    <div className="flex flex-col gap-3">
+      {/* Card info */}
+      <div className="flex items-start gap-2 min-w-0">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             <p className="font-semibold text-warm-900 text-sm truncate">{card.title || `For ${card.recipient_name}`}</p>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${statusColor[card.status] || statusColor.draft}`}>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize flex-shrink-0 ${statusColor[card.status] || statusColor.draft}`}>
               {card.status}
             </span>
           </div>
@@ -39,50 +39,39 @@ const CardRow = ({ card, onCopyLink, onTransfer, onNotify }) => {
             {card.total_collected > 0 && ` · 🎁 ${formatNGN(card.total_collected)}`}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 flex-shrink-0">
-          <Link to={`/card/${card.slug}`}
-            className="text-xs bg-primary-50 text-primary-600 hover:bg-primary-100 px-3 py-2 rounded-xl font-semibold transition-colors">
-            👁 View
-          </Link>
-          {card.status === 'active' && onNotify && (
-            <button onClick={() => onNotify(card)}
-              className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-xl font-semibold transition-colors">
-              📣 Notify signers
-            </button>
-          )}
-          {card.status === 'active' && (
-            <Link to={`/sign/${card.slug}`}
-              className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors">
-              ✍️ Sign link
-            </Link>
-          )}
-          <button onClick={() => onCopyLink(card)}
+      </div>
+      {/* Action buttons — wrap on small screens */}
+      <div className="flex flex-wrap gap-2">
+        <Link to={`/card/${card.slug}`}
+          className="text-xs bg-primary-50 text-primary-600 hover:bg-primary-100 px-3 py-2 rounded-xl font-semibold transition-colors">
+          👁 View
+        </Link>
+        {card.status === 'active' && (
+          <Link to={`/sign/${card.slug}`}
             className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors">
-            🔗 Copy link
+            ✍️ Sign
+          </Link>
+        )}
+        <button onClick={() => onCopyLink(card)}
+          className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors">
+          🔗 Copy link
+        </button>
+        {card.status === 'active' && onNotify && (
+          <button onClick={() => onNotify(card)}
+            className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-xl font-semibold transition-colors">
+            📣 Notify
           </button>
-          {card.status === 'active' && onNotify && (
-            <button onClick={() => onNotify(card)}
-              className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-xl font-semibold transition-colors">
-              📣 Notify signers
-            </button>
-          )}
-          {card.status === 'active' && (
-            <button onClick={() => { setNotifyCard(card); if (!departments.length) loadDepts(); }}
-              className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-xl font-semibold transition-colors">
-              📣 Notify
-            </button>
-          )}
-          {onTransfer && card.status !== 'draft' && (
-            <button onClick={() => onTransfer(card)}
-              className="text-xs border border-green-200 text-green-700 hover:bg-green-50 px-3 py-2 rounded-xl transition-colors">
-              ➡️ Transfer
-            </button>
-          )}
-        </div>
+        )}
+        {onTransfer && card.status !== 'draft' && (
+          <button onClick={() => onTransfer(card)}
+            className="text-xs border border-green-200 text-green-700 hover:bg-green-50 px-3 py-2 rounded-xl transition-colors">
+            ➡️ Transfer
+          </button>
+        )}
       </div>
     </div>
-  );
-};
+  </div>
+);
 
 export default function CompanyMyCardsPage() {
   const [tab, setTab]             = useState('my');
@@ -167,19 +156,19 @@ export default function CompanyMyCardsPage() {
 
   return (
     <CompanyLayout title="My Cards 🃏" subtitle="Create, manage and share group cards">
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-purple-100 mb-6 overflow-x-auto" style={{scrollbarWidth:'none'}}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
-              tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-400 hover:text-warm-700'
-            }`}>
-            {t.label}
-          </button>
-        ))}
-        <div className="ml-auto pb-2 flex items-end">
-          <Link to="/create-card" className="btn-primary text-sm py-2 px-4">+ Create Card</Link>
+      {/* Tabs + Create button */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+        <div className="flex gap-1 border-b border-purple-100 overflow-x-auto flex-1" style={{scrollbarWidth:'none'}}>
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
+                tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-400 hover:text-warm-700'
+              }`}>
+              {t.label}
+            </button>
+          ))}
         </div>
+        <Link to="/create-card" className="btn-primary text-sm py-2 px-4 whitespace-nowrap self-start sm:self-center flex-shrink-0">+ Create Card</Link>
       </div>
 
       {/* Cards list */}

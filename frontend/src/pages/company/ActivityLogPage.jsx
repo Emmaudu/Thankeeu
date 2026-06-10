@@ -37,7 +37,7 @@ export default function ActivityLogPage() {
   return (
     <CompanyLayout title="Activity Log 📋" subtitle="Track all actions by HR and Core Team">
       <div className="flex flex-wrap gap-3 mb-6">
-        <input className="input text-sm flex-1 min-w-48" placeholder="🔍 Search action or name…"
+        <input className="input text-sm w-full sm:flex-1 sm:min-w-48" placeholder="🔍 Search action or name…"
           value={filter} onChange={e => setFilter(e.target.value)} />
         <select className="input text-sm w-auto" value={actorFilter} onChange={e => setActorFilter(e.target.value)}>
           <option value="">All actors</option>
@@ -71,7 +71,7 @@ export default function ActivityLogPage() {
                     </p>
                   </div>
                   {log.details && Object.keys(log.details).length > 0 && (
-                    <p className="text-xs text-warm-400 mt-0.5 truncate">
+                    <p className="text-xs text-warm-400 mt-0.5 break-words">
                       {Object.entries(log.details).map(([k,v]) => `${k}: ${v}`).join(' · ')}
                     </p>
                   )}

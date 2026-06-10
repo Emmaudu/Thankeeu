@@ -106,7 +106,7 @@ const SettingsPage = () => {
 
 
             {/* Logo upload */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="w-16 h-16 rounded-3xl bg-primary-100 flex items-center justify-center overflow-hidden flex-shrink-0">
                 {profile.logo_url
                   ? <img src={profile.logo_url} alt="logo" className="w-full h-full object-cover" />

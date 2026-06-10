@@ -520,7 +520,15 @@
   .safe-top    { padding-top:    env(safe-area-inset-top, 0); }
 }
 
-/* ── Themed sidebar scrollbar ── */
+/* ── Company dashboard: tables always scroll horizontally on mobile ── */
+@media (max-width: 640px) {
+  .company-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .company-table-wrap table { min-width: 560px; }
+}
+
+/* Prevent any fixed-width element from breaking out of viewport */
+.min-w-0 { min-width: 0; }
+
 .sidebar-nav::-webkit-scrollbar { width: 4px; }
 .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
 .sidebar-nav::-webkit-scrollbar-thumb { background: rgba(124,110,255,0.35); border-radius: 9999px; }

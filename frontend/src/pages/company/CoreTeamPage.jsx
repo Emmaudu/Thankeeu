@@ -116,7 +116,7 @@ hr@company.com,Kemi Bello,HR Manager,medium`;
     <CompanyLayout title="Core Team 🏢" subtitle="Invite your senior team with tailored access levels">
 
       {/* Actions bar */}
-      <div className="flex flex-wrap gap-3 mb-6">
+      <div className="flex flex-wrap gap-2 mb-6">
         <button onClick={() => { setShowForm(!showForm); setBulkMode(false); }}
           className="btn-primary text-sm py-2.5 px-5">
           ➕ Invite someone
@@ -132,7 +132,7 @@ hr@company.com,Kemi Bello,HR Manager,medium`;
         <div className="bg-white rounded-2xl border-2 border-primary-200 p-5 mb-6 max-w-2xl">
           <h3 className="font-bold text-warm-900 text-base mb-4">Invite a core team member</h3>
           <form onSubmit={invite} className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-warm-700 mb-1.5">Email address *</label>
                 <input type="email" className="input text-base" placeholder="ceo@company.com"
@@ -145,7 +145,7 @@ hr@company.com,Kemi Bello,HR Manager,medium`;
               </div>
             </div>
 
-            <div className="grid sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-bold text-warm-700 mb-1.5">Title / Role</label>
                 <div className="flex flex-wrap gap-1.5 mb-2">

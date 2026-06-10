@@ -200,13 +200,13 @@ const HRISPage = () => {
       {(subLoading || isSubActive) && (<>
 
       {/* Tabs */}
-      <div className="flex gap-0 border-b border-purple-100 mb-6">
+      <div className="flex gap-0 border-b border-purple-100 mb-6 overflow-x-auto" style={{scrollbarWidth:"none"}}>
         {[
           { id: 'integrations', label: '🔗 Integrations' },
           { id: 'sync_history', label: `📋 Sync History (${logs.length})` },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)}
-            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               tab === t.id ? 'border-primary-500 text-primary-600 font-bold' : 'border-transparent text-warm-500 hover:text-warm-800'
             }`}>{t.label}</button>
         ))}

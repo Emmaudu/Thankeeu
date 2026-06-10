@@ -77,7 +77,7 @@ const MembersApprovalPage = () => {
 
       {/* Company code banner */}
       <div className="bg-primary-50 border border-primary-100 rounded-3xl p-5 mb-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-4">
           <div>
             <p className="font-semibold text-primary-800 text-sm mb-1">🔑 Your company code</p>
             <p className="text-xs text-primary-600 leading-relaxed">
@@ -86,7 +86,7 @@ const MembersApprovalPage = () => {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <code className="bg-white text-primary-700 border border-primary-200 px-3 py-2 rounded-xl text-xs font-mono select-all">
+            <code className="bg-white text-primary-700 border border-primary-200 px-3 py-2 rounded-xl text-xs font-mono select-all break-all">
               {companyCode}
             </code>
             <button
@@ -99,7 +99,7 @@ const MembersApprovalPage = () => {
       </div>
 
       {/* Tabs + filter */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-5">
+      <div className="flex flex-col gap-3 mb-5">
         <div className="flex gap-1 bg-purple-50 p-1 rounded-xl">
           {[
             { id: 'pending',  label: `Pending (${counts.pending})` },

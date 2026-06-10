@@ -111,7 +111,7 @@ const SupportPage = () => {
         </div>
 
         {/* Contact alternatives */}
-        <div className="grid grid-cols-1 sm:grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <a href="mailto:support@thankeeu.com" className="bg-white border border-purple-100 rounded-3xl p-4 hover:border-primary-300 transition-colors text-center">
             <div className="text-2xl mb-2">📧</div>
             <p className="text-sm font-medium text-warm-900">Email directly</p>
@@ -147,7 +147,7 @@ const SupportPage = () => {
                 <div key={t.id}>
                   <button
                     onClick={() => setOpenTicket(openTicket === t.id ? null : t.id)}
-                    className="w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-warm-100 transition-colors">
+                    className="w-full flex items-start gap-3 px-4 py-4 text-left hover:bg-warm-100 transition-colors">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <p className="text-sm font-medium text-warm-900 truncate">{t.subject}</p>

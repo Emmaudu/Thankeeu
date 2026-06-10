@@ -182,22 +182,9 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
         .select('id').eq('company_id', companyId)
         .order('created_at', { ascending: false }).limit(1).maybeSingle();
 
-      if (existingSub) {
-        await supabase.from('company_subscriptions')
-          .update({ expires_at, status: 'active', flw_reference: txRef, plan, updated_at: new Date() })
-          .eq('id', existingSub.id);
-      } else {
-        await supabase.from('company_subscriptions').insert({
-          company_id: companyId, plan, status: 'active',
-          amount: plan === 'yearly' ? 2400000 : 200000,
-          flw_reference: txRef, starts_at: new Date(), expires_at,
-        });
-      }
-
-      await supabase.from('companies')
-        .update({ subscription_status: 'active', subscription_plan: plan, subscription_expires_at: expires_at })
-        .eq('id', companyId);
-      // ignore error — main subscription record already saved above
+      // Use shared saveSubscription helper (handles both tables, proper error logging)
+      const { saveSubscription } = require('../controllers/subscriptionController');
+      await saveSubscription(companyId, plan, txRef, expires_at);
 
       console.log('Webhook: subscription activated, company:', companyId, 'plan:', plan);
       return;

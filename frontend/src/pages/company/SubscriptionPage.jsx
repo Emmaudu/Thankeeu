@@ -42,7 +42,7 @@ export default function SubscriptionPage() {
   const [showCancel, setShowCancel]= useState(false);
   const [verifying,  setVerifying] = useState(false);
   // Save the tx_ref from the URL into state before we clear it
-  const [pendingRef, setPendingRef]= useState('');
+  const [pendingRef, setPendingRef]= useState(() => sessionStorage.getItem('sub_pending_ref') || '');
   const [checking,   setChecking]  = useState(false);
   const pollRef = useRef(null);
   const navigate = useNavigate();
@@ -53,7 +53,7 @@ export default function SubscriptionPage() {
     const ref      = params.get('tx_ref') || params.get('reference');
     const isReturn = params.get('sub') === 'success' || !!ref;
 
-    if (ref) setPendingRef(ref);
+    if (ref) { setPendingRef(ref); sessionStorage.setItem('sub_pending_ref', ref); }
 
     // Clear URL immediately so it doesn't re-trigger on refresh
     if (isReturn) {
@@ -67,6 +67,7 @@ export default function SubscriptionPage() {
         try {
           await subscriptionAPI.verify(ref);
           toast.success('🎉 Subscription activated! Redirecting to HRIS...');
+          sessionStorage.removeItem('sub_pending_ref');
           await fetchSub();
           setTimeout(() => navigate('/company/hris'), 2200);
           return;
@@ -94,6 +95,7 @@ export default function SubscriptionPage() {
             setSub(res.data);
             setLoading(false);
             toast.success('✅ Subscription activated! Redirecting to HRIS...');
+            sessionStorage.removeItem('sub_pending_ref');
             setTimeout(() => navigate('/company/hris'), 2200);
           } else if (attempts >= maxAttempts) {
             clearInterval(pollRef.current);
@@ -151,6 +153,7 @@ export default function SubscriptionPage() {
     try {
       await subscriptionAPI.verify(ref);
       toast.success('✅ Subscription activated! Redirecting...');
+      sessionStorage.removeItem('sub_pending_ref');
       await fetchSub();
       setTimeout(() => navigate('/company/hris'), 2000);
     } catch (err) {

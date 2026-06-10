@@ -122,24 +122,24 @@ const MediaCarousel = ({ items, large = false }) => {
   const [idx, setIdx] = useState(0);
   if (!items || items.length === 0) return null;
   const item = items[idx];
-  // Card-bottom media: fixed 200px height, full width, object-cover for a clean display
-  const imgClass = large ? 'w-full object-contain max-h-[65vh]' : 'w-full object-cover';
-  const containerStyle = large ? {} : { height: '200px', background: '#000' };
+  // Card media: tall enough to look good, object-cover fills every pixel
+  const containerStyle = large ? {} : { height: '260px', background: '#111' };
   return (
     <div className="relative overflow-hidden" style={containerStyle}>
       {item.media_type === 'video' && (
         <video src={item.media_url} controls
-          className={large ? 'w-full max-h-[65vh]' : 'w-full h-full object-cover'} />
+          className={large ? 'w-full max-h-[70vh]' : 'w-full h-full object-cover'} />
       )}
       {item.media_type === 'voice' && (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-white/10 p-4">
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-white/10 p-4" style={{ minHeight: '100px' }}>
           <span className="text-4xl">🎧</span>
           <audio src={item.media_url} controls className="w-full max-w-xs" />
         </div>
       )}
       {(!item.media_type || item.media_type === 'image' || item.media_type === 'gif') && (
         <img src={item.media_url} alt=""
-          className={large ? 'w-full max-h-[65vh] object-contain' : 'w-full h-full object-cover'} />
+          className={large ? 'w-full max-h-[70vh] object-contain' : 'w-full h-full object-cover'}
+          style={large ? {} : { display: 'block' }} />
       )}
       {items.length > 1 && (
         <>
@@ -173,7 +173,6 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
   const [reacted, setReacted] = useState(false);
   const font = getFontStyle(message.font_style);
   const hasMedia = !!(message.media_url || message.media_gallery);
-  // Truncate at 140 chars; if media present we still show good amount of text
   const isLong = (message.content?.length || 0) > 140;
   const preview = isLong ? message.content.slice(0, 140).trimEnd() + '…' : message.content;
   const rotation = index % 3 === 0 ? '-.45deg' : index % 3 === 1 ? '.35deg' : '-.15deg';
@@ -183,28 +182,34 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
       className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border border-white/70 flex flex-col`}
       style={{ background: design.background, color: design.ink, transform: `rotate(${rotation})` }}
     >
-      {/* ── Content area: author + text at the TOP ── */}
-      <div className="p-5 flex flex-col flex-1">
-        {/* Author row */}
-        <div className="flex items-start gap-3 mb-3">
-          <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold bg-white/80 shadow-sm flex-shrink-0" style={{ color: design.accent }}>
-            {message.author_name?.slice(0, 2).toUpperCase() || '??'}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-extrabold truncate text-sm" style={{ color: design.ink }}>{message.author_name}</p>
-            <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{format(new Date(message.created_at), 'MMM d, yyyy')}</p>
-          </div>
-          {message.is_private && canViewPrivate && <span title="Private message" className="text-base flex-shrink-0">🔒</span>}
+      {/* ── 1. Author row (avatar, name, date) ── */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2 flex-shrink-0">
+        <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold bg-white/80 shadow-sm flex-shrink-0" style={{ color: design.accent }}>
+          {message.author_name?.slice(0, 2).toUpperCase() || '??'}
         </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-extrabold truncate text-sm" style={{ color: design.ink }}>{message.author_name}</p>
+          <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{format(new Date(message.created_at), 'MMM d, yyyy')}</p>
+        </div>
+        {message.is_private && canViewPrivate && <span title="Private message" className="text-base flex-shrink-0">🔒</span>}
+      </div>
 
-        {/* Message text */}
-        <button type="button" onClick={() => onOpen(message)} className="text-left w-full mb-3">
+      {/* ── 2. Media full-width below author, above text (Instagram style) ── */}
+      {hasMedia && (
+        <button type="button" onClick={() => onOpen(message)} className="w-full block flex-shrink-0">
+          <Media message={message} />
+        </button>
+      )}
+
+      {/* ── 3. Text message below media ── */}
+      <div className="px-4 pt-3 pb-1 flex-1">
+        <button type="button" onClick={() => onOpen(message)} className="text-left w-full">
           <p
             className="whitespace-pre-wrap break-words"
             style={{
               color: design.ink,
               fontFamily: font.family,
-              fontSize: message.font_style === 'calligraphy' ? '1.45rem' : message.font_style === 'handwritten' ? '1.15rem' : '0.95rem',
+              fontSize: message.font_style === 'calligraphy' ? '1.4rem' : message.font_style === 'handwritten' ? '1.1rem' : '0.9rem',
               lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
             }}
           >
@@ -216,41 +221,29 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
             </span>
           )}
         </button>
-
-        {/* Gift + reaction row */}
-        <div className="mt-auto">
-          {message.contributed_amount > 0 && (
-            <div className="mb-2 rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center justify-between">
-              <span className="text-xs font-bold" style={{ color: design.ink }}>🎁 Gift</span>
-              <span className="text-sm font-extrabold" style={{ color: design.accent }}>{formatNGN(message.contributed_amount)}</span>
-            </div>
-          )}
-          <button
-            type="button"
-            onClick={async () => {
-              if (reacted) return;
-              setReacted(true);
-              await onReact(message.id).catch(() => {});
-            }}
-            className="rounded-full bg-white/75 px-3 py-1.5 text-xs font-bold shadow-sm"
-            style={{ color: reacted ? '#e11d48' : design.ink }}
-          >
-            ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
-          </button>
-        </div>
       </div>
 
-      {/* ── Media at the BOTTOM — full width, well displayed ── */}
-      {hasMedia && (
+      {/* ── 4. Gift amount + reaction at bottom ── */}
+      <div className="px-4 pb-4 pt-2 flex items-center justify-between flex-shrink-0">
         <button
           type="button"
-          onClick={() => onOpen(message)}
-          className="w-full block flex-shrink-0 overflow-hidden"
-          style={{ maxHeight: '220px' }}
+          onClick={async () => {
+            if (reacted) return;
+            setReacted(true);
+            await onReact(message.id).catch(() => {});
+          }}
+          className="rounded-full bg-white/75 px-3 py-1.5 text-xs font-bold shadow-sm"
+          style={{ color: reacted ? '#e11d48' : design.ink }}
         >
-          <Media message={message} />
+          ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
         </button>
-      )}
+        {message.contributed_amount > 0 && (
+          <div className="rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center gap-1.5">
+            <span className="text-xs font-bold" style={{ color: design.ink }}>🎁</span>
+            <span className="text-sm font-extrabold" style={{ color: design.accent }}>{formatNGN(message.contributed_amount)}</span>
+          </div>
+        )}
+      </div>
     </article>
   );
 };

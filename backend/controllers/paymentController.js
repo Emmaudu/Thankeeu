@@ -224,7 +224,10 @@ const initContribution = async (req, res) => {
       tx_ref:         txRef,
       amount:         amountNaira,
       currency:       'NGN',
-      redirect_url:   `${process.env.APP_URL}/sign/${card_slug}?contributed=1`,
+      // RC5 fix: redirect_url must point to the FRONTEND (Vercel URL), not APP_URL (backend)
+      // Set FRONTEND_URL in Railway env vars to your Vercel domain (e.g. https://thankeeu.com)
+      const frontendBase = (process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com').replace(/\/$/, '');
+      redirect_url:   `${frontendBase}/sign/${card_slug}?contributed=1`,
       customer:       { email: contributor_email, name: contributor_name || contributor_email },
       customizations: {
         title: `Gift for ${card.recipient_name}`,

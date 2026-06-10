@@ -59,8 +59,9 @@ const SignCard = () => {
 
   useEffect(() => {
     const run = async () => {
-      if (searchParams.get('contributed') === 'true') {
-        const ref = searchParams.get('reference') || searchParams.get('trxref');
+      // RC2+RC3 fix: contributed=1 (not 'true'), and FLW sends tx_ref (not reference/trxref)
+      if (searchParams.get('contributed')) {
+        const ref = searchParams.get('tx_ref') || searchParams.get('reference') || searchParams.get('trxref');
         if (ref) {
           try {
             await paymentsAPI.verify(ref);
@@ -115,6 +116,9 @@ const SignCard = () => {
   }, []);
 
   // Retry-loop verify for gift contribution
+  // RC4 fix: track payment success synchronously so onclose knows callback already ran
+  const paymentSucceededRef = { current: false };
+
   const verifyGiftContribution = async (txRef) => {
     for (let i = 0; i < 4; i++) {
       try { return await paymentsAPI.verify(txRef); }
@@ -210,32 +214,32 @@ const SignCard = () => {
           payment_options: 'card,ussd,bank_transfer',
           customer:        { email: form.author_email, name: form.author_name },
           customizations:  { title: `Gift for ${card?.recipient_name}`, logo: '/logo.png' },
-          // RC2 fix: call closePaymentModal() SYNCHRONOUSLY first, then do async work
-          callback: (response) => {
-            // closePaymentModal() MUST be called synchronously to signal FLW the payment is done
-            if (typeof window.closePaymentModal === 'function') window.closePaymentModal();
+          // RC1 fix: DO NOT call closePaymentModal() — calling it triggers onclose handler
+          callback: async (response) => {
+            // Mark payment succeeded synchronously FIRST (RC4 fix)
+            paymentSucceededRef.current = true;
             setStage('verifying');
             const ref = response?.tx_ref || tx_ref;
-            // Run async verification in background after closing modal
-            (async () => {
-              try {
-                await verifyGiftContribution(ref);
-                toast.success('Your message and gift are on the card! 🎉');
-                setSubmitted(true);
-                fetchCard();
-              } catch {
-                toast.success('Gift received! Verification is processing. 🎉');
-                setSubmitted(true);
-              } finally {
-                setSubmitting(false);
-                setStage('idle');
-              }
-            })();
+            try {
+              await verifyGiftContribution(ref);
+              toast.success('Your message and gift are on the card! 🎉');
+              setSubmitted(true);
+              fetchCard();
+            } catch {
+              // Payment confirmed by FLW but our verify timed out — still mark done
+              toast.success('Gift received! Verification is processing. 🎉');
+              setSubmitted(true);
+            } finally {
+              setSubmitting(false);
+              setStage('idle');
+            }
           },
 
-          // onclose fires when user genuinely closes without paying
+          // onclose fires when modal closes — but may fire AFTER callback too (RC1)
+          // RC4 fix: only show "closed without paying" if callback never ran
           onclose: () => {
-            toast('Message saved. You closed payment without completing gift.');
+            if (paymentSucceededRef.current) return; // callback already handled it
+            toast('Message saved. Payment was not completed.');
             setSubmitted(true);
             setSubmitting(false);
             setStage('idle');

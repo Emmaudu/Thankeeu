@@ -179,7 +179,8 @@ const CreateCard = () => {
       };
 
       // Use FlutterwaveCheckout inline popup if available (same pattern as SignCard)
-      if (window.FlutterwaveCheckout && payment_link && tx_ref) {
+      const flwPublicKey = import.meta.env.VITE_FLW_PUBLIC_KEY;
+      if (window.FlutterwaveCheckout && payment_link && tx_ref && flwPublicKey) {
         const creatorEmail =
           user?.email || member?.email || company?.email || '';
         const creatorDisplayName =
@@ -189,22 +190,25 @@ const CreateCard = () => {
           creatorEmail;
 
         window.FlutterwaveCheckout({
-          public_key:      import.meta.env.VITE_FLW_PUBLIC_KEY,
+          public_key:      flwPublicKey,
           tx_ref,
           amount:          5000,
           currency:        'NGN',
           payment_options: 'card,ussd,bank_transfer',
           customer:        { email: creatorEmail, name: creatorDisplayName },
           customizations:  { title: 'Thankeeu Card Creation', logo: '/logo.png' },
-          callback: async (transaction) => {
-            // FLW closes the modal itself after callback resolves — do NOT call close() here
-            try {
-              await finishPurchase(transaction.tx_ref || tx_ref);
-            } catch (verifyError) {
-              toast.error(verifyError.response?.data?.error || 'Payment made but verification failed. Please retry.');
-              setLoading(false);
-              setPaymentStage('opening');
-            }
+          // RC2 fix: call closePaymentModal() synchronously, then run async verify
+          callback: (transaction) => {
+            if (typeof window.closePaymentModal === 'function') window.closePaymentModal();
+            (async () => {
+              try {
+                await finishPurchase(transaction.tx_ref || tx_ref);
+              } catch (verifyError) {
+                toast.error(verifyError.response?.data?.error || 'Payment made but verification failed. Please retry.');
+                setLoading(false);
+                setPaymentStage('opening');
+              }
+            })();
           },
           onclose: () => {
             setLoading(false);

@@ -199,47 +199,51 @@ const SignCard = () => {
       const { payment_link, tx_ref, integrity_hash } = payRes.data;
 
       // ── STEP 4: Open Flutterwave inline checkout ───────────────────────────
-      if (window.FlutterwaveCheckout && payment_link && tx_ref) {
+      // RC5 fix: only use inline checkout if public_key is configured; else fall through to hosted
+      const flwPublicKey = import.meta.env.VITE_FLW_PUBLIC_KEY;
+      if (window.FlutterwaveCheckout && payment_link && tx_ref && flwPublicKey) {
         window.FlutterwaveCheckout({
-          public_key:      import.meta.env.VITE_FLW_PUBLIC_KEY,
+          public_key:      flwPublicKey,
           tx_ref,
           amount:          amountNGN,
           currency:        'NGN',
           payment_options: 'card,ussd,bank_transfer',
           customer:        { email: form.author_email, name: form.author_name },
           customizations:  { title: `Gift for ${card?.recipient_name}`, logo: '/logo.png' },
-          ...(integrity_hash ? { meta: { integrity_hash } } : {}),
+          // RC1 fix: integrity_hash is a TOP-LEVEL field, NOT inside meta{}
+          ...(integrity_hash ? { integrity_hash } : {}),
 
-          // ── callback fires AFTER successful payment ────────────────────────
-          callback: async (response) => {
-            // DO NOT call close() here — FLW closes itself after callback resolves
+          // RC2 fix: call closePaymentModal() SYNCHRONOUSLY first, then do async work
+          callback: (response) => {
+            // closePaymentModal() MUST be called synchronously to signal FLW the payment is done
+            if (typeof window.closePaymentModal === 'function') window.closePaymentModal();
             setStage('verifying');
             const ref = response?.tx_ref || tx_ref;
-            try {
-              await verifyGiftContribution(ref);
-              toast.success('Your message and gift are on the card! 🎉');
-              setSubmitted(true);
-              fetchCard(); // refresh gift pot total
-            } catch {
-              // Payment went through but verify timed out — still count as done
-              toast.success('Gift received! Verification is processing. 🎉');
-              setSubmitted(true);
-            } finally {
-              setSubmitting(false);
-              setStage('idle');
-            }
+            // Run async verification in background after closing modal
+            (async () => {
+              try {
+                await verifyGiftContribution(ref);
+                toast.success('Your message and gift are on the card! 🎉');
+                setSubmitted(true);
+                fetchCard();
+              } catch {
+                toast.success('Gift received! Verification is processing. 🎉');
+                setSubmitted(true);
+              } finally {
+                setSubmitting(false);
+                setStage('idle');
+              }
+            })();
           },
 
-          // ── onclose fires when user dismisses WITHOUT paying ───────────────
+          // onclose fires when user genuinely closes without paying
           onclose: () => {
-            // Message was already saved (step 1) — show success without gift
-            toast('Message saved. Gift was not completed.');
+            toast('Message saved. You closed payment without completing gift.');
             setSubmitted(true);
             setSubmitting(false);
             setStage('idle');
           },
         });
-        // Do NOT setSubmitting(false) here — callback/onclose will handle it
         return;
       }
 

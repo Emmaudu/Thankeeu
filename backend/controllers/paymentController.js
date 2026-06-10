@@ -46,22 +46,37 @@ const fetchFlwTransaction = async (txRef) => {
 };
 
 // ── upsert contribution record ─────────────────────────────────────────────
+// RC3+RC4 fix: use Supabase native upsert on flw_reference to avoid race-condition duplicates
 const upsertContribution = async ({ cardId, txRef, amount, contributorName, contributorEmail, status = 'pending', messageId = null }) => {
-  const { data: existing } = await supabase
-    .from('contributions').select('id, flw_reference').eq('card_id', cardId).eq('flw_reference', txRef).maybeSingle();
-
-  if (existing) {
-    const updateData = { status, amount, updated_at: new Date() };
-    if (messageId) updateData.message_id = messageId;
-    const { data } = await supabase.from('contributions')
-      .update(updateData).eq('id', existing.id).select().single();
-    return data;
-  }
-  const { data } = await supabase.from('contributions').insert({
-    card_id: cardId, flw_reference: txRef, amount, contributor_name: contributorName,
-    contributor_email: contributorEmail, status,
+  const row = {
+    card_id: cardId,
+    flw_reference: txRef,
+    amount,
+    contributor_name: contributorName,
+    contributor_email: contributorEmail,
+    status,
     ...(messageId ? { message_id: messageId } : {}),
-  }).select().single();
+  };
+  // onConflict on flw_reference prevents duplicate rows (requires unique index - see migration)
+  const { data, error } = await supabase
+    .from('contributions')
+    .upsert(row, { onConflict: 'flw_reference', ignoreDuplicates: false })
+    .select()
+    .single();
+  if (error) {
+    // Fallback: if unique index not yet created, do manual check
+    const { data: existing } = await supabase
+      .from('contributions').select('id').eq('flw_reference', txRef).maybeSingle();
+    if (existing) {
+      const updateData = { status, amount };
+      if (messageId) updateData.message_id = messageId;
+      const { data: updated } = await supabase.from('contributions')
+        .update(updateData).eq('id', existing.id).select().single();
+      return updated;
+    }
+    const { data: inserted } = await supabase.from('contributions').insert(row).select().single();
+    return inserted;
+  }
   return data;
 };
 
@@ -132,7 +147,7 @@ const verifyPayment = async (req, res) => {
       // Activate the card — update status from 'draft' to 'active'
       const { data: card, error: cardErr } = await supabase
         .from('cards')
-        .update({ status: 'active', activated_at: new Date() })
+        .update({ status: 'active' })  // activated_at column not in schema — use created_at for timing
         .eq('slug', meta.card_slug)
         .select('slug, id')
         .single();
@@ -150,17 +165,34 @@ const verifyPayment = async (req, res) => {
         status: 'success',
       });
       // Update card total_collected
-      const { data: card } = await supabase.from('cards').select('total_collected').eq('id', meta.card_id).single();
-      if (card) {
-        await supabase.from('cards').update({ total_collected: (card.total_collected || 0) + amountNaira }).eq('id', meta.card_id);
-      }
+      // NOTE: total_collected is updated by the DB trigger (contribution_verified) automatically
+      // Do NOT manually update it here — that would double-count (RC1 fix)
+
       // Update message: mark payment verified and record contribution amount
-      const { data: contribution } = await supabase
-        .from('contributions').select('message_id').eq('flw_reference', txRef).maybeSingle();
-      if (contribution?.message_id) {
-        await supabase.from('messages')
-          .update({ payment_verified: true, contributed_amount: amountNaira })
-          .eq('id', contribution.message_id);
+      let msgUpdated = false;
+      try {
+        const { data: contribution } = await supabase
+          .from('contributions').select('message_id').eq('flw_reference', txRef).maybeSingle();
+        if (contribution?.message_id) {
+          await supabase.from('messages')
+            .update({ payment_verified: true, contributed_amount: amountNaira })
+            .eq('id', contribution.message_id);
+          msgUpdated = true;
+        }
+      } catch (e) { /* message_id column may not exist yet */ }
+
+      if (!msgUpdated && txn.customer?.email) {
+        const { data: msg } = await supabase
+          .from('messages').select('id')
+          .eq('card_id', meta.card_id)
+          .eq('author_email', txn.customer.email)
+          .order('created_at', { ascending: false })
+          .limit(1).maybeSingle();
+        if (msg) {
+          await supabase.from('messages')
+            .update({ payment_verified: true, contributed_amount: amountNaira })
+            .eq('id', msg.id);
+        }
       }
     }
 
@@ -251,21 +283,41 @@ const verifyContribution = async (req, res) => {
       status: 'success',
     });
 
-    const { data: card } = await supabase.from('cards').select('total_collected').eq('id', meta.card_id).single();
-    if (card) {
-      await supabase.from('cards').update({ total_collected: (card.total_collected || 0) + amountNaira }).eq('id', meta.card_id);
-    }
+    // NOTE: total_collected is updated by the DB trigger automatically (RC1 fix - no double-count)
 
     // Update the message record: mark payment verified and record contribution amount
-    const { data: contribution } = await supabase
-      .from('contributions')
-      .select('message_id')
-      .eq('flw_reference', txRef)
-      .maybeSingle();
-    if (contribution?.message_id) {
-      await supabase.from('messages')
-        .update({ payment_verified: true, contributed_amount: amountNaira })
-        .eq('id', contribution.message_id);
+    // Primary: look up via message_id stored in contributions (requires migration)
+    // Fallback: match by card_id + contributor_email (for older rows without message_id)
+    let messageUpdated = false;
+    try {
+      const { data: contribution } = await supabase
+        .from('contributions')
+        .select('message_id')
+        .eq('flw_reference', txRef)
+        .maybeSingle();
+      if (contribution?.message_id) {
+        await supabase.from('messages')
+          .update({ payment_verified: true, contributed_amount: amountNaira })
+          .eq('id', contribution.message_id);
+        messageUpdated = true;
+      }
+    } catch (e) { /* message_id column may not exist yet on older DBs */ }
+
+    if (!messageUpdated && txn.customer?.email && meta.card_id) {
+      // Fallback: find the most recent message from this email on this card
+      const { data: msg } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('card_id', meta.card_id)
+        .eq('author_email', txn.customer.email)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (msg) {
+        await supabase.from('messages')
+          .update({ payment_verified: true, contributed_amount: amountNaira })
+          .eq('id', msg.id);
+      }
     }
 
     res.json({ verified: true, amount: amountNaira });

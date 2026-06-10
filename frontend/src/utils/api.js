@@ -137,7 +137,10 @@ export const cardsAPI = {
 
 // ─── Messages ──────────────────────────────────────────────────────────────
 export const messagesAPI = {
-  add:    (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data),
+  // RC3 fix: delete Content-Type so axios sets multipart/form-data+boundary automatically for FormData
+  add:    (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data, {
+    headers: { 'Content-Type': undefined },
+  }),
   react:  (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
   delete: (messageId)       => api.delete(`/messages/${messageId}`),
   // reply is authenticated — uses smart axios so both users and members can reply

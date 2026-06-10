@@ -315,18 +315,27 @@ const importOccasionMembers = async (req, res) => {
       const nameParts   = row.first_name ? [row.first_name, row.last_name] : ['Member', ''];
 
       // Upsert member account
-      await supabase.from('company_members').upsert({
-        company_id:    req.company.id,
-        email:         row.email,
-        first_name:    row.first_name,
-        last_name:     row.last_name,
-        department:    row.department,
-        gender:        row.gender || null,
-        role:          'member',
-        status:        'approved',
-        password_hash: passHash,
-        invite_token:  inviteToken,
-      }, { onConflict: 'company_id,email' }).catch(() => {});
+      try {
+        await supabase
+          .from('company_members')
+          .upsert(
+            {
+              company_id: req.company.id,
+              email: row.email,
+              first_name: row.first_name,
+              last_name: row.last_name,
+              department: row.department,
+              gender: row.gender || null,
+              role: 'member',
+              status: 'approved',
+              password_hash: passHash,
+              invite_token: inviteToken,
+            },
+            { onConflict: 'company_id,email' }
+          );
+      } catch (err) {
+        console.error('Member upsert failed:', err);
+      }
 
       // Send invite email
       const setPasswordLink = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(row.email)}`;
@@ -563,8 +572,15 @@ const importGeneralTemplate = async (req, res) => {
     const { sendEmail } = require('../utils/email');
     const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
     const { data: coData } = await supabase.from('companies')
-      .select('name, contact_person').eq('id', companyId).single()
-      .catch(() => ({ data: null }));
+    const { data: coData, error: companyError } = await supabase
+      .from('companies')
+      .select('name, contact_person')
+      .eq('id', companyId)
+      .single();
+
+    if (companyError) {
+      console.error('Company lookup error:', companyError);
+    }
 
     let imported = 0;
     const errors = [];

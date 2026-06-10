@@ -109,11 +109,12 @@ const verifySubscription = async (req, res) => {
       });
     }
 
-    // Update the company row itself so subscription status is easy to query
-    await supabase.from('companies')
-      .update({ subscription_status: 'active', subscription_plan: resolvedPlan, subscription_expires_at: expires_at })
-      .eq('id', resolvedCompanyId)
-      .then(() => {}).catch(e => console.warn('Could not update company subscription_status:', e.message));
+    // Update companies shortcut columns — best effort (not critical, getSubscription falls back here)
+    try {
+      await supabase.from('companies')
+        .update({ subscription_status: 'active', subscription_plan: resolvedPlan, subscription_expires_at: expires_at })
+        .eq('id', resolvedCompanyId);
+    } catch (e) { console.warn('Could not update company subscription_status:', e.message); }
 
     res.json({ success: true, plan: resolvedPlan, expires_at });
   } catch (err) {
@@ -137,7 +138,26 @@ const getSubscription = async (req, res) => {
       .maybeSingle();
 
     if (error) throw error;
-    if (!data) return res.json({ status: 'none', is_active: false });
+
+    // Fallback: check companies.subscription_status if no row in company_subscriptions
+    if (!data) {
+      const { data: co } = await supabase.from('companies')
+        .select('subscription_status, subscription_plan, subscription_expires_at')
+        .eq('id', req.company.id).single();
+
+      if (co?.subscription_status === 'active') {
+        const expired = co.subscription_expires_at && new Date(co.subscription_expires_at) < new Date();
+        if (!expired) {
+          return res.json({
+            status: 'active', is_active: true,
+            plan: co.subscription_plan || 'monthly',
+            expires_at: co.subscription_expires_at,
+            _source: 'companies_fallback',
+          });
+        }
+      }
+      return res.json({ status: 'none', is_active: false });
+    }
 
     // Check if subscription is still valid
     const now = new Date();

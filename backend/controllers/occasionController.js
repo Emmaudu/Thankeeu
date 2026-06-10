@@ -80,7 +80,6 @@ const createOccasionType = async (req, res) => {
 
 // GET /api/occasions/:occasionTypeId/template — download Excel template
 const downloadOccasionTemplate = (req, res) => {
-  try {
   const { occasionName } = req.params;
   const year = new Date().getFullYear();
   const wb   = XLSX.utils.book_new();
@@ -226,10 +225,6 @@ const downloadOccasionTemplate = (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="thankeeu_${occasionName}_template.xlsx"`);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
-  } catch (err) {
-    console.error('downloadOccasionTemplate error:', occasionName, err.message);
-    res.status(500).json({ error: 'Failed to generate template: ' + err.message });
-  }
 };
 // POST /api/occasions/:occasionTypeId/import — upload Excel for occasion
 const importOccasionMembers = async (req, res) => {
@@ -315,27 +310,18 @@ const importOccasionMembers = async (req, res) => {
       const nameParts   = row.first_name ? [row.first_name, row.last_name] : ['Member', ''];
 
       // Upsert member account
-      try {
-        await supabase
-          .from('company_members')
-          .upsert(
-            {
-              company_id: req.company.id,
-              email: row.email,
-              first_name: row.first_name,
-              last_name: row.last_name,
-              department: row.department,
-              gender: row.gender || null,
-              role: 'member',
-              status: 'approved',
-              password_hash: passHash,
-              invite_token: inviteToken,
-            },
-            { onConflict: 'company_id,email' }
-          );
-      } catch (err) {
-        console.error('Member upsert failed:', err);
-      }
+      await supabase.from('company_members').upsert({
+        company_id:    req.company.id,
+        email:         row.email,
+        first_name:    row.first_name,
+        last_name:     row.last_name,
+        department:    row.department,
+        gender:        row.gender || null,
+        role:          'member',
+        status:        'approved',
+        password_hash: passHash,
+        invite_token:  inviteToken,
+      }, { onConflict: 'company_id,email' }).catch(() => {});
 
       // Send invite email
       const setPasswordLink = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(row.email)}`;
@@ -398,332 +384,334 @@ const deleteOccasionMember = async (req, res) => {
 
 // GET /api/occasions/general-template — Master Excel with ALL occasions
 const downloadGeneralTemplate = (req, res) => {
-  try {
-    const year = new Date().getFullYear();
-    const wb   = XLSX.utils.book_new();
+  const year = new Date().getFullYear();
+  const wb   = XLSX.utils.book_new();
 
-    // Header style helper
-    const styleHeader = (ws, numCols) => {
-      for (let i = 0; i < numCols; i++) {
-        const cell = XLSX.utils.encode_cell({ r: 0, c: i });
-        if (ws[cell]) {
-          ws[cell].s = {
-            font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
-            fill: { fgColor: { rgb: '3B2FA0' } },
-            alignment: { horizontal: 'center', wrapText: true },
-          };
-        }
-      }
-    };
+  // Mother's Day: 2nd Sunday of May
+  const md = new Date(year,4,1); const mdOff = (7-md.getDay())%7+8;
+  const mothersDate = `${year}-05-${String(mdOff).padStart(2,'0')}`;
+  // Father's Day: 3rd Sunday of June
+  const fd = new Date(year,5,1); const fdOff = (7-fd.getDay())%7+15;
+  const fathersDate = `${year}-06-${String(fdOff).padStart(2,'0')}`;
 
-    // ── SINGLE SHEET — one table, HR fills it once ────────────────────────────
-    // Column layout with clear instructions in the header row itself
-    const cols = [
-      'First Name *',
-      'Last Name *',
-      'Email *',
-      'Phone',
-      'Department',
-      'Role (member / leader)',
-      'Job Title',
-      'Gender (male / female)',
-      'Date of Birth (YYYY-MM-DD)',
-      'Work Start Date (YYYY-MM-DD)',
-      'New Hire Start Date (YYYY-MM-DD)',
-      'Promotion Date (YYYY-MM-DD)',
-      'Last Working Day (YYYY-MM-DD)',
-      'Farewell Message',
-      'Promo Congratulations Message',
-    ];
+  const hd = (ws, cols) => {
+    cols.forEach((_,i) => {
+      const cell = XLSX.utils.encode_cell({ r:0, c:i });
+      if (ws[cell]) ws[cell].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'3B2FA0' } } };
+    });
+    ws['!cols'] = cols.map(() => ({ wch:26 }));
+  };
 
-    // Column widths
-    const colWidths = [14,14,26,16,16,20,18,20,24,24,26,24,24,22,32];
+  // ── SHEET 1: General Master (ALL columns — imports into ALL occasion tables) ──
+  const masterCols = [
+    'First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title',
+    'Gender (male/female)',
+    'Date of Birth (YYYY-MM-DD)',         // → Birthday table
+    'Work Start Date (YYYY-MM-DD)',        // → Work Anniversary table
+    'New Hire Start Date (YYYY-MM-DD)',    // → New Hire table
+    'Promotion Date (YYYY-MM-DD)',         // → Promotion table (leave blank if not applicable)
+    'Last Working Day (YYYY-MM-DD)',       // → Farewell/Leaving table (leave blank if not applicable)
+    'Farewell Message (optional)',
+    'Congratulatory Message (optional)',
+  ];
+  const masterRows = [
+    ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Content Writer',
+     'female','1992-05-15','2020-01-10','','','','',''],
+    ['Emeka','Eze','emeka@co.com','08098765432','Marketing','leader','Marketing Lead',
+     'male','1988-11-22','2019-03-01','','','','',''],
+    ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','member','HR Associate',
+     'female','1993-07-08','2021-06-01','','','','',''],
+    ['Tunde','Bello','tunde@co.com','08055544433','Finance','member','Analyst',
+     'male','1985-03-20','2018-09-01','','','','',''],
+    // Example: new hire (leave Date of Birth and Work Start Date blank if unknown)
+    ['Segun','Ola','segun@co.com','08011122233','Product','member','Product Designer',
+     'male','','','2025-03-01','','','',''],
+    // Example: employee being promoted
+    ['Zainab','Ibrahim','zainab@co.com','08055511100','Finance','leader','Finance Manager',
+     'female','1990-08-14','2017-05-01','','2025-03-01','','','Congratulations, Zainab!'],
+    // Example: employee leaving
+    ['Bola','Adeyemi','bola@co.com','08099988877','Operations','member','Operations Analyst',
+     'female','1991-02-28','2019-11-01','','','2025-02-28','We will miss you!',''],
+  ];
+  const ws1 = XLSX.utils.aoa_to_sheet([masterCols, ...masterRows]);
+  hd(ws1, masterCols); XLSX.utils.book_append_sheet(wb, ws1, '📋 MASTER — Import All');
 
-    // Sample rows to show HR exactly how to fill
-    const rows = [
-      // Full employee — all dates known
-      ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Software Engineer',
-       'female','1992-05-15','2020-01-10','','','','',''],
-      // Male employee
-      ['Emeka','Eze','emeka@co.com','08098765432','Marketing','leader','Marketing Manager',
-       'male','1988-11-22','2019-03-01','','','','',''],
-      // Female employee
-      ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','member','HR Associate',
-       'female','1993-07-08','2021-06-01','','','','',''],
-      ['Tunde','Bello','tunde@co.com','08055544433','Finance','member','Analyst',
-       'male','1985-03-20','2018-09-01','','','','',''],
-      // New hire — only Start Date filled, DOB/Work Start unknown yet
-      ['Segun','Ola','segun@co.com','08011122233','Product','member','Product Designer',
-       'male','','','2025-06-01','','','',''],
-      // Promotion — Promo Date + message
-      ['Zainab','Ibrahim','zainab@co.com','08055511100','Finance','leader','Finance Head',
-       'female','1990-08-14','2017-05-01','','2025-07-01','','','Congratulations on your promotion!'],
-      // Leaving — Last Working Day + farewell message
-      ['Bola','Adeyemi','bola@co.com','08099988877','Operations','member','Operations Lead',
-       'female','1991-02-28','2019-11-01','','','2025-08-31','We will miss you!',''],
-    ];
+  // ── SHEET 2: How the master populates each table ──
+  const ruleRows = [
+    ['HOW THE MASTER TEMPLATE AUTO-POPULATES EACH OCCASION TABLE'],[''],
+    ['Occasion Table','Gender Filter','Relevant Column','Rule'],
+    ['Birthday','All (Male & Female)','Date of Birth','Added if Date of Birth is filled in'],
+    ['Work Anniversary','All (Male & Female)','Work Start Date','Added if Work Start Date is filled in'],
+    ['New Hire','All (Male & Female)','New Hire Start Date','Added if New Hire Start Date is filled in'],
+    ['Valentine\'s Day','All (Male & Female)','Auto — Feb 14','Every row automatically goes here'],
+    ['Women\'s Day','Female ONLY','Auto — Mar 8','Only rows where Gender = female'],
+    ['Mother\'s Day','Female ONLY','Auto — 2nd Sun May','Only rows where Gender = female'],
+    ['Father\'s Day','Male ONLY','Auto — 3rd Sun June','Only rows where Gender = male'],
+    ['Promotion','All (Male & Female)','Promotion Date','Added only if Promotion Date is filled in'],
+    ['Farewell / Leaving','All (Male & Female)','Last Working Day','Added only if Last Working Day is filled in'],
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(ruleRows);
+  ws2['!cols'] = [{ wch:28 },{ wch:22 },{ wch:32 },{ wch:55 }];
+  if (ws2['A1']) ws2['A1'].s = { font:{ bold:true, sz:13, color:{ rgb:'3B2FA0' } } };
+  if (ws2['A3']) ws2['A3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+  if (ws2['B3']) ws2['B3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+  if (ws2['C3']) ws2['C3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+  if (ws2['D3']) ws2['D3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
+  XLSX.utils.book_append_sheet(wb, ws2, '📖 How It Works');
 
-    const ws = XLSX.utils.aoa_to_sheet([cols, ...rows]);
-    ws['!cols'] = colWidths.map(w => ({ wch: w }));
-    styleHeader(ws, cols.length);
+  // ── SHEET 3: Birthday (Date of Birth) ──
+  const bCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Date of Birth (YYYY-MM-DD)'];
+  const ws3 = XLSX.utils.aoa_to_sheet([bCols,['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Content Writer','1992-05-15']]);
+  hd(ws3, bCols); XLSX.utils.book_append_sheet(wb, ws3, '🎂 Birthday');
 
-    // Freeze the header row so it stays visible while scrolling
-    ws['!freeze'] = { xSplit: 0, ySplit: 1, topLeftCell: 'A2', activeCell: 'A2',
-                      state: 'frozen' };
+  // ── SHEET 4: Work Anniversary (Work Start Date) ──
+  const waCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Work Start Date (YYYY-MM-DD)'];
+  const ws4 = XLSX.utils.aoa_to_sheet([waCols,['Emeka','Eze','emeka@co.com','08098765432','Finance','leader','Finance Head','2018-07-15']]);
+  hd(ws4, waCols); XLSX.utils.book_append_sheet(wb, ws4, '🏆 Work Anniversary');
 
-    XLSX.utils.book_append_sheet(wb, ws, 'Team Import');
+  // ── SHEET 5: New Hire (Start Date) ──
+  const nhCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Start Date (YYYY-MM-DD)'];
+  const ws5 = XLSX.utils.aoa_to_sheet([nhCols,['Kemi','Adeyemi','kemi@co.com','07012345678','HR','member','HR Associate','2025-02-10']]);
+  hd(ws5, nhCols); XLSX.utils.book_append_sheet(wb, ws5, '🎉 New Hire');
 
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    res.setHeader('Content-Disposition', 'attachment; filename="thankeeu_master_template.xlsx"');
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    return res.send(buf);
+  // ── SHEET 6: Valentine's Day (ALL employees, Feb 14) ──
+  const vCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title',`Valentine Date (${year}-02-14 pre-filled)`];
+  const ws6 = XLSX.utils.aoa_to_sheet([vCols,
+    ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer',`${year}-02-14`],
+    ['Emeka','Eze','emeka@co.com','08098765432','Marketing','member','Executive',`${year}-02-14`],
+  ]);
+  hd(ws6, vCols); XLSX.utils.book_append_sheet(wb, ws6, "💝 Valentine's Day (All)");
 
-  } catch (err) {
-    console.error('downloadGeneralTemplate error:', err.message);
-    return res.status(500).json({ error: 'Failed to generate template: ' + err.message });
-  }
+  // ── SHEET 7: Women's Day (Female only, Mar 8) ──
+  const wdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: female)',`Women's Day Date (${year}-03-08 pre-filled)`];
+  const ws7 = XLSX.utils.aoa_to_sheet([wdCols,
+    ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer','female',`${year}-03-08`],
+  ]);
+  hd(ws7, wdCols); XLSX.utils.book_append_sheet(wb, ws7, "👩 Women's Day (Female)");
+
+  // ── SHEET 8: Mother's Day (Female only, 2nd Sun May) ──
+  const mdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: female)',`Mother's Day Date (${mothersDate} pre-filled)`];
+  const ws8 = XLSX.utils.aoa_to_sheet([mdCols,
+    ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','leader','HR Lead','female',mothersDate],
+  ]);
+  hd(ws8, mdCols); XLSX.utils.book_append_sheet(wb, ws8, "🌹 Mother's Day (Female)");
+
+  // ── SHEET 9: Father's Day (Male only, 3rd Sun June) ──
+  const fdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: male)',`Father's Day Date (${fathersDate} pre-filled)`];
+  const ws9 = XLSX.utils.aoa_to_sheet([fdCols,
+    ['Emeka','Eze','emeka@co.com','08098765432','Engineering','leader','Lead Dev','male',fathersDate],
+    ['Tunde','Bello','tunde@co.com','08055544433','Finance','member','Analyst','male',fathersDate],
+  ]);
+  hd(ws9, fdCols); XLSX.utils.book_append_sheet(wb, ws9, "👔 Father's Day (Male)");
+
+  // ── SHEET 10: Promotion ──
+  const prCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Promotion Date (YYYY-MM-DD)','New Job Title (optional)','Congratulatory Message (optional)'];
+  const ws10 = XLSX.utils.aoa_to_sheet([prCols,
+    ['Tunde','Bello','tunde@co.com','08098765432','Engineering','leader','Eng Manager','2025-03-01','Senior Manager','Congratulations on your well-deserved promotion!'],
+  ]);
+  hd(ws10, prCols); XLSX.utils.book_append_sheet(wb, ws10, '⭐ Promotion');
+
+  // ── SHEET 11: Farewell / Leaving ──
+  const faCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Last Working Day (YYYY-MM-DD)','Farewell Message (optional)'];
+  const ws11 = XLSX.utils.aoa_to_sheet([faCols,
+    ['Zainab','Ibrahim','z@co.com','08055544433','Finance','member','Finance Analyst','2025-02-28','We will miss you dearly!'],
+  ]);
+  hd(ws11, faCols); XLSX.utils.book_append_sheet(wb, ws11, '👋 Farewell / Leaving');
+
+  const buf = XLSX.write(wb, { type:'buffer', bookType:'xlsx' });
+  res.setHeader('Content-Disposition','attachment; filename="thankeeu_master_template.xlsx"');
+  res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.send(buf);
 };
-// POST /api/occasions/import-general — single-sheet master → all occasion tables
+// POST /api/occasions/import-general — import master template → all occasion tables
 const importGeneralTemplate = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const companyId = req.company.id;
-
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
-    // Accept any sheet name — HR might rename it
-    const wsName = wb.SheetNames[0];
-    const ws     = wb.Sheets[wsName];
-    if (!ws) return res.status(400).json({ error: 'Could not read the spreadsheet. Use the official master template.' });
 
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
-    if (rows.length < 2) return res.status(400).json({ error: 'Sheet has no data rows. Fill in your team below the header row.' });
+    let totalImported = 0;
+    const errors = [];
 
-    const hdr = rows[0].map(h => String(h).toLowerCase().trim());
-
-    // Column index finder — flexible matching so minor header edits don't break it
-    const ci = (...keywords) => hdr.findIndex(h => keywords.some(k => h.includes(k)));
-
-    const fnI  = ci('first name', 'firstname', 'first');
-    const lnI  = ci('last name', 'lastname', 'last');
-    const emI  = ci('email');
-    const phI  = ci('phone');
-    const dpI  = ci('department', 'dept');
-    const roI  = ci('role');
-    const jtI  = ci('job title', 'job');
-    const gnI  = ci('gender');
-    const dobI = ci('date of birth', 'dob', 'birth');
-    const wsI  = ci('work start', 'resumption', 'start date');
-    const nhI  = ci('new hire', 'hire start', 'hire date');
-    const prI  = ci('promotion date', 'promo date');
-    const lwI  = ci('last working', 'leaving', 'leave date');
-    const fwI  = ci('farewell');
-    const cgI  = ci('congratulations', 'promo message', 'congrat');
-
-    if (fnI < 0 || lnI < 0 || emI < 0) {
-      return res.status(400).json({
-        error: 'Could not find First Name, Last Name, or Email columns. Please use the official master template without renaming those columns.',
-      });
-    }
-
-    // Fixed annual dates
+    // Mother's Day: 2nd Sunday of May
     const year = new Date().getFullYear();
-    const md = new Date(year, 4, 1); const mdOff = (7 - md.getDay()) % 7 + 8;
-    const mothersDate  = `${year}-05-${String(mdOff).padStart(2, '0')}`;
-    const fd = new Date(year, 5, 1); const fdOff = (7 - fd.getDay()) % 7 + 15;
-    const fathersDate  = `${year}-06-${String(fdOff).padStart(2, '0')}`;
-    const valentineDate = `${year}-02-14`;
-    const womensDayDate = `${year}-03-08`;
+    const md = new Date(year,4,1); const mdOff = (7-md.getDay())%7+8;
+    const mothersDate = `${year}-05-${String(mdOff).padStart(2,'0')}`;
+    // Father's Day: 3rd Sunday of June
+    const fd = new Date(year,5,1); const fdOff = (7-fd.getDay())%7+15;
+    const fathersDate = `${year}-06-${String(fdOff).padStart(2,'0')}`;
 
-    // Date parser: handles YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, Excel serial
+    // Helper: parse a cell that might be an Excel date serial or a YYYY-MM-DD string
     const parseDate = (val) => {
       if (!val && val !== 0) return null;
       const s = String(val).trim();
       if (!s) return null;
-      if (/^\d+$/.test(s) && Number(s) > 1000) {
+      // Excel date serial
+      if (/^\d+(\.\d+)?$/.test(s) && Number(s) > 1000) {
         try {
           const d = XLSX.SSF.parse_date_code(Number(s));
           return `${d.y}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;
         } catch { return null; }
       }
+      // DD-MM-YYYY or DD/MM/YYYY
       const dmy = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2,4})$/);
       if (dmy) {
-        const y = dmy[3].length === 2 ? `20${dmy[3]}` : dmy[3];
+        const y = dmy[3].length===2 ? `20${dmy[3]}` : dmy[3];
         return `${y}-${String(dmy[2]).padStart(2,'0')}-${String(dmy[1]).padStart(2,'0')}`;
       }
-      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+      // YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10);
       return null;
     };
 
-    // Upsert helper: find existing by company+email+type, update or insert
-    const upsertOccasion = async (type, data) => {
+    // Helper: upsert into occasion_members (using occasion_type string, not FK)
+    const upsertOccasion = async (type, row) => {
       const { data: existing } = await supabase.from('occasion_members')
-        .select('id').eq('company_id', companyId)
-        .eq('occasion_type', type).eq('email', data.email)
+        .select('id')
+        .eq('company_id', companyId)
+        .eq('occasion_type', type)
+        .eq('email', row.email)
         .maybeSingle();
-      if (existing?.id) {
+      if (existing) {
         await supabase.from('occasion_members')
-          .update({ ...data, updated_at: new Date() }).eq('id', existing.id);
+          .update({ ...row, updated_at: new Date() }).eq('id', existing.id);
       } else {
-        await supabase.from('occasion_members')
-          .insert({ ...data, company_id: companyId, occasion_type: type });
+        await supabase.from('occasion_members').insert({ ...row, company_id: companyId, occasion_type: type });
       }
     };
 
+    // Process the MASTER sheet (Sheet 1)
+    const masterSheet = wb.Sheets['📋 MASTER — Import All'] || wb.Sheets[wb.SheetNames[0]];
+    if (!masterSheet) return res.status(400).json({ error: 'Master sheet not found. Please use the official master template.' });
+
+    const rows = XLSX.utils.sheet_to_json(masterSheet, { header: 1, defval: '' });
+    if (rows.length < 2) return res.status(400).json({ error: 'No data rows found in master sheet.' });
+
+    const hdr = rows[0].map(h => String(h).toLowerCase().trim());
+    const ci = (kw) => hdr.findIndex(h => h.includes(kw));
+
+    const fnI  = ci('first');    const lnI  = ci('last');      const emI = ci('email');
+    const phI  = ci('phone');    const dpI  = ci('department'); const roI = ci('role');
+    const jtI  = ci('job');      const gnI  = ci('gender');
+    const dobI = ci('birth');                      // Date of Birth → birthday
+    const wsI  = ci('work start');                 // Work Start Date → work_anniversary
+    const nhI  = ci('new hire') >= 0 ? ci('new hire') : ci('start date'); // New Hire Start Date
+    const prI  = ci('promotion date') >= 0 ? ci('promotion date') : ci('promotion');
+    const lwI  = ci('last working');               // Last Working Day → leaving
+    const fwI  = ci('farewell');                   // Farewell Message
+    const cgI  = ci('congratulat');                // Congratulatory Message
+
     const { sendEmail } = require('../utils/email');
     const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
-    const { data: coData } = await supabase.from('companies')
-    const { data: coData, error: companyError } = await supabase
-      .from('companies')
-      .select('name, contact_person')
-      .eq('id', companyId)
-      .single();
-
-    if (companyError) {
-      console.error('Company lookup error:', companyError);
-    }
-
-    let imported = 0;
-    const errors = [];
-    const summary = {
-      birthday: 0, work_anniversary: 0, new_hire: 0,
-      valentine: 0, womens_day: 0, mothers_day: 0, fathers_day: 0,
-      promotion: 0, leaving: 0,
-    };
+    const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const fn    = String(row[fnI] || '').trim();
       const ln    = String(row[lnI] || '').trim();
       const email = String(row[emI] || '').trim().toLowerCase();
-      if (!fn || !ln || !email) continue; // skip empty rows
+      if (!fn || !ln || !email) continue;
 
       const dept   = dpI >= 0 ? String(row[dpI] || '').trim() || 'General' : 'General';
       const role   = roI >= 0 && String(row[roI] || '').toLowerCase().includes('leader') ? 'leader' : 'member';
       const jt     = jtI >= 0 ? String(row[jtI] || '').trim() || null : null;
       const phone  = phI >= 0 ? String(row[phI] || '').trim() || null : null;
-      const gender = gnI >= 0 ? String(row[gnI] || '').trim().toLowerCase() || null : null;
+      const gender = gnI >= 0 ? String(row[gnI] || '').trim().toLowerCase() : null;
+      const base   = { first_name: fn, last_name: ln, email, department: dept, gender: gender || null, is_active: true };
 
-      // Upsert into company_members
-      let memberId = null;
+      // Upsert company_member
+      const { data: member } = await supabase.from('company_members')
+        // Supabase v2: .catch() not supported on query builder — use try/catch
+        .upsert({ company_id: companyId, first_name: fn, last_name: ln, email, department: dept,
+                  role, gender: gender || null, job_title: jt, phone, status: 'approved' },
+                 { onConflict: 'company_id,email' })
+        .select('id').single();
+      const memberId = member?.id;
+
+      // Send invite email
       try {
-        const { data: m, error: mErr } = await supabase.from('company_members')
-          .upsert(
-            { company_id: companyId, first_name: fn, last_name: ln, email, department: dept,
-              role, gender, job_title: jt, phone, status: 'approved' },
-            { onConflict: 'company_id,email' }
-          ).select('id').single();
-        if (!mErr && m) memberId = m.id;
+        const inviteToken = require('crypto').randomBytes(32).toString('hex');
+        if (memberId) await supabase.from('company_members').update({ invite_token: inviteToken }).eq('id', memberId);
+        const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email)}`;
+        await sendEmail({ to: email,
+          subject: `Welcome to ${companyData?.name || 'your company'} on Thankeeu! 🎉`,
+          html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;">
+            <h2>Welcome, ${fn}!</h2>
+            <p>${companyData?.contact_person || companyData?.name || 'Your HR team'} has added you to <strong>${companyData?.name || 'your company'}</strong> on Thankeeu.</p>
+            <a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;">Set your password 🚀</a>
+            <p style="color:#aaa;font-size:12px;">This link expires in 7 days.</p></div>`
+        }).catch(() => {});
       } catch (_) {}
 
-      // Send invite email to new members
-      try {
-        if (memberId) {
-          const tok = require('crypto').randomBytes(32).toString('hex');
-          await supabase.from('company_members').update({ invite_token: tok }).eq('id', memberId);
-          const link = `${frontendUrl}/member/reset-password?token=${tok}&email=${encodeURIComponent(email)}`;
-          await sendEmail({
-            to: email,
-            subject: `Welcome to ${coData?.name || 'your company'} on Thankeeu! 🎉`,
-            html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;">
-              <h2 style="color:#1A1035">Welcome, ${fn}!</h2>
-              <p style="color:#555">${coData?.contact_person || coData?.name || 'HR'} has added you to
-              <strong>${coData?.name || 'your company'}</strong> on Thankeeu.</p>
-              <a href="${link}" style="display:inline-block;background:#7C3AED;color:white;
-              padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;margin:16px 0;">
-              Set your password 🚀</a>
-              <p style="color:#aaa;font-size:12px;">This link expires in 7 days.</p></div>`,
-          }).catch(() => {});
-        }
-      } catch (_) {}
+      const oBase = { ...base, member_id: memberId || null };
 
-      const base = { first_name: fn, last_name: ln, email, department: dept,
-                     gender, is_active: true, member_id: memberId || null };
-
-      // ── BIRTHDAY — everyone with a Date of Birth ──────────────────────────
+      // BIRTHDAY — filter: dobI filled
       const dob = dobI >= 0 ? parseDate(row[dobI]) : null;
       if (dob) {
         const mmdd = dob.slice(5); // MM-DD
-        await upsertOccasion('birthday', { ...base, occasion_date: `${year}-${mmdd}` });
-        summary.birthday++; imported++;
+        await upsertOccasion('birthday', { ...oBase, occasion_date: `${year}-${mmdd}` });
+        totalImported++;
       }
 
-      // ── WORK ANNIVERSARY — everyone with a Work Start Date ────────────────
+      // WORK ANNIVERSARY — filter: wsI filled
       const wsd = wsI >= 0 ? parseDate(row[wsI]) : null;
       if (wsd) {
-        await upsertOccasion('work_anniversary', { ...base, occasion_date: wsd });
-        summary.work_anniversary++; imported++;
+        await upsertOccasion('work_anniversary', { ...oBase, occasion_date: wsd });
+        totalImported++;
       }
 
-      // ── NEW HIRE — everyone with a New Hire Start Date ────────────────────
+      // NEW HIRE — filter: nhI filled
       const nhd = nhI >= 0 ? parseDate(row[nhI]) : null;
       if (nhd) {
-        await upsertOccasion('new_hire', { ...base, occasion_date: nhd });
-        summary.new_hire++; imported++;
+        await upsertOccasion('new_hire', { ...oBase, occasion_date: nhd });
+        totalImported++;
       }
 
-      // ── VALENTINE'S DAY — ALL employees ──────────────────────────────────
-      await upsertOccasion('valentine', { ...base, occasion_date: valentineDate });
-      summary.valentine++; imported++;
+      // VALENTINE'S DAY — ALL employees
+      await upsertOccasion('valentine', { ...oBase, occasion_date: `${year}-02-14` });
+      totalImported++;
 
-      // ── WOMEN'S DAY + MOTHER'S DAY — females only ────────────────────────
+      // WOMEN'S DAY — females only
       if (gender === 'female') {
-        await upsertOccasion('womens_day',  { ...base, occasion_date: womensDayDate });
-        await upsertOccasion('mothers_day', { ...base, occasion_date: mothersDate });
-        summary.womens_day++; summary.mothers_day++; imported += 2;
+        await upsertOccasion('womens_day', { ...oBase, occasion_date: `${year}-03-08` });
+        await upsertOccasion('mothers_day', { ...oBase, occasion_date: mothersDate });
+        totalImported += 2;
       }
 
-      // ── FATHER'S DAY — males only ─────────────────────────────────────────
+      // FATHER'S DAY — males only
       if (gender === 'male') {
-        await upsertOccasion('fathers_day', { ...base, occasion_date: fathersDate });
-        summary.fathers_day++; imported++;
+        await upsertOccasion('fathers_day', { ...oBase, occasion_date: fathersDate });
+        totalImported++;
       }
 
-      // ── PROMOTION — everyone: filled date = confirmed, empty = pending ────
+      // PROMOTION — filter: prI filled
       const prd = prI >= 0 ? parseDate(row[prI]) : null;
-      const cgMsg = cgI >= 0 ? String(row[cgI] || '').trim() : '';
-      // Add ALL employees to promotion table; date can be filled in later on the dashboard
-      await upsertOccasion('promotion', {
-        ...base,
-        occasion_date: prd || null,
-        meta: JSON.stringify({ promotion_message: cgMsg || null }),
-      });
-      summary.promotion++; imported++;
+      if (prd) {
+        const cgMsg = cgI >= 0 ? String(row[cgI] || '').trim() : '';
+        await upsertOccasion('promotion', { ...oBase, occasion_date: prd,
+          meta: JSON.stringify({ promotion_message: cgMsg || null }) });
+        totalImported++;
+      }
 
-      // ── LEAVING — everyone: filled date = confirmed, empty = pending ──────
+      // LEAVING / FAREWELL — filter: lwI filled
       const lwd = lwI >= 0 ? parseDate(row[lwI]) : null;
-      const fwMsg = fwI >= 0 ? String(row[fwI] || '').trim() : '';
-      // Add ALL employees to leaving table; date can be filled in later on the dashboard
-      await upsertOccasion('leaving', {
-        ...base,
-        occasion_date: lwd || null,
-        farewell: fwMsg || null,
-      });
-      summary.leaving++; imported++;
+      if (lwd) {
+        const fwMsg = fwI >= 0 ? String(row[fwI] || '').trim() : '';
+        await upsertOccasion('leaving', { ...oBase, occasion_date: lwd, farewell: fwMsg || null });
+        totalImported++;
+      }
     }
 
-    return res.json({
-      message: `✅ Master import complete! ${rows.length - 1} employees processed.`,
-      imported,
-      summary,
-      detail: [
-        `🎂 Birthday: ${summary.birthday}`,
-        `🏆 Work Anniversary: ${summary.work_anniversary}`,
-        `🎉 New Hire: ${summary.new_hire}`,
-        `💝 Valentine's Day: ${summary.valentine} (all)`,
-        `👩 Women's Day: ${summary.womens_day} (females)`,
-        `🌹 Mother's Day: ${summary.mothers_day} (females)`,
-        `👔 Father's Day: ${summary.fathers_day} (males)`,
-        `⭐ Promotion: ${summary.promotion} (date optional — fill later)`,
-        `👋 Leaving: ${summary.leaving} (date optional — fill later)`,
-      ],
+    res.json({
+      message: `✅ Master import complete! ${totalImported} occasion entries created/updated across all tables.`,
+      imported: totalImported,
+      errors,
     });
-
   } catch (err) {
     console.error('importGeneralTemplate error:', err);
-    return res.status(500).json({ error: `Import failed: ${err.message}` });
+    res.status(500).json({ error: `Import failed: ${err.message}` });
   }
 };
-
 // PUT /api/occasions/:occasionTypeId/scope — update notification scope for a whole table
 const updateOccasionTypeScope = async (req, res) => {
   try {
@@ -920,24 +908,16 @@ const importByOccasionName = async (req, res) => {
       const phone  = phI>=0 ? String(row[phI]||'').trim()||null : null;
       const gender = gnI>=0 ? String(row[gnI]||'').trim().toLowerCase()||null : null;
 
-      // Upsert member — must await before catching (Supabase doesn't support .catch chaining)
-      let memberId = null;
-      try {
-        const { data: member, error: mErr } = await supabase.from('company_members')
-          .upsert(
-            { company_id:companyId, first_name:fn, last_name:ln, email, department:dept,
-              role, gender:gender||null, job_title:jt, phone, status:'approved' },
-            { onConflict:'company_id,email' }
-          )
-          .select('id')
-          .single();
-        if (!mErr && member) memberId = member.id;
-      } catch (_) {}
+      // Upsert member
+      const { data: member } = await supabase.from('company_members')
+        .upsert({ company_id:companyId, first_name:fn, last_name:ln, email, department:dept, role, gender:gender||null, job_title:jt, phone, status:'approved' },
+                 { onConflict:'company_id,email' }).select('id').single();
+      const memberId = member?.id;
 
       // Send invite email
       try {
         const tok = require('crypto').randomBytes(32).toString('hex');
-        if (memberId) await supabase.from('company_members').update({invite_token:tok}).eq('id',memberId);
+        if (memberId) { try { await supabase.from('company_members').update({invite_token:tok}).eq('id',memberId); } catch {} }
         const link = `${frontendUrl}/member/reset-password?token=${tok}&email=${encodeURIComponent(email)}`;
         await sendEmail({ to:email, subject:`Welcome to ${coData?.name||'your company'} on Thankeeu! 🎉`,
           html:`<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;"><h2>Welcome, ${fn}!</h2><p>${coData?.contact_person||coData?.name||'HR'} added you to <strong>${coData?.name||'your company'}</strong> on Thankeeu.</p><a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;">Set your password 🚀</a><p style="color:#aaa;font-size:12px;">Expires in 7 days.</p></div>`

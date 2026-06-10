@@ -140,9 +140,32 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
     }
 
     // ── 6. company_subscription ───────────────────────────────────────────────
-    if (type === 'company_subscription' && meta.company_id) {
-      const companyId = meta.company_id;
-      const plan      = meta.plan;
+    // FLW sometimes drops custom meta on hosted checkout — fall back to tx_ref
+    const isSubTxRef = txRef && txRef.startsWith('TK-SUB-');
+    let subCompanyId = meta.company_id || null;
+    let subPlan      = meta.plan       || null;
+
+    if (isSubTxRef && !subCompanyId) {
+      // tx_ref = TK-SUB-{first8ofCompanyId}-{timestamp}
+      // extract the 8-char prefix and look up the company
+      const parts     = txRef.split('-'); // ['TK','SUB','4D6B0016','timestamp']
+      const partialId = (parts[2] || '').toLowerCase();
+      if (partialId.length >= 4) {
+        const { data: co } = await supabase.from('companies')
+          .select('id').ilike('id', `${partialId}%`).maybeSingle();
+        if (co?.id) {
+          subCompanyId = co.id;
+          console.log('Webhook: resolved company_id from tx_ref:', subCompanyId);
+        }
+      }
+    }
+    if (isSubTxRef && !subPlan) {
+      subPlan = amountNaira >= 2000000 ? 'yearly' : 'monthly';
+    }
+
+    if ((type === 'company_subscription' || isSubTxRef) && subCompanyId) {
+      const companyId = subCompanyId;
+      const plan      = subPlan || 'monthly';
       if (!plan) { console.warn('Webhook: missing plan in subscription meta'); return; }
 
       const now = new Date();

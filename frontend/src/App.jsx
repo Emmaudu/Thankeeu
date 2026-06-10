@@ -28,6 +28,7 @@ import Policy           from './pages/Policy';
 import Admin            from './pages/Admin';
 import AdminLogin       from './pages/AdminLogin';
 import GiftCheckout     from './pages/GiftCheckout';
+import PaymentCallback from './pages/PaymentCallback';
 import NotFound         from './pages/NotFound';
 import BirthdayPage    from './pages/occasions/Birthday';
 import FarewellPage    from './pages/occasions/Farewell';
@@ -156,6 +157,7 @@ const App = () => (
             <Route path="/occasions/wedding"     element={<WeddingPage />} />
             <Route path="/occasions/graduation"  element={<GraduationPage />} />
             <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
+            <Route path="/payment/callback" element={<PaymentCallback />} />
             <Route path="/faq"            element={<FAQ />} />
             <Route path="/occasions/:occasion" element={<OccasionPage />} />
             <Route path="/sign/:slug"    element={<SignCard />} />

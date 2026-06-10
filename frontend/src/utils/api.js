@@ -149,10 +149,12 @@ export const messagesAPI = {
 
 // ─── Payments ──────────────────────────────────────────────────────────────
 export const paymentsAPI = {
-  initPurchase:     (plan_type, card_slug) => anyAxios.post('/payments/initialize/purchase', { plan_type, card_slug }),
-  initContribution: (data)      => publicAxios.post('/payments/initialize/contribution', data),
-  verifyPurchase:   (reference) => anyAxios.get(`/payments/verify/purchase/${reference}`),
-  verify:           (reference) => anyAxios.get(`/payments/verify/${reference}`),
+  initPurchase:        (plan_type, card_slug) => anyAxios.post('/payments/initialize/purchase', { plan_type, card_slug }),
+  initContribution:    (data)      => publicAxios.post('/payments/initialize/contribution', data),
+  verifyPurchase:      (reference) => anyAxios.get(`/payments/verify/purchase/${reference}`),
+  verify:              (reference) => anyAxios.get(`/payments/verify/${reference}`),
+  // Bug 1+7 fix: verifyContribution uses POST to /payments/verify/contribution — public endpoint, no auth needed
+  verifyContribution:  (txRef)     => publicAxios.post('/payments/verify/contribution', { tx_ref: txRef }),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────
@@ -310,6 +312,7 @@ export const deductionsAPI = {
   approveCrossDept:    (id)     => companyAxios.post(`/deductions/cross-dept/${id}/approve`),
   getLeaderOccasions:  ()       => memberAxios.get('/deductions/leader/occasions'),
   getLeaderRequests:   ()       => memberAxios.get('/deductions/leader/requests'),
+  withdrawDeduction:   (id)     => memberAxios.post(`/deductions/${id}/withdraw`, {}),
 };
 
 // ─── Notifications ─────────────────────────────────────────────────────────

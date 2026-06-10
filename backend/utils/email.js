@@ -656,3 +656,32 @@ Object.assign(emailTemplates, {
     `)
   }),
 });
+
+Object.assign(emailTemplates, {
+  birthdayReminder7Days: (d) => ({
+    subject: `🎂 ${d.name}, your birthday is in ${d.daysLeft} days — capture every wish!`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Hey ${d.name}! Your birthday is almost here 🎂</h2>
+      <p style="color:#555;line-height:1.8;">In just <strong>${d.daysLeft} days</strong> it's your big day! Instead of having birthday wishes scattered across DMs, WhatsApp, and Instagram — collect them all in one beautiful place.</p>
+      <div style="background:#EEEDFE;border-radius:12px;padding:16px 20px;margin:20px 0;">
+        <p style="color:#534AB7;font-weight:700;margin:0 0 8px;">Create your birthday card on Thankeeu and get:</p>
+        <ul style="color:#534AB7;font-size:13px;margin:0;padding-left:18px;line-height:2.2;">
+          <li>💌 Heartfelt messages from everyone who cares</li>
+          <li>📸 Photos, voice notes, and GIFs from your people</li>
+          <li>🎁 A pooled cash gift from everyone together</li>
+          <li>♾️ A keepsake you'll treasure forever</li>
+        </ul>
+      </div>
+      ${btn('Create my birthday card →', d.createCardUrl, '#E84393')}
+    `)
+  }),
+  birthdayReminder2Days: (d) => ({
+    subject: `⏰ ${d.name}, ${d.daysLeft} days left — set up your birthday card now!`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Don't miss your chance, ${d.name}! 🎂</h2>
+      <p style="color:#555;line-height:1.8;">Your birthday is in just <strong>${d.daysLeft} days</strong>! There's still time to set up your Thankeeu birthday card so your friends, family, and colleagues can leave you messages, photos, and gifts all in one place.</p>
+      <p style="color:#555;line-height:1.8;">Takes less than 2 minutes to set up.</p>
+      ${btn('Set up my birthday card now →', d.createCardUrl, '#E84393')}
+    `)
+  }),
+});

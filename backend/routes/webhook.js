@@ -23,15 +23,18 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
     const { event: eventName, data: txn } = event;
     console.log('FLW webhook event:', eventName, txn?.tx_ref);
 
-    // 2. Only handle successful charges
-    if (eventName !== 'charge.completed' || txn.status !== 'successful') return res.sendStatus(200);
+    // 2. Acknowledge immediately — FLW has a 5s timeout; heavy DB work runs in background
+    res.sendStatus(200);
+
+    // Only process successful charges
+    if (eventName !== 'charge.completed' || txn.status !== 'successful') return;
 
     const meta     = txn.meta || {};
     const type     = meta.type;
     const txRef    = txn.tx_ref;
     const amountNaira = Math.floor(txn.amount);
 
-    // 3. Handle company subscriptions
+    // 3. Handle company subscriptions (runs async after 200 already sent)
     if (type === 'company_subscription') {
       const companyId = meta.company_id;
       const plan      = meta.plan;
@@ -42,6 +45,14 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
       const expires_at = plan === 'yearly'
         ? new Date(new Date(now).setFullYear(now.getFullYear() + 1))
         : new Date(new Date(now).setMonth(now.getMonth() + 1));
+
+      // Bug 5 fix: check if this txRef was already processed — prevent double-activation on retry
+      const { data: alreadyProcessed } = await supabase.from('company_subscriptions')
+        .select('id').eq('flw_reference', txRef).maybeSingle();
+      if (alreadyProcessed) {
+        console.log(`Webhook: subscription ${txRef} already processed — skipping`);
+        return;
+      }
 
       const { data: existing } = await supabase.from('company_subscriptions')
         .select('id').eq('company_id', companyId).order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -90,10 +101,9 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
       }
     }
 
-    res.sendStatus(200);
   } catch (err) {
-    console.error('FLW Webhook error:', err);
-    res.sendStatus(500);
+    // Note: we already sent 200 above, so just log the error
+    console.error('FLW Webhook processing error:', err);
   }
 });
 

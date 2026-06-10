@@ -1,4 +1,5 @@
 const supabase = require('../utils/supabase');
+const { pushNotification } = require('../utils/notify');
 const { sendEmail } = require('../utils/email');
 const axios = require('axios');
 
@@ -189,7 +190,6 @@ const approveDeduction = async (req, res) => {
           transferred: true, transferRef: transfer.transferRef,
         }}).catch(() => {});
 
-        const { pushNotification } = require('../utils/notify');
         await pushNotification(leader.id, 'member', 'deduction_approved',
           `💸 ₦${dr.amount.toLocaleString()} is on its way to your bank!`,
           `HR approved your deduction request and the funds have been sent to your registered bank account.`,
@@ -206,7 +206,6 @@ const approveDeduction = async (req, res) => {
           appUrl: process.env.APP_URL || 'https://thankeeu.com',
         }}).catch(() => {});
 
-        const { pushNotification } = require('../utils/notify');
         await pushNotification(leader.id, 'member', 'deduction_approved',
           `✅ Deduction approved — add your bank account to receive ₦${dr.amount.toLocaleString()}`,
           transfer.reason === 'no_bank'

@@ -96,13 +96,13 @@ const SubscriptionPage = () => {
     setPaying(plan);
     try {
       const res = await subscriptionAPI.initialize(plan);
-      const { access_code, authorization_url } = res.data;
+      const { access_code, authorization_url, payment_link } = res.data;
 
       if (authorization_url) {
         // Flutterwave returns both — authorization_url is the full redirect URL (most reliable)
         window.location.href = authorization_url;
       } else if (access_code) {
-        window.location.href = payment_link || authorization_url;
+        window.location.href = payment_link || authorization_url || '';
       } else {
         throw new Error('No payment URL received');
       }
@@ -126,7 +126,11 @@ const SubscriptionPage = () => {
 
   const handleManualVerify = async () => {
     const params = new URLSearchParams(window.location.search);
-    const ref = params.get('reference') || params.get('tx_ref') || prompt('Enter your Flutterwave transaction reference:');
+    const ref = params.get('reference') || params.get('tx_ref');
+    if (!ref) {
+      toast.error('Missing transaction reference. If you completed payment, please wait 2 minutes and refresh — it should activate automatically via webhook.');
+      return;
+    }
     if (!ref) return;
     setVerifying(true);
     try {

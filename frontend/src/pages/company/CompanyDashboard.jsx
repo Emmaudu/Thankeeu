@@ -32,6 +32,30 @@ const CompanyDashboard = () => {
   const [scopeApprovals, setScopeApprovals] = useState([]);
   const [approvingScope, setApprovingScope] = useState(null);
 
+
+  // Handle redirect from Flutterwave after card-creation fee payment
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const feePaid = params.get('fee_paid');
+    if (feePaid) {
+      window.history.replaceState({}, '', window.location.pathname);
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const tok  = localStorage.getItem('thankeeu_token')
+                || localStorage.getItem('thankeeu_member_token')
+                || localStorage.getItem('thankeeu_company_token');
+      fetch(`${base}/payments/verify/purchase/${encodeURIComponent(feePaid)}`, {
+        headers: { Authorization: `Bearer ${tok}` }
+      }).then(r => r.json()).then(data => {
+        if ((data.status === 'success' || data.verified) && data.card_slug) {
+          toast.success('✅ Payment confirmed! Taking you to your card...');
+          setTimeout(() => window.location.replace(`/card/${data.card_slug}`), 1200);
+        } else if (data.status === 'success' || data.verified) {
+          toast.success('✅ Card payment confirmed! Your card is active.');
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
     Promise.all([
       teamsAPI.getDashboard(),

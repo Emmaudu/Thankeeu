@@ -77,7 +77,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
       </div>
 
       {/* Nav — scrollable */}
-      <nav className="flex-1 px-3 py-1 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }} style={{ scrollbarWidth:'none', msOverflowStyle:'none' }}>
+      <nav className="flex-1 px-3 py-1 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
         <div className="space-y-0.5 pb-4">
           {NAV.map(({ path, icon, label }) => (
             <Link key={path} to={path}

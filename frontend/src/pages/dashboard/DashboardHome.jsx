@@ -15,6 +15,30 @@ export default function DashboardHome() {
   const [loading, setLoading] = useState(true);
   const completingPayment = useRef(false);
 
+
+  // Handle redirect from Flutterwave after card-creation fee payment
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const feePaid = params.get('fee_paid');
+    if (feePaid) {
+      // Bug 8 fix: verify AND navigate to the activated card
+      window.history.replaceState({}, '', '/dashboard'); // clean URL immediately
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const tok  = localStorage.getItem('thankeeu_token') || localStorage.getItem('thankeeu_member_token');
+      fetch(`${base}/payments/verify/purchase/${encodeURIComponent(feePaid)}`, {
+        headers: { Authorization: `Bearer ${tok}` }
+      }).then(r => r.json()).then(data => {
+        if ((data.status === 'success' || data.verified) && data.card_slug) {
+          toast.success('✅ Payment confirmed! Taking you to your card...');
+          // Navigate to the activated card after a brief delay
+          setTimeout(() => window.location.replace(`/card/${data.card_slug}`), 1200);
+        } else if (data.status === 'success' || data.verified) {
+          toast.success('✅ Card payment confirmed! Your card is now active.');
+        }
+      }).catch(() => toast.error('Could not verify payment. Please check My Cards.'));
+    }
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('payment') === 'success') {

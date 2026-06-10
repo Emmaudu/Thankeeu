@@ -181,6 +181,9 @@ const CreateCard = () => {
       // Use FlutterwaveCheckout inline popup if available (same pattern as SignCard)
       const flwPublicKey = import.meta.env.VITE_FLW_PUBLIC_KEY;
       if (window.FlutterwaveCheckout && payment_link && tx_ref && flwPublicKey) {
+        // Bug 3 fix: guard so onclose doesn't reset state while callback's async work runs
+        let _closeModal;
+        let _callbackRan = false;
         const creatorEmail =
           user?.email || member?.email || company?.email || '';
         const creatorDisplayName =
@@ -189,7 +192,7 @@ const CreateCard = () => {
           company?.contact_person || company?.name ||
           creatorEmail;
 
-        window.FlutterwaveCheckout({
+        _closeModal = window.FlutterwaveCheckout({
           public_key:      flwPublicKey,
           tx_ref,
           amount:          5000,
@@ -199,7 +202,8 @@ const CreateCard = () => {
           customizations:  { title: 'Thankeeu Card Creation', logo: '/logo.png' },
           // RC2 fix: call closePaymentModal() synchronously, then run async verify
           callback: (transaction) => {
-            if (typeof window.closePaymentModal === 'function') window.closePaymentModal();
+            _callbackRan = true; // Bug 3 fix: flag so onclose won't interrupt async verify
+            if (typeof _closeModal === 'function') _closeModal(); // close FLW modal
             (async () => {
               try {
                 await finishPurchase(transaction.tx_ref || tx_ref);
@@ -211,8 +215,11 @@ const CreateCard = () => {
             })();
           },
           onclose: () => {
+            // Bug 3 fix: if callback already ran, let finishPurchase complete — don't reset
+            if (_callbackRan) return;
             setLoading(false);
             setPaymentStage('opening');
+            toast('Payment was not completed. Your card draft is saved.');
           },
         });
         return;

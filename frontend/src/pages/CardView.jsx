@@ -201,23 +201,27 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
         </button>
       )}
 
-      {/* ── 3. Text message below media ── */}
-      <div className="px-4 pt-3 pb-1 flex-1">
+      {/* ── 3. Text message below media — capped at 3 lines so reactions stay visible ── */}
+      <div className="px-4 pt-3 pb-1 flex-shrink-0">
         <button type="button" onClick={() => onOpen(message)} className="text-left w-full">
           <p
-            className="whitespace-pre-wrap break-words"
             style={{
               color: design.ink,
               fontFamily: font.family,
-              fontSize: message.font_style === 'calligraphy' ? '1.4rem' : message.font_style === 'handwritten' ? '1.1rem' : '0.9rem',
+              fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
               lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
+              display: '-webkit-box',
+              WebkitLineClamp: hasMedia ? 2 : 4,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              wordBreak: 'break-word',
             }}
           >
-            {preview}
+            {message.content}
           </p>
           {isLong && (
-            <span className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2" style={{ color: design.accent }}>
-              See more...
+            <span className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2 opacity-70" style={{ color: design.accent }}>
+              see more ↗
             </span>
           )}
         </button>

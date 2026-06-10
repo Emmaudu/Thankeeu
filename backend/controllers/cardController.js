@@ -1,3 +1,4 @@
+const axios = require('axios');
 const supabase = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
 const { pushNotification, pushNotificationBulk } = require('../utils/notify');
@@ -566,8 +567,82 @@ const claimGift = async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Bug 10 fix: attempt immediate FLW bank transfer for 'transfer' claim type
+    if (claim_type === 'transfer') {
+      const FLW = 'https://api.flutterwave.com/v3';
+      const flwH = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
+      const transferRef = `TK-GIFT-CLAIM-${claim.id.slice(0,8)}-${Date.now()}`;
+      try {
+        // Bug 2 fix: resolve account to get bank code, then transfer
+        // GiftCheckout collects account_number + bank_name but not bank_code
+        // Resolve it first if bank_code not provided
+        let resolvedBankCode = req.body.bank_code || '';
+        if (!resolvedBankCode && req.body.bank_name) {
+          // Map common bank names to FLW codes
+          const BANK_MAP = {
+            'access bank': '044', 'first bank': '011', 'gtbank': '058', 'guaranty trust': '058',
+            'zenith bank': '057', 'uba': '033', 'fidelity bank': '070', 'fcmb': '214',
+            'sterling bank': '232', 'union bank': '032', 'wema bank': '035', 'polaris bank': '076',
+            'ecobank': '050', 'kuda': '090267', 'opay': '100004', 'palmpay': '100033',
+            'moniepoint': '50515', 'stanbic': '221',
+          };
+          const nameLower = req.body.bank_name.toLowerCase();
+          for (const [key, code] of Object.entries(BANK_MAP)) {
+            if (nameLower.includes(key)) { resolvedBankCode = code; break; }
+          }
+        }
+        if (!resolvedBankCode) {
+          // Can't reliably make transfer without bank code — keep as pending
+          throw new Error('Bank code could not be resolved. Claim saved as pending for manual processing.');
+        }
+
+        const t = await axios.post(`${FLW}/transfers`, {
+          account_bank:     resolvedBankCode,
+          account_number:   account_number.trim(),
+          amount:           amount,
+          narration:        `Thankeeu gift pot — ${card.recipient_name}`,
+          currency:         'NGN',
+          reference:        transferRef,
+          beneficiary_name: account_name.trim(),
+          debit_currency:   'NGN',
+        }, { headers: flwH() });
+
+        const transferStatus = t.data.data?.status || 'NEW';
+        await supabase.from('gift_claims').update({
+          status: transferStatus === 'FAILED' ? 'failed' : 'processing',
+          flw_transfer_id: String(t.data.data?.id || ''),
+          flw_reference:   transferRef,
+          processed_at:    new Date(),
+        }).eq('id', claim.id);
+
+        if (wallet?.id) {
+          await supabase.from('contribution_wallets').update({ disbursed: true, disbursed_at: new Date() }).eq('id', wallet.id);
+        }
+
+        return res.status(201).json({
+          message: 'Your gift transfer has been initiated! The money typically arrives within a few minutes to hours.',
+          claim: { ...claim, status: 'processing' },
+        });
+      } catch (transferErr) {
+        // Transfer failed — keep as pending for admin to process
+        console.error('Gift transfer failed:', transferErr.response?.data || transferErr.message);
+        await supabase.from('gift_claims').update({
+          status: 'pending',
+          admin_note: `Auto-transfer failed: ${transferErr.response?.data?.message || transferErr.message}. Requires manual processing.`,
+        }).eq('id', claim.id);
+        // Still return success — claim is recorded, admin will process it
+        return res.status(201).json({
+          message: 'Your gift claim was submitted. There was a brief delay with the transfer — we will process it within 2–4 hours.',
+          claim,
+        });
+      }
+    }
+
     res.status(201).json({
-      message: 'Your gift claim was submitted successfully. We will process it within 24 hours.',
+      message: claim_type === 'transfer'
+        ? 'Your gift claim was submitted. We will transfer to your account within 24 hours.'
+        : `Your ${claim_type} gift was claimed! We will reach out within 24 hours to arrange delivery.`,
       claim
     });
   } catch (err) {

@@ -51,30 +51,31 @@ const saveBankAccount = async (req, res) => {
     if (!bank_code || !bank_name || !account_number || !account_name)
       return res.status(400).json({ error: 'All fields required: bank_code, bank_name, account_number, account_name' });
 
-    // Create Flutterwave beneficiary
-    let recipientCode = null;
+    // Create Flutterwave beneficiary (for payouts)
+    // In TEST mode FLW restricts beneficiary creation — save account regardless
+    let flwBeneficiaryId = null;
     try {
-      const r = await axios.post(`${FLW}/transfersrecipient`, {
-        type: 'nuban',
-        name: account_name,
+      const rb = await axios.post(`${FLW}/beneficiaries`, {
         account_number,
-        bank_code,
+        account_bank: bank_code,   // FLW uses account_bank, not bank_code
+        beneficiary_name: account_name,
         currency: 'NGN',
-      }, { headers: psHeaders() });
-      recipientCode = r.data.data?.recipient_code;
+      }, { headers: flwH() });
+      flwBeneficiaryId = String(rb.data.data?.id || '');
     } catch (e) {
-      console.warn('FLW beneficiary creation failed:', e.response?.data?.message);
+      // In test mode FLW only allows certain banks — still save the account
+      console.warn('FLW beneficiary creation skipped (test mode or unsupported bank):', e.response?.data?.message);
     }
 
-    // Upsert bank account
+    // Upsert bank account — mark verified:true since user passed account resolution
     const { data, error } = await supabase
       .from('bank_accounts')
       .upsert({
         owner_id:   ownerId,
         owner_type: ownerType,
         bank_code, bank_name, account_number, account_name,
-        flw_beneficiary_id: recipientCode,
-        verified: !!recipientCode,
+        flw_beneficiary_id: flwBeneficiaryId,
+        verified: true,   // verified because account_name was resolved successfully
         is_default: true,
         updated_at: new Date(),
       }, { onConflict: 'owner_id,account_number' })
@@ -204,12 +205,15 @@ const initiateWithdrawal = async (req, res) => {
     let transferCode = null;
     try {
       const t = await axios.post(`${FLW}/transfers`, {
-        source:    'balance',
-        amount:    Math.round(amount * 100), // kobo
-        // account resolved via flw_beneficiary_id
-        reason:    `Thankeeu ${source_type === 'gift_pot' ? 'gift pot' : 'deduction'} withdrawal`,
-        reference: ref,
-      }, { headers: psHeaders() });
+        account_bank:     bankAccount.bank_code,
+        account_number:   bankAccount.account_number,
+        amount:           Math.round(amount), // FLW uses Naira directly (NOT kobo)
+        narration:        `Thankeeu ${source_type === 'gift_pot' ? 'gift pot' : 'deduction'} withdrawal`,
+        currency:         'NGN',
+        reference:        ref,
+        beneficiary_name: bankAccount.account_name,
+        debit_currency:   'NGN',
+      }, { headers: flwH() });
 
       transferCode = t.data.data?.transfer_code;
 
@@ -256,22 +260,35 @@ const initiateWithdrawal = async (req, res) => {
 // POST /api/banks/withdraw-gift — recipient withdraws their gift pot
 const withdrawGift = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ error: 'Not authenticated' });
+    // Bug 8 fix: support both users (regular) and members (team members) as recipients
+    const userId     = req.user?.id;
+    const memberId   = req.member?.id;
+    const callerId   = userId || memberId;
+    const callerType = userId ? 'user' : 'member';
+    if (!callerId) return res.status(401).json({ error: 'Not authenticated' });
 
     const { card_slug } = req.body;
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
 
-    // Verify this user is the recipient of this card (email match or received_cards entry)
     const { data: card } = await supabase
       .from('cards').select('*').eq('slug', card_slug).single();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
-    const { data: userInfo } = await supabase
-      .from('users').select('email, is_verified').eq('id', userId).single();
+    // Get caller email — from users table or members table
+    let callerEmail = null, is_verified = true;
+    if (userId) {
+      const { data: userInfo } = await supabase.from('users').select('email, is_verified').eq('id', userId).single();
+      callerEmail = userInfo?.email;
+      is_verified = userInfo?.is_verified !== false;
+    } else if (memberId) {
+      const { data: memberInfo } = await supabase.from('company_members').select('email').eq('id', memberId).single();
+      callerEmail = memberInfo?.email;
+      // Members don't have email verification — treat as verified
+    }
 
-    // Strict email match: authenticated user's email MUST match card.recipient_email
-    const isEmailRecipient = card.recipient_email?.toLowerCase() === userInfo?.email?.toLowerCase();
+    // Strict email match: authenticated caller's email MUST match card.recipient_email
+    const isEmailRecipient = card.recipient_email && callerEmail &&
+      card.recipient_email.toLowerCase() === callerEmail.toLowerCase();
 
     // OR: card was transferred to this user (appears in received_cards)
     const { data: receivedEntry } = await supabase

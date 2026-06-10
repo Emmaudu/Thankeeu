@@ -25,7 +25,8 @@ const GiftCheckout = () => {
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [bankDetails, setBankDetails] = useState({ account_number: '', bank_name: '', account_name: '' });
+  const [bankDetails, setBankDetails] = useState({ account_number: '', bank_name: '', bank_code: '', account_name: '' });
+  const [verifyingBank, setVerifyingBank] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -115,12 +116,43 @@ const GiftCheckout = () => {
         {selected === 'transfer' && (
           <div className="bg-white rounded-3xl border border-purple-100 p-5 mb-6 space-y-3">
             <p className="font-semibold text-warm-900 text-sm mb-3">Bank details</p>
-            <input className="input" inputMode="numeric" maxLength={10} placeholder="10-digit account number" value={bankDetails.account_number}
-              onChange={e => setBankDetails({ ...bankDetails, account_number: e.target.value.replace(/\D/g, '') })} />
-            <input className="input" placeholder="Bank name (e.g. GTBank, Access)" value={bankDetails.bank_name}
-              onChange={e => setBankDetails({ ...bankDetails, bank_name: e.target.value })} />
-            <input className="input" placeholder="Account name" value={bankDetails.account_name}
-              onChange={e => setBankDetails({ ...bankDetails, account_name: e.target.value })} />
+            <select className="input" value={bankDetails.bank_code}
+              onChange={e => {
+                const opt = e.target.options[e.target.selectedIndex];
+                setBankDetails(p => ({ ...p, bank_code: e.target.value, bank_name: opt.text, account_name: '' }));
+              }}>
+              <option value="">-- Select your bank --</option>
+              {[['044','Access Bank'],['011','First Bank'],['058','GTBank'],['057','Zenith Bank'],
+                ['033','UBA'],['070','Fidelity Bank'],['214','FCMB'],['232','Sterling Bank'],
+                ['032','Union Bank'],['035','Wema Bank'],['076','Polaris Bank'],['050','Ecobank'],
+                ['090267','Kuda MFB'],['100004','OPay'],['100033','PalmPay'],['50515','Moniepoint MFB'],
+              ].map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+            </select>
+            <input className="input" inputMode="numeric" maxLength={10} placeholder="10-digit account number"
+              value={bankDetails.account_number}
+              onChange={async e => {
+                const num = e.target.value.replace(/\D/g,'');
+                setBankDetails(p => ({ ...p, account_number: num, account_name: '' }));
+                if (num.length === 10 && bankDetails.bank_code) {
+                  try {
+                    const base = import.meta.env.VITE_API_URL || '/api';
+                    const r = await fetch(`${base}/banks/verify`, {
+                      method:'POST', headers:{'Content-Type':'application/json'},
+                      body: JSON.stringify({ account_number: num, bank_code: bankDetails.bank_code })
+                    });
+                    const d = await r.json();
+                    if (d.account_name) setBankDetails(p => ({ ...p, account_name: d.account_name }));
+                  } catch {}
+                }
+              }} />
+            {bankDetails.account_name ? (
+              <div className="bg-green-50 border border-green-200 rounded-xl px-3 py-2">
+                <p className="text-xs text-green-700 font-semibold">✓ {bankDetails.account_name}</p>
+              </div>
+            ) : (
+              <input className="input" placeholder="Account name (auto-filled)" value={bankDetails.account_name}
+                onChange={e => setBankDetails({ ...bankDetails, account_name: e.target.value })} />
+            )}
           </div>
         )}
 

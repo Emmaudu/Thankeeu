@@ -64,7 +64,7 @@ const SignCard = () => {
         const ref = searchParams.get('tx_ref') || searchParams.get('reference') || searchParams.get('trxref');
         if (ref) {
           try {
-            await paymentsAPI.verify(ref);
+            await paymentsAPI.verifyContribution(ref); // Bug 1 fix: public endpoint, works for guests
             toast.success('Gift contribution confirmed! 🎉');
             window.history.replaceState({}, '', `/sign/${slug}`);
             setSubmitted(true);
@@ -116,12 +116,12 @@ const SignCard = () => {
   }, []);
 
   // Retry-loop verify for gift contribution
-  // RC4 fix: track payment success synchronously so onclose knows callback already ran
-  const paymentSucceededRef = { current: false };
+  // Bug 2 fix: use useRef not plain object — plain objects recreate on every render
+  const paymentSucceededRef = useRef(false);
 
   const verifyGiftContribution = async (txRef) => {
     for (let i = 0; i < 4; i++) {
-      try { return await paymentsAPI.verify(txRef); }
+      try { return await paymentsAPI.verifyContribution(txRef); }  // Bug 1 fix: uses POST /verify/contribution
       catch (e) { if (i === 3) throw e; await new Promise(r => setTimeout(r, 800 * (i + 1))); }
     }
   };
@@ -217,7 +217,7 @@ const SignCard = () => {
           // RC1 fix: DO NOT call closePaymentModal() — calling it triggers onclose handler
           callback: async (response) => {
             // Mark payment succeeded synchronously FIRST (RC4 fix)
-            paymentSucceededRef.current = true;
+            paymentSucceededRef.current = true; // persists across renders via useRef
             setStage('verifying');
             const ref = response?.tx_ref || tx_ref;
             try {

@@ -23,7 +23,7 @@ const initializeSubscription = async (req, res) => {
       tx_ref:         txRef,
       amount:         naira,           // Flutterwave uses Naira directly (NOT kobo)
       currency:       'NGN',
-      redirect_url:   `${appUrl}/company/subscription?sub=success&plan=${plan}&reference=${txRef}`,
+      redirect_url:   `${FRONTEND_URL}/company/subscription?sub=success&plan=${plan}&tx_ref=${txRef}`,
       customer:       { email: req.company.email, name: req.company.name },
       customizations: {
         title:       'Thankeeu for Teams',
@@ -65,7 +65,7 @@ const verifySubscription = async (req, res) => {
     // Always trust the authenticated company (req.company.id) — never rely solely on Flutterwave metadata
     // which can occasionally be dropped or empty
     const resolvedCompanyId = req.company.id;
-    const resolvedPlan      = txn.meta?.plan || req.query.plan || 'monthly';
+    const resolvedPlan      = txn.meta?.plan || req.query.plan || 'monthly'; // Bug 7: plan from meta, URL, or default
 
     const now2 = new Date();
     const expires_at = resolvedPlan === 'yearly'

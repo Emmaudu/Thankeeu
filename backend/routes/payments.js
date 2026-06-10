@@ -18,9 +18,9 @@ router.post('/webhook', (req, res) => res.status(410).json({ message: 'Webhook m
 // anyAuth: accepts regular user, HR company, or team member token
 router.post('/initialize/purchase',      anyAuth, initCardFee);
 router.post('/initialize/card-fee',      anyAuth, initCardFee);
-router.get('/verify/purchase/:reference', anyAuth, async (req, res) => {
-  // Map old verify/purchase to new verifyPayment
-  req.body = req.body || {};
+router.get('/verify/purchase/:reference', anyAuth, (req, res) => {
+  // Bug 6 fix: forward the :reference param as :txRef for verifyPayment
+  req.params.txRef = req.params.reference;
   return verifyPayment(req, res);
 });
 router.get('/verify/:txRef',             verifyPayment);   // e.g. after FLW redirect

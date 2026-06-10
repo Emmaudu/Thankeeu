@@ -355,3 +355,7 @@ ALTER TABLE deduction_requests ADD COLUMN IF NOT EXISTS withdrawal_id  TEXT;
 -- Add message_id to contributions so verified payments can update the message record
 ALTER TABLE contributions ADD COLUMN IF NOT EXISTS message_id UUID REFERENCES messages(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS idx_contributions_message_id ON contributions(message_id);
+
+-- payment_ref on cards for tx_ref fallback activation
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS payment_ref TEXT;
+CREATE INDEX IF NOT EXISTS idx_cards_payment_ref ON cards(payment_ref);

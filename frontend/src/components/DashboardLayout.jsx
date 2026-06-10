@@ -1,3 +1,4 @@
+import { notificationsAPI } from '../utils/api';
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -126,8 +127,8 @@ const DashboardLayout = ({ children, title, subtitle }) => {
           </Link>
           <div className="flex items-center gap-1">
             <NotificationBell
-              fetchFn={() => import('../utils/api').then(m => m.api.get('/notifications'))}
-              markReadFn={() => import('../utils/api').then(m => m.api.post('/notifications/mark-read'))}
+              fetchFn={() => notificationsAPI.getAll()}
+              markReadFn={() => notificationsAPI.markAllRead()}
             />
             <Link to="/create-card" className="text-sm font-semibold px-3 py-1.5 rounded-xl"
               style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff' }}>+ Card</Link>

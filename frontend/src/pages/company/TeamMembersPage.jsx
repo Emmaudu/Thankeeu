@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { companyAxios } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 

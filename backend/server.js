@@ -256,6 +256,47 @@ cron.schedule('0 7 * * *', async () => {
       await supabase.from('team_members').update({ last_birthday_card_sent: new Date(), card_signed_count: count }).eq('id', m.id);
       console.log(`Birthday card delivered to ${m.first_name} ${m.last_name}`);
     }
+
+    // ── Individual user birthday reminders (7 days and 2 days before) ──────────
+    const today7  = new Date(today); today7.setDate(today7.getDate() + 7);
+    const today2  = new Date(today); today2.setDate(today2.getDate() + 2);
+    const mm7 = String(today7.getMonth()+1).padStart(2,'0'), dd7 = String(today7.getDate()).padStart(2,'0');
+    const mm2b= String(today2.getMonth()+1).padStart(2,'0'), dd2b= String(today2.getDate()).padStart(2,'0');
+
+    // Find users with birthday in 7 days
+    const { data: users7d } = await supabase.from('users')
+      .select('id,email,full_name,date_of_birth,birthday_reminded_7d')
+      .not('date_of_birth', 'is', null)
+      .ilike('date_of_birth', `%-${mm7}-${dd7}`)
+      .eq('birthday_reminded_7d', false);
+    for (const u of (users7d || [])) {
+      await sendEmail({ to: u.email, template: 'birthdayReminder7Days', data: {
+        name: u.full_name, daysLeft: 7,
+        createCardUrl: `${process.env.FRONTEND_URL || 'https://thankeeu.com'}/create-card`,
+      }}).catch(() => {});
+      await supabase.from('users').update({ birthday_reminded_7d: true }).eq('id', u.id);
+    }
+
+    // Find users with birthday in 2 days
+    const { data: users2d } = await supabase.from('users')
+      .select('id,email,full_name,date_of_birth,birthday_reminded_2d')
+      .not('date_of_birth', 'is', null)
+      .ilike('date_of_birth', `%-${mm2b}-${dd2b}`)
+      .eq('birthday_reminded_2d', false);
+    for (const u of (users2d || [])) {
+      await sendEmail({ to: u.email, template: 'birthdayReminder2Days', data: {
+        name: u.full_name, daysLeft: 2,
+        createCardUrl: `${process.env.FRONTEND_URL || 'https://thankeeu.com'}/create-card`,
+      }}).catch(() => {});
+      await supabase.from('users').update({ birthday_reminded_2d: true }).eq('id', u.id);
+    }
+    // Reset annual flags at end of day after birthday
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1);
+    const mmY = String(yesterday.getMonth()+1).padStart(2,'0'), ddY = String(yesterday.getDate()).padStart(2,'0');
+    await supabase.from('users')
+      .update({ birthday_reminded_7d: false, birthday_reminded_2d: false })
+      .ilike('date_of_birth', `%-${mmY}-${ddY}`).catch(() => {});
+
   } catch (err) { console.error('Birthday cron error:', err); }
 });
 

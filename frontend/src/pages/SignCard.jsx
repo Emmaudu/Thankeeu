@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
+import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI } from '../utils/api';
 import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import VoiceRecorder from '../components/VoiceRecorder';
@@ -16,7 +17,9 @@ const SignCard = () => {
   const { slug }       = useParams();
   const { user }       = useAuth();
   const { member }     = useMemberAuth();
-  const isSignedIn     = !!(user || member);
+  const { company }    = useCompanyAuth();
+  // isSignedIn: normal user, team member/leader, or HR company
+  const isSignedIn     = !!(user || member || company);
   const [searchParams] = useSearchParams();
 
   const [card,        setCard]        = useState(null);
@@ -36,9 +39,15 @@ const SignCard = () => {
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [customAmount,   setCustomAmount]   = useState('');
 
+  // Auto-fill name and email from whoever is signed in
+  const signedInName  = user?.full_name ||
+    (member ? `${member.first_name} ${member.last_name}`.trim() : null) ||
+    company?.contact_person || company?.name || '';
+  const signedInEmail = user?.email || member?.email || company?.email || '';
+
   const [form, setForm] = useState({
-    author_name:  '',
-    author_email: '',
+    author_name:  signedInName,
+    author_email: signedInEmail,
     content:      '',
     is_private:   false,
     font_style:   'handwritten',
@@ -59,19 +68,13 @@ const SignCard = () => {
 
   useEffect(() => {
     const run = async () => {
-      // RC2+RC3 fix: contributed=1 (not 'true'), and FLW sends tx_ref (not reference/trxref)
-      if (searchParams.get('contributed')) {
-        const ref = searchParams.get('tx_ref') || searchParams.get('reference') || searchParams.get('trxref');
-        if (ref) {
-          try {
-            await paymentsAPI.verifyContribution(ref); // Bug 1 fix: public endpoint, works for guests
-            toast.success('Gift contribution confirmed! 🎉');
-            window.history.replaceState({}, '', `/sign/${slug}`);
-            setSubmitted(true);
-          } catch (e) {
-            toast.error(e.response?.data?.error || 'Could not verify contribution');
-          }
-        }
+      // Backend callback already verified the payment and redirected here with ?success=1
+      // No need to call verify again — backend already did it
+      if (searchParams.get('success')) {
+        toast.success('Your message and gift are on the card! 🎉');
+        window.history.replaceState({}, '', `/sign/${slug}`);
+        setSubmitted(true);
+        return; // don't fetchCard yet, submitted=true shows success screen
       }
       await fetchCard();
     };
@@ -115,16 +118,7 @@ const SignCard = () => {
     });
   }, []);
 
-  // Retry-loop verify for gift contribution
-  // Bug 2 fix: use useRef not plain object — plain objects recreate on every render
-  const paymentSucceededRef = useRef(false);
-
-  const verifyGiftContribution = async (txRef) => {
-    for (let i = 0; i < 4; i++) {
-      try { return await paymentsAPI.verifyContribution(txRef); }  // Bug 1 fix: uses POST /verify/contribution
-      catch (e) { if (i === 3) throw e; await new Promise(r => setTimeout(r, 800 * (i + 1))); }
-    }
-  };
+  // No ref or verify needed — payment uses redirect flow (no inline popup)
 
   const handleSubmit = async () => {
     if (!form.author_name.trim()) return toast.error('Please add your name');
@@ -200,6 +194,7 @@ const SignCard = () => {
         return;
       }
 
+      // ── STEP 3: Get payment link from backend ─────────────────────────
       setStage('paying');
       const payRes = await paymentsAPI.initContribution({
         card_slug:         slug,
@@ -208,61 +203,16 @@ const SignCard = () => {
         amount:            amountNGN,
         message_id:        messageId,
       });
-      const { payment_link, tx_ref } = payRes.data;
+      const { payment_link } = payRes.data;
+      if (!payment_link) throw new Error('No payment link from server');
 
-      // ── STEP 4: Open Flutterwave inline checkout ───────────────────────────
-      // RC5 fix: only use inline checkout if public_key is configured; else fall through to hosted
-      const flwPublicKey = import.meta.env.VITE_FLW_PUBLIC_KEY;
-      if (window.FlutterwaveCheckout && payment_link && tx_ref && flwPublicKey) {
-        window.FlutterwaveCheckout({
-          public_key:      flwPublicKey,
-          tx_ref,
-          amount:          amountNGN,
-          currency:        'NGN',
-          payment_options: 'card,ussd,bank_transfer',
-          customer:        { email: form.author_email, name: form.author_name },
-          customizations:  { title: `Gift for ${card?.recipient_name}`, logo: '/logo.png' },
-          // FLW v3 callback MUST be synchronous — async callbacks return a Promise
-          // which FLW ignores, then immediately fires onclose.
-          // Pattern: set flag + start IIFE — identical to CreateCard's working pattern.
-          callback: (response) => {
-            paymentSucceededRef.current = true; // set synchronously before any await
-            const ref = response?.tx_ref || tx_ref;
-            setStage('verifying');
-            // IIFE runs async work — FLW fires onclose after callback returns (sync)
-            // but paymentSucceededRef.current is already true so onclose is a no-op
-            (async () => {
-              try {
-                await verifyGiftContribution(ref);
-                toast.success('Your message and gift are on the card! 🎉');
-                setSubmitted(true);
-                fetchCard();
-              } catch {
-                toast.success('Gift received! Verification is processing. 🎉');
-                setSubmitted(true);
-              } finally {
-                setSubmitting(false);
-                setStage('idle');
-              }
-            })();
-          },
-
-          // onclose: fires when modal closes (either after callback or user dismisses)
-          onclose: () => {
-            if (paymentSucceededRef.current) return; // callback already ran — ignore
-            toast('Message saved. Payment was not completed.');
-            setSubmitted(true);
-            setSubmitting(false);
-            setStage('idle');
-          },
-        });
-        return;
-      }
-
-      // Fallback: hosted checkout page (mobile browsers that block popups)
-      if (payment_link) {
-        window.location.assign(payment_link);
-      }
+      // ── STEP 4: Redirect to FLW hosted checkout ────────────────────────────
+      // FLW redirects to Railway backend /api/payments/callback after payment
+      // Backend verifies, updates DB, then redirects to /sign/slug?success=1
+      // This page's useEffect detects ?success=1 and shows the success screen
+      // Same reliable approach as the old Paystack integration
+      setStage('redirecting');
+      window.location.assign(payment_link);
 
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not sign card. Please try again.');
@@ -337,9 +287,10 @@ const SignCard = () => {
   const wantsGift = card.is_gift_enabled && amountNGN >= 2500;
 
   const stageLabel = {
-    sending:   'Saving your message...',
-    paying:    'Opening payment...',
-    verifying: 'Confirming payment...',
+    sending:     'Saving your message...',
+    paying:      'Preparing payment...',
+    redirecting: 'Redirecting to payment...',
+    verifying:   'Confirming payment...',
   }[stage];
 
   // ── Main signing form ──────────────────────────────────────────────────────

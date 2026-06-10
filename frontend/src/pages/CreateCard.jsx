@@ -94,6 +94,24 @@ const CreateCard = () => {
     return () => window.removeEventListener('pageshow', resetCheckoutState);
   }, []);
 
+  // Clear any stale pending card from a previous payment attempt
+  useEffect(() => {
+    // Only clear if we're not in the middle of creating a card
+    // (i.e., no active payment in progress)
+    const pending = localStorage.getItem('thankeeu_pending_card');
+    if (pending) {
+      try {
+        const p = JSON.parse(pending);
+        // If stored more than 1 hour ago, clear it
+        if (!p.timestamp || Date.now() - p.timestamp > 3600000) {
+          localStorage.removeItem('thankeeu_pending_card');
+        }
+      } catch {
+        localStorage.removeItem('thankeeu_pending_card');
+      }
+    }
+  }, []);
+
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   const handleOccasionSelect = (occ) => {
@@ -144,93 +162,19 @@ const CreateCard = () => {
 
       localStorage.setItem('thankeeu_pending_card', JSON.stringify({ ...pendingCard, slug }));
       setPaymentStage('opening');
-      const payRes = await paymentsAPI.initPurchase('single', slug);
-      if (payRes.data.already_active) {
-        localStorage.removeItem('thankeeu_pending_card');
-        toast.success('Your payment was already confirmed.');
-        navigate(`/card/${payRes.data.card_slug || slug}`, { replace: true });
-        return;
-      }
-      const { payment_link, tx_ref } = payRes.data;
 
-      const finishPurchase = async (paymentReference) => {
-        setPaymentStage('verifying');
-        let verifyRes;
-        for (let attempt = 0; attempt < 4; attempt += 1) {
-          try {
-            verifyRes = await paymentsAPI.verifyPurchase(paymentReference);
-            break;
-          } catch (verifyError) {
-            if (attempt === 3) throw verifyError;
-            await new Promise(resolve => setTimeout(resolve, 600 * (attempt + 1)));
-          }
-        }
-        const activatedSlug = verifyRes.data.card_slug || slug;
+      // Step 1: Get payment link from backend (same as old Paystack approach)
+      const payRes = await paymentsAPI.initCardFee(slug);
+      const { payment_link } = payRes.data;
+      if (!payment_link) throw new Error('No payment link returned from server');
 
-        if (pendingCard.inviteEmails.length) {
-          cardsAPI.activate(activatedSlug, { inviteEmails: pendingCard.inviteEmails }).catch(err => {
-            console.error('Could not send card invitations:', err);
-          });
-        }
+      // Step 2: Send browser to FLW hosted checkout
+      // FLW will redirect back to Railway backend /api/payments/callback
+      // Backend verifies and redirects to /card/slug automatically
+      // No popup, no callback complexity — same reliable flow as Paystack
+      setPaymentStage('redirecting');
+      window.location.assign(payment_link);
 
-        localStorage.removeItem('thankeeu_pending_card');
-        toast.success('Payment confirmed! Your card is ready.');
-        navigate(`/card/${activatedSlug}`, { replace: true });
-      };
-
-      // Use FlutterwaveCheckout inline popup if available (same pattern as SignCard)
-      const flwPublicKey = import.meta.env.VITE_FLW_PUBLIC_KEY;
-      if (window.FlutterwaveCheckout && payment_link && tx_ref && flwPublicKey) {
-        // Bug 3 fix: guard so onclose doesn't reset state while callback's async work runs
-        let _closeModal;
-        let _callbackRan = false;
-        const creatorEmail =
-          user?.email || member?.email || company?.email || '';
-        const creatorDisplayName =
-          user?.full_name ||
-          (member ? `${member.first_name} ${member.last_name}`.trim() : null) ||
-          company?.contact_person || company?.name ||
-          creatorEmail;
-
-        _closeModal = window.FlutterwaveCheckout({
-          public_key:      flwPublicKey,
-          tx_ref,
-          amount:          5000,
-          currency:        'NGN',
-          payment_options: 'card,ussd,bank_transfer',
-          customer:        { email: creatorEmail, name: creatorDisplayName },
-          customizations:  { title: 'Thankeeu Card Creation', logo: '/logo.png' },
-          // RC2 fix: call closePaymentModal() synchronously, then run async verify
-          callback: (transaction) => {
-            _callbackRan = true; // Bug 3 fix: flag so onclose won't interrupt async verify
-            if (typeof _closeModal === 'function') _closeModal(); // close FLW modal
-            (async () => {
-              try {
-                await finishPurchase(transaction.tx_ref || tx_ref);
-              } catch (verifyError) {
-                toast.error(verifyError.response?.data?.error || 'Payment made but verification failed. Please retry.');
-                setLoading(false);
-                setPaymentStage('opening');
-              }
-            })();
-          },
-          onclose: () => {
-            // Bug 3 fix: if callback already ran, let finishPurchase complete — don't reset
-            if (_callbackRan) return;
-            setLoading(false);
-            setPaymentStage('opening');
-            toast('Payment was not completed. Your card draft is saved.');
-          },
-        });
-        return;
-      }
-
-      // Fallback: redirect to Flutterwave hosted checkout page
-      if (payment_link) {
-        window.location.assign(payment_link);
-      } else {
-        throw new Error('No payment link returned. Please try again.');
-      }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not open payment. Please try again.');
       setLoading(false);

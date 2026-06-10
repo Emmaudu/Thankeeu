@@ -149,12 +149,14 @@ export const messagesAPI = {
 
 // ─── Payments ──────────────────────────────────────────────────────────────
 export const paymentsAPI = {
-  initPurchase:        (plan_type, card_slug) => anyAxios.post('/payments/initialize/purchase', { plan_type, card_slug }),
-  initContribution:    (data)      => publicAxios.post('/payments/initialize/contribution', data),
-  verifyPurchase:      (reference) => anyAxios.get(`/payments/verify/purchase/${reference}`),
-  verify:              (reference) => anyAxios.get(`/payments/verify/${reference}`),
-  // Bug 1+7 fix: verifyContribution uses POST to /payments/verify/contribution — public endpoint, no auth needed
-  verifyContribution:  (txRef)     => publicAxios.post('/payments/verify/contribution', { tx_ref: txRef }),
+  // Card creation fee — returns { payment_link, tx_ref }
+  // Frontend does window.location.assign(payment_link)
+  // FLW redirects to Railway backend /api/payments/callback which verifies and redirects to card
+  initCardFee:      (card_slug) => anyAxios.post('/payments/initialize/purchase', { card_slug }),
+
+  // Gift contribution — returns { payment_link, tx_ref }
+  // Same redirect flow: FLW -> backend callback -> /sign/slug?success=1
+  initContribution: (data)      => publicAxios.post('/payments/initialize/contribution', data),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────

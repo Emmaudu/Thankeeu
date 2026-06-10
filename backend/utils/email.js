@@ -709,3 +709,50 @@ Object.assign(emailTemplates, {
     `)
   }),
 });
+
+// ── Missing templates added by audit ──────────────────────────────────────────
+Object.assign(emailTemplates, {
+  emailVerification: (d) => ({
+    subject: 'Verify your Thankeeu email address',
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Hey ${d.name}, verify your email 📧</h2>
+      <p style="color:#555;line-height:1.8;">Click the button below to verify your email address and activate your account.</p>
+      ${btn('Verify my email →', d.verifyLink, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">This link expires in 24 hours. If you didn't sign up, ignore this email.</p>
+    `)
+  }),
+  emailVerified: (d) => ({
+    subject: '✅ Email verified — welcome to Thankeeu!',
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">You're all set, ${d.name}! 🎉</h2>
+      <p style="color:#555;line-height:1.8;">Your email has been verified. You can now fully use Thankeeu to send group cards and collect gifts.</p>
+      ${btn('Go to your dashboard →', `${FRONTEND_URL}/dashboard`, '#7C3AED')}
+    `)
+  }),
+  cardApprovalRequest: (d) => ({
+    subject: `Card approval needed — ${d.cardTitle}`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">A card needs your approval 👀</h2>
+      <p style="color:#555;line-height:1.8;">A card titled <strong>${d.cardTitle}</strong> for <strong>${d.recipientName}</strong> has been submitted and requires HR approval before it can be shared with the team.</p>
+      ${btn('Review and approve →', d.approvalLink, '#7C3AED')}
+    `)
+  }),
+  cardOpened: (d) => ({
+    subject: `${d.cardTitle} was opened by the recipient 🎉`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Your card was opened! 🎊</h2>
+      <p style="color:#555;line-height:1.8;">Great news, ${d.name}! The card <strong>"${d.cardTitle}"</strong> was just opened by the recipient.</p>
+      ${btn('View the card →', `${FRONTEND_URL}/card/${d.cardSlug}`, '#7C3AED')}
+    `)
+  }),
+  reminder: (d) => ({
+    subject: `Reminder: ${d.title}`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Reminder from Thankeeu ⏰</h2>
+      <p style="color:#555;line-height:1.8;">This is a reminder for: <strong>${d.title}</strong></p>
+      ${d.message ? `<p style="color:#555;line-height:1.8;">${d.message}</p>` : ''}
+      ${d.link ? btn('View details →', d.link, '#7C3AED') : ''}
+    `)
+  }),
+});
+

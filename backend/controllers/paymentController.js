@@ -22,17 +22,28 @@ const supabase = require('../utils/supabase');
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
 
-// Railway backend URL — FLW redirects back here after payment
-const BACKEND_URL  = (process.env.APP_URL || 'https://thankeeu-production.up.railway.app').replace(/\/$/, '');
-// Vercel frontend URL — backend redirects browser here after verification
-const FRONTEND_URL = (process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com').replace(/\/$/, '');
+// BACKEND_URL: Railway backend — FLW sends redirect here after payment
+// Use RAILWAY_URL or BACKEND_URL env var, NOT APP_URL (which may point to Vercel frontend)
+const BACKEND_URL  = (
+  process.env.RAILWAY_URL ||
+  process.env.BACKEND_URL ||
+  'https://thankeeu-production.up.railway.app'
+).replace(/\/$/, '');
+
+// FRONTEND_URL: Vercel frontend — backend redirects the user's browser here
+const FRONTEND_URL = (
+  process.env.FRONTEND_URL ||
+  'https://thankeeu.com'
+).replace(/\/$/, '');
+
+// FLW considers both 'successful' and 'completed' (test mode) as success
+const FLW_SUCCESS = new Set(['successful', 'completed', 'success']);
 
 const flwHeaders = () => ({
   Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
   'Content-Type': 'application/json',
 });
 
-// ─── Verify a transaction with FLW ──────────────────────────────────────────
 const fetchFlwTransaction = async (txRef) => {
   if (!txRef) throw new Error('tx_ref is required');
   const r = await axios.get(
@@ -255,7 +266,7 @@ const paymentCallback = async (req, res) => {
     // Use stored caller_dashboard for error/cancel redirects — falls back to /dashboard
     const callerDashboard = meta.caller_dashboard || defaultDashboard;
 
-    if (txn.status !== 'successful') {
+    if (!FLW_SUCCESS.has(txn.status)) {
       console.warn('Payment callback not successful:', txn.status, txRef);
       return res.redirect(`${callerDashboard}?payment=failed`);
     }

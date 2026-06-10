@@ -69,9 +69,12 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
       const cardId = meta.card_id;
 
       // Check if already processed
-      const { data: existing } = await supabase.from('contributions')
-        .select('id, status').eq('flw_reference', txRef).maybeSingle()
-        .catch(() => ({ data: null }));
+      let existing = null;
+      try {
+        const { data } = await supabase.from('contributions')
+          .select('id, status').eq('flw_reference', txRef).maybeSingle();
+        existing = data;
+      } catch {}
 
       const alreadyDone = existing?.status === 'success';
 
@@ -81,25 +84,30 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
           .update({ status: 'success', amount: amountNaira })
           .eq('id', existing.id);
       } else {
-        await supabase.from('contributions').insert({
-          card_id:           cardId,
-          flw_reference:     txRef,
-          amount:            amountNaira,
-          contributor_name:  txn.customer?.name || '',
-          contributor_email: txn.customer?.email || '',
-          status:            'success',
-        }).catch(e => console.warn('Webhook contribution insert:', e.message));
+        try {
+          await supabase.from('contributions').insert({
+            card_id:           cardId,
+            flw_reference:     txRef,
+            amount:            amountNaira,
+            contributor_name:  txn.customer?.name || '',
+            contributor_email: txn.customer?.email || '',
+            status:            'success',
+          });
+        } catch (e) { console.warn('Webhook contribution insert:', e.message); }
       }
 
       // Update card total_collected (only if new)
       if (!alreadyDone) {
-        const { data: card } = await supabase.from('cards')
-          .select('total_collected').eq('id', cardId).single()
-          .catch(() => ({ data: null }));
-        await supabase.from('cards')
-          .update({ total_collected: (card?.total_collected || 0) + amountNaira })
-          .eq('id', cardId)
-          .catch(e => console.warn('Webhook total_collected:', e.message));
+        let cardRow = null;
+        try {
+          const { data } = await supabase.from('cards').select('total_collected').eq('id', cardId).single();
+          cardRow = data;
+        } catch {}
+        try {
+          await supabase.from('cards')
+            .update({ total_collected: (cardRow?.total_collected || 0) + amountNaira })
+            .eq('id', cardId);
+        } catch (e) { console.warn('Webhook total_collected:', e.message); }
       }
 
       // Update message contributed_amount
@@ -123,8 +131,7 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
         if (msg) {
           await supabase.from('messages')
             .update({ payment_verified: true, contributed_amount: amountNaira })
-            .eq('id', msg.id)
-            .catch(e => console.warn('Webhook message update:', e.message));
+            .eq('id', msg.id);
         }
       }
 
@@ -166,8 +173,8 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
 
       await supabase.from('companies')
         .update({ subscription_status: 'active', subscription_plan: plan, subscription_expires_at: expires_at })
-        .eq('id', companyId)
-        .catch(e => console.warn('Webhook company sub update:', e.message));
+        .eq('id', companyId);
+      // ignore error — main subscription record already saved above
 
       console.log('Webhook: subscription activated, company:', companyId, 'plan:', plan);
       return;

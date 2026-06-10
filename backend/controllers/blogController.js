@@ -87,7 +87,7 @@ const getPost = async (req, res) => {
     supabase.from('blog_posts')
       .update({ views: (post.views || 0) + 1 })
       .eq('id', post.id)
-      .then(() => {}).catch(() => {});
+      .then(() => {}).catch(() => {}); // .catch() after .then() is fine — chained on Promise
 
     // Fetch related posts (same category, not this post)
     const { data: related } = await supabase

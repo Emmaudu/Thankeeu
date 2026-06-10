@@ -295,7 +295,8 @@ cron.schedule('0 7 * * *', async () => {
     const mmY = String(yesterday.getMonth()+1).padStart(2,'0'), ddY = String(yesterday.getDate()).padStart(2,'0');
     await supabase.from('users')
       .update({ birthday_reminded_7d: false, birthday_reminded_2d: false })
-      .ilike('date_of_birth', `%-${mmY}-${ddY}`).catch(() => {});
+      .ilike('date_of_birth', `%-${mmY}-${ddY}`);
+    // (error ignored — annual flag reset is best-effort)
 
   } catch (err) { console.error('Birthday cron error:', err); }
 });

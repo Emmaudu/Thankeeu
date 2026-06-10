@@ -32,11 +32,15 @@ const requireAuth = async (req, res, next) => {
   const accessToken = req.query.access_token;
   if (accessToken) {
     const slug = req.params.card_slug;
-    const { data: card } = await supabase
-      .from('cards').select('id, access_token, recipient_name')
-      .eq('slug', slug).maybeSingle().catch(() => ({ data: null }));
+    let card = null;
+    try {
+      const { data } = await supabase
+        .from('cards').select('id, access_token, recipient_name')
+        .eq('slug', slug).maybeSingle();
+      card = data;
+    } catch {}
     if (card && card.access_token === accessToken) {
-      req.accessTokenReply = true; // flag for sendReply to use
+      req.accessTokenReply = true;
       req.recipientName = card.recipient_name;
       return next();
     }

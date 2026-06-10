@@ -26,12 +26,17 @@ const FLW_SUCCESS = new Set(['successful', 'completed', 'success']);
 // Hardcoded fallback so a missing/corrupt env var never breaks the URL
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || '';
-  // Take the first line that starts with http, ignore everything else
-  for (const line of raw.split(/[\r\n]+/)) {
+  let s = raw.trim();
+  // Handle "KEY=VALUE" format — user pasted env var with key name included
+  // e.g. "FRONTEND_URL=https://thankeeu.com" or "FRONTEND_URLS=https://..."
+  const eqIdx = s.indexOf('=');
+  if (eqIdx !== -1 && !s.startsWith('http')) s = s.slice(eqIdx + 1).trim();
+  // Take first http line if multi-line
+  for (const line of s.split(/[\r\n]+/)) {
     const t = line.trim();
     if (t.startsWith('http')) return t.replace(/\/$/, '');
   }
-  return 'https://thankeeu.com';
+  return s.startsWith('http') ? s.replace(/\/$/, '') : 'https://thankeeu.com';
 })();
 
 const flwHeaders = () => ({
@@ -105,16 +110,16 @@ const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountN
 
   // Recalculate total_collected from scratch (accurate, idempotent)
   if (cardId) {
-    const { data: sums } = await supabase
-      .from('contributions')
-      .select('amount')
-      .eq('card_id', cardId)
-      .eq('status', 'success')
-      .catch(() => ({ data: null }));
+    let sums = null;
+    try {
+      const { data } = await supabase.from('contributions')
+        .select('amount').eq('card_id', cardId).eq('status', 'success');
+      sums = data;
+    } catch {}
     if (sums) {
       const total = sums.reduce((s, c) => s + (c.amount || 0), 0);
-      await supabase.from('cards').update({ total_collected: total }).eq('id', cardId)
-        .catch(e => console.warn('total_collected recalc:', e.message));
+      try { await supabase.from('cards').update({ total_collected: total }).eq('id', cardId); }
+      catch (e) { console.warn('total_collected recalc:', e.message); }
     }
   }
 };
@@ -166,8 +171,8 @@ const initCardFee = async (req, res) => {
     }
 
     // Store tx_ref on card as fallback for webhook
-    await supabase.from('cards').update({ payment_ref: txRef }).eq('slug', card_slug)
-      .catch(e => console.warn('payment_ref store:', e.message));
+    try { await supabase.from('cards').update({ payment_ref: txRef }).eq('slug', card_slug); }
+    catch (e) { console.warn('payment_ref store:', e.message); }
 
     console.log('initCardFee OK tx_ref:', txRef, 'card:', card_slug);
     return res.json({ payment_link: r.data.data.link, tx_ref: txRef });

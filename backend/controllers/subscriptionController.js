@@ -4,12 +4,17 @@ const supabase = require('../utils/supabase');
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const headers     = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
 const cleanUrl = (u) => {
-  if (!u) return '';
-  for (const line of String(u).split(/[\r\n]+/)) {
-    const t = line.trim();
-    if (t.startsWith('http')) return t.replace(/\/$/, '');
+  if (!u) return 'https://thankeeu.com';
+  let s = String(u).trim();
+  // Handle "KEY=VALUE" format — user pasted env var key+value together
+  // e.g. "FRONTEND_URL=https://thankeeu.com" or "FRONTEND_URLS=https://..."
+  const eqIdx = s.indexOf('=');
+  if (eqIdx !== -1 && !s.startsWith('http')) {
+    s = s.slice(eqIdx + 1).trim();
   }
-  return String(u).replace(/[\r\n\s]+/g, '').replace(/\/$/, '');
+  // Strip any newlines/whitespace, trailing slash
+  s = s.replace(/[\r\n\s]+/g, '').replace(/\/$/, '');
+  return s.startsWith('http') ? s : 'https://thankeeu.com';
 };
 const FRONTEND_URL = cleanUrl(process.env.FRONTEND_URL || 'https://thankeeu.com');
 
@@ -108,7 +113,7 @@ const verifySubscription = async (req, res) => {
     await supabase.from('companies')
       .update({ subscription_status: 'active', subscription_plan: resolvedPlan, subscription_expires_at: expires_at })
       .eq('id', resolvedCompanyId)
-      .catch(e => console.warn('Could not update company subscription_status:', e.message));
+      .then(() => {}).catch(e => console.warn('Could not update company subscription_status:', e.message));
 
     res.json({ success: true, plan: resolvedPlan, expires_at });
   } catch (err) {
@@ -141,8 +146,8 @@ const getSubscription = async (req, res) => {
 
     // Auto-expire in DB if needed
     if (data.status === 'active' && expired) {
-      await supabase.from('company_subscriptions').update({ status: 'expired' }).eq('id', data.id).catch(() => {});
-      await supabase.from('companies').update({ subscription_status: 'expired' }).eq('id', req.company.id).catch(() => {});
+      try { await supabase.from('company_subscriptions').update({ status: 'expired' }).eq('id', data.id); } catch {}
+      try { await supabase.from('companies').update({ subscription_status: 'expired' }).eq('id', req.company.id); } catch {}
     }
 
     res.json({ ...data, is_active });

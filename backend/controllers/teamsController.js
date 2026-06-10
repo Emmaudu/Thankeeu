@@ -118,7 +118,8 @@ const importTeamMembers = async (req, res) => {
     // Point 21: Email every imported member
     setImmediate(async () => {
       const appUrl = process.env.APP_URL || 'https://thankeeu.com';
-      const { data: co } = await supabase.from('companies').select('name').eq('id', req.company.id).single().catch(()=>({data:null}));
+      let co = null;
+      try { const { data } = await supabase.from('companies').select('name').eq('id', req.company.id).single(); co = data; } catch {}
       for (const m of (data||[])) {
         await sendEmail({ to: m.email, template:'teamMemberInvite', data:{
           name: m.first_name,

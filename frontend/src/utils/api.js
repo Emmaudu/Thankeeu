@@ -149,14 +149,17 @@ export const messagesAPI = {
 
 // ─── Payments ──────────────────────────────────────────────────────────────
 export const paymentsAPI = {
-  // Card creation fee — returns { payment_link, tx_ref }
-  // Frontend does window.location.assign(payment_link)
-  // FLW redirects to Railway backend /api/payments/callback which verifies and redirects to card
-  initCardFee:      (card_slug) => anyAxios.post('/payments/initialize/purchase', { card_slug }),
+  // Card creation fee — returns { payment_link }
+  // Frontend: window.location.assign(payment_link) → FLW → /create-card/verify?tx_ref=
+  initCardFee:         (card_slug) => anyAxios.post('/payments/initialize/purchase', { card_slug }),
+  // Frontend /create-card/verify page calls this after FLW redirect
+  verifyCardFee:       (txRef)     => anyAxios.get(`/payments/verify-card-fee?tx_ref=${encodeURIComponent(txRef)}`),
 
-  // Gift contribution — returns { payment_link, tx_ref }
-  // Same redirect flow: FLW -> backend callback -> /sign/slug?success=1
-  initContribution: (data)      => publicAxios.post('/payments/initialize/contribution', data),
+  // Gift contribution — returns { payment_link }
+  // Frontend: window.location.assign(payment_link) → FLW → /sign/slug?tx_ref=
+  initContribution:    (data)      => publicAxios.post('/payments/initialize/contribution', data),
+  // SignCard calls this after FLW redirect with ?tx_ref=
+  verifyContribution:  (txRef)     => publicAxios.post('/payments/verify-contribution', { tx_ref: txRef }),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────

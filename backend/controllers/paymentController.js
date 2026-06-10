@@ -1,19 +1,16 @@
 /**
- * paymentController.js — Flutterwave payments (Paystack-style redirect flow)
+ * paymentController.js — Flutterwave payments
  *
- * FLOW (same as old Paystack approach that worked well):
- *   1. Frontend calls init endpoint → backend creates FLW payment link
- *   2. Frontend: window.location.assign(payment_link) — no popup, no callback complexity
- *   3. User pays on flutterwave.com hosted checkout page
- *   4. FLW redirects to: BACKEND /api/payments/callback?tx_ref=...&status=successful
- *   5. Backend verifyAndRedirect: fetches transaction from FLW, verifies, updates DB
- *   6. Backend: res.redirect(FRONTEND_URL/card/slug) or res.redirect(FRONTEND_URL/sign/slug?success=1)
- *   7. Frontend success page renders automatically
+ * FLOW:
+ *  1. Frontend calls init endpoint → gets { payment_link, tx_ref }
+ *  2. Frontend: window.location.assign(payment_link) → user pays on flutterwave.com
+ *  3. FLW redirects browser directly to FRONTEND redirect_url with ?tx_ref=...&status=...
+ *  4. Frontend page reads ?tx_ref, calls backend verify endpoint
+ *  5. Backend verifies with FLW, updates DB, returns JSON { ok: true, ... }
+ *  6. Frontend shows success screen
  *
- * WEBHOOK (server-to-server safety net):
- *   FLW also POSTs to /webhook/flutterwave after every payment.
- *   Backend processes this regardless of redirect outcome.
- *   Both run independently so the card/contribution is always activated.
+ *  No backend redirect hop. No backend URL needed in redirect_url.
+ *  FRONTEND_URL is the only URL env var needed.
  */
 
 const axios    = require('axios');
@@ -22,28 +19,27 @@ const supabase = require('../utils/supabase');
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
 
-// BACKEND_URL: Railway backend — FLW sends redirect here after payment
-// Use RAILWAY_URL or BACKEND_URL env var, NOT APP_URL (which may point to Vercel frontend)
-const BACKEND_URL  = (
-  process.env.RAILWAY_URL ||
-  process.env.BACKEND_URL ||
-  'https://thankeeu-production.up.railway.app'
-).replace(/\/$/, '');
-
-// FRONTEND_URL: Vercel frontend — backend redirects the user's browser here
-const FRONTEND_URL = (
-  process.env.FRONTEND_URL ||
-  'https://thankeeu.com'
-).replace(/\/$/, '');
-
-// FLW considers both 'successful' and 'completed' (test mode) as success
+// FLW considers both statuses as success
 const FLW_SUCCESS = new Set(['successful', 'completed', 'success']);
+
+// Frontend URL — FLW redirects browser here after payment
+// Hardcoded fallback so a missing/corrupt env var never breaks the URL
+const FRONTEND_URL = (() => {
+  const raw = process.env.FRONTEND_URL || '';
+  // Take the first line that starts with http, ignore everything else
+  for (const line of raw.split(/[\r\n]+/)) {
+    const t = line.trim();
+    if (t.startsWith('http')) return t.replace(/\/$/, '');
+  }
+  return 'https://thankeeu.com';
+})();
 
 const flwHeaders = () => ({
   Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`,
   'Content-Type': 'application/json',
 });
 
+// ─── Verify a transaction with FLW ──────────────────────────────────────────
 const fetchFlwTransaction = async (txRef) => {
   if (!txRef) throw new Error('tx_ref is required');
   const r = await axios.get(
@@ -54,7 +50,7 @@ const fetchFlwTransaction = async (txRef) => {
   return r.data.data;
 };
 
-// ─── Upsert contribution row ──────────────────────────────────────────────────
+// ─── Upsert contribution row ─────────────────────────────────────────────────
 const upsertContribution = async ({ cardId, txRef, amount, contributorName, contributorEmail, status, messageId }) => {
   const row = {
     card_id:           cardId,
@@ -65,13 +61,10 @@ const upsertContribution = async ({ cardId, txRef, amount, contributorName, cont
     status:            status || 'pending',
     ...(messageId ? { message_id: messageId } : {}),
   };
-  const { data, error } = await supabase
-    .from('contributions')
+  const { data, error } = await supabase.from('contributions')
     .upsert(row, { onConflict: 'flw_reference', ignoreDuplicates: false })
-    .select('id, message_id, status')
-    .single();
+    .select('id, message_id, status').single();
   if (!error) return data;
-  // Fallback for DBs without unique index yet
   const { data: ex } = await supabase.from('contributions')
     .select('id').eq('flw_reference', txRef).maybeSingle();
   if (ex) {
@@ -87,8 +80,8 @@ const upsertContribution = async ({ cardId, txRef, amount, contributorName, cont
 // ─── Update message after gift verified ──────────────────────────────────────
 const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountNaira }) => {
   try {
-    const { data: contrib } = await supabase
-      .from('contributions').select('message_id').eq('flw_reference', txRef).maybeSingle();
+    const { data: contrib } = await supabase.from('contributions')
+      .select('message_id').eq('flw_reference', txRef).maybeSingle();
     if (contrib?.message_id) {
       await supabase.from('messages')
         .update({ payment_verified: true, contributed_amount: amountNaira })
@@ -107,10 +100,12 @@ const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountN
   }
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// POST /api/payments/initialize/purchase   — card creation fee
+// ═══════════════════════════════════════════════════════════════════════════════
+// POST /api/payments/initialize/purchase  — card creation fee
 // anyAuth: sets req.user | req.member | req.company
-// ═════════════════════════════════════════════════════════════════════════════
+// Returns { payment_link, tx_ref }
+// redirect_url → frontend /create-card/verify?tx_ref=...
+// ═══════════════════════════════════════════════════════════════════════════════
 const initCardFee = async (req, res) => {
   try {
     const { card_slug } = req.body;
@@ -128,54 +123,91 @@ const initCardFee = async (req, res) => {
       (req.member ? `${req.member.first_name} ${req.member.last_name}`.trim() : null) ||
       req.company?.contact_person || req.company?.name || email;
 
-    // Identify caller type so callback can redirect to the right dashboard
-    const callerType = req.company ? 'company' : req.member ? 'member' : 'user';
-    const callerDashboard = callerType === 'company'
-      ? `${FRONTEND_URL}/company/dashboard`
-      : callerType === 'member'
-      ? `${FRONTEND_URL}/member/dashboard`
-      : `${FRONTEND_URL}/dashboard`;
-
     const txRef = `TK-FEE-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
     const payload = {
-      tx_ref:       txRef,
-      amount:       5000,
-      currency:     'NGN',
-      redirect_url: `${BACKEND_URL}/api/payments/callback`,
-      customer:     { email, name: callerName },
+      tx_ref:    txRef,
+      amount:    5000,
+      currency:  'NGN',
+      // FLW redirects browser directly to frontend — no backend hop needed
+      redirect_url: `${FRONTEND_URL}/create-card/verify`,
+      customer:  { email, name: callerName },
       customizations: {
         title:       'Thankeeu Card Fee',
         description: 'One-time card creation fee',
         logo:        `${FRONTEND_URL}/logo.png`,
       },
-      // caller_type + caller_dashboard let the callback redirect correctly
-      meta: { type: 'card_fee', card_slug, caller_type: callerType, caller_dashboard: callerDashboard },
+      meta: { type: 'card_fee', card_slug },
     };
 
     const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
     if (r.data.status !== 'success') {
-      console.error('FLW rejected initCardFee:', r.data);
+      console.error('FLW initCardFee rejected:', r.data);
       return res.status(400).json({ error: r.data.message || 'Payment gateway rejected the request' });
     }
 
+    // Store tx_ref on card as fallback for webhook
     await supabase.from('cards').update({ payment_ref: txRef }).eq('slug', card_slug)
       .catch(e => console.warn('payment_ref store:', e.message));
 
-    console.log('initCardFee OK — tx_ref:', txRef, 'card:', card_slug, 'caller:', callerType);
+    console.log('initCardFee OK tx_ref:', txRef, 'card:', card_slug);
     return res.json({ payment_link: r.data.data.link, tx_ref: txRef });
 
   } catch (err) {
     const msg = err.response?.data?.message || err.message;
-    console.error('initCardFee error:', msg, err.response?.data);
+    console.error('initCardFee error:', msg);
     return res.status(500).json({ error: `Failed to initialize card fee: ${msg}` });
   }
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// POST /api/payments/initialize/contribution   — gift contribution
-// Public — signers are not necessarily logged in
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// GET /api/payments/verify-card-fee?tx_ref=...
+// Called by frontend /create-card/verify page after FLW redirect
+// Returns JSON { ok: true, card_slug }
+// ═══════════════════════════════════════════════════════════════════════════════
+const verifyCardFee = async (req, res) => {
+  try {
+    const txRef = req.query.tx_ref || req.params.txRef;
+    if (!txRef) return res.status(400).json({ error: 'tx_ref is required' });
+
+    const txn = await fetchFlwTransaction(txRef);
+    if (!FLW_SUCCESS.has(txn.status)) {
+      return res.status(400).json({ error: `Payment not completed (status: ${txn.status})` });
+    }
+
+    const meta     = txn.meta || {};
+    let   cardSlug = meta.card_slug;
+
+    // Fallback: find card by payment_ref column
+    if (!cardSlug) {
+      const { data } = await supabase.from('cards')
+        .select('slug').eq('payment_ref', txRef).maybeSingle();
+      cardSlug = data?.slug;
+    }
+
+    if (!cardSlug) {
+      console.error('verifyCardFee: no card found for tx_ref', txRef);
+      return res.status(404).json({ error: 'Card not found for this payment. Please contact support with ref: ' + txRef });
+    }
+
+    await supabase.from('cards').update({ status: 'active' }).eq('slug', cardSlug);
+    console.log('Card activated:', cardSlug);
+
+    return res.json({ ok: true, card_slug: cardSlug });
+
+  } catch (err) {
+    const msg = err.response?.data?.message || err.message;
+    console.error('verifyCardFee error:', msg);
+    return res.status(500).json({ error: msg || 'Verification failed' });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// POST /api/payments/initialize/contribution  — gift contribution
+// Public — signers not necessarily logged in
+// Returns { payment_link, tx_ref }
+// redirect_url → frontend /sign/slug?tx_ref=...
+// ═══════════════════════════════════════════════════════════════════════════════
 const initContribution = async (req, res) => {
   try {
     const { card_slug, amount, contributor_name, contributor_email, message_id } = req.body;
@@ -196,14 +228,14 @@ const initContribution = async (req, res) => {
     const txRef       = `TK-GIFT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
     const amountNaira = Number(amount);
 
-    // redirect_url points to BACKEND — same as Paystack approach
-    // Backend verifies and redirects to /sign/slug?success=1
     const payload = {
-      tx_ref:       txRef,
-      amount:       amountNaira,
-      currency:     'NGN',
-      redirect_url: `${BACKEND_URL}/api/payments/callback`,
-      customer:     { email: contributor_email, name: contributor_name || contributor_email },
+      tx_ref:    txRef,
+      amount:    amountNaira,
+      currency:  'NGN',
+      // FLW redirects browser directly to the sign page on the frontend
+      // Frontend reads ?tx_ref= and calls /api/payments/verify-contribution
+      redirect_url: `${FRONTEND_URL}/sign/${card_slug}?tx_ref=${txRef}`,
+      customer:  { email: contributor_email, name: contributor_name || contributor_email },
       customizations: {
         title:       `Gift for ${card.recipient_name}`,
         description: `Contribute to ${card.title || card.recipient_name + "'s card"}`,
@@ -217,7 +249,6 @@ const initContribution = async (req, res) => {
       return res.status(400).json({ error: r.data.message || 'Gateway rejected the request' });
     }
 
-    // Pre-create pending contribution
     await upsertContribution({
       cardId:           card.id,
       txRef,
@@ -228,7 +259,7 @@ const initContribution = async (req, res) => {
       messageId:        message_id || null,
     });
 
-    console.log('initContribution OK — tx_ref:', txRef, 'card:', card_slug, 'amount:', amountNaira);
+    console.log('initContribution OK tx_ref:', txRef, 'card:', card_slug, 'amount:', amountNaira);
     return res.json({ payment_link: r.data.data.link, tx_ref: txRef });
 
   } catch (err) {
@@ -238,132 +269,66 @@ const initContribution = async (req, res) => {
   }
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// GET /api/payments/callback
-// FLW redirects HERE after hosted checkout (same as old Paystack /api/payments/callback)
-// Verifies payment, updates DB, then res.redirect() to frontend
-//
-// FLW appends: ?status=successful&tx_ref=TK-FEE-...&transaction_id=...
-// ═════════════════════════════════════════════════════════════════════════════
-const paymentCallback = async (req, res) => {
-  const txRef  = req.query.tx_ref || req.query.reference;
-  const status = req.query.status;
-
-  // Default dashboard — overridden per user type once we read meta
-  const defaultDashboard = `${FRONTEND_URL}/dashboard`;
-
-  // Payment was cancelled before completing
-  if (status === 'cancelled' || !txRef) {
-    console.log('Payment cancelled or no tx_ref');
-    return res.redirect(`${defaultDashboard}?payment=cancelled`);
-  }
-
+// ═══════════════════════════════════════════════════════════════════════════════
+// POST /api/payments/verify-contribution  — verify gift after redirect
+// Public — called by frontend SignCard after FLW returns with ?tx_ref=
+// Returns JSON { ok: true, amount }
+// ═══════════════════════════════════════════════════════════════════════════════
+const verifyContribution = async (req, res) => {
   try {
+    const txRef = req.query.tx_ref || req.body?.tx_ref || req.params.txRef;
+    if (!txRef) return res.status(400).json({ error: 'tx_ref is required' });
+
     const txn = await fetchFlwTransaction(txRef);
-    const meta = txn.meta || {};
-    const type = meta.type;
-
-    // Use stored caller_dashboard for error/cancel redirects — falls back to /dashboard
-    const callerDashboard = meta.caller_dashboard || defaultDashboard;
-
     if (!FLW_SUCCESS.has(txn.status)) {
-      console.warn('Payment callback not successful:', txn.status, txRef);
-      return res.redirect(`${callerDashboard}?payment=failed`);
+      return res.status(400).json({ error: `Payment not completed (status: ${txn.status})` });
     }
 
-    console.log('Payment callback OK — type:', type, 'tx_ref:', txRef);
+    const meta        = txn.meta || {};
+    const cardId      = meta.card_id;
+    const messageId   = meta.message_id || null;
+    const amountNaira = Math.floor(txn.amount);
 
-    // ── card_fee ──────────────────────────────────────────────────────────────
-    if (type === 'card_fee') {
-      // Find card slug from meta or fallback to payment_ref column
-      let cardSlug = meta.card_slug;
-      if (!cardSlug) {
-        const { data } = await supabase.from('cards')
-          .select('slug').eq('payment_ref', txRef).maybeSingle();
-        cardSlug = data?.slug;
-      }
+    // Idempotency: skip double-processing
+    const { data: existing } = await supabase.from('contributions')
+      .select('id, status').eq('flw_reference', txRef).maybeSingle()
+      .catch(() => ({ data: null }));
+    const alreadyDone = existing?.status === 'success';
 
-      if (!cardSlug) {
-        console.error('card_fee callback: cannot find card for tx_ref', txRef);
-        return res.redirect(`${callerDashboard}?payment=error&ref=${encodeURIComponent(txRef)}`);
-      }
+    await upsertContribution({
+      cardId,
+      txRef,
+      amount:           amountNaira,
+      contributorName:  txn.customer?.name,
+      contributorEmail: txn.customer?.email,
+      status:           'success',
+      messageId,
+    });
 
-      // Activate card
-      const { error: actErr } = await supabase.from('cards')
-        .update({ status: 'active' })
-        .eq('slug', cardSlug);
-
-      if (actErr) console.error('Card activation error:', actErr.message);
-      else        console.log('Card activated:', cardSlug);
-
-      // All user types (normal user, member, team leader, HR) redirect to the card page
-      // CardViewGate on the frontend handles auth for all of them
-      return res.redirect(`${FRONTEND_URL}/card/${cardSlug}?activated=1`);
+    if (cardId && !alreadyDone) {
+      const { data: card } = await supabase.from('cards')
+        .select('total_collected').eq('id', cardId).single()
+        .catch(() => ({ data: null }));
+      await supabase.from('cards')
+        .update({ total_collected: (card?.total_collected || 0) + amountNaira })
+        .eq('id', cardId)
+        .catch(e => console.warn('total_collected update:', e.message));
     }
 
-    // ── gift_contribution ────────────────────────────────────────────────────
-    if (type === 'gift_contribution') {
-      const cardId      = meta.card_id;
-      const cardSlug    = meta.card_slug;
-      const amountNaira = Math.floor(txn.amount);
-      const messageId   = meta.message_id || null;
+    await updateMessageAfterGift({
+      txRef, cardId,
+      contributorEmail: txn.customer?.email,
+      amountNaira,
+    });
 
-      if (cardId) {
-        const { data: existing } = await supabase.from('contributions')
-          .select('id, status').eq('flw_reference', txRef).maybeSingle()
-          .catch(() => ({ data: null }));
-        const alreadyDone = existing?.status === 'success';
-
-        await upsertContribution({
-          cardId,
-          txRef,
-          amount:           amountNaira,
-          contributorName:  txn.customer?.name,
-          contributorEmail: txn.customer?.email,
-          status:           'success',
-          messageId,
-        });
-
-        if (!alreadyDone) {
-          const { data: card } = await supabase.from('cards')
-            .select('total_collected').eq('id', cardId).single()
-            .catch(() => ({ data: null }));
-          await supabase.from('cards')
-            .update({ total_collected: (card?.total_collected || 0) + amountNaira })
-            .eq('id', cardId)
-            .catch(e => console.warn('total_collected:', e.message));
-        }
-
-        await updateMessageAfterGift({
-          txRef,
-          cardId,
-          contributorEmail: txn.customer?.email,
-          amountNaira,
-        });
-
-        console.log('Gift contribution processed — card:', cardSlug, 'amount:', amountNaira);
-      }
-
-      // Redirect to sign page with ?success=1
-      // SignCard's useEffect detects this and shows "Message delivered!" with WhatsApp invite
-      const target = cardSlug
-        ? `${FRONTEND_URL}/sign/${cardSlug}?success=1`
-        : `${defaultDashboard}?payment=success`;
-      return res.redirect(target);
-    }
-
-    // Unknown type
-    return res.redirect(`${defaultDashboard}?payment=success`);
+    console.log('verifyContribution OK tx_ref:', txRef, 'amount:', amountNaira);
+    return res.json({ ok: true, amount: amountNaira });
 
   } catch (err) {
     const msg = err.response?.data?.message || err.message;
-    console.error('paymentCallback error:', txRef, msg);
-    return res.redirect(`${defaultDashboard}?payment=error&ref=${encodeURIComponent(txRef)}`);
+    console.error('verifyContribution error:', msg);
+    return res.status(500).json({ error: msg || 'Verification failed' });
   }
 };
 
-module.exports = {
-  initCardFee,
-  initContribution,
-  paymentCallback,
-};
+module.exports = { initCardFee, verifyCardFee, initContribution, verifyContribution };

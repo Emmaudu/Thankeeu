@@ -68,13 +68,22 @@ const SignCard = () => {
 
   useEffect(() => {
     const run = async () => {
-      // Backend callback already verified the payment and redirected here with ?success=1
-      // No need to call verify again — backend already did it
-      if (searchParams.get('success')) {
-        toast.success('Your message and gift are on the card! 🎉');
+      // FLW redirects browser directly here with ?tx_ref=... after payment
+      // We call the backend to verify, then show the success screen
+      const returnTxRef = searchParams.get('tx_ref') || searchParams.get('reference');
+      if (returnTxRef) {
+        setStage('verifying');
+        try {
+          await paymentsAPI.verifyContribution(returnTxRef);
+          toast.success('Your message and gift are on the card! 🎉');
+        } catch (e) {
+          // Payment may still be processing — show success anyway (webhook will catch it)
+          toast.success('Gift received! 🎉');
+        }
         window.history.replaceState({}, '', `/sign/${slug}`);
         setSubmitted(true);
-        return; // don't fetchCard yet, submitted=true shows success screen
+        setStage('idle');
+        return;
       }
       await fetchCard();
     };

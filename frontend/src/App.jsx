@@ -31,6 +31,7 @@ import GiftCheckout     from './pages/GiftCheckout';
 import BlogConfirmSubscription from './pages/BlogConfirmSubscription';
 import BlogUnsubscribe          from './pages/BlogUnsubscribe';
 import PaymentCallback from './pages/PaymentCallback';
+import CardFeeVerify  from './pages/CardFeeVerify';
 import NotFound         from './pages/NotFound';
 import BirthdayPage    from './pages/occasions/Birthday';
 import FarewellPage    from './pages/occasions/Farewell';
@@ -161,7 +162,8 @@ const App = () => (
             <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
             <Route path="/blog/confirm-subscription" element={<BlogConfirmSubscription />} />
             <Route path="/blog/unsubscribe"            element={<BlogUnsubscribe />} />
-            <Route path="/payment/callback" element={<PaymentCallback />} />
+            <Route path="/payment/callback"   element={<PaymentCallback />} />
+            <Route path="/create-card/verify" element={<CardFeeVerify />} />
             <Route path="/faq"            element={<FAQ />} />
             <Route path="/occasions/:occasion" element={<OccasionPage />} />
             <Route path="/sign/:slug"    element={<SignCard />} />

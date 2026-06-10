@@ -3,20 +3,19 @@ const router  = express.Router();
 const { anyAuth } = require('../middleware/auth');
 const {
   initCardFee,
+  verifyCardFee,
   initContribution,
-  paymentCallback,
+  verifyContribution,
 } = require('../controllers/paymentController');
 
-// ── Card creation fee (authenticated) ────────────────────────────────────────
-router.post('/initialize/purchase',  anyAuth, initCardFee);
-router.post('/initialize/card-fee',  anyAuth, initCardFee);
+// Card creation fee (auth required)
+router.post('/initialize/purchase',    anyAuth, initCardFee);
+router.post('/initialize/card-fee',    anyAuth, initCardFee);
+router.get('/verify-card-fee',         anyAuth, verifyCardFee);
 
-// ── Gift contributions (public — signers not logged in) ───────────────────────
+// Gift contributions (public)
 router.post('/initialize/contribution', initContribution);
-
-// ── Flutterwave redirect callback (same pattern as old Paystack) ──────────────
-// FLW redirects browser here after hosted checkout with ?tx_ref=...&status=successful
-// Backend verifies, updates DB, then res.redirect() to frontend
-router.get('/callback', paymentCallback);
+router.post('/verify-contribution',     verifyContribution);
+router.get('/verify-contribution',      verifyContribution); // ?tx_ref=
 
 module.exports = router;

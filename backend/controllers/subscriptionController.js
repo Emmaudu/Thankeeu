@@ -3,8 +3,15 @@ const supabase = require('../utils/supabase');
 
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const headers     = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
-// Must use FRONTEND_URL (Vercel) not APP_URL (Railway backend) for redirect_url
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+const cleanUrl = (u) => {
+  if (!u) return '';
+  for (const line of String(u).split(/[\r\n]+/)) {
+    const t = line.trim();
+    if (t.startsWith('http')) return t.replace(/\/$/, '');
+  }
+  return String(u).replace(/[\r\n\s]+/g, '').replace(/\/$/, '');
+};
+const FRONTEND_URL = cleanUrl(process.env.FRONTEND_URL || 'https://thankeeu.com');
 
 // Subscription prices in Flutterwave (Naira).
 const PLANS = {

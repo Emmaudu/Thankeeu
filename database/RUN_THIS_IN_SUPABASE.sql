@@ -217,57 +217,78 @@ ALTER TABLE company_members ADD COLUMN IF NOT EXISTS profile_picture_url TEXT;
 ALTER TABLE company_members ADD COLUMN IF NOT EXISTS invite_token TEXT;
 ALTER TABLE company_members ADD COLUMN IF NOT EXISTS invite_accepted BOOLEAN DEFAULT FALSE;
 
--- ── 6. Bank accounts + withdrawals ───────────────────────────────────────
+-- ── 6. Bank accounts, notifications + withdrawals ──────────────────────────
+
+-- bank_accounts: owner_id / owner_type
 CREATE TABLE IF NOT EXISTS bank_accounts (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  owner_id UUID NOT NULL,
-  owner_type TEXT CHECK (owner_type IN ('user','member')) NOT NULL,
-  bank_code TEXT NOT NULL,
-  bank_name TEXT NOT NULL,
-  account_number TEXT NOT NULL,
-  account_name TEXT NOT NULL,
-  is_default BOOLEAN DEFAULT TRUE,
+  id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  owner_id                UUID NOT NULL,
+  owner_type              TEXT CHECK (owner_type IN ('user','member')) NOT NULL,
+  bank_code               TEXT NOT NULL,
+  bank_name               TEXT NOT NULL,
+  account_number          TEXT NOT NULL,
+  account_name            TEXT NOT NULL,
+  is_default              BOOLEAN DEFAULT TRUE,
   paystack_recipient_code TEXT,
-  flw_beneficiary_id TEXT,
-  verified BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  flw_beneficiary_id      TEXT,
+  verified                BOOLEAN DEFAULT FALSE,
+  created_at              TIMESTAMPTZ DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(owner_id, account_number)
 );
 CREATE INDEX IF NOT EXISTS idx_bank_accounts_owner ON bank_accounts(owner_id, owner_type);
+-- Add FLW columns to existing bank_accounts if upgrading
 ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS flw_beneficiary_id TEXT;
 ALTER TABLE bank_accounts ADD COLUMN IF NOT EXISTS bank_code TEXT;
 
 CREATE TABLE IF NOT EXISTS dashboard_notifications (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  recipient_id UUID NOT NULL,
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  recipient_id   UUID NOT NULL,
   recipient_type TEXT CHECK (recipient_type IN ('user','member','company')) NOT NULL,
-  type TEXT NOT NULL,
-  title TEXT NOT NULL,
-  body TEXT,
-  is_read BOOLEAN DEFAULT FALSE,
-  meta JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  type           TEXT NOT NULL,
+  title          TEXT NOT NULL,
+  body           TEXT,
+  data           JSONB,
+  is_read        BOOLEAN DEFAULT FALSE,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_dash_notifications_recipient ON dashboard_notifications(recipient_id, recipient_type);
 CREATE INDEX IF NOT EXISTS idx_dash_notifications_unread ON dashboard_notifications(recipient_id) WHERE is_read = FALSE;
 
+-- withdrawals uses requester_id / requester_type (NOT owner_id — that caused the error)
 CREATE TABLE IF NOT EXISTS withdrawals (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  owner_id UUID NOT NULL,
-  owner_type TEXT NOT NULL,
-  card_id UUID REFERENCES cards(id) ON DELETE SET NULL,
-  amount INTEGER NOT NULL,
-  bank_account_id UUID REFERENCES bank_accounts(id),
-  status TEXT DEFAULT 'pending',
-  flw_reference TEXT,
-  flw_transfer_id TEXT,
-  initiated_at TIMESTAMPTZ DEFAULT NOW(),
-  completed_at TIMESTAMPTZ
+  id                     UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  requester_id           UUID NOT NULL,
+  requester_type         TEXT CHECK (requester_type IN ('user','member')) NOT NULL,
+  amount                 NUMERIC NOT NULL,
+  source_type            TEXT DEFAULT 'gift_pot',
+  source_id              UUID,
+  bank_account_id        UUID REFERENCES bank_accounts(id),
+  status                 TEXT DEFAULT 'pending',
+  paystack_transfer_code TEXT,
+  paystack_reference     TEXT,
+  flw_reference          TEXT,
+  flw_transfer_id        TEXT,
+  failure_reason         TEXT,
+  processed_at           TIMESTAMPTZ,
+  created_at             TIMESTAMPTZ DEFAULT NOW(),
+  updated_at             TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_withdrawals_owner ON withdrawals(owner_id);
+CREATE INDEX IF NOT EXISTS idx_withdrawals_requester ON withdrawals(requester_id);
+-- Add FLW columns to existing withdrawals if upgrading
 ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS flw_reference TEXT;
 ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS flw_transfer_id TEXT;
+ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS card_id UUID;
+ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS source_type TEXT;
+ALTER TABLE withdrawals ADD COLUMN IF NOT EXISTS requester_type TEXT;
+
+-- Cards extra scope columns
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS scope_approved_at TIMESTAMPTZ;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS scope_approved_by UUID;
+
+-- Deduction extra columns
+ALTER TABLE deduction_requests ADD COLUMN IF NOT EXISTS withdrawal_requested BOOLEAN DEFAULT FALSE;
+ALTER TABLE deduction_requests ADD COLUMN IF NOT EXISTS withdrawal_id UUID;
 
 -- ── 7. Backfill: mark existing active/sent cards as payment_verified ──────
 UPDATE cards

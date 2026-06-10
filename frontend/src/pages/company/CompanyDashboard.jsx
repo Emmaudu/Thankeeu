@@ -205,7 +205,7 @@ const CompanyDashboard = () => {
               statCard('👥', 'Total employees', stats.total_members || 0, 'all departments'),
               statCard('🎉', 'Upcoming occasions', upcoming.length, 'next 30 days'),
               statCard('💌', 'Active cards', stats.active_cards || 0, 'collecting now'),
-              statCard('🎁', 'Gifts collected', `₦${((stats.total_collected||0)/100).toLocaleString()}`, 'all time', true),
+              statCard('🎁', 'Gifts collected', `₦${((stats.total_collected||0)).toLocaleString()}`, 'all time', true),
             ]
         }
       </div>

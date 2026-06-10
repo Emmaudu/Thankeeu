@@ -632,14 +632,31 @@ const importGeneralTemplate = async (req, res) => {
       const gender = gnI >= 0 ? String(row[gnI] || '').trim().toLowerCase() : null;
       const base   = { first_name: fn, last_name: ln, email, department: dept, gender: gender || null, is_active: true };
 
-      // Upsert company_member
-      const { data: member } = await supabase.from('company_members')
-        // Supabase v2: .catch() not supported on query builder — use try/catch
-        .upsert({ company_id: companyId, first_name: fn, last_name: ln, email, department: dept,
-                  role, gender: gender || null, job_title: jt, phone, status: 'approved' },
-                 { onConflict: 'company_id,email' })
-        .select('id').single();
-      const memberId = member?.id;
+      // Create or update company_members row — safe upsert
+      let memberId = null;
+      try {
+        // Check if exists first
+        const { data: existing } = await supabase.from('company_members')
+          .select('id').eq('company_id', companyId).eq('email', email).maybeSingle();
+        if (existing) {
+          await supabase.from('company_members')
+            .update({ first_name: fn, last_name: ln, department: dept,
+                      role, gender: gender||null, job_title: jt, phone,
+                      updated_at: new Date() })
+            .eq('id', existing.id);
+          memberId = existing.id;
+        } else {
+          const { data: inserted, error: ie } = await supabase.from('company_members').insert({
+            company_id: companyId, first_name: fn, last_name: ln, email,
+            department: dept, role, gender: gender||null, job_title: jt,
+            phone, status: 'approved',
+          }).select('id').single();
+          if (ie) throw ie;
+          memberId = inserted?.id;
+        }
+      } catch (e) {
+        console.error(`company_members upsert failed for ${email}:`, e.message);
+      }
 
       // Send invite email
       try {

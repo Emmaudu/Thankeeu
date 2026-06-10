@@ -205,46 +205,56 @@ const getTeamsDashboard = async (req, res) => {
     const today = new Date();
     const todayMMDD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
+    // Read from company_members (master template target) not the old team_members table
     const { data: members } = await supabase
-      .from('team_members')
-      .select('*')
+      .from('company_members')
+      .select('id, first_name, last_name, email, department, role, status, date_of_birth')
       .eq('company_id', companyId)
-      .eq('is_active', true);
+      .eq('status', 'approved');
 
     const all = members || [];
+    const departments = [...new Set(all.map(m => m.department).filter(Boolean))];
 
-    // Compute days until next birthday for each member
-    const withDays = all.map(m => {
-      const bd = new Date(m.birthday);
+    // Active cards count
+    const { count: activeCards } = await supabase
+      .from('cards').select('id', { count: 'exact', head: true })
+      .eq('company_id', companyId).eq('status', 'active');
+
+    // Total gifts collected
+    const { data: wallets } = await supabase
+      .from('contribution_wallets').select('total_contributed')
+      .eq('company_id', companyId);
+    const totalCollected = (wallets || []).reduce((s, w) => s + (w.total_contributed || 0), 0);
+
+    // Upcoming birthdays from occasion_members
+    const { data: upcomingBdays } = await supabase
+      .from('occasion_members')
+      .select('first_name, last_name, department, occasion_date')
+      .eq('company_id', companyId)
+      .eq('occasion_type', 'birthday')
+      .eq('is_active', true);
+
+    const withDays = (upcomingBdays || []).map(m => {
+      if (!m.occasion_date) return null;
+      const bd = new Date(m.occasion_date);
       const thisYear = new Date(today.getFullYear(), bd.getMonth(), bd.getDate());
       if (thisYear < today) thisYear.setFullYear(today.getFullYear() + 1);
       const diff = Math.ceil((thisYear - today) / (1000 * 60 * 60 * 24));
       return { ...m, days_until_birthday: diff };
-    }).sort((a, b) => a.days_until_birthday - b.days_until_birthday);
+    }).filter(Boolean).sort((a, b) => a.days_until_birthday - b.days_until_birthday);
 
     const upcoming = withDays.filter(m => m.days_until_birthday <= 30 && m.days_until_birthday > 0);
-    const todayCelebrants = withDays.filter(m => m.days_until_birthday === 0 || m.days_until_birthday === 365);
-
-    // Birthday automations this year
-    const { data: automations } = await supabase
-      .from('birthday_automations')
-      .select('*, team_members(first_name, last_name, department)')
-      .eq('company_id', companyId)
-      .eq('year', today.getFullYear())
-      .order('created_at', { ascending: false });
-
-    const departments = [...new Set(all.map(m => m.department))];
 
     res.json({
       stats: {
-        total_members: all.length,
-        departments: departments.length,
+        total_members:     all.length,
+        departments:       departments.length,
         upcoming_birthdays: upcoming.length,
-        cards_sent_this_year: (automations || []).filter(a => a.celebrant_notified_at).length,
+        active_cards:      activeCards || 0,
+        total_collected:   totalCollected,
+        cards_sent_this_year: 0,
       },
       upcoming_celebrants: upcoming.slice(0, 10),
-      today_celebrants: todayCelebrants,
-      recent_automations: (automations || []).slice(0, 10),
       departments,
     });
   } catch (err) {

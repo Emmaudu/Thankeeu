@@ -282,8 +282,9 @@ export default function OccasionsPage() {
         </div>
       )}
 
-      {/* ── Occasion tabs ── */}
-      <div className="flex gap-1 overflow-x-auto pb-2 mb-5" style={{ scrollbarWidth:'none', WebkitOverflowScrolling:'touch' }}>
+      {/* ── Occasion tabs — horizontal scroll on mobile ── */}
+      <div style={{ position:'relative', marginBottom:'20px' }}>
+        <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none', msOverflowStyle:'none', display:'flex', gap:'6px', paddingBottom:'8px' }}>
         <button onClick={() => setActiveTab('__general__')}
           className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all border-2 ${
             activeTab === '__general__'
@@ -307,7 +308,9 @@ export default function OccasionsPage() {
             )}
           </button>
         ))}
-      </div>
+        </div>{/* end inner scroll div */}
+        <div style={{ pointerEvents:'none', position:'absolute', right:0, top:0, bottom:8, width:32, background:'linear-gradient(to right, transparent, #F5F3FF)' }} />
+      </div>{/* end relative wrapper */}
 
       {/* ── General tab panel ── */}
       {activeTab === '__general__' && (

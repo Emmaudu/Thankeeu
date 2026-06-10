@@ -384,6 +384,7 @@ const deleteOccasionMember = async (req, res) => {
 
 // GET /api/occasions/general-template — Master Excel with ALL occasions
 const downloadGeneralTemplate = (req, res) => {
+  try {
   const year = new Date().getFullYear();
   const wb   = XLSX.utils.book_new();
 
@@ -434,7 +435,7 @@ const downloadGeneralTemplate = (req, res) => {
      'female','1991-02-28','2019-11-01','','','2025-02-28','We will miss you!',''],
   ];
   const ws1 = XLSX.utils.aoa_to_sheet([masterCols, ...masterRows]);
-  hd(ws1, masterCols); XLSX.utils.book_append_sheet(wb, ws1, '📋 MASTER — Import All');
+  hd(ws1, masterCols); XLSX.utils.book_append_sheet(wb, ws1, 'MASTER Import All');
 
   // ── SHEET 2: How the master populates each table ──
   const ruleRows = [
@@ -457,22 +458,22 @@ const downloadGeneralTemplate = (req, res) => {
   if (ws2['B3']) ws2['B3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
   if (ws2['C3']) ws2['C3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
   if (ws2['D3']) ws2['D3'].s = { font:{ bold:true, color:{ rgb:'FFFFFF' } }, fill:{ fgColor:{ rgb:'5B4BDF' } } };
-  XLSX.utils.book_append_sheet(wb, ws2, '📖 How It Works');
+  XLSX.utils.book_append_sheet(wb, ws2, 'How It Works');
 
   // ── SHEET 3: Birthday (Date of Birth) ──
   const bCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Date of Birth (YYYY-MM-DD)'];
   const ws3 = XLSX.utils.aoa_to_sheet([bCols,['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Content Writer','1992-05-15']]);
-  hd(ws3, bCols); XLSX.utils.book_append_sheet(wb, ws3, '🎂 Birthday');
+  hd(ws3, bCols); XLSX.utils.book_append_sheet(wb, ws3, 'Birthday');
 
   // ── SHEET 4: Work Anniversary (Work Start Date) ──
   const waCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Work Start Date (YYYY-MM-DD)'];
   const ws4 = XLSX.utils.aoa_to_sheet([waCols,['Emeka','Eze','emeka@co.com','08098765432','Finance','leader','Finance Head','2018-07-15']]);
-  hd(ws4, waCols); XLSX.utils.book_append_sheet(wb, ws4, '🏆 Work Anniversary');
+  hd(ws4, waCols); XLSX.utils.book_append_sheet(wb, ws4, 'Work Anniversary');
 
   // ── SHEET 5: New Hire (Start Date) ──
   const nhCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Start Date (YYYY-MM-DD)'];
   const ws5 = XLSX.utils.aoa_to_sheet([nhCols,['Kemi','Adeyemi','kemi@co.com','07012345678','HR','member','HR Associate','2025-02-10']]);
-  hd(ws5, nhCols); XLSX.utils.book_append_sheet(wb, ws5, '🎉 New Hire');
+  hd(ws5, nhCols); XLSX.utils.book_append_sheet(wb, ws5, 'New Hire');
 
   // ── SHEET 6: Valentine's Day (ALL employees, Feb 14) ──
   const vCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title',`Valentine Date (${year}-02-14 pre-filled)`];
@@ -480,21 +481,21 @@ const downloadGeneralTemplate = (req, res) => {
     ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer',`${year}-02-14`],
     ['Emeka','Eze','emeka@co.com','08098765432','Marketing','member','Executive',`${year}-02-14`],
   ]);
-  hd(ws6, vCols); XLSX.utils.book_append_sheet(wb, ws6, "💝 Valentine's Day (All)");
+  hd(ws6, vCols); XLSX.utils.book_append_sheet(wb, ws6, "Valentine's Day");
 
   // ── SHEET 7: Women's Day (Female only, Mar 8) ──
   const wdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: female)',`Women's Day Date (${year}-03-08 pre-filled)`];
   const ws7 = XLSX.utils.aoa_to_sheet([wdCols,
     ['Amaka','Okafor','amaka@co.com','08012345678','Engineering','member','Engineer','female',`${year}-03-08`],
   ]);
-  hd(ws7, wdCols); XLSX.utils.book_append_sheet(wb, ws7, "👩 Women's Day (Female)");
+  hd(ws7, wdCols); XLSX.utils.book_append_sheet(wb, ws7, "Women's Day");
 
   // ── SHEET 8: Mother's Day (Female only, 2nd Sun May) ──
   const mdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: female)',`Mother's Day Date (${mothersDate} pre-filled)`];
   const ws8 = XLSX.utils.aoa_to_sheet([mdCols,
     ['Kemi','Adeyemi','kemi@co.com','07012345678','HR','leader','HR Lead','female',mothersDate],
   ]);
-  hd(ws8, mdCols); XLSX.utils.book_append_sheet(wb, ws8, "🌹 Mother's Day (Female)");
+  hd(ws8, mdCols); XLSX.utils.book_append_sheet(wb, ws8, "Mother's Day");
 
   // ── SHEET 9: Father's Day (Male only, 3rd Sun June) ──
   const fdCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Gender (must be: male)',`Father's Day Date (${fathersDate} pre-filled)`];
@@ -502,26 +503,30 @@ const downloadGeneralTemplate = (req, res) => {
     ['Emeka','Eze','emeka@co.com','08098765432','Engineering','leader','Lead Dev','male',fathersDate],
     ['Tunde','Bello','tunde@co.com','08055544433','Finance','member','Analyst','male',fathersDate],
   ]);
-  hd(ws9, fdCols); XLSX.utils.book_append_sheet(wb, ws9, "👔 Father's Day (Male)");
+  hd(ws9, fdCols); XLSX.utils.book_append_sheet(wb, ws9, "Father's Day");
 
   // ── SHEET 10: Promotion ──
   const prCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Promotion Date (YYYY-MM-DD)','New Job Title (optional)','Congratulatory Message (optional)'];
   const ws10 = XLSX.utils.aoa_to_sheet([prCols,
     ['Tunde','Bello','tunde@co.com','08098765432','Engineering','leader','Eng Manager','2025-03-01','Senior Manager','Congratulations on your well-deserved promotion!'],
   ]);
-  hd(ws10, prCols); XLSX.utils.book_append_sheet(wb, ws10, '⭐ Promotion');
+  hd(ws10, prCols); XLSX.utils.book_append_sheet(wb, ws10, 'Promotion');
 
   // ── SHEET 11: Farewell / Leaving ──
   const faCols = ['First Name','Last Name','Email','Phone','Department','Role (member/leader)','Job Title','Last Working Day (YYYY-MM-DD)','Farewell Message (optional)'];
   const ws11 = XLSX.utils.aoa_to_sheet([faCols,
     ['Zainab','Ibrahim','z@co.com','08055544433','Finance','member','Finance Analyst','2025-02-28','We will miss you dearly!'],
   ]);
-  hd(ws11, faCols); XLSX.utils.book_append_sheet(wb, ws11, '👋 Farewell / Leaving');
+  hd(ws11, faCols); XLSX.utils.book_append_sheet(wb, ws11, 'Farewell Leaving');
 
   const buf = XLSX.write(wb, { type:'buffer', bookType:'xlsx' });
   res.setHeader('Content-Disposition','attachment; filename="thankeeu_master_template.xlsx"');
   res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
+  } catch (err) {
+    console.error('downloadGeneralTemplate error:', err.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Template generation failed: ' + err.message });
+  }
 };
 // POST /api/occasions/import-general — import master template → all occasion tables
 const importGeneralTemplate = async (req, res) => {
@@ -566,22 +571,30 @@ const importGeneralTemplate = async (req, res) => {
 
     // Helper: upsert into occasion_members (using occasion_type string, not FK)
     const upsertOccasion = async (type, row) => {
-      const { data: existing } = await supabase.from('occasion_members')
-        .select('id')
-        .eq('company_id', companyId)
-        .eq('occasion_type', type)
-        .eq('email', row.email)
-        .maybeSingle();
-      if (existing) {
-        await supabase.from('occasion_members')
-          .update({ ...row, updated_at: new Date() }).eq('id', existing.id);
-      } else {
-        await supabase.from('occasion_members').insert({ ...row, company_id: companyId, occasion_type: type });
+      try {
+        const { data: existing } = await supabase.from('occasion_members')
+          .select('id')
+          .eq('company_id', companyId)
+          .eq('occasion_type', type)
+          .eq('email', row.email)
+          .maybeSingle();
+        if (existing) {
+          const { error: ue } = await supabase.from('occasion_members')
+            .update({ ...row, updated_at: new Date() }).eq('id', existing.id);
+          if (ue) throw ue;
+        } else {
+          const { error: ie } = await supabase.from('occasion_members')
+            .insert({ ...row, company_id: companyId, occasion_type: type });
+          if (ie) throw ie;
+        }
+      } catch (e) {
+        console.error(`upsertOccasion(${type}, ${row.email}) failed:`, e.message);
+        errors.push(`${type}/${row.email}: ${e.message}`);
       }
     };
 
     // Process the MASTER sheet (Sheet 1)
-    const masterSheet = wb.Sheets['📋 MASTER — Import All'] || wb.Sheets[wb.SheetNames[0]];
+    const masterSheet = wb.Sheets['MASTER Import All'] || wb.Sheets['📋 MASTER — Import All'] || wb.Sheets[wb.SheetNames[0]];
     if (!masterSheet) return res.status(400).json({ error: 'Master sheet not found. Please use the official master template.' });
 
     const rows = XLSX.utils.sheet_to_json(masterSheet, { header: 1, defval: '' });

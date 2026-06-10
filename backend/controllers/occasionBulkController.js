@@ -278,9 +278,10 @@ const getOccasionTables = async (req, res) => {
     await Promise.all(types.map(async type => {
       const { data } = await supabase
         .from('occasion_members')
-        .select('id, member_id, first_name, last_name, email, department, gender, occasion_date, is_active, meta, notification_scope, occasion_type, company_members(role, username)')
+        .select('id, member_id, first_name, last_name, email, department, gender, occasion_date, is_active, meta, notification_scope, occasion_type, farewell, card_slug, celebrant_notified_at, last_dept_notified_at')
         .eq('company_id', companyId)
         .eq('occasion_type', type)
+        .eq('is_active', true)
         .order('first_name', { ascending: true });
       tables[type] = data || [];
     }));

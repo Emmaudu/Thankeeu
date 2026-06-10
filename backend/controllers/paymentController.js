@@ -220,22 +220,31 @@ const initContribution = async (req, res) => {
     const txRef = `TK-GIFT-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
     const amountNaira = Number(amount);
 
-    const payload = {
-      tx_ref:         txRef,
-      amount:         amountNaira,
-      currency:       'NGN',
-      // RC5 fix: redirect_url must point to the FRONTEND (Vercel URL), not APP_URL (backend)
-      // Set FRONTEND_URL in Railway env vars to your Vercel domain (e.g. https://thankeeu.com)
-      const frontendBase = (process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com').replace(/\/$/, '');
-      redirect_url:   `${frontendBase}/sign/${card_slug}?contributed=1`,
-      customer:       { email: contributor_email, name: contributor_name || contributor_email },
-      customizations: {
-        title: `Gift for ${card.recipient_name}`,
-        description: `Contribute to ${card.title || card.recipient_name + "'s card"}`,
-        logo: `${process.env.APP_URL}/logo.png`,
-      },
-      meta: { type: 'gift_contribution', card_id: card.id, card_slug },
-    };
+const frontendBase =
+  (process.env.FRONTEND_URL ||
+   process.env.APP_URL ||
+   'https://thankeeu.com').replace(/\/$/, '');
+
+const payload = {
+  tx_ref: txRef,
+  amount: amountNaira,
+  currency: 'NGN',
+  redirect_url: `${frontendBase}/sign/${card_slug}?contributed=1`,
+  customer: {
+    email: contributor_email,
+    name: contributor_name || contributor_email
+  },
+  customizations: {
+    title: `Gift for ${card.recipient_name}`,
+    description: `Contribute to ${card.title || card.recipient_name + "'s card"}`,
+    logo: `${process.env.APP_URL}/logo.png`,
+  },
+  meta: {
+    type: 'gift_contribution',
+    card_id: card.id,
+    card_slug
+  }
+};
 
     const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
     if (r.data.status !== 'success') throw new Error(r.data.message);

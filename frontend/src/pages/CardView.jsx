@@ -122,27 +122,35 @@ const MediaCarousel = ({ items, large = false }) => {
   const [idx, setIdx] = useState(0);
   if (!items || items.length === 0) return null;
   const item = items[idx];
+  // Card-bottom media: fixed 200px height, full width, object-cover for a clean display
+  const imgClass = large ? 'w-full object-contain max-h-[65vh]' : 'w-full object-cover';
+  const containerStyle = large ? {} : { height: '200px', background: '#000' };
   return (
-    <div className="relative">
-      {item.media_type === 'video' && <video src={item.media_url} controls className={`w-full rounded-2xl object-cover ${large ? 'max-h-[60vh]' : 'h-36'}`} />}
+    <div className="relative overflow-hidden" style={containerStyle}>
+      {item.media_type === 'video' && (
+        <video src={item.media_url} controls
+          className={large ? 'w-full max-h-[65vh]' : 'w-full h-full object-cover'} />
+      )}
       {item.media_type === 'voice' && (
-        <div className="rounded-2xl bg-white/75 border border-white p-3 flex items-center gap-3">
-          <span className="text-2xl">🎧</span><audio src={item.media_url} controls className="w-full" />
+        <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-white/10 p-4">
+          <span className="text-4xl">🎧</span>
+          <audio src={item.media_url} controls className="w-full max-w-xs" />
         </div>
       )}
       {(!item.media_type || item.media_type === 'image' || item.media_type === 'gif') && (
-        <img src={item.media_url} alt="" className={`w-full rounded-2xl object-cover ${large ? 'max-h-[60vh]' : 'h-36'}`} />
+        <img src={item.media_url} alt=""
+          className={large ? 'w-full max-h-[65vh] object-contain' : 'w-full h-full object-cover'} />
       )}
       {items.length > 1 && (
         <>
           <button onClick={e => { e.stopPropagation(); setIdx(i => (i - 1 + items.length) % items.length); }}
-            className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white text-xs flex items-center justify-center">‹</button>
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white text-sm flex items-center justify-center hover:bg-black/80 transition-colors">‹</button>
           <button onClick={e => { e.stopPropagation(); setIdx(i => (i + 1) % items.length); }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/50 text-white text-xs flex items-center justify-center">›</button>
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/60 text-white text-sm flex items-center justify-center hover:bg-black/80 transition-colors">›</button>
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-            {items.map((_, i) => <div key={i} className="w-1.5 h-1.5 rounded-full transition-all" style={{ background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)' }} />)}
+            {items.map((_, i) => <div key={i} className="w-1.5 h-1.5 rounded-full transition-all" style={{ background: i === idx ? '#fff' : 'rgba(255,255,255,0.45)' }} />)}
           </div>
-          <div className="absolute top-2 right-2 bg-black/40 text-white text-xs px-2 py-0.5 rounded-full">{idx + 1}/{items.length}</div>
+          <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full font-medium">{idx + 1}/{items.length}</div>
         </>
       )}
     </div>
@@ -165,9 +173,9 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
   const [reacted, setReacted] = useState(false);
   const font = getFontStyle(message.font_style);
   const hasMedia = !!(message.media_url || message.media_gallery);
-  const truncateAt = hasMedia ? 100 : 160;
-  const isLong = (message.content?.length || 0) > truncateAt;
-  const preview = isLong ? message.content.slice(0, truncateAt).trimEnd() + '…' : message.content;
+  // Truncate at 140 chars; if media present we still show good amount of text
+  const isLong = (message.content?.length || 0) > 140;
+  const preview = isLong ? message.content.slice(0, 140).trimEnd() + '…' : message.content;
   const rotation = index % 3 === 0 ? '-.45deg' : index % 3 === 1 ? '.35deg' : '-.15deg';
 
   return (
@@ -175,12 +183,9 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
       className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border border-white/70 flex flex-col`}
       style={{ background: design.background, color: design.ink, transform: `rotate(${rotation})` }}
     >
-      {hasMedia && (
-        <button type="button" onClick={() => onOpen(message)} className="w-full block flex-shrink-0">
-          <Media message={message} />
-        </button>
-      )}
+      {/* ── Content area: author + text at the TOP ── */}
       <div className="p-5 flex flex-col flex-1">
+        {/* Author row */}
         <div className="flex items-start gap-3 mb-3">
           <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold bg-white/80 shadow-sm flex-shrink-0" style={{ color: design.accent }}>
             {message.author_name?.slice(0, 2).toUpperCase() || '??'}
@@ -191,13 +196,15 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
           </div>
           {message.is_private && canViewPrivate && <span title="Private message" className="text-base flex-shrink-0">🔒</span>}
         </div>
-        <button type="button" onClick={() => onOpen(message)} className="text-left flex-1 w-full">
+
+        {/* Message text */}
+        <button type="button" onClick={() => onOpen(message)} className="text-left w-full mb-3">
           <p
             className="whitespace-pre-wrap break-words"
             style={{
               color: design.ink,
               fontFamily: font.family,
-              fontSize: message.font_style === 'calligraphy' ? '1.5rem' : message.font_style === 'handwritten' ? '1.2rem' : '0.95rem',
+              fontSize: message.font_style === 'calligraphy' ? '1.45rem' : message.font_style === 'handwritten' ? '1.15rem' : '0.95rem',
               lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
             }}
           >
@@ -209,7 +216,9 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
             </span>
           )}
         </button>
-        <div className="mt-auto pt-3">
+
+        {/* Gift + reaction row */}
+        <div className="mt-auto">
           {message.contributed_amount > 0 && (
             <div className="mb-2 rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center justify-between">
               <span className="text-xs font-bold" style={{ color: design.ink }}>🎁 Gift</span>
@@ -230,6 +239,18 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
           </button>
         </div>
       </div>
+
+      {/* ── Media at the BOTTOM — full width, well displayed ── */}
+      {hasMedia && (
+        <button
+          type="button"
+          onClick={() => onOpen(message)}
+          className="w-full block flex-shrink-0 overflow-hidden"
+          style={{ maxHeight: '220px' }}
+        >
+          <Media message={message} />
+        </button>
+      )}
     </article>
   );
 };

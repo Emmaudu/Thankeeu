@@ -240,22 +240,9 @@ const initContribution = async (req, res) => {
     // Pre-create pending contribution
     await upsertContribution({ cardId: card.id, txRef, amount: amountNaira, contributorName: contributor_name, contributorEmail: contributor_email, messageId: message_id || null });
 
-    // Generate integrity_hash to prevent frontend payload tampering
-    const checkoutPayload = {
-      public_key:     process.env.FLW_PUBLIC_KEY,
-      tx_ref:         txRef,
-      amount:         amountNaira,
-      currency:       'NGN',
-      payment_options:'card,ussd,bank_transfer',
-      customer:       { email: contributor_email, name: contributor_name || contributor_email },
-    };
-    const integrity_hash = generateIntegrityHash(checkoutPayload);
-
     res.json({
       payment_link:  r.data.data.link,
       tx_ref:        txRef,
-      access_code:   txRef,
-      ...(integrity_hash && { integrity_hash }),
     });
   } catch (err) {
     console.error('initContribution error:', err.response?.data || err.message);
@@ -365,14 +352,7 @@ const initCardFee = async (req, res) => {
     const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
     if (r.data.status !== 'success') throw new Error(r.data.message);
 
-    const integrityPayload = {
-      public_key: process.env.FLW_PUBLIC_KEY,
-      tx_ref: txRef, amount: 5000, currency: 'NGN',
-      customer: { email, name: displayName },
-    };
-    const integrity_hash = generateIntegrityHash(integrityPayload);
-
-    res.json({ payment_link: r.data.data.link, tx_ref: txRef, access_code: txRef, ...(integrity_hash && { integrity_hash }) });
+    res.json({ payment_link: r.data.data.link, tx_ref: txRef });
   } catch (err) {
     console.error('initCardFee:', err.response?.data || err.message);
     res.status(500).json({ error: 'Failed to initialize card fee' });

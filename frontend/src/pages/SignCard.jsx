@@ -196,7 +196,7 @@ const SignCard = () => {
         amount:            amountNGN,
         message_id:        messageId,
       });
-      const { payment_link, tx_ref, integrity_hash } = payRes.data;
+      const { payment_link, tx_ref } = payRes.data;
 
       // ── STEP 4: Open Flutterwave inline checkout ───────────────────────────
       // RC5 fix: only use inline checkout if public_key is configured; else fall through to hosted
@@ -210,9 +210,6 @@ const SignCard = () => {
           payment_options: 'card,ussd,bank_transfer',
           customer:        { email: form.author_email, name: form.author_name },
           customizations:  { title: `Gift for ${card?.recipient_name}`, logo: '/logo.png' },
-          // RC1 fix: integrity_hash is a TOP-LEVEL field, NOT inside meta{}
-          ...(integrity_hash ? { integrity_hash } : {}),
-
           // RC2 fix: call closePaymentModal() SYNCHRONOUSLY first, then do async work
           callback: (response) => {
             // closePaymentModal() MUST be called synchronously to signal FLW the payment is done

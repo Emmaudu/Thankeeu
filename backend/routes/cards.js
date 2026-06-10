@@ -6,7 +6,8 @@ const { memberAuth } = require('../middleware/memberAuth');
 const {
   createCard, getUserCards, getCard, updateCard,
   activateCard, sendCard, deleteCard, getPublicCard,
-  getRecipientCard, claimGift, getMemberCards, approveCardScope
+  getRecipientCard, claimGift, getMemberCards, approveCardScope,
+  getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember
 } = require('../controllers/cardController');
 
 // Flexible auth — accepts individual user, team member, OR HR company token
@@ -69,5 +70,64 @@ router.post('/:slug/send', anyAuth, sendCard);
 router.delete('/:slug', anyAuth, deleteCard);
 // HR approves company-wide notification scope
 router.post('/:slug/approve-scope', companyAuth, approveCardScope);
+
+
+// ── Company HR card management ─────────────────────────────────────────────
+router.get('/company/mine',       companyAuth, getCompanyCards);
+router.get('/company/delivered',  companyAuth, getCompanyDeliveredCards);
+router.get('/company/received',   companyAuth, getCompanyReceivedCards);
+router.post('/:slug/transfer',    companyAuth, transferCardToMember);
+
+
+// POST /:slug/notify-signers — HR notifies department or all members to sign a card
+router.post('/:slug/notify-signers', companyAuth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { scope, department } = req.body; // scope: 'all' | 'department'
+
+    const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).single();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    // Get members to notify
+    const supabaseClient = require('../utils/supabase');
+    let query = supabaseClient.from('company_members')
+      .select('email, first_name, id').eq('company_id', req.company.id).eq('status', 'approved');
+    if (scope === 'department' && department) query = query.eq('department', department);
+    const { data: members } = await query;
+
+    const { sendEmail } = require('../utils/email');
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    let sent = 0;
+    for (const m of (members || [])) {
+      if (m.email === card.recipient_email) continue;
+      await sendEmail({ to: m.email, template: 'occasionNotice', data: {
+        icon: '💌',
+        occasionLabel: card.occasion?.replace(/_/g,' ') || 'occasion',
+        memberName: card.recipient_name,
+        memberFirstName: card.recipient_name?.split(' ')[0] || 'them',
+        department: department || 'the team',
+        companyName: req.company.name,
+        cardSlug: slug,
+        giftEnabled: card.is_gift_enabled,
+        occasionDate: card.send_date ? new Date(card.send_date).toLocaleDateString('en-NG', {day:'numeric',month:'long',year:'numeric'}) : 'soon',
+        daysLeft: 7,
+        deadline: card.deadline ? new Date(card.deadline).toLocaleDateString('en-NG', {day:'numeric',month:'long'}) : 'soon',
+      }}).catch(() => {});
+      sent++;
+    }
+
+    const { logActivity } = require('../utils/activityLog');
+    await logActivity({ company_id: req.company.id, actor_id: req.company.id,
+      actor_type: 'hr', actor_name: req.company.name,
+      action: 'notified_signers', entity_type: 'card', entity_id: card.id,
+      entity_name: card.title || `For ${card.recipient_name}`,
+      details: { scope, department, sent }
+    }).catch(() => {});
+
+    res.json({ message: `Notified ${sent} team member${sent !== 1 ? 's' : ''} to sign the card.`, sent });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to send notifications' });
+  }
+});
 
 module.exports = router;

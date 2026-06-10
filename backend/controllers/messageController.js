@@ -1,4 +1,5 @@
-const supabase = require('../utils/supabase');
+const supabase      = require('../utils/supabase');
+const FRONTEND_URL  = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const { upload } = require('../utils/cloudinary');
 
 const parseBoolean = value => value === true || value === 'true' || value === '1';
@@ -23,7 +24,7 @@ const addMessage = async (req, res) => {
     if (primaryFile) {
       // For Cloudinary: file.path is already a full URL
       // For local storage: file.path is an absolute filesystem path; convert to web URL
-      const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || '';
+      const appUrl = FRONTEND_URL;
       media_url = primaryFile.path?.startsWith('http')
         ? primaryFile.path
         : `${appUrl}/uploads/${require('path').basename(primaryFile.path)}`;
@@ -35,7 +36,7 @@ const addMessage = async (req, res) => {
     }
 
     // Additional gallery files
-    const appUrl2 = process.env.APP_URL || process.env.FRONTEND_URL || '';
+    const appUrl2 = FRONTEND_URL;
     const galleryFiles = (req.files || []).filter(f => f.fieldname !== 'media' && f.fieldname.startsWith('media_gallery'));
     const media_gallery = galleryFiles.length > 0
       ? JSON.stringify(galleryFiles.map(f => ({
@@ -179,7 +180,7 @@ const sendReply = async (req, res) => {
 
     // Send thank-you reply email to each signer
     const cardTitle = card.title || `${card.recipient_name}'s card`;
-    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com';
+    const appUrl = FRONTEND_URL;
 
     const emailPromises = uniqueSigners.map(signer =>
       sendEmail({

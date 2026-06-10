@@ -1,4 +1,5 @@
-const supabase = require('../utils/supabase');
+const supabase      = require('../utils/supabase');
+const FRONTEND_URL  = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const { sendEmail } = require('../utils/email');
 
 // Calculate next reminder date based on occasion date + frequency
@@ -127,7 +128,7 @@ const processDueReminders = async () => {
           occasion: r.occasion,
           occasionDate: new Date(r.occasion_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }),
           daysUntil: Math.max(daysUntil, 7),
-          createLink: `${process.env.APP_URL}/create-card`,
+          createLink: `${FRONTEND_URL}/create-card`,
         }
       });
 

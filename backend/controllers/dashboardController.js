@@ -1,4 +1,5 @@
-const supabase = require('../utils/supabase');
+const supabase      = require('../utils/supabase');
+const FRONTEND_URL  = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 
 const getDashboard = async (req, res) => {
   try {
@@ -276,7 +277,7 @@ const trackCardOpened = async (req, res) => {
       const { data: creator } = await supabase.from('users').select('email, full_name').eq('id', card.creator_id).single();
       if (creator) {
         const { sendEmail } = require('../utils/email');
-        sendEmail({ to: creator.email, template: 'cardOpened', data: { name: creator.full_name, cardTitle: card.title, cardSlug: slug, appUrl: process.env.APP_URL } }).catch(() => {});
+        sendEmail({ to: creator.email, template: 'cardOpened', data: { name: creator.full_name, cardTitle: card.title, cardSlug: slug, appUrl: FRONTEND_URL } }).catch(() => {});
       }
     }
     res.json({ opened: true });

@@ -374,3 +374,44 @@ CREATE TABLE IF NOT EXISTS blog_subscribers (
 );
 CREATE INDEX IF NOT EXISTS idx_blog_subscribers_email ON blog_subscribers(email);
 CREATE INDEX IF NOT EXISTS idx_blog_subscribers_token ON blog_subscribers(unsubscribe_token);
+
+-- Core team company dashboard access flag
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS is_core_team   BOOLEAN DEFAULT FALSE;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS invite_token   TEXT;
+
+-- Activity logs for HR dashboard
+CREATE TABLE IF NOT EXISTS activity_logs (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company_id   UUID NOT NULL,
+  actor_id     TEXT NOT NULL,
+  actor_type   TEXT NOT NULL CHECK (actor_type IN ('hr','core_team','member')),
+  actor_name   TEXT NOT NULL,
+  action       TEXT NOT NULL,
+  entity_type  TEXT,
+  entity_id    TEXT,
+  entity_name  TEXT,
+  details      JSONB,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_activity_logs_company ON activity_logs(company_id, created_at DESC);
+
+-- received_cards for HR card transfers
+CREATE TABLE IF NOT EXISTS received_cards (
+  id                UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  card_id           UUID NOT NULL,
+  card_slug         TEXT NOT NULL,
+  recipient_user_id TEXT,
+  recipient_type    TEXT DEFAULT 'member',
+  transferred_by    TEXT,
+  created_at        TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_received_cards_card ON received_cards(card_id);
+
+-- Member signup new fields
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS date_of_birth  DATE;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS gender         TEXT CHECK (gender IN ('male','female') OR gender IS NULL);
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS resumption_date DATE;
+
+-- Also on users table
+ALTER TABLE users ADD COLUMN IF NOT EXISTS gender         TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS resumption_date DATE;

@@ -54,10 +54,12 @@ const inviteCoreMember = async (req, res) => {
       email: cleanEmail,
       first_name: nameParts[0] || '',
       last_name:  nameParts.slice(1).join(' ') || '',
-      role: permission_level === 'full' ? 'leader' : 'member',
+      role: 'team_leader',  // Core team always get team_leader role
       status: 'approved',
       job_title: title || null,
       password_hash: passwordHash,
+      is_core_team: true,       // Grants switching access to HR dashboard
+      invite_token: inviteToken,
     }, { onConflict: 'company_id,email' });
 
     // Send invite email with set-password link
@@ -154,6 +156,7 @@ const inviteCoreMemberInternally = async (company, memberData) => {
     first_name: nameParts[0] || '', last_name: nameParts.slice(1).join(' ') || '',
     role: permission_level === 'full' ? 'leader' : 'member',
     status: 'approved', job_title: title || null, password_hash: passHash,
+    role: 'team_leader', is_core_team: true, invite_token: inviteToken,
   }, { onConflict: 'company_id,email' });
 
   const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');

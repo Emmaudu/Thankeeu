@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useMemberAuth } from '../../context/MemberAuthContext';
+import { useCompanyAuth } from '../../context/CompanyAuthContext';
 
 const MemberLayout = ({ children, title, subtitle }) => {
   const { member, logout } = useMemberAuth();
@@ -98,6 +99,35 @@ const MemberLayout = ({ children, title, subtitle }) => {
 
       {/* Company tag + Sign out */}
       <div className="px-3 pb-5 pt-2 flex-shrink-0" style={{ borderTop:'1px solid rgba(124,110,255,0.1)' }}>
+        {/* Core team: switch to HR dashboard (core team only, not regular leaders) */}
+        {member?.is_core_team && (
+          <div className="px-3 mb-2">
+            <button
+              onClick={async () => {
+                try {
+                  const base = import.meta.env.VITE_API_URL || '/api';
+                  const tok  = localStorage.getItem('thankeeu_member_token');
+                  const r    = await fetch(`${base}/core-team/get-company-access`, {
+                    method:  'POST',
+                    headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+                  });
+                  const d = await r.json();
+                  if (!r.ok) { import('react-hot-toast').then(m => m.default.error(d.error || 'Access denied')); return; }
+                  // Store the temporary company token so CompanyProtectedRoute passes
+                  localStorage.setItem('thankeeu_company_token', d.token);
+                  localStorage.setItem('thankeeu_company',       JSON.stringify(d.company));
+                  window.location.href = '/company/dashboard';
+                } catch {
+                  import('react-hot-toast').then(m => m.default.error('Could not switch to HR view'));
+                }
+              }}
+              className="flex items-center gap-2.5 w-full py-2.5 px-3 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+              style={{ background:'rgba(124,110,255,0.12)', color:'#9D95FF', border:'1.5px solid rgba(124,110,255,0.25)' }}>
+              <span className="text-base">🏢</span>
+              <span>Switch to HR View</span>
+            </button>
+          </div>
+        )}
         {member?.company?.name && (
           <div className="px-3 py-2 rounded-xl text-sm" style={{ background:'rgba(255,255,255,0.04)', color:'#6B678A' }}>
             🏢 {member.company.name}

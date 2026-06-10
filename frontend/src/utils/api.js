@@ -122,6 +122,7 @@ export const authAPI = {
 export const cardsAPI = {
   create:           (data)         => api.post('/cards', data),
   createAsCompany:  (data)         => companyAxios.post('/cards', data),
+  notifySigners:    (slug, data)    => companyAxios.post(`/cards/${slug}/notify-signers`, data),
   getAll:           ()             => api.get('/cards'),
   getOne:           (slug, token)  => api.get(`/cards/${slug}${token ? `?token=${token}` : ''}`),
   getOneAsCompany:  (slug)         => companyAxios.get(`/cards/${slug}`),

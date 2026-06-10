@@ -35,6 +35,7 @@ const JoinCompanySignup = () => {
     first_name: '', last_name: '', email: '',
     password: '', role: 'team_member',
     department: '', custom_department: '',
+    gender: '', resumption_date: '', date_of_birth: '',
   });
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 

@@ -1,4 +1,7 @@
-const XLSX = require('xlsx');
+const XLSX   = require('xlsx');
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
 const { nanoid } = require('nanoid');
 
@@ -16,7 +19,7 @@ const OCCASION_CONFIGS = {
   graduation:       { label: 'Graduation',         icon: '🎓', dateCol: 'Graduation Date (DD-MM-YYYY)', genderCol: false, notifyDays: 7 },
   new_baby:         { label: 'New Baby',           icon: '👶', dateCol: 'Due/Birth Date (DD-MM-YYYY)', genderCol: false, notifyDays: 7 },
   retirement:       { label: 'Retirement',         icon: '🏖️', dateCol: 'Retirement Date (DD-MM-YYYY)', genderCol: false, notifyDays: 14 },
-  new_hire:         { label: 'New Employee Welcome',icon: '🌟', dateCol: 'Start Date (DD-MM-YYYY)',       genderCol: false, notifyDays: 0,  isWelcome: true },
+  new_hire:         { label: 'New Employee Welcome',icon: '🌟', dateCol: 'Start Date (DD-MM-YYYY)',       genderCol: false, notifyDays: 3,  isWelcome: true },
 };
 
 const parseDateCol = (raw) => {
@@ -186,7 +189,42 @@ const importOccasionMembers = async (req, res) => {
       .select();
     if (error) throw error;
 
-    res.json({ message: `Imported ${data.length} members`, imported: data.length, row_errors: errors });
+    // Create member accounts + send invites for all successfully imported rows
+    const { data: companyData } = await supabase.from('companies').select('name').eq('id', req.company.id).single();
+    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+
+    for (const row of toInsert) {
+      const inviteToken = crypto.randomBytes(24).toString('hex');
+      const tempPass    = crypto.randomBytes(8).toString('hex');
+      const passHash    = await bcrypt.hash(tempPass, 12);
+      const nameParts   = row.first_name ? [row.first_name, row.last_name] : ['Member', ''];
+
+      // Upsert member account
+      await supabase.from('company_members').upsert({
+        company_id:    req.company.id,
+        email:         row.email,
+        first_name:    row.first_name,
+        last_name:     row.last_name,
+        department:    row.department,
+        gender:        row.gender || null,
+        role:          'member',
+        status:        'approved',
+        password_hash: passHash,
+        invite_token:  inviteToken,
+      }, { onConflict: 'company_id,email' }).catch(() => {});
+
+      // Send invite email
+      const setPasswordLink = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(row.email)}`;
+      await sendEmail({ to: row.email, template: 'teamMemberInvite', data: {
+        name:        row.first_name,
+        companyName: companyData?.name || 'Your Company',
+        companyCode: req.company.id,
+        inviteLink:  setPasswordLink,
+        appUrl:      frontendUrl,
+      }}).catch(() => {});
+    }
+
+    res.json({ message: `Imported ${data.length} members — accounts created and invites sent`, imported: data.length, row_errors: errors });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Import failed' });
@@ -419,11 +457,103 @@ const updateOccasionMember = async (req, res) => {
   } catch (err) { res.status(500).json({ error:'Failed to update' }); }
 };
 
+
+// POST /api/occasions/members/:memberId/trigger — immediately create card + notify for new_hire/promotion
+const triggerOccasionNow = async (req, res) => {
+  try {
+    const { memberId } = req.params;
+    const { data: m } = await supabase.from('occasion_members')
+      .select('*, occasion_types(*)').eq('id', memberId).eq('company_id', req.company.id).single();
+    if (!m) return res.status(404).json({ error: 'Member not found' });
+
+    const ot = m.occasion_types;
+    if (!ot || !['new_hire','promotion'].includes(ot.name))
+      return res.status(400).json({ error: 'Immediate trigger only available for New Hire and Promotion occasions' });
+
+    // Check if already triggered this year
+    if (m.last_dept_notified_at) {
+      const yr = new Date(m.last_dept_notified_at).getFullYear();
+      if (yr === new Date().getFullYear())
+        return res.status(400).json({ error: 'Card already created for this occasion this year' });
+    }
+
+    const { data: company } = await supabase.from('companies').select('*').eq('id', req.company.id).single();
+    const { nanoid } = require('nanoid');
+    const slug      = `${m.first_name.toLowerCase()}-${ot.name.replace('_','-')}-${nanoid(6)}`;
+    // 5-day signing window, then auto-deliver
+    const sendDate  = new Date(Date.now() + 5 * 86400000);
+    const deadline  = sendDate;
+    const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+
+    // Guard: check no existing card with same slug pattern this year
+    const { data: existingCard } = await supabase.from('cards')
+      .select('id').eq('occasion_type_id', ot.id).eq('recipient_email', m.email)
+      .gte('created_at', `${new Date().getFullYear()}-01-01`).maybeSingle();
+    if (existingCard) return res.status(400).json({ error: 'Card already exists for this person this occasion year' });
+
+    const { data: card } = await supabase.from('cards').insert({
+      slug, recipient_name: `${m.first_name} ${m.last_name}`,
+      recipient_email: m.email, occasion: ot.name,
+      title: ot.name === 'promotion'
+        ? `Congratulations on your promotion, ${m.first_name}! ${ot.icon}`
+        : `Welcome to ${company.name}, ${m.first_name}! ${ot.icon}`,
+      design_theme: 'rose_love', background_color: '#FBEAF0',
+      status: 'active', is_gift_enabled: true, gift_type: 'pot',
+      suggested_amount: 2500, send_date: sendDate.toISOString(),
+      deadline: deadline.toISOString(), allow_private_messages: true,
+      company_id: req.company.id, occasion_type_id: ot.id,
+      notification_scope: ot.default_scope || 'department',
+    }).select().single();
+    if (!card) throw new Error('Card creation failed');
+
+    await supabase.from('occasion_members')
+      .update({ card_slug: slug, last_dept_notified_at: new Date() })
+      .eq('id', memberId);
+
+    // Create contribution wallet
+    try {
+      await supabase.from('contribution_wallets').insert({
+        card_id: card.id, company_id: req.company.id,
+        total_contributed: 0, platform_fee: 0, net_after_fee: 0, amount_to_celebrant: 0,
+      });
+    } catch {}
+
+    // Notify colleagues
+    let membersQuery = supabase.from('company_members')
+      .select('email, first_name').eq('company_id', req.company.id).eq('status', 'approved').neq('email', m.email);
+    if (ot.default_scope === 'department') membersQuery = membersQuery.eq('department', m.department);
+    const { data: colleagues } = await membersQuery;
+
+    const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
+    let sent = 0;
+    for (const col of (colleagues || [])) {
+      const tmpl = ot.name === 'new_hire' ? 'newHireDeptNotice' : 'occasionNotice';
+      await sendEmail({ to: col.email, template: tmpl, data: {
+        icon: ot.icon, occasionLabel: ot.label,
+        newHireName: `${m.first_name} ${m.last_name}`, newHireFirstName: m.first_name,
+        memberName: `${m.first_name} ${m.last_name}`, memberFirstName: m.first_name,
+        department: m.department, companyName: company.name,
+        startDate: new Date().toLocaleDateString('en', { day:'numeric', month:'long', year:'numeric' }),
+        jobTitle: m.job_title || '',
+        cardSlug: slug, giftEnabled: true,
+        occasionDate: new Date().toLocaleDateString('en', { day:'numeric', month:'long' }),
+        daysLeft: 5, deadline: dlStr,
+      }}).catch(() => {});
+      sent++;
+    }
+
+    res.json({ message: `Card created and ${sent} colleagues notified to sign. Card will be delivered in 5 days.`, card_slug: slug, sent });
+  } catch (err) {
+    console.error('triggerOccasionNow:', err);
+    res.status(500).json({ error: err.message || 'Trigger failed' });
+  }
+};
+
 module.exports = {
   OCCASION_CONFIGS,
   getOccasionTypes, createOccasionType,
   downloadOccasionTemplate, importOccasionMembers,
   getOccasionMembers, deleteOccasionMember,
   downloadGeneralTemplate, importGeneralTemplate,
-  updateOccasionTypeScope, updateOccasionMember,
+  updateOccasionTypeScope, updateOccasionMember, triggerOccasionNow,
 };

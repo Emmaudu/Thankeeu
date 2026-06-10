@@ -45,7 +45,8 @@ const validateDomain = async (memberEmail, companyId) => {
 // POST /api/members/signup
 const memberSignup = async (req, res) => {
   try {
-    const { company_code, first_name, last_name, email, password, role, department, profile_picture_url } = req.body;
+    const { company_code, first_name, last_name, email, password, role, department, profile_picture_url,
+            gender, resumption_date, date_of_birth } = req.body;
 
     if (!company_code) return res.status(400).json({ error: 'Company code is required' });
 
@@ -87,7 +88,8 @@ const memberSignup = async (req, res) => {
         // Already approved (imported + approved by HR), just set password
         const { data: updated, error } = await supabase
           .from('company_members')
-          .update({ first_name, last_name, password_hash, department: department || undefined, profile_picture_url: profile_picture_url || null })
+          .update({ first_name, last_name, password_hash, department: department || undefined, profile_picture_url: profile_picture_url || null,
+            gender: gender || null, resumption_date: resumption_date || null, date_of_birth: date_of_birth || null })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
           .single();
@@ -115,6 +117,33 @@ const memberSignup = async (req, res) => {
       member = inserted; memberError = error;
     }
     if (memberError) throw memberError;
+
+    // Auto-sync to occasion tables based on signup fields
+    setImmediate(async () => {
+      try {
+        const { data: ots } = await supabase.from('occasion_types')
+          .select('*').eq('company_id', company.id).eq('is_active', true);
+        if (!ots || !ots.length) return;
+        const typeMap = Object.fromEntries(ots.map(o => [o.name, o]));
+        const yr = new Date().getFullYear();
+        const memberBase = { company_id: company.id, first_name, last_name, email: email.toLowerCase().trim(), department, gender: gender || null };
+
+        if (date_of_birth && typeMap.birthday) {
+          const dob = new Date(date_of_birth);
+          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.birthday.id, occasion_date: `${yr}-${String(dob.getMonth()+1).padStart(2,'0')}-${String(dob.getDate()).padStart(2,'0')}` }, { onConflict: 'company_id,occasion_type_id,email' });
+        }
+        if (resumption_date && typeMap.work_anniversary) {
+          const rd = new Date(resumption_date);
+          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.work_anniversary.id, occasion_date: `${yr}-${String(rd.getMonth()+1).padStart(2,'0')}-${String(rd.getDate()).padStart(2,'0')}` }, { onConflict: 'company_id,occasion_type_id,email' });
+        }
+        if (gender === 'female' && typeMap.womens_day)
+          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.womens_day.id, occasion_date: `${yr}-03-08` }, { onConflict: 'company_id,occasion_type_id,email' });
+        if (gender === 'male' && typeMap.mens_day)
+          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.mens_day.id, occasion_date: `${yr}-11-19` }, { onConflict: 'company_id,occasion_type_id,email' });
+        if (typeMap.valentines_day)
+          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.valentines_day.id, occasion_date: `${yr}-02-14` }, { onConflict: 'company_id,occasion_type_id,email' });
+      } catch (e) { console.error('Post-signup occasion sync:', e.message); }
+    });
 
     // Notify HR + team leader
     const { data: hrCompany } = await supabase.from('companies').select('email, name, contact_person').eq('id', company.id).single();

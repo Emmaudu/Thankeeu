@@ -59,7 +59,7 @@ const Dashboard = () => {
           let verification;
           for (let attempt = 0; attempt < 4; attempt += 1) {
             try {
-              verification = await paymentsAPI.verifyPurchase(ref);
+              verification = await paymentsAPI.verifyCardFee(ref);
               break;
             } catch (verifyError) {
               if (attempt === 3) throw verifyError;

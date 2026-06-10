@@ -1,4 +1,5 @@
-const supabase = require('../utils/supabase');
+const supabase      = require('../utils/supabase');
+const FRONTEND_URL  = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const { sendEmail } = require('../utils/email');
 
 const trackVisitor = async (req, res) => {
@@ -66,8 +67,8 @@ const sendNudgeEmails = async () => {
       await sendEmail({ to: v.email, template: 'visitorNudge', data: {
         name: v.full_name || 'Friend', occasion: v.occasion || 'special occasion',
         creatorName: v.creator_name || 'someone',
-        signupLink: `${process.env.APP_URL}/signup`,
-        appUrl: process.env.APP_URL || 'https://thankeeu.com',
+        signupLink: `${FRONTEND_URL}/signup`,
+        appUrl: FRONTEND_URL,
       }});
       await supabase.from('visitors').update({ nudge_count: (v.nudge_count || 0) + 1, last_nudged_at: new Date() }).eq('id', v.id);
     } catch {}

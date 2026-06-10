@@ -186,4 +186,30 @@ const companyResetPassword = async (req, res) => {
   }
 };
 
-module.exports = { companySignup, companyLogin, getCompanyMe, updateCompanyProfile, changeCompanyPassword, companyForgotPassword, companyResetPassword };
+
+// POST /api/company/upload-logo — upload company logo to Cloudinary
+const uploadCompanyLogo = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const cloudinary = require('cloudinary').v2;
+    // Cloudinary configured via env: CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'thankeeu/company-logos', transformation: [{ width: 400, height: 400, crop: 'fill', quality: 'auto' }] },
+        (err, res) => err ? reject(err) : resolve(res)
+      );
+      stream.end(req.file.buffer);
+    });
+    // Save to DB
+    await supabase.from('companies')
+      .update({ logo_url: result.secure_url, updated_at: new Date() })
+      .eq('id', req.company.id);
+    res.json({ logo_url: result.secure_url });
+  } catch (err) {
+    console.error('Logo upload error:', err);
+    res.status(500).json({ error: 'Logo upload failed: ' + err.message });
+  }
+};
+
+module.exports = {
+  uploadCompanyLogo, companySignup, companyLogin, getCompanyMe, updateCompanyProfile, changeCompanyPassword, companyForgotPassword, companyResetPassword };

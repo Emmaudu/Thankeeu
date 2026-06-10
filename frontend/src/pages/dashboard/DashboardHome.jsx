@@ -49,7 +49,7 @@ export default function DashboardHome() {
         try {
           let verification;
           for (let i = 0; i < 4; i++) {
-            try { verification = await paymentsAPI.verifyPurchase(ref); break; }
+            try { verification = await paymentsAPI.verifyCardFee(ref); break; }
             catch (e) { if (i === 3) throw e; await new Promise(r => setTimeout(r, 750*(i+1))); }
           }
           const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || 'null');

@@ -120,12 +120,30 @@ const SettingsPage = () => {
                   Upload logo
                 </button>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden"
-                  onChange={e => {
+                  onChange={async e => {
                     const file = e.target.files[0];
-                    if (file) {
-                      const url = URL.createObjectURL(file);
-                      setProfile(p => ({ ...p, logo_url: url }));
-                      toast('Logo preview updated. Save to apply.', { icon: '💡' });
+                    if (!file) return;
+                    // Show local preview immediately
+                    const localUrl = URL.createObjectURL(file);
+                    setProfile(p => ({ ...p, logo_url: localUrl }));
+                    // Upload to Cloudinary via backend
+                    try {
+                      const fd = new FormData();
+                      fd.append('logo', file);
+                      const base = import.meta.env.VITE_API_URL || '/api';
+                      const tok  = localStorage.getItem('thankeeu_company_token');
+                      const r = await fetch(`${base}/company/upload-logo`, {
+                        method: 'POST',
+                        headers: { Authorization: `Bearer ${tok}` },
+                        body: fd,
+                      });
+                      const d = await r.json();
+                      if (!r.ok) throw new Error(d.error || 'Upload failed');
+                      setProfile(p => ({ ...p, logo_url: d.logo_url }));
+                      toast.success('Logo uploaded! ✓ Click Save to apply.');
+                    } catch (err) {
+                      toast.error(err.message || 'Logo upload failed. Check Cloudinary settings.');
+                      setProfile(p => ({ ...p, logo_url: '' }));
                     }
                   }} />
               </div>

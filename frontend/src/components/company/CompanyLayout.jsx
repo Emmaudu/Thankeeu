@@ -4,8 +4,10 @@ import { useCompanyAuth } from '../../context/CompanyAuthContext';
 
 const NAV = [
   { path: '/company/dashboard',    icon: '🏠', label: 'Dashboard' },
-  { path: '/create-card',          icon: '💌', label: 'Create Card' },
   { path: '/company/occasions',    icon: '🎉', label: 'Occasions Manager' },
+  { path: '/create-card',          icon: '💌', label: 'Create Card' },
+  { path: '/company/my-cards',     icon: '🃏', label: 'My Cards' },
+  { path: '/company/activity',     icon: '📋', label: 'Activity Log' },
   { path: '/company/team-members', icon: '👥', label: 'Team Members' },
   { path: '/company/core-team',    icon: '🏢', label: 'Core Team' },
   { path: '/company/members',      icon: '✅', label: 'Approvals' },
@@ -24,6 +26,18 @@ const CompanyLayout = ({ children, title, subtitle }) => {
 
   const handleLogout = () => { logout(); navigate('/company/login'); };
   const isActive = (p) => location.pathname === p;
+  // Check if this company session was obtained via core team switching
+  const companyData = (() => {
+    try { return JSON.parse(localStorage.getItem('thankeeu_company') || '{}'); } catch { return {}; }
+  })();
+  const isViaCoreTeam = (() => {
+    try {
+      const tok = localStorage.getItem('thankeeu_company_token');
+      if (!tok) return false;
+      const payload = JSON.parse(atob(tok.split('.')[1]));
+      return !!payload.via_core_team;
+    } catch { return false; }
+  })();
 
   const initials = company?.name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'CO';
 

@@ -1,0 +1,266 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import CompanyLayout from '../../components/company/CompanyLayout';
+import { companyAxios } from '../../utils/api';
+import toast from 'react-hot-toast';
+import { format } from 'date-fns';
+import { formatNGN } from '../../utils/currency';
+
+const TABS = [
+  { id: 'my',        label: '📂 My Cards',       desc: 'Cards you created' },
+  { id: 'received',  label: '📥 Received',        desc: 'Cards sent to your company' },
+  { id: 'delivered', label: '✅ Delivered',        desc: 'Cards sent to recipients' },
+];
+
+const statusColor = {
+  draft: 'bg-warm-100 text-warm-500',
+  active: 'bg-blue-50 text-blue-600',
+  sent: 'bg-green-50 text-green-700',
+};
+
+const CardRow = ({ card, onCopyLink, onTransfer, onNotify }) => {
+  const FRONTEND = import.meta.env.VITE_API_URL?.replace('/api','') || 'https://thankeeu.com';
+  return (
+    <div className="bg-white rounded-2xl border border-purple-100 p-4 hover:shadow-sm transition-shadow">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <p className="font-semibold text-warm-900 text-sm truncate">{card.title || `For ${card.recipient_name}`}</p>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${statusColor[card.status] || statusColor.draft}`}>
+              {card.status}
+            </span>
+          </div>
+          <p className="text-xs text-warm-400">
+            Recipient: <strong className="text-warm-600">{card.recipient_name}</strong>
+            {card.recipient_email && ` · ${card.recipient_email}`}
+          </p>
+          <p className="text-xs text-warm-400 mt-0.5">
+            {card.occasion?.replace(/_/g,' ')} · {card.created_at ? format(new Date(card.created_at), 'MMM d, yyyy') : ''}
+            {card.total_collected > 0 && ` · 🎁 ${formatNGN(card.total_collected)}`}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 flex-shrink-0">
+          <Link to={`/card/${card.slug}`}
+            className="text-xs bg-primary-50 text-primary-600 hover:bg-primary-100 px-3 py-2 rounded-xl font-semibold transition-colors">
+            👁 View
+          </Link>
+          {card.status === 'active' && onNotify && (
+            <button onClick={() => onNotify(card)}
+              className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-xl font-semibold transition-colors">
+              📣 Notify signers
+            </button>
+          )}
+          {card.status === 'active' && (
+            <Link to={`/sign/${card.slug}`}
+              className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors">
+              ✍️ Sign link
+            </Link>
+          )}
+          <button onClick={() => onCopyLink(card)}
+            className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors">
+            🔗 Copy link
+          </button>
+          {card.status === 'active' && onNotify && (
+            <button onClick={() => onNotify(card)}
+              className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-xl font-semibold transition-colors">
+              📣 Notify signers
+            </button>
+          )}
+          {card.status === 'active' && (
+            <button onClick={() => { setNotifyCard(card); if (!departments.length) loadDepts(); }}
+              className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-2 rounded-xl font-semibold transition-colors">
+              📣 Notify
+            </button>
+          )}
+          {onTransfer && card.status !== 'draft' && (
+            <button onClick={() => onTransfer(card)}
+              className="text-xs border border-green-200 text-green-700 hover:bg-green-50 px-3 py-2 rounded-xl transition-colors">
+              ➡️ Transfer
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function CompanyMyCardsPage() {
+  const [tab, setTab]             = useState('my');
+  const [cards, setCards]         = useState([]);
+  const [loading, setLoading]     = useState(true);
+  const [members, setMembers]     = useState([]);
+  const [transferCard, setTransferCard] = useState(null);
+  const [transferMember, setTransferMember] = useState('');
+  const [transferring, setTransferring]     = useState(false);
+  const [notifyCard, setNotifyCard]         = useState(null);
+  const [notifyScope, setNotifyScope]       = useState('all');
+  const [notifyDept, setNotifyDept]         = useState('');
+  const [notifying, setNotifying]           = useState(false);
+  const [departments, setDepartments]       = useState([]);
+
+  useEffect(() => { fetchCards(); }, [tab]);
+
+  const fetchCards = async () => {
+    setLoading(true);
+    try {
+      const endpoint = tab === 'my' ? '/cards/company/mine'
+        : tab === 'received' ? '/cards/company/received'
+        : '/cards/company/delivered';
+      const r = await companyAxios.get(endpoint);
+      setCards(r.data || []);
+    } catch { toast.error('Failed to load cards'); setCards([]); }
+    finally { setLoading(false); }
+  };
+
+  const copyLink = (card) => {
+    const base = (import.meta.env.VITE_API_URL || 'https://thankeeu.com/api').replace('/api','');
+    const isActive = card.status === 'active';
+    const link = isActive ? `${base}/sign/${card.slug}` : `${base}/card/${card.slug}`;
+    navigator.clipboard.writeText(link);
+    toast.success(isActive ? '✓ Signing link copied!' : '✓ Card link copied!');
+  };
+
+  const loadDepts = async () => {
+    try {
+      const r = await companyAxios.get('/teams/all-members?limit=500');
+      const ms = Array.isArray(r.data) ? r.data : r.data?.members || [];
+      setDepartments([...new Set(ms.map(m => m.department).filter(Boolean))].sort());
+    } catch {}
+  };
+
+  const loadMembers = async () => {
+    if (members.length) return;
+    try {
+      const r = await companyAxios.get('/teams/all-members?limit=500');
+      setMembers(Array.isArray(r.data) ? r.data : r.data?.members || []);
+    } catch {}
+  };
+
+  const handleNotify = async () => {
+    if (!notifyCard) return;
+    setNotifying(true);
+    try {
+      const { cardsAPI } = await import('../../utils/api');
+      const res = await cardsAPI.notifySigners(notifyCard.slug, {
+        scope:      notifyScope,
+        department: notifyScope === 'department' ? notifyDept : undefined,
+      });
+      toast.success(res.data.message);
+      setNotifyCard(null);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Notification failed');
+    } finally { setNotifying(false); }
+  };
+
+  const handleTransfer = async () => {
+    if (!transferCard || !transferMember) return toast.error('Select a team member');
+    setTransferring(true);
+    try {
+      await companyAxios.post(`/cards/${transferCard.slug}/transfer`, { member_id: transferMember });
+      toast.success('Card transferred! Team member can now see it in their dashboard.');
+      setTransferCard(null);
+      setTransferMember('');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Transfer failed');
+    } finally { setTransferring(false); }
+  };
+
+  return (
+    <CompanyLayout title="My Cards 🃏" subtitle="Create, manage and share group cards">
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-purple-100 mb-6 overflow-x-auto" style={{scrollbarWidth:'none'}}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
+              tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-400 hover:text-warm-700'
+            }`}>
+            {t.label}
+          </button>
+        ))}
+        <div className="ml-auto pb-2 flex items-end">
+          <Link to="/create-card" className="btn-primary text-sm py-2 px-4">+ Create Card</Link>
+        </div>
+      </div>
+
+      {/* Cards list */}
+      {loading ? (
+        <div className="space-y-3">{[...Array(4)].map((_,i) => <div key={i} className="h-20 rounded-2xl animate-pulse bg-purple-50"/>)}</div>
+      ) : cards.length === 0 ? (
+        <div className="text-center py-16 rounded-2xl bg-white border-2 border-dashed border-purple-100">
+          <div className="text-5xl mb-4">{tab==='my'?'💌':tab==='received'?'📥':'✅'}</div>
+          <p className="font-semibold text-warm-900 mb-2">No {TABS.find(t=>t.id===tab)?.desc?.toLowerCase()} yet</p>
+          {tab === 'my' && <Link to="/create-card" className="btn-primary text-sm px-5 py-2.5">Create your first card</Link>}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {cards.map(card => (
+            <CardRow key={card.id} card={card} onCopyLink={copyLink}
+              onTransfer={tab === 'my' ? (c) => { setTransferCard(c); loadMembers(); } : null}
+              onNotify={tab === 'my' ? (c) => setNotifyCard(c) : null} />
+          ))}
+        </div>
+      )}
+
+      {/* Notify Signers modal */}
+      {notifyCard && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="font-bold text-warm-900 mb-1">📣 Notify team to sign</h3>
+            <p className="text-sm text-warm-500 mb-4">
+              <strong>{notifyCard.title || `For ${notifyCard.recipient_name}`}</strong> — choose who to notify by email and dashboard notification.
+            </p>
+            <div className="space-y-3 mb-5">
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border-2 transition-all" style={{borderColor: notifyScope==='all'?'#7C3AED':'#EDE9FF', background: notifyScope==='all'?'#F5F3FF':'white'}} onClick={()=>setNotifyScope('all')}>
+                <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${notifyScope==='all'?'border-primary-600 bg-primary-600':'border-warm-300'}`} />
+                <div><p className="text-sm font-semibold text-warm-900">All Departments</p><p className="text-xs text-warm-400">Everyone in the company will receive the notification</p></div>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border-2 transition-all" style={{borderColor: notifyScope==='department'?'#7C3AED':'#EDE9FF', background: notifyScope==='department'?'#F5F3FF':'white'}} onClick={()=>setNotifyScope('department')}>
+                <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${notifyScope==='department'?'border-primary-600 bg-primary-600':'border-warm-300'}`} />
+                <div><p className="text-sm font-semibold text-warm-900">Specific Department</p><p className="text-xs text-warm-400">Only the selected department gets notified</p></div>
+              </label>
+            </div>
+            {notifyScope === 'department' && (
+              <select className="input mb-4 text-sm" value={notifyDept} onChange={e=>setNotifyDept(e.target.value)}>
+                <option value="">— Select department —</option>
+                {departments.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            )}
+            <div className="flex gap-2 justify-end">
+              <button onClick={()=>{setNotifyCard(null); setNotifyScope('all'); setNotifyDept('');}} className="btn-secondary text-sm px-4 py-2">Cancel</button>
+              <button onClick={handleNotify} disabled={notifying || (notifyScope==='department' && !notifyDept)} className="btn-primary text-sm px-5 py-2">
+                {notifying ? 'Sending…' : '📣 Send notifications'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transfer modal */}
+      {transferCard && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <h3 className="font-bold text-warm-900 mb-2">Transfer card to team member</h3>
+            <p className="text-sm text-warm-500 mb-4">
+              <strong>{transferCard.title || `For ${transferCard.recipient_name}`}</strong> will appear in the team member's dashboard.
+            </p>
+            <select className="input mb-4 text-sm"
+              value={transferMember} onChange={e => setTransferMember(e.target.value)}>
+              <option value="">— Select team member —</option>
+              {members.map(m => (
+                <option key={m.id} value={m.id}>{m.first_name} {m.last_name} · {m.department}</option>
+              ))}
+            </select>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => { setTransferCard(null); setTransferMember(''); }}
+                className="btn-secondary text-sm px-4 py-2">Cancel</button>
+              <button onClick={handleTransfer} disabled={transferring || !transferMember}
+                className="btn-primary text-sm px-5 py-2">
+                {transferring ? 'Transferring…' : 'Transfer card'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </CompanyLayout>
+  );
+}

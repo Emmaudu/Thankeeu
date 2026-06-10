@@ -4,7 +4,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cron = require('node-cron');
-const supabase = require('./utils/supabase');
+const supabase      = require('./utils/supabase');
+const FRONTEND_URL  = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const { sendEmail } = require('./utils/email');
 
 const app = express();
@@ -94,7 +95,8 @@ app.use('/api/company', require('./routes/company'));
 app.use('/api/teams', require('./routes/teams'));
 app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/support', require('./routes/support'));
-app.use('/api/occasions', require('./routes/occasions'));
+app.use('/api/occasions',    require('./routes/occasions'));
+app.use('/api/activity-log', require('./routes/activityLog'));
 app.use('/api/members', require('./routes/companyMembers'));
 app.use('/api/deductions', require('./routes/deductions'));
 app.use('/api/hris', require('./routes/hris'));
@@ -189,118 +191,6 @@ app.listen(PORT, () => {
 });
 
 // CRON: Birthday automation for Teams — runs every day at 7AM
-cron.schedule('0 7 * * *', async () => {
-  console.log('Running birthday automation...');
-  try {
-    const today = new Date();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    const twoDays = new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000);
-    const mm2 = String(twoDays.getMonth() + 1).padStart(2, '0');
-    const dd2 = String(twoDays.getDate()).padStart(2, '0');
-
-    // Only process companies with active subscriptions
-    const { data: activeSubs } = await supabase.from('company_subscriptions').select('company_id').eq('status', 'active').gt('expires_at', today.toISOString());
-    const companyIds = (activeSubs || []).map(s => s.company_id);
-    if (!companyIds.length) return;
-
-    // 1. Notify departments 2 days before birthday
-    const { data: upcoming } = await supabase.from('team_members').select('*').in('company_id', companyIds).eq('is_active', true).ilike('birthday', `%-${mm2}-${dd2}`);
-    for (const m of (upcoming || [])) {
-      const year = today.getFullYear();
-      const { data: existing } = await supabase.from('birthday_automations').select('id,department_notified_at').eq('member_id', m.id).eq('year', year).maybeSingle();
-      if (existing?.department_notified_at) continue;
-
-      const { data: company } = await supabase.from('companies').select('*').eq('id', m.company_id).single();
-      const { nanoid } = require('nanoid');
-      const slug = `${m.first_name.toLowerCase()}-bday-${nanoid(6)}`;
-      const deadline = new Date(twoDays.getTime() + 48 * 3600000);
-
-      const { data: card } = await supabase.from('cards').insert({
-        slug, recipient_name: `${m.first_name} ${m.last_name}`, recipient_email: m.email,
-        occasion: 'birthday', title: `Happy Birthday, ${m.first_name}!`, design_theme: 'rose_love',
-        background_color: '#FBEAF0', status: 'active', is_gift_enabled: true, gift_type: 'pot',
-        suggested_amount: 2500, send_date: twoDays.toISOString(), deadline: deadline.toISOString(), allow_private_messages: true,
-      }).select().maybeSingle();
-
-      if (!card) continue;
-      await supabase.from('team_members').update({ card_slug: slug }).eq('id', m.id);
-      await supabase.from('birthday_automations').upsert({ company_id: m.company_id, member_id: m.id, card_slug: slug, year, department_notified_at: new Date() }, { onConflict: 'member_id,year' });
-
-      const { data: colleagues } = await supabase.from('team_members').select('email,first_name').eq('company_id', m.company_id).eq('department', m.department).eq('is_active', true).neq('id', m.id);
-      const bdStr = twoDays.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
-      const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
-
-      for (const col of (colleagues || [])) {
-        await sendEmail({ to: col.email, template: 'birthdayDeptNotice', data: { celebrantName: `${m.first_name} ${m.last_name}`, celebrantFirstName: m.first_name, department: m.department, birthdayDate: bdStr, companyName: company.name, cardSlug: slug, giftEnabled: true, deadline: dlStr } });
-      }
-      console.log(`Dept notified for ${m.first_name}: ${colleagues?.length || 0} emails`);
-    }
-
-    // 2. Send card to celebrant ON birthday
-    const { data: celebrants } = await supabase.from('team_members').select('*').in('company_id', companyIds).eq('is_active', true).ilike('birthday', `%-${mm}-${dd}`);
-    for (const m of (celebrants || [])) {
-      const year = today.getFullYear();
-      const { data: auto } = await supabase.from('birthday_automations').select('*').eq('member_id', m.id).eq('year', year).maybeSingle();
-      if (auto?.celebrant_notified_at) continue;
-      const cardSlug = auto?.card_slug || m.card_slug;
-      if (!cardSlug) continue;
-      const { data: card } = await supabase.from('cards').select('*').eq('slug', cardSlug).maybeSingle();
-      if (!card) continue;
-      const { data: msgs } = await supabase.from('messages').select('count').eq('card_id', card.id);
-      const count = msgs?.[0]?.count || 0;
-      const { data: co } = await supabase.from('companies').select('name').eq('id', m.company_id).single();
-      await sendEmail({ to: m.email, template: 'birthdayCelebrant', data: { firstName: m.first_name, companyName: co.name, cardSlug, accessToken: card.access_token, signerCount: count, giftAmount: card.total_collected > 0 ? card.total_collected : null } });
-      await supabase.from('cards').update({ status: 'sent', recipient_notified: true }).eq('slug', cardSlug);
-      await supabase.from('birthday_automations').update({ celebrant_notified_at: new Date(), total_signed: count, total_gift_collected: card.total_collected || 0 }).eq('member_id', m.id).eq('year', year);
-      await supabase.from('team_members').update({ last_birthday_card_sent: new Date(), card_signed_count: count }).eq('id', m.id);
-      console.log(`Birthday card delivered to ${m.first_name} ${m.last_name}`);
-    }
-
-    // ── Individual user birthday reminders (7 days and 2 days before) ──────────
-    const today7  = new Date(today); today7.setDate(today7.getDate() + 7);
-    const today2  = new Date(today); today2.setDate(today2.getDate() + 2);
-    const mm7 = String(today7.getMonth()+1).padStart(2,'0'), dd7 = String(today7.getDate()).padStart(2,'0');
-    const mm2b= String(today2.getMonth()+1).padStart(2,'0'), dd2b= String(today2.getDate()).padStart(2,'0');
-
-    // Find users with birthday in 7 days
-    const { data: users7d } = await supabase.from('users')
-      .select('id,email,full_name,date_of_birth,birthday_reminded_7d')
-      .not('date_of_birth', 'is', null)
-      .ilike('date_of_birth', `%-${mm7}-${dd7}`)
-      .eq('birthday_reminded_7d', false);
-    for (const u of (users7d || [])) {
-      await sendEmail({ to: u.email, template: 'birthdayReminder7Days', data: {
-        name: u.full_name, daysLeft: 7,
-        createCardUrl: `${process.env.FRONTEND_URL || 'https://thankeeu.com'}/create-card`,
-      }}).catch(() => {});
-      await supabase.from('users').update({ birthday_reminded_7d: true }).eq('id', u.id);
-    }
-
-    // Find users with birthday in 2 days
-    const { data: users2d } = await supabase.from('users')
-      .select('id,email,full_name,date_of_birth,birthday_reminded_2d')
-      .not('date_of_birth', 'is', null)
-      .ilike('date_of_birth', `%-${mm2b}-${dd2b}`)
-      .eq('birthday_reminded_2d', false);
-    for (const u of (users2d || [])) {
-      await sendEmail({ to: u.email, template: 'birthdayReminder2Days', data: {
-        name: u.full_name, daysLeft: 2,
-        createCardUrl: `${process.env.FRONTEND_URL || 'https://thankeeu.com'}/create-card`,
-      }}).catch(() => {});
-      await supabase.from('users').update({ birthday_reminded_2d: true }).eq('id', u.id);
-    }
-    // Reset annual flags at end of day after birthday
-    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1);
-    const mmY = String(yesterday.getMonth()+1).padStart(2,'0'), ddY = String(yesterday.getDate()).padStart(2,'0');
-    await supabase.from('users')
-      .update({ birthday_reminded_7d: false, birthday_reminded_2d: false })
-      .ilike('date_of_birth', `%-${mmY}-${ddY}`);
-    // (error ignored — annual flag reset is best-effort)
-
-  } catch (err) { console.error('Birthday cron error:', err); }
-});
-
 // ═══════════════════════════════════════════════════════════
 // CRON: All Occasion Types — runs daily at 6AM
 // ═══════════════════════════════════════════════════════════
@@ -332,13 +222,16 @@ cron.schedule('0 6 * * *', async () => {
       const nd = String(notifyDate.getDate()).padStart(2, '0');
 
       // ── STEP 1: Notify departments N days before occasion ──
+      // Point 3 fix: match YYYY-MM-DD format reliably using current year
+      const targetDateStr = `${notifyDate.getFullYear()}-${nm}-${nd}`;
       const { data: upcoming } = await supabase
         .from('occasion_members')
         .select('*')
         .eq('company_id', ot.company_id)
         .eq('occasion_type_id', ot.id)
         .eq('is_active', true)
-        .filter('occasion_date', 'like', `%-${nm}-${nd}`);
+        // Match both the full year date AND the year-agnostic suffix (recurring occasions)
+        .or(`occasion_date.eq.${targetDateStr},occasion_date.like.%-${nm}-${nd}`);
 
       for (const m of (upcoming || [])) {
         if (m.last_dept_notified_at) {
@@ -351,6 +244,21 @@ cron.schedule('0 6 * * *', async () => {
         const slug = `${m.first_name.toLowerCase()}-${ot.name.replace('_','-')}-${nanoid(6)}`;
         const deadline = new Date(notifyDate.getTime() + notifyDays * 86400000);
         const occasionDateStr = new Date(m.occasion_date).toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
+
+        // Point 5 fix: check for existing card for this person/occasion/year BEFORE inserting
+        const thisYear = today.getFullYear();
+        const { data: existingCard } = await supabase.from('cards')
+          .select('id, slug').eq('occasion_type_id', ot.id).eq('recipient_email', m.email)
+          .gte('created_at', `${thisYear}-01-01T00:00:00Z`).maybeSingle();
+        if (existingCard) {
+          console.log(`[${ot.label}] Card already exists for ${m.first_name} ${m.last_name} this year — skipping`);
+          // Ensure card_slug is set on the member row
+          if (!m.card_slug) {
+            await supabase.from('occasion_members')
+              .update({ card_slug: existingCard.slug, last_dept_notified_at: new Date() }).eq('id', m.id);
+          }
+          continue;
+        }
 
         // Create card
         const { data: card } = await supabase.from('cards').insert({
@@ -448,10 +356,12 @@ cron.schedule('0 6 * * *', async () => {
       }
 
       // ── STEP 2: Send card to celebrant ON occasion date ──
+      // Point 3 fix: reliable date matching
+      const todayDateStr = `${today.getFullYear()}-${mm}-${dd}`;
       const { data: celebrants } = await supabase
         .from('occasion_members').select('*')
         .eq('company_id', ot.company_id).eq('occasion_type_id', ot.id).eq('is_active', true)
-        .filter('occasion_date', 'like', `%-${mm}-${dd}`);
+        .or(`occasion_date.eq.${todayDateStr},occasion_date.like.%-${mm}-${dd}`);
 
       for (const m of (celebrants || [])) {
         if (m.celebrant_notified_at) {
@@ -491,6 +401,34 @@ cron.schedule('0 6 * * *', async () => {
         console.log(`[${ot.label}] Card delivered to ${m.first_name} ${m.last_name}`);
       }
     }
+    // ── Individual user birthday reminders ─────────────────────────────────
+    try {
+      const now7  = new Date(today); now7.setDate(now7.getDate() + 7);
+      const now2  = new Date(today); now2.setDate(now2.getDate() + 2);
+      const r7mm  = String(now7.getMonth()+1).padStart(2,'0'), r7dd = String(now7.getDate()).padStart(2,'0');
+      const r2mm  = String(now2.getMonth()+1).padStart(2,'0'), r2dd = String(now2.getDate()).padStart(2,'0');
+      const rymm  = String(new Date(today.getTime()-864e5).getMonth()+1).padStart(2,'0');
+      const rydd  = String(new Date(today.getTime()-864e5).getDate()).padStart(2,'0');
+
+      const { data: u7 } = await supabase.from('users')
+        .select('id,email,full_name').not('date_of_birth','is',null)
+        .ilike('date_of_birth',`%-${r7mm}-${r7dd}`).eq('birthday_reminded_7d',false);
+      for (const u of (u7||[])) {
+        await sendEmail({ to:u.email, template:'birthdayReminder7Days', data:{ name:u.full_name, daysLeft:7, createCardUrl:`${FRONTEND_URL}/create-card` }}).catch(()=>{});
+        await supabase.from('users').update({ birthday_reminded_7d:true }).eq('id',u.id);
+      }
+      const { data: u2 } = await supabase.from('users')
+        .select('id,email,full_name').not('date_of_birth','is',null)
+        .ilike('date_of_birth',`%-${r2mm}-${r2dd}`).eq('birthday_reminded_2d',false);
+      for (const u of (u2||[])) {
+        await sendEmail({ to:u.email, template:'birthdayReminder2Days', data:{ name:u.full_name, daysLeft:2, createCardUrl:`${FRONTEND_URL}/create-card` }}).catch(()=>{});
+        await supabase.from('users').update({ birthday_reminded_2d:true }).eq('id',u.id);
+      }
+      await supabase.from('users')
+        .update({ birthday_reminded_7d:false, birthday_reminded_2d:false })
+        .ilike('date_of_birth',`%-${rymm}-${rydd}`);
+    } catch (e) { console.error('User birthday reminder error:', e.message); }
+
   } catch (err) { console.error('Occasions cron error:', err); }
 });
 

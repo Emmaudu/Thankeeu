@@ -36,6 +36,12 @@ export default function TeamMembersPage() {
       await fetch(`${BASE}/teams/members/${editId}`, {
         method: 'PUT', headers: hdr(), body: JSON.stringify(editData)
       });
+      // Auto-sync occasion tables when birthday/gender/resumption changes
+      if (editData.date_of_birth || editData.gender || editData.resumption_date) {
+        await fetch(`${BASE}/teams/members/${editId}/sync-occasions`, {
+          method: 'POST', headers: hdr(), body: JSON.stringify(editData)
+        }).catch(() => {});
+      }
       toast.success('Saved ✓');
       setEditId(null); setEditData({});
       load();
@@ -72,6 +78,7 @@ export default function TeamMembersPage() {
       email: m.email, department: m.department || '',
       role: m.role || 'member', phone: m.phone || '',
       job_title: m.job_title || '', date_of_birth: m.date_of_birth || '',
+      gender: m.gender || '', resumption_date: m.resumption_date || '',
     });
   };
 
@@ -127,6 +134,8 @@ export default function TeamMembersPage() {
                   <th className="text-left px-4 py-3">Employee</th>
                   <th className="text-left px-4 py-3">Department / Role</th>
                   <th className="text-left px-4 py-3">🎂 Birthday</th>
+                  <th className="text-left px-4 py-3">⚧ Gender</th>
+                  <th className="text-left px-4 py-3">📅 Resumption</th>
                   <th className="text-left px-4 py-3">Status</th>
                   <th className="text-left px-4 py-3">Actions</th>
                 </tr>
@@ -184,6 +193,33 @@ export default function TeamMembersPage() {
                           <div>
                             <p className="text-sm text-warm-700">{new Date(m.date_of_birth + 'T00:00:00').toLocaleDateString('en', {day:'numeric',month:'short'})}</p>
                             <p className="text-xs text-warm-400">{m.date_of_birth.slice(0,4)}</p>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-warm-300 italic">Not set</span>
+                        )}
+                      </td>
+                      {/* Gender */}
+                      <td className="px-4 py-3">
+                        {isEditing ? (
+                          <select className="input text-sm py-1.5 w-28" value={editData.gender||''}
+                            onChange={e => setEditData(d=>({...d,gender:e.target.value}))}>
+                            <option value="">—</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                          </select>
+                        ) : (
+                          <span className="text-xs text-warm-600 capitalize">{m.gender || <span className="text-warm-300 italic">Not set</span>}</span>
+                        )}
+                      </td>
+                      {/* Resumption date */}
+                      <td className="px-4 py-3">
+                        {isEditing ? (
+                          <input type="date" className="input text-sm py-1.5 w-40" value={editData.resumption_date||''}
+                            onChange={e => setEditData(d=>({...d,resumption_date:e.target.value}))} />
+                        ) : m.resumption_date ? (
+                          <div>
+                            <p className="text-sm text-warm-700">{new Date(m.resumption_date + 'T00:00:00').toLocaleDateString('en', {day:'numeric',month:'short'})}</p>
+                            <p className="text-xs text-warm-400">{m.resumption_date.slice(0,4)}</p>
                           </div>
                         ) : (
                           <span className="text-xs text-warm-300 italic">Not set</span>

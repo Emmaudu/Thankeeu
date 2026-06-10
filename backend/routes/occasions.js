@@ -52,6 +52,7 @@ router.post('/bulk-sync',                     companyAuth, bulkSyncEmployees);
 router.put('/types/:occasionTypeId/scope',   companyAuth, updateOccasionTypeScope);
 
 // ── Edit / patch occasion member rows ────────────────────────────────────────
+router.post('/members/:memberId/trigger', companyAuth, triggerOccasionNow);
 router.put('/members/:memberId',             companyAuth, updateOccasionMember);
 router.patch('/members/:id',                 companyAuth, bulkUpdateMember);
 router.delete('/members/:id/bulk',           companyAuth, bulkDeleteMember);

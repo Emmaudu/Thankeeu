@@ -1,6 +1,9 @@
 'use strict';
 const axios   = require('axios');
 const supabase = require('../utils/supabase');
+const bcrypt  = require('bcryptjs');
+const crypto  = require('crypto');
+const { sendEmail } = require('../utils/email');
 
 // ─── Fixed-date occasion helpers ─────────────────────────────────────────────
 // Returns the occasion_date for this calendar year for fixed-date occasions

@@ -720,7 +720,87 @@ const approveCardScope = async (req, res) => {
   }
 };
 
+
+// ── HR: get company's own created cards ────────────────────────────────────
+const getCompanyCards = async (req, res) => {
+  try {
+    const { data } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, design_theme')
+      .eq('company_id', req.company.id)
+      .order('created_at', { ascending: false });
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to fetch cards' }); }
+};
+
+// ── HR: get delivered cards (status=sent) ─────────────────────────────────
+const getCompanyDeliveredCards = async (req, res) => {
+  try {
+    const { data } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date')
+      .eq('company_id', req.company.id).eq('status', 'sent')
+      .order('send_date', { ascending: false });
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to fetch delivered cards' }); }
+};
+
+// ── HR: get received cards (transferred to HR company) ─────────────────────
+const getCompanyReceivedCards = async (req, res) => {
+  try {
+    const { data: transfers } = await supabase.from('received_cards')
+      .select('card_id, created_at')
+      .eq('recipient_user_id', req.company.id)
+      .eq('recipient_type', 'company')
+      .order('created_at', { ascending: false });
+    const ids = (transfers || []).map(t => t.card_id);
+    if (!ids.length) return res.json([]);
+    const { data } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at')
+      .in('id', ids);
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to fetch received cards' }); }
+};
+
+// ── HR: transfer card to a team member ────────────────────────────────────
+const transferCardToMember = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { member_id } = req.body;
+    if (!member_id) return res.status(400).json({ error: 'member_id required' });
+
+    const { data: card } = await supabase.from('cards').select('id, title, recipient_name').eq('slug', slug).single();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    const { data: member } = await supabase.from('company_members')
+      .select('id, email, first_name, last_name, company_id').eq('id', member_id).single();
+    if (!member || member.company_id !== req.company.id)
+      return res.status(404).json({ error: 'Member not found in your company' });
+
+    await supabase.from('received_cards').upsert({
+      card_id: card.id, card_slug: slug,
+      recipient_user_id: member_id, recipient_type: 'member',
+      transferred_by: req.company.id,
+    }, { onConflict: 'card_id,recipient_user_id' });
+
+    // Activity log
+    const { logActivity } = require('../utils/activityLog');
+    await logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.company.id,
+      actor_type:  'hr',
+      actor_name:  req.company.name || 'HR',
+      action:      'transferred_card',
+      entity_type: 'card',
+      entity_id:   card.id,
+      entity_name: card.title || `For ${card.recipient_name}`,
+      details:     { to: `${member.first_name} ${member.last_name}` },
+    }).catch(() => {});
+
+    res.json({ message: `Card transferred to ${member.first_name} ${member.last_name}` });
+  } catch (err) { res.status(500).json({ error: 'Transfer failed' }); }
+};
+
 module.exports = {
+  getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember,
   createCard, getUserCards, getCard, updateCard, activateCard, sendCard,
   deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards,
   approveCardScope, notifyAllCompany,

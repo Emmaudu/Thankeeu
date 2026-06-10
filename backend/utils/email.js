@@ -32,7 +32,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Welcome aboard, ${data.name}!</h2>
       <p style="color:#555;line-height:1.7;">You are now part of a community that celebrates the people who matter most. Create beautiful group cards, collect heartfelt messages, and send meaningful gifts.</p>
-      ${btn('Go to your dashboard', `${process.env.APP_URL}/dashboard`)}
+      ${btn('Go to your dashboard', `${FRONTEND_URL}/dashboard`)}
     `)
   }),
 
@@ -43,7 +43,7 @@ const emailTemplates = {
       <p style="color:#555;line-height:1.7;"><strong>${data.creatorName}</strong> is putting together a special group card for <strong>${data.recipientName}</strong>'s ${data.occasion}.</p>
       ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in from ₦2,500</p></div>` : ''}
       <p style="color:#555;font-size:13px;">Closes on ${data.deadline}</p>
-      ${btn('Sign the card now', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
+      ${btn('Sign the card now', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
     `)
   }),
 
@@ -65,12 +65,12 @@ const emailTemplates = {
         <p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>
       </div>` : ''}
 
-      ${btn('🎉 Open my card now', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
+      ${btn('🎉 Open my card now', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
 
       <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
         <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>
         <ol style="color:#555;line-height:2;margin:0;padding-left:20px;font-size:14px;">
-          <li><strong>Sign up or sign in</strong> at <a href="${process.env.APP_URL}/signup" style="color:#7C6EFF;">thankeeu.com</a> using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
+          <li><strong>Sign up or sign in</strong> at <a href="${FRONTEND_URL}/signup" style="color:#7C6EFF;">thankeeu.com</a> using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
           <li><strong>Set your username</strong> in your dashboard settings — your friends can transfer cards to you by username</li>
           <li>Your card will appear in your <strong>Received tab</strong> in your dashboard automatically</li>
           ${data.giftAmount ? '<li>Add your <strong>bank account</strong> in settings to withdraw your gift pot 💰</li>' : ''}
@@ -79,7 +79,7 @@ const emailTemplates = {
 
       <p style="color:#888;font-size:13px;line-height:1.7;"><strong>⚠️ Important:</strong> Please sign up with <strong>${data.recipientEmail || 'this email address'}</strong> to automatically access your card and gift pot. If you use a different email, ask the card creator to transfer the card to your username.</p>
 
-      <p style="color:#555;line-height:1.7;margin-top:16px;">If you already have a Thankeeu account, simply <a href="${process.env.APP_URL}/login" style="color:#7C6EFF;">sign in here</a> and check your Received tab.</p>
+      <p style="color:#555;line-height:1.7;margin-top:16px;">If you already have a Thankeeu account, simply <a href="${FRONTEND_URL}/login" style="color:#7C6EFF;">sign in here</a> and check your Received tab.</p>
     `)
   }),
 
@@ -88,7 +88,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Card closing in ${data.hoursLeft} hours!</h2>
       <p style="color:#555;line-height:1.7;">Do not miss your chance to add a message to <strong>${data.recipientName}</strong>'s card.</p>
-      ${btn('Sign now', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
+      ${btn('Sign now', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
     `)
   }),
 
@@ -97,7 +97,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Reset your password</h2>
       <p style="color:#555;line-height:1.7;">Click below to reset your password. This link expires in 1 hour.</p>
-      ${btn('Reset password', `${process.env.APP_URL}/reset-password?token=${data.token}`)}
+      ${btn('Reset password', `${FRONTEND_URL}/reset-password?token=${data.token}`)}
       <p style="color:#aaa;font-size:12px;margin-top:20px;">If you did not request this, ignore this email.</p>
     `)
   }),
@@ -115,7 +115,7 @@ const emailTemplates = {
           <li>Subscribe to activate birthday automations</li>
         </ol>
       </div>
-      ${btn('Go to Company Dashboard', `${process.env.APP_URL}/company/dashboard`)}
+      ${btn('Go to Company Dashboard', `${FRONTEND_URL}/company/dashboard`)}
     `)
   }),
 
@@ -124,7 +124,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Reset your company password</h2>
       <p style="color:#555;line-height:1.7;">We received a reset request for <strong>${data.companyName}</strong>. Link expires in 1 hour.</p>
-      ${btn('Reset password', `${process.env.APP_URL}/company/reset-password?token=${data.token}`)}
+      ${btn('Reset password', `${FRONTEND_URL}/company/reset-password?token=${data.token}`)}
     `)
   }),
 
@@ -137,7 +137,7 @@ const emailTemplates = {
       <div style="background:#fff8e1;border-radius:8px;padding:14px 16px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Please keep this a surprise — do not mention the card to ${data.celebrantFirstName} before their birthday!</p>
       </div>
-      ${btn(`Sign ${data.celebrantFirstName}'s card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
+      ${btn(`Sign ${data.celebrantFirstName}'s card`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}</p>
     `)
   }),
@@ -154,7 +154,7 @@ const emailTemplates = {
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your birthday card is waiting!</p>
         <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
       </div>
-      ${btn('Open my birthday card', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
+      ${btn('Open my birthday card', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
       <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">From everyone at <strong>${data.companyName}</strong> — we hope today is as amazing as you are!</p>
     `)
   }),
@@ -170,7 +170,7 @@ const emailTemplates = {
       <div style="background:#f5f5f5;border-radius:8px;padding:16px;border-left:4px solid #6C5CE7;">
         <p style="color:#333;font-size:13px;line-height:1.8;margin:0;white-space:pre-line;">${data.message}</p>
       </div>
-      ${btn('Reply in Admin Panel', `${process.env.APP_URL}/admin`)}
+      ${btn('Reply in Admin Panel', `${FRONTEND_URL}/admin`)}
     `)
   }),
 
@@ -242,7 +242,7 @@ const teamsTemplates = {
           ${data.isLeader ? 'As their department leader, you can approve or reject this request from your dashboard.' : 'Review and approve or reject this request from your HR dashboard.'}
         </p>
       </div>
-      ${btn('Review request', `${process.env.APP_URL}/company/members`)}
+      ${btn('Review request', `${FRONTEND_URL}/company/members`)}
     `)
   }),
 
@@ -252,7 +252,7 @@ const teamsTemplates = {
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">You are approved! 🎉</h2>
       <p style="color:#555;line-height:1.8;">Hi <strong>${data.memberName}</strong>, your account has been approved for <strong>${data.companyName}</strong> as a <strong>${data.role === 'team_leader' ? 'Team Leader' : 'Team Member'}</strong> in the <strong>${data.department}</strong> department.</p>
       <p style="color:#555;font-size:13px;">You can now sign in and start celebrating your colleagues!</p>
-      ${btn('Sign in to your account', `${process.env.APP_URL}/member/login`)}
+      ${btn('Sign in to your account', `${FRONTEND_URL}/member/login`)}
     `)
   }),
 
@@ -271,7 +271,7 @@ const teamsTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Reset your password</h2>
       <p style="color:#555;line-height:1.7;">Hi <strong>${data.name}</strong>, click below to reset your password. This link expires in 1 hour.</p>
-      ${btn('Reset password', `${process.env.APP_URL}/member/reset-password?token=${data.token}`)}
+      ${btn('Reset password', `${FRONTEND_URL}/member/reset-password?token=${data.token}`)}
       <p style="color:#aaa;font-size:12px;margin-top:20px;">If you did not request this, ignore this email.</p>
     `)
   }),
@@ -286,7 +286,7 @@ const teamsTemplates = {
           `<tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;color:#555;border:1px solid #eee;width:130px;">${k}</td><td style="padding:8px 12px;border:1px solid #eee;color:#333;">${v}</td></tr>`).join('')}
       </table>
       <p style="color:#555;font-size:13px;line-height:1.7;">Note: A 3.5% platform fee has already been deducted from the gross total before this request.</p>
-      ${btn('Review in HR Dashboard', `${process.env.APP_URL}/company/deductions`)}
+      ${btn('Review in HR Dashboard', `${FRONTEND_URL}/company/deductions`)}
     `)
   }),
 
@@ -329,7 +329,7 @@ const teamsTemplates = {
       <p style="color:#555;line-height:1.8;"><strong>${data.requesterName}</strong> has requested company-wide notification for the card <strong>"${data.cardTitle}"</strong>.</p>
       ${data.reason ? `<div style="background:#EEEDFE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#534AB7;font-size:13px;margin:0;"><strong>Reason:</strong> ${data.reason}</p></div>` : ''}
       <p style="color:#555;font-size:13px;">By approving, notifications will be sent to all departments company-wide.</p>
-      ${btn('Review in HR Dashboard', `${process.env.APP_URL}/company/deductions`)}
+      ${btn('Review in HR Dashboard', `${FRONTEND_URL}/company/deductions`)}
     `)
   }),
 
@@ -342,7 +342,7 @@ const teamsTemplates = {
       <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Keep this a surprise — please do not mention the card to ${data.memberFirstName}!</p>
       </div>
-      ${btn(`Sign ${data.memberFirstName}'s card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
+      ${btn(`Sign ${data.memberFirstName}'s card`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. You do not need an account to sign.</p>
     `)
   }),
@@ -359,7 +359,7 @@ const teamsTemplates = {
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your card is waiting!</p>
         <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
       </div>
-      ${btn(`Open my ${data.occasionLabel} card`, `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
+      ${btn(`Open my ${data.occasionLabel} card`, `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
       ${data.giftAmount ? `<p style="color:#555;font-size:13px;margin-top:16px;">To claim your gift of <strong>${fmtNGN(data.giftAmount)}</strong>, open the card and click "Claim gift".</p>` : ''}
     `)
   }),
@@ -370,7 +370,7 @@ const teamsTemplates = {
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">A card was created for ${data.recipientName}!</h2>
       <p style="color:#555;line-height:1.8;"><strong>${data.creatorName}</strong> created a group card for <strong>${data.recipientName}</strong> (${data.occasion}). Add your message and help make it special!</p>
       ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 Gift pot is open — you can contribute too</p></div>` : ''}
-      ${btn('Sign the card', `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
+      ${btn('Sign the card', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
       <p style="color:#aaa;font-size:12px;margin-top:12px;">You do not need an account to sign. Creating a card requires a company account.</p>
     `)
   }),
@@ -395,7 +395,7 @@ const additionalTeamsTemplates = {
       <div style="background:#EEEDFE;border-radius:8px;padding:14px 16px;margin:16px 0;">
         <p style="color:#534AB7;font-size:13px;margin:0;">🎁 A welcome gift pot is open — chip in to help them get settled in their new role!</p>
       </div>
-      ${btn(`Sign ${data.newHireFirstName}'s welcome card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
+      ${btn(`Sign ${data.newHireFirstName}'s welcome card`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. No account needed to sign.</p>
     `)
   }),
@@ -418,7 +418,7 @@ const additionalTeamsTemplates = {
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your welcome card is waiting!</p>
         <p style="color:#6C5CE7;font-size:13px;margin:0;">Click below to read all the lovely messages from your team</p>
       </div>
-      ${btn('Open my welcome card 🌟', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
+      ${btn('Open my welcome card 🌟', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
       <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">From everyone at <strong>${data.companyName}</strong> — welcome aboard. We are glad you are here! 🙌</p>
     `)
   }),
@@ -439,7 +439,7 @@ const additionalTeamsTemplates = {
       <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
         <p style="color:#7a5f00;font-size:13px;margin:0;">Please keep this a surprise until we present the card on their last day! 🤫</p>
       </div>
-      ${btn(`Sign ${data.leavingFirstName}'s farewell card`, `${process.env.APP_URL}/sign/${data.cardSlug}`, '#E84393')}
+      ${btn(`Sign ${data.leavingFirstName}'s farewell card`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. No account needed to sign.</p>
     `)
   }),
@@ -462,7 +462,7 @@ const additionalTeamsTemplates = {
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your farewell card is waiting!</p>
         <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to read all the messages and memories your colleagues left for you</p>
       </div>
-      ${btn('Open my farewell card 💜', `${process.env.APP_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
+      ${btn('Open my farewell card 💜', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
       <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">
         From everyone at <strong>${data.companyName}</strong> — thank you for everything. The door is always open. 🙏
       </p>
@@ -488,7 +488,7 @@ const demoTemplates = {
         ].map(([k,v]) => `<tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;color:#555;border:1px solid #eee;width:110px;">${k}</td><td style="padding:8px 12px;border:1px solid #eee;color:#333;">${v}</td></tr>`).join('')}
       </table>
       ${data.message ? `<div style="background:#f5f5f5;border-radius:8px;padding:16px;border-left:4px solid #6C5CE7;margin-bottom:20px;"><p style="color:#333;font-size:13px;margin:0;line-height:1.7;">${data.message}</p></div>` : ''}
-      ${btn('View in Admin Dashboard', `${process.env.APP_URL}/admin`)}
+      ${btn('View in Admin Dashboard', `${FRONTEND_URL}/admin`)}
     `)
   }),
 
@@ -506,7 +506,7 @@ const demoTemplates = {
           <li>Free trial period to test with your data</li>
         </ul>
       </div>
-      <p style="color:#555;font-size:13px;line-height:1.7;">In the meantime, feel free to explore the platform at <a href="${process.env.APP_URL}" style="color:#6C5CE7;">${process.env.APP_URL}</a>.</p>
+      <p style="color:#555;font-size:13px;line-height:1.7;">In the meantime, feel free to explore the platform at <a href="${FRONTEND_URL}" style="color:#6C5CE7;">${FRONTEND_URL}</a>.</p>
       <p style="color:#aaa;font-size:12px;margin-top:16px;">Questions? Reply to this email or contact us at <a href="mailto:support@thankeeu.com" style="color:#6C5CE7;">support@thankeeu.com</a></p>
     `)
   }),
@@ -524,7 +524,7 @@ const newFeatureTemplates = {
       <p>Just a heads up — <strong>${recipientName}'s ${occasion}</strong> is coming up on <strong>${occasionDate}</strong> (in about ${daysUntil} days).</p>
       <p>Now is the perfect time to create a beautiful group card and start collecting messages and gifts!</p>
       ${btn('Create a card now 🎉', createLink)}
-      <p style="color:#aaa;font-size:12px;margin-top:16px;">You're receiving this because you set a reminder on Thankeeu. <a href="${process.env.APP_URL}/dashboard" style="color:#6C5CE7;">Manage reminders →</a></p>
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">You're receiving this because you set a reminder on Thankeeu. <a href="${FRONTEND_URL}/dashboard" style="color:#6C5CE7;">Manage reminders →</a></p>
     `)
   }),
 
@@ -591,7 +591,7 @@ const verificationTemplates = {
     html: wrap(`
       <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">You're all verified! 🎉</h2>
       <p>Hey ${name}, your email is confirmed and your Thankeeu account is fully active.</p>
-      ${btn('Go to your dashboard', `${process.env.APP_URL}/dashboard`)}
+      ${btn('Go to your dashboard', `${FRONTEND_URL}/dashboard`)}
     `)
   }),
 };

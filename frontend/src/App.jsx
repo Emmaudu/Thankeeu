@@ -58,6 +58,8 @@ import TeamMembersPage        from './pages/company/TeamMembersPage';
 import CoreTeamPage           from './pages/company/CoreTeamPage';
 import OccasionPage           from './pages/OccasionPage';
 import DeductionRequestsPage  from './pages/company/DeductionRequestsPage';
+import CompanyMyCardsPage     from './pages/company/CompanyMyCardsPage';
+import ActivityLogPage        from './pages/company/ActivityLogPage';
 import HRISPage               from './pages/company/HRISPage';
 import Blog                   from './pages/Blog';
 import BlogPost               from './pages/BlogPost';
@@ -205,6 +207,8 @@ const App = () => (
             <Route path="/company/members"     element={<CompanyProtectedRoute><MembersApprovalPage /></CompanyProtectedRoute>} />
             <Route path="/company/deductions"  element={<CompanyProtectedRoute><DeductionRequestsPage /></CompanyProtectedRoute>} />
             <Route path="/company/subscription" element={<CompanyProtectedRoute><SubscriptionPage /></CompanyProtectedRoute>} />
+            <Route path="/company/my-cards"  element={<CompanyProtectedRoute><CompanyMyCardsPage /></CompanyProtectedRoute>} />
+            <Route path="/company/activity"  element={<CompanyProtectedRoute><ActivityLogPage /></CompanyProtectedRoute>} />
             <Route path="/company/settings"    element={<CompanyProtectedRoute><SettingsPage /></CompanyProtectedRoute>} />
             <Route path="/company/support"     element={<CompanyProtectedRoute><SupportPage /></CompanyProtectedRoute>} />
           <Route path="/blog"          element={<Blog />} />

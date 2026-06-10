@@ -77,7 +77,7 @@ const Pricing = () => {
     if (!user) { navigate('/signup'); return; }
     setLoadingPlan(planId);
     try {
-      const res = await paymentsAPI.initPurchase(planId);
+      const res = await paymentsAPI.initCardFee(planId);
       window.location.href = res.data.payment_link || res.data.authorization_url;
     } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
   };

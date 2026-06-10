@@ -274,13 +274,17 @@ const Blog = () => {
           <p className="text-primary-100 text-sm mb-5 max-w-md mx-auto">
             HR tips, product updates, and celebration ideas for teams worldwide — delivered weekly.
           </p>
-          <div className="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto">
+          <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto">
             <input type="email" placeholder="your@company.com"
+              value={subEmail}
+              onChange={e => setSubEmail(e.target.value)}
+              required
               className="input flex-1 text-sm bg-white/10 border-white/30 text-white placeholder-white/60 focus:ring-white/50" />
-            <button className="bg-white text-primary-600 font-semibold px-5 py-3 rounded-xl text-sm hover:bg-primary-50 transition-colors">
-              Subscribe
+            <button type="submit" disabled={subbing}
+              className="bg-white text-primary-600 font-semibold px-5 py-3 rounded-xl text-sm hover:bg-primary-50 transition-colors disabled:opacity-60">
+              {subbing ? 'Subscribing…' : 'Subscribe'}
             </button>
-          </div>
+          </form>
           <p className="text-primary-200 text-xs mt-3">No spam. Unsubscribe any time.</p>
         </div>
       </main>

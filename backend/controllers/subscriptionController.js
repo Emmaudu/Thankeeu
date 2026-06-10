@@ -1,8 +1,10 @@
 const axios = require('axios');
 const supabase = require('../utils/supabase');
 
-const FLW_BASE = 'https://api.flutterwave.com/v3';
-const headers = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
+const FLW_BASE    = 'https://api.flutterwave.com/v3';
+const headers     = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
+// Must use FRONTEND_URL (Vercel) not APP_URL (Railway backend) for redirect_url
+const FRONTEND_URL = (process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com').replace(/\/$/, '');
 
 // Subscription prices in Flutterwave (Naira).
 const PLANS = {
@@ -16,7 +18,6 @@ const initializeSubscription = async (req, res) => {
     if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
 
     const { naira, label } = PLANS[plan];
-    const appUrl = (process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
     const txRef  = `TK-SUB-${req.company.id.slice(0,8).toUpperCase()}-${Date.now()}`;
 
     const response = await axios.post(`${FLW_BASE}/payments`, {
@@ -28,7 +29,7 @@ const initializeSubscription = async (req, res) => {
       customizations: {
         title:       'Thankeeu for Teams',
         description: `${label} subscription`,
-        logo:        `${appUrl}/logo.png`,
+        logo:        `${FRONTEND_URL}/logo.png`,
       },
       meta: {
         type:         'company_subscription',

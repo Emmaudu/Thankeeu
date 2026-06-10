@@ -222,31 +222,34 @@ const SignCard = () => {
           payment_options: 'card,ussd,bank_transfer',
           customer:        { email: form.author_email, name: form.author_name },
           customizations:  { title: `Gift for ${card?.recipient_name}`, logo: '/logo.png' },
-          // RC1 fix: DO NOT call closePaymentModal() — calling it triggers onclose handler
-          callback: async (response) => {
-            // Mark payment succeeded synchronously FIRST (RC4 fix)
-            paymentSucceededRef.current = true; // persists across renders via useRef
-            setStage('verifying');
+          // FLW v3 callback MUST be synchronous — async callbacks return a Promise
+          // which FLW ignores, then immediately fires onclose.
+          // Pattern: set flag + start IIFE — identical to CreateCard's working pattern.
+          callback: (response) => {
+            paymentSucceededRef.current = true; // set synchronously before any await
             const ref = response?.tx_ref || tx_ref;
-            try {
-              await verifyGiftContribution(ref);
-              toast.success('Your message and gift are on the card! 🎉');
-              setSubmitted(true);
-              fetchCard();
-            } catch {
-              // Payment confirmed by FLW but our verify timed out — still mark done
-              toast.success('Gift received! Verification is processing. 🎉');
-              setSubmitted(true);
-            } finally {
-              setSubmitting(false);
-              setStage('idle');
-            }
+            setStage('verifying');
+            // IIFE runs async work — FLW fires onclose after callback returns (sync)
+            // but paymentSucceededRef.current is already true so onclose is a no-op
+            (async () => {
+              try {
+                await verifyGiftContribution(ref);
+                toast.success('Your message and gift are on the card! 🎉');
+                setSubmitted(true);
+                fetchCard();
+              } catch {
+                toast.success('Gift received! Verification is processing. 🎉');
+                setSubmitted(true);
+              } finally {
+                setSubmitting(false);
+                setStage('idle');
+              }
+            })();
           },
 
-          // onclose fires when modal closes — but may fire AFTER callback too (RC1)
-          // RC4 fix: only show "closed without paying" if callback never ran
+          // onclose: fires when modal closes (either after callback or user dismisses)
           onclose: () => {
-            if (paymentSucceededRef.current) return; // callback already handled it
+            if (paymentSucceededRef.current) return; // callback already ran — ignore
             toast('Message saved. Payment was not completed.');
             setSubmitted(true);
             setSubmitting(false);

@@ -33,10 +33,23 @@ const verifyAccount = async (req, res) => {
     const { account_number, bank_code } = req.body;
     if (!account_number || !bank_code) return res.status(400).json({ error: 'account_number and bank_code required' });
 
-    const r = await axios.post(`${FLW}/accounts/resolve`, { account_number, account_bank: bank_code }, { headers: flwH() });
+    // FLW /accounts/resolve requires account_bank as a string (numeric bank code)
+    // In FLW TEST mode only certain banks are supported — gracefully handle rejection
+    const r = await axios.post(
+      `${FLW}/accounts/resolve`,
+      { account_number: String(account_number).trim(), account_bank: String(bank_code).trim() },
+      { headers: flwH() }
+    );
     res.json({ account_name: r.data.data.account_name, account_number, bank_code });
   } catch (err) {
-    res.status(400).json({ error: err.response?.data?.message || 'Could not verify account. Check number and bank.' });
+    const msg = err.response?.data?.message || '';
+    // FLW test mode restricts bank list — give user a clear message
+    if (msg.toLowerCase().includes('only 044') || msg.toLowerCase().includes('must be numeric')) {
+      return res.status(400).json({
+        error: 'Bank verification is restricted in test mode. Only Access Bank (044) is supported for testing. In production all banks will work.',
+      });
+    }
+    res.status(400).json({ error: msg || 'Could not verify account. Check number and bank.' });
   }
 };
 

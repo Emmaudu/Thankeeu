@@ -393,7 +393,7 @@ const initCardFee = async (req, res) => {
       tx_ref:         txRef,
       amount:         5000,
       currency:       'NGN',
-      redirect_url:   `${FRONTEND_URL}/dashboard?fee_paid=${txRef}`,
+      redirect_url:   `${FRONTEND_URL}/payment/callback`,
       customer:       { email, name: displayName },
       customizations: { title: 'Thankeeu Card Fee', logo: `${process.env.APP_URL}/logo.png` },
       meta:           { type: 'card_fee', card_slug },

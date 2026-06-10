@@ -151,16 +151,15 @@ export const messagesAPI = {
 // ─── Payments ──────────────────────────────────────────────────────────────
 export const paymentsAPI = {
   // Card creation fee — returns { payment_link }
-  // Frontend: window.location.assign(payment_link) → FLW → /create-card/verify?tx_ref=
   initCardFee:         (card_slug) => anyAxios.post('/payments/initialize/purchase', { card_slug }),
-  // Frontend /create-card/verify page calls this after FLW redirect
   verifyCardFee:       (txRef)     => anyAxios.get(`/payments/verify-card-fee?tx_ref=${encodeURIComponent(txRef)}`),
 
   // Gift contribution — returns { payment_link }
-  // Frontend: window.location.assign(payment_link) → FLW → /sign/slug?tx_ref=
   initContribution:    (data)      => publicAxios.post('/payments/initialize/contribution', data),
-  // SignCard calls this after FLW redirect with ?tx_ref=
   verifyContribution:  (txRef)     => publicAxios.post('/payments/verify-contribution', { tx_ref: txRef }),
+
+  // Generic verify by tx_ref — used by PaymentCallback as fallback
+  verify:              (txRef)     => anyAxios.get(`/payments/verify/${encodeURIComponent(txRef)}`),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────

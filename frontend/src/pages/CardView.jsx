@@ -190,7 +190,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
         </div>
         <div className="min-w-0 flex-1">
           <p className="font-extrabold truncate text-sm" style={{ color: design.ink }}>{message.author_name}</p>
-          <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{format(new Date(message.created_at), 'MMM d, yyyy')}</p>
+          <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{message.created_at ? format(new Date(message.created_at), 'MMM d, yyyy') : ''}</p>
         </div>
         {message.is_private && canViewPrivate && <span title="Private message" className="text-base flex-shrink-0">🔒</span>}
       </div>

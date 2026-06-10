@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { companyAPI, occasionsAPI } from '../../utils/api';
+// API calls done via fetch() with direct token headers for binary (blob) downloads
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import axios from 'axios';

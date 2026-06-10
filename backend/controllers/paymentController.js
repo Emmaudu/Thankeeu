@@ -340,4 +340,26 @@ const verifyContribution = async (req, res) => {
   }
 };
 
-module.exports = { initCardFee, verifyCardFee, initContribution, verifyContribution };
+// Generic verify — reads meta.type and delegates to correct handler
+// Used by PaymentCallback as fallback for any payment type
+const verifyPayment = async (req, res) => {
+  try {
+    const txRef = req.params.txRef || req.query.tx_ref;
+    if (!txRef) return res.status(400).json({ error: 'tx_ref is required' });
+    const txn = await fetchFlwTransaction(txRef);
+    const type = txn.meta?.type;
+    if (type === 'card_fee') {
+      req.params = { ...req.params, txRef };
+      return verifyCardFee(req, res);
+    }
+    if (type === 'gift_contribution') {
+      req.body = { ...req.body, tx_ref: txRef };
+      return verifyContribution(req, res);
+    }
+    return res.json({ status: 'success', type, amount: txn.amount, meta: txn.meta });
+  } catch (err) {
+    return res.status(500).json({ error: err.message || 'Verification failed' });
+  }
+};
+
+module.exports = { initCardFee, verifyCardFee, initContribution, verifyContribution, verifyPayment };

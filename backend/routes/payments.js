@@ -6,6 +6,7 @@ const {
   verifyCardFee,
   initContribution,
   verifyContribution,
+  verifyPayment,
 } = require('../controllers/paymentController');
 
 // Card creation fee (auth required)
@@ -17,5 +18,9 @@ router.get('/verify-card-fee',         anyAuth, verifyCardFee);
 router.post('/initialize/contribution', initContribution);
 router.post('/verify-contribution',     verifyContribution);
 router.get('/verify-contribution',      verifyContribution); // ?tx_ref=
+
+// Generic verify — PaymentCallback fallback for any payment type
+router.get('/verify/:txRef', verifyPayment);
+router.get('/verify',        verifyPayment); // ?tx_ref=
 
 module.exports = router;

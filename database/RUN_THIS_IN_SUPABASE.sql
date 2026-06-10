@@ -341,3 +341,25 @@ CREATE INDEX IF NOT EXISTS idx_messages_card ON messages(card_id);
 -- ══════════════════════════════════════════════════════════════════════════
 -- Done. This migration is safe to run multiple times.
 -- ══════════════════════════════════════════════════════════════════════════
+
+-- Add occasion_type TEXT column (used by bulk import / OccasionsPage)
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS occasion_type TEXT;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS member_id UUID;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS farewell TEXT;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS meta JSONB;
+
+-- Unique index required for upsert onConflict: company_id,member_id,occasion_type
+-- Drop old unique constraint first if it only covers occasion_type_id
+DROP INDEX IF EXISTS idx_occasion_members_unique_bulk;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_occasion_members_unique_bulk
+  ON occasion_members(company_id, member_id, occasion_type)
+  WHERE occasion_type IS NOT NULL AND member_id IS NOT NULL;
+
+-- Email-based unique index (fallback for rows without member_id)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_occasion_members_unique_email
+  ON occasion_members(company_id, email, occasion_type)
+  WHERE occasion_type IS NOT NULL AND email IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_occasion_members_type_str ON occasion_members(company_id, occasion_type);
+CREATE INDEX IF NOT EXISTS idx_occasion_members_email    ON occasion_members(company_id, email);

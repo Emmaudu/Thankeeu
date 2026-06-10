@@ -80,6 +80,7 @@ const createOccasionType = async (req, res) => {
 
 // GET /api/occasions/:occasionTypeId/template — download Excel template
 const downloadOccasionTemplate = (req, res) => {
+  try {
   const { occasionName } = req.params;
   const year = new Date().getFullYear();
   const wb   = XLSX.utils.book_new();
@@ -225,6 +226,10 @@ const downloadOccasionTemplate = (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="thankeeu_${occasionName}_template.xlsx"`);
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
+  } catch (err) {
+    console.error('downloadOccasionTemplate error:', occasionName, err.message);
+    res.status(500).json({ error: 'Failed to generate template: ' + err.message });
+  }
 };
 // POST /api/occasions/:occasionTypeId/import — upload Excel for occasion
 const importOccasionMembers = async (req, res) => {
@@ -384,6 +389,7 @@ const deleteOccasionMember = async (req, res) => {
 
 // GET /api/occasions/general-template — Master Excel with ALL occasions
 const downloadGeneralTemplate = (req, res) => {
+  try {
   const year = new Date().getFullYear();
   const wb   = XLSX.utils.book_new();
 
@@ -516,12 +522,16 @@ const downloadGeneralTemplate = (req, res) => {
   const ws11 = XLSX.utils.aoa_to_sheet([faCols,
     ['Zainab','Ibrahim','z@co.com','08055544433','Finance','member','Finance Analyst','2025-02-28','We will miss you dearly!'],
   ]);
-  hd(ws11, faCols); XLSX.utils.book_append_sheet(wb, ws11, '👋 Farewell / Leaving');
+  hd(ws11, faCols); XLSX.utils.book_append_sheet(wb, ws11, '👋 Farewell - Leaving');
 
   const buf = XLSX.write(wb, { type:'buffer', bookType:'xlsx' });
   res.setHeader('Content-Disposition','attachment; filename="thankeeu_master_template.xlsx"');
   res.setHeader('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
+  } catch (err) {
+    console.error('downloadGeneralTemplate error:', err.message);
+    res.status(500).json({ error: 'Failed to generate template: ' + err.message });
+  }
 };
 // POST /api/occasions/import-general — import master template → all occasion tables
 const importGeneralTemplate = async (req, res) => {

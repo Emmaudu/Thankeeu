@@ -282,35 +282,50 @@ export default function OccasionsPage() {
         </div>
       )}
 
-      {/* ── Occasion tabs — horizontal scroll on mobile ── */}
-      <div style={{ position:'relative', marginBottom:'20px' }}>
-        <div style={{ overflowX:'auto', WebkitOverflowScrolling:'touch', scrollbarWidth:'none', msOverflowStyle:'none', display:'flex', gap:'6px', paddingBottom:'8px' }}>
-        <button onClick={() => setActiveTab('__general__')}
-          className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all border-2 ${
-            activeTab === '__general__'
-              ? 'bg-primary-500 text-white border-primary-500 shadow-sm'
-              : 'border-transparent bg-purple-50 text-warm-600 hover:bg-white'
-          }`}>
-          📋 General (All Tables)
-        </button>
-        {OCCASION_TABS.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)}
-            className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold whitespace-nowrap transition-all border-2 ${
-              activeTab === t.id
-                ? 'bg-white border-primary-400 text-primary-700 shadow-sm'
-                : 'border-transparent bg-purple-50 text-warm-600 hover:bg-white'
-            }`}>
-            {t.label}
-            {(tables[t.id]?.length > 0) && (
-              <span className="ml-2 text-xs bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-full font-bold">
-                {tables[t.id].length}
-              </span>
-            )}
+      {/* ── Occasion tabs — pill scroll bar, mobile-friendly ── */}
+      <div className="relative mb-5">
+        {/* Fade hints so user knows it scrolls */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-10 z-10"
+          style={{ background: 'linear-gradient(to right, transparent, #F5F3FF)' }} />
+        <div
+          className="flex gap-2 pb-1 pr-10"
+          style={{ overflowX:'auto', WebkitOverflowScrolling:'touch',
+                   scrollbarWidth:'thin', scrollbarColor:'#C4B5FD transparent',
+                   msOverflowStyle:'none' }}>
+          {/* hide scrollbar on webkit while keeping scroll functional */}
+          <style>{`.occ-tabs::-webkit-scrollbar{height:4px}.occ-tabs::-webkit-scrollbar-thumb{background:#C4B5FD;border-radius:4px}`}</style>
+          <div className="occ-tabs flex gap-2" style={{ display:'contents' }}>
+          <button onClick={() => setActiveTab('__general__')}
+            className="flex-shrink-0 whitespace-nowrap transition-all duration-150 text-sm font-semibold px-4 py-2 rounded-2xl"
+            style={{
+              background: activeTab === '__general__' ? '#7C3AED' : '#EDE9FF',
+              color:      activeTab === '__general__' ? '#fff'    : '#6D4E9E',
+              boxShadow:  activeTab === '__general__' ? '0 2px 8px rgba(124,58,237,0.25)' : 'none',
+            }}>
+            📋 All Tables
           </button>
-        ))}
-        </div>{/* end inner scroll div */}
-        <div style={{ pointerEvents:'none', position:'absolute', right:0, top:0, bottom:8, width:32, background:'linear-gradient(to right, transparent, #F5F3FF)' }} />
-      </div>{/* end relative wrapper */}
+          {OCCASION_TABS.map(t => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)}
+              className="flex-shrink-0 whitespace-nowrap transition-all duration-150 text-sm font-semibold px-4 py-2 rounded-2xl flex items-center gap-1.5"
+              style={{
+                background: activeTab === t.id ? '#fff'    : '#EDE9FF',
+                color:      activeTab === t.id ? '#5B21B6' : '#6D4E9E',
+                border:     activeTab === t.id ? '2px solid #7C3AED' : '2px solid transparent',
+                boxShadow:  activeTab === t.id ? '0 2px 8px rgba(124,58,237,0.15)' : 'none',
+              }}>
+              {t.label}
+              {(tables[t.id]?.length > 0) && (
+                <span className="text-xs font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ background: activeTab === t.id ? '#EDE9FF' : '#D4C6F7', color:'#5B21B6', minWidth:'20px', textAlign:'center' }}>
+                  {tables[t.id].length}
+                </span>
+              )}
+            </button>
+          ))}
+          </div>
+        </div>
+        <div style={{ pointerEvents:'none', position:'absolute', right:0, top:0, bottom:0, width:36, zIndex:10, background:'linear-gradient(to right, transparent, #F5F3FF)', pointerEvents:'none' }} />
+      </div>
 
       {/* ── General tab panel ── */}
       {activeTab === '__general__' && (

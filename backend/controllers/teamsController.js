@@ -205,12 +205,12 @@ const getTeamsDashboard = async (req, res) => {
     const today = new Date();
     const todayMMDD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-    // Read from company_members (master template target) not the old team_members table
+    // Read from company_members — include all statuses so count is accurate regardless
     const { data: members } = await supabase
       .from('company_members')
       .select('id, first_name, last_name, email, department, role, status, date_of_birth')
       .eq('company_id', companyId)
-      .eq('status', 'approved');
+      .neq('status', 'deactivated');  // include pending + approved, exclude only deactivated
 
     const all = members || [];
     const departments = [...new Set(all.map(m => m.department).filter(Boolean))];

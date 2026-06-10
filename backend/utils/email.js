@@ -24,7 +24,8 @@ const BASE = (content) => `
 const wrap = BASE;
 
 const btn = (text, url, color = '#6C5CE7') =>
-  `<a href="${url}" style="display:inline-block;background:${color};color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin-top:20px;">${text}</a>`;
+  `<a href="${url}" target="_blank" rel="noopener noreferrer"
+     style="display:inline-block;background:${color};color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin-top:20px;mso-padding-alt:0;border:none;">${text}</a>`;
 
 const emailTemplates = {
 
@@ -694,8 +695,12 @@ Object.assign(emailTemplates, {
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Hey ${d.name}! One more step 📬</h2>
       <p style="color:#555;line-height:1.8;">Thanks for subscribing to the Thankeeu blog — HR tips, workplace celebration ideas, and product updates, delivered weekly.</p>
       <p style="color:#555;line-height:1.8;">Click the button below to confirm your subscription:</p>
-      ${btn('Confirm my subscription →', d.confirmUrl, '#7C3AED')}
-      <p style="color:#aaa;font-size:12px;margin-top:16px;">If you didn't subscribe, simply ignore this email. <a href="${d.unsubscribeUrl}" style="color:#aaa;">Unsubscribe</a></p>
+      <div style="text-align:center;margin:20px 0;">
+        ${btn('✓ Confirm my subscription', d.confirmUrl, '#7C3AED')}
+      </div>
+      <p style="color:#aaa;font-size:12px;margin:12px 0 4px;">Button not working? Copy and paste this link into your browser:</p>
+      <p style="margin:0;word-break:break-all;"><a href="${d.confirmUrl}" style="color:#7C3AED;font-size:12px;">${d.confirmUrl}</a></p>
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">If you didn't subscribe, ignore this email. <a href="${d.unsubscribeUrl}" style="color:#aaa;">Unsubscribe</a></p>
     `)
   }),
   newBlogPost: (d) => ({

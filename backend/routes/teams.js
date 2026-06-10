@@ -26,7 +26,7 @@ router.get('/all-members', async (req, res) => {
   try {
     const { search, dept, role } = req.query;
     let q = supabase.from('company_members')
-      .select('id, first_name, last_name, email, department, role, status, phone, job_title, date_of_birth, username, created_at')
+      .select('id, first_name, last_name, email, department, role, status, phone, job_title, date_of_birth, gender, resumption_date, is_core_team, created_at, updated_at')
       .eq('company_id', req.company.id)
       .order('first_name', { ascending: true });
     if (search) q = q.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);

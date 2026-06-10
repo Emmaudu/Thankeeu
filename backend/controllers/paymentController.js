@@ -77,8 +77,9 @@ const upsertContribution = async ({ cardId, txRef, amount, contributorName, cont
   return ins;
 };
 
-// ─── Update message after gift verified ──────────────────────────────────────
+// Update message after gift verified + recalculate card total_collected
 const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountNaira }) => {
+  // Update message.contributed_amount — try message_id first, then email fallback
   try {
     const { data: contrib } = await supabase.from('contributions')
       .select('message_id').eq('flw_reference', txRef).maybeSingle();
@@ -86,17 +87,35 @@ const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountN
       await supabase.from('messages')
         .update({ payment_verified: true, contributed_amount: amountNaira })
         .eq('id', contrib.message_id);
-      return;
+    } else if (contributorEmail && cardId) {
+      // Email fallback: find the most recent message from this contributor on this card
+      const { data: msg } = await supabase.from('messages').select('id')
+        .eq('card_id', cardId)
+        .ilike('author_email', contributorEmail.trim())
+        .order('created_at', { ascending: false }).limit(1).maybeSingle();
+      if (msg) {
+        await supabase.from('messages')
+          .update({ payment_verified: true, contributed_amount: amountNaira })
+          .eq('id', msg.id);
+      }
     }
-  } catch (_) {}
-  if (!contributorEmail || !cardId) return;
-  const { data: msg } = await supabase.from('messages').select('id')
-    .eq('card_id', cardId).eq('author_email', contributorEmail)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle();
-  if (msg) {
-    await supabase.from('messages')
-      .update({ payment_verified: true, contributed_amount: amountNaira })
-      .eq('id', msg.id);
+  } catch (e) {
+    console.warn('updateMessageAfterGift:', e.message);
+  }
+
+  // Recalculate total_collected from scratch (accurate, idempotent)
+  if (cardId) {
+    const { data: sums } = await supabase
+      .from('contributions')
+      .select('amount')
+      .eq('card_id', cardId)
+      .eq('status', 'success')
+      .catch(() => ({ data: null }));
+    if (sums) {
+      const total = sums.reduce((s, c) => s + (c.amount || 0), 0);
+      await supabase.from('cards').update({ total_collected: total }).eq('id', cardId)
+        .catch(e => console.warn('total_collected recalc:', e.message));
+    }
   }
 };
 
@@ -289,12 +308,6 @@ const verifyContribution = async (req, res) => {
     const messageId   = meta.message_id || null;
     const amountNaira = Math.floor(txn.amount);
 
-    // Idempotency: skip double-processing
-    const { data: existing } = await supabase.from('contributions')
-      .select('id, status').eq('flw_reference', txRef).maybeSingle()
-      .catch(() => ({ data: null }));
-    const alreadyDone = existing?.status === 'success';
-
     await upsertContribution({
       cardId,
       txRef,
@@ -305,9 +318,7 @@ const verifyContribution = async (req, res) => {
       messageId,
     });
 
-    // DB trigger (contribution_verified) automatically updates cards.total_collected
-    // when contribution status changes to 'success' — no manual update needed here
-
+    // Always update the message contributed_amount (idempotent — safe to run multiple times)
     await updateMessageAfterGift({
       txRef, cardId,
       contributorEmail: txn.customer?.email,

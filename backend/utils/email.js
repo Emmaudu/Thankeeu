@@ -685,3 +685,27 @@ Object.assign(emailTemplates, {
     `)
   }),
 });
+
+Object.assign(emailTemplates, {
+  blogSubscribeConfirm: (d) => ({
+    subject: 'Confirm your Thankeeu newsletter subscription',
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Hey ${d.name}! One more step 📬</h2>
+      <p style="color:#555;line-height:1.8;">Thanks for subscribing to the Thankeeu blog — HR tips, workplace celebration ideas, and product updates, delivered weekly.</p>
+      <p style="color:#555;line-height:1.8;">Click the button below to confirm your subscription:</p>
+      ${btn('Confirm my subscription →', d.confirmUrl, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">If you didn't subscribe, simply ignore this email. <a href="${d.unsubscribeUrl}" style="color:#aaa;">Unsubscribe</a></p>
+    `)
+  }),
+  newBlogPost: (d) => ({
+    subject: `📖 New on Thankeeu Blog: ${d.postTitle}`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Hey ${d.name}! New article just published 📖</h2>
+      ${d.coverImage ? `<img src="${d.coverImage}" alt="Cover" style="width:100%;border-radius:12px;margin:0 0 20px;max-height:280px;object-fit:cover;" />` : ''}
+      <h3 style="color:#1a1a2e;font-size:18px;font-weight:700;margin:0 0 8px;">${d.postTitle}</h3>
+      ${d.postExcerpt ? `<p style="color:#555;line-height:1.8;margin:0 0 20px;">${d.postExcerpt}</p>` : ''}
+      ${btn('Read the full article →', d.postUrl, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:20px;">You're receiving this because you subscribed to the Thankeeu blog. <a href="${d.unsubscribeUrl}" style="color:#aaa;">Unsubscribe</a></p>
+    `)
+  }),
+});

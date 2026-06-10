@@ -55,7 +55,11 @@ export default function DashboardHome() {
           const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || 'null');
           let slug = verification?.data?.card_slug || pending?.slug;
           if (!slug) { const r = await cardsAPI.create(pending.cardData); slug = r.data.slug; }
-          if (!verification?.data?.card_activated) await cardsAPI.activate(slug, { inviteEmails: pending?.inviteEmails || [] });
+          // Bug 7 fix: verifyPayment activates card on backend — no separate activate() needed
+          // Only call activate as fallback if card_slug wasn't returned (very old flow)
+          if (!verification?.data?.card_slug) {
+            await cardsAPI.activate(slug, { inviteEmails: pending?.inviteEmails || [] }).catch(() => {});
+          }
           localStorage.removeItem('thankeeu_pending_card');
           toast.success('🎉 Card is live!');
           navigate(`/card/${slug}`, { replace: true });

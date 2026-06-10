@@ -1,3 +1,4 @@
+const { sendEmail } = require('../utils/email');
 'use strict';
 const supabase = require('../utils/supabase');
 
@@ -239,13 +240,19 @@ const adminSetStatus = async (req, res) => {
     const valid      = ['draft', 'published', 'archived'];
     if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
-    const { data: post } = await supabase.from('blog_posts').select('published_at').eq('id', id).single();
+    const { data: post } = await supabase.from('blog_posts').select('*').eq('id', id).single();
     const published_at   = status === 'published' && !post?.published_at
       ? new Date().toISOString()
       : post?.published_at;
 
     await supabase.from('blog_posts').update({ status, published_at, updated_at: new Date() }).eq('id', id);
     res.json({ message: `Post ${status}` });
+
+    // Notify subscribers when newly published (was draft/archived → now published)
+    if (status === 'published' && post?.status !== 'published' && post) {
+      const fullPost = { ...post, published_at };
+      notifySubscribersNewPost(fullPost).catch(e => console.error('subscriber notify:', e.message));
+    }
   } catch (err) {
     res.status(500).json({ error: 'Failed to update status' });
   }
@@ -288,9 +295,107 @@ const getBlogSitemap = async (req, res) => {
   }
 };
 
+
+// ── Newsletter / Blog Subscriber endpoints ────────────────────────────────────
+
+const subscribeNewsletter = async (req, res) => {
+  try {
+    const { email, name } = req.body;
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      return res.status(400).json({ error: 'Valid email required' });
+
+    const crypto = require('crypto');
+    const unsubscribeToken = crypto.randomBytes(32).toString('hex');
+    const confirmToken     = crypto.randomBytes(24).toString('hex');
+
+    // Upsert — idempotent if already subscribed
+    const { data: existing } = await supabase
+      .from('blog_subscribers').select('id, confirmed').eq('email', email.toLowerCase()).maybeSingle();
+
+    if (existing?.confirmed) {
+      return res.json({ message: 'You are already subscribed! New articles will land in your inbox.' });
+    }
+
+    if (existing) {
+      await supabase.from('blog_subscribers')
+        .update({ name: name || null, confirm_token: confirmToken }).eq('id', existing.id);
+    } else {
+      await supabase.from('blog_subscribers').insert({
+        email: email.toLowerCase().trim(),
+        name:  name?.trim() || null,
+        confirmed: false,
+        confirm_token: confirmToken,
+        unsubscribe_token: unsubscribeToken,
+      });
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com';
+    await sendEmail({ to: email, template: 'blogSubscribeConfirm', data: {
+      name: name || 'Friend',
+      confirmUrl: `${frontendUrl}/blog/confirm-subscription?token=${confirmToken}&email=${encodeURIComponent(email)}`,
+      unsubscribeUrl: `${frontendUrl}/blog/unsubscribe?token=${unsubscribeToken}`,
+    }}).catch(e => console.error('subscribe confirm email:', e.message));
+
+    res.json({ message: 'Almost there! Check your inbox to confirm your subscription.' });
+  } catch (err) {
+    console.error('subscribeNewsletter:', err);
+    res.status(500).json({ error: 'Subscription failed. Please try again.' });
+  }
+};
+
+const confirmSubscription = async (req, res) => {
+  try {
+    const { token, email } = req.query;
+    const { data, error } = await supabase.from('blog_subscribers')
+      .update({ confirmed: true, confirm_token: null, subscribed_at: new Date() })
+      .eq('confirm_token', token).eq('email', email.toLowerCase())
+      .select().single();
+    if (error || !data) return res.status(400).json({ error: 'Invalid or expired confirmation link' });
+    res.json({ message: 'Subscription confirmed! You will receive new articles by email.' });
+  } catch (err) { res.status(500).json({ error: 'Confirmation failed' }); }
+};
+
+const unsubscribeNewsletter = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ error: 'Missing token' });
+    await supabase.from('blog_subscribers').delete().eq('unsubscribe_token', token);
+    res.json({ message: 'You have been unsubscribed. Sorry to see you go!' });
+  } catch (err) { res.status(500).json({ error: 'Unsubscribe failed' }); }
+};
+
+const getSubscribers = async (req, res) => {
+  try {
+    const { data } = await supabase.from('blog_subscribers')
+      .select('id, email, name, confirmed, subscribed_at').order('created_at', { ascending: false });
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to load subscribers' }); }
+};
+
+// Called by cron when a new post is published
+const notifySubscribersNewPost = async (post) => {
+  const { data: subscribers } = await supabase.from('blog_subscribers')
+    .select('email, name, unsubscribe_token').eq('confirmed', true);
+  const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com';
+
+  for (const sub of (subscribers || [])) {
+    await sendEmail({ to: sub.email, template: 'newBlogPost', data: {
+      name: sub.name || 'Friend',
+      postTitle: post.title,
+      postExcerpt: post.excerpt || '',
+      postUrl: `${frontendUrl}/blog/${post.slug}`,
+      coverImage: post.cover_image || '',
+      unsubscribeUrl: `${frontendUrl}/blog/unsubscribe?token=${sub.unsubscribe_token}`,
+    }}).catch(() => {});
+    await supabase.from('blog_subscribers').update({ last_emailed_at: new Date() }).eq('email', sub.email);
+  }
+  console.log(`Blog post notification sent to ${(subscribers || []).length} subscribers`);
+};
+
 module.exports = {
   getPosts, getCategories, getPost,
   adminGetPosts, adminGetPost, adminCreatePost, adminUpdatePost,
   adminSetStatus, adminToggleFeatured, adminDeletePost,
   getBlogSitemap,
+  subscribeNewsletter, confirmSubscription, unsubscribeNewsletter, getSubscribers, notifySubscribersNewPost,
 };

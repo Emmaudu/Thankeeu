@@ -53,7 +53,8 @@ const GiftWithdrawButton = ({ slug, token, amount, cardId, user, member }) => {
     }
     setWithdrawing(true);
     try {
-      const res = await banksAPI.withdrawGift({ card_slug: slug });
+      // Bug 16 fix: also pass access token for recipients who came via email link
+      const res = await banksAPI.withdrawGift({ card_slug: slug, access_token: token || undefined });
       toast.success(res.data?.message || `${formatNGN(netAmount)} is on its way to your account! 🎉`, { duration: 8000 });
       setShowPanel(false);
     } catch (err) {

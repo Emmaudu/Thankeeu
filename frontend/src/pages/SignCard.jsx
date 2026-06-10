@@ -189,6 +189,14 @@ const SignCard = () => {
         setSubmitted(true);
         setSubmitting(false);
         setStage('idle');
+        // Bug 5 fix: track guest visitor for follow-up nudge emails
+        if (!isSignedIn && submitMode === 'guest' && form.author_email) {
+          visitorsAPI.track({
+            email:     form.author_email,
+            full_name: form.author_name,
+            card_slug: slug,
+          }).catch(() => {});
+        }
         return;
       }
 

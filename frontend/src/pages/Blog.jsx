@@ -103,6 +103,22 @@ const PostCard = ({ post, featured = false }) => {
 
 // ── Blog listing page ─────────────────────────────────────────────────────────
 const Blog = () => {
+  const [subEmail, setSubEmail] = useState('');
+  const [subbing,  setSubbing]  = useState(false);
+
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    if (!subEmail.trim()) return;
+    setSubbing(true);
+    try {
+      const res = await blogAPI.subscribe({ email: subEmail.trim() });
+      import('react-hot-toast').then(m => m.default.success(res.data.message || 'Check your inbox to confirm! 📬', { duration: 6000 }));
+      setSubEmail('');
+    } catch (err) {
+      import('react-hot-toast').then(m => m.default.error(err.response?.data?.error || 'Could not subscribe. Please try again.'));
+    } finally { setSubbing(false); }
+  };
+
   const [posts,      setPosts]      = useState([]);
   const [categories, setCategories] = useState([]);
   const [category,   setCategory]   = useState('All');

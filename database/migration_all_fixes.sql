@@ -359,3 +359,18 @@ CREATE INDEX IF NOT EXISTS idx_contributions_message_id ON contributions(message
 -- payment_ref on cards for tx_ref fallback activation
 ALTER TABLE cards ADD COLUMN IF NOT EXISTS payment_ref TEXT;
 CREATE INDEX IF NOT EXISTS idx_cards_payment_ref ON cards(payment_ref);
+
+-- Blog subscribers (newsletter)
+CREATE TABLE IF NOT EXISTS blog_subscribers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT NOT NULL UNIQUE,
+  name  TEXT,
+  confirmed BOOLEAN DEFAULT FALSE,
+  confirm_token TEXT,
+  unsubscribe_token TEXT NOT NULL DEFAULT encode(gen_random_bytes(32), 'hex'),
+  subscribed_at TIMESTAMPTZ DEFAULT NOW(),
+  last_emailed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_blog_subscribers_email ON blog_subscribers(email);
+CREATE INDEX IF NOT EXISTS idx_blog_subscribers_token ON blog_subscribers(unsubscribe_token);

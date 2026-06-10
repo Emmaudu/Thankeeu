@@ -345,6 +345,7 @@ export const blogAPI = {
   getCategories: ()             => publicAxios.get('/blog/categories'),
   getPost:       (slug)         => publicAxios.get(`/blog/${slug}`),
   getSitemap:    ()             => publicAxios.get('/blog/sitemap'),
+  subscribe:     (data)          => publicAxios.post('/blog/subscribe', data),
   admin: {
     getPosts:       (status)       => api.get('/blog/admin/posts', { params: { status } }),
     getPost:        (id)           => api.get(`/blog/admin/posts/${id}`),

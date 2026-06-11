@@ -28,5 +28,6 @@ router.put('/me/password',     vendorAuth, v.changeVendorPassword);
 // Admin
 router.get('/admin/vendors',           adminAuth, v.adminListVendors);
 router.put('/admin/vendors/:id/status',adminAuth, v.adminUpdateVendorStatus);
+router.get('/admin/orders',            adminAuth, v.adminListOrders);
 
 module.exports = router;

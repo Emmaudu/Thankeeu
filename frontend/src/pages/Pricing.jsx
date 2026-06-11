@@ -80,9 +80,7 @@ const FAQ = [
   { q: 'What happens if I cancel my company subscription?', a: 'Automation stops after your current period ends, but all your team data is preserved.' },
 ];
 
-// CurrencyToggle and RotatingPrice live in utils/currencyUI.jsx
-// Re-exported here for backward compatibility
-export { CurrencyToggle, RotatingPrice } from '../utils/currencyUI';
+import { CurrencyToggle, RotatingPrice } from '../utils/currencyUI';
 
 // ── Main Pricing page ─────────────────────────────────────────────────────────
 const Pricing = () => {

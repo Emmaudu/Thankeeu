@@ -400,12 +400,21 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
         >
           ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
         </button>
-        {message.contributed_amount > 0 && (
+        {message.gift_type === 'product' && message.product_name ? (
+          <a href={`/c/${message.product_vendor_slug || '#'}`} target="_blank" rel="noopener noreferrer"
+            className="rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center gap-1.5 hover:bg-white transition-colors"
+            title={`View ${message.product_vendor_name || 'vendor'} store`}>
+            <span className="text-sm">🎂</span>
+            <span className="text-xs font-extrabold truncate max-w-[90px]" style={{ color: design.accent }}>
+              {message.product_name}
+            </span>
+          </a>
+        ) : message.contributed_amount > 0 ? (
           <div className="rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center gap-1.5">
             <span className="text-xs font-bold" style={{ color: design.ink }}>🎁</span>
             <span className="text-sm font-extrabold" style={{ color: design.accent }}>{formatNGN(message.contributed_amount)}</span>
           </div>
-        )}
+        ) : null}
       </div>
     </article>
   );

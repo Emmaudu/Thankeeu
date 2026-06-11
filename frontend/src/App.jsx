@@ -37,6 +37,8 @@ import VendorSettings          from './pages/vendor/VendorSettings';
 import VendorSupport           from './pages/vendor/VendorSupport';
 import VendorStorefront        from './pages/vendor/VendorStorefront';
 import VendorBank              from './pages/vendor/VendorBank';
+import VendorCustomers         from './pages/vendor/VendorCustomers';
+import VendorStorefrontPublic  from './pages/vendor/VendorStorefrontPublic';
 import VendorLogin            from './pages/vendor/VendorLogin';
 import VendorSignup           from './pages/vendor/VendorSignup';
 import BlogConfirmSubscription from './pages/BlogConfirmSubscription';
@@ -183,6 +185,8 @@ const App = () => (
             <Route path="/vendor/support"     element={<VendorSupport />} />
             <Route path="/vendor/storefront"  element={<VendorStorefront />} />
             <Route path="/vendor/bank"        element={<VendorBank />} />
+            <Route path="/vendor/customers"    element={<VendorCustomers />} />
+            <Route path="/c/:slug"             element={<VendorStorefrontPublic />} />
             <Route path="/blog/confirm-subscription" element={<BlogConfirmSubscription />} />
             <Route path="/blog/unsubscribe"            element={<BlogUnsubscribe />} />
             <Route path="/payment/callback"   element={<PaymentCallback />} />

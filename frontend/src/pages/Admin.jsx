@@ -95,6 +95,7 @@ const Admin = () => {
     if (tab === 'demos'     && !demos.length)         fetchDemos();
     if (tab === 'visitors'  && !visitors.length && !visitorStats) fetchVisitors();
     if (tab === 'blog'      && !blogPosts.length)     fetchBlog();
+    if (tab === 'vendors'   && !vendors.length)      fetchVendors();
   }, [tab]);
 
   const fetchCore = async () => {
@@ -150,6 +151,19 @@ const Admin = () => {
       toast.error('Failed to load visitors');
       setVisitors([]);
     } finally { setVisitorsLoading(false); }
+  };
+
+  const fetchVendors = async () => {
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const hdr  = { Authorization: `Bearer ${localStorage.getItem('thankeeu_token')}` };
+      const [vRes, oRes] = await Promise.all([
+        fetch(`${base}/vendor/admin/vendors`, { headers: hdr }).then(r => r.json()),
+        fetch(`${base}/vendor/admin/orders`,  { headers: hdr }).then(r => r.json()).catch(() => []),
+      ]);
+      setVendors(Array.isArray(vRes) ? vRes : []);
+      setVendorOrders(Array.isArray(oRes) ? oRes : []);
+    } catch { toast.error('Failed to load vendor data'); }
   };
 
   const fetchBlog = async () => {
@@ -229,6 +243,7 @@ const Admin = () => {
     { id:'demos',     label:`📅 Demos${newDemos.length ? ` · ${newDemos.length} new` : ''}` },
     { id:'visitors',  label:`👤 Visitors${visitors.length ? ` (${visitors.length})` : ''}` },
     { id:'blog',      label:`✍️ Blog` },
+    { id:'vendors',   label:`🏪 Vendors` },
   ];
 
   return (
@@ -636,7 +651,125 @@ const Admin = () => {
         )}
 
         {/* ─────────────── BLOG ─────────────── */}
-        {tab === 'blog' && (
+        {tab === 'vendors' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { l:'Total Vendors',   v: vendors.length },
+                { l:'Approved',        v: vendors.filter(v=>v.status==='approved').length },
+                { l:'Pending Review',  v: vendors.filter(v=>v.status==='pending').length },
+                { l:'Gift Orders',     v: vendorOrders.length },
+              ].map(s=>(
+                <div key={s.l} className="bg-white rounded-2xl border border-purple-100 p-4">
+                  <p className="text-xs text-warm-400 mb-1">{s.l}</p>
+                  <p className="text-2xl font-bold text-warm-900">{s.v}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-purple-50 font-semibold text-warm-900">Vendors</div>
+              <table className="w-full text-sm">
+                <thead className="bg-purple-50 text-xs uppercase text-warm-500">
+                  <tr>
+                    {['Store','Category','Country','Status','Action'].map(h=>(
+                      <th key={h} className="px-4 py-3 text-left">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-purple-50">
+                  {vendors.map(v=>(
+                    <tr key={v.id}>
+                      <td className="px-4 py-3">
+                        <p className="font-medium text-warm-900">{v.business_name}</p>
+                        <p className="text-xs text-warm-400">{v.email}</p>
+                      </td>
+                      <td className="px-4 py-3 capitalize text-warm-600">{v.category}</td>
+                      <td className="px-4 py-3 text-warm-600">{v.country||'—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${
+                          v.status==='approved' ? 'bg-green-100 text-green-700' :
+                          v.status==='pending'  ? 'bg-amber-100 text-amber-700' :
+                          'bg-red-100 text-red-600'}`}>
+                          {v.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          {v.status !== 'approved' && (
+                            <button onClick={async()=>{
+                              const base = import.meta.env.VITE_API_URL||'/api';
+                              await fetch(`${base}/vendor/admin/vendors/${v.id}/status`,{
+                                method:'PUT', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`},
+                                body: JSON.stringify({status:'approved'})});
+                              fetchVendors(); toast.success('Vendor approved!');
+                            }} className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-semibold">
+                              Approve
+                            </button>
+                          )}
+                          {v.status === 'approved' && (
+                            <button onClick={async()=>{
+                              const base = import.meta.env.VITE_API_URL||'/api';
+                              await fetch(`${base}/vendor/admin/vendors/${v.id}/status`,{
+                                method:'PUT', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`},
+                                body: JSON.stringify({status:'suspended'})});
+                              fetchVendors(); toast.success('Vendor suspended');
+                            }} className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-semibold">
+                              Suspend
+                            </button>
+                          )}
+                          <a href={`/c/${v.slug}`} target="_blank" rel="noopener noreferrer"
+                            className="text-xs px-3 py-1.5 rounded-lg bg-purple-50 text-primary-600 hover:bg-purple-100 font-semibold">
+                            View store
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {vendorOrders.length > 0 && (
+              <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-purple-50 font-semibold text-warm-900">🎂 Gift Orders via Thankeeu</div>
+                <table className="w-full text-sm">
+                  <thead className="bg-purple-50 text-xs uppercase text-warm-500">
+                    <tr>
+                      {['Order','Vendor','Customer','Total','Fee','Status'].map(h=>(
+                        <th key={h} className="px-4 py-3 text-left">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-purple-50">
+                    {vendorOrders.slice(0,50).map(o=>(
+                      <tr key={o.id}>
+                        <td className="px-4 py-3 font-mono text-xs">#{o.id.slice(0,8).toUpperCase()}</td>
+                        <td className="px-4 py-3 text-warm-700">{o.vendor_name||'—'}</td>
+                        <td className="px-4 py-3">
+                          <p className="text-warm-900">{o.customer_name}</p>
+                          {o.card_slug && <p className="text-xs text-primary-500">Card: {o.card_slug}</p>}
+                        </td>
+                        <td className="px-4 py-3 font-semibold">₦{(o.total_amount||0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-pink-600 font-semibold">₦{(o.platform_fee||5000).toLocaleString()}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${
+                            o.status==='delivered' ? 'bg-green-100 text-green-700' :
+                            o.status==='shipped'   ? 'bg-blue-100 text-blue-700' :
+                            'bg-amber-100 text-amber-700'}`}>
+                            {o.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+                {tab === 'blog' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex flex-wrap gap-2">

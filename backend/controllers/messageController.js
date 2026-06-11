@@ -7,7 +7,9 @@ const parseBoolean = value => value === true || value === 'true' || value === '1
 const addMessage = async (req, res) => {
   try {
     const { card_slug } = req.params;
-    const { author_name, author_email, content, is_private, font_style } = req.body;
+    const { author_name, author_email, content, is_private, font_style,
+             gift_type, product_vendor_id, product_vendor_name,
+             product_id, product_name, product_price } = req.body;
 
     const { data: card } = await supabase
       .from('cards').select('id, status, allow_private_messages')
@@ -59,6 +61,15 @@ const addMessage = async (req, res) => {
       media_url,
       media_type,
       ...(media_gallery && { media_gallery }),
+      // Product gift fields (set when signer chooses vendor gift in SignCard)
+      ...(gift_type === 'product' && {
+        gift_type:           'product',
+        product_vendor_id:   product_vendor_id   || null,
+        product_vendor_name: product_vendor_name || null,
+        product_id:          product_id          || null,
+        product_name:        product_name        || null,
+        product_price:       product_price ? Number(product_price) : null,
+      }),
     };
 
     // Try with font_style, fall back without if column doesn't exist
@@ -78,6 +89,15 @@ const addMessage = async (req, res) => {
     }
 
     if (error) throw error;
+
+    // If product gift, fetch vendor slug and update message
+    if (gift_type === 'product' && product_vendor_id) {
+      const { data: vSlug } = await supabase.from('vendors').select('slug').eq('id', product_vendor_id).maybeSingle();
+      if (vSlug?.slug) {
+        await supabase.from('messages').update({ product_vendor_slug: vSlug.slug }).eq('id', message.id);
+        message = { ...message, product_vendor_slug: vSlug.slug };
+      }
+    }
 
     // Track guest visitors for re-engagement emails
     const isGuest = String(req.body.is_guest) === 'true';

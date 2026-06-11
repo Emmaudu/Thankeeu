@@ -344,11 +344,24 @@ const changeVendorPassword = async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
+
+const adminListOrders = async (req, res) => {
+  try {
+    const { data } = await supabase
+      .from('vendor_orders')
+      .select('*, vendors(business_name)')
+      .order('created_at', { ascending: false })
+      .limit(200);
+    const orders = (data || []).map(o => ({ ...o, vendor_name: o.vendors?.business_name }));
+    res.json(orders);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
 module.exports = {
   listPublicVendors, vendorSignup, vendorLogin, getMyStore, updateStore,
   getProducts, createProduct, updateProduct, deleteProduct,
   getOrders, updateOrderStatus, getAnalytics,
   getPublicStore, placeOrder,
-  adminListVendors, adminUpdateVendorStatus,
+  adminListVendors, adminUpdateVendorStatus, adminListOrders,
   getVendorTickets, createVendorTicket, changeVendorPassword,
 };

@@ -149,6 +149,8 @@ export const messagesAPI = {
   delete: (messageId)       => api.delete(`/messages/${messageId}`),
   // reply is authenticated — uses smart axios so both users and members can reply
   reply:  (cardSlug, data)  => smartAxios.post(`/messages/${cardSlug}/reply`, data),
+  // sign = alias for add (used in vendor product gift flow)
+  sign:   (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data, { headers: { 'Content-Type': undefined } }),
 };
 
 // ─── Payments ──────────────────────────────────────────────────────────────

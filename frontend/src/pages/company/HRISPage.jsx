@@ -146,9 +146,9 @@ const HRISPage = () => {
       setSyncResult({ id: connectionId, ...res.data });
       toast.success(`${name} sync complete! ${res.data.total_employees} employees processed.`);
           // Per-head pricing redirect after HRIS sync
-          if (result?.head_count) {
-            sessionStorage.setItem('sub_pricing', JSON.stringify(result));
-            toast(`💳 Subscription pricing updated: ${result.head_count} employees × ₦2,000/month`, { duration: 5000 });
+          if (res.data?.head_count) {
+            sessionStorage.setItem('sub_pricing', JSON.stringify(res.data));
+            toast(`💳 Subscription pricing updated: ${res.data.head_count} employees × ₦2,000/month`, { duration: 5000 });
           };
       fetchAll();
     } catch (err) {

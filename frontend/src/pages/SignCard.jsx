@@ -4,7 +4,7 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
-import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI, visitorsAPI } from '../utils/api';
+import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI, visitorsAPI, vendorAPI } from '../utils/api';
 import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import VoiceRecorder from '../components/VoiceRecorder';
 import Navbar from '../components/Navbar';
@@ -38,6 +38,14 @@ const SignCard = () => {
   const fileRef = useRef();
 
   const [selectedAmount, setSelectedAmount] = useState(null);
+  const [giftMode, setGiftMode] = useState('money'); // 'money' | 'product'
+  const [showVendorPicker, setShowVendorPicker] = useState(false);
+  const [vendors, setVendors] = useState([]);
+  const [vendorFilter, setVendorFilter] = useState({ country: '', category: '' });
+  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [vendorProducts, setVendorProducts] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [productSubmitting, setProductSubmitting] = useState(false);
   const [customAmount,   setCustomAmount]   = useState('');
 
   // Auto-fill name and email from whoever is signed in
@@ -297,6 +305,61 @@ const SignCard = () => {
 
   const amountNGN = Number(customAmount || selectedAmount || 0);
   const wantsGift = card.is_gift_enabled && amountNGN >= 2500;
+
+  // Load approved vendors for product gifting
+  const loadVendors = async (country = '', category = '') => {
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const params = new URLSearchParams();
+      if (country)  params.set('country', country);
+      if (category) params.set('category', category);
+      const res = await fetch(`${base}/vendor/public?${params}`);
+      const d   = await res.json();
+      setVendors(d || []);
+    } catch { toast.error('Could not load gift vendors'); }
+  };
+
+  const handleProductGift = async () => {
+    if (!selectedProduct) return toast.error('Please select a product');
+    if (!form.author_name.trim()) return toast.error('Please enter your name');
+    if (!form.author_email.trim()) return toast.error('Email is needed so the vendor can contact you');
+    setProductSubmitting(true);
+    try {
+      // 1. Post the card message first
+      const fd = new FormData();
+      fd.append('author_name', form.author_name.trim());
+      fd.append('author_email', form.author_email.trim());
+      if (form.message.trim()) fd.append('content', form.message.trim());
+      fd.append('gift_type', 'product');
+      fd.append('product_vendor_id', selectedVendor.id);
+      fd.append('product_vendor_name', selectedVendor.business_name);
+      fd.append('product_id', selectedProduct.id);
+      fd.append('product_name', selectedProduct.name);
+      fd.append('product_price', selectedProduct.price);
+      for (const mf of mediaFiles) fd.append('media', mf.file);
+      await messagesAPI.sign(slug, fd);
+
+      // 2. Place order with vendor
+      const orderRes = await vendorAPI.placeOrder(selectedVendor.slug, {
+        items: [{ product_id: selectedProduct.id, quantity: 1 }],
+        customer_name:  form.author_name.trim(),
+        customer_email: form.author_email.trim(),
+        card_slug:      slug,
+        note:           form.message.trim(),
+      });
+      const { order_id, payment_link } = orderRes.data;
+
+      if (payment_link) {
+        toast.success('Redirecting to pay for your gift...');
+        window.location.href = payment_link;
+      } else {
+        toast.success('🎁 Gift order placed! The vendor will contact you to arrange delivery.');
+        setSubmitted(true);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send product gift');
+    } finally { setProductSubmitting(false); }
+  };
 
   const stageLabel = {
     sending:     'Saving your message...',
@@ -597,23 +660,105 @@ const SignCard = () => {
               </div>
             )}
 
-            {/* ── Independent submit button ── */}
-            <button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full py-4 text-base rounded-2xl font-extrabold disabled:opacity-60 transition-all"
-              style={{ background: `linear-gradient(135deg, ${design.accent}, ${design.accent}cc)`, color: "#fff", boxShadow: `0 4px 20px ${design.accent}55`, border: "none" }}
-            >
-              {submitting
-                ? <span className="flex items-center justify-center gap-2">
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>
-                    {stageLabel || 'Processing...'}
-                  </span>
-                : wantsGift
-                  ? `✍️ Sign card + pay ${formatNGN(amountNGN)} gift`
-                  : `✍️ Sign this card`
-              }
-            </button>
+            {/* ── Gift mode toggle (only when gift is enabled) ── */}
+            {card.is_gift_enabled && (
+              <div className="flex gap-2 mb-3">
+                <button type="button"
+                  onClick={() => setGiftMode('money')}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${giftMode==='money' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-purple-100 bg-white text-warm-600'}`}>
+                  💳 Money Gift
+                </button>
+                <button type="button"
+                  onClick={() => { setGiftMode('product'); if (!vendors.length) loadVendors(); }}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold border-2 transition-all ${giftMode==='product' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-purple-100 bg-white text-warm-600'}`}>
+                  🎁 Send a Gift
+                </button>
+              </div>
+            )}
+
+            {/* ── Product vendor picker ── */}
+            {giftMode === 'product' && card.is_gift_enabled && (
+              <div className="rounded-2xl border-2 border-pink-100 bg-pink-50/50 p-4 mb-3">
+                <p className="text-sm font-semibold text-warm-700 mb-3">Choose a gift from a vendor near the recipient</p>
+
+                {/* Filters */}
+                <div className="flex gap-2 mb-3">
+                  <select value={vendorFilter.country}
+                    onChange={e => { setVendorFilter(p=>({...p,country:e.target.value})); loadVendors(e.target.value, vendorFilter.category); }}
+                    className="flex-1 input text-xs py-2">
+                    <option value="">All countries</option>
+                    {['Nigeria','Ghana','Kenya','South Africa','UK','USA','Canada'].map(c=><option key={c}>{c}</option>)}
+                  </select>
+                  <select value={vendorFilter.category}
+                    onChange={e => { setVendorFilter(p=>({...p,category:e.target.value})); loadVendors(vendorFilter.country, e.target.value); }}
+                    className="flex-1 input text-xs py-2">
+                    <option value="">All types</option>
+                    {['cakes','flowers','chocolates','jewellery','hampers','balloons'].map(c=><option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+
+                {/* Vendor list */}
+                {vendors.length === 0
+                  ? <p className="text-xs text-warm-400 text-center py-2">No vendors found. Try a different filter.</p>
+                  : <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {vendors.map(v => (
+                        <button key={v.id} type="button"
+                          onClick={() => { setSelectedVendor(v); setVendorProducts([]); setSelectedProduct(null);
+                            fetch(`${import.meta.env.VITE_API_URL||'/api'}/vendor/store/${v.slug}`)
+                              .then(r=>r.json()).then(d=>setVendorProducts(d.products||[])); }}
+                          className={`w-full text-left p-3 rounded-xl border-2 transition-all ${selectedVendor?.id===v.id ? 'border-pink-400 bg-white' : 'border-transparent bg-white hover:border-pink-200'}`}>
+                          <div className="flex items-center gap-3">
+                            {v.logo_url
+                              ? <img src={v.logo_url} className="w-8 h-8 rounded-lg object-cover"/>
+                              : <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center text-sm">🎁</div>}
+                            <div>
+                              <p className="text-sm font-semibold text-warm-900">{v.business_name}</p>
+                              <p className="text-xs text-warm-400 capitalize">{v.category} · {v.country||'International'}{v.state ? `, ${v.state}` : ''}</p>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                }
+
+                {/* Products from selected vendor */}
+                {selectedVendor && vendorProducts.length > 0 && (
+                  <div className="mt-3 space-y-2 max-h-40 overflow-y-auto border-t border-pink-100 pt-3">
+                    <p className="text-xs font-semibold text-warm-600 mb-2">Products from {selectedVendor.business_name}</p>
+                    {vendorProducts.map(p => (
+                      <button key={p.id} type="button"
+                        onClick={() => setSelectedProduct(p)}
+                        className={`w-full text-left p-2.5 rounded-xl border-2 transition-all flex items-center gap-3 ${selectedProduct?.id===p.id ? 'border-pink-400 bg-pink-50' : 'border-transparent bg-white hover:border-pink-200'}`}>
+                        {p.images?.[0] && <img src={p.images[0]} className="w-10 h-10 rounded-lg object-cover"/>}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-warm-900">{p.name}</p>
+                          <p className="text-xs text-pink-600 font-bold">{formatNGN(p.price)}</p>
+                        </div>
+                        {selectedProduct?.id===p.id && <span className="text-pink-500">✓</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Submit buttons ── */}
+            {giftMode === 'product' && card.is_gift_enabled
+              ? <button onClick={handleProductGift} disabled={productSubmitting || !selectedProduct}
+                  className="w-full py-4 text-base rounded-2xl font-extrabold disabled:opacity-60 transition-all"
+                  style={{ background:'linear-gradient(135deg,#ec4899,#db2777)', color:'#fff', boxShadow:'0 4px 20px #ec489966', border:'none' }}>
+                  {productSubmitting
+                    ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Processing...</span>
+                    : selectedProduct ? `🎁 Sign + send ${selectedProduct.name} (${formatNGN(selectedProduct.price)})` : '🎁 Sign + Send Gift'}
+                </button>
+              : <button onClick={handleSubmit} disabled={submitting}
+                  className="w-full py-4 text-base rounded-2xl font-extrabold disabled:opacity-60 transition-all"
+                  style={{ background:`linear-gradient(135deg,${design.accent},${design.accent}cc)`, color:'#fff', boxShadow:`0 4px 20px ${design.accent}55`, border:'none' }}>
+                  {submitting
+                    ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>{stageLabel||'Processing...'}</span>
+                    : wantsGift ? `✍️ Sign card + pay ${formatNGN(amountNGN)} gift` : `✍️ Sign this card`}
+                </button>
+            }
 
             <p className="text-center text-sm text-warm-400">Secured by Flutterwave · Your message is private until delivery</p>
           </aside>

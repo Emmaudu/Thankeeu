@@ -142,7 +142,7 @@ export default function OccasionsPage() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Import failed');
-      toast.success(`✅ ${d.imported} entries imported! ${d.employee_count} employees counted.`);
+      toast.success(`✅ ${d.imported} entries imported! ${d.head_count ? d.head_count + ' employees counted.' : ''}`);
       loadTables();
       // Redirect to subscription page so HR can see dynamic pricing based on headcount
       if (d.redirect_to_subscription && d.head_count) {

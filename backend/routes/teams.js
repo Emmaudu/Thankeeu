@@ -46,16 +46,22 @@ router.get('/all-members', async (req, res) => {
     let omQ = supabase.from('occasion_members')
       .select('email, first_name, last_name, department, gender, member_id, is_active')
       .eq('company_id', companyId)
-      .eq('is_active', true);
+      .neq('is_active', false);  // include both TRUE and NULL (old records)
     if (dept)   omQ = omQ.eq('department', dept);
     if (search) omQ = omQ.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
     const { data: omData } = await omQ;
 
-    // Deduplicate occasion_members by email and exclude those already in company_members
+    // Deduplicate occasion_members by email (same person may appear in multiple occasion types)
+    // Exclude those already in company_members
     const omUnique = Object.values(
       (omData || [])
         .filter(m => m.email && !cmEmails.has(m.email.toLowerCase()))
-        .reduce((acc, m) => { acc[m.email.toLowerCase()] = m; return acc; }, {})
+        .reduce((acc, m) => {
+          const key = m.email.toLowerCase();
+          // Keep the record with the most info (prioritise ones with member_id)
+          if (!acc[key] || (!acc[key].member_id && m.member_id)) acc[key] = m;
+          return acc;
+        }, {})
     ).map(m => ({
       ...m,
       id:          m.member_id || `om_${m.email}`,

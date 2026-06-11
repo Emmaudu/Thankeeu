@@ -240,7 +240,10 @@ const placeOrder = async (req, res) => {
     const { data: order, error } = await supabase.from('vendor_orders').insert({
       vendor_id: vendor.id, customer_name, customer_email, customer_phone,
       delivery_address, card_slug, note,
-      total_amount: total, status: 'pending',
+      total_amount: total,
+      platform_fee: 5000,
+      vendor_payout: Math.max(0, total - 5000),  // Thankeeu keeps ₦5000
+      status: 'pending',
     }).select().single();
     if (error) throw error;
 
@@ -281,10 +284,71 @@ const adminUpdateVendorStatus = async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
+
+// GET /api/vendor/public — list approved vendors with optional filters
+const listPublicVendors = async (req, res) => {
+  try {
+    const { country, category, search } = req.query;
+    let q = supabase.from('vendors')
+      .select('id, business_name, slug, category, country, state, description, logo_url, delivery_info')
+      .eq('status', 'approved')
+      .order('business_name', { ascending: true });
+    if (country)  q = q.ilike('country', `%${country}%`);
+    if (category) q = q.eq('category', category);
+    if (search)   q = q.ilike('business_name', `%${search}%`);
+    const { data } = await q;
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+
+// Vendor support tickets
+const getVendorTickets = async (req, res) => {
+  try {
+    const { data } = await supabase.from('vendor_support_tickets')
+      .select('*').eq('vendor_id', req.vendor.id).order('created_at', { ascending: false });
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+const createVendorTicket = async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+    if (!subject || !message) return res.status(400).json({ error: 'Subject and message required' });
+    const { data, error } = await supabase.from('vendor_support_tickets').insert({
+      vendor_id: req.vendor.id, vendor_name: req.vendor.business_name,
+      subject, message, status: 'open',
+    }).select().single();
+    if (error) throw error;
+    // Notify admins via email
+    await sendEmail({ to: process.env.ADMIN_EMAIL || 'admin@thankeeu.com',
+      template: 'supportTicket',
+      data: { name: req.vendor.business_name, subject, message, type: 'Vendor', ticketId: data.id }
+    }).catch(() => {});
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// Password change
+const changeVendorPassword = async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body;
+    const { data: vendor } = await supabase.from('vendors').select('password_hash').eq('id', req.vendor.id).single();
+    const valid = vendor?.password_hash?.startsWith('$argon2')
+      ? await require('argon2').verify(vendor.password_hash, current_password)
+      : await require('bcryptjs').compare(current_password, vendor.password_hash);
+    if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
+    const newHash = await require('argon2').hash(new_password, { type: require('argon2').argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+    await supabase.from('vendors').update({ password_hash: newHash }).eq('id', req.vendor.id);
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
 module.exports = {
-  vendorSignup, vendorLogin, getMyStore, updateStore,
+  listPublicVendors, vendorSignup, vendorLogin, getMyStore, updateStore,
   getProducts, createProduct, updateProduct, deleteProduct,
   getOrders, updateOrderStatus, getAnalytics,
   getPublicStore, placeOrder,
   adminListVendors, adminUpdateVendorStatus,
+  getVendorTickets, createVendorTicket, changeVendorPassword,
 };

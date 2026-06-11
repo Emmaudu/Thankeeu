@@ -743,13 +743,23 @@ const importGeneralTemplate = async (req, res) => {
       }
     }
 
+    // Count active company_members for per-head subscription pricing
+    const { data: mRows } = await supabase
+      .from('company_members')
+      .select('id', { count: 'exact', head: false })
+      .eq('company_id', companyId)
+      .neq('status', 'deactivated');
+    const hc = (mRows || []).length || totalImported;
+
     res.json({
-      message: `✅ Master import complete! ${totalImported} occasion entries created/updated across all tables.`,
-      imported: totalImported,
+      message:                  `✅ Master import complete! ${totalImported} occasion entries created/updated across all tables.`,
+      imported:                 totalImported,
+      head_count:               hc,
+      monthly_price:            hc * 2000,
+      yearly_price:             hc * 20000,
+      redirect_to_subscription: true,
       errors,
     });
-
-    // (head_count and pricing injected above if available)
   } catch (err) {
     console.error('importGeneralTemplate error:', err);
     res.status(500).json({ error: `Import failed: ${err.message}` });

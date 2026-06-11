@@ -30,6 +30,13 @@ import Admin            from './pages/Admin';
 import AdminLogin       from './pages/AdminLogin';
 import GiftCheckout     from './pages/GiftCheckout';
 import VendorDashboard         from './pages/vendor/VendorDashboard';
+import VendorProducts          from './pages/vendor/VendorProducts';
+import VendorOrders            from './pages/vendor/VendorOrders';
+import VendorAnalytics         from './pages/vendor/VendorAnalytics';
+import VendorSettings          from './pages/vendor/VendorSettings';
+import VendorSupport           from './pages/vendor/VendorSupport';
+import VendorStorefront        from './pages/vendor/VendorStorefront';
+import VendorBank              from './pages/vendor/VendorBank';
 import VendorLogin            from './pages/vendor/VendorLogin';
 import VendorSignup           from './pages/vendor/VendorSignup';
 import BlogConfirmSubscription from './pages/BlogConfirmSubscription';
@@ -168,7 +175,14 @@ const App = () => (
             <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
             <Route path="/vendor/login"             element={<VendorLogin />} />
             <Route path="/vendor/signup"            element={<VendorSignup />} />
-            <Route path="/vendor/dashboard"          element={<VendorDashboard />} />
+            <Route path="/vendor/dashboard"   element={<VendorDashboard />} />
+            <Route path="/vendor/products"    element={<VendorProducts />} />
+            <Route path="/vendor/orders"      element={<VendorOrders />} />
+            <Route path="/vendor/analytics"   element={<VendorAnalytics />} />
+            <Route path="/vendor/settings"    element={<VendorSettings />} />
+            <Route path="/vendor/support"     element={<VendorSupport />} />
+            <Route path="/vendor/storefront"  element={<VendorStorefront />} />
+            <Route path="/vendor/bank"        element={<VendorBank />} />
             <Route path="/blog/confirm-subscription" element={<BlogConfirmSubscription />} />
             <Route path="/blog/unsubscribe"            element={<BlogUnsubscribe />} />
             <Route path="/payment/callback"   element={<PaymentCallback />} />

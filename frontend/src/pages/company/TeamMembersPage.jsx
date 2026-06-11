@@ -15,6 +15,7 @@ export default function TeamMembersPage() {
   const [editId,   setEditId]   = useState(null);
   const [editData, setEditData] = useState({});
   const [saving,   setSaving]   = useState(false);
+  const [teamsCount, setTeamsCount] = useState(0);
 
   const load = async () => {
     setLoading(true);

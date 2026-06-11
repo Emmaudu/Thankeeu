@@ -326,18 +326,11 @@ const Pricing = () => {
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
-                  <div className="flex items-end gap-1 mb-1">
-                    <span className="text-3xl font-bold text-warm-900">{fmt(plan.priceNGN)}</span>
-                    <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
+                  <div className="mb-3">
+                    <span className="text-2xl font-bold text-warm-900">₦2,000</span>
+                    <span className="text-warm-400 text-sm"> / employee{plan.id==='monthly'?' / month':' / year'}</span>
+                    <p className="text-xs text-warm-400 mt-1">Final price based on your team headcount</p>
                   </div>
-                  {currency !== 'NGN' && (
-                    <p className="text-xs text-warm-400 mb-3">≈ ₦{plan.priceNGN.toLocaleString('en-NG')} NGN</p>
-                  )}
-                  {plan.id === 'yearly' && (
-                    <p className="text-green-600 text-xs font-bold mb-3">
-                      Save {fmt(200000 * 2)} — 2 months free
-                    </p>
-                  )}
                   <div className="h-px bg-purple-100 mb-4" />
                   <ul className="space-y-2 mb-7">
                     {plan.features.map((f, i) => (
@@ -347,18 +340,11 @@ const Pricing = () => {
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => handleCompanySubscribe(plan.id)} disabled={loadingPlan === plan.id}
-                    className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50 ${
+                  <button onClick={() => setShowDemo(true)}
+                    className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all ${
                       plan.popular ? 'bg-primary-500 text-white hover:bg-primary-600' : 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50'
                     }`}>
-                    {loadingPlan === plan.id
-                      ? <span className="flex items-center justify-center gap-2">
-                          <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          Processing…
-                        </span>
-                      : company
-                        ? `Subscribe — ${fmt(plan.priceNGN)}${plan.period}`
-                        : 'Create company account first'}
+                    Get a quote — it's free
                   </button>
                 </div>
               ))}

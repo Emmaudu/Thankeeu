@@ -6,6 +6,7 @@ const { adminAuth } = require('../middleware/auth');
 
 // Public
 router.post('/signup',         v.vendorSignup);
+router.get('/public',          v.listPublicVendors);   // for product gift picker in SignCard
 router.post('/login',          v.vendorLogin);
 router.get('/store/:slug',     v.getPublicStore);
 router.post('/store/:slug/order', v.placeOrder);
@@ -20,6 +21,9 @@ router.delete('/products/:id', vendorAuth, v.deleteProduct);
 router.get('/orders',          vendorAuth, v.getOrders);
 router.put('/orders/:id',      vendorAuth, v.updateOrderStatus);
 router.get('/analytics',       vendorAuth, v.getAnalytics);
+router.get('/support',         vendorAuth, v.getVendorTickets);
+router.post('/support',        vendorAuth, v.createVendorTicket);
+router.put('/me/password',     vendorAuth, v.changeVendorPassword);
 
 // Admin
 router.get('/admin/vendors',           adminAuth, v.adminListVendors);

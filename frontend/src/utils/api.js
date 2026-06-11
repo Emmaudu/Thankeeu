@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const BASE = import.meta.env.VITE_API_URL || '/api';
+const BASE     = import.meta.env.VITE_API_URL || '/api';
+const BASE_URL = BASE;  // alias so both names work
 
 // ─── Session expiry helper ───────────────────────────────────────────────────
 const isTokenExpired = (tokenKey) => {

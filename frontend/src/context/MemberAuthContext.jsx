@@ -35,7 +35,7 @@ useEffect(() => {
     const token = localStorage.getItem('thankeeu_member_token');
     const saved  = localStorage.getItem('thankeeu_member');
     if (token && saved) {
-      setMember(JSON.parse(saved));
+      try { setMember(JSON.parse(saved)); } catch { /* corrupted localStorage — ignore */ }
       memberAPI.getMe()
         .then(res => { setMember(res.data); localStorage.setItem('thankeeu_member', JSON.stringify(res.data)); })
         .catch(() => logout())

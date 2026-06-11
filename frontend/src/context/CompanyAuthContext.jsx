@@ -35,7 +35,7 @@ useEffect(() => {
     const token = localStorage.getItem('thankeeu_company_token');
     const saved = localStorage.getItem('thankeeu_company');
     if (token && saved) {
-      setCompany(JSON.parse(saved));
+      try { setCompany(JSON.parse(saved)); } catch { /* corrupted localStorage — ignore */ }
       companyAPI.getMe()
         .then(res => { setCompany(res.data); localStorage.setItem('thankeeu_company', JSON.stringify(res.data)); })
         .catch(() => logout())

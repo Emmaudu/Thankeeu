@@ -35,7 +35,7 @@ useEffect(() => {
     const token = localStorage.getItem('thankeeu_token');
     const savedUser = localStorage.getItem('thankeeu_user');
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
+      try { setUser(JSON.parse(savedUser)); } catch { /* corrupted localStorage — ignore */ }
       authAPI.getMe().then(res => {
         setUser(res.data);
         localStorage.setItem('thankeeu_user', JSON.stringify(res.data));

@@ -413,7 +413,7 @@ export default function OccasionsPage() {
                 </thead>
                 <tbody className="divide-y divide-purple-50">
                   {rows.map(row => {
-                    const meta = typeof row.meta === 'string' ? JSON.parse(row.meta || '{}') : (row.meta || {});
+                    const meta = (() => { try { return typeof row.meta === 'string' ? JSON.parse(row.meta || '{}') : (row.meta || {}); } catch { return {}; } })();
                     const isEditing = editRow?.id === row.id;
                     return (
                       <tr key={row.id} className="hover:bg-purple-50/40 transition-colors">

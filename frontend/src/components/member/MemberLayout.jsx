@@ -91,7 +91,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
                 background: isActive(path) ? 'rgba(124,110,255,0.16)' : 'transparent',
                 color: isActive(path) ? '#B8B4FF' : '#7A7898',
               }}>
-              <span className="text-xl flex-shrink-0">{icon}</span>
+              <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
               <span>{label}</span>
             </Link>
           ))}

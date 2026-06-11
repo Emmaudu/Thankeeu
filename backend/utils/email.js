@@ -23,9 +23,16 @@ const BASE = (content) => `
 // Alias — many templates use wrap() instead of BASE()
 const wrap = BASE;
 
-const btn = (text, url, color = '#6C5CE7') =>
-  `<a href="${url}" target="_blank" rel="noopener noreferrer"
-     style="display:inline-block;background:${color};color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin-top:20px;mso-padding-alt:0;border:none;">${text}</a>`;
+const btn = (text, url, color = '#6C5CE7') => {
+  // Guard: ensure URL is absolute
+  const safeUrl = (url && url.startsWith('http')) ? url : `https://thankeeu.com${url || ''}`;
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+    <tr><td style="border-radius:8px;background:${color};">
+      <a href="${safeUrl}" target="_blank" rel="noopener noreferrer"
+         style="display:inline-block;background:${color};color:#fff !important;padding:13px 28px;border-radius:8px;text-decoration:none !important;font-weight:600;font-size:14px;font-family:'Segoe UI',Arial,sans-serif;border:none;mso-padding-alt:0;">${text}</a>
+    </td></tr>
+  </table>`;
+};
 
 const emailTemplates = {
 
@@ -762,3 +769,40 @@ Object.assign(emailTemplates, {
   }),
 });
 
+Object.assign(emailTemplates, {
+  vendorWelcome: (d) => ({
+    subject: `Welcome to Thankeeu Marketplace, ${d.name}!`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Welcome, ${d.name}! 🎉</h2>
+      <p style="color:#555;line-height:1.8;">Your Thankeeu marketplace store has been created. Please verify your email to get started, then our team will review your store within 24 hours.</p>
+      ${btn('Verify email & activate store', d.verifyUrl, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Your store URL: <a href="${d.appUrl}/c/${d.slug}">${d.appUrl}/c/${d.slug}</a></p>
+    `)
+  }),
+  vendorApproved: (d) => ({
+    subject: '🎊 Your Thankeeu store is approved and live!',
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Congratulations, ${d.name}!</h2>
+      <p style="color:#555;line-height:1.8;">Your store has been approved and is now live on the Thankeeu marketplace. Start adding products and receiving orders!</p>
+      ${btn('Go to your dashboard →', d.dashUrl, '#7C3AED')}
+    `)
+  }),
+  orderConfirm: (d) => ({
+    subject: `Order confirmed — #${d.orderId} from ${d.storeName}`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Order confirmed! 📦</h2>
+      <p style="color:#555;">Hi ${d.name}, your order <strong>#${d.orderId}</strong> from <strong>${d.storeName}</strong> has been placed.</p>
+      <p style="color:#555;margin:8px 0;"><strong>Total: ${d.total}</strong></p>
+      ${btn('View store', d.storeUrl, '#7C3AED')}
+    `)
+  }),
+  orderStatusUpdate: (d) => ({
+    subject: `Your order is ${d.status} — #${d.orderId}`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Order update 📬</h2>
+      <p style="color:#555;">Hi ${d.name}, your order <strong>#${d.orderId}</strong> is now <strong>${d.status}</strong>.</p>
+      ${d.tracking ? `<p style="color:#555;">Tracking: <strong>${d.tracking}</strong></p>` : ''}
+      ${btn('Track your order', d.storeUrl, '#7C3AED')}
+    `)
+  }),
+});

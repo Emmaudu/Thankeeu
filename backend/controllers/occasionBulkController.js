@@ -6,6 +6,7 @@ const { sendEmail } = require('../utils/email');
  * A single "general" template auto-populates birthday, farewell, promotion, valentine, etc.
  */
 const supabase = require('../utils/supabase');
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 
 // Fixed occasion dates (some are annual, some need year context)
 const OCCASION_FIXED_DATES = {
@@ -162,7 +163,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General', gender: gender || null,
             occasion_date: `${year}-${bday}`,
             is_active: true,
-          }).catch(() => {});
+          });
           results.occasion_rows++;
         }
 
@@ -174,7 +175,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General',
             occasion_date: work_anniversary_date,
             is_active: true,
-          }).catch(() => {});
+          });
           results.occasion_rows++;
         }
 
@@ -186,7 +187,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General', gender: 'male',
             occasion_date: OCCASION_FIXED_DATES.fathers_day(year),
             is_active: true,
-          }).catch(() => {});
+          });
           results.occasion_rows++;
         }
 
@@ -198,7 +199,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General', gender: 'female',
             occasion_date: OCCASION_FIXED_DATES.mothers_day(year),
             is_active: true,
-          }).catch(() => {});
+          });
           results.occasion_rows++;
         }
 
@@ -210,7 +211,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General', gender: 'female',
             occasion_date: OCCASION_FIXED_DATES.womens_day(year),
             is_active: true,
-          }).catch(() => {});
+          });
           results.occasion_rows++;
         }
 
@@ -221,7 +222,7 @@ const bulkSyncEmployees = async (req, res) => {
           department: department || 'General',
           occasion_date: OCCASION_FIXED_DATES.valentine(year),
           is_active: true,
-        }).catch(() => {});
+          });
         results.occasion_rows++;
 
         // Promotion if date set
@@ -233,7 +234,7 @@ const bulkSyncEmployees = async (req, res) => {
             occasion_date: promotion_date,
             is_active: true,
             meta: JSON.stringify({ promotion_level: 1 }),
-          }).catch(() => {});
+          });
           results.occasion_rows++;
         }
 
@@ -245,7 +246,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General',
             occasion_date: leaving_date,
             is_active: true,
-          }).catch(() => {});
+          });
           results.occasion_rows++;
         }
 

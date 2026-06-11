@@ -1,5 +1,16 @@
 const XLSX   = require('xlsx');
 const bcrypt = require('bcryptjs');
+const argon2  = require('argon2');
+const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+const verifyPassword = async (plain, stored) => {
+  if (stored && stored.startsWith('$argon2')) return argon2.verify(stored, plain);
+  return require('bcryptjs').compare(plain, stored);
+};
+const rehashIfLegacy = async (id, plain, stored, table, supabase) => {
+  if (!stored || stored.startsWith('$argon2')) return;
+  try { await supabase.from(table).update({ password_hash: await hashPassword(plain) }).eq('id', id); } catch {}
+};
+
 const crypto = require('crypto');
 const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
@@ -306,7 +317,7 @@ const importOccasionMembers = async (req, res) => {
     for (const row of toInsert) {
       const inviteToken = crypto.randomBytes(24).toString('hex');
       const tempPass    = crypto.randomBytes(8).toString('hex');
-      const passHash    = await bcrypt.hash(tempPass, 12);
+      const passHash    = await hashPassword(tempPass, 12);
       const nameParts   = row.first_name ? [row.first_name, row.last_name] : ['Member', ''];
 
       // Upsert member account
@@ -321,7 +332,7 @@ const importOccasionMembers = async (req, res) => {
         status:        'approved',
         password_hash: passHash,
         invite_token:  inviteToken,
-      }, { onConflict: 'company_id,email' }).catch(() => {});
+      }, { onConflict: 'company_id,email' });
 
       // Send invite email
       const setPasswordLink = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(row.email)}`;
@@ -670,7 +681,7 @@ const importGeneralTemplate = async (req, res) => {
             <p>${companyData?.contact_person || companyData?.name || 'Your HR team'} has added you to <strong>${companyData?.name || 'your company'}</strong> on Thankeeu.</p>
             <a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;">Set your password 🚀</a>
             <p style="color:#aaa;font-size:12px;">This link expires in 7 days.</p></div>`
-        }).catch(() => {});
+        });
       } catch (_) {}
 
       const oBase = { ...base, member_id: memberId || null };
@@ -737,6 +748,8 @@ const importGeneralTemplate = async (req, res) => {
       imported: totalImported,
       errors,
     });
+
+    // (head_count and pricing injected above if available)
   } catch (err) {
     console.error('importGeneralTemplate error:', err);
     res.status(500).json({ error: `Import failed: ${err.message}` });
@@ -951,7 +964,7 @@ const importByOccasionName = async (req, res) => {
         const link = `${frontendUrl}/member/reset-password?token=${tok}&email=${encodeURIComponent(email)}`;
         await sendEmail({ to:email, subject:`Welcome to ${coData?.name||'your company'} on Thankeeu! 🎉`,
           html:`<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;"><h2>Welcome, ${fn}!</h2><p>${coData?.contact_person||coData?.name||'HR'} added you to <strong>${coData?.name||'your company'}</strong> on Thankeeu.</p><a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;">Set your password 🚀</a><p style="color:#aaa;font-size:12px;">Expires in 7 days.</p></div>`
-        }).catch(()=>{});
+        });
       } catch(_) {}
 
       const base = { first_name:fn, last_name:ln, email, department:dept, gender:gender||null, is_active:true, member_id:memberId||null };

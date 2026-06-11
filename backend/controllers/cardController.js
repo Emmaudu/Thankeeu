@@ -1,5 +1,6 @@
 const axios = require('axios');
 const supabase = require('../utils/supabase');
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const { sendEmail } = require('../utils/email');
 const { pushNotification, pushNotificationBulk } = require('../utils/notify');
 const { nanoid } = require('nanoid');
@@ -392,7 +393,7 @@ const sendCard = async (req, res) => {
         accessToken: card.access_token,
         senderCount: messages?.[0]?.count || 0,
         giftAmount: card.total_collected > 0 ? card.total_collected : null,
-        appUrl: process.env.APP_URL || 'https://thankeeu.com',
+        appUrl: FRONTEND_URL,
       }
     });
 

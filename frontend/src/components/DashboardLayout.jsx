@@ -7,6 +7,7 @@ import NotificationBell from './NotificationBell';
 const NAV = [
   { to: '/dashboard',           icon: '🏠', label: 'Home' },
   { to: '/dashboard/cards',     icon: '💌', label: 'My Cards' },
+  { to: '/dashboard/credits',   icon: '💳', label: 'Credits & Plans' },
   { to: '/dashboard/delivered', icon: '🚀', label: 'Delivered' },
   { to: '/dashboard/received',  icon: '🎁', label: 'Received' },
   { to: '/dashboard/pending',   icon: '✍️', label: 'Pending to Sign' },

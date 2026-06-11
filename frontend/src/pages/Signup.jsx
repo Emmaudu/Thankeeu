@@ -4,233 +4,247 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+
+const BASE = import.meta.env.VITE_API_URL || '/api';
 
 const Signup = () => {
   useSEO({ title: 'Create a Free Account — Thankeeu', noIndex: false });
-  const { signup } = useAuth();
-  const navigate   = useNavigate();
+  const { login } = useAuth();
+  const navigate  = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnTo = searchParams.get('returnTo');
+  const returnTo  = searchParams.get('returnTo');
+
+  const [step,     setStep]    = useState('details'); // 'details' | 'verify'
+  const [loading,  setLoading] = useState(false);
+  const [showPw,   setShowPw]  = useState(false);
+  const [code,     setCode]    = useState('');
 
   const [form, setForm] = useState({
     full_name: '', email: '', username: '', password: '',
     confirm_password: '', date_of_birth: '', terms_accepted: false,
   });
-  const [loading, setLoading]     = useState(false);
-  const [showPw, setShowPw]       = useState(false);
-  const [showCf, setShowCf]       = useState(false);
 
-  const pwMatch   = form.password && form.confirm_password && form.password === form.confirm_password;
-  const pwNoMatch = form.confirm_password && form.password !== form.confirm_password;
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const pwStrength = form.password.length >= 12 ? 'strong' : form.password.length >= 8 ? 'good' : form.password.length > 0 ? 'weak' : null;
+  const pwMatch    = form.password && form.confirm_password && form.password === form.confirm_password;
 
-  const handleSubmit = async e => {
+  // Step 1: validate and send code
+  const handleSendCode = async e => {
     e.preventDefault();
-    if (!form.terms_accepted) return toast.error('Please accept the Terms of Service to continue');
-    if (!form.username.trim())   return toast.error('Username is required');
+    if (!form.terms_accepted) return toast.error('Please accept the Terms of Service');
+    if (!form.username.trim()) return toast.error('Username is required');
     if (form.password.length < 8) return toast.error('Password must be at least 8 characters');
     if (form.password !== form.confirm_password) return toast.error('Passwords do not match');
+
     setLoading(true);
     try {
-      await signup(form.full_name, form.email, form.password, form.username, form.date_of_birth);
+      await axios.post(`${BASE}/auth/send-code`, {
+        full_name:    form.full_name,
+        email:        form.email,
+        username:     form.username,
+        password:     form.password,
+        date_of_birth: form.date_of_birth || undefined,
+      });
+      toast.success(`Verification code sent to ${form.email}`);
+      setStep('verify');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send code. Please try again.');
+    } finally { setLoading(false); }
+  };
+
+  // Step 2: verify code and create account
+  const handleVerifyCode = async e => {
+    e.preventDefault();
+    if (!code.trim() || code.trim().length !== 6) return toast.error('Enter the 6-digit code from your email');
+    setLoading(true);
+    try {
+      const res = await axios.post(`${BASE}/auth/verify-code`, {
+        email: form.email,
+        code:  code.trim(),
+      });
+      // Log them in with the returned token
+      const { token, user } = res.data;
+      localStorage.setItem('thankeeu_token', token);
+      localStorage.setItem('thankeeu_user',  JSON.stringify(user));
       toast.success('Account created! Welcome to Thankeeu 💜');
       navigate(returnTo || '/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to create account');
+      toast.error(err.response?.data?.error || 'Incorrect or expired code. Please try again.');
     } finally { setLoading(false); }
   };
+
+  const inputCls = 'w-full px-4 py-3 rounded-xl border-2 border-purple-100 focus:border-primary-400 focus:outline-none bg-white text-warm-900 text-sm transition-colors';
 
   return (
     <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#F5F0FF 0%,#FDFCFF 50%,#FFF1F3 100%)' }}>
       <Navbar />
 
-      {/* Subtle dot grid */}
-      <div className="fixed inset-0 pointer-events-none" style={{
-        backgroundImage: 'radial-gradient(rgba(124,58,237,0.07) 1.5px, transparent 1.5px)',
-        backgroundSize: '28px 28px',
-      }} />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-xl h-72 pointer-events-none" style={{
-        background: 'radial-gradient(ellipse, rgba(139,92,246,0.14) 0%, transparent 70%)',
-      }} />
-
       <div className="relative flex items-center justify-center px-4 py-14">
         <div className="w-full max-w-md">
 
-          {/* Return-to banner */}
-          {returnTo && (
-            <div className="mb-5 p-4 rounded-2xl text-center border"
-              style={{ background: 'rgba(124,58,237,0.06)', borderColor: 'rgba(124,58,237,0.18)' }}>
-              <p className="text-sm font-semibold text-primary-700">✍️ Create an account to sign this card</p>
-              <p className="text-xs mt-0.5 text-warm-500">Takes 1 minute · You'll be redirected back to sign</p>
-            </div>
-          )}
-
-          {/* Heading */}
-          <div className="text-center mb-7">
-            <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold text-primary-600 mb-4"
-              style={{ background: 'rgba(124,58,237,0.08)', border: '1.5px solid rgba(124,58,237,0.15)' }}>
-              ✨ Free forever · No credit card
-            </div>
-            <h1 className="font-display text-3xl font-bold text-warm-900">Create your account</h1>
-            <p className="text-warm-500 text-sm mt-1">Join thousands celebrating milestones together</p>
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-extrabold text-warm-900 mb-2">Create your account</h1>
+            <p className="text-warm-500 text-sm">
+              {step === 'details'
+                ? 'Free forever for personal use. No credit card required.'
+                : `We sent a 6-digit code to ${form.email}`}
+            </p>
           </div>
 
-          {/* Card */}
-          <div className="bg-white rounded-3xl shadow-xl border border-purple-100 p-8">
-            <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="bg-white rounded-3xl shadow-xl border border-purple-100 overflow-hidden">
 
-              {/* Full name */}
-              <div>
-                <label className="text-xs font-semibold text-warm-600 uppercase tracking-wide block mb-1.5">
-                  Full name
-                </label>
-                <input className="input" placeholder="Your full name" required
-                  value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />
-              </div>
-
-              {/* Username */}
-              <div>
-                <label className="text-xs font-semibold text-warm-600 uppercase tracking-wide block mb-1.5">
-                  Username <span className="text-pink-500 normal-case">*</span>
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-warm-400 font-medium text-sm">@</span>
-                  <input className="input pl-8" placeholder="yourname" required
-                    value={form.username}
-                    onChange={e => setForm({ ...form, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })} />
-                </div>
-                <p className="text-xs mt-1 text-warm-400">Letters, numbers, underscores only. Used for card transfers.</p>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="text-xs font-semibold text-warm-600 uppercase tracking-wide block mb-1.5">
-                  Email address
-                </label>
-                <input type="email" className="input" placeholder="you@example.com" required
-                  value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="text-xs font-semibold text-warm-600 uppercase tracking-wide block mb-1.5">
-                  Password
-                </label>
-                <div className="relative">
-                  <input type={showPw ? 'text' : 'password'} className="input pr-16"
-                    placeholder="At least 8 characters" required minLength={8}
-                    value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
-                  <button type="button" onClick={() => setShowPw(!showPw)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold px-2.5 py-1 rounded-lg text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors">
-                    {showPw ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                {pwStrength && (
-                  <div className="flex items-center gap-1.5 mt-2">
-                    {[0,1,2,3].map(i => (
-                      <div key={i} className="h-1.5 flex-1 rounded-full transition-all" style={{
-                        background: pwStrength === 'strong' ? '#10B981'
-                          : pwStrength === 'good' && i < 2 ? '#F59E0B'
-                          : pwStrength === 'weak' && i < 1 ? '#EF4444'
-                          : '#E5E7EB',
-                      }} />
-                    ))}
-                    <span className={`text-xs font-semibold ml-1 ${
-                      pwStrength === 'strong' ? 'text-emerald-600'
-                      : pwStrength === 'good'   ? 'text-amber-600'
-                      : 'text-red-500'
-                    }`}>
-                      {pwStrength === 'strong' ? 'Strong 💪' : pwStrength === 'good' ? 'Good' : 'Too short'}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm password */}
-              <div>
-                <label className="text-xs font-semibold text-warm-600 uppercase tracking-wide block mb-1.5">
-                  Confirm password
-                </label>
-                <div className="relative">
-                  <input type={showCf ? 'text' : 'password'} className="input pr-16"
-                    placeholder="Repeat your password" required
-                    value={form.confirm_password}
-                    onChange={e => setForm({ ...form, confirm_password: e.target.value })}
-                    style={{ borderColor: pwNoMatch ? '#EF4444' : pwMatch ? '#10B981' : undefined }} />
-                  <button type="button" onClick={() => setShowCf(!showCf)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold px-2.5 py-1 rounded-lg text-primary-600 bg-primary-50 hover:bg-primary-100 transition-colors">
-                    {showCf ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                {pwNoMatch && <p className="text-xs mt-1 text-red-500">⚠ Passwords do not match</p>}
-                {pwMatch   && <p className="text-xs mt-1 text-emerald-600">✓ Passwords match</p>}
-              </div>
-
-              {/* Birthday */}
-              <div className="rounded-2xl border border-purple-100 p-4" style={{ background: '#FDFAFF' }}>
-                <label className="text-sm font-semibold text-warm-800 block mb-1">
-                  🎂 Your birthday
-                  <span className="text-xs font-normal text-warm-400 ml-1">(optional but loved)</span>
-                </label>
-                <input type="date" className="input mt-1"
-                  value={form.date_of_birth || ''}
-                  onChange={e => setForm({ ...form, date_of_birth: e.target.value })}
-                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 13)).toISOString().split('T')[0]}
-                />
-                <p className="text-xs mt-2 text-warm-400">
-                  We'll remind you 7 days before your birthday to create a card and collect wishes! 🥳
-                </p>
-              </div>
-
-              {/* Terms */}
-              <div className="flex items-start gap-3 rounded-2xl border border-purple-100 p-4 cursor-pointer"
-                style={{ background: '#FDFAFF' }}
-                onClick={() => setForm(f => ({ ...f, terms_accepted: !f.terms_accepted }))}>
-                <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all ${
-                  form.terms_accepted ? 'bg-primary-600 border-primary-600' : 'border-warm-300 bg-white'
+            {/* Step indicator */}
+            <div className="flex border-b border-purple-100">
+              {['Details', 'Verify email'].map((label, i) => (
+                <div key={i} className={`flex-1 py-3.5 text-center text-xs font-bold transition-colors ${
+                  (i === 0 && step === 'details') || (i === 1 && step === 'verify')
+                    ? 'bg-primary-50 text-primary-600 border-b-2 border-primary-500'
+                    : i < (step === 'verify' ? 1 : 0)
+                      ? 'text-green-600 bg-green-50'
+                      : 'text-warm-400'
                 }`}>
-                  {form.terms_accepted && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                  {i < (step === 'verify' ? 1 : 0) ? '✓ ' : ''}{label}
                 </div>
-                <p className="text-sm text-warm-600 select-none">
-                  I agree to Thankeeu's{' '}
-                  <a href="/policy" target="_blank" rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
-                    className="text-primary-600 font-semibold hover:underline">
-                    Terms of Service & Privacy Policy
-                  </a>
-                </p>
-              </div>
-
-              <button type="submit" disabled={loading || !!pwNoMatch || !form.terms_accepted}
-                className="btn-primary w-full py-3.5 text-base disabled:opacity-50">
-                {loading
-                  ? <span className="flex items-center justify-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Creating account...
-                    </span>
-                  : '✨ Create my free account'}
-              </button>
-            </form>
-
-            <div className="relative my-5">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-purple-100" />
-              </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-xs text-warm-400">Already have an account?</span>
-              </div>
+              ))}
             </div>
 
-            <Link to={`/login${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border-2 border-primary-200 text-primary-700 font-semibold text-sm hover:bg-primary-50 transition-colors">
-              Sign in instead →
-            </Link>
-          </div>
+            <div className="p-7">
 
-          <p className="text-center text-xs text-warm-400 mt-6">
-            HR team?{' '}
-            <Link to="/company/signup" className="text-primary-600 font-medium hover:underline">Company sign-up →</Link>
-          </p>
+              {/* ── STEP 1: Details ── */}
+              {step === 'details' && (
+                <form onSubmit={handleSendCode} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-warm-700 mb-1.5">Full name *</label>
+                    <input className={inputCls} placeholder="Your full name" value={form.full_name}
+                      onChange={e => set('full_name', e.target.value)} required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-warm-700 mb-1.5">Email address *</label>
+                    <input type="email" className={inputCls} placeholder="you@example.com" value={form.email}
+                      onChange={e => set('email', e.target.value)} required />
+                    <p className="text-xs text-warm-400 mt-1">We'll send a verification code here</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-warm-700 mb-1.5">Username *</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-warm-400 text-sm">@</span>
+                      <input className={`${inputCls} pl-8`} placeholder="yourname" value={form.username}
+                        onChange={e => set('username', e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,''))} required />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-warm-700 mb-1.5">Password *</label>
+                    <div className="relative">
+                      <input type={showPw ? 'text' : 'password'} className={`${inputCls} pr-12`}
+                        placeholder="Minimum 8 characters" value={form.password}
+                        onChange={e => set('password', e.target.value)} required />
+                      <button type="button" onClick={() => setShowPw(p => !p)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-700 text-lg">
+                        {showPw ? '👁' : '👁‍🗨'}
+                      </button>
+                    </div>
+                    {pwStrength && (
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {['weak','good','strong'].map(s => (
+                          <div key={s} className={`h-1 flex-1 rounded-full transition-colors ${
+                            pwStrength === 'strong' ? 'bg-green-400'
+                            : pwStrength === 'good' && s !== 'strong' ? 'bg-amber-400'
+                            : s === 'weak' ? 'bg-red-400' : 'bg-gray-200'
+                          }`} />
+                        ))}
+                        <span className={`text-xs font-semibold capitalize ${
+                          pwStrength === 'strong' ? 'text-green-600' : pwStrength === 'good' ? 'text-amber-600' : 'text-red-500'
+                        }`}>{pwStrength}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-warm-700 mb-1.5">Confirm password *</label>
+                    <input type="password" className={`${inputCls} ${
+                      form.confirm_password ? (pwMatch ? 'border-green-400' : 'border-red-400') : ''
+                    }`} placeholder="Repeat password" value={form.confirm_password}
+                      onChange={e => set('confirm_password', e.target.value)} required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-warm-700 mb-1.5">Date of birth (optional)</label>
+                    <input type="date" className={inputCls} value={form.date_of_birth}
+                      onChange={e => set('date_of_birth', e.target.value)} />
+                  </div>
+                  <label className="flex items-start gap-3 cursor-pointer mt-1">
+                    <input type="checkbox" className="mt-1 w-4 h-4 accent-primary-500 flex-shrink-0"
+                      checked={form.terms_accepted} onChange={e => set('terms_accepted', e.target.checked)} />
+                    <span className="text-xs text-warm-600 leading-relaxed">
+                      I agree to the <Link to="/policy" className="text-primary-500 font-semibold underline">Terms of Service & Privacy Policy</Link>
+                    </span>
+                  </label>
+
+                  <button type="submit" disabled={loading || !form.terms_accepted}
+                    className="btn-primary w-full py-3.5 text-sm font-bold mt-2 disabled:opacity-60">
+                    {loading
+                      ? <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                          Sending code…
+                        </span>
+                      : 'Continue — send verification code →'}
+                  </button>
+
+                  <p className="text-center text-sm text-warm-500 mt-4">
+                    Already have an account?{' '}
+                    <Link to="/login" className="text-primary-500 font-bold hover:underline">Sign in</Link>
+                  </p>
+                </form>
+              )}
+
+              {/* ── STEP 2: Verify code ── */}
+              {step === 'verify' && (
+                <form onSubmit={handleVerifyCode} className="space-y-5">
+                  <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4 text-center">
+                    <p className="text-sm font-semibold text-primary-800 mb-1">Check your inbox</p>
+                    <p className="text-xs text-primary-600">
+                      We sent a 6-digit code to <strong>{form.email}</strong>.<br/>
+                      It expires in 15 minutes.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-warm-700 mb-2 text-center">Enter your 6-digit code</label>
+                    <input
+                      className="w-full text-center text-4xl font-extrabold tracking-[0.4em] py-4 px-6 rounded-2xl border-2 border-purple-200 focus:border-primary-500 focus:outline-none bg-white text-warm-900 transition-colors"
+                      placeholder="000000"
+                      value={code}
+                      onChange={e => setCode(e.target.value.replace(/\D/g,'').slice(0,6))}
+                      maxLength={6}
+                      inputMode="numeric"
+                      autoFocus
+                    />
+                  </div>
+
+                  <button type="submit" disabled={loading || code.length !== 6}
+                    className="btn-primary w-full py-3.5 text-sm font-bold disabled:opacity-60">
+                    {loading
+                      ? <span className="flex items-center justify-center gap-2">
+                          <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                          Verifying…
+                        </span>
+                      : 'Verify & create account'}
+                  </button>
+
+                  <div className="text-center space-y-2">
+                    <button type="button" onClick={() => { setStep('details'); setCode(''); }}
+                      className="text-xs text-warm-400 hover:text-warm-700">
+                      ← Change email or details
+                    </button>
+                    <br/>
+                    <button type="button" onClick={handleSendCode} disabled={loading}
+                      className="text-xs text-primary-500 font-semibold hover:underline disabled:opacity-50">
+                      Resend code
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

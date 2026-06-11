@@ -1,7 +1,35 @@
 const bcrypt = require('bcryptjs');
+const argon2  = require('argon2');
+const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+const verifyPassword = async (plain, stored) => {
+  if (stored && stored.startsWith('$argon2')) return argon2.verify(stored, plain);
+  return require('bcryptjs').compare(plain, stored);
+};
+const rehashIfLegacy = async (id, plain, stored, table, supabase) => {
+  if (!stored || stored.startsWith('$argon2')) return;
+  try { await supabase.from(table).update({ password_hash: await hashPassword(plain) }).eq('id', id); } catch {}
+};
+
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
+
+const setCookie = (res, name, token, expiresIn = '7d') => {
+  const maxAge = expiresIn.endsWith('d')
+    ? parseInt(expiresIn) * 86400000
+    : expiresIn.endsWith('h')
+    ? parseInt(expiresIn) * 3600000
+    : 7 * 86400000;
+  res.cookie(name, token, {
+    httpOnly:  true,
+    secure:    process.env.NODE_ENV === 'production',
+    sameSite:  'none',        // required for cross-origin (Vercel ↔ Railway)
+    maxAge,
+    path:      '/',
+  });
+};
+const clearCookie = (res, name) => res.clearCookie(name, { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
+
 const { sendEmail } = require('../utils/email');
 
 // Department defaults
@@ -79,7 +107,7 @@ const memberSignup = async (req, res) => {
       }
     }
 
-    const password_hash = await bcrypt.hash(password, 12);
+    const password_hash = await hashPassword(password, 12);
     let member, memberError;
 
     if (preImported) {
@@ -186,14 +214,15 @@ const memberLogin = async (req, res) => {
     if (member.status === 'pending') return res.status(403).json({ error: 'Your account is pending approval. You will be notified by email.' });
     if (member.status === 'rejected') return res.status(403).json({ error: 'Your account was not approved. Contact your HR.' });
 
-    const valid = await bcrypt.compare(password, member.password_hash);
+    const valid = await verifyPassword(password, member.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
     // Get company info
     const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', member.company_id).single();
     const token = generateToken(member.id, member.company_id);
     const { password_hash, reset_token, ...safeMember } = member;
-    res.json({ token, member: { ...safeMember, company } });
+    setCookie(res, 'tk_member', token);
+    res.json({token, member: { ...safeMember, company } });
   } catch (err) {
     res.status(500).json({ error: 'Login failed' });
   }
@@ -440,7 +469,7 @@ const memberResetPassword = async (req, res) => {
     if (!member || new Date(member.reset_token_expires) < new Date())
       return res.status(400).json({ error: 'Invalid or expired reset link' });
 
-    const password_hash = await bcrypt.hash(password, 12);
+    const password_hash = await hashPassword(password, 12);
     await supabase.from('company_members').update({ password_hash, reset_token: null, reset_token_expires: null }).eq('id', member.id);
     res.json({ message: 'Password reset successfully' });
   } catch (err) {
@@ -520,10 +549,10 @@ const changeMemberPassword = async (req, res) => {
       .eq('id', req.member.id)
       .single();
 
-    const valid = await bcrypt.compare(current_password, member.password_hash);
+    const valid = await verifyPassword(current_password, member.password_hash);
     if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
 
-    const password_hash = await bcrypt.hash(new_password, 12);
+    const password_hash = await hashPassword(new_password, 12);
     await supabase.from('company_members').update({ password_hash }).eq('id', req.member.id);
     res.json({ message: 'Password changed successfully' });
   } catch (err) {

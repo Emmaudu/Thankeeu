@@ -4,7 +4,7 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
-import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI } from '../utils/api';
+import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI, visitorsAPI } from '../utils/api';
 import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import VoiceRecorder from '../components/VoiceRecorder';
 import Navbar from '../components/Navbar';

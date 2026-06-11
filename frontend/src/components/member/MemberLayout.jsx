@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Icon from '../ui/Icon';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 
@@ -14,18 +15,18 @@ const MemberLayout = ({ children, title, subtitle }) => {
   const isActive = p => location.pathname === p;
 
   const NAV = [
-    { path: '/member/dashboard',   icon: '🏠', label: 'Dashboard' },
-    { path: '/member/occasions',   icon: '🎉', label: 'Occasions' },
-    { path: '/member/cards',       icon: '💌', label: 'My Cards' },
-    { path: '/member/received',    icon: '🎁', label: 'Received' },
+    { path: '/member/dashboard',   icon: 'Home', label: 'Dashboard' },
+    { path: '/member/occasions',   icon: 'Cake', label: 'Occasions' },
+    { path: '/member/cards',       icon: 'Heart', label: 'My Cards' },
+    { path: '/member/received',    icon: 'Gift', label: 'Received' },
     { path: '/member/pending',     icon: '✍️', label: 'Pending to Sign' },
-    { path: '/member/finances',    icon: '💰', label: 'Financials' },
+    { path: '/member/finances',    icon: 'Wallet', label: 'Financials' },
     { path: '/member/reminders',   icon: '⏰', label: 'Reminders' },
     ...(isLeader ? [
-      { path: '/member/approvals',  icon: '✅', label: 'Approvals' },
-      { path: '/member/deductions', icon: '💳', label: 'Deductions' },
+      { path: '/member/approvals',  icon: 'Check', label: 'Approvals' },
+      { path: '/member/deductions', icon: 'Card', label: 'Deductions' },
     ] : []),
-    { path: '/member/settings',    icon: '⚙️', label: 'Settings' },
+    { path: '/member/settings',    icon: 'Settings', label: 'Settings' },
     { path: '/member/support',     icon: '💬', label: 'Support' },
   ];
 
@@ -164,8 +165,8 @@ const MemberLayout = ({ children, title, subtitle }) => {
           </div>
           {/* Hamburger on RIGHT for mobile */}
           <button onClick={() => setMobileOpen(true)}
-            className="p-3 rounded-xl" style={{ fontSize: '1.5rem', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            style={{ background:'rgba(124,110,255,0.1)', color:'#5B4BDF', fontSize:18 }}>
+            className="p-3 rounded-xl"
+            style={{ background:'rgba(124,110,255,0.1)', color:'#5B4BDF', fontSize:18, width:48, height:48, display:'flex', alignItems:'center', justifyContent:'center' }}>
             ☰
           </button>
         </div>

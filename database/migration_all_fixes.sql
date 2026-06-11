@@ -415,3 +415,90 @@ ALTER TABLE company_members ADD COLUMN IF NOT EXISTS resumption_date DATE;
 -- Also on users table
 ALTER TABLE users ADD COLUMN IF NOT EXISTS gender         TEXT;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS resumption_date DATE;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- VENDOR MARKETPLACE TABLES
+-- ─────────────────────────────────────────────────────────────────────────────
+
+CREATE TABLE IF NOT EXISTS vendors (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  business_name   TEXT NOT NULL,
+  email           TEXT NOT NULL UNIQUE,
+  password_hash   TEXT NOT NULL,
+  slug            TEXT NOT NULL UNIQUE,
+  phone           TEXT,
+  category        TEXT DEFAULT 'general',
+  description     TEXT,
+  logo_url        TEXT,
+  banner_url      TEXT,
+  address         TEXT,
+  social_links    JSONB DEFAULT '{}',
+  delivery_info   TEXT,
+  return_policy   TEXT,
+  status          TEXT DEFAULT 'pending' CHECK (status IN ('pending','approved','suspended','rejected')),
+  is_verified     BOOLEAN DEFAULT FALSE,
+  verify_token    TEXT,
+  bank_details    JSONB,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_vendors_slug   ON vendors(slug);
+CREATE INDEX IF NOT EXISTS idx_vendors_status ON vendors(status);
+
+CREATE TABLE IF NOT EXISTS vendor_products (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  vendor_id    UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  name         TEXT NOT NULL,
+  description  TEXT,
+  price        NUMERIC(12,2) NOT NULL,
+  category     TEXT,
+  images       JSONB DEFAULT '[]',
+  stock        INTEGER,
+  is_available BOOLEAN DEFAULT TRUE,
+  featured     BOOLEAN DEFAULT FALSE,
+  created_at   TIMESTAMPTZ DEFAULT NOW(),
+  updated_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_vendor_products_vendor ON vendor_products(vendor_id);
+CREATE INDEX IF NOT EXISTS idx_vendor_products_avail  ON vendor_products(vendor_id, is_available);
+
+CREATE TABLE IF NOT EXISTS vendor_orders (
+  id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  vendor_id        UUID NOT NULL REFERENCES vendors(id) ON DELETE RESTRICT,
+  customer_name    TEXT,
+  customer_email   TEXT NOT NULL,
+  customer_phone   TEXT,
+  delivery_address TEXT,
+  card_slug        TEXT,
+  note             TEXT,
+  total_amount     NUMERIC(12,2) NOT NULL,
+  status           TEXT DEFAULT 'pending' CHECK (status IN ('pending','confirmed','processing','shipped','delivered','cancelled')),
+  tracking_number  TEXT,
+  notes            TEXT,
+  flw_reference    TEXT,
+  created_at       TIMESTAMPTZ DEFAULT NOW(),
+  updated_at       TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_vendor_orders_vendor ON vendor_orders(vendor_id);
+CREATE INDEX IF NOT EXISTS idx_vendor_orders_status ON vendor_orders(vendor_id, status);
+
+CREATE TABLE IF NOT EXISTS vendor_order_items (
+  id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id     UUID NOT NULL REFERENCES vendor_orders(id) ON DELETE CASCADE,
+  product_id   UUID REFERENCES vendor_products(id) ON DELETE SET NULL,
+  product_name TEXT NOT NULL,
+  quantity     INTEGER NOT NULL DEFAULT 1,
+  unit_price   NUMERIC(12,2) NOT NULL,
+  subtotal     NUMERIC(12,2) NOT NULL,
+  created_at   TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_order_items_order ON vendor_order_items(order_id);
+
+CREATE TABLE IF NOT EXISTS vendor_store_views (
+  id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  vendor_id  UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+  path       TEXT,
+  ip_hash    TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_store_views_vendor ON vendor_store_views(vendor_id);

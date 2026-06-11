@@ -519,7 +519,11 @@ const CardView = () => {
   const { member }  = useMemberAuth();
   const { company } = useCompanyAuth();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const token = searchParams.get('token') || sessionStorage.getItem(`card_token_${slug}`);
+  // Persist access token for this card in sessionStorage so reply works even after navigation
+  if (searchParams.get('token')) {
+    sessionStorage.setItem(`card_token_${slug}`, searchParams.get('token'));
+  }
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);

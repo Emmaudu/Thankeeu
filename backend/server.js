@@ -3,7 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const cron = require('node-cron');
+const cron         = require('node-cron');
+const cookieParser = require('cookie-parser');
 const supabase      = require('./utils/supabase');
 const FRONTEND_URL  = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const { sendEmail } = require('./utils/email');
@@ -11,7 +12,24 @@ const { sendEmail } = require('./utils/email');
 const app = express();
 
 // Security
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'", "'unsafe-inline'", "https://api.flutterwave.com", "https://checkout.flutterwave.com"],
+      styleSrc:       ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:        ["'self'", "https://fonts.gstatic.com"],
+      imgSrc:         ["'self'", "data:", "https:", "blob:"],
+      connectSrc:     ["'self'", "https://api.flutterwave.com", "https://auth.reloadly.com", "https://giftcards.reloadly.com", "https://giftcards-sandbox.reloadly.com"],
+      frameSrc:       ["https://checkout.flutterwave.com"],
+      objectSrc:      ["'none'"],
+      upgradeInsecureRequests: [],
+      frameAncestors: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+}));
+app.use(cookieParser(process.env.COOKIE_SECRET || process.env.JWT_SECRET));
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, Postman)
@@ -59,7 +77,10 @@ app.use('/api/auth/signup',          authLimiter);
 app.use('/api/company/login',        authLimiter);
 app.use('/api/members/login',        authLimiter);
 app.use('/api/members/signup',       authLimiter);
-app.use('/api/auth/forgot-password', authLimiter);
+app.use('/api/auth/forgot-password',        authLimiter);
+app.use('/api/auth/reset-password',         authLimiter);
+app.use('/api/company/signup',              authLimiter);
+app.use('/api/company/forgot-password',     authLimiter);
 app.use('/api/demo/request',         demoLimiter);
 
 // Query-string sanitisation
@@ -88,6 +109,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/banks',     require('./routes/banks'));
 app.use('/api/giftcards', require('./routes/giftcards'));
+app.use('/api/credits',   require('./routes/credits'));
 app.use('/api/visitors', require('./routes/visitors'));
 app.use('/api/core-team', require('./routes/coreTeam'));
 app.use('/api/admin', require('./routes/admin'));
@@ -98,6 +120,7 @@ app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/support', require('./routes/support'));
 app.use('/api/occasions',    require('./routes/occasions'));
 app.use('/api/activity-log', require('./routes/activityLog'));
+app.use('/api/vendor',       require('./routes/vendor'));
 app.use('/api/members', require('./routes/companyMembers'));
 app.use('/api/deductions', require('./routes/deductions'));
 app.use('/api/hris', require('./routes/hris'));

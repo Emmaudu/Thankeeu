@@ -25,16 +25,51 @@ router.get('/dashboard',               getTeamsDashboard);
 router.get('/all-members', async (req, res) => {
   try {
     const { search, dept, role } = req.query;
+    const companyId = req.company.id;
+
+    // Primary: company_members table (has full info + status)
     let q = supabase.from('company_members')
       .select('id, first_name, last_name, email, department, role, status, phone, job_title, date_of_birth, gender, resumption_date, is_core_team, created_at, updated_at')
-      .eq('company_id', req.company.id)
+      .eq('company_id', companyId)
+      .neq('status', 'deactivated')
       .order('first_name', { ascending: true });
     if (search) q = q.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
     if (dept)   q = q.eq('department', dept);
     if (role)   q = q.eq('role', role);
-    const { data, error } = await q;
-    if (error) throw error;
-    res.json(data || []);
+    const { data: cmData, error: cmErr } = await q;
+    if (cmErr) throw cmErr;
+
+    // Supplement: occasion_members who are NOT yet in company_members
+    // (imported via master template but not yet synced to company_members)
+    const cmEmails = new Set((cmData || []).map(m => m.email?.toLowerCase()).filter(Boolean));
+
+    let omQ = supabase.from('occasion_members')
+      .select('email, first_name, last_name, department, gender, member_id, is_active')
+      .eq('company_id', companyId)
+      .eq('is_active', true);
+    if (dept)   omQ = omQ.eq('department', dept);
+    if (search) omQ = omQ.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+    const { data: omData } = await omQ;
+
+    // Deduplicate occasion_members by email and exclude those already in company_members
+    const omUnique = Object.values(
+      (omData || [])
+        .filter(m => m.email && !cmEmails.has(m.email.toLowerCase()))
+        .reduce((acc, m) => { acc[m.email.toLowerCase()] = m; return acc; }, {})
+    ).map(m => ({
+      ...m,
+      id:          m.member_id || `om_${m.email}`,
+      status:      'approved',
+      role:        m.role || 'member',
+      source:      'occasion_import', // flag so UI knows origin
+    }));
+
+    const allMembers = [...(cmData || []), ...omUnique];
+
+    // Get teams count
+    const departments = [...new Set(allMembers.map(m => m.department).filter(Boolean))];
+
+    res.json({ members: allMembers, teams_count: departments.length, departments });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

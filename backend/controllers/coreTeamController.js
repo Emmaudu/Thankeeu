@@ -46,7 +46,7 @@ const inviteCoreMember = async (req, res) => {
 
     // Also create company_member account so they can sign in
     const tempPassword = crypto.randomBytes(8).toString('hex');
-    const passwordHash = await bcrypt.hash(tempPassword, 12);
+    const passwordHash = await hashPassword(tempPassword, 12);
     const nameParts = (full_name || email.split('@')[0]).split(' ');
 
     await supabase.from('company_members').upsert({
@@ -143,7 +143,7 @@ const inviteCoreMemberInternally = async (company, memberData) => {
   const cleanEmail  = email.trim().toLowerCase();
   const inviteToken = crypto.randomBytes(32).toString('hex');
   const tempPass    = crypto.randomBytes(8).toString('hex');
-  const passHash    = await bcrypt.hash(tempPass, 12);
+  const passHash    = await hashPassword(tempPass, 12);
   const nameParts   = (full_name || '').split(' ');
 
   await supabase.from('company_core_team').upsert({

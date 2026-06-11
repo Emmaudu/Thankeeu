@@ -1,11 +1,184 @@
 const bcrypt = require('bcryptjs');
+const argon2  = require('argon2');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+
+const setCookie = (res, name, token, expiresIn = '7d') => {
+  const maxAge = expiresIn.endsWith('d')
+    ? parseInt(expiresIn) * 86400000
+    : expiresIn.endsWith('h')
+    ? parseInt(expiresIn) * 3600000
+    : 7 * 86400000;
+  res.cookie(name, token, {
+    httpOnly:  true,
+    secure:    process.env.NODE_ENV === 'production',
+    sameSite:  'none',        // required for cross-origin (Vercel ↔ Railway)
+    maxAge,
+    path:      '/',
+  });
+};
+const clearCookie = (res, name) => res.clearCookie(name, { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
+
+
+// ── Password hashing — argon2id for new passwords, bcrypt for legacy ─────────
+const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+
+const verifyPassword = async (plain, stored) => {
+  // argon2 hashes start with "$argon2"
+  if (stored && stored.startsWith('$argon2')) return argon2.verify(stored, plain);
+  // Legacy bcrypt hashes start with "$2a$" or "$2b$"
+  return bcrypt.compare(plain, stored);
+};
+
+// On successful bcrypt login, silently re-hash with argon2 for next time
+const rehashIfLegacy = async (userId, plain, stored, table = 'users') => {
+  if (!stored || stored.startsWith('$argon2')) return; // already modern
+  try {
+    const newHash = await hashPassword(plain);
+    await supabase.from(table).update({ password_hash: newHash }).eq('id', userId);
+  } catch {}
+};
+
 const { sendEmail } = require('../utils/email');
 
 const generateToken = (userId) =>
   jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+
+// POST /auth/send-verification-code — step 1: validate details, send 6-digit code
+const sendVerificationCode = async (req, res) => {
+  try {
+    const { full_name, email, password, username, date_of_birth } = req.body;
+
+    if (!full_name || !email || !password)
+      return res.status(400).json({ error: 'Name, email and password are required' });
+    if (!username || username.trim().length < 3)
+      return res.status(400).json({ error: 'Username must be at least 3 characters' });
+    if (!/^[a-zA-Z0-9_]+$/.test(username.trim()))
+      return res.status(400).json({ error: 'Username can only contain letters, numbers and underscores' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    const cleanEmail    = email.toLowerCase().trim();
+    const cleanUsername = username.trim().toLowerCase();
+
+    // Check availability before sending code
+    const { data: existing } = await supabase.from('users').select('id').eq('email', cleanEmail).maybeSingle();
+    if (existing) return res.status(400).json({ error: 'Email already registered' });
+
+    const { data: existingUser } = await supabase.from('users').select('id').eq('username', cleanUsername).maybeSingle();
+    if (existingUser) return res.status(400).json({ error: 'Username already taken' });
+
+    // Generate 6-digit code, expires in 15 min
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const expires = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+    // Store pending signup in DB (upsert on email)
+    await supabase.from('pending_signups').upsert({
+      email:      cleanEmail,
+      full_name,
+      username:   cleanUsername,
+      password:   await hashPassword(password), // hash immediately so plain password never stays in DB
+      date_of_birth: date_of_birth || null,
+      code,
+      expires_at: expires,
+      created_at: new Date(),
+    }, { onConflict: 'email' });
+
+    // Send code via email
+    const appName = 'Thankeeu';
+    await sendEmail({
+      to: cleanEmail,
+      subject: `${code} is your ${appName} verification code`,
+      html: `
+        <div style="font-family:'Segoe UI',sans-serif;max-width:480px;margin:0 auto;padding:32px;background:#fff;border-radius:16px;border:1px solid #eee;">
+          <h2 style="color:#5B4BDF;margin:0 0 8px;">Verify your email</h2>
+          <p style="color:#555;margin:0 0 24px;">Enter this code on the Thankeeu signup page to activate your account:</p>
+          <div style="background:#F5F0FF;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px;">
+            <p style="font-size:40px;font-weight:800;letter-spacing:12px;color:#5B4BDF;margin:0;">${code}</p>
+          </div>
+          <p style="color:#888;font-size:13px;margin:0 0 4px;">This code expires in <strong>15 minutes</strong>.</p>
+          <p style="color:#888;font-size:13px;margin:0;">If you did not request this, you can safely ignore this email.</p>
+        </div>`
+    });
+
+    res.json({ ok: true, message: `Verification code sent to ${cleanEmail}` });
+  } catch (err) {
+    console.error('sendVerificationCode error:', err);
+    res.status(500).json({ error: err.message || 'Failed to send verification code' });
+  }
+};
+
+// POST /auth/verify-code — step 2: verify code and create account
+const verifyCodeAndSignup = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) return res.status(400).json({ error: 'Email and code are required' });
+
+    const cleanEmail = email.toLowerCase().trim();
+
+    const { data: pending } = await supabase.from('pending_signups')
+      .select('*').eq('email', cleanEmail).maybeSingle();
+
+    if (!pending) return res.status(400).json({ error: 'No pending signup found. Please start over.' });
+    if (pending.code !== String(code).trim())
+      return res.status(400).json({ error: 'Incorrect code. Please check your email and try again.' });
+    if (new Date(pending.expires_at) < new Date())
+      return res.status(400).json({ error: 'Code has expired. Please start the signup again.' });
+
+    // Create the account
+    const { data: user, error } = await supabase.from('users').insert({
+      full_name:          pending.full_name,
+      email:              cleanEmail,
+      username:           pending.username,
+      password_hash:      pending.password,
+      is_verified:        true, // email confirmed at signup
+      verification_token: null,
+      ...(pending.date_of_birth ? { date_of_birth: pending.date_of_birth } : {}),
+      terms_accepted_at:  new Date(),
+    }).select('id, email, full_name, username, role, avatar_url, is_verified').single();
+
+    if (error) {
+      if (error.code === '23505') return res.status(400).json({ error: 'Email or username already registered' });
+      throw error;
+    }
+
+    // Clean up pending record
+    await supabase.from('pending_signups').delete().eq('email', cleanEmail);
+
+    // Send welcome email
+    sendEmail({
+      to: cleanEmail,
+      subject: `Welcome to Thankeeu, ${pending.full_name}!`,
+      html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#fff;border-radius:16px;">
+        <h2 style="color:#5B4BDF;">Welcome, ${pending.full_name}!</h2>
+        <p style="color:#555;">Your account is verified and ready. Create your first card and start celebrating the people who matter.</p>
+        <a href="${process.env.FRONTEND_URL || 'https://thankeeu.com'}/dashboard" style="display:inline-block;background:#5B4BDF;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:16px;">Go to dashboard</a>
+      </div>`
+    }).catch(() => {});
+
+    // Auto-link any cards sent to this email
+    setImmediate(async () => {
+      try {
+        const { data: sentCards } = await supabase.from('cards').select('id,slug,creator_id')
+          .eq('recipient_email', cleanEmail).in('status',['sent','active']);
+        for (const card of (sentCards||[])) {
+          await supabase.from('received_cards').upsert({
+            card_id: card.id, recipient_user_id: user.id, transferred_by: card.creator_id, transferred_at: new Date(),
+          },{ onConflict:'card_id,recipient_user_id' });
+        }
+      } catch(e) { console.error('Auto-link failed:',e); }
+    });
+
+    const token = generateToken(user.id);
+    setCookie(res, 'tk_user', token);
+    res.json({token, user });
+  } catch (err) {
+    console.error('verifyCodeAndSignup error:', err);
+    res.status(500).json({ error: err.message || 'Failed to create account' });
+  }
+};
 
 const signup = async (req, res) => {
   try {
@@ -31,7 +204,7 @@ const signup = async (req, res) => {
       .from('users').select('id').eq('username', cleanUsername).maybeSingle();
     if (existingUsername) return res.status(400).json({ error: 'Username already taken' });
 
-    const password_hash = await bcrypt.hash(password, 12);
+    const password_hash = await hashPassword(password);
     const verification_token = crypto.randomBytes(32).toString('hex');
 
     const { data: user, error } = await supabase
@@ -51,7 +224,7 @@ const signup = async (req, res) => {
     }
 
     // Send welcome + verification email
-    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com';
+    const appUrl = FRONTEND_URL;
     const verifyLink = `${appUrl}/verify-email?token=${verification_token}`;
     sendEmail({ to: cleanEmail, template: 'emailVerification', data: { name: full_name, verifyLink } })
       .catch(e => console.error('Verification email failed:', e));
@@ -97,7 +270,8 @@ const login = async (req, res) => {
       .from('users').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await verifyPassword(password, user.password_hash);
+    if (valid) await rehashIfLegacy(user.id, password, user.password_hash, 'users');
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
     const token = generateToken(user.id);
@@ -118,7 +292,9 @@ const login = async (req, res) => {
       } catch (e) {}
     });
 
-    res.json({ token, user: safeUser });
+    setCookie(res, 'tk_user', token);
+
+    res.json({token, user: safeUser });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error during login' });
@@ -189,9 +365,9 @@ const changePassword = async (req, res) => {
     if (new_password.length < 8)
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     const { data: user } = await supabase.from('users').select('password_hash').eq('id', req.user.id).single();
-    const valid = await bcrypt.compare(current_password, user.password_hash);
+    const valid = await verifyPassword(current_password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
-    const password_hash = await bcrypt.hash(new_password, 12);
+    const password_hash = await hashPassword(new_password);
     await supabase.from('users').update({ password_hash }).eq('id', req.user.id);
     res.json({ message: 'Password changed' });
   } catch (err) {
@@ -240,7 +416,7 @@ const resetPassword = async (req, res) => {
     if (!user || new Date(user.reset_token_expires) < new Date())
       return res.status(400).json({ error: 'Invalid or expired reset token' });
 
-    const password_hash = await bcrypt.hash(password, 12);
+    const password_hash = await hashPassword(password);
     await supabase.from('users').update({
       password_hash, reset_token: null, reset_token_expires: null
     }).eq('id', user.id);
@@ -263,7 +439,7 @@ const seedAdmin = async (req, res) => {
 
     const adminEmail = 'admin@thankeeu.com';
     const adminPassword = 'Thankeeu@Admin2025!';
-    const password_hash = await bcrypt.hash(adminPassword, 12);
+    const password_hash = await hashPassword(adminPassword);
 
     const { data: existingUser } = await supabase
       .from('users').select('id').eq('email', adminEmail).maybeSingle();
@@ -337,7 +513,7 @@ const resendVerification = async (req, res) => {
     const newToken = crypto.randomBytes(32).toString('hex');
     await supabase.from('users').update({ verification_token: newToken }).eq('id', userId);
 
-    const appUrl = process.env.APP_URL || process.env.FRONTEND_URL || 'https://thankeeu.com';
+    const appUrl = FRONTEND_URL;
     const verifyLink = `${appUrl}/verify-email?token=${newToken}`;
     await sendEmail({ to: user.email, template: 'emailVerification', data: { name: user.full_name, verifyLink } });
 
@@ -351,6 +527,8 @@ const resendVerification = async (req, res) => {
 
 // Single export at the end — after ALL functions are defined
 module.exports = {
+  sendVerificationCode,
+  verifyCodeAndSignup,
   signup, login, getMe, updateProfile, searchUsers,
   changePassword, uploadAvatar, forgotPassword, resetPassword, seedAdmin,
   verifyEmail, resendVerification

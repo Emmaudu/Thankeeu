@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import Icon from '../ui/Icon';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 
 const NAV = [
-  { path: '/company/dashboard',    icon: '🏠', label: 'Dashboard' },
-  { path: '/company/occasions',    icon: '🎉', label: 'Occasions Manager' },
-  { path: '/create-card',          icon: '💌', label: 'Create Card' },
-  { path: '/company/my-cards',     icon: '🃏', label: 'My Cards' },
-  { path: '/company/activity',     icon: '📋', label: 'Activity Log' },
-  { path: '/company/team-members', icon: '👥', label: 'Team Members' },
-  { path: '/company/core-team',    icon: '🏢', label: 'Core Team' },
-  { path: '/company/members',      icon: '✅', label: 'Approvals' },
-  { path: '/company/deductions',   icon: '💰', label: 'Deductions' },
-  { path: '/company/subscription', icon: '💳', label: 'Subscription' },
+  { path: '/company/dashboard',    icon: 'Home', label: 'Dashboard' },
+  { path: '/company/occasions',    icon: 'Cake', label: 'Occasions Manager' },
+  { path: '/create-card',          icon: 'Heart', label: 'Create Card' },
+  { path: '/company/my-cards',     icon: 'Gift', label: 'My Cards' },
+  { path: '/company/activity',     icon: 'File', label: 'Activity Log' },
+  { path: '/company/team-members', icon: 'Users', label: 'Team Members' },
+  { path: '/company/core-team',    icon: 'Building', label: 'Core Team' },
+  { path: '/company/members',      icon: 'Check', label: 'Approvals' },
+  { path: '/company/deductions',   icon: 'Wallet', label: 'Deductions' },
+  { path: '/company/subscription', icon: 'Card', label: 'Subscription' },
   { path: '/company/hris',         icon: '🔗', label: 'HRIS Sync' },
-  { path: '/company/settings',     icon: '⚙️', label: 'Settings' },
+  { path: '/company/settings',     icon: 'Settings', label: 'Settings' },
   { path: '/company/support',      icon: '💬', label: 'Support' },
 ];
 
@@ -59,9 +60,12 @@ const CompanyLayout = ({ children, title, subtitle }) => {
       {/* Company chip */}
       <div className="px-3 py-3 flex-shrink-0">
         <div className="flex items-center gap-2.5 p-2.5 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)' }}>
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0"
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 overflow-hidden flex-shrink-0"
             style={{ background: 'linear-gradient(135deg,#EC4899,#7C6EFF)', color: '#fff' }}>
-            {initials}
+            {company?.logo_url
+              ? <img src={company.logo_url} alt="logo" className="w-full h-full object-cover rounded-xl" />
+              : <span>{initials}</span>
+            }
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold truncate" style={{ color: '#E4E2F6' }}>{company?.name || 'Company'}</p>

@@ -203,7 +203,7 @@ const approveDeduction = async (req, res) => {
           leaderName: leader.first_name, amount: dr.amount,
           reason: dr.reason, note: note || null,
           transferred: false,
-          appUrl: process.env.APP_URL || 'https://thankeeu.com',
+          appUrl: FRONTEND_URL,
         }}).catch(() => {});
 
         await pushNotification(leader.id, 'member', 'deduction_approved',

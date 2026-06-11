@@ -1,15 +1,15 @@
 import { useSEO } from '../hooks/useSEO';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
-import { cardsAPI, paymentsAPI } from '../utils/api';
+import { cardsAPI, paymentsAPI, creditsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
 import toast from 'react-hot-toast';
-import { formatNGN, CURRENCIES, getFLWPaymentParams, formatCurrency } from '../utils/currency';
+import { formatNGN, CURRENCIES, formatCurrency } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 
 const OCCASIONS = [
@@ -67,16 +67,22 @@ const StepIndicator = ({ current }) => (
 const CreateCard = () => {
   useSEO({ title: 'Create a Card', description: 'Create a new group card.', noIndex: true });
 
-  const { user } = useAuth();
-  const { member } = useMemberAuth();
+  const { user }    = useAuth();
+  const { member }  = useMemberAuth();
   const { company } = useCompanyAuth();
+  const isCompanyUser  = !!(member || company); // free card creation
+  const isTeamLeader   = member?.role === 'leader';
   const navigate = useNavigate();
   // Derive a display name for whoever is creating the card
   const creatorName = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'Someone';
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [paymentStage, setPaymentStage] = useState('opening');
+  const [paymentStage,   setPaymentStage]   = useState('opening');
+  const [signingDeadline, setSigningDeadline] = useState('');
+  const [deliveryDate,    setDeliveryDate]    = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('NGN');
+  const [creditBalance, setCreditBalance] = useState(null);
+  const [payMode, setPayMode] = useState('direct'); // 'direct' | 'credit'
   const [inviteEmails, setInviteEmails] = useState('');
   const [form, setForm] = useState({
     occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
@@ -94,6 +100,13 @@ const CreateCard = () => {
     window.addEventListener('pageshow', resetCheckoutState);
     return () => window.removeEventListener('pageshow', resetCheckoutState);
   }, []);
+
+  // Load credit balance for regular users
+  useEffect(() => {
+    if (!isCompanyUser && user) {
+      creditsAPI.getBalance().then(r => setCreditBalance(r.data?.credits ?? 0)).catch(() => {});
+    }
+  }, [user]);
 
   // Clear any stale pending card from a previous payment attempt
   useEffect(() => {
@@ -165,14 +178,41 @@ const CreateCard = () => {
       setPaymentStage('opening');
 
       // Step 1: Get payment link from backend (same as old Paystack approach)
+      // ── Company/member/leader: free card creation ───────────────────
+      if (isCompanyUser) {
+        // Activate card directly — no payment needed
+        await cardsAPI.activate(slug, {
+          inviteEmails: pendingCard.inviteEmails || [],
+          signing_deadline: signingDeadline || null,
+          delivery_scheduled: deliveryDate || null,
+        });
+        localStorage.removeItem('thankeeu_pending_card');
+        toast.success('Card created! Share the invite link. 🎉');
+        navigate(`/card/${slug}`, { replace: true });
+        return;
+      }
+
+      // ── Individual user: credit balance or direct payment ────────────
+      if (payMode === 'credit') {
+        setPaymentStage('verifying');
+        const spendRes = await creditsAPI.spend(slug);
+        if (spendRes.data?.ok) {
+          if (pendingCard.inviteEmails?.length) {
+            cardsAPI.activate(slug, { inviteEmails: pendingCard.inviteEmails }).catch(() => {});
+          }
+          setCreditBalance(spendRes.data.credits_remaining);
+          localStorage.removeItem('thankeeu_pending_card');
+          toast.success('1 credit used. Card is now active! 🎉');
+          navigate(`/card/${slug}`, { replace: true });
+          return;
+        }
+      }
+
+      // ── Direct payment via FLW ───────────────────────────────────────
       const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency);
       const { payment_link } = payRes.data;
       if (!payment_link) throw new Error('No payment link returned from server');
 
-      // Step 2: Send browser to FLW hosted checkout
-      // FLW will redirect back to Railway backend /api/payments/callback
-      // Backend verifies and redirects to /card/slug automatically
-      // No popup, no callback complexity — same reliable flow as Paystack
       setPaymentStage('redirecting');
       window.location.assign(payment_link);
 
@@ -385,6 +425,29 @@ const CreateCard = () => {
               </div>
             )}
 
+            {/* Team leader: signing deadline and delivery date */}
+            {isTeamLeader && (
+              <div className="mb-5 space-y-4">
+                <p className="text-sm font-bold text-warm-800">⏰ Schedule (Team Leader)</p>
+                <div>
+                  <label className="block text-xs font-semibold text-warm-600 mb-1.5">Signing deadline</label>
+                  <input type="datetime-local" value={signingDeadline}
+                    onChange={e => setSigningDeadline(e.target.value)}
+                    className="input text-sm py-2.5 w-full"
+                    min={new Date().toISOString().slice(0,16)} />
+                  <p className="text-xs text-warm-400 mt-1">Signers cannot add messages after this date/time</p>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-warm-600 mb-1.5">Delivery date & time</label>
+                  <input type="datetime-local" value={deliveryDate}
+                    onChange={e => setDeliveryDate(e.target.value)}
+                    className="input text-sm py-2.5 w-full"
+                    min={signingDeadline || new Date().toISOString().slice(0,16)} />
+                  <p className="text-xs text-warm-400 mt-1">Card will be sent to the recipient on this date</p>
+                </div>
+              </div>
+            )}
+
             {/* Invite emails */}
             <div className="mb-5">
               <label className="block text-sm font-semibold text-warm-700 mb-1.5">Invite people to sign</label>
@@ -401,7 +464,7 @@ const CreateCard = () => {
                 ['Design', CARD_DESIGNS.find(d => d.id === form.design_theme)?.name || form.design_theme],
                 ['Recipient', form.recipient_name],
                 ['Gift enabled', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount)} suggested` : 'No'],
-                ['Card fee', '₦5,000 one-time'],
+                ...(isCompanyUser ? [['Card fee', '🆓 Free (company account)']] : [['Card fee', '₦5,000 one-time']]),
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between items-center px-4 py-3">
                   <span className="text-sm text-warm-500">{k}</span>
@@ -410,15 +473,69 @@ const CreateCard = () => {
               ))}
             </div>
 
+            {/* Payment mode selector — only for individual users */}
+            {!isCompanyUser && (
+              <div className="mb-4">
+                {(creditBalance !== null && creditBalance > 0) && (
+                  <div className="space-y-2 mb-3">
+                    <p className="text-xs font-semibold text-warm-600">How to pay:</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setPayMode('credit')}
+                        className={`p-3 rounded-2xl border-2 text-left transition-all ${payMode === 'credit' ? 'border-primary-400 bg-primary-50' : 'border-purple-100 bg-white hover:border-primary-200'}`}>
+                        <p className="text-xs font-bold text-warm-900">💳 Use credit</p>
+                        <p className="text-xs text-primary-600 font-semibold">{creditBalance} left</p>
+                        <p className="text-xs text-green-600 font-bold">Instant · No redirect</p>
+                      </button>
+                      <button type="button" onClick={() => setPayMode('direct')}
+                        className={`p-3 rounded-2xl border-2 text-left transition-all ${payMode === 'direct' ? 'border-primary-400 bg-primary-50' : 'border-purple-100 bg-white hover:border-primary-200'}`}>
+                        <p className="text-xs font-bold text-warm-900">🏦 Pay now</p>
+                        <p className="text-xs text-warm-500">Direct payment</p>
+                        <p className="text-xs text-warm-400">via Flutterwave</p>
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {creditBalance === 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
+                    <p className="text-xs font-semibold text-amber-800">💳 No credits — will pay directly</p>
+                    <p className="text-xs text-amber-600 mt-0.5">
+                      <Link to="/dashboard/credits" className="underline font-bold">Buy credits</Link> for faster future card creation
+                    </p>
+                  </div>
+                )}
+                {payMode === 'direct' && (
+                  <div>
+                    <p className="text-xs font-semibold text-warm-500 mb-1.5">Pay in:</p>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {CURRENCIES.map(c => (
+                        <button key={c.code} type="button" onClick={() => setSelectedCurrency(c.code)}
+                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${selectedCurrency === c.code ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-600 border border-primary-200 hover:bg-primary-100'}`}>
+                          {c.flag} {c.code}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-3">
               <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
               <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1">
                 {loading
-                  ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />{paymentStage === 'creating' ? 'Preparing your card...' : paymentStage === 'verifying' ? 'Confirming payment...' : 'Opening secure payment...'}</span>
-                  : '🔒 Pay ₦5,000 & Create Card'}
+                  ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    {paymentStage === 'verifying' ? 'Using credit...' : isCompanyUser ? 'Creating card...' : 'Opening payment...'}
+                    </span>
+                  : isCompanyUser
+                    ? '✨ Create Card (Free)'
+                    : payMode === 'credit'
+                      ? '💳 Use 1 Credit & Create Card'
+                      : `🔒 Pay ${formatCurrency(5000, selectedCurrency)} & Create Card`}
               </button>
             </div>
-            <p className="text-xs text-center text-warm-400 mt-3">Secured by Flutterwave · Card link will be ready immediately</p>
+            <p className="text-xs text-center text-warm-400 mt-3">
+              {isCompanyUser ? 'Company account · Card creation is free' : 'Secured by Flutterwave · Card link will be ready immediately'}
+            </p>
           </div>
         )}
       </div>

@@ -44,6 +44,11 @@ export default function SubscriptionPage() {
   // Save the tx_ref from the URL into state before we clear it
   const [pendingRef, setPendingRef]= useState(() => sessionStorage.getItem('sub_pending_ref') || '');
   const [checking,   setChecking]  = useState(false);
+  const [headCount,  setHeadCount]  = useState(0);
+  // Read headcount from localStorage (set after import/HRIS sync)
+  const dynPricing = (() => {
+    try { return JSON.parse(sessionStorage.getItem('sub_pricing') || 'null'); } catch { return null; }
+  })();
   const pollRef = useRef(null);
   const navigate = useNavigate();
 
@@ -264,8 +269,20 @@ export default function SubscriptionPage() {
             <h3 className="text-xl font-semibold text-warm-900 mb-1">{plan.label}</h3>
             {plan.saving && <p className="text-xs text-green-600 font-medium mb-3">{plan.saving}</p>}
             <div className="flex items-end gap-1 mb-5">
-              <span className="text-2xl sm:text-4xl font-semibold text-warm-900">{plan.price}</span>
-              <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
+              {dynPricing && dynPricing.head_count > 0 ? (
+                <div>
+                  <span className="text-2xl sm:text-3xl font-semibold text-warm-900">
+                    ₦{(plan.id==='monthly' ? dynPricing.monthly_price : dynPricing.yearly_price).toLocaleString()}
+                  </span>
+                  <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
+                  <p className="text-xs text-green-600 mt-0.5">Based on {dynPricing.head_count} employees × ₦{plan.id==='monthly'?'2,000':'20,000'}</p>
+                </div>
+              ) : (
+                <div>
+                  <span className="text-2xl sm:text-4xl font-semibold text-warm-900">{plan.price}</span>
+                  <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
+                </div>
+              )}
             </div>
             <ul className="space-y-2.5 mb-6">
               {plan.features.map((f, i) => (

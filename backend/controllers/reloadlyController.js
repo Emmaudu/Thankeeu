@@ -359,8 +359,7 @@ const orderGiftCard = async (req, res) => {
       if (card?.id) {
         await supabase.from('gift_claims')
           .update({ status: 'rejected' })
-          .eq('card_id', card.id).eq('status', 'processing')
-          .catch(() => {});
+          .eq('card_id', card.id).eq('status', 'processing');
       }
     }
 

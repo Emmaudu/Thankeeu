@@ -29,7 +29,7 @@ router.get('/all-members', async (req, res) => {
 
     // Primary: company_members table (has full info + status)
     let q = supabase.from('company_members')
-      .select('id, first_name, last_name, email, department, role, status, phone, job_title, date_of_birth, gender, resumption_date, is_core_team, created_at, updated_at')
+      .select('id, first_name, last_name, email, department, role, status, phone, job_title, date_of_birth, gender, resumption_date, is_core_team, hris_employee_id, invite_token, created_at, updated_at')
       .eq('company_id', companyId)
       .neq('status', 'deactivated')
       .order('first_name', { ascending: true });

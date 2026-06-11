@@ -333,7 +333,7 @@ const subscribeNewsletter = async (req, res) => {
     const frontendUrl = process.env.FRONTEND_URL || FRONTEND_URL;
     await sendEmail({ to: email, template: 'blogSubscribeConfirm', data: {
       name: name || 'Friend',
-      confirmUrl: `${frontendUrl}/blog/confirm-subscription?token=${confirmToken}&email=${encodeURIComponent(email)}`,
+      confirmUrl: `${frontendUrl}/blog/confirm-subscription?token=${confirmToken}`,  // token only — no email (avoids encoding issues)
       unsubscribeUrl: `${frontendUrl}/blog/unsubscribe?token=${unsubscribeToken}`,
     }}).catch(e => console.error('subscribe confirm email:', e.message));
 
@@ -346,13 +346,16 @@ const subscribeNewsletter = async (req, res) => {
 
 const confirmSubscription = async (req, res) => {
   try {
-    const { token, email } = req.query;
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ error: 'Missing confirmation token' });
+    // Use token only — avoids email encoding bugs with + in email addresses
     const { data, error } = await supabase.from('blog_subscribers')
       .update({ confirmed: true, confirm_token: null, subscribed_at: new Date() })
-      .eq('confirm_token', token).eq('email', email.toLowerCase())
-      .select().single();
-    if (error || !data) return res.status(400).json({ error: 'Invalid or expired confirmation link' });
-    res.json({ message: 'Subscription confirmed! You will receive new articles by email.' });
+      .eq('confirm_token', token)
+      .select().maybeSingle();
+    if (error) { console.error('Blog confirm error:', error.message); return res.status(500).json({ error: 'Confirmation failed' }); }
+    if (!data) return res.status(400).json({ error: 'Invalid or expired confirmation link. This link may have already been used — if you are already confirmed, try subscribing again.' });
+    res.json({ message: 'Subscription confirmed! You will receive new articles by email.', email: data.email });
   } catch (err) { res.status(500).json({ error: 'Confirmation failed' }); }
 };
 

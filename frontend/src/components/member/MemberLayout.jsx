@@ -19,15 +19,15 @@ const MemberLayout = ({ children, title, subtitle }) => {
     { path: '/member/occasions',   icon: 'Cake', label: 'Occasions' },
     { path: '/member/cards',       icon: 'Heart', label: 'My Cards' },
     { path: '/member/received',    icon: 'Gift', label: 'Received' },
-    { path: '/member/pending',     icon: '✍️', label: 'Pending to Sign' },
+    { path: '/member/pending',     icon: 'Edit', label: 'Pending to Sign' },
     { path: '/member/finances',    icon: 'Wallet', label: 'Financials' },
-    { path: '/member/reminders',   icon: '⏰', label: 'Reminders' },
+    { path: '/member/reminders',   icon: 'Clock', label: 'Reminders' },
     ...(isLeader ? [
       { path: '/member/approvals',  icon: 'Check', label: 'Approvals' },
       { path: '/member/deductions', icon: 'Card', label: 'Deductions' },
     ] : []),
     { path: '/member/settings',    icon: 'Settings', label: 'Settings' },
-    { path: '/member/support',     icon: '💬', label: 'Support' },
+    { path: '/member/support',     icon: 'Message', label: 'Support' },
   ];
 
   const initials = member ? `${member.first_name?.[0]||''}${member.last_name?.[0]||''}`.toUpperCase() : '?';

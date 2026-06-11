@@ -14,9 +14,9 @@ const NAV = [
   { path: '/company/members',      icon: 'Check', label: 'Approvals' },
   { path: '/company/deductions',   icon: 'Wallet', label: 'Deductions' },
   { path: '/company/subscription', icon: 'Card', label: 'Subscription' },
-  { path: '/company/hris',         icon: '🔗', label: 'HRIS Sync' },
+  { path: '/company/hris',         icon: 'Link', label: 'HRIS Sync' },
   { path: '/company/settings',     icon: 'Settings', label: 'Settings' },
-  { path: '/company/support',      icon: '💬', label: 'Support' },
+  { path: '/company/support',      icon: 'Message', label: 'Support' },
 ];
 
 const CompanyLayout = ({ children, title, subtitle }) => {
@@ -101,7 +101,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
               background: isActive(path) ? 'rgba(124,110,255,0.15)' : 'transparent',
               color: isActive(path) ? '#B8B4FF' : '#6B678A',
             }}>
-            <span className="text-base flex-shrink-0">{icon}</span>
+            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
             {label}
           </Link>
         ))}

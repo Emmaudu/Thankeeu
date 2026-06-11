@@ -2,6 +2,12 @@ const supabase  = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
 const crypto    = require('crypto');
 const bcrypt    = require('bcryptjs');
+const argon2    = require('argon2');
+const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+const verifyPassword = async (plain, stored) => {
+  if (stored && stored.startsWith('$argon2')) return argon2.verify(stored, plain);
+  return bcrypt.compare(plain, stored);
+};
 
 // GET /api/company/core-team
 const getCoreTeam = async (req, res) => {
@@ -46,7 +52,7 @@ const inviteCoreMember = async (req, res) => {
 
     // Also create company_member account so they can sign in
     const tempPassword = crypto.randomBytes(8).toString('hex');
-    const passwordHash = await hashPassword(tempPassword, 12);
+    const passwordHash = await hashPassword(tempPassword);
     const nameParts = (full_name || email.split('@')[0]).split(' ');
 
     await supabase.from('company_members').upsert({
@@ -143,7 +149,7 @@ const inviteCoreMemberInternally = async (company, memberData) => {
   const cleanEmail  = email.trim().toLowerCase();
   const inviteToken = crypto.randomBytes(32).toString('hex');
   const tempPass    = crypto.randomBytes(8).toString('hex');
-  const passHash    = await hashPassword(tempPass, 12);
+  const passHash    = await hashPassword(tempPass);
   const nameParts   = (full_name || '').split(' ');
 
   await supabase.from('company_core_team').upsert({

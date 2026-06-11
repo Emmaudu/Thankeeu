@@ -88,7 +88,7 @@ const CreateCard = () => {
     occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
     title: `${creatorName.split(' ')[0]}'s Birthday Card`,
     recipient_name: '', recipient_email: '', send_date: '',
-    send_time: '09:00', deadline: '', deadline_time: '23:59', is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
+    send_time: '09:00', deadline: '', deadline_time: '23:59', is_gift_enabled: true, notification_scope: 'department', gift_type: 'pot', suggested_amount: 2500,
     allow_private_messages: true, send_reminders: true, hide_amounts: false
   });
 
@@ -344,7 +344,30 @@ const CreateCard = () => {
                   <p className="text-xs text-warm-400 mt-1">Time card is delivered to recipient</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Signing deadline</label>
+                  {/* Scope selector — only for HR and team leaders */}
+              {(company || member) && (
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Who should sign this card?</label>
+                  <div className="flex gap-3">
+                    {[
+                      { value: 'department', label: 'My Department', desc: 'Only members in the same department' },
+                      { value: 'all',        label: 'Entire Company', desc: 'All team members across all departments' },
+                    ].map(opt => (
+                      <button key={opt.value} type="button"
+                        onClick={() => set('notification_scope', opt.value)}
+                        className={`flex-1 px-4 py-3 rounded-xl border-2 text-left transition-all ${
+                          form.notification_scope === opt.value
+                            ? 'border-primary-500 bg-primary-50'
+                            : 'border-purple-100 bg-white hover:border-primary-200'
+                        }`}>
+                        <p className="text-sm font-semibold text-warm-900">{opt.label}</p>
+                        <p className="text-xs text-warm-400 mt-0.5">{opt.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Signing deadline</label>
                   <input type="date" className="input" value={form.deadline}
                     min={new Date().toISOString().split('T')[0]}
                     onChange={e => set('deadline', e.target.value)} />

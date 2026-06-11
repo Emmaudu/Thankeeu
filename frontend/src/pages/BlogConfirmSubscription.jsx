@@ -10,11 +10,10 @@ export default function BlogConfirmSubscription() {
 
   useEffect(() => {
     const token = searchParams.get('token');
-    const email = searchParams.get('email');
-    if (!token || !email) { setStatus('invalid'); return; }
-    // Call GET /blog/confirm-subscription?token=...&email=...
+    if (!token) { setStatus('invalid'); return; }
+    // Token only — no email needed, avoids encoding issues
     const base = import.meta.env.VITE_API_URL || '/api';
-    fetch(`${base}/blog/confirm-subscription?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`)
+    fetch(`${base}/blog/confirm-subscription?token=${encodeURIComponent(token)}`)
       .then(r => r.json()).then(d => setStatus(d.error ? 'invalid' : 'confirmed')).catch(() => setStatus('invalid'));
   }, []);
 

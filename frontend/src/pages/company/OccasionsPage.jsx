@@ -145,10 +145,11 @@ export default function OccasionsPage() {
       toast.success(`✅ ${d.imported} entries imported! ${d.employee_count} employees counted.`);
       loadTables();
       // Redirect to subscription page so HR can see dynamic pricing based on headcount
-      if (d.redirect_to_subscription) {
+      if (d.redirect_to_subscription && d.head_count) {
+        sessionStorage.setItem('sub_pricing', JSON.stringify(d));
         setTimeout(() => {
-          toast(`Redirecting to subscription — pricing is based on your ${d.employee_count} employees`, { icon: '💳', duration: 4000 });
-          window.location.href = '/company/subscription?from_import=1&count=' + d.employee_count;
+          toast(`Redirecting to subscription — pricing based on ${d.head_count} employees × ₦2,000`, { icon: '💳', duration: 4000 });
+          window.location.href = '/company/subscription';
         }, 2000);
       }
     } catch (err) { toast.error(err.message || 'Import failed'); }

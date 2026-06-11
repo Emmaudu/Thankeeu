@@ -12,7 +12,11 @@ const {
 
 // Flexible auth — accepts individual user, team member, OR HR company token
 const flexUserAuth = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  // Read from httpOnly cookies first, then Bearer header
+  const token = req.cookies?.tk_user
+              || req.cookies?.tk_company
+              || req.cookies?.tk_member
+              || req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
   try {
     const jwt = require('jsonwebtoken');
@@ -59,7 +63,7 @@ router.post('/recipient/:slug/claim', claimGift);
 router.get('/member-history', memberAuth, getMemberCards);
 
 // Card creation — accepts both user and member tokens
-router.post('/', flexUserAuth, createCard);
+router.post('/', anyAuth, createCard);  // anyAuth accepts user + company + member tokens
 
 // All other routes — regular user auth
 router.get('/', auth, getUserCards);

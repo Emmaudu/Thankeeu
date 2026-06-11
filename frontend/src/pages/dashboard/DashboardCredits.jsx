@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { creditsAPI, paymentsAPI } from '../../utils/api';
 import DashboardLayout from '../../components/DashboardLayout';
-import { CurrencyToggle, RotatingPrice } from '../Pricing';
+import {CurrencyToggle, RotatingPrice} from '../../utils/currencyUI';
 import { CURRENCIES, formatCurrency } from '../../utils/currency';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';

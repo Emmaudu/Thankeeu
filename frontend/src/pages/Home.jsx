@@ -1,6 +1,6 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { useState, useEffect } from 'react';
-import { RotatingPrice, CurrencyToggle } from './Pricing';
+import {RotatingPrice, CurrencyToggle} from '../utils/currencyUI';
 import { formatCurrency } from '../utils/currency';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';

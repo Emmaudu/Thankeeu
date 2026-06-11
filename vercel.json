@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd frontend && npm install",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "https://thankeeu-production.up.railway.app/api/$1"
+    },
+    {
+      "source": "/((?!api|_next|.*\\..*).*)",
+      "destination": "/index.html"
+    }
+  ]
+}

@@ -3,25 +3,19 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-
-  // Build config for Vercel deployment
   build: {
-    outDir:          'dist',
-    sourcemap:       false,
-    chunkSizeWarningLimit: 1000,
+    outDir:    'dist',
+    sourcemap: false,
+    chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
-        // Split vendor chunks to avoid single large bundle
         manualChunks: {
-          'vendor-react':  ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui':     ['react-hot-toast', 'date-fns'],
-          'vendor-charts': ['recharts'],
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui':    ['react-hot-toast', 'date-fns'],
         },
       },
     },
   },
-
-  // Dev server
   server: {
     port: 5173,
     proxy: { '/api': 'http://localhost:5000' },

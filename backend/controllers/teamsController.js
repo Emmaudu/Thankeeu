@@ -1,5 +1,6 @@
 const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const XLSX = require('xlsx');
 const { nanoid } = require('nanoid');
 

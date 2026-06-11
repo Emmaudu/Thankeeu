@@ -20,6 +20,7 @@ import DashboardPending   from './pages/dashboard/DashboardPending';
 import DashboardFinances  from './pages/dashboard/DashboardFinances';
 import DashboardReminders from './pages/dashboard/DashboardReminders';
 import DashboardSettings  from './pages/dashboard/DashboardSettings';
+import DashboardCredits  from './pages/dashboard/DashboardCredits';
 import CreateCard       from './pages/CreateCard';
 import CardView         from './pages/CardView';
 import SignCard         from './pages/SignCard';
@@ -29,6 +30,8 @@ import Admin            from './pages/Admin';
 import AdminLogin       from './pages/AdminLogin';
 import GiftCheckout     from './pages/GiftCheckout';
 import VendorDashboard         from './pages/vendor/VendorDashboard';
+import VendorLogin            from './pages/vendor/VendorLogin';
+import VendorSignup           from './pages/vendor/VendorSignup';
 import BlogConfirmSubscription from './pages/BlogConfirmSubscription';
 import BlogUnsubscribe          from './pages/BlogUnsubscribe';
 import PaymentCallback from './pages/PaymentCallback';
@@ -163,6 +166,8 @@ const App = () => (
             <Route path="/occasions/wedding"     element={<WeddingPage />} />
             <Route path="/occasions/graduation"  element={<GraduationPage />} />
             <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
+            <Route path="/vendor/login"             element={<VendorLogin />} />
+            <Route path="/vendor/signup"            element={<VendorSignup />} />
             <Route path="/vendor/dashboard"          element={<VendorDashboard />} />
             <Route path="/blog/confirm-subscription" element={<BlogConfirmSubscription />} />
             <Route path="/blog/unsubscribe"            element={<BlogUnsubscribe />} />

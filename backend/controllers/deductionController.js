@@ -1,4 +1,5 @@
 const supabase = require('../utils/supabase');
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const { pushNotification } = require('../utils/notify');
 const { sendEmail } = require('../utils/email');
 const axios = require('axios');

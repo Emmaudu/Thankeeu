@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { vendorAuth } = require('../middleware/vendorAuth');
 const v = require('../controllers/vendorController');
-const { adminAuth } = require('../middleware/adminAuth');
+const { adminAuth } = require('../middleware/auth');
 
 // Public
 router.post('/signup',         v.vendorSignup);

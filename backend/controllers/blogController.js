@@ -1,6 +1,7 @@
 const { sendEmail } = require('../utils/email');
 'use strict';
 const supabase = require('../utils/supabase');
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function generateSlug(title) {
@@ -329,7 +330,7 @@ const subscribeNewsletter = async (req, res) => {
       });
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com';
+    const frontendUrl = process.env.FRONTEND_URL || FRONTEND_URL;
     await sendEmail({ to: email, template: 'blogSubscribeConfirm', data: {
       name: name || 'Friend',
       confirmUrl: `${frontendUrl}/blog/confirm-subscription?token=${confirmToken}&email=${encodeURIComponent(email)}`,
@@ -376,7 +377,7 @@ const getSubscribers = async (req, res) => {
 const notifySubscribersNewPost = async (post) => {
   const { data: subscribers } = await supabase.from('blog_subscribers')
     .select('email, name, unsubscribe_token').eq('confirmed', true);
-  const frontendUrl = process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com';
+  const frontendUrl = process.env.FRONTEND_URL || FRONTEND_URL;
 
   for (const sub of (subscribers || [])) {
     await sendEmail({ to: sub.email, template: 'newBlogPost', data: {

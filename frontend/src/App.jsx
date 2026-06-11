@@ -28,6 +28,7 @@ import Policy           from './pages/Policy';
 import Admin            from './pages/Admin';
 import AdminLogin       from './pages/AdminLogin';
 import GiftCheckout     from './pages/GiftCheckout';
+import VendorDashboard         from './pages/vendor/VendorDashboard';
 import BlogConfirmSubscription from './pages/BlogConfirmSubscription';
 import BlogUnsubscribe          from './pages/BlogUnsubscribe';
 import PaymentCallback from './pages/PaymentCallback';
@@ -162,6 +163,7 @@ const App = () => (
             <Route path="/occasions/wedding"     element={<WeddingPage />} />
             <Route path="/occasions/graduation"  element={<GraduationPage />} />
             <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
+            <Route path="/vendor/dashboard"          element={<VendorDashboard />} />
             <Route path="/blog/confirm-subscription" element={<BlogConfirmSubscription />} />
             <Route path="/blog/unsubscribe"            element={<BlogUnsubscribe />} />
             <Route path="/payment/callback"   element={<PaymentCallback />} />
@@ -185,6 +187,7 @@ const App = () => (
 
             {/* ── Individual protected ────────────────────── */}
             <Route path="/dashboard"            element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
+            <Route path="/dashboard/credits"     element={<ProtectedRoute><DashboardCredits /></ProtectedRoute>} />
             <Route path="/dashboard/cards"       element={<ProtectedRoute><DashboardCards /></ProtectedRoute>} />
             <Route path="/dashboard/delivered"   element={<ProtectedRoute><DashboardDelivered /></ProtectedRoute>} />
             <Route path="/dashboard/received"    element={<ProtectedRoute><DashboardReceived /></ProtectedRoute>} />

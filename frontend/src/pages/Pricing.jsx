@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
-import { paymentsAPI, subscriptionAPI } from '../utils/api';
+import { paymentsAPI, subscriptionAPI, creditsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
@@ -12,48 +12,51 @@ import { CURRENCIES, formatCurrency, getCurrency } from '../utils/currency';
 // ── Plans ─────────────────────────────────────────────────────────────────────
 const INDIVIDUAL_PLANS = [
   {
-    id: 'single', name: 'Classic', priceNGN: 5000, label: 'Per card · one-time',
-    btn: 'Get Classic ✨', popular: false,
+    id: 'single', name: 'Classic', priceNGN: 5000, credits: 1,
+    label: '1 card credit',
+    btn: 'Buy 1 credit ✨', popular: false,
     btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
     features: [
+      { text: '1 card credit', ok: true },
       { text: 'Unlimited contributors — anyone can sign', ok: true },
       { text: '100+ premium card designs', ok: true },
       { text: 'Video, photo & voice messages', ok: true },
       { text: 'Scheduled delivery on any date', ok: true },
-      { text: 'Auto reminders to contributors', ok: true },
-      { text: 'Gift pot up to ₦10,000,000', ok: true },
+      { text: 'Gift pot collection via Flutterwave', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
       { text: 'Download card as PDF', ok: true },
     ],
   },
   {
-    id: 'standard', name: 'Standard', priceNGN: 9000, label: 'Per card · one-time',
-    btn: 'Get Standard 🌟', popular: true,
+    id: 'standard', name: 'Standard', priceNGN: 9000, credits: 2,
+    label: '2 card credits — best per-card price',
+    btn: 'Buy 2 credits 🌟', popular: true,
     btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
     features: [
-      { text: 'Everything in Classic', ok: true },
-      { text: 'Priority support (12-hour response)', ok: true },
-      { text: 'Exclusive premium designs', ok: true },
-      { text: 'GIF and sticker support', ok: true },
-      { text: 'Bulk invite via CSV', ok: true },
-      { text: 'Card analytics (views, opens)', ok: true },
-      { text: 'Custom card title & branding', ok: true },
-      { text: 'Birthday reminder assistant', ok: true },
+      { text: '2 card credits (use any time)', ok: true },
+      { text: 'All the same card features as Classic', ok: true },
+      { text: 'Unlimited contributors — anyone can sign', ok: true },
+      { text: '100+ premium card designs', ok: true },
+      { text: 'Video, photo & voice messages', ok: true },
+      { text: 'Gift pot collection via Flutterwave', ok: true },
+      { text: 'WhatsApp & email invite links', ok: true },
+      { text: 'Credits never expire', ok: true },
     ],
   },
   {
-    id: 'pack5', name: 'Pack of 5', priceNGN: 19000, label: '₦3,800 per card · best value',
-    btn: 'Buy pack 🎁', popular: false,
+    id: 'pack5', name: 'Pack of 5', priceNGN: 19000, credits: 5,
+    label: '5 card credits — lowest per-card price',
+    btn: 'Buy 5 credits 🎁', popular: false,
     btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
     features: [
-      { text: 'Everything in Standard', ok: true },
-      { text: '5 card credits (never expire)', ok: true },
-      { text: 'Dedicated card manager', ok: true },
-      { text: 'Priority phone support', ok: true },
-      { text: 'Advanced gift pot analytics', ok: true },
-      { text: 'Team collaboration tools', ok: true },
-      { text: 'API access (beta)', ok: true },
-      { text: 'Custom email send address', ok: true },
+      { text: '5 card credits (use any time)', ok: true },
+      { text: 'All the same card features as Classic', ok: true },
+      { text: 'Unlimited contributors — anyone can sign', ok: true },
+      { text: '100+ premium card designs', ok: true },
+      { text: 'Video, photo & voice messages', ok: true },
+      { text: 'Gift pot collection via Flutterwave', ok: true },
+      { text: 'WhatsApp & email invite links', ok: true },
+      { text: 'Credits never expire', ok: true },
     ],
   },
 ];
@@ -135,11 +138,17 @@ const Pricing = () => {
   const fmt = (ngn) => formatCurrency(ngn, currency);
 
   const handleIndividualPurchase = async (planId) => {
-    if (!user) { navigate('/signup'); return; }
+    if (!user) {
+      // Require account — store intended plan and redirect to signup
+      sessionStorage.setItem('post_signup_plan', planId);
+      navigate('/signup?plan=' + planId);
+      return;
+    }
     setLoadingPlan(planId);
     try {
-      const res = await paymentsAPI.initCardFee(planId, currency);
-      window.location.href = res.data.payment_link || res.data.authorization_url;
+      // Use creditsAPI — these are credit purchases, not direct card payments
+      const res = await creditsAPI.purchase(planId, currency);
+      window.location.href = res.data.payment_link;
     } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
   };
 
@@ -232,11 +241,7 @@ const Pricing = () => {
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
-                  <p className="text-warm-500 text-xs mb-4">{
-                    plan.id === 'pack5'
-                      ? `${fmt(Math.round(plan.priceNGN / 5))} per card · best value`
-                      : plan.label
-                  }</p>
+                  <p className="text-warm-500 text-xs mb-4">{plan.label}</p>
                   <div className="flex items-end gap-1 mb-1">
                     <span className="text-3xl sm:text-4xl font-bold text-warm-900">
                       {fmt(plan.priceNGN)}
@@ -248,7 +253,12 @@ const Pricing = () => {
                   )}
                   {plan.id === 'pack5' && (
                     <p className="text-green-600 text-xs font-bold mb-1">
-                      Save {fmt(plan.priceNGN * 5 * 0.24)} vs 5 singles
+                      Save {fmt(9000 * 5 - 19000)} vs buying 5 standard packs
+                    </p>
+                  )}
+                  {plan.id === 'standard' && (
+                    <p className="text-primary-600 text-xs font-bold mb-1">
+                      Save {fmt(5000 * 2 - 9000)} vs 2 classic
                     </p>
                   )}
                   <div className="h-px bg-purple-100 my-4" />
@@ -309,6 +319,7 @@ const Pricing = () => {
               <p className="text-warm-500 max-w-lg mx-auto text-sm leading-relaxed">
                 Upload your employees once. Thankeeu handles everything — cards, emails, gift pots. All automatic.
               </p>
+              <p className="text-primary-600 font-semibold text-sm mt-2">₦2,000 per employee per month · Price based on your team size</p>
 
               {/* Currency toggle for company plans */}
               <div className="mt-5">

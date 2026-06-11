@@ -1,7 +1,35 @@
 const bcrypt = require('bcryptjs');
+const argon2  = require('argon2');
+const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+const verifyPassword = async (plain, stored) => {
+  if (stored && stored.startsWith('$argon2')) return argon2.verify(stored, plain);
+  return require('bcryptjs').compare(plain, stored);
+};
+const rehashIfLegacy = async (id, plain, stored, table, supabase) => {
+  if (!stored || stored.startsWith('$argon2')) return;
+  try { await supabase.from(table).update({ password_hash: await hashPassword(plain) }).eq('id', id); } catch {}
+};
+
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
+
+const setCookie = (res, name, token, expiresIn = '7d') => {
+  const maxAge = expiresIn.endsWith('d')
+    ? parseInt(expiresIn) * 86400000
+    : expiresIn.endsWith('h')
+    ? parseInt(expiresIn) * 3600000
+    : 7 * 86400000;
+  res.cookie(name, token, {
+    httpOnly:  true,
+    secure:    process.env.NODE_ENV === 'production',
+    sameSite:  'none',        // required for cross-origin (Vercel ↔ Railway)
+    maxAge,
+    path:      '/',
+  });
+};
+const clearCookie = (res, name) => res.clearCookie(name, { httpOnly: true, secure: true, sameSite: 'none', path: '/' });
+
 const { sendEmail } = require('../utils/email');
 
 const generateToken = (companyId) =>
@@ -16,7 +44,7 @@ const companySignup = async (req, res) => {
     const { data: existing } = await supabase.from('companies').select('id').eq('email', email).maybeSingle();
     if (existing) return res.status(400).json({ error: 'Email already registered as a company' });
 
-    const password_hash = await bcrypt.hash(password, 12);
+    const password_hash = await hashPassword(password, 12);
     const { data: company, error } = await supabase
       .from('companies')
       .insert({ name, email, password_hash, contact_person, phone, industry, city, state, country: country || '' })
@@ -73,7 +101,7 @@ const companyLogin = async (req, res) => {
     const { data: company, error } = await supabase.from('companies').select('*').eq('email', email).single();
     if (error || !company) return res.status(401).json({ error: 'Invalid email or password' });
 
-    const valid = await bcrypt.compare(password, company.password_hash);
+    const valid = await verifyPassword(password, company.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
     // Get subscription status
@@ -87,7 +115,8 @@ const companyLogin = async (req, res) => {
 
     const token = generateToken(company.id);
     const { password_hash, reset_token, ...safeCompany } = company;
-    res.json({ token, company: { ...safeCompany, subscription: sub || null } });
+    setCookie(res, 'tk_company', token);
+    res.json({token, company: { ...safeCompany, subscription: sub || null } });
   } catch (err) {
     res.status(500).json({ error: 'Server error during login' });
   }
@@ -142,9 +171,9 @@ const changeCompanyPassword = async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
     const { data: company } = await supabase.from('companies').select('password_hash').eq('id', req.company.id).single();
-    const valid = await bcrypt.compare(current_password, company.password_hash);
+    const valid = await verifyPassword(current_password, company.password_hash);
     if (!valid) return res.status(400).json({ error: 'Current password is incorrect' });
-    const password_hash = await bcrypt.hash(new_password, 12);
+    const password_hash = await hashPassword(new_password, 12);
     await supabase.from('companies').update({ password_hash }).eq('id', req.company.id);
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
@@ -178,7 +207,7 @@ const companyResetPassword = async (req, res) => {
     const { data: company } = await supabase.from('companies').select('id, reset_token_expires').eq('reset_token', token).maybeSingle();
     if (!company || new Date(company.reset_token_expires) < new Date())
       return res.status(400).json({ error: 'Invalid or expired token' });
-    const password_hash = await bcrypt.hash(password, 12);
+    const password_hash = await hashPassword(password, 12);
     await supabase.from('companies').update({ password_hash, reset_token: null, reset_token_expires: null }).eq('id', company.id);
     res.json({ message: 'Password reset successful' });
   } catch (err) {

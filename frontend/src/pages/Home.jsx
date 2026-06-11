@@ -149,11 +149,7 @@ const Home = () => {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,transparent 70%)' }} />
 
         <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 mb-5 px-4 py-2 rounded-full text-xs font-bold text-primary-600"
-            style={{ background:'rgba(124,58,237,0.08)', border:'1.5px solid rgba(124,58,237,0.15)' }}>
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            ✨ Group cards · Pooled gifts · Automated birthdays
-          </div>
+
 
           <h1 className="font-bold text-warm-900 mb-5 px-2"
             style={{ fontSize:'clamp(2rem,7vw,3.75rem)', lineHeight:1.1 }}>
@@ -428,8 +424,8 @@ const Home = () => {
                 ))}
               </ul>
               <div className="flex flex-wrap gap-2">
-                <Link to="/company/signup" className="btn-primary px-6 py-3 text-sm">Get started →</Link>
-                <button onClick={() => setShowDemo(true)} className="px-6 py-3 text-sm font-bold rounded-2xl border-2 border-purple-500 text-purple-200 hover:bg-purple-800 transition-colors">Book demo</button>
+                <button onClick={() => setShowDemo(true)} className="btn-primary px-6 py-3 text-sm">Get a quote →</button>
+                <Link to="/company/signup" className="px-6 py-3 text-sm font-bold rounded-2xl border-2 border-purple-500 text-purple-200 hover:bg-purple-800 transition-colors">Create account</Link>
               </div>
             </div>
           </div>

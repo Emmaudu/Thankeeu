@@ -306,12 +306,35 @@ async function syncEmployeesToOccasionTables(companyId, employees, occasionTypes
   // new_hire/welcome → active employees with hire_date within last 7 days or next 30 days
   // terminated       → deactivated across all tables, no more emails
 
+  // ── SYNC TO company_members — makes Team Members page reflect HRIS ──
+  // HRIS is the master of truth: upsert overwrites occasion manager data
+      const cmRow = {
+        company_id:  companyId,
+        first_name:  base.first_name,
+        last_name:   base.last_name,
+        email:       base.email,
+        department:  base.department,
+        gender:      base.gender || null,
+        job_title:   base.job_title || null,
+        date_of_birth: emp.birthday || null,
+        resumption_date: emp.hire_date || null,
+        status:      emp.employment_status === 'terminated' ? 'deactivated' : 'approved',
+        role:        emp.role || 'member',
+        updated_at:  new Date(),
+      };
+      await supabase.from('company_members')
+        .upsert(cmRow, { onConflict: 'company_id,email' });
+
   // ── DEACTIVATE terminated employees across all occasion tables ──────
       if (emp.employment_status === 'terminated') {
         await supabase.from('occasion_members')
           .update({ is_active: false, employment_status: 'terminated' })
           .eq('company_id', companyId)
           .eq('hris_employee_id', emp.hris_employee_id);
+        // Also deactivate in company_members
+        await supabase.from('company_members')
+          .update({ status: 'deactivated', updated_at: new Date() })
+          .eq('company_id', companyId).eq('email', base.email);
         counts.deactivated++;
         continue; // Don't add to any table
       }
@@ -608,14 +631,25 @@ const syncHRIS = async (req, res) => {
       updated_at:       new Date(),
     }).eq('id', connectionId);
 
+    // Count active company_members for per-head pricing
+    const { data: memberRows } = await supabase.from('company_members')
+      .select('id').eq('company_id', req.company.id).neq('status','deactivated');
+    const headCount    = (memberRows || []).length || employees.length;
+    const monthlyPrice = headCount * 2000;
+    const yearlyPrice  = headCount * 20000;
+
     res.json({
-      success: true,
-      provider: conn.display_name,
-      total_employees: employees.length,
-      duration_ms: duration,
-      synced: counts,
-      errors: errors.slice(0, 20),
-      message: `Sync complete. ${employees.length} employees processed across all occasion tables.`,
+      success:                  true,
+      provider:                 conn.display_name,
+      total_employees:          employees.length,
+      duration_ms:              duration,
+      synced:                   counts,
+      errors:                   errors.slice(0, 20),
+      message:                  `Sync complete. ${employees.length} employees processed across all occasion tables.`,
+      head_count:               headCount,
+      monthly_price:            monthlyPrice,
+      yearly_price:             yearlyPrice,
+      redirect_to_subscription: true,
     });
   } catch (err) {
     console.error(err);

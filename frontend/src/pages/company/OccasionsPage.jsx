@@ -113,7 +113,14 @@ export default function OccasionsPage() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { loadTables(); }, []);
+  useEffect(() => {
+    loadTables();
+    // Load persisted scopes from backend
+    fetch(`${BASE_URL}/occasions/scopes`, { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.ok ? r.json() : {})
+      .then(scopes => setTypeScopes(scopes || {}))
+      .catch(() => {});
+  }, []);
 
   // ── General master template ────────────────────────────────────────────────
   const handleGeneralDownload = () => {
@@ -135,8 +142,15 @@ export default function OccasionsPage() {
       });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Import failed');
-      toast.success(`✅ ${d.imported} entries imported across all tables!`);
+      toast.success(`✅ ${d.imported} entries imported! ${d.employee_count} employees counted.`);
       loadTables();
+      // Redirect to subscription page so HR can see dynamic pricing based on headcount
+      if (d.redirect_to_subscription) {
+        setTimeout(() => {
+          toast(`Redirecting to subscription — pricing is based on your ${d.employee_count} employees`, { icon: '💳', duration: 4000 });
+          window.location.href = '/company/subscription?from_import=1&count=' + d.employee_count;
+        }, 2000);
+      }
     } catch (err) { toast.error(err.message || 'Import failed'); }
     finally { setGeneralImporting(false); if (generalFileRef.current) generalFileRef.current.value = ''; }
   };
@@ -173,16 +187,21 @@ export default function OccasionsPage() {
   const handleToggleTypeScope = async (typeId, currentScope) => {
     const newScope = currentScope === 'company' ? 'department' : 'company';
     setTypeScopeLoading(typeId);
+    // Optimistic update immediately so UI feels instant
+    setTypeScopes(p => ({ ...p, [typeId]: newScope }));
     try {
-      await fetch(`${BASE_URL}/occasions/types/${typeId}/scope`, {
+      // Save to backend by occasion name (persists across page navigations)
+      await fetch(`${BASE_URL}/occasions/scopes`, {
         method: 'PUT',
         headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ default_scope: newScope }),
+        body: JSON.stringify({ [typeId]: newScope }),
       });
-      setTypeScopes(p => ({ ...p, [typeId]: newScope }));
       toast.success(`Notifications: ${newScope === 'company' ? '🌍 All departments' : '🏢 Own department only'}`);
-    } catch { toast.error('Failed to update scope'); }
-    finally { setTypeScopeLoading(null); }
+    } catch {
+      // Revert on failure
+      setTypeScopes(p => ({ ...p, [typeId]: currentScope }));
+      toast.error('Failed to save scope. Please try again.');
+    } finally { setTypeScopeLoading(null); }
   };
 
   const saveEdit = async () => {

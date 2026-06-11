@@ -106,6 +106,8 @@ export default api;
 
 // ─── Auth ──────────────────────────────────────────────────────────────────
 export const authAPI = {
+  sendVerificationCode: (data)  => axios.post(`${BASE_URL}/auth/send-code`, data),
+  verifyCode:           (data)  => axios.post(`${BASE_URL}/auth/verify-code`, data),
   signup:               (data)   => api.post('/auth/signup', data),
   login:                (data)   => api.post('/auth/login', data),
   getMe:                ()       => api.get('/auth/me'),
@@ -328,6 +330,14 @@ export const notificationsAPI = {
 };
 
 // ─── Banks & Withdrawals ───────────────────────────────────────────────────
+export const creditsAPI = {
+  getBalance:  ()           => api.get('/credits/balance'),
+  getHistory:  ()           => api.get('/credits/history'),
+  purchase:    (plan_type, currency) => api.post('/credits/purchase', { plan_type, currency: currency || 'NGN' }),
+  verify:      (txRef)      => api.get(`/credits/verify/${encodeURIComponent(txRef)}`),
+  spend:       (card_slug)  => api.post('/credits/spend', { card_slug }),
+};
+
 export const giftcardsAPI = {
   getProducts:    (country, currency) => publicAxios.get(`/giftcards/products?country=${country||''}&currency=${currency||''}`),
   getProduct:     (productId)         => publicAxios.get(`/giftcards/product/${productId}`),
@@ -371,3 +381,36 @@ export const blogAPI = {
 export const visitorsAPI = {
   track: (data) => publicAxios.post('/visitors/track', data),
 };
+
+// ── Vendor API (marketplace) ─────────────────────────────────────────────────
+const vendorAxios = axios.create({ baseURL: BASE_URL, withCredentials: true });
+vendorAxios.interceptors.request.use(cfg => {
+  const t = localStorage.getItem('tk_vendor');
+  if (t) cfg.headers.Authorization = `Bearer ${t}`;
+  return cfg;
+});
+vendorAxios.interceptors.response.use(r => r, err => {
+  if (err.response?.status === 401 && !window.location.pathname.includes('/vendor/login')) {
+    localStorage.removeItem('tk_vendor');
+    window.location.href = '/vendor/login';
+  }
+  return Promise.reject(err);
+});
+export { vendorAxios };
+
+export const vendorAPI = {
+  signup:      (data)  => publicAxios.post('/vendor/signup', data),
+  login:       (data)  => publicAxios.post('/vendor/login', data),
+  getStore:    ()      => vendorAxios.get('/vendor/me'),
+  updateStore: (data)  => vendorAxios.put('/vendor/me', data),
+  getProducts: ()      => vendorAxios.get('/vendor/products'),
+  addProduct:  (data)  => vendorAxios.post('/vendor/products', data),
+  updateProduct:(id,d) => vendorAxios.put(`/vendor/products/${id}`, d),
+  deleteProduct:(id)   => vendorAxios.delete(`/vendor/products/${id}`),
+  getOrders:   ()      => vendorAxios.get('/vendor/orders'),
+  updateOrder: (id, d) => vendorAxios.put(`/vendor/orders/${id}`, d),
+  getAnalytics:()      => vendorAxios.get('/vendor/analytics'),
+  getPublicStore: (slug) => publicAxios.get(`/vendor/store/${slug}`),
+  placeOrder: (slug,d) => publicAxios.post(`/vendor/store/${slug}/order`, d),
+};
+

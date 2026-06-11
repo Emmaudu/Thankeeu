@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { memberAPI } from '../utils/api';
 
 
-const _SESSION_MS = 30 * 60 * 1000; // 30 min inactivity
+const _SESSION_MS = 10 * 60 * 1000; // 10 min inactivity
 let _actTimer = null;
 const _resetTimer = (logoutFn, loginPath = '/member/login') => {
   clearTimeout(_actTimer);

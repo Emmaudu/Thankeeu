@@ -54,6 +54,29 @@ router.post('/bulk-sync',                     companyAuth, bulkSyncEmployees);
 // ── Per-type notification scope ───────────────────────────────────────────────
 router.put('/types/:occasionTypeId/scope',   companyAuth, updateOccasionTypeScope);
 
+// ── Company-level occasion scopes (stored by name string, not UUID) ───────────
+// GET  /api/occasions/scopes    → { birthday: 'department', fathers_day: 'company', ... }
+// PUT  /api/occasions/scopes    → body: { birthday: 'company' }
+router.get('/scopes', companyAuth, async (req, res) => {
+  try {
+    const { data } = await require('../utils/supabase')
+      .from('companies').select('occasion_scopes').eq('id', req.company.id).single();
+    res.json(data?.occasion_scopes || {});
+  } catch { res.json({}); }
+});
+
+router.put('/scopes', companyAuth, async (req, res) => {
+  try {
+    const supabase = require('../utils/supabase');
+    const { data: existing } = await supabase
+      .from('companies').select('occasion_scopes').eq('id', req.company.id).single();
+    const merged = { ...(existing?.occasion_scopes || {}), ...req.body };
+    await supabase.from('companies')
+      .update({ occasion_scopes: merged }).eq('id', req.company.id);
+    res.json({ ok: true, scopes: merged });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── Edit / patch occasion member rows ────────────────────────────────────────
 router.post('/members/:memberId/trigger', companyAuth, triggerOccasionNow);
 router.put('/members/:memberId',             companyAuth, updateOccasionMember);

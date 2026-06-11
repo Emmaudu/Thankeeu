@@ -45,10 +45,10 @@ const CompanyDashboard = () => {
       cardsAPI.getAll().catch(() => ({ data: [] })),
     ])
       .then(([d, s, p, cards]) => {
+        // Backend returns flat: { total_members, teams, upcoming_occasions, active_cards, ... }
         setData(d.data);
         setSub(s.data);
         setPending((p.data||[]).filter(m => m.status === 'pending'));
-        // Cards with pending_approval scope
         const pending_scope = (cards.data || []).filter(c =>
           c.notification_scope === 'company_wide' && !c.scope_approved_at
         );
@@ -71,7 +71,8 @@ const CompanyDashboard = () => {
 
   const isSubscribed = sub?.status === 'active';
   const daysLeft = sub?.expires_at ? differenceInDays(new Date(sub.expires_at), new Date()) : 0;
-  const stats = data || {};
+  // data is the flat response: { total_members, teams, upcoming_occasions, active_cards, total_collected }
+  const stats   = data || {};
   const upcoming = stats.upcoming_occasions || [];
   const recentCards = stats.recent_cards || [];
 
@@ -198,14 +199,15 @@ const CompanyDashboard = () => {
       )}
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-6">
         {loading
           ? [...Array(4)].map((_,i) => <div key={i} className="rounded-2xl h-24 animate-pulse" style={{ background: '#EDE9FF' }} />)
           : [
               statCard('👥', 'Total employees', stats.total_members || 0, 'all departments'),
+              statCard('🏢', 'Teams / Depts', stats.teams || (stats.departments || []).length || 0, 'active departments'),
               statCard('🎉', 'Upcoming occasions', upcoming.length, 'next 30 days'),
               statCard('💌', 'Active cards', stats.active_cards || 0, 'collecting now'),
-              statCard('🎁', 'Gifts collected', `₦${((stats.total_collected||0)).toLocaleString()}`, 'all time', true),
+              statCard('🎁', 'Gifts collected', `₦${((stats.total_collected||0)).toLocaleString('en-NG')}`, 'all time', true),
             ]
         }
       </div>
@@ -229,17 +231,18 @@ const CompanyDashboard = () => {
           ) : (
             <div className="divide-y" style={{ borderColor: '#EDE9FF' }}>
               {upcoming.slice(0, 6).map((occ, i) => {
+                // occ: { name, department, occasion_type, label, occasion_date, days_until }
                 const days = occ.days_until ?? occ.daysUntil ?? 0;
                 const urgent = days <= 3;
                 return (
                   <div key={i} className="flex items-center gap-3 px-5 py-3">
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
                       style={{ background: urgent ? 'rgba(239,68,68,0.08)' : '#F5F3FF' }}>
-                      {occ.occasion === 'birthday' ? '🎂' : occ.occasion === 'leaving' ? '👋' : occ.occasion === 'promotion' ? '🌟' : '🎉'}
+                      {occ.occasion_type === 'birthday' ? '🎂' : occ.occasion_type === 'leaving' ? '👋' : occ.occasion_type === 'promotion' ? '🌟' : occ.occasion_type === 'fathers_day' ? '👔' : occ.occasion_type === 'womens_day' ? '👩' : '🎉'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: '#1A1730' }}>{occ.full_name || `${occ.first_name} ${occ.last_name}`}</p>
-                      <p className="text-xs capitalize" style={{ color: '#7A7898' }}>{occ.occasion?.replace('_',' ')} · {occ.department}</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: '#1A1730' }}>{occ.name || `${occ.first_name||''} ${occ.last_name||''}`.trim()}</p>
+                      <p className="text-xs" style={{ color: '#7A7898' }}>{occ.label || occ.occasion_type?.replace(/_/g,' ')} · {occ.department}</p>
                     </div>
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0"
                       style={{ background: urgent ? 'rgba(239,68,68,0.1)' : 'rgba(124,110,255,0.1)', color: urgent ? '#dc2626' : '#5B4BDF' }}>

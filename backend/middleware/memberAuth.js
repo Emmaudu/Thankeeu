@@ -4,7 +4,7 @@ const supabase = require('../utils/supabase');
 // Auth middleware for company members (team leaders + team members)
 const memberAuth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.['tk_member'] || req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token provided' });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -37,7 +37,7 @@ const leaderAuth = async (req, res, next) => {
 
 // Either HR company OR a member (flexible for shared endpoints)
 const hrOrMemberAuth = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const token = req.cookies?.['tk_member'] || req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

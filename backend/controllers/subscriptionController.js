@@ -14,10 +14,31 @@ const cleanUrl = (u) => {
 };
 const FRONTEND_URL = cleanUrl(process.env.FRONTEND_URL || 'https://thankeeu.com');
 
-const PLANS = {
-  monthly: { naira: 200000,  label: '₦200,000/month'  },
-  yearly:  { naira: 2400000, label: '₦2,400,000/year' },
+const RATE_PER_EMPLOYEE = 2000; // ₦2,000 per employee per month
+
+// Calculate price from employee count
+const calcMonthlyPrice = (employeeCount) => {
+  const count  = Math.max(employeeCount || 1, 1);
+  return Math.round(count * RATE_PER_EMPLOYEE);
 };
+const calcYearlyPrice = (employeeCount) => {
+  const monthly = calcMonthlyPrice(employeeCount);
+  return Math.round(monthly * 10); // 10 months = 2 months free
+};
+
+// Dynamic PLANS factory — called with employee count
+const getPlans = (employeeCount = 0) => ({
+  monthly: {
+    naira:  calcMonthlyPrice(employeeCount),
+    label:  `₦${calcMonthlyPrice(employeeCount).toLocaleString('en-NG')}/month`,
+    count:  employeeCount,
+  },
+  yearly: {
+    naira:  calcYearlyPrice(employeeCount),
+    label:  `₦${calcYearlyPrice(employeeCount).toLocaleString('en-NG')}/year (2 months free)`,
+    count:  employeeCount,
+  },
+});
 
 // ── Helper: write subscription to BOTH tables so any query path finds it ─────
 const saveSubscription = async (companyId, plan, flwReference, expiresAt) => {
@@ -68,13 +89,34 @@ const saveSubscription = async (companyId, plan, flwReference, expiresAt) => {
 // ── Initialize payment ───────────────────────────────────────────────────────
 const initializeSubscription = async (req, res) => {
   try {
-    const { plan, currency: reqCurrency } = req.body;
-    if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
+    const { plan, currency: reqCurrency, employee_count: reqCount } = req.body;
+    if (!['monthly','yearly'].includes(plan))
+      return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
 
     const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
     const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
     const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
 
+    // Get employee count: from request OR count from DB
+    let employeeCount = reqCount ? Number(reqCount) : 0;
+    if (!employeeCount) {
+      // Count active employees in company_members + unique occasion_members
+      const [{ count: cmCount }, { data: omRows }] = await Promise.all([
+        supabase.from('company_members').select('id',{count:'exact',head:true})
+          .eq('company_id', req.company.id).neq('status','deactivated'),
+        supabase.from('occasion_members').select('email')
+          .eq('company_id', req.company.id).eq('is_active', true),
+      ]);
+      const cmEmails = new Set();
+      const { data: cm } = await supabase.from('company_members').select('email')
+        .eq('company_id', req.company.id).neq('status','deactivated');
+      (cm||[]).forEach(m => cmEmails.add(m.email?.toLowerCase()));
+      const omUnique = [...new Set((omRows||[]).map(m=>m.email?.toLowerCase()).filter(Boolean))]
+        .filter(e => !cmEmails.has(e));
+      employeeCount = (cmCount||0) + omUnique.length;
+    }
+
+    const PLANS = getPlans(employeeCount);
     const txRef = `TK-SUB-${req.company.id.slice(0,8).toUpperCase()}-${Date.now()}`;
     const { naira, label } = PLANS[plan];
     const amount = currency === 'NGN' ? naira : parseFloat((naira * FX[currency]).toFixed(2));
@@ -218,4 +260,21 @@ const cancelSubscription = async (req, res) => {
   }
 };
 
-module.exports = { initializeSubscription, verifySubscription, getSubscription, cancelSubscription, saveSubscription };
+
+// GET /api/subscription/quote — returns dynamic per-head pricing for this company
+const getQuote = async (req, res) => {
+  try {
+    const { data: rows } = await supabase
+      .from('company_members')
+      .select('id', { count: 'exact', head: false })
+      .eq('company_id', req.company.id)
+      .neq('status', 'deactivated');
+    const headCount    = (rows || []).length;
+    const monthlyPrice = headCount * 2000;
+    const yearlyPrice  = headCount * 20000;
+    res.json({ head_count: headCount, monthly_price: monthlyPrice, yearly_price: yearlyPrice,
+               per_head_monthly: 2000, per_head_yearly: 20000 });
+  } catch (err) { res.status(500).json({ error: 'Failed to calculate quote' }); }
+};
+
+module.exports = { initializeSubscription, verifySubscription, getSubscription, cancelSubscription, getQuote, saveSubscription };

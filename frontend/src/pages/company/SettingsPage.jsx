@@ -140,7 +140,9 @@ const SettingsPage = () => {
                       const d = await r.json();
                       if (!r.ok) throw new Error(d.error || 'Upload failed');
                       setProfile(p => ({ ...p, logo_url: d.logo_url }));
-                      toast.success('Logo uploaded! ✓ Click Save to apply.');
+                      // Update context immediately so sidebar reflects new logo without needing Save
+                      updateCompany({ logo_url: d.logo_url });
+                      toast.success('Logo updated! ✓');
                     } catch (err) {
                       toast.error(err.message || 'Logo upload failed. Check Cloudinary settings.');
                       setProfile(p => ({ ...p, logo_url: '' }));

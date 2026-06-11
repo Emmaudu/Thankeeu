@@ -117,7 +117,7 @@ const importTeamMembers = async (req, res) => {
 
     // Point 21: Email every imported member
     setImmediate(async () => {
-      const appUrl = process.env.APP_URL || 'https://thankeeu.com';
+      const appUrl = FRONTEND_URL;
       let co = null;
       try { const { data } = await supabase.from('companies').select('name').eq('id', req.company.id).single(); co = data; } catch {}
       for (const m of (data||[])) {
@@ -202,63 +202,111 @@ const deleteTeamMember = async (req, res) => {
 const getTeamsDashboard = async (req, res) => {
   try {
     const companyId = req.company.id;
-    const today = new Date();
-    const todayMMDD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const today     = new Date();
+    const in30days  = new Date(today); in30days.setDate(today.getDate() + 30);
 
-    // Read from company_members — include all statuses so count is accurate regardless
-    const { data: members } = await supabase
-      .from('company_members')
-      .select('id, first_name, last_name, email, department, role, status, date_of_birth')
-      .eq('company_id', companyId)
-      .neq('status', 'deactivated');  // include pending + approved, exclude only deactivated
+    // ── 1. Total members: union of company_members + distinct occasion_members ──
+    const [{ data: cmRows }, { data: omRows }] = await Promise.all([
+      supabase.from('company_members')
+        .select('id, first_name, last_name, email, department, role, status, gender, date_of_birth')
+        .eq('company_id', companyId)
+        .neq('status', 'deactivated'),
+      supabase.from('occasion_members')
+        .select('email, first_name, last_name, department, gender')
+        .eq('company_id', companyId)
+        .eq('is_active', true),
+    ]);
 
-    const all = members || [];
-    const departments = [...new Set(all.map(m => m.department).filter(Boolean))];
+    // Deduplicate by email — company_members is authoritative if both exist
+    const cmEmails = new Set((cmRows || []).map(m => m.email?.toLowerCase()));
+    const omOnly   = (omRows || []).filter(m => m.email && !cmEmails.has(m.email.toLowerCase()));
+    // Deduplicate omOnly too (one email per person across occasion types)
+    const omUnique = Object.values(
+      omOnly.reduce((acc, m) => { acc[m.email.toLowerCase()] = m; return acc; }, {})
+    );
+    const allMembers = [...(cmRows || []), ...omUnique];
+    const departments = [...new Set(allMembers.map(m => m.department).filter(Boolean))];
 
-    // Active cards count
+    // ── 2. Teams count = distinct departments ──────────────────────────────────
+    const teamsCount = departments.length;
+
+    // ── 3. Active cards ────────────────────────────────────────────────────────
     const { count: activeCards } = await supabase
       .from('cards').select('id', { count: 'exact', head: true })
       .eq('company_id', companyId).eq('status', 'active');
 
-    // Total gifts collected
-    const { data: wallets } = await supabase
-      .from('contribution_wallets').select('total_contributed')
+    // ── 4. Gifts collected from contributions ──────────────────────────────────
+    const { data: cardRows } = await supabase
+      .from('cards').select('total_collected')
       .eq('company_id', companyId);
-    const totalCollected = (wallets || []).reduce((s, w) => s + (w.total_contributed || 0), 0);
+    const totalCollected = (cardRows || []).reduce((s, c) => s + (c.total_collected || 0), 0);
 
-    // Upcoming birthdays from occasion_members
-    const { data: upcomingBdays } = await supabase
+    // ── 5. Upcoming occasions (all types, next 30 days) ────────────────────────
+    const { data: occRows } = await supabase
       .from('occasion_members')
-      .select('first_name, last_name, department, occasion_date')
+      .select('first_name, last_name, department, occasion_type, occasion_date, gender')
       .eq('company_id', companyId)
-      .eq('occasion_type', 'birthday')
-      .eq('is_active', true);
+      .not('occasion_date', 'is', null);
 
-    const withDays = (upcomingBdays || []).map(m => {
+    const OCCASION_LABELS = {
+      birthday:         '🎂 Birthday',
+      work_anniversary: '🏆 Work Anniversary',
+      new_hire:         '🎉 New Hire',
+      valentine:        '💝 Valentine Day',
+      womens_day:       '👩 Womens Day',
+      mothers_day:      '🌹 Mothers Day',
+      fathers_day:      '👔 Fathers Day',
+      promotion:        '⭐ Promotion',
+      leaving:          '👋 Farewell',
+    };
+
+    const upcoming_occasions = (occRows || []).map(m => {
       if (!m.occasion_date) return null;
-      const bd = new Date(m.occasion_date);
-      const thisYear = new Date(today.getFullYear(), bd.getMonth(), bd.getDate());
-      if (thisYear < today) thisYear.setFullYear(today.getFullYear() + 1);
-      const diff = Math.ceil((thisYear - today) / (1000 * 60 * 60 * 24));
-      return { ...m, days_until_birthday: diff };
-    }).filter(Boolean).sort((a, b) => a.days_until_birthday - b.days_until_birthday);
+      try {
+        let occasionDate = new Date(m.occasion_date);
+        if (isNaN(occasionDate)) return null;
 
-    const upcoming = withDays.filter(m => m.days_until_birthday <= 30 && m.days_until_birthday > 0);
+        // For recurring occasions (birthday, work_anniversary) — find next occurrence
+        const recurring = ['birthday','work_anniversary'];
+        if (recurring.includes(m.occasion_type)) {
+          const thisYear = new Date(today.getFullYear(), occasionDate.getMonth(), occasionDate.getDate());
+          if (thisYear < today) thisYear.setFullYear(today.getFullYear() + 1);
+          occasionDate = thisYear;
+        }
 
+        const diff = Math.ceil((occasionDate - today) / (1000 * 60 * 60 * 24));
+        if (diff < 0 || diff > 30) return null;
+
+        return {
+          name: `${m.first_name} ${m.last_name}`,
+          department: m.department || 'General',
+          occasion_type: m.occasion_type,
+          label: OCCASION_LABELS[m.occasion_type] || m.occasion_type,
+          occasion_date: occasionDate.toISOString().slice(0, 10),
+          days_until: diff,
+        };
+      } catch { return null; }
+    }).filter(Boolean).sort((a, b) => a.days_until - b.days_until);
+
+    // Response shape matches what CompanyDashboard frontend expects
+    // Frontend reads: data.total_members, data.upcoming_occasions, data.active_cards etc.
     res.json({
-      stats: {
-        total_members:     all.length,
-        departments:       departments.length,
-        upcoming_birthdays: upcoming.length,
-        active_cards:      activeCards || 0,
-        total_collected:   totalCollected,
-        cards_sent_this_year: 0,
-      },
-      upcoming_celebrants: upcoming.slice(0, 10),
+      total_members:      allMembers.length,
+      teams:              teamsCount,
       departments,
+      upcoming_occasions: upcoming_occasions.slice(0, 20),
+      active_cards:       activeCards || 0,
+      total_collected:    totalCollected,
+      // Legacy fields for backward compatibility
+      stats: {
+        total_members:  allMembers.length,
+        departments:    teamsCount,
+        active_cards:   activeCards || 0,
+        total_collected: totalCollected,
+      },
     });
   } catch (err) {
-    console.error(err);
+    console.error('getTeamsDashboard error:', err);
     res.status(500).json({ error: 'Failed to load teams dashboard' });
   }
 };

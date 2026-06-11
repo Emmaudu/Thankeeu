@@ -21,7 +21,9 @@ export default function TeamMembersPage() {
     try {
       const r = await fetch(`${BASE}/teams/all-members?search=${encodeURIComponent(search)}&dept=${encodeURIComponent(deptF)}&role=${encodeURIComponent(roleF)}`, { headers: hdr() });
       const d = await r.json();
-      setMembers(Array.isArray(d) ? d : []);
+      const memberList = Array.isArray(d) ? d : (d.members || []);
+      setMembers(memberList);
+      if (!Array.isArray(d) && d.teams_count !== undefined) setTeamsCount(d.teams_count);
     } catch { toast.error('Failed to load team members'); }
     finally { setLoading(false); }
   };
@@ -159,7 +161,12 @@ export default function TeamMembersPage() {
                               {m.first_name?.[0]}{m.last_name?.[0]}
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-semibold text-warm-900 truncate">{m.first_name} {m.last_name}</p>
+                              <p className="text-sm font-semibold text-warm-900 truncate">
+                            {m.first_name} {m.last_name}
+                            {m.source === 'occasion_import' && (
+                              <span className="ml-1.5 text-xs bg-amber-50 border border-amber-200 text-amber-700 px-1.5 py-0.5 rounded-full font-medium">bulk import</span>
+                            )}
+                          </p>
                               <p className="text-xs text-warm-400 truncate">{m.email}</p>
                             </div>
                           </div>

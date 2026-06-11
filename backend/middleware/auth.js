@@ -3,7 +3,7 @@ const supabase = require('../utils/supabase');
 
 const auth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
+    const token = req.cookies?.['tk_user'] || req.headers.authorization?.split(' ')[1];
     if (!token) return res.status(401).json({ error: 'No token provided' });
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -32,7 +32,7 @@ const adminAuth = async (req, res, next) => {
 
 // Accepts any valid token: regular user, HR company, or team member
 const anyAuth = async (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const token = req.cookies?.['tk_user'] || req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ error: 'No token provided' });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);

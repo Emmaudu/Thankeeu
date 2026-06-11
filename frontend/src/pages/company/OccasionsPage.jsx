@@ -343,7 +343,7 @@ export default function OccasionsPage() {
           ))}
           </div>
         </div>
-        <div style={{ pointerEvents:'none', position:'absolute', right:0, top:0, bottom:0, width:36, zIndex:10, background:'linear-gradient(to right, transparent, #F5F3FF)', pointerEvents:'none' }} />
+        <div style={{ pointerEvents:'none', position:'absolute', right:0, top:0, bottom:0, width:36, zIndex:10, background:'linear-gradient(to right, transparent, #F5F3FF)' }} />
       </div>
 
       {/* ── General tab panel ── */}

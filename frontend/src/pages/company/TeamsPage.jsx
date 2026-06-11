@@ -6,8 +6,6 @@ import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 
 const daysUntil = (dateStr) => {
-  useSEO({ title: 'Team Occasions — Thankeeu for Teams', description: 'Manage all employee occasions.', noIndex: true });
-
   const today = new Date();
   const d = new Date(dateStr);
   const next = new Date(today.getFullYear(), d.getMonth(), d.getDate());
@@ -16,6 +14,7 @@ const daysUntil = (dateStr) => {
 };
 
 const TeamsPage = () => {
+  useSEO({ title: 'Team Occasions — Thankeeu for Teams', description: 'Manage all employee occasions.', noIndex: true });
   const [types, setTypes]               = useState([]);
   const [selected, setSelected]         = useState(null);
   const [members, setMembers]           = useState([]);

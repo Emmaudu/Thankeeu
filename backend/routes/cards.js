@@ -100,7 +100,7 @@ router.post('/:slug/notify-signers', companyAuth, async (req, res) => {
     const { data: members } = await query;
 
     const { sendEmail } = require('../utils/email');
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
     let sent = 0;
     for (const m of (members || [])) {
       if (m.email === card.recipient_email) continue;

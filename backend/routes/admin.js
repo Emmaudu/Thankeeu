@@ -5,7 +5,7 @@ const {
   getStats, getAllUsers, updateUserRole, deleteUser,
   getAllCards, deleteCard,
   getAllCompanies, deleteCompany, getCompanyTeamMembers,
-  getVisitors,
+  getVisitors, setCompanyMultiplier, grantPilot,
 } = require('../controllers/adminController');
 
 router.use(adminAuth);

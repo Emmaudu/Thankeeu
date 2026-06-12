@@ -312,7 +312,7 @@ const importOccasionMembers = async (req, res) => {
 
     // Create member accounts + send invites for all successfully imported rows
     const { data: companyData } = await supabase.from('companies').select('name').eq('id', req.company.id).single();
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
 
     for (const row of toInsert) {
       const inviteToken = crypto.randomBytes(24).toString('hex');
@@ -626,7 +626,7 @@ const importGeneralTemplate = async (req, res) => {
     const cgI  = ci('congratulat');                // Congratulatory Message
 
     const { sendEmail } = require('../utils/email');
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
     const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
 
     for (let i = 1; i < rows.length; i++) {
@@ -950,7 +950,7 @@ const importByOccasionName = async (req, res) => {
 
     let imported = 0; const errors = [];
     const { sendEmail } = require('../utils/email');
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
     const { data: coData } = await supabase.from('companies').select('name,contact_person').eq('id', companyId).single();
 
     for (let i = 1; i < rows.length; i++) {

@@ -6,7 +6,7 @@ const rateLimit = require('express-rate-limit');
 const cron         = require('node-cron');
 const cookieParser = require('cookie-parser');
 const supabase      = require('./utils/supabase');
-const FRONTEND_URL  = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+const FRONTEND_URL = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
 const { sendEmail } = require('./utils/email');
 
 const app = express();
@@ -98,6 +98,20 @@ app.use('/webhook', require('./routes/webhook'));
 
 // Body parsing (all other routes)
 app.use(express.json({ limit: '10mb' }));
+
+// ── Startup env validation ────────────────────────────────────────────────────
+const _rawEnvFE = process.env.FRONTEND_URL || '';
+if (_rawEnvFE.includes('=') && !_rawEnvFE.startsWith('http')) {
+  console.warn('⚠️  FRONTEND_URL env var appears malformed:', JSON.stringify(_rawEnvFE));
+  console.warn('   It should be just: https://thankeeu.com (no KEY= prefix)');
+}
+const _startupFE = (() => {
+  let s = _rawEnvFE.trim();
+  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').replace(/\/$/, '').trim();
+  return s.startsWith('http') ? s : 'https://thankeeu.com';
+})();
+console.log('✓ FRONTEND_URL resolved to:', _startupFE);
 app.use(express.urlencoded({ extended: true }));
 
 // Routes

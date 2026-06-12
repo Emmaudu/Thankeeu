@@ -69,7 +69,7 @@ const inviteCoreMember = async (req, res) => {
     }, { onConflict: 'company_id,email' });
 
     // Send invite email with set-password link
-    const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
     const setPasswordLink = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(cleanEmail)}`;
 
     const companyName = req.company.name || 'Your company';
@@ -165,7 +165,7 @@ const inviteCoreMemberInternally = async (company, memberData) => {
     role: 'team_leader', is_core_team: true, invite_token: inviteToken,
   }, { onConflict: 'company_id,email' });
 
-  const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+  const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
   const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(cleanEmail)}`;
 
   await sendEmail({

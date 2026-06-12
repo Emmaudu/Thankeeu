@@ -132,7 +132,7 @@ const bulkSyncEmployees = async (req, res) => {
           try {
             const inviteToken = crypto.randomBytes(32).toString('hex');
             await supabase.from('company_members').update({ invite_token: inviteToken }).eq('id', memberId);
-            const frontendUrl = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+            const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
             const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email.trim().toLowerCase())}`;
             const { data: co } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
             await sendEmail({

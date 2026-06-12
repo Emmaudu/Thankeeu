@@ -37,4 +37,11 @@ router.get('/admin/orders',                        adminAuth, v.adminListOrders)
 router.post('/admin/vendors/:id/resend-verify',    adminAuth, v.adminResendVerification);
 router.post('/admin/vendors/:id/verify-activate',  adminAuth, v.adminVerifyActivate);
 
+// Checkout flow
+router.post('/store/:slug/checkout',    v.checkoutOrder);     // initiate FLW payment
+router.get('/order-verify',             v.verifyVendorOrder); // verify after FLW redirect
+
+// Banner upload (vendor auth)
+router.post('/me/upload-banner', vendorAuth, upload.single('image'), v.uploadBannerImage);
+
 module.exports = router;

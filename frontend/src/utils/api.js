@@ -420,7 +420,13 @@ export const vendorAPI = {
     return vendorAxios.post('/vendor/products/upload-image', fd, { headers: { 'Content-Type': undefined } });
   },
   getPublicStore: (slug) => publicAxios.get(`/vendor/store/${slug}`),
-  placeOrder: (slug,d) => publicAxios.post(`/vendor/store/${slug}/order`, d),
+  placeOrder:     (slug,d) => publicAxios.post(`/vendor/store/${slug}/order`, d),
+  checkout:       (slug,d) => publicAxios.post(`/vendor/store/${slug}/checkout`, d),
+  verifyOrder:    (txRef)  => publicAxios.get(`/vendor/order-verify?tx_ref=${txRef}`),
+  uploadBanner:   (file)   => {
+    const fd = new FormData(); fd.append('image', file);
+    return vendorAxios.post('/vendor/me/upload-banner', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
 };
 
 // ── Pals API (group accounts) ────────────────────────────────────────────────

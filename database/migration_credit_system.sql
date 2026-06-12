@@ -79,3 +79,9 @@ ALTER TABLE companies ADD COLUMN IF NOT EXISTS pilot_days        INTEGER DEFAULT
 -- Subscription status already exists; add pilot to allowed values
 -- (pilot means free automation until pilot_ends_at, then stops)
 CREATE INDEX IF NOT EXISTS idx_companies_pilot ON companies(pilot_ends_at) WHERE pilot_ends_at IS NOT NULL;
+
+-- Vendor orders: allow awaiting_payment status + flw_reference column
+ALTER TABLE vendor_orders DROP CONSTRAINT IF EXISTS vendor_orders_status_check;
+ALTER TABLE vendor_orders ADD CONSTRAINT vendor_orders_status_check
+  CHECK (status IN ('awaiting_payment','pending','confirmed','processing','shipped','delivered','cancelled'));
+ALTER TABLE vendor_orders ADD COLUMN IF NOT EXISTS flw_reference TEXT;

@@ -14,6 +14,7 @@ export default function VendorSettings() {
   });
   const [pwd, setPwd] = useState({ current:'', newPwd:'', confirm:'' });
   const [saving, setSaving] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
   const [tab, setTab] = useState('profile');
   const set = (k,v) => setForm(p=>({...p,[k]:v}));
@@ -69,7 +70,7 @@ export default function VendorSettings() {
               {k:'business_name', l:'Business name *'},
               {k:'phone', l:'Phone number'},
               {k:'logo_url', l:'Logo URL'},
-              {k:'banner_url', l:'Banner image URL'},
+
               {k:'address', l:'Address'},
               {k:'state', l:'State / City'},
             ].map(f=>(

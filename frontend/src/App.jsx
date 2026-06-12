@@ -53,6 +53,7 @@ import PalMyCards      from './pages/pals/PalMyCards';
 import VendorLogin            from './pages/vendor/VendorLogin';
 import VendorSignup           from './pages/vendor/VendorSignup';
 import VendorVerifyEmail      from './pages/vendor/VendorVerifyEmail';
+import VendorOrderSuccess     from './pages/vendor/VendorOrderSuccess';
 import BlogConfirmSubscription from './pages/BlogConfirmSubscription';
 import BlogUnsubscribe          from './pages/BlogUnsubscribe';
 import PaymentCallback from './pages/PaymentCallback';
@@ -190,6 +191,7 @@ const App = () => (
             <Route path="/vendor/login"             element={<VendorLogin />} />
             <Route path="/vendor/signup"            element={<VendorSignup />} />
             <Route path="/vendor/verify-email"      element={<VendorVerifyEmail />} />
+            <Route path="/vendor/order-success"     element={<VendorOrderSuccess />} />
             <Route path="/vendor/dashboard"   element={<VendorDashboard />} />
             <Route path="/vendor/products"    element={<VendorProducts />} />
             <Route path="/vendor/orders"      element={<VendorOrders />} />

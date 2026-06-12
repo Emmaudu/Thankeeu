@@ -7,6 +7,7 @@ const supabase    = require('../utils/supabase');
 const argon2      = require('argon2');
 const crypto      = require('crypto');
 const { sendEmail } = require('../utils/email');
+const axios      = require('axios');
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();
@@ -301,6 +302,204 @@ const placeOrder = async (req, res) => {
     }
 
     res.json({ order_id: order.id, total, message: 'Order placed! You will receive a confirmation email.' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+
+// ── POST /api/vendor/store/:slug/checkout ────────────────────────────────────
+// Creates a Flutterwave payment for a full cart. Returns { payment_link, tx_ref, order_id }
+const checkoutOrder = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const {
+      items, customer_name, customer_email, customer_phone,
+      delivery_address, card_slug, note, currency: reqCurrency,
+    } = req.body;
+
+    if (!items?.length)         return res.status(400).json({ error: 'Cart is empty' });
+    if (!customer_email?.trim()) return res.status(400).json({ error: 'Email is required for checkout' });
+    if (!customer_name?.trim())  return res.status(400).json({ error: 'Name is required for checkout' });
+
+    const { data: vendor } = await supabase.from('vendors')
+      .select('id, business_name, email, slug')
+      .eq('slug', slug).eq('status', 'approved').eq('is_verified', true).single();
+    if (!vendor) return res.status(404).json({ error: 'Store not found or not active' });
+
+    // Validate products
+    const productIds = items.map(i => i.product_id);
+    const { data: prods } = await supabase.from('vendor_products')
+      .select('id, name, price, stock, is_available')
+      .in('id', productIds).eq('vendor_id', vendor.id);
+    const prodMap = Object.fromEntries((prods||[]).map(p => [p.id, p]));
+
+    let total = 0;
+    const lineItems = items.map(item => {
+      const prod = prodMap[item.product_id];
+      if (!prod)               throw new Error(`Product not found in this store`);
+      if (!prod.is_available)  throw new Error(`"${prod.name}" is no longer available`);
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      total += prod.price * qty;
+      return { product_id: prod.id, product_name: prod.name, quantity: qty, unit_price: prod.price, subtotal: prod.price * qty };
+    });
+
+    // Create pending order FIRST (so we have an order_id for the tx_ref)
+    const { data: order, error: orderErr } = await supabase.from('vendor_orders').insert({
+      vendor_id: vendor.id, customer_name, customer_email, customer_phone,
+      delivery_address, card_slug, note,
+      total_amount: total,
+      platform_fee: 5000,
+      vendor_payout: Math.max(0, total - 5000),
+      status: 'awaiting_payment',
+    }).select().single();
+    if (orderErr) throw orderErr;
+
+    await supabase.from('vendor_order_items')
+      .insert(lineItems.map(li => ({ ...li, order_id: order.id })));
+
+    // Build FLW payment
+    const FLW_BASE = 'https://api.flutterwave.com/v3';
+    const txRef    = `TK-VND-${order.id.slice(0,8).toUpperCase()}-${Date.now()}`;
+    const currency = ['NGN','GHS','KES','USD','GBP','EUR','ZAR'].includes(reqCurrency) ? reqCurrency : 'NGN';
+
+    // Store tx_ref on order for webhook/verify
+    await supabase.from('vendor_orders').update({ flw_reference: txRef }).eq('id', order.id);
+
+    const payload = {
+      tx_ref:       txRef,
+      amount:       total,
+      currency,
+      redirect_url: `${FRONTEND_URL}/vendor/order-success`,
+      customer:     { email: customer_email, name: customer_name, phonenumber: customer_phone || '' },
+      customizations: {
+        title:       `${vendor.business_name} — Thankeeu`,
+        description: `${lineItems.length} item${lineItems.length !== 1 ? 's' : ''}`,
+        logo:        `${FRONTEND_URL}/favicon.svg`,
+      },
+      meta: {
+        type:       'vendor_order',
+        order_id:   order.id,
+        vendor_id:  vendor.id,
+        vendor_slug: slug,
+      },
+    };
+
+    const flwRes = await axios.post(`${FLW_BASE}/payments`, payload, {
+      headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' },
+      timeout: 15000,
+    });
+
+    if (flwRes.data.status !== 'success') {
+      throw new Error(flwRes.data.message || 'Payment gateway error');
+    }
+
+    res.json({
+      payment_link: flwRes.data.data.link,
+      tx_ref:       txRef,
+      order_id:     order.id,
+      total,
+    });
+  } catch (err) {
+    console.error('checkoutOrder error:', err.message);
+    res.status(500).json({ error: err.response?.data?.message || err.message });
+  }
+};
+
+// ── GET /api/vendor/order-verify?tx_ref=... ──────────────────────────────────
+// Called after FLW redirect to /vendor/order-success?tx_ref=...
+const verifyVendorOrder = async (req, res) => {
+  try {
+    const { tx_ref } = req.query;
+    if (!tx_ref) return res.status(400).json({ error: 'tx_ref required' });
+
+    // Find order by flw_reference
+    const { data: order } = await supabase.from('vendor_orders')
+      .select('*, vendor_orders_items:vendor_order_items(*), vendors:vendor_id(business_name, email, slug)')
+      .eq('flw_reference', tx_ref).maybeSingle();
+
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status === 'pending' || order.status === 'confirmed' || order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered') {
+      // Already verified and confirmed
+      return res.json({ ok: true, order_id: order.id, status: order.status, already_verified: true });
+    }
+
+    // Verify with FLW
+    const FLW_BASE = 'https://api.flutterwave.com/v3';
+    const verifyRes = await axios.get(`${FLW_BASE}/transactions/verify_by_reference?tx_ref=${tx_ref}`, {
+      headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` },
+      timeout: 15000,
+    });
+
+    const txData = verifyRes.data?.data;
+    const paid   = verifyRes.data?.status === 'success' && txData?.status === 'successful';
+
+    if (!paid) {
+      await supabase.from('vendor_orders').update({ status: 'cancelled' }).eq('id', order.id);
+      return res.status(400).json({ error: 'Payment was not completed', order_id: order.id });
+    }
+
+    // Mark order as confirmed
+    await supabase.from('vendor_orders').update({ status: 'pending', updated_at: new Date() }).eq('id', order.id);
+
+    // Get line items for notifications
+    const { data: lineItems } = await supabase.from('vendor_order_items')
+      .select('product_name, quantity, unit_price, subtotal').eq('order_id', order.id);
+
+    // Send customer confirmation
+    await sendEmail({ to: order.customer_email, template: 'orderConfirm', data: {
+      name: order.customer_name || 'Customer',
+      orderId: order.id.slice(0,8).toUpperCase(),
+      storeName: order.vendors?.business_name || 'the store',
+      total: `₦${Number(order.total_amount).toLocaleString('en-NG')}`,
+      items: lineItems || [],
+      storeUrl: `${FRONTEND_URL}/c/${order.vendors?.slug || ''}`,
+    }}).catch(() => {});
+
+    // Notify vendor with deadline
+    if (order.vendors?.email) {
+      let deadlineLabel = 'As soon as possible';
+      let recipientName = null;
+      if (order.card_slug) {
+        try {
+          const { data: card } = await supabase.from('cards')
+            .select('send_date, deadline, recipient_name, occasion').eq('slug', order.card_slug).maybeSingle();
+          if (card) {
+            const d = card.send_date || card.deadline;
+            if (d) deadlineLabel = new Date(d).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+            recipientName = card.recipient_name;
+          }
+        } catch(_) {}
+      }
+
+      await sendEmail({ to: order.vendors.email, template: 'vendorOrderNotification', data: {
+        vendorName:      order.vendors.business_name,
+        orderId:         order.id.slice(0,8).toUpperCase(),
+        customerName:    order.customer_name || 'A customer',
+        customerEmail:   order.customer_email,
+        customerPhone:   order.customer_phone || '',
+        deliveryAddress: order.delivery_address || 'Contact customer for address',
+        items:           lineItems || [],
+        total:           `₦${Number(order.total_amount).toLocaleString('en-NG')}`,
+        vendorPayout:    `₦${Math.max(0, Number(order.total_amount) - 5000).toLocaleString('en-NG')}`,
+        deadlineLabel,
+        recipientName,
+        ordersUrl:       `${FRONTEND_URL}/vendor/orders`,
+      }}).catch(() => {});
+    }
+
+    res.json({ ok: true, order_id: order.id, status: 'pending', vendor_slug: order.vendors?.slug });
+  } catch (err) {
+    console.error('verifyVendorOrder error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ── POST /api/vendor/me/upload-banner ────────────────────────────────────────
+const uploadBannerImage = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const { secure_url } = req.file;
+    await supabase.from('vendors').update({ banner_url: secure_url, updated_at: new Date() }).eq('id', req.vendor.id);
+    res.json({ url: secure_url });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 

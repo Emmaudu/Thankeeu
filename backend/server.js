@@ -108,10 +108,11 @@ app.use('/webhook', require('./routes/webhook'));
 app.use(express.json({ limit: '10mb' }));
 
 // ── Startup env validation ────────────────────────────────────────────────────
-const _rawEnvFE = process.env.FRONTEND_URL || '';
+const _rawEnvFE = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
 if (_rawEnvFE.includes('=') && !_rawEnvFE.startsWith('http')) {
   console.warn('⚠️  FRONTEND_URL env var appears malformed:', JSON.stringify(_rawEnvFE));
-  console.warn('   It should be just: https://thankeeu.com (no KEY= prefix)');
+  console.warn('   Fix: in Railway, set FRONTEND_URL = https://thankeeu.com (no KEY= prefix)');
+  console.warn('   The app has auto-corrected this and will work normally.');
 }
 const _startupFE = (() => {
   let s = _rawEnvFE.trim();

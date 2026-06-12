@@ -86,7 +86,7 @@ const getMyStore = async (req, res) => {
 
 const updateStore = async (req, res) => {
   try {
-    const allowed = ['business_name','description','phone','address','logo_url','banner_url','social_links','delivery_info','return_policy'];
+    const allowed = ['business_name','description','phone','address','country','state','logo_url','banner_url','social_links','delivery_info','return_policy'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     const { data, error } = await supabase.from('vendors').update({ ...updates, updated_at: new Date() }).eq('id', req.vendor.id).select().single();
     if (error) throw error;
@@ -206,8 +206,8 @@ const getPublicStore = async (req, res) => {
     const { slug } = req.params;
     const { data: vendor } = await supabase.from('vendors')
       .select('id, business_name, slug, description, logo_url, banner_url, category, address, country, state, phone, social_links, delivery_info, return_policy, status')
-      .eq('slug', slug).eq('status', 'approved').single();
-    if (!vendor) return res.status(404).json({ error: 'Store not found' });
+      .eq('slug', slug).eq('status', 'approved').eq('is_verified', true).single();
+    if (!vendor) return res.status(404).json({ error: 'Store not found or not yet active' });
 
     const { data: products } = await supabase.from('vendor_products')
       .select('id, name, description, price, category, images, stock, featured')
@@ -429,12 +429,21 @@ const verifyVendorOrder = async (req, res) => {
       timeout: 15000,
     });
 
-    const txData = verifyRes.data?.data;
-    const paid   = verifyRes.data?.status === 'success' && txData?.status === 'successful';
+    const txData     = verifyRes.data?.data;
+    const paid       = verifyRes.data?.status === 'success' && txData?.status === 'successful';
+    const amountPaid = Number(txData?.amount || 0);
+    const amountDue  = Number(order.total_amount || 0);
 
     if (!paid) {
       await supabase.from('vendor_orders').update({ status: 'cancelled' }).eq('id', order.id);
       return res.status(400).json({ error: 'Payment was not completed', order_id: order.id });
+    }
+
+    // Verify amount paid matches order total (within 1 unit tolerance for rounding)
+    if (amountDue > 0 && amountPaid < amountDue - 1) {
+      console.warn(`verifyVendorOrder: underpayment for order ${order.id}. Due: ${amountDue}, Paid: ${amountPaid}`);
+      await supabase.from('vendor_orders').update({ status: 'cancelled' }).eq('id', order.id);
+      return res.status(400).json({ error: `Underpayment detected. Paid: ${amountPaid}, Required: ${amountDue}`, order_id: order.id });
     }
 
     // Mark order as confirmed
@@ -729,11 +738,11 @@ const uploadProductImage = async (req, res) => {
 };
 
 module.exports = {
-
   listPublicVendors, vendorSignup, vendorLogin, getMyStore, updateStore,
   getProducts, createProduct, updateProduct, deleteProduct,
   getOrders, updateOrderStatus, getAnalytics,
   getPublicStore, placeOrder,
+  checkoutOrder, verifyVendorOrder, uploadBannerImage,
   adminListVendors, adminUpdateVendorStatus, adminListOrders, uploadProductImage,
   vendorVerifyEmail, adminResendVerification, adminVerifyActivate,
   getVendorTickets, createVendorTicket, changeVendorPassword,

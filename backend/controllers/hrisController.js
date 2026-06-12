@@ -2,8 +2,19 @@
 const axios   = require('axios');
 const supabase = require('../utils/supabase');
 const bcrypt  = require('bcryptjs');
+const argon2  = require('argon2');
 const crypto  = require('crypto');
 const { sendEmail } = require('../utils/email');
+
+const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+
+// Resolve the frontend base URL from env (same pattern used elsewhere)
+const frontendUrl = (() => {
+  const r = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = r.trim();
+  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+  return (s.replace(/['"\/]$/g, '').startsWith('http')) ? s.replace(/\/$/, '') : 'https://thankeeu.com';
+})();
 
 // ─── Fixed-date occasion helpers ─────────────────────────────────────────────
 // Returns the occasion_date for this calendar year for fixed-date occasions
@@ -268,8 +279,11 @@ async function syncEmployeesToOccasionTables(companyId, employees, occasionTypes
   for (const ot of occasionTypes) typeMap[ot.name] = ot;
 
   const year    = new Date().getFullYear();
-  const counts  = { birthday:0, anniversary:0, womens_day:0, mens_day:0, valentines:0, workers_day:0, promotions:0, leaving:0, new_hire:0, deactivated:0, errors:0 };
+  const counts  = { birthday:0, anniversary:0, womens_day:0, mens_day:0, valentines:0, workers_day:0, promotions:0, leaving:0, new_hire:0, deactivated:0, errors:0, invites_sent:0 };
   const errors  = [];
+
+  // Fetch company name/contact once for invite emails
+  const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
 
   for (const emp of employees) {
     if (!emp.email || !emp.first_name) {
@@ -322,8 +336,61 @@ async function syncEmployeesToOccasionTables(companyId, employees, occasionTypes
         role:        emp.role || 'member',
         updated_at:  new Date(),
       };
-      await supabase.from('company_members')
-        .upsert(cmRow, { onConflict: 'company_id,email' });
+
+      // Check whether this person already has an account (so we don't
+      // re-invite or overwrite an existing password) before upserting.
+      const { data: existingMember } = await supabase.from('company_members')
+        .select('id, password_hash, invite_token')
+        .eq('company_id', companyId).eq('email', base.email).maybeSingle();
+
+      const needsInvite = cmRow.status === 'approved' && !existingMember?.password_hash;
+      let inviteToken = existingMember?.invite_token || null;
+      const cmRowToUpsert = { ...cmRow };
+      if (needsInvite) {
+        inviteToken = crypto.randomBytes(32).toString('hex');
+        cmRowToUpsert.invite_token  = inviteToken;
+        cmRowToUpsert.password_hash = await hashPassword(crypto.randomBytes(8).toString('hex'));
+      }
+
+      let { error: cmErr } = await supabase.from('company_members')
+        .upsert(cmRowToUpsert, { onConflict: 'company_id,email' });
+
+      // Some databases use an enum for `role` ('team_leader'/'team_member')
+      // instead of free text ('member'/'team_leader') — retry with the
+      // enum-compatible value if the first attempt fails on that column.
+      if (cmErr && /role/i.test(cmErr.message || '')) {
+        cmRowToUpsert.role = cmRowToUpsert.role === 'team_leader' ? 'team_leader' : 'team_member';
+        ({ error: cmErr } = await supabase.from('company_members')
+          .upsert(cmRowToUpsert, { onConflict: 'company_id,email' }));
+      }
+
+      if (cmErr) {
+        errors.push(`company_members sync failed for ${base.email}: ${cmErr.message}`);
+      } else if (needsInvite && inviteToken) {
+        // Brand new (or password-less) member — send the "set your password" email
+        try {
+          const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(base.email)}`;
+          await sendEmail({ to: base.email,
+            subject: `You've been added to ${companyData?.name || 'your company'} on Thankeeu!`,
+            html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#fff;border-radius:16px;">
+              <h2 style="color:#7C3AED;margin:0 0 8px;">Welcome, ${base.first_name}!</h2>
+              <p style="color:#555;margin:0 0 20px;">${companyData?.contact_person || companyData?.name || 'Your HR team'} has added you to <strong>${companyData?.name || 'your company'}</strong> on Thankeeu — the platform that makes team celebrations effortless.</p>
+              <p style="color:#555;margin:0 0 20px;">Click the button below to set your password and access your team dashboard:</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+                <tr><td style="border-radius:8px;background:#7C3AED;">
+                  <a href="${link}" style="display:inline-block;background:#7C3AED;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Set your password →</a>
+                </td></tr>
+              </table>
+              <p style="color:#aaa;font-size:12px;margin:8px 0 0;">Or copy this link: <a href="${link}" style="color:#7C3AED;">${link}</a></p>
+              <p style="color:#aaa;font-size:12px;margin:16px 0 0;">This link does not expire. If you have issues, contact your HR team.</p>
+            </div>`,
+          }).catch((emailErr) => { errors.push(`Invite email failed for ${base.email}: ${emailErr.message}`); });
+          counts.invites_sent++;
+        } catch (emailErr) {
+          errors.push(`Invite email failed for ${base.email}: ${emailErr.message}`);
+        }
+      }
+
 
   // ── DEACTIVATE terminated employees across all occasion tables ──────
       if (emp.employment_status === 'terminated') {
@@ -645,7 +712,7 @@ const syncHRIS = async (req, res) => {
       duration_ms:              duration,
       synced:                   counts,
       errors:                   errors.slice(0, 20),
-      message:                  `Sync complete. ${employees.length} employees processed across all occasion tables.`,
+      message:                  `Sync complete. ${employees.length} employees processed across all occasion tables.${counts.invites_sent ? ` ${counts.invites_sent} new team member${counts.invites_sent === 1 ? '' : 's'} invited by email to set their password.` : ''}`,
       head_count:               headCount,
       monthly_price:            monthlyPrice,
       yearly_price:             yearlyPrice,

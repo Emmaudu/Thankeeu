@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import Icon from '../components/ui/Icon';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { paymentsAPI } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -42,7 +43,7 @@ export default function PaymentCallback() {
         const { card_slug } = res.data;
 
         if (card_slug) {
-          toast.success('Card is now active! 🎉');
+          toast.success('Card is now active!');
           navigate(`/card/${card_slug}`, { replace: true });
           return;
         }
@@ -50,7 +51,7 @@ export default function PaymentCallback() {
         // Fallback to generic verify (gift contribution etc.)
         const generic = await paymentsAPI.verify(txRef);
         if (generic.data.type === 'gift_contribution') {
-          toast.success('Gift confirmed! 🎉');
+          toast.success('Gift confirmed!');
           navigate('/dashboard', { replace: true });
           return;
         }
@@ -88,7 +89,7 @@ export default function PaymentCallback() {
           </>
         ) : (
           <>
-            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
+            <div style={{ marginBottom: '1rem', display:'flex', justifyContent:'center' }}><Icon name="AlertCircle" size={44} style={{color:'#F59E0B'}}/></div>
             <p style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1C1243' }}>
               Something went wrong. Redirecting...
             </p>

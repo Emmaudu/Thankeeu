@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import Navbar from '../components/Navbar';
+import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 
 const Login = () => {
@@ -32,7 +33,7 @@ const Login = () => {
     localStorage.removeItem('thankeeu_company');
     try {
       await login(form.email, form.password);
-      toast.success('Welcome back! 💜');
+      toast.success('Welcome back!');
       navigate(returnTo || '/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Invalid email or password');
@@ -60,23 +61,23 @@ const Login = () => {
           {returnTo && (
             <div className="mb-5 p-4 rounded-2xl text-center border"
               style={{ background: 'rgba(124,58,237,0.06)', borderColor: 'rgba(124,58,237,0.18)' }}>
-              <p className="text-sm font-semibold text-primary-700">✍️ Sign in to continue signing</p>
+              <p className="text-sm font-semibold text-primary-700 flex items-center justify-center gap-1.5"><Icon name="Edit" size={14}/> Sign in to continue signing</p>
               <p className="text-xs mt-0.5 text-warm-500">You'll be redirected back after login</p>
             </div>
           )}
 
           {/* Session expired banner */}
           {sessionExpired && (
-            <div className="mb-5 px-4 py-3 rounded-2xl text-sm font-medium border bg-amber-50 border-amber-200 text-amber-800 text-center">
-              ⏱️ Your session expired. Please sign in again.
+            <div className="mb-5 px-4 py-3 rounded-2xl text-sm font-medium border bg-amber-50 border-amber-200 text-amber-800 text-center flex items-center justify-center gap-1.5">
+              <Icon name="Clock" size={14}/> Your session expired. Please sign in again.
             </div>
           )}
 
           {/* Heading */}
           <div className="text-center mb-7">
-            <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl shadow-md"
+            <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-md"
               style={{ background: 'linear-gradient(135deg,#8B5CF6,#7C3AED)' }}>
-              💜
+              <Icon name="Heart" size={24} className="text-white"/>
             </div>
             <h1 className="font-display text-3xl font-bold text-warm-900">Welcome back</h1>
             <p className="text-warm-500 text-sm mt-1">Sign in to your Thankeeu account</p>
@@ -123,7 +124,7 @@ const Login = () => {
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Signing in...
                     </span>
-                  : '⚡ Sign in'}
+                  : <span className="inline-flex items-center justify-center gap-2"><Icon name="Zap" size={16}/> Sign in</span>}
               </button>
             </form>
 
@@ -139,7 +140,7 @@ const Login = () => {
             <Link
               to={`/signup${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl border-2 border-primary-200 text-primary-700 font-semibold text-sm hover:bg-primary-50 transition-colors">
-              ✨ Create a free account →
+              <Icon name="Sparkles" size={15}/> Create a free account <Icon name="ArrowRight" size={15}/>
             </Link>
           </div>
 

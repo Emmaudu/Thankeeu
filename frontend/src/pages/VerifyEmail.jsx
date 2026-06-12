@@ -34,19 +34,19 @@ const VerifyEmail = () => {
       body: 'Please wait a moment.',
     },
     success: {
-      icon: <div className="text-6xl mb-5">✅</div>,
-      title: 'Email verified! 🎉',
+      icon: <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5"><Icon name="Check" size={30} className="text-green-600"/></div>,
+      title: 'Email verified!',
       body: "You're all set. Your Thankeeu account is fully active — you can now send cards, collect gifts, and do everything.",
       cta: <Link to="/dashboard" className="btn-primary px-8 py-3 text-sm">Go to my dashboard →</Link>,
     },
     already: {
-      icon: <div className="text-6xl mb-5">✓</div>,
+      icon: <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-5"><Icon name="Check" size={30} className="text-green-600"/></div>,
       title: 'Already verified!',
       body: "Your email was already verified. You're good to go.",
       cta: <Link to="/dashboard" className="btn-primary px-8 py-3 text-sm">Go to my dashboard →</Link>,
     },
     error: {
-      icon: <div className="text-6xl mb-5">⚠️</div>,
+      icon: <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-5"><Icon name="AlertCircle" size={30} className="text-amber-500"/></div>,
       title: 'Invalid or expired link',
       body: "This verification link is invalid or has expired. You can request a new one from your dashboard.",
       cta: <Link to="/dashboard" className="btn-secondary px-8 py-3 text-sm">Back to dashboard</Link>,

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
+import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 import axios from 'axios';
 
@@ -67,7 +68,7 @@ const Signup = () => {
       const { token, user } = res.data;
       localStorage.setItem('thankeeu_token', token);
       localStorage.setItem('thankeeu_user',  JSON.stringify(user));
-      toast.success('Account created! Welcome to Thankeeu 💜');
+      toast.success('Account created! Welcome to Thankeeu!');
       navigate(returnTo || '/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Incorrect or expired code. Please try again.');
@@ -140,8 +141,8 @@ const Signup = () => {
                         placeholder="Minimum 8 characters" value={form.password}
                         onChange={e => set('password', e.target.value)} required />
                       <button type="button" onClick={() => setShowPw(p => !p)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-700 text-lg">
-                        {showPw ? '👁' : '👁‍🗨'}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-700">
+                        <Icon name={showPw ? 'EyeOff' : 'Eye'} size={18}/>
                       </button>
                     </div>
                     {pwStrength && (

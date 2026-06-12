@@ -9,7 +9,12 @@ import {
   Share2, Link, ExternalLink, Tag, FileText, FolderOpen, Table, Grid, List,
   ArrowRight, ArrowLeft, ArrowUp, ArrowDown, RefreshCw,
   Zap, Award, Flag, Briefcase, BookOpen, Package, Store, ShoppingCart,
-  MapPin, DollarSign, Percent, LayoutDashboard, Layers, Repeat,
+  MapPin, DollarSign, Percent, LayoutDashboard, Layers, Repeat, Camera,
+  Sparkles, Wand2, MessageCircle, Smartphone, ShieldCheck, Banknote,
+  Rocket, Target, Compass, Layout, MousePointerClick, HandHeart, Sticker,
+  Lightbulb, Menu, PartyPopper, ThumbsUp, Quote,
+  Twitter, Linkedin, Instagram, GraduationCap, Baby,
+  Sun, Flower2, HeartPulse, Snowflake, Sunrise, ThumbsUp as ThumbsUpDup,
 } from 'lucide-react';
 
 const ICONS = {
@@ -27,7 +32,12 @@ const ICONS = {
   ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Refresh: RefreshCw,
   Zap, Award, Flag, Briefcase, Book: BookOpen,
   Package, Store, Cart: ShoppingCart, MapPin,
-  Dollar: DollarSign, Percent, Dashboard: LayoutDashboard, Layers, Repeat,
+  Dollar: DollarSign, Percent, Dashboard: LayoutDashboard, Layers, Repeat, Camera,
+  Sparkles, Wand: Wand2, MessageCircle, Smartphone, ShieldCheck, Banknote,
+  Rocket, Target, Compass, Layout, Click: MousePointerClick, HandHeart, Sticker,
+  Lightbulb, Menu, Party: PartyPopper, ThumbsUp, Quote,
+  Twitter, Linkedin, Instagram, GraduationCap, Baby,
+  Sun, Flower: Flower2, HeartPulse, Snowflake, Sunrise,
 };
 
 const SIZES = { xs: 12, sm: 14, md: 16, lg: 20, xl: 24, '2xl': 32 };

@@ -2,6 +2,7 @@ import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
 import ThankeeuLogo from '../components/ThankeeuLogo';
 import Navbar from '../components/Navbar';
+import Icon from '../components/ui/Icon';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authAPI } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -21,7 +22,7 @@ const ResetPassword = () => {
   if (!token) return (
     <div className="min-h-screen"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="text-center">
-        <div className="text-5xl mb-4">🔗</div>
+        <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4"><Icon name="Link" size={24} className="text-red-400"/></div>
         <h2 className="text-2xl font-semibold text-warm-900 mb-2">Invalid reset link</h2>
         <p className="text-warm-500 mb-6 text-sm">This link is invalid or has already been used.</p>
         <Link to="/forgot-password" className="btn-primary">Request a new link</Link>
@@ -55,7 +56,7 @@ const ResetPassword = () => {
         <div className="bg-white rounded-3xl shadow-xl p-8 border border-purple-100">
           {done ? (
             <div className="text-center py-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">✅</div>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Check" size={28} className="text-green-600"/></div>
               <h3 className="text-xl font-semibold text-warm-900 mb-2">Password updated!</h3>
               <p className="text-warm-500 text-sm mb-1">Your password has been reset successfully.</p>
               <p className="text-xs text-warm-400">Redirecting to login...</p>

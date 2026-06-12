@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import Navbar  from '../components/Navbar';
 import Footer  from '../components/Footer';
+import Icon from '../components/ui/Icon';
 import { blogAPI } from '../utils/api';
 import { useSEO, SCHEMAS, BASE_URL } from '../hooks/useSEO';
 import { format } from 'date-fns';
@@ -11,12 +12,12 @@ import { format } from 'date-fns';
 // A real production app would use DOMPurify; here we output content as-is.
 
 const CATEGORY_ICONS = {
-  'Workplace Culture': '🏢',
-  'HR & Technology':   '🔗',
-  'Gifting':           '🎁',
-  'Product Updates':   '🚀',
-  'Occasions':         '🎂',
-  'General':           '💬',
+  'Workplace Culture': 'Building',
+  'HR & Technology':   'Link',
+  'Gifting':           'Gift',
+  'Product Updates':   'Rocket',
+  'Occasions':         'Cake',
+  'General':           'Message',
 };
 
 const FALLBACK_COVER = 'https://images.unsplash.com/photo-1513530534585-c7b1394c6d51?w=1200&q=70';
@@ -43,7 +44,7 @@ const ShareButton = ({ url, title }) => {
       </a>
       <button onClick={() => navigator.clipboard?.writeText(url).then(() => {})}
         className="flex items-center gap-1.5 text-xs bg-purple-50 hover:bg-gray-200 text-warm-700 px-3 py-1.5 rounded-lg transition-colors">
-        🔗 Copy link
+        <Icon name="Link" size={12}/> Copy link
       </button>
     </div>
   );
@@ -213,7 +214,7 @@ const BlogPost = () => {
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <Link to={`/blog?category=${encodeURIComponent(post.category)}`}
                   className="bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-primary-200 transition-colors">
-                  {CATEGORY_ICONS[post.category] || '📝'} {post.category}
+                  <span className="inline-flex items-center gap-1.5"><Icon name={CATEGORY_ICONS[post.category] || 'File'} size={12}/> {post.category}</span>
                 </Link>
                 {(post.tags || []).map(tag => (
                   <span key={tag} className="bg-purple-50 text-warm-600 text-xs px-2.5 py-1 rounded-full">
@@ -241,11 +242,9 @@ const BlogPost = () => {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-3 text-xs text-warm-500">
-                  <time dateTime={post.published_at || ''} itemProp="datePublished">
-                    📅 {publishedDate}
-                  </time>
-                  <span>⏱ {post.read_time} min read</span>
-                  <span>👁 {(post.views || 0).toLocaleString()} views</span>
+                  <time dateTime={post.published_at || ''} itemProp="datePublished" className="inline-flex items-center gap-1"><Icon name="Calendar" size={12}/> {publishedDate}</time>
+                  <span className="inline-flex items-center gap-1"><Icon name="Clock" size={12}/> {post.read_time} min read</span>
+                  <span className="inline-flex items-center gap-1"><Icon name="Eye" size={12}/> {(post.views || 0).toLocaleString()} views</span>
                 </div>
               </div>
 
@@ -291,7 +290,7 @@ const BlogPost = () => {
             <aside className="space-y-6">
               {/* CTA card */}
               <div className="bg-primary-400 rounded-3xl p-5 text-white sticky top-20">
-                <p className="text-2xl mb-2">💜</p>
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-2"><Icon name="Heart" size={22} className="text-white"/></div>
                 <p className="font-semibold text-lg mb-2">Try Thankeeu free</p>
                 <p className="text-primary-100 text-sm mb-4 leading-relaxed">
                   Create a beautiful group card and Flutterwave gift pot for your next team occasion.

@@ -39,6 +39,8 @@ import VendorStorefront        from './pages/vendor/VendorStorefront';
 import VendorBank              from './pages/vendor/VendorBank';
 import VendorCustomers         from './pages/vendor/VendorCustomers';
 import VendorStorefrontPublic  from './pages/vendor/VendorStorefrontPublic';
+import PalLanding      from './pages/PalLanding';
+import VendorLanding   from './pages/VendorLanding';
 import PalSignup       from './pages/pals/PalSignup';
 import PalLogin        from './pages/pals/PalLogin';
 import PalVerifyEmail  from './pages/pals/PalVerifyEmail';
@@ -189,6 +191,7 @@ const App = () => (
             <Route path="/occasions/graduation"  element={<GraduationPage />} />
             <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
             <Route path="/vendor/login"             element={<VendorLogin />} />
+            <Route path="/vendors"                  element={<VendorLanding />} />
             <Route path="/vendor/signup"            element={<VendorSignup />} />
             <Route path="/vendor/verify-email"      element={<VendorVerifyEmail />} />
             <Route path="/vendor/order-success"     element={<VendorOrderSuccess />} />
@@ -202,6 +205,7 @@ const App = () => (
             <Route path="/vendor/bank"        element={<VendorBank />} />
             <Route path="/vendor/customers"    element={<VendorCustomers />} />
             <Route path="/c/:slug"             element={<VendorStorefrontPublic />} />
+            <Route path="/pals"                    element={<PalLanding />} />
             <Route path="/pals/signup"             element={<PalSignup />} />
             <Route path="/pals/login"              element={<PalLogin />} />
             <Route path="/pals/verify-email"       element={<PalVerifyEmail />} />

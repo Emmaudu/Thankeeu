@@ -652,42 +652,66 @@ const importGeneralTemplate = async (req, res) => {
       const inviteToken = require('crypto').randomBytes(32).toString('hex');
       // Fix role value: DB and middleware use 'team_leader' not 'leader'
       const memberRole = role === 'leader' ? 'team_leader' : 'member';
+      const memberRoleFallback = role === 'leader' ? 'team_leader' : 'team_member';
       let memberId = null;
       let isNew = false;
+      let needsInvite = false;
       try {
         const { data: existing } = await supabase.from('company_members')
-          .select('id').eq('company_id', companyId).eq('email', email).maybeSingle();
+          .select('id, password_hash').eq('company_id', companyId).eq('email', email).maybeSingle();
+
+        needsInvite = !existing?.password_hash;
+        // Generate a temp password hash so the row satisfies a NOT NULL
+        // password_hash constraint on older schemas, and so the invite
+        // link actually has something to "reset" from.
+        const passwordHash = needsInvite
+          ? await hashPassword(require('crypto').randomBytes(8).toString('hex'))
+          : undefined;
 
         if (existing) {
           // Update existing — include invite_token so the new link always works
-          const { error: ue } = await supabase.from('company_members')
-            .update({
-              first_name: fn, last_name: ln, department: dept,
-              role: memberRole, gender: gender||null, job_title: jt, phone,
-              invite_token: inviteToken,   // ← always refresh token on re-import
-              status: 'approved',
-              updated_at: new Date(),
-            }).eq('id', existing.id);
+          const updatePayload = {
+            first_name: fn, last_name: ln, department: dept,
+            role: memberRole, gender: gender||null, job_title: jt, phone,
+            invite_token: inviteToken,   // ← always refresh token on re-import
+            status: 'approved',
+            updated_at: new Date(),
+          };
+          if (passwordHash) updatePayload.password_hash = passwordHash;
+          let { error: ue } = await supabase.from('company_members')
+            .update(updatePayload).eq('id', existing.id);
+          if (ue && /role/i.test(ue.message || '')) {
+            updatePayload.role = memberRoleFallback;
+            ({ error: ue } = await supabase.from('company_members').update(updatePayload).eq('id', existing.id));
+          }
           if (ue) throw ue;
           memberId = existing.id;
         } else {
           // Insert new — include invite_token from the start
-          const { data: inserted, error: ie } = await supabase.from('company_members').insert({
+          const insertPayload = {
             company_id: companyId, first_name: fn, last_name: ln, email,
             department: dept, role: memberRole, gender: gender||null,
             job_title: jt, phone, status: 'approved',
             invite_token: inviteToken,  // ← stored atomically with the row
-          }).select('id').single();
+            password_hash: passwordHash,
+          };
+          let { data: inserted, error: ie } = await supabase.from('company_members').insert(insertPayload).select('id').single();
+          if (ie && /role/i.test(ie.message || '')) {
+            insertPayload.role = memberRoleFallback;
+            ({ data: inserted, error: ie } = await supabase.from('company_members').insert(insertPayload).select('id').single());
+          }
           if (ie) throw ie;
           memberId = inserted?.id;
           isNew = true;
         }
       } catch (e) {
         console.error(`company_members upsert failed for ${email}:`, e.message);
+        errors.push(`${email}: account setup failed — ${e.message}`);
       }
 
-      // Send invite email — only if we successfully stored the token
-      if (memberId) {
+      // Send invite email — only if we successfully stored the token and the
+      // member doesn't already have a password (avoid re-inviting active users)
+      if (memberId && needsInvite) {
         try {
           const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email)}`;
           await sendEmail({ to: email,

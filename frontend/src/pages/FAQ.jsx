@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Icon from '../components/ui/Icon';
 
 const FAQS = [
   { cat:'Getting started', q:'Is Thankeeu free to use?', a:'Creating a card and collecting messages and contributions is completely free. You pay a one-time ₦5,000 activation fee when you\'re ready to send the card to the recipient. No subscriptions for personal use.' },
@@ -42,7 +43,7 @@ export default function FAQ() {
       <Navbar />
 
       <section className="py-12 md:py-16 px-4 text-center" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
-        <div className="pill mx-auto mb-4">❓ FAQ</div>
+        <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
         <h1 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(1.75rem,6vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'0.75rem' }}>
           Frequently asked questions
         </h1>
@@ -88,7 +89,7 @@ export default function FAQ() {
         <div className="max-w-lg mx-auto">
           <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'1.5rem', letterSpacing:'-0.01em', color:'#1A1035', marginBottom:'0.5rem' }}>Still have questions?</h2>
           <p className="text-warm-600 text-sm mb-6">Our team responds within 24 hours.</p>
-          <a href="mailto:support@thankeeu.com" className="btn-primary px-8 py-3.5">📧 Email support</a>
+          <a href="mailto:support@thankeeu.com" className="btn-primary px-8 py-3.5 inline-flex items-center gap-2"><Icon name="Mail" size={16}/> Email support</a>
         </div>
       </section>
       <Footer />

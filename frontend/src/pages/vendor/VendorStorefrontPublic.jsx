@@ -95,7 +95,7 @@ function ProductModal({ product, onClose, onAddToCart }) {
           <h3 className="text-xl font-bold text-warm-900 mb-1">{product.name}</h3>
           <p className="text-2xl font-extrabold text-primary-600 mb-3">{formatNGN(product.price)}</p>
           {product.description && (
-            <p className="text-warm-600 text-sm leading-relaxed mb-5">{product.description}</p>
+            <p className="text-warm-600 text-sm leading-relaxed mb-5 break-words [overflow-wrap:anywhere]">{product.description}</p>
           )}
           <button onClick={() => { onAddToCart(product); onClose(); }}
             className="w-full py-3.5 rounded-2xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition-colors">
@@ -435,21 +435,21 @@ function ProductCard({ product: p, onAddToCart, onViewDetails }) {
   const longDesc = p.description?.length > TRUNCATE;
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-purple-50 hover:shadow-md transition-shadow flex flex-col">
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-purple-50 hover:shadow-md transition-shadow flex flex-col min-w-0">
       {/* Image with carousel */}
       <div className="cursor-pointer" onClick={onViewDetails}>
         <ProductCarousel images={p.images} name={p.name} category={p.category}/>
       </div>
 
       <div className="p-3 flex flex-col flex-1">
-        <p className="font-semibold text-warm-900 text-sm leading-tight cursor-pointer hover:text-primary-600"
+        <p className="font-semibold text-warm-900 text-sm leading-tight cursor-pointer hover:text-primary-600 break-words [overflow-wrap:anywhere]"
           onClick={onViewDetails}>
           {p.name}
         </p>
 
         {p.description && (
           <div className="mt-1">
-            <p className="text-xs text-warm-400 leading-relaxed">
+            <p className="text-xs text-warm-400 leading-relaxed break-words [overflow-wrap:anywhere]">
               {showFull || !longDesc ? p.description : p.description.slice(0, TRUNCATE) + '…'}
             </p>
             {longDesc && (

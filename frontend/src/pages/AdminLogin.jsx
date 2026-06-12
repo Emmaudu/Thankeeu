@@ -2,6 +2,7 @@ import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
 import ThankeeuLogo from '../components/ThankeeuLogo';
 import { Link, useNavigate } from 'react-router-dom';
+import Icon from '../components/ui/Icon';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -23,7 +24,7 @@ const AdminLogin = () => {
         setLoading(false);
         return;
       }
-      toast.success('Welcome, Admin! 🛡️');
+      toast.success('Welcome, Admin!');
       navigate('/admin');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Invalid credentials');
@@ -36,17 +37,17 @@ const AdminLogin = () => {
       {/* Purple header bar */}
       <div className="py-4 px-6 flex items-center justify-between" style={{ background: 'linear-gradient(135deg,#7C3AED,#6D28D9)' }}>
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center text-lg">💌</div>
+          <div className="w-8 h-8 bg-white/20 rounded-xl flex items-center justify-center"><Icon name="Gift" size={16} className="text-white"/></div>
           <span className="font-display font-bold text-white text-lg">Thankeeu</span>
         </Link>
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background:'rgba(255,255,255,0.15)', color:'#fff' }}>🛡️ Admin</span>
+        <span className="text-xs font-bold px-3 py-1.5 rounded-full inline-flex items-center gap-1.5" style={{ background:'rgba(255,255,255,0.15)', color:'#fff' }}><Icon name="Shield" size={12}/> Admin</span>
       </div>
 
       <div className="flex-1 flex items-center justify-center p-4 py-10">
         <div className="w-full max-w-sm">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center text-3xl" style={{ background:'linear-gradient(135deg,#F5F0FF,#EDE5FF)', border:'2px solid #DDD6FE' }}>
-              🛡️
+            <div className="w-16 h-16 rounded-3xl mx-auto mb-4 flex items-center justify-center" style={{ background:'linear-gradient(135deg,#F5F0FF,#EDE5FF)', border:'2px solid #DDD6FE' }}>
+              <Icon name="Shield" size={28} className="text-primary-500"/>
             </div>
             <h1 className="font-display text-2xl font-bold text-warm-900 mb-2">Admin Access</h1>
             <p className="text-warm-500 text-sm">Authorised personnel only</p>
@@ -73,7 +74,7 @@ const AdminLogin = () => {
               <button type="submit" disabled={loading} className="btn-primary w-full py-3.5">
                 {loading
                   ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Verifying…</span>
-                  : '🛡️ Access admin panel'}
+                  : <span className="inline-flex items-center justify-center gap-2"><Icon name="Shield" size={16}/> Access admin panel</span>}
               </button>
             </form>
           </div>

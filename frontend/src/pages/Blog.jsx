@@ -2,19 +2,20 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar  from '../components/Navbar';
 import Footer  from '../components/Footer';
+import Icon from '../components/ui/Icon';
 import { blogAPI } from '../utils/api';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { format } from 'date-fns';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const CATEGORY_ICONS = {
-  'All':              '📚',
-  'Workplace Culture':'🏢',
-  'HR & Technology':  '🔗',
-  'Gifting':          '🎁',
-  'Product Updates':  '🚀',
-  'Occasions':        '🎂',
-  'General':          '💬',
+  'All':              'Book',
+  'Workplace Culture':'Building',
+  'HR & Technology':  'Link',
+  'Gifting':          'Gift',
+  'Product Updates':  'Rocket',
+  'Occasions':        'Cake',
+  'General':          'Message',
 };
 
 const FALLBACK_COVERS = [
@@ -38,8 +39,8 @@ const PostCard = ({ post, featured = false }) => {
         </div>
         <div className="p-5 md:p-8 md:w-1/2 flex flex-col justify-center">
           <div className="flex items-center gap-2 mb-3">
-            <span className="bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1 rounded-full">
-              {CATEGORY_ICONS[post.category] || '📝'} {post.category}
+            <span className="bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1 rounded-full inline-flex items-center gap-1.5">
+              <Icon name={CATEGORY_ICONS[post.category] || 'File'} size={12}/> {post.category}
             </span>
             <span className="text-xs text-warm-400">Featured</span>
           </div>
@@ -76,11 +77,11 @@ const PostCard = ({ post, featured = false }) => {
       </div>
       <div className="p-4 md:p-5">
         <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs bg-purple-50 text-warm-600 px-2.5 py-0.5 rounded-full font-medium">
-            {CATEGORY_ICONS[post.category] || '📝'} {post.category}
+          <span className="text-xs bg-purple-50 text-warm-600 px-2.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1.5">
+            <Icon name={CATEGORY_ICONS[post.category] || 'File'} size={12}/> {post.category}
           </span>
           {post.is_featured && (
-            <span className="text-xs bg-primary-50 text-primary-500 px-2 py-0.5 rounded-full">★ Featured</span>
+            <span className="text-xs bg-primary-50 text-primary-500 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><Icon name="Star" size={10}/> Featured</span>
           )}
         </div>
         <h3 className="font-display text-base md:text-lg font-semibold text-warm-900 group-hover:text-primary-600 transition-colors mb-2 leading-snug line-clamp-2">
@@ -112,7 +113,7 @@ const Blog = () => {
     setSubbing(true);
     try {
       const res = await blogAPI.subscribe({ email: subEmail.trim() });
-      import('react-hot-toast').then(m => m.default.success(res.data.message || 'Check your inbox to confirm! 📬', { duration: 6000 }));
+      import('react-hot-toast').then(m => m.default.success(res.data.message || 'Check your inbox to confirm!', { duration: 6000 }));
       setSubEmail('');
     } catch (err) {
       import('react-hot-toast').then(m => m.default.error(err.response?.data?.error || 'Could not subscribe. Please try again.'));
@@ -183,7 +184,7 @@ const Blog = () => {
         <div className="section-container">
           <div className="max-w-2xl">
             <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-              📚 Thankeeu Blog
+              <Icon name="Book" size={13}/> Thankeeu Blog
             </div>
             <h1 className="font-display text-3xl sm:text-4xl md:text-3xl sm:text-5xl font-semibold text-warm-900 mb-3 leading-tight">
               Insights for modern<br className="hidden sm:block" /> modern workplaces
@@ -206,7 +207,7 @@ const Blog = () => {
                     ? 'bg-primary-400 text-white shadow-sm'
                     : 'text-warm-600 hover:bg-warm-100'
                 }`}>
-                <span>{CATEGORY_ICONS[cat.name] || '📝'}</span>
+                <Icon name={CATEGORY_ICONS[cat.name] || "File"} size={13}/>
                 <span>{cat.name}</span>
                 <span className={`text-xs px-1.5 py-0.5 rounded-full ${category === cat.name ? 'bg-white/20 text-white' : 'bg-purple-50 text-warm-500'}`}>
                   {cat.count}
@@ -229,7 +230,7 @@ const Blog = () => {
           </div>
         ) : posts.length === 0 ? (
           <div className="text-center py-20">
-            <div className="text-6xl mb-4">📝</div>
+            <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4"><Icon name="File" size={28} className="text-purple-300"/></div>
             <h3 className="text-lg font-semibold text-warm-700 mb-2">No posts yet</h3>
             <p className="text-warm-500 text-sm">Check back soon — we are working on great content!</p>
           </div>
@@ -267,7 +268,7 @@ const Blog = () => {
 
         {/* Newsletter CTA */}
         <div className="mt-12 md:mt-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-3xl md:rounded-3xl p-6 md:p-10 text-center">
-          <p className="text-2xl mb-2">💌</p>
+          <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-2"><Icon name="Mail" size={22} className="text-white"/></div>
           <h3 className="font-display text-xl md:text-2xl font-semibold text-white mb-2">
             Get new articles in your inbox
           </h3>

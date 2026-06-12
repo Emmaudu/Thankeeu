@@ -6,6 +6,7 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { paymentsAPI, subscriptionAPI, creditsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { CURRENCIES, formatCurrency, getCurrency } from '../utils/currency';
 
@@ -14,7 +15,7 @@ const INDIVIDUAL_PLANS = [
   {
     id: 'single', name: 'Classic', priceNGN: 5000, credits: 1,
     label: '1 card credit',
-    btn: 'Buy 1 credit ✨', popular: false,
+    btn: 'Buy 1 credit', btnIcon: 'Sparkles', popular: false,
     btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
     features: [
       { text: '1 card credit', ok: true },
@@ -30,7 +31,7 @@ const INDIVIDUAL_PLANS = [
   {
     id: 'standard', name: 'Standard', priceNGN: 9000, credits: 2,
     label: '2 card credits — best per-card price',
-    btn: 'Buy 2 credits 🌟', popular: true,
+    btn: 'Buy 2 credits', btnIcon: 'Star', popular: true,
     btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
     features: [
       { text: '2 card credits (use any time)', ok: true },
@@ -46,7 +47,7 @@ const INDIVIDUAL_PLANS = [
   {
     id: 'pack5', name: 'Pack of 5', priceNGN: 19000, credits: 5,
     label: '5 card credits — lowest per-card price',
-    btn: 'Buy 5 credits 🎁', popular: false,
+    btn: 'Buy 5 credits', btnIcon: 'Gift', popular: false,
     btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
     features: [
       { text: '5 card credits (use any time)', ok: true },
@@ -135,7 +136,7 @@ const Pricing = () => {
       {/* Hero */}
       <section className="py-12 md:py-16 px-4 text-center" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
-          <div className="pill mx-auto mb-4">🌍 For everyone, everywhere</div>
+          <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Globe" size={13}/> For everyone, everywhere</div>
           <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.75rem,6vw,3rem)' }}>
             Simple, fair pricing
           </h1>
@@ -166,14 +167,14 @@ const Pricing = () => {
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex">
             {[
-              { id: 'individual', label: '💜 Individual', sub: 'Personal cards & gifts' },
-              { id: 'company',    label: '🏢 For Teams',  sub: 'Birthday automation'    },
+              { id: 'individual', label: 'Individual', icon: 'Heart', sub: 'Personal cards & gifts' },
+              { id: 'company',    label: 'For Teams', icon: 'Building',  sub: 'Birthday automation'    },
             ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={`flex-1 py-3 sm:py-4 text-center border-b-2 transition-all min-h-[56px] ${
                   tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-500'
                 }`}>
-                <p className="font-bold text-sm">{t.label}</p>
+                <p className="font-bold text-sm inline-flex items-center gap-1.5"><Icon name={t.icon} size={14}/> {t.label}</p>
                 <p className="text-xs text-warm-400 hidden sm:block mt-0.5">{t.sub}</p>
               </button>
             ))}
@@ -203,8 +204,8 @@ const Pricing = () => {
                   plan.popular ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-purple-100'
                 }`}>
                   {plan.popular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap">
-                      ⭐ Most popular
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap inline-flex items-center gap-1.5">
+                      <Icon name="Star" size={12}/> Most popular
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
@@ -232,8 +233,8 @@ const Pricing = () => {
                   <ul className="space-y-2.5 mb-7 flex-1">
                     {plan.features.map((f, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
-                        <span className={`flex-shrink-0 font-bold mt-0.5 ${f.ok ? 'text-green-500' : 'text-warm-300'}`}>
-                          {f.ok ? '✓' : '✕'}
+                        <span className={`flex-shrink-0 mt-0.5 ${f.ok ? 'text-green-500' : 'text-warm-300'}`}>
+                          <Icon name={f.ok ? 'Check' : 'X'} size={15}/>
                         </span>
                         <span className={f.ok ? 'text-warm-700' : 'text-warm-400 line-through'}>{f.text}</span>
                       </li>
@@ -246,7 +247,7 @@ const Pricing = () => {
                           <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           Processing…
                         </span>
-                      : plan.btn}
+                      : <span className="inline-flex items-center justify-center gap-2"><Icon name={plan.btnIcon} size={15}/> {plan.btn}</span>}
                   </button>
                 </div>
               ))}
@@ -254,16 +255,16 @@ const Pricing = () => {
 
             {/* Gift pot fees */}
             <div className="bg-green-50 border border-green-200 rounded-3xl p-5 sm:p-8 max-w-2xl mx-auto">
-              <h3 className="text-xl font-bold text-warm-900 mb-1 text-center">🐷 Gift pot fees</h3>
+              <h3 className="text-xl font-bold text-warm-900 mb-1 text-center flex items-center justify-center gap-2"><Icon name="Wallet" size={18} className="text-green-600"/> Gift pot fees</h3>
               <p className="text-warm-500 text-center text-sm mb-6">A small platform cut keeps Thankeeu running</p>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { icon: '🎁', title: 'Gift vouchers',   sub: '3–5% cut'         },
-                  { icon: '💳', title: 'Cash withdrawal',  sub: '3.5% platform fee' },
-                  { icon: '🌍', title: 'Global payouts',   sub: 'FLW live FX rate'  },
+                  { icon: 'Gift', title: 'Gift vouchers',   sub: '3–5% cut'         },
+                  { icon: 'Card', title: 'Cash withdrawal',  sub: '3.5% platform fee' },
+                  { icon: 'Globe', title: 'Global payouts',   sub: 'FLW live FX rate'  },
                 ].map(r => (
                   <div key={r.title} className="text-center">
-                    <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-2xl mx-auto mb-2 shadow-sm">{r.icon}</div>
+                    <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-sm"><Icon name={r.icon} size={20} className="text-green-600"/></div>
                     <p className="font-bold text-warm-900 text-xs">{r.title}</p>
                     <p className="text-green-600 text-xs font-bold mt-1">{r.sub}</p>
                   </div>
@@ -279,7 +280,7 @@ const Pricing = () => {
         <section className="py-10 md:py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
-              <div className="pill mx-auto mb-3">🏢 Thankeeu for Teams</div>
+              <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> Thankeeu for Teams</div>
               <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.5rem,5vw,2rem)' }}>
                 Automate team celebrations
               </h2>
@@ -297,18 +298,18 @@ const Pricing = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-8">
               <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
-                <p className="font-bold text-green-800 text-sm mb-2">✅ Always free</p>
+                <p className="font-bold text-green-800 text-sm mb-2 flex items-center gap-2"><Icon name="Check" size={15}/> Always free</p>
                 <ul className="space-y-1.5">
                   {['Company account','Team template download','Unlimited employee upload','View birthdays dashboard'].map(f => (
-                    <li key={f} className="text-xs text-green-700 flex gap-1.5"><span>✓</span>{f}</li>
+                    <li key={f} className="text-xs text-green-700 flex gap-1.5"><Icon name="Check" size={13} className="flex-shrink-0 mt-0.5"/>{f}</li>
                   ))}
                 </ul>
               </div>
               <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4">
-                <p className="font-bold text-primary-800 text-sm mb-2">💳 Requires subscription</p>
+                <p className="font-bold text-primary-800 text-sm mb-2 flex items-center gap-2"><Icon name="Card" size={15}/> Requires subscription</p>
                 <ul className="space-y-1.5">
                   {['Auto birthday dept emails','Auto card creation & sending','Gift pot collection','HR analytics & tracking'].map(f => (
-                    <li key={f} className="text-xs text-primary-700 flex gap-1.5"><span>→</span>{f}</li>
+                    <li key={f} className="text-xs text-primary-700 flex gap-1.5"><Icon name="ArrowRight" size={13} className="flex-shrink-0 mt-0.5"/>{f}</li>
                   ))}
                 </ul>
               </div>
@@ -320,8 +321,8 @@ const Pricing = () => {
                   plan.popular ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-purple-100'
                 }`}>
                   {plan.popular && (
-                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap">
-                      ⭐ Best value
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap inline-flex items-center gap-1.5">
+                      <Icon name="Star" size={12}/> Best value
                     </div>
                   )}
                   <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
@@ -333,7 +334,7 @@ const Pricing = () => {
                   <ul className="space-y-2 mb-7">
                     {plan.features.map((f, i) => (
                       <li key={i} className="flex items-start gap-2 text-sm">
-                        <span className="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span>
+                        <span className="text-green-500 mt-0.5 flex-shrink-0"><Icon name="Check" size={15}/></span>
                         <span className="text-warm-700">{f}</span>
                       </li>
                     ))}
@@ -350,8 +351,8 @@ const Pricing = () => {
 
             {!company && (
               <div className="text-center">
-                <Link to="/company/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base inline-flex">
-                  🏢 Create free company account
+                <Link to="/company/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base inline-flex items-center gap-2">
+                  <Icon name="Building" size={16}/> Create free company account
                 </Link>
                 <p className="text-xs text-warm-400 mt-3">
                   Already have one? <Link to="/company/login" className="text-primary-500 font-bold">Sign in →</Link>
@@ -392,11 +393,11 @@ const Pricing = () => {
           <p className="text-warm-500 mb-2">Works for Nigeria, UK, US, Canada, Ghana, Kenya, South Africa and beyond.</p>
           <p className="text-warm-400 text-sm mb-7">Pay in your local currency. Celebrate anyone, anywhere.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto">
-              Create personal card 💜
+            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
+              <Icon name="Heart" size={16}/> Create personal card
             </Link>
-            <Link to="/company/signup" className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto">
-              Set up for my team 🏢
+            <Link to="/company/signup" className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
+              <Icon name="Building" size={16}/> Set up for my team
             </Link>
           </div>
         </div>

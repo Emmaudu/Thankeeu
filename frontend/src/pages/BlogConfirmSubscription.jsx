@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import Icon from '../components/ui/Icon';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { blogAPI } from '../utils/api';
@@ -27,13 +28,13 @@ export default function BlogConfirmSubscription() {
             <p className="text-warm-500">Confirming subscription...</p></>
           )}
           {status === 'confirmed' && (
-            <><div className="text-6xl mb-4">🎉</div>
+            <><div className="w-16 h-16 rounded-2xl bg-primary-50 flex items-center justify-center mx-auto mb-4"><Icon name="Party" size={28} className="text-primary-500"/></div>
             <h1 className="font-display text-2xl font-bold text-warm-900 mb-3">You're subscribed!</h1>
             <p className="text-warm-500 mb-6">You'll receive new Thankeeu blog posts, HR tips, and product updates in your inbox.</p>
             <a href="/blog" className="btn-primary px-6 py-3 text-sm">Browse the blog →</a></>
           )}
           {status === 'invalid' && (
-            <><div className="text-5xl mb-4">⚠️</div>
+            <><div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-4"><Icon name="AlertCircle" size={24} className="text-amber-500"/></div>
             <h1 className="font-display text-2xl font-bold text-warm-900 mb-3">Invalid link</h1>
             <p className="text-warm-500">This confirmation link has expired or is invalid. Please try subscribing again.</p></>
           )}

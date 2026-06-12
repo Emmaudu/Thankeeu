@@ -2,6 +2,7 @@ import { useSEO } from '../hooks/useSEO';
 import { useState } from 'react';
 import ThankeeuLogo from '../components/ThankeeuLogo';
 import Navbar from '../components/Navbar';
+import Icon from '../components/ui/Icon';
 import { Link } from 'react-router-dom';
 import { authAPI } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -35,7 +36,7 @@ const ForgotPassword = () => {
         <div className="bg-white rounded-3xl shadow-xl p-8 border border-purple-100">
           {sent ? (
             <div className="text-center py-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">📧</div>
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><Icon name="Mail" size={28} className="text-green-600"/></div>
               <h3 className="text-xl font-semibold text-warm-900 mb-2">Check your inbox</h3>
               <p className="text-warm-500 text-sm mb-6">If <strong>{email}</strong> has an account, we've sent a reset link. Check your spam folder if you don't see it.</p>
               <Link to="/login" className="btn-primary w-full inline-block text-center">Back to login</Link>

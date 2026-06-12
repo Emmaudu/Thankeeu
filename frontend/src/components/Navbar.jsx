@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
+import Icon from './ui/Icon';
 
 const Navbar = ({ onBookDemo }) => {
   const { user, logout }              = useAuth();
@@ -55,7 +56,7 @@ const Navbar = ({ onBookDemo }) => {
             <Link to="/" className="flex items-center gap-2.5 flex-shrink-0 group">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center relative overflow-hidden"
                 style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)' }}>
-                <span className="text-xl">💌</span>
+                <Icon name="Gift" size={18} className="text-white" />
               </div>
               <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:"1.25rem", color:"#1A1035", letterSpacing:"-0.01em" }}>
                 thank<span style={{ color:"#7C3AED" }}>eeu</span>
@@ -65,9 +66,9 @@ const Navbar = ({ onBookDemo }) => {
             {/* Desktop nav links */}
             <div className="hidden md:flex items-center gap-0.5">
               {[
-                { to: '/pricing',       label: 'Pricing',       icon: '✨' },
-                { to: '/how-it-works', label: 'How it works', icon: '💡' },
-                { to: '/blog',         label: 'Blog',          icon: '📝' },
+                { to: '/pricing',       label: 'Pricing',       icon: 'Sparkles' },
+                { to: '/how-it-works', label: 'How it works', icon: 'Lightbulb' },
+                { to: '/blog',         label: 'Blog',          icon: 'File' },
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to}
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
@@ -75,7 +76,7 @@ const Navbar = ({ onBookDemo }) => {
                       ? 'bg-primary-50 text-primary-600'
                       : 'text-warm-700 hover:text-primary-600 hover:bg-primary-50'
                   }`}>
-                  <span>{icon}</span>{label}
+                  <Icon name={icon} size={15} />{label}
                 </Link>
               ))}
 
@@ -86,8 +87,8 @@ const Navbar = ({ onBookDemo }) => {
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
                     teamsOpen ? 'bg-primary-50 text-primary-600' : 'text-warm-700 hover:text-primary-600 hover:bg-primary-50'
                   }`}>
-                  🏢 Teams
-                  <span className="text-xs opacity-60" style={{ marginLeft: 2 }}>{teamsOpen ? '▲' : '▼'}</span>
+                  <Icon name="Building" size={15} /> Teams
+                  <Icon name={teamsOpen ? 'ChevronUp' : 'ChevronDown'} size={13} className="opacity-60" style={{ marginLeft: 2 }} />
                 </button>
                 {teamsOpen && (
                   <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-purple-100 py-2 z-[60] animate-fade-in">
@@ -98,7 +99,7 @@ const Navbar = ({ onBookDemo }) => {
                     <p className="px-4 pt-2 pb-1 text-xs font-semibold text-warm-400 uppercase tracking-wider">Team Members</p>
                     <Link to="/member/login" onClick={() => setTeamsOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
-                      <span className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-base">👤</span>
+                      <span className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center"><Icon name="User" size={16} className="text-blue-500"/></span>
                       <div>
                         <p className="font-semibold text-sm leading-tight">Team Member Login</p>
                         <p className="text-xs text-warm-400">Access your team workspace</p>
@@ -106,7 +107,7 @@ const Navbar = ({ onBookDemo }) => {
                     </Link>
                     <Link to="/member/signup" onClick={() => setTeamsOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
-                      <span className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center text-base">✍️</span>
+                      <span className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center"><Icon name="Edit" size={16} className="text-green-500"/></span>
                       <div>
                         <p className="font-semibold text-sm leading-tight">Join Your Company</p>
                         <p className="text-xs text-warm-400">Sign up with your company code</p>
@@ -118,7 +119,7 @@ const Navbar = ({ onBookDemo }) => {
                     <p className="px-4 pt-2 pb-1 text-xs font-semibold text-warm-400 uppercase tracking-wider">HR / Company</p>
                     <Link to="/company/login" onClick={() => setTeamsOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
-                      <span className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center text-base">🏢</span>
+                      <span className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center"><Icon name="Building" size={16} className="text-primary-500"/></span>
                       <div>
                         <p className="font-semibold text-sm leading-tight">Company (HR) Login</p>
                         <p className="text-xs text-warm-400">Manage your team account</p>
@@ -126,7 +127,7 @@ const Navbar = ({ onBookDemo }) => {
                     </Link>
                     <Link to="/company/signup" onClick={() => setTeamsOpen(false)}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
-                      <span className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-base">🚀</span>
+                      <span className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center"><Icon name="Rocket" size={16} className="text-amber-500"/></span>
                       <div>
                         <p className="font-semibold text-sm leading-tight">Create Company Account</p>
                         <p className="text-xs text-warm-400">Set up Thankeeu for Teams</p>
@@ -141,11 +142,11 @@ const Navbar = ({ onBookDemo }) => {
             <div className="hidden md:flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
-                  <Link to="/dashboard" className="btn-secondary text-xs py-2 px-4">📊 Dashboard</Link>
+                  <Link to="/dashboard" className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5"><Icon name="Dashboard" size={14}/> Dashboard</Link>
                   <div className="relative">
                     <button onClick={() => setDropdownOpen(!dropdownOpen)}
                       className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
-                      {user.full_name?.slice(0,1).toUpperCase() || '👤'}
+                      {user.full_name?.slice(0,1).toUpperCase() || <Icon name="User" size={15}/>}
                     </button>
                     {dropdownOpen && (
                       <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-lg border border-purple-100 py-2 z-[60] animate-fade-in">
@@ -153,20 +154,20 @@ const Navbar = ({ onBookDemo }) => {
                           <p className="text-xs font-semibold text-warm-900 truncate">{user.full_name}</p>
                           <p className="text-xs text-warm-500 truncate">{user.email}</p>
                         </div>
-                        <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">🎂 Dashboard</Link>
-                        <Link to="/create-card" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">✨ New card</Link>
-                        <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors">👋 Sign out</button>
+                        <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Dashboard" size={15}/> Dashboard</Link>
+                        <Link to="/create-card" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Plus" size={15}/> New card</Link>
+                        <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors"><Icon name="LogOut" size={15}/> Sign out</button>
                       </div>
                     )}
                   </div>
                 </div>
               ) : member ? (
                 <div className="flex items-center gap-2">
-                  <Link to="/member/dashboard" className="btn-secondary text-xs py-2 px-4">🏠 My Dashboard</Link>
+                  <Link to="/member/dashboard" className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5"><Icon name="Home" size={14}/> My Dashboard</Link>
                   <div className="relative">
                     <button onClick={() => setDropdownOpen(!dropdownOpen)}
                       className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
-                      {member.first_name?.slice(0,1).toUpperCase() || '👤'}
+                      {member.first_name?.slice(0,1).toUpperCase() || <Icon name="User" size={15}/>}
                     </button>
                     {dropdownOpen && (
                       <div className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-lg border border-purple-100 py-2 z-[60] animate-fade-in">
@@ -174,32 +175,32 @@ const Navbar = ({ onBookDemo }) => {
                           <p className="text-xs font-semibold text-warm-900 truncate">{member.first_name} {member.last_name}</p>
                           <p className="text-xs text-warm-400 truncate">{member.company?.name} · {member.department}</p>
                         </div>
-                        <Link to="/member/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">🏠 Dashboard</Link>
-                        <Link to="/member/occasions" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">🎉 Occasions</Link>
-                        <Link to="/member/settings" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">⚙️ Settings</Link>
-                        <button onClick={handleMemberLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors">👋 Sign out</button>
+                        <Link to="/member/dashboard" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Home" size={15}/> Dashboard</Link>
+                        <Link to="/member/occasions" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Party" size={15}/> Occasions</Link>
+                        <Link to="/member/settings" className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Settings" size={15}/> Settings</Link>
+                        <button onClick={handleMemberLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors"><Icon name="LogOut" size={15}/> Sign out</button>
                       </div>
                     )}
                   </div>
                 </div>
               ) : company ? (
                 <div className="flex items-center gap-2">
-                  <Link to="/company/dashboard" className="btn-secondary text-xs py-2 px-4">🏢 HR Dashboard</Link>
+                  <Link to="/company/dashboard" className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5"><Icon name="Building" size={14}/> HR Dashboard</Link>
                   <button onClick={handleCompanyLogout} className="text-xs text-warm-500 hover:text-rose-500 px-3 py-2 transition-colors font-medium">Sign out</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Link to="/login" className="text-sm font-semibold text-warm-700 hover:text-primary-600 px-3 py-2 transition-colors">Sign in</Link>
-                  <Link to="/signup" className="btn-primary text-xs py-2.5 px-5">🎉 Start free</Link>
+                  <Link to="/signup" className="btn-primary text-xs py-2.5 px-5 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={14}/> Start free</Link>
                 </div>
               )}
             </div>
 
             {/* Mobile hamburger */}
             <button onClick={() => setOpen(!open)}
-              className="md:hidden flex items-center justify-center rounded-xl border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors font-bold"
-              style={{ width: 48, height: 48, fontSize: '1.5rem' }}>
-              {open ? '✕' : '☰'}
+              className="md:hidden flex items-center justify-center rounded-xl border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors"
+              style={{ width: 48, height: 48 }}>
+              <Icon name={open ? 'X' : 'Menu'} size={22} />
             </button>
           </div>
         </div>
@@ -227,34 +228,34 @@ const Navbar = ({ onBookDemo }) => {
 
             <div className="p-4 space-y-1">
               {[
-                { to: '/pricing',       label: 'Pricing',       icon: '✨' },
-                { to: '/how-it-works', label: 'How it works', icon: '💡' },
-                { to: '/blog',         label: 'Blog',          icon: '📝' },
+                { to: '/pricing',       label: 'Pricing',       icon: 'Sparkles' },
+                { to: '/how-it-works', label: 'How it works', icon: 'Lightbulb' },
+                { to: '/blog',         label: 'Blog',          icon: 'File' },
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to}
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-primary-50 hover:text-primary-600 transition-all">
-                  <span className="text-base">{icon}</span>{label}
+                  <Icon name={icon} size={17} />{label}
                 </Link>
               ))}
 
               {/* Teams section in mobile */}
               <div className="pt-2 pb-1">
-                <p className="px-4 py-1 text-xs font-bold text-warm-400 uppercase tracking-wider">🏢 Teams</p>
+                <p className="px-4 py-1 text-xs font-bold text-warm-400 uppercase tracking-wider flex items-center gap-1.5"><Icon name="Building" size={12}/> Teams</p>
               </div>
               <Link to="/member/login" className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-blue-50 hover:text-blue-700 transition-all">
-                <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-sm">👤</span>
+                <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><Icon name="User" size={14} className="text-blue-500"/></span>
                 Team Member Login
               </Link>
               <Link to="/member/signup" className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-green-50 hover:text-green-700 transition-all">
-                <span className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center text-sm">✍️</span>
+                <span className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center"><Icon name="Edit" size={14} className="text-green-500"/></span>
                 Join Your Company
               </Link>
               <Link to="/company/login" className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-purple-50 hover:text-primary-600 transition-all">
-                <span className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center text-sm">🏢</span>
+                <span className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center"><Icon name="Building" size={14} className="text-primary-500"/></span>
                 Company (HR) Login
               </Link>
               <Link to="/company/signup" className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-amber-50 hover:text-amber-700 transition-all">
-                <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-sm">🚀</span>
+                <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><Icon name="Rocket" size={14} className="text-amber-500"/></span>
                 Create Company Account
               </Link>
             </div>
@@ -262,24 +263,24 @@ const Navbar = ({ onBookDemo }) => {
             <div className="p-4 pt-0 space-y-2">
               {user ? (
                 <>
-                  <Link to="/dashboard" className="btn-primary w-full text-sm">📊 Dashboard</Link>
-                  <Link to="/create-card" className="btn-secondary w-full text-sm text-center">✨ Create card</Link>
-                  <button onClick={handleLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5 hover:bg-rose-50 rounded-xl transition-colors">👋 Sign out</button>
+                  <Link to="/dashboard" className="btn-primary w-full text-sm inline-flex items-center justify-center gap-1.5"><Icon name="Dashboard" size={15}/> Dashboard</Link>
+                  <Link to="/create-card" className="btn-secondary w-full text-sm text-center inline-flex items-center justify-center gap-1.5"><Icon name="Plus" size={15}/> Create card</Link>
+                  <button onClick={handleLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5 hover:bg-rose-50 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5"><Icon name="LogOut" size={15}/> Sign out</button>
                 </>
               ) : member ? (
                 <>
-                  <Link to="/member/dashboard" className="btn-primary w-full text-sm">🏠 My Dashboard</Link>
-                  <Link to="/member/occasions" className="btn-secondary w-full text-sm text-center">🎉 Occasions</Link>
-                  <button onClick={handleMemberLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5 hover:bg-rose-50 rounded-xl transition-colors">👋 Sign out</button>
+                  <Link to="/member/dashboard" className="btn-primary w-full text-sm inline-flex items-center justify-center gap-1.5"><Icon name="Home" size={15}/> My Dashboard</Link>
+                  <Link to="/member/occasions" className="btn-secondary w-full text-sm text-center inline-flex items-center justify-center gap-1.5"><Icon name="Party" size={15}/> Occasions</Link>
+                  <button onClick={handleMemberLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5 hover:bg-rose-50 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5"><Icon name="LogOut" size={15}/> Sign out</button>
                 </>
               ) : company ? (
                 <>
-                  <Link to="/company/dashboard" className="btn-primary w-full text-sm">🏢 HR Dashboard</Link>
+                  <Link to="/company/dashboard" className="btn-primary w-full text-sm inline-flex items-center justify-center gap-1.5"><Icon name="Building" size={15}/> HR Dashboard</Link>
                   <button onClick={handleCompanyLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5">Sign out</button>
                 </>
               ) : (
                 <>
-                  <Link to="/signup" className="btn-primary w-full text-sm">🎉 Start free — no credit card</Link>
+                  <Link to="/signup" className="btn-primary w-full text-sm inline-flex items-center justify-center gap-1.5"><Icon name="Sparkles" size={15}/> Start free — no credit card</Link>
                   <Link to="/login" className="btn-secondary w-full text-sm text-center">Sign in</Link>
                 </>
               )}

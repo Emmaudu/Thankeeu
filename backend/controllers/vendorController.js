@@ -518,6 +518,17 @@ const adminVerifyActivate = async (req, res) => {
   }
 };
 
+// POST /api/vendor/products/upload-image — returns a hosted URL for product image carousel
+const uploadProductImage = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+    const url = req.file.path?.startsWith('http')
+      ? req.file.path
+      : `${FRONTEND_URL}/uploads/${require('path').basename(req.file.path)}`;
+    res.json({ url });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
 module.exports = {
 
   listPublicVendors, vendorSignup, vendorLogin, getMyStore, updateStore,

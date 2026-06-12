@@ -78,31 +78,76 @@ const addMessage = async (req, res) => {
       }),
     };
 
-    // Try with font_style, fall back without if column doesn't exist
+    // Helper: does this error mean a column doesn't exist? (migration not yet run)
+    const isMissingColumn = (e) => !!e && (
+      e.code === '42703' ||
+      (e.message && /column .* does not exist/i.test(e.message))
+    );
+
+    // Separate the "extra" gift columns so we can drop them gracefully if the
+    // migration adding them to `messages` hasn't been run on this database yet.
+    const { gift_type: g_giftType, product_vendor_id: g_vendorId, product_vendor_name: g_vendorName,
+            product_id: g_productId, product_name: g_productName, product_price: g_productPrice,
+            media_gallery: m_gallery, font_style: f_style, ...coreData } = msgData;
+
+    const attempts = [
+      { ...coreData, ...(m_gallery && { media_gallery: m_gallery }), font_style: font_style || 'handwritten',
+        ...(g_giftType && { gift_type: g_giftType, product_vendor_id: g_vendorId, product_vendor_name: g_vendorName,
+                              product_id: g_productId, product_name: g_productName, product_price: g_productPrice }) },
+      { ...coreData, ...(m_gallery && { media_gallery: m_gallery }),
+        ...(g_giftType && { gift_type: g_giftType, product_vendor_id: g_vendorId, product_vendor_name: g_vendorName,
+                              product_id: g_productId, product_name: g_productName, product_price: g_productPrice }) },
+      { ...coreData, ...(m_gallery && { media_gallery: m_gallery }), font_style: font_style || 'handwritten' },
+      { ...coreData, ...(m_gallery && { media_gallery: m_gallery }) },
+      coreData,
+    ];
+
     let message, error;
-    ({ data: message, error } = await supabase
-      .from('messages')
-      .insert({ ...msgData, font_style: font_style || 'handwritten' })
-      .select()
-      .single());
-
-    if (error && error.message && error.message.includes('font_style')) {
-      ({ data: message, error } = await supabase
-        .from('messages')
-        .insert(msgData)
-        .select()
-        .single());
+    for (const attempt of attempts) {
+      ({ data: message, error } = await supabase.from('messages').insert(attempt).select().single());
+      if (!error || !isMissingColumn(error)) break;
     }
-
     if (error) throw error;
 
-    // If product gift, fetch vendor slug and update message
-    if (gift_type === 'product' && product_vendor_id) {
-      const { data: vSlug } = await supabase.from('vendors').select('slug').eq('id', product_vendor_id).maybeSingle();
-      if (vSlug?.slug) {
-        await supabase.from('messages').update({ product_vendor_slug: vSlug.slug }).eq('id', message.id);
-        message = { ...message, product_vendor_slug: vSlug.slug };
-      }
+    // If product gift, fetch vendor slug and update message (best-effort —
+    // ignore failure if product_vendor_slug column doesn't exist yet)
+    if (g_giftType === 'product' && g_vendorId) {
+      try {
+        const { data: vSlug } = await supabase.from('vendors').select('slug').eq('id', g_vendorId).maybeSingle();
+        if (vSlug?.slug) {
+          const { error: updErr } = await supabase.from('messages').update({ product_vendor_slug: vSlug.slug }).eq('id', message.id);
+          if (!updErr) message = { ...message, product_vendor_slug: vSlug.slug };
+        }
+      } catch (_) { /* product_vendor_slug column may not exist yet — non-fatal */ }
+    }
+
+    // Server-side guest visitor tracking (covers all sign flows: money gift,
+    // no gift, and product gift — frontend tracking is a secondary backup)
+    if (String(req.body.is_guest) === 'true' && author_email) {
+      try {
+        const cleanEmail = author_email.toLowerCase().trim();
+        const { data: alreadyUser } = await supabase.from('users').select('id').eq('email', cleanEmail).maybeSingle();
+        if (!alreadyUser) {
+          const { data: cardInfo } = await supabase.from('cards')
+            .select('id, occasion, creator_id, users:creator_id(full_name)')
+            .eq('slug', req.params.card_slug).maybeSingle();
+          const { data: existingVisitor } = await supabase.from('visitors')
+            .select('id').eq('email', cleanEmail).maybeSingle();
+          if (existingVisitor) {
+            await supabase.from('visitors').update({ full_name: author_name || undefined }).eq('id', existingVisitor.id);
+          } else {
+            await supabase.from('visitors').insert({
+              email: cleanEmail,
+              full_name: author_name?.trim() || null,
+              card_id: cardInfo?.id || null,
+              card_slug: req.params.card_slug,
+              occasion: cardInfo?.occasion || null,
+              creator_name: cardInfo?.users?.full_name || null,
+              nudge_count: 0,
+            });
+          }
+        }
+      } catch (ve) { console.warn('Visitor track (visitors table):', ve.message); }
     }
 
     // Track guest visitors for re-engagement emails

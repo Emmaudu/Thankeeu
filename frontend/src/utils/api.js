@@ -414,6 +414,11 @@ export const vendorAPI = {
   getOrders:   ()      => vendorAxios.get('/vendor/orders'),
   updateOrder: (id, d) => vendorAxios.put(`/vendor/orders/${id}`, d),
   getAnalytics:()      => vendorAxios.get('/vendor/analytics'),
+  uploadProductImage: (file) => {
+    const fd = new FormData();
+    fd.append('image', file);
+    return vendorAxios.post('/vendor/products/upload-image', fd, { headers: { 'Content-Type': undefined } });
+  },
   getPublicStore: (slug) => publicAxios.get(`/vendor/store/${slug}`),
   placeOrder: (slug,d) => publicAxios.post(`/vendor/store/${slug}/order`, d),
 };

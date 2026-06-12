@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { vendorAuth } = require('../middleware/vendorAuth');
+const { upload } = require('../utils/cloudinary');
 const v = require('../controllers/vendorController');
 const { adminAuth } = require('../middleware/auth');
 
@@ -15,6 +16,7 @@ router.post('/store/:slug/order', v.placeOrder);
 router.get('/me',              vendorAuth, v.getMyStore);
 router.put('/me',              vendorAuth, v.updateStore);
 router.get('/products',        vendorAuth, v.getProducts);
+router.post('/products/upload-image', vendorAuth, upload.single('image'), v.uploadProductImage);
 router.post('/products',       vendorAuth, v.createProduct);
 router.put('/products/:id',    vendorAuth, v.updateProduct);
 router.delete('/products/:id', vendorAuth, v.deleteProduct);

@@ -841,4 +841,33 @@ Object.assign(emailTemplates, {
       ${btn('Track your order', d.storeUrl, '#7C3AED')}
     `)
   }),
+  vendorOrderNotification: (d) => ({
+    subject: `🎁 New order #${d.orderId} — deliver by ${d.deadlineLabel}`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">New order to fulfil! 🎉</h2>
+      <p style="color:#555;line-height:1.8;">Hi ${d.vendorName}, you've received a new gift order via Thankeeu${d.recipientName ? ` for <strong>${d.recipientName}</strong>'s ${d.occasionLabel || 'celebration'}` : ''}.</p>
+
+      <div style="background:#FEF3F2;border:1px solid #FECDD3;border-radius:12px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#9F1239;font-weight:700;font-size:14px;margin:0 0 4px;">⏰ Deliver by: ${d.deadlineLabel}</p>
+        <p style="color:#9F1239;font-size:12px;margin:0;">This is the date of the recipient's celebration — please ensure delivery is arranged before then.</p>
+      </div>
+
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:16px 0;">
+        <tr><td style="padding:6px 0;color:#888;font-size:13px;">Order ID</td><td style="padding:6px 0;color:#1a1a1a;font-size:13px;font-weight:600;text-align:right;">#${d.orderId}</td></tr>
+        <tr><td style="padding:6px 0;color:#888;font-size:13px;">Items</td><td style="padding:6px 0;color:#1a1a1a;font-size:13px;text-align:right;">${(d.items||[]).map(i=>`${i.quantity}× ${i.product_name}`).join('<br/>')}</td></tr>
+        <tr><td style="padding:6px 0;color:#888;font-size:13px;">Order total</td><td style="padding:6px 0;color:#1a1a1a;font-size:13px;font-weight:600;text-align:right;">${d.total}</td></tr>
+        <tr><td style="padding:6px 0;color:#888;font-size:13px;">Your payout (after ₦5,000 Thankeeu fee)</td><td style="padding:6px 0;color:#16A34A;font-size:13px;font-weight:700;text-align:right;">${d.vendorPayout}</td></tr>
+      </table>
+
+      <div style="background:#F8F7FF;border-radius:12px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#1a1a1a;font-weight:700;font-size:14px;margin:0 0 8px;">Customer details</p>
+        <p style="color:#555;font-size:13px;margin:2px 0;">Name: ${d.customerName}</p>
+        <p style="color:#555;font-size:13px;margin:2px 0;">Email: ${d.customerEmail}</p>
+        ${d.customerPhone ? `<p style="color:#555;font-size:13px;margin:2px 0;">Phone: ${d.customerPhone}</p>` : ''}
+        <p style="color:#555;font-size:13px;margin:2px 0;">Delivery address: ${d.deliveryAddress}</p>
+      </div>
+
+      ${btn('View order in dashboard →', d.ordersUrl, '#EC4899')}
+    `)
+  }),
 });

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import VendorLayout from './VendorLayout';
 import Icon from '../../components/ui/Icon';
-import { vendorAxios } from '../../utils/api';
+import { vendorAxios, vendorAPI } from '../../utils/api';
 import { formatNGN } from '../../utils/currency';
 import toast from 'react-hot-toast';
 
@@ -13,6 +13,7 @@ export default function VendorProducts() {
   const [modal, setModal] = useState(null); // null | 'add' | product obj
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
+  const [uploadingImg, setUploadingImg] = useState(false);
 
   const load = () => vendorAxios.get('/vendor/products').then(r => setProducts(r.data || [])).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
@@ -21,6 +22,25 @@ export default function VendorProducts() {
   const openEdit = p  => { setForm({ ...p, price: p.price?.toString(), stock: p.stock?.toString()||'' }); setModal(p); };
   const close    = () => { setModal(null); setForm(BLANK); };
   const set = (k,v) => setForm(p => ({...p, [k]: v}));
+
+  const addImage = async (file) => {
+    if (!file) return;
+    if ((form.images||[]).length >= 6) return toast.error('Maximum 6 images per product');
+    setUploadingImg(true);
+    try {
+      const res = await vendorAPI.uploadProductImage(file);
+      setForm(p => ({ ...p, images: [...(p.images||[]), res.data.url] }));
+    } catch { toast.error('Image upload failed'); }
+    finally { setUploadingImg(false); }
+  };
+  const removeImage = (idx) => setForm(p => ({ ...p, images: p.images.filter((_,i)=>i!==idx) }));
+  const moveImage = (idx, dir) => setForm(p => {
+    const imgs = [...p.images];
+    const j = idx + dir;
+    if (j < 0 || j >= imgs.length) return p;
+    [imgs[idx], imgs[j]] = [imgs[j], imgs[idx]];
+    return { ...p, images: imgs };
+  });
 
   const save = async () => {
     if (!form.name.trim() || !form.price) return toast.error('Name and price are required');
@@ -71,6 +91,11 @@ export default function VendorProducts() {
                     {p.images?.[0]
                       ? <img src={p.images[0]} className="w-full h-full object-cover"/>
                       : <div className="w-full h-full flex items-center justify-center"><Icon name="Image" size={32} className="text-purple-200"/></div>}
+                    {(p.images?.length||0) > 1 && (
+                      <span className="absolute bottom-2 left-2 bg-black/50 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <Icon name="Image" size={11}/> {p.images.length}
+                      </span>
+                    )}
                     <button onClick={() => toggle(p)}
                       className={`absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-bold ${p.is_available ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
                       {p.is_available ? 'Live' : 'Hidden'}
@@ -99,6 +124,41 @@ export default function VendorProducts() {
               <button onClick={close}><Icon name="X" size={20} className="text-warm-400"/></button>
             </div>
             <div className="space-y-4">
+              {/* Image carousel manager */}
+              <div>
+                <label className="block text-sm font-medium text-warm-700 mb-1.5">
+                  Product photos (up to 6 — first photo is the cover)
+                </label>
+                <div className="flex gap-2 flex-wrap">
+                  {(form.images||[]).map((img, idx) => (
+                    <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-purple-100 group flex-shrink-0">
+                      <img src={img} className="w-full h-full object-cover"/>
+                      {idx === 0 && (
+                        <span className="absolute top-0.5 left-0.5 bg-primary-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">Cover</span>
+                      )}
+                      <button type="button" onClick={() => removeImage(idx)}
+                        className="absolute top-0.5 right-0.5 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        ×
+                      </button>
+                      <div className="absolute bottom-0.5 left-0.5 right-0.5 flex justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                        {idx > 0 && <button type="button" onClick={() => moveImage(idx,-1)} className="w-5 h-5 rounded bg-black/60 text-white text-xs">‹</button>}
+                        {idx < form.images.length-1 && <button type="button" onClick={() => moveImage(idx,1)} className="w-5 h-5 rounded bg-black/60 text-white text-xs ml-auto">›</button>}
+                      </div>
+                    </div>
+                  ))}
+                  {(form.images||[]).length < 6 && (
+                    <label className="w-20 h-20 rounded-xl border-2 border-dashed border-purple-200 flex items-center justify-center cursor-pointer hover:border-primary-300 transition-colors flex-shrink-0">
+                      {uploadingImg
+                        ? <span className="w-4 h-4 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin"/>
+                        : <Icon name="Plus" size={20} className="text-purple-300"/>}
+                      <input type="file" accept="image/*" className="hidden" disabled={uploadingImg}
+                        onChange={e => { addImage(e.target.files?.[0]); e.target.value=''; }}/>
+                    </label>
+                  )}
+                </div>
+                <p className="text-xs text-warm-400 mt-1.5">Tap a photo to reorder or remove. The first photo shows as the cover everywhere.</p>
+              </div>
+
               {[
                 { key:'name', label:'Product name *', type:'text', placeholder:'e.g. Red velvet cake' },
                 { key:'price', label:'Price (₦) *', type:'number', placeholder:'5000' },

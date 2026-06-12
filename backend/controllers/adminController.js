@@ -214,6 +214,36 @@ const setCompanyMultiplier = async (req, res) => {
       });
     } catch (_) {}
 
+    // Notify HR by email — pricing for their account has changed
+    const { data: company } = await supabase.from('companies')
+      .select('name, email').eq('id', companyId).single();
+
+    if (company?.email) {
+      const { sendEmail } = require('../utils/email');
+      const FRONTEND_URL = (() => {
+        const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+        let s = raw.trim();
+        if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+        s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+        return (s.startsWith('http') ? s : 'https://thankeeu.com');
+      })();
+      sendEmail({
+        to:      company.email,
+        subject: rate === 0 ? `Your Thankeeu account is now free 🎉` : `Your Thankeeu pricing has been updated`,
+        html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;">
+          <h2 style="color:#5B4BDF;">Hi ${company.name},</h2>
+          <p style="color:#555;line-height:1.7;">
+            ${rate === 0
+              ? `Great news — your Thankeeu account has been set to <strong>FREE</strong>. No subscription is required to keep using all features.`
+              : `Your per-employee pricing has been updated to <strong>₦${rate.toLocaleString('en-NG')} / employee / month</strong>.`}
+          </p>
+          <p style="color:#555;">Please check your mail and log in to your dashboard to review your current plan and subscription status.</p>
+          <a href="${FRONTEND_URL}/company/subscription" style="display:inline-block;background:#5B4BDF;color:#fff;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:16px;">View subscription →</a>
+          <p style="color:#aaa;font-size:12px;margin-top:20px;">Questions? Reply to this email or contact hello@thankeeu.com</p>
+        </div>`,
+      }).catch(() => {});
+    }
+
     res.json({
       ok:         true,
       company_id: companyId,

@@ -153,6 +153,14 @@ const verifyCodeAndSignup = async (req, res) => {
     // Clean up pending record
     await supabase.from('pending_signups').delete().eq('email', cleanEmail);
 
+    // Mark any matching guest visitor record as converted (for admin Guests tab)
+    try {
+      await supabase.from('visitors')
+        .update({ converted_to_user: user.id, converted_at: new Date() })
+        .eq('email', cleanEmail)
+        .is('converted_to_user', null);
+    } catch (_) { /* visitors table may not exist yet — non-fatal */ }
+
     // Send welcome email
     sendEmail({
       to: cleanEmail,
@@ -229,6 +237,14 @@ const signup = async (req, res) => {
       throw error;
     }
 
+    // Mark any matching guest visitor record as converted (for admin Guests tab)
+    try {
+      await supabase.from('visitors')
+        .update({ converted_to_user: user.id, converted_at: new Date() })
+        .eq('email', cleanEmail)
+        .is('converted_to_user', null);
+    } catch (_) { /* visitors table may not exist yet — non-fatal */ }
+
     // Send welcome + verification email
     const appUrl = FRONTEND_URL;
     const verifyLink = `${appUrl}/verify-email?token=${verification_token}`;
@@ -279,6 +295,9 @@ const login = async (req, res) => {
     const valid = await verifyPassword(password, user.password_hash);
     if (valid) await rehashIfLegacy(user.id, password, user.password_hash, 'users');
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
+
+    // Note: email verification is encouraged at signup (verification link sent),
+    // but is NOT required to log in — login works regardless of is_verified status.
 
     const token = generateToken(user.id);
     const { password_hash, verification_token, reset_token, reset_token_expires, ...safeUser } = user;

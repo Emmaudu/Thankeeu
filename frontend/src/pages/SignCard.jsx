@@ -46,6 +46,7 @@ const SignCard = () => {
   const [vendorProducts, setVendorProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productSubmitting, setProductSubmitting] = useState(false);
+  const [productImgIdx, setProductImgIdx] = useState(0);
   const [customAmount,   setCustomAmount]   = useState('');
 
   // Auto-fill name and email from whoever is signed in
@@ -727,7 +728,7 @@ const SignCard = () => {
                     <p className="text-xs font-semibold text-warm-600 mb-2">Products from {selectedVendor.business_name}</p>
                     {vendorProducts.map(p => (
                       <button key={p.id} type="button"
-                        onClick={() => setSelectedProduct(p)}
+                        onClick={() => { setSelectedProduct(p); setProductImgIdx(0); }}
                         className={`w-full text-left p-2.5 rounded-xl border-2 transition-all flex items-center gap-3 ${selectedProduct?.id===p.id ? 'border-pink-400 bg-pink-50' : 'border-transparent bg-white hover:border-pink-200'}`}>
                         {p.images?.[0] && <img src={p.images[0]} className="w-10 h-10 rounded-lg object-cover"/>}
                         <div className="flex-1">
@@ -737,6 +738,31 @@ const SignCard = () => {
                         {selectedProduct?.id===p.id && <span className="text-pink-500">✓</span>}
                       </button>
                     ))}
+                  </div>
+                )}
+
+                {/* Selected product image carousel preview */}
+                {selectedProduct?.images?.length > 0 && (
+                  <div className="mt-3 border-t border-pink-100 pt-3">
+                    <div className="relative rounded-xl overflow-hidden aspect-square bg-white max-w-[200px] mx-auto">
+                      <img src={selectedProduct.images[productImgIdx % selectedProduct.images.length]}
+                        className="w-full h-full object-cover" alt={selectedProduct.name}/>
+                      {selectedProduct.images.length > 1 && (
+                        <>
+                          <button type="button"
+                            onClick={() => setProductImgIdx(i => (i - 1 + selectedProduct.images.length) % selectedProduct.images.length)}
+                            className="absolute left-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center text-sm">‹</button>
+                          <button type="button"
+                            onClick={() => setProductImgIdx(i => (i + 1) % selectedProduct.images.length)}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 text-white flex items-center justify-center text-sm">›</button>
+                          <div className="absolute bottom-1.5 left-0 right-0 flex justify-center gap-1">
+                            {selectedProduct.images.map((_,i) => (
+                              <span key={i} className={`w-1.5 h-1.5 rounded-full ${i===(productImgIdx%selectedProduct.images.length) ? 'bg-white' : 'bg-white/40'}`}/>
+                            ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>

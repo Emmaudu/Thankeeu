@@ -204,7 +204,7 @@ const getPublicStore = async (req, res) => {
   try {
     const { slug } = req.params;
     const { data: vendor } = await supabase.from('vendors')
-      .select('id, business_name, slug, description, logo_url, banner_url, category, address, social_links, delivery_info, return_policy, status')
+      .select('id, business_name, slug, description, logo_url, banner_url, category, address, country, state, phone, social_links, delivery_info, return_policy, status')
       .eq('slug', slug).eq('status', 'approved').single();
     if (!vendor) return res.status(404).json({ error: 'Store not found' });
 
@@ -227,7 +227,7 @@ const placeOrder = async (req, res) => {
 
     if (!items?.length || !customer_email) return res.status(400).json({ error: 'items and customer_email are required' });
 
-    const { data: vendor } = await supabase.from('vendors').select('id, business_name').eq('slug', slug).eq('status', 'approved').single();
+    const { data: vendor } = await supabase.from('vendors').select('id, business_name, email').eq('slug', slug).eq('status', 'approved').single();
     if (!vendor) return res.status(404).json({ error: 'Store not found' });
 
     const productIds = items.map(i => i.product_id);
@@ -260,6 +260,45 @@ const placeOrder = async (req, res) => {
       storeName: vendor.business_name, total: `₦${total.toLocaleString()}`,
       items: lineItems, storeUrl: `${FRONTEND_URL}/c/${slug}`,
     }}).catch(() => {});
+
+    // ── Notify vendor: new order to fulfil, with delivery deadline ──────────
+    // Deadline = the celebrant's celebration date (card.send_date), falling
+    // back to card.deadline, then 5 days from now if neither is set.
+    if (vendor.email) {
+      let deadlineDate = null;
+      let recipientName = null;
+      let occasionLabel = null;
+      if (card_slug) {
+        try {
+          const { data: cardRow } = await supabase.from('cards')
+            .select('send_date, deadline, recipient_name, occasion')
+            .eq('slug', card_slug).maybeSingle();
+          if (cardRow) {
+            deadlineDate  = cardRow.send_date || cardRow.deadline || null;
+            recipientName = cardRow.recipient_name || null;
+            occasionLabel = cardRow.occasion ? String(cardRow.occasion).replace(/_/g, ' ') : null;
+          }
+        } catch (_) { /* card lookup is best-effort */ }
+      }
+      const deadline = deadlineDate ? new Date(deadlineDate) : new Date(Date.now() + 5 * 24 * 60 * 60 * 1000);
+      const deadlineLabel = deadline.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+      await sendEmail({ to: vendor.email, template: 'vendorOrderNotification', data: {
+        vendorName:    vendor.business_name,
+        orderId:       order.id.slice(0,8).toUpperCase(),
+        customerName:  customer_name || 'A Thankeeu customer',
+        customerEmail: customer_email,
+        customerPhone: customer_phone || '',
+        deliveryAddress: delivery_address || 'Not provided — contact the customer',
+        items: lineItems,
+        total: `₦${total.toLocaleString()}`,
+        vendorPayout: `₦${Math.max(0, total - 5000).toLocaleString()}`,
+        deadlineLabel,
+        recipientName,
+        occasionLabel,
+        ordersUrl: `${FRONTEND_URL}/vendor/orders`,
+      }}).catch(() => {});
+    }
 
     res.json({ order_id: order.id, total, message: 'Order placed! You will receive a confirmation email.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -485,7 +524,7 @@ module.exports = {
   getProducts, createProduct, updateProduct, deleteProduct,
   getOrders, updateOrderStatus, getAnalytics,
   getPublicStore, placeOrder,
-  adminListVendors, adminUpdateVendorStatus, adminListOrders,
+  adminListVendors, adminUpdateVendorStatus, adminListOrders, uploadProductImage,
   vendorVerifyEmail, adminResendVerification, adminVerifyActivate,
   getVendorTickets, createVendorTicket, changeVendorPassword,
 };

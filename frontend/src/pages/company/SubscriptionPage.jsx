@@ -6,170 +6,76 @@ import toast from 'react-hot-toast';
 import { format, differenceInDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
-const PLANS = [
-  {
-    id: 'monthly', label: 'Monthly', price: '₦200,000', period: '/month', saving: null,
-    features: [
-      'Unlimited employees',
-      'Automated birthday emails to departments',
-      'Birthday card delivery to celebrants',
-      'Gift pot collection via Flutterwave',
-      'HR dashboard & analytics',
-      'Email support',
-    ]
-  },
-  {
-    id: 'yearly', label: 'Yearly', price: '₦2,400,000', period: '/year',
-    saving: 'Save ₦2,400,000 vs 12× monthly', popular: true,
-    features: [
-      'Everything in Monthly',
-      'Priority email & phone support',
-      '2 months free vs monthly billing',
-      'Custom email branding',
-      'Dedicated account manager',
-      'Bulk data re-import anytime',
-    ]
-  },
-];
+const fmtNGN = (n) => n === 0 ? 'Free' : `₦${Number(n).toLocaleString('en-NG')}`;
 
 export default function SubscriptionPage() {
   useSEO({ title: 'Subscription — Thankeeu for Teams', noIndex: true });
 
-  const [sub,        setSub]       = useState(null);
-  const [loading,    setLoading]   = useState(true);
-  const [paying,     setPaying]    = useState(null);
-  const [cancelling, setCancelling]= useState(false);
-  const [showCancel, setShowCancel]= useState(false);
-  const [verifying,  setVerifying] = useState(false);
-  // Save the tx_ref from the URL into state before we clear it
-  const [pendingRef, setPendingRef]= useState(() => sessionStorage.getItem('sub_pending_ref') || '');
-  const [checking,   setChecking]  = useState(false);
-  const [headCount,  setHeadCount]  = useState(0);
-  // Read headcount from localStorage (set after import/HRIS sync)
-  const dynPricing = (() => {
-    try { return JSON.parse(sessionStorage.getItem('sub_pricing') || 'null'); } catch { return null; }
-  })();
-  const pollRef = useRef(null);
-  const navigate = useNavigate();
+  const [sub,       setSub]      = useState(null);
+  const [quote,     setQuote]    = useState(null);
+  const [loading,   setLoading]  = useState(true);
+  const [paying,    setPaying]   = useState(null);
+  const [cancelling,setCancelling]= useState(false);
+  const [showCancel,setShowCancel]= useState(false);
+  const [checking,  setChecking] = useState(false);
+  const pollRef    = useRef(null);
+  const navigate   = useNavigate();
+
+  const tok = () => localStorage.getItem('thankeeu_company_token');
+  const BASE = import.meta.env.VITE_API_URL || '/api';
+
+  const fetchSub = async () => {
+    try {
+      const [sRes, qRes] = await Promise.all([
+        subscriptionAPI.get(),
+        subscriptionAPI.getQuote().catch(() => ({ data: null })),
+      ]);
+      setSub(sRes.data);
+      setQuote(qRes.data);
+    } catch { setSub(null); }
+    finally { setLoading(false); }
+  };
 
   useEffect(() => {
-    // Parse URL params FIRST, save ref to state, then clear URL
-    const params = new URLSearchParams(window.location.search);
-    const ref      = params.get('tx_ref') || params.get('reference');
+    const params  = new URLSearchParams(window.location.search);
+    const ref     = params.get('tx_ref') || params.get('reference');
     const isReturn = params.get('sub') === 'success' || !!ref;
 
-    if (ref) { setPendingRef(ref); sessionStorage.setItem('sub_pending_ref', ref); }
-
-    // Clear URL immediately so it doesn't re-trigger on refresh
-    if (isReturn) {
-      window.history.replaceState({}, '', '/company/subscription');
-    }
+    if (isReturn) window.history.replaceState({}, '', '/company/subscription');
 
     const init = async () => {
       if (isReturn && ref) {
-        // Returned from payment — verify then fetch
         setChecking(true);
         try {
           await subscriptionAPI.verify(ref);
-          toast.success('🎉 Subscription activated! Redirecting to HRIS...');
-          sessionStorage.removeItem('sub_pending_ref');
+          toast.success('🎉 Subscription activated!');
           await fetchSub();
-          setTimeout(() => navigate('/company/hris'), 2200);
           return;
-        } catch (err) {
-          // Verify failed — webhook may have already activated it
-          console.warn('Explicit verify failed, relying on webhook:', err.message);
-        } finally {
-          setChecking(false);
-        }
+        } catch {
+          toast('Verifying payment — please wait…', { icon: '⏳' });
+        } finally { setChecking(false); }
       }
-
-      // Normal load — also handles case where webhook activated while user was on payment page
       await fetchSub();
-
-      // If just returned from payment but verify above failed, poll for webhook activation
-      if (isReturn) {
-        let attempts = 0;
-        const maxAttempts = 6; // 6 × 5s = 30s
-        pollRef.current = setInterval(async () => {
-          attempts++;
-          const res = await subscriptionAPI.get().catch(() => null);
-          const activated = res?.data?.is_active === true || res?.data?.status === 'active';
-          if (activated) {
-            clearInterval(pollRef.current);
-            setSub(res.data);
-            setLoading(false);
-            toast.success('✅ Subscription activated! Redirecting to HRIS...');
-            sessionStorage.removeItem('sub_pending_ref');
-            setTimeout(() => navigate('/company/hris'), 2200);
-          } else if (attempts >= maxAttempts) {
-            clearInterval(pollRef.current);
-            toast('Payment completed. If page still shows locked, contact support with your payment reference.', { duration: 8000 });
-          }
-        }, 5000);
-      }
     };
-
     init();
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
-  const fetchSub = async () => {
-    try {
-      const res = await subscriptionAPI.get();
-      setSub(res.data);
-      return res.data;
-    } catch { toast.error('Failed to load subscription'); }
-    finally { setLoading(false); }
-  };
-
   const handleSubscribe = async (plan) => {
+    if (!quote?.multiplier_set) {
+      return toast.error('Pricing has not been set for your account yet. Contact us to get a quote.');
+    }
+    if (quote?.is_free) {
+      return toast('Your company is on a free plan — no payment needed!', { icon: '🎉' });
+    }
     setPaying(plan);
     try {
       const res = await subscriptionAPI.initialize(plan);
-      const { authorization_url, payment_link } = res.data;
-      const url = authorization_url || payment_link;
-      if (!url) throw new Error('No payment URL received');
-      window.location.href = url;
+      window.location.assign(res.data.payment_link || res.data.authorization_url);
     } catch (err) {
-      toast.error(err.response?.data?.error || err.message || 'Failed to start payment');
+      toast.error(err.response?.data?.error || 'Failed to start payment');
       setPaying(null);
     }
-  };
-
-  const handleManualVerify = async () => {
-    // Use the ref saved in state — URL was already cleared
-    const ref = pendingRef || new URLSearchParams(window.location.search).get('tx_ref') || new URLSearchParams(window.location.search).get('reference');
-    if (!ref) {
-      // No ref at all — just re-fetch in case webhook already activated
-      setVerifying(true);
-      try {
-        const data = await fetchSub();
-        if (data?.is_active || data?.status === 'active') {
-          toast.success('✅ Subscription is now active!');
-        } else {
-          toast('Subscription not found. If you completed payment, please wait 2–3 minutes and click this button again — the webhook should activate it automatically.', { duration: 8000 });
-        }
-      } finally { setVerifying(false); }
-      return;
-    }
-
-    setVerifying(true);
-    try {
-      await subscriptionAPI.verify(ref);
-      toast.success('✅ Subscription activated! Redirecting...');
-      sessionStorage.removeItem('sub_pending_ref');
-      await fetchSub();
-      setTimeout(() => navigate('/company/hris'), 2000);
-    } catch (err) {
-      // Verify failed but webhook may have activated it — re-fetch
-      const data = await fetchSub();
-      if (data?.is_active || data?.status === 'active') {
-        toast.success('✅ Subscription is already active!');
-      } else {
-        toast.error(err.response?.data?.error || 'Verification failed. Contact support if payment was charged.');
-      }
-    } finally { setVerifying(false); }
   };
 
   const handleCancel = async () => {
@@ -177,187 +83,157 @@ export default function SubscriptionPage() {
     try {
       await subscriptionAPI.cancel();
       toast.success('Subscription cancelled. Access continues until expiry.');
-      fetchSub();
       setShowCancel(false);
-    } catch { toast.error('Failed to cancel. Please contact support.'); }
+      await fetchSub();
+    } catch { toast.error('Failed to cancel'); }
     finally { setCancelling(false); }
   };
 
-  const isActive  = sub?.is_active === true || sub?.status === 'active';
-  const expiresAt = sub?.expires_at ? new Date(sub.expires_at) : null;
-  const daysLeft  = expiresAt ? differenceInDays(expiresAt, new Date()) : 0;
+  // ── Pilot status ──────────────────────────────────────────────────────────
+  const now = new Date();
+  const pilotActive = sub?.pilot_ends_at && new Date(sub.pilot_ends_at) > now;
+  const pilotDaysLeft = pilotActive ? differenceInDays(new Date(sub.pilot_ends_at), now) : 0;
+
+  // ── Subscription active ───────────────────────────────────────────────────
+  const isActive = sub?.is_active;
+  const daysLeft = isActive && sub?.expires_at ? differenceInDays(new Date(sub.expires_at), now) : 0;
+
+  if (loading || checking) return (
+    <CompanyLayout>
+      <div className="flex items-center justify-center py-20">
+        <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-500 rounded-full animate-spin"/>
+        {checking && <p className="ml-4 text-warm-600 font-medium">Confirming your payment…</p>}
+      </div>
+    </CompanyLayout>
+  );
 
   return (
-    <CompanyLayout title="Subscription" subtitle="Manage your Thankeeu for Teams subscription">
+    <CompanyLayout>
+      <div className="max-w-3xl mx-auto">
+        <h1 className="text-2xl font-bold text-warm-900 mb-1">Subscription</h1>
+        <p className="text-warm-500 text-sm mb-8">Manage your team automation plan</p>
 
-      {/* Checking/verifying banner */}
-      {checking && (
-        <div className="rounded-2xl p-4 mb-6 flex items-center gap-3 bg-blue-50 border border-blue-200">
-          <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-          <p className="text-blue-800 text-sm font-medium">Confirming your payment with Flutterwave...</p>
-        </div>
-      )}
-
-      {/* Active subscription */}
-      {!loading && isActive && (
-        <div className={`rounded-3xl p-5 mb-8 border ${daysLeft <= 7 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${daysLeft <= 7 ? 'bg-amber-100' : 'bg-green-100'}`}>
-                {daysLeft <= 7 ? '⚠️' : '✅'}
-              </div>
-              <div>
-                <p className={`font-semibold ${daysLeft <= 7 ? 'text-amber-800' : 'text-green-800'}`}>
-                  Active — {sub?.plan === 'yearly' ? 'Yearly plan' : 'Monthly plan'}
-                </p>
-                <p className={`text-sm mt-0.5 ${daysLeft <= 7 ? 'text-amber-600' : 'text-green-600'}`}>
-                  {daysLeft <= 0
-                    ? 'Expired — renew to keep automations running'
-                    : `Expires ${format(expiresAt, 'MMMM d, yyyy')} · ${daysLeft} days remaining`}
-                </p>
-              </div>
+        {/* ── Pilot banner ─────────────────────────────────────────────── */}
+        {pilotActive && (
+          <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-5 mb-6 flex items-start gap-4">
+            <span className="text-3xl">🧪</span>
+            <div>
+              <p className="font-bold text-green-800 text-base mb-1">You are on a pilot — {pilotDaysLeft} days remaining</p>
+              <p className="text-sm text-green-700">All automation features are active and free during your pilot period. You will be notified before it ends.</p>
+              <p className="text-xs text-green-600 mt-1">Pilot ends: {format(new Date(sub.pilot_ends_at), 'MMMM d, yyyy')}</p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => handleSubscribe(sub?.plan || 'monthly')} disabled={!!paying}
-                className="bg-primary-400 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-primary-600 transition-colors">
-                Renew subscription
-              </button>
-              <button onClick={() => setShowCancel(true)}
-                className="border border-purple-100 text-warm-600 px-4 py-2.5 rounded-xl text-sm hover:bg-warm-100 transition-colors">
-                Cancel
+          </div>
+        )}
+
+        {/* ── Active subscription ───────────────────────────────────────── */}
+        {isActive && !pilotActive && (
+          <div className="bg-primary-50 border-2 border-primary-200 rounded-2xl p-5 mb-6">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <span className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full mb-2">
+                  ✓ Active
+                </span>
+                <p className="font-bold text-warm-900 capitalize">{sub.plan} plan</p>
+                <p className="text-sm text-warm-500">
+                  Expires {sub.expires_at ? format(new Date(sub.expires_at), 'MMMM d, yyyy') : '—'}
+                  {daysLeft > 0 && ` · ${daysLeft} days left`}
+                </p>
+              </div>
+              <button onClick={() => setShowCancel(true)} disabled={cancelling}
+                className="text-xs text-red-500 border border-red-200 px-3 py-1.5 rounded-lg hover:bg-red-50">
+                Cancel subscription
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* No active subscription */}
-      {!loading && !isActive && !checking && (
-        <div className="rounded-3xl p-5 mb-8 border" style={{ background:'#FFFBEB', borderColor:'#FDE68A' }}>
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-            <div className="flex items-center gap-3 flex-1">
-              <span className="text-2xl">💡</span>
-              <div>
-                <p className="font-semibold text-amber-800 text-base">No active subscription</p>
-                <p className="text-sm text-amber-600 mt-0.5">
-                  Team data import is always free. Subscribe below to activate birthday automations.
-                </p>
-              </div>
+        {/* ── Quote / headcount section ─────────────────────────────────── */}
+        <div className="bg-white border-2 border-purple-100 rounded-2xl p-5 mb-6">
+          <h2 className="font-bold text-warm-900 mb-4">Your pricing</h2>
+
+          {!quote || !quote.multiplier_set ? (
+            /* No multiplier set yet */
+            <div className="text-center py-6">
+              <p className="text-4xl mb-3">📋</p>
+              {(quote?.head_count || 0) > 0
+                ? <p className="font-semibold text-warm-900 mb-1">{quote.head_count} employees imported</p>
+                : <p className="text-warm-500 mb-1">No employees imported yet</p>
+              }
+              <p className="text-sm text-warm-500 mb-4">
+                {(quote?.head_count || 0) > 0
+                  ? 'Pricing is being configured for your account. Contact us to get your quote.'
+                  : 'Import your team via the Occasions Manager or HRIS to see pricing.'}
+              </p>
+              <a href="mailto:hello@thankeeu.com?subject=Subscription quote request"
+                className="btn-primary px-6 py-2.5 text-sm inline-block">
+                Get a quote →
+              </a>
             </div>
-            <button
-              onClick={handleManualVerify}
-              disabled={verifying}
-              className="flex-shrink-0 text-sm font-semibold px-4 py-2.5 rounded-xl border-2 transition-colors"
-              style={{ borderColor:'#D97706', color:'#92400E', background:'#FEF3C7' }}>
-              {verifying
-                ? <span className="flex items-center gap-2"><span className="w-3.5 h-3.5 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />Checking...</span>
-                : pendingRef ? '🔄 Confirm my payment' : '🔄 Already paid? Check status'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Plans */}
-      <div className="grid md:grid-cols-2 gap-6 max-w-3xl mb-10">
-        {PLANS.map(plan => (
-          <div key={plan.id} className={`bg-white rounded-3xl border-2 p-6 relative ${plan.popular ? 'border-primary-400 shadow-lg shadow-primary-100' : 'border-purple-100'}`}>
-            {plan.popular && (
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-400 text-white text-xs font-semibold px-4 py-1.5 rounded-full whitespace-nowrap">
-                Best value
-              </div>
-            )}
-            <h3 className="text-xl font-semibold text-warm-900 mb-1">{plan.label}</h3>
-            {plan.saving && <p className="text-xs text-green-600 font-medium mb-3">{plan.saving}</p>}
-            <div className="flex items-end gap-1 mb-5">
-              {dynPricing && dynPricing.head_count > 0 ? (
-                <div>
-                  <span className="text-2xl sm:text-3xl font-semibold text-warm-900">
-                    ₦{(plan.id==='monthly' ? dynPricing.monthly_price : dynPricing.yearly_price).toLocaleString()}
-                  </span>
-                  <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
-                  <p className="text-xs text-green-600 mt-0.5">Based on {dynPricing.head_count} employees × ₦{plan.id==='monthly'?'2,000':'20,000'}</p>
+          ) : quote.is_free ? (
+            /* Free plan */
+            <div className="text-center py-4">
+              <p className="text-5xl mb-3">🎉</p>
+              <p className="font-bold text-green-700 text-xl mb-1">Your plan is free</p>
+              <p className="text-sm text-warm-500">{quote.head_count} employees · All automation features included</p>
+            </div>
+          ) : (
+            /* Paid plan with multiplier */
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="bg-primary-50 border border-primary-200 rounded-xl px-4 py-2 text-sm font-semibold text-primary-700">
+                  👥 {quote.head_count} employees
                 </div>
-              ) : (
-                <div>
-                  <span className="text-2xl sm:text-4xl font-semibold text-warm-900">{plan.price}</span>
-                  <span className="text-warm-400 text-sm pb-1">{plan.period}</span>
+                <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2 text-sm font-semibold text-purple-700">
+                  ₦{Number(quote.per_head_rate).toLocaleString('en-NG')} per employee / month
                 </div>
-              )}
-            </div>
-            <ul className="space-y-2.5 mb-6">
-              {plan.features.map((f, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-sm text-warm-700">
-                  <span className="text-green-500 font-bold mt-0.5 flex-shrink-0">✓</span> {f}
-                </li>
-              ))}
-            </ul>
-            <button
-              onClick={() => handleSubscribe(plan.id)}
-              disabled={paying === plan.id || (isActive && sub?.plan === plan.id)}
-              className={`w-full py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-50 ${
-                plan.popular
-                  ? 'bg-primary-400 text-white hover:bg-primary-600'
-                  : 'border border-purple-100 text-warm-700 hover:bg-warm-100'
-              }`}>
-              {paying === plan.id
-                ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />Processing...</span>
-                : isActive && sub?.plan === plan.id
-                ? '✓ Current plan — click to renew'
-                : `Subscribe — ${plan.price}${plan.period}`}
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* Payment info */}
-      <div className="bg-warm-100 rounded-3xl p-5 max-w-3xl mb-6">
-        <p className="text-sm font-semibold text-warm-700 mb-3">💳 Payment & billing info</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-warm-600">
-          {['Payments processed securely via Flutterwave','Pay via card, bank transfer, or mobile payment','Subscription activates immediately after payment','Cancel anytime — access continues until expiry'].map((t,i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="text-green-500 font-bold">✓</span><span>{t}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Billing history */}
-      {sub?.flw_reference && (
-        <div className="bg-white rounded-3xl border border-purple-100 overflow-hidden max-w-3xl">
-          <div className="px-5 py-4 border-b border-gray-50">
-            <h3 className="font-semibold text-warm-900 text-sm">Billing history</h3>
-          </div>
-          <div className="px-5 py-4">
-            <div className="flex items-center justify-between text-sm">
-              <div>
-                <p className="font-medium text-warm-900">{sub?.plan === 'yearly' ? 'Yearly plan — ₦2,400,000' : 'Monthly plan — ₦200,000'}</p>
-                <p className="text-warm-400 text-xs mt-0.5">Ref: {sub?.flw_reference}</p>
               </div>
-              <span className="text-xs bg-green-100 text-green-700 px-2.5 py-1 rounded-full font-medium">Paid</span>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* Cancel modal */}
-      {showCancel && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
-            <div className="text-4xl text-center mb-4">😢</div>
-            <h3 className="text-xl font-semibold text-warm-900 text-center mb-2">Cancel subscription?</h3>
-            <p className="text-warm-500 text-sm text-center mb-6 leading-relaxed">
-              Birthday automations will stop after your current period ends{expiresAt ? ` (${format(expiresAt, 'MMM d, yyyy')})` : ''}. Your team data will be preserved.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button onClick={() => setShowCancel(false)} className="flex-1 btn-secondary py-3">Keep subscription</button>
-              <button onClick={handleCancel} disabled={cancelling}
-                className="flex-1 bg-red-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-red-600 transition-colors disabled:opacity-50">
-                {cancelling ? 'Cancelling...' : 'Yes, cancel'}
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Monthly */}
+                <div className={`rounded-2xl border-2 p-5 ${isActive && sub?.plan === 'monthly' ? 'border-primary-400 bg-primary-50' : 'border-purple-100'}`}>
+                  <p className="font-bold text-warm-900 mb-1">Monthly</p>
+                  <p className="text-2xl font-extrabold text-primary-600 mb-1">{fmtNGN(quote.monthly_price)}</p>
+                  <p className="text-xs text-warm-400 mb-4">{quote.head_count} × ₦{Number(quote.per_head_rate).toLocaleString('en-NG')} / month</p>
+                  <button onClick={() => handleSubscribe('monthly')} disabled={!!paying || isActive}
+                    className="btn-primary w-full py-2.5 text-sm disabled:opacity-50">
+                    {paying === 'monthly' ? 'Redirecting…' : isActive && sub?.plan === 'monthly' ? 'Current plan' : 'Subscribe monthly'}
+                  </button>
+                </div>
+
+                {/* Yearly */}
+                <div className={`relative rounded-2xl border-2 p-5 ${isActive && sub?.plan === 'yearly' ? 'border-primary-400 bg-primary-50' : 'border-primary-300'}`}>
+                  <div className="absolute -top-3 left-4 bg-primary-500 text-white text-xs font-bold px-3 py-1 rounded-full">Best value</div>
+                  <p className="font-bold text-warm-900 mb-1">Yearly</p>
+                  <p className="text-2xl font-extrabold text-primary-600 mb-1">{fmtNGN(quote.yearly_price)}</p>
+                  <p className="text-xs text-green-600 font-semibold mb-1">2 months free</p>
+                  <p className="text-xs text-warm-400 mb-4">{quote.head_count} × ₦{Number(quote.per_head_rate).toLocaleString('en-NG')} × 10 months</p>
+                  <button onClick={() => handleSubscribe('yearly')} disabled={!!paying || isActive}
+                    className="bg-primary-500 text-white w-full py-2.5 text-sm font-bold rounded-2xl hover:bg-primary-600 transition-all disabled:opacity-50">
+                    {paying === 'yearly' ? 'Redirecting…' : isActive && sub?.plan === 'yearly' ? 'Current plan' : 'Subscribe yearly'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Cancel confirm */}
+        {showCancel && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+              <h3 className="font-bold text-warm-900 mb-2">Cancel subscription?</h3>
+              <p className="text-sm text-warm-500 mb-5">Access continues until expiry. Automation stops after that.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowCancel(false)} className="btn-secondary flex-1 py-2.5 text-sm">Keep it</button>
+                <button onClick={handleCancel} disabled={cancelling}
+                  className="flex-1 py-2.5 text-sm font-bold rounded-2xl bg-red-500 text-white hover:bg-red-600 disabled:opacity-50">
+                  {cancelling ? 'Cancelling…' : 'Yes, cancel'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </CompanyLayout>
   );
 }

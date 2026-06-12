@@ -7,7 +7,12 @@ const supabase    = require('../utils/supabase');
 const argon2      = require('argon2');
 const crypto      = require('crypto');
 const { sendEmail } = require('../utils/email');
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+const FRONTEND_URL = (() => {
+  let s = (process.env.FRONTEND_URL || '').trim();
+  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').replace(/\/$/, '').trim();
+  return s.startsWith('http') ? s : 'https://thankeeu.com';
+})();
 
 // ── Vendor signup / onboarding ───────────────────────────────────────────────
 const vendorSignup = async (req, res) => {

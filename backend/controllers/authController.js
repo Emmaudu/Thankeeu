@@ -3,7 +3,12 @@ const argon2  = require('argon2');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+const FRONTEND_URL = (() => {
+  let s = (process.env.FRONTEND_URL || '').trim();
+  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').replace(/\/$/g, '').trim();
+  return s.startsWith('http') ? s : 'https://thankeeu.com';
+})();
 
 const setCookie = (res, name, token, expiresIn = '7d') => {
   const maxAge = expiresIn.endsWith('d')

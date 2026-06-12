@@ -1,6 +1,11 @@
 const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+const FRONTEND_URL = (() => {
+  let s = (process.env.FRONTEND_URL || '').trim();
+  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').replace(/\/$/g, '').trim();
+  return s.startsWith('http') ? s : 'https://thankeeu.com';
+})();
 const XLSX = require('xlsx');
 const { nanoid } = require('nanoid');
 

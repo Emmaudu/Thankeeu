@@ -256,23 +256,39 @@ const spendCredit = async (req, res) => {
       });
     }
 
-    // Verify card belongs to this user
-    const { data: card } = await supabase.from('cards')
-      .select('id, slug, status, created_by').eq('slug', card_slug).single();
+    // Verify card belongs to this user — column is 'creator_id' not 'created_by'
+    const { data: card, error: cardErr } = await supabase.from('cards')
+      .select('id, slug, status, creator_id').eq('slug', card_slug).maybeSingle();
 
-    if (!card) return res.status(404).json({ error: 'Card not found' });
-    if (card.created_by !== userId) return res.status(403).json({ error: 'This is not your card' });
-    if (card.status === 'active') return res.status(400).json({ error: 'Card is already active' });
+    if (cardErr) {
+      console.error('spendCredit card lookup error:', cardErr.message);
+      return res.status(500).json({ error: 'Database error looking up card' });
+    }
+    if (!card) return res.status(404).json({ error: `Card not found: ${card_slug}` });
+    if (card.creator_id !== userId) return res.status(403).json({ error: 'This card was not created by your account' });
+    if (card.status === 'active') return res.status(400).json({ error: 'This card is already active' });
 
-    // Deduct credit and activate card atomically
+    // Deduct credit first, then activate
     const { error: deductErr } = await supabase.from('card_credits')
       .update({ credits_remaining: balance.credits_remaining - 1, updated_at: new Date() })
       .eq('id', balance.id)
       .eq('credits_remaining', balance.credits_remaining); // optimistic lock
 
-    if (deductErr) return res.status(500).json({ error: 'Failed to deduct credit. Please try again.' });
+    if (deductErr) {
+      console.error('spendCredit deduct error:', deductErr.message);
+      return res.status(500).json({ error: 'Failed to deduct credit. Please try again.' });
+    }
 
-    await supabase.from('cards').update({ status: 'active' }).eq('slug', card_slug);
+    // Activate the card
+    const { error: activateErr } = await supabase.from('cards')
+      .update({ status: 'active' }).eq('slug', card_slug);
+    if (activateErr) {
+      // Refund the credit if activation fails
+      await supabase.from('card_credits')
+        .update({ credits_remaining: balance.credits_remaining, updated_at: new Date() })
+        .eq('id', balance.id);
+      return res.status(500).json({ error: 'Card activation failed. Credit has been refunded.' });
+    }
 
     return res.json({
       ok: true,

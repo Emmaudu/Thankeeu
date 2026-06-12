@@ -63,3 +63,19 @@ CREATE TABLE IF NOT EXISTS pending_signups (
 );
 CREATE INDEX IF NOT EXISTS idx_pending_signups_email ON pending_signups(email);
 -- Auto-clean expired records
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Admin: per-company pricing multiplier and pilot period
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- pricing_multiplier: NULL = not set (show "get a quote"), 0 = free, >0 = rate per employee
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS pricing_multiplier INTEGER DEFAULT NULL;
+
+-- Pilot period columns
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS pilot_starts_at   TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS pilot_ends_at     TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS pilot_days        INTEGER DEFAULT NULL;
+
+-- Subscription status already exists; add pilot to allowed values
+-- (pilot means free automation until pilot_ends_at, then stops)
+CREATE INDEX IF NOT EXISTS idx_companies_pilot ON companies(pilot_ends_at) WHERE pilot_ends_at IS NOT NULL;

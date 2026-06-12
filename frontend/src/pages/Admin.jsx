@@ -446,8 +446,8 @@ const Admin = () => {
                   <span className="text-warm-400 text-sm">{openCompany===co.id?'▲':'▼'}</span>
                 </div>
                 {openCompany===co.id && (
-                  <div className="border-t border-purple-50 px-5 py-4 bg-purple-50/30">
-                    <p className="text-xs font-semibold text-warm-500 mb-3">
+                  <div className="border-t border-purple-50 px-5 py-4 bg-purple-50/30 space-y-4">
+                    <p className="text-xs font-semibold text-warm-500">
                       {(companyMembers[co.id]||[]).length} team members
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -459,6 +459,69 @@ const Admin = () => {
                       {(companyMembers[co.id]||[]).length > 10 && (
                         <span className="text-xs text-warm-400">+{(companyMembers[co.id]||[]).length - 10} more</span>
                       )}
+                    </div>
+
+                    {/* ── Pricing Multiplier ──────────────────────────── */}
+                    <div className="bg-white border border-purple-100 rounded-xl p-4">
+                      <p className="text-xs font-bold text-warm-700 mb-2">💰 Set pricing multiplier</p>
+                      <p className="text-xs text-warm-400 mb-3">Rate per employee per month. 0 = free plan. Leave blank = "get a quote" shown to HR.</p>
+                      <div className="flex gap-2 items-center">
+                        <span className="text-sm text-warm-500">₦</span>
+                        <input type="number" min="0" placeholder="e.g. 2000"
+                          defaultValue={co.pricing_multiplier ?? ''}
+                          id={`mult-${co.id}`}
+                          className="flex-1 border border-purple-200 rounded-lg px-3 py-1.5 text-sm text-warm-900 focus:outline-none focus:border-primary-400" />
+                        <button
+                          onClick={async () => {
+                            const val = document.getElementById(`mult-${co.id}`)?.value;
+                            if (val === '' || val === null) return toast.error('Enter a value (0 for free)');
+                            try {
+                              const r = await fetch(`${import.meta.env.VITE_API_URL||'/api'}/admin/companies/${co.id}/set-multiplier`, {
+                                method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`},
+                                body: JSON.stringify({ multiplier: Number(val) })
+                              });
+                              const d = await r.json();
+                              if (!r.ok) throw new Error(d.error);
+                              toast.success(d.message);
+                            } catch(e) { toast.error(e.message); }
+                          }}
+                          className="bg-primary-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-primary-600">
+                          Set
+                        </button>
+                      </div>
+                      {co.pricing_multiplier === 0 && <p className="text-xs text-green-600 font-semibold mt-1">✓ Currently FREE</p>}
+                      {co.pricing_multiplier > 0 && <p className="text-xs text-primary-600 font-semibold mt-1">✓ Currently ₦{co.pricing_multiplier?.toLocaleString('en-NG')}/employee/month</p>}
+                    </div>
+
+                    {/* ── Pilot Period ─────────────────────────────────── */}
+                    <div className="bg-white border border-purple-100 rounded-xl p-4">
+                      <p className="text-xs font-bold text-warm-700 mb-2">🧪 Grant pilot period</p>
+                      <p className="text-xs text-warm-400 mb-3">Company gets free access for the chosen duration. Automation stops after pilot ends.</p>
+                      {co.pilot_ends_at && new Date(co.pilot_ends_at) > new Date() && (
+                        <p className="text-xs text-green-600 font-semibold mb-2">
+                          ✓ Pilot active until {new Date(co.pilot_ends_at).toLocaleDateString('en-NG')}
+                        </p>
+                      )}
+                      <div className="flex gap-2">
+                        {[14, 30].map(days => (
+                          <button key={days}
+                            onClick={async () => {
+                              if (!confirm(`Grant ${days}-day pilot to ${co.name}?`)) return;
+                              try {
+                                const r = await fetch(`${import.meta.env.VITE_API_URL||'/api'}/admin/companies/${co.id}/grant-pilot`, {
+                                  method:'POST', headers:{'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`},
+                                  body: JSON.stringify({ days })
+                                });
+                                const d = await r.json();
+                                if (!r.ok) throw new Error(d.error);
+                                toast.success(d.message);
+                              } catch(e) { toast.error(e.message); }
+                            }}
+                            className="text-xs font-bold border border-primary-200 text-primary-600 px-4 py-1.5 rounded-lg hover:bg-primary-50">
+                            {days}-day pilot
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}

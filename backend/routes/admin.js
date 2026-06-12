@@ -30,4 +30,8 @@ router.get('/companies/:companyId/members', getCompanyTeamMembers);
 // Visitors (guests who signed cards without an account)
 router.get('/visitors',                  getVisitors);
 
+// Company pricing & pilot management
+router.post('/companies/:companyId/set-multiplier', setCompanyMultiplier);
+router.post('/companies/:companyId/grant-pilot',    grantPilot);
+
 module.exports = router;

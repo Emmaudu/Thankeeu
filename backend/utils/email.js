@@ -1,4 +1,19 @@
-const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+// ── Robust FRONTEND_URL parser ─────────────────────────────────────────────
+// Handles malformed env values like "FRONTEND_URLS=https://thankeeu.com"
+const _rawFE = process.env.FRONTEND_URL || '';
+const _cleanFE = (() => {
+  let s = _rawFE.trim();
+  // Strip any "KEY=value" wrapper
+  if (s.includes('=') && !s.startsWith('http')) {
+    s = s.slice(s.indexOf('=') + 1).trim();
+  }
+  // Strip extra quotes
+  s = s.replace(/['"]/g, '').trim();
+  // Remove trailing slash
+  s = s.replace(/\/$/, '');
+  return s.startsWith('http') ? s : 'https://thankeeu.com';
+})();
+const FRONTEND_URL = _cleanFE;
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -24,14 +39,23 @@ const BASE = (content) => `
 const wrap = BASE;
 
 const btn = (text, url, color = '#6C5CE7') => {
-  // Guard: ensure URL is absolute
-  const safeUrl = (url && url.startsWith('http')) ? url : `https://thankeeu.com${url || ''}`;
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px;">
+  // Guard: ensure URL is absolute and clean
+  let safeUrl = url || '';
+  if (safeUrl.includes('=') && !safeUrl.startsWith('http')) {
+    safeUrl = safeUrl.slice(safeUrl.indexOf('=') + 1).trim();
+  }
+  safeUrl = safeUrl.replace(/['"]/g, '').trim();
+  if (!safeUrl.startsWith('http')) safeUrl = 'https://thankeeu.com' + safeUrl;
+
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px;margin-bottom:8px;">
     <tr><td style="border-radius:8px;background:${color};">
       <a href="${safeUrl}" target="_blank" rel="noopener noreferrer"
          style="display:inline-block;background:${color};color:#fff !important;padding:13px 28px;border-radius:8px;text-decoration:none !important;font-weight:600;font-size:14px;font-family:'Segoe UI',Arial,sans-serif;border:none;mso-padding-alt:0;">${text}</a>
     </td></tr>
-  </table>`;
+  </table>
+  <p style="color:#aaa;font-size:12px;margin:4px 0 0;word-break:break-all;">
+    Or copy this link: <a href="${safeUrl}" style="color:#6C5CE7;">${safeUrl}</a>
+  </p>`;
 };
 
 const emailTemplates = {

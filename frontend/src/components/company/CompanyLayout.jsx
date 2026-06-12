@@ -109,11 +109,25 @@ const CompanyLayout = ({ children, title, subtitle }) => {
 
       {/* Bottom */}
       <div className="px-3 pb-5 flex-shrink-0 space-y-2">
-        <Link to="/company/subscription"
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold"
-          style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff', boxShadow: '0 2px 10px rgba(92,75,223,0.35)' }}>
-          💳 Manage subscription
-        </Link>
+        {(() => {
+          const isPilot = company?.subscription_status === 'pilot' &&
+            company?.pilot_ends_at && new Date(company.pilot_ends_at) > new Date();
+          const pilotDays = isPilot
+            ? Math.max(0, Math.ceil((new Date(company.pilot_ends_at) - new Date()) / 86400000))
+            : 0;
+          return isPilot ? (
+            <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center"
+              style={{ background: 'linear-gradient(135deg,#059669,#10B981)', color: '#fff' }}>
+              🧪 Pilot — {pilotDays}d left
+            </div>
+          ) : (
+            <Link to="/company/subscription"
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff', boxShadow: '0 2px 10px rgba(92,75,223,0.35)' }}>
+              💳 Manage subscription
+            </Link>
+          );
+        })()}
 </div>
     </div>
   );

@@ -97,28 +97,26 @@ const initializeSubscription = async (req, res) => {
     const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
     const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
 
-    // Get employee count: from request OR count from DB
-    let employeeCount = reqCount ? Number(reqCount) : 0;
-    if (!employeeCount) {
-      // Count active employees in company_members + unique occasion_members
-      const [{ count: cmCount }, { data: omRows }] = await Promise.all([
-        supabase.from('company_members').select('id',{count:'exact',head:true})
-          .eq('company_id', req.company.id).neq('status','deactivated'),
-        supabase.from('occasion_members').select('email')
-          .eq('company_id', req.company.id).eq('is_active', true),
-      ]);
-      const cmEmails = new Set();
-      const { data: cm } = await supabase.from('company_members').select('email')
-        .eq('company_id', req.company.id).neq('status','deactivated');
-      (cm||[]).forEach(m => cmEmails.add(m.email?.toLowerCase()));
-      const omUnique = [...new Set((omRows||[]).map(m=>m.email?.toLowerCase()).filter(Boolean))]
-        .filter(e => !cmEmails.has(e));
-      employeeCount = (cmCount||0) + omUnique.length;
+    // Get employee count from DB — unique emails across both tables
+    const employeeCount = await countUniqueEmployees(req.company.id);
+
+    // Use admin-set multiplier; fall back to 2000 if not set
+    const multiplier = await getCompanyMultiplier(req.company.id);
+    const ratePerHead = (multiplier !== null) ? multiplier : 2000;
+
+    // If free tier (multiplier=0), don't charge
+    if (ratePerHead === 0) {
+      return res.status(400).json({ error: 'Your company has a free plan. No payment required.' });
     }
 
     const PLANS = getPlans(employeeCount);
+    // Override plan naira with the admin-set rate
+    const naira = plan === 'yearly'
+      ? employeeCount * ratePerHead * 10
+      : employeeCount * ratePerHead;
+    const label = `${employeeCount} employees × ₦${ratePerHead.toLocaleString('en-NG')} per head`;
+
     const txRef = `TK-SUB-${req.company.id.slice(0,8).toUpperCase()}-${Date.now()}`;
-    const { naira, label } = PLANS[plan];
     const amount = currency === 'NGN' ? naira : parseFloat((naira * FX[currency]).toFixed(2));
 
     const response = await axios.post(`${FLW_BASE}/payments`, {
@@ -229,7 +227,22 @@ const getSubscription = async (req, res) => {
       try { await supabase.from('companies').update({ subscription_status: 'expired' }).eq('id', req.company.id); } catch {}
     }
 
-    res.json({ ...data, is_active });
+    // Also attach pilot info from companies table
+    const { data: co } = await supabase.from('companies')
+      .select('pilot_starts_at, pilot_ends_at, pilot_days, subscription_status, pricing_multiplier')
+      .eq('id', req.company.id).single();
+
+    const pilotActive = co?.pilot_ends_at && new Date(co.pilot_ends_at) > new Date();
+    const effectivelyActive = is_active || pilotActive;
+
+    res.json({
+      ...data,
+      is_active:      effectivelyActive,
+      pilot_active:   !!pilotActive,
+      pilot_ends_at:  co?.pilot_ends_at || null,
+      pilot_days:     co?.pilot_days || null,
+      pricing_multiplier: co?.pricing_multiplier ?? null,
+    });
   } catch (err) {
     console.error('[getSubscription] error:', err.message);
     res.status(500).json({ error: 'Failed to fetch subscription' });
@@ -261,20 +274,79 @@ const cancelSubscription = async (req, res) => {
 };
 
 
+// ── Helper: count unique employees across both tables ────────────────────────
+const countUniqueEmployees = async (companyId) => {
+  // Get all emails from company_members (active/approved)
+  const { data: cm } = await supabase.from('company_members')
+    .select('email').eq('company_id', companyId).neq('status', 'deactivated');
+  const cmEmails = new Set((cm || []).map(m => m.email?.toLowerCase()).filter(Boolean));
+
+  // Get all emails from occasion_members (any occasion type - deduplicated)
+  const { data: om } = await supabase.from('occasion_members')
+    .select('email').eq('company_id', companyId).eq('is_active', true);
+
+  // Unique across BOTH tables by email - occasion_members counted only if not already in company_members
+  const allEmails = new Set([
+    ...cmEmails,
+    ...(om || []).map(m => m.email?.toLowerCase()).filter(Boolean),
+  ]);
+
+  return allEmails.size;
+};
+
+// ── Helper: get admin-set pricing multiplier for a company ───────────────────
+const getCompanyMultiplier = async (companyId) => {
+  const { data } = await supabase.from('companies')
+    .select('pricing_multiplier').eq('id', companyId).single();
+  // null means not set yet — use default. 0 means free. Any other number is the rate.
+  if (data?.pricing_multiplier === null || data?.pricing_multiplier === undefined) return null; // not set
+  return Number(data.pricing_multiplier);
+};
+
 // GET /api/subscription/quote — returns dynamic per-head pricing for this company
 const getQuote = async (req, res) => {
   try {
-    const { data: rows } = await supabase
-      .from('company_members')
-      .select('id', { count: 'exact', head: false })
-      .eq('company_id', req.company.id)
-      .neq('status', 'deactivated');
-    const headCount    = (rows || []).length;
-    const monthlyPrice = headCount * 2000;
-    const yearlyPrice  = headCount * 20000;
-    res.json({ head_count: headCount, monthly_price: monthlyPrice, yearly_price: yearlyPrice,
-               per_head_monthly: 2000, per_head_yearly: 20000 });
-  } catch (err) { res.status(500).json({ error: 'Failed to calculate quote' }); }
+    const headCount    = await countUniqueEmployees(req.company.id);
+    const multiplier   = await getCompanyMultiplier(req.company.id);
+
+    // If multiplier not set yet, return headcount only — frontend shows "Get a quote"
+    if (multiplier === null) {
+      return res.json({
+        head_count:        headCount,
+        monthly_price:     null,
+        yearly_price:      null,
+        per_head_rate:     null,
+        multiplier_set:    false,
+        message:           headCount > 0 ? `${headCount} employees imported` : 'No employees imported yet',
+      });
+    }
+
+    // multiplier = 0 means free (admin granted free tier)
+    if (multiplier === 0) {
+      return res.json({
+        head_count:     headCount,
+        monthly_price:  0,
+        yearly_price:   0,
+        per_head_rate:  0,
+        multiplier_set: true,
+        is_free:        true,
+      });
+    }
+
+    const monthlyPrice = headCount * multiplier;
+    const yearlyPrice  = monthlyPrice * 10; // 2 months free
+    res.json({
+      head_count:     headCount,
+      monthly_price:  monthlyPrice,
+      yearly_price:   yearlyPrice,
+      per_head_rate:  multiplier,
+      multiplier_set: true,
+      is_free:        false,
+    });
+  } catch (err) {
+    console.error('getQuote error:', err.message);
+    res.status(500).json({ error: 'Failed to calculate quote' });
+  }
 };
 
 module.exports = { initializeSubscription, verifySubscription, getSubscription, cancelSubscription, getQuote, saveSubscription };

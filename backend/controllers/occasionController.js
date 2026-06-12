@@ -821,7 +821,12 @@ const triggerOccasionNow = async (req, res) => {
     // 5-day signing window, then auto-deliver
     const sendDate  = new Date(Date.now() + 5 * 86400000);
     const deadline  = sendDate;
-    const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
+    const FRONTEND_URL = (() => {
+  let s = (process.env.FRONTEND_URL || '').trim();
+  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').replace(/\/$/g, '').trim();
+  return s.startsWith('http') ? s : 'https://thankeeu.com';
+})();
 
     // Guard: check no existing card with same slug pattern this year
     const { data: existingCard } = await supabase.from('cards')

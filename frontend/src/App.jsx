@@ -41,6 +41,7 @@ import VendorCustomers         from './pages/vendor/VendorCustomers';
 import VendorStorefrontPublic  from './pages/vendor/VendorStorefrontPublic';
 import VendorLogin            from './pages/vendor/VendorLogin';
 import VendorSignup           from './pages/vendor/VendorSignup';
+import VendorVerifyEmail      from './pages/vendor/VendorVerifyEmail';
 import BlogConfirmSubscription from './pages/BlogConfirmSubscription';
 import BlogUnsubscribe          from './pages/BlogUnsubscribe';
 import PaymentCallback from './pages/PaymentCallback';
@@ -177,6 +178,7 @@ const App = () => (
             <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
             <Route path="/vendor/login"             element={<VendorLogin />} />
             <Route path="/vendor/signup"            element={<VendorSignup />} />
+            <Route path="/vendor/verify-email"      element={<VendorVerifyEmail />} />
             <Route path="/vendor/dashboard"   element={<VendorDashboard />} />
             <Route path="/vendor/products"    element={<VendorProducts />} />
             <Route path="/vendor/orders"      element={<VendorOrders />} />

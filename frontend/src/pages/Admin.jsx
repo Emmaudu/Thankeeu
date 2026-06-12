@@ -739,7 +739,7 @@ const Admin = () => {
               <table className="w-full text-sm">
                 <thead className="bg-purple-50 text-xs uppercase text-warm-500">
                   <tr>
-                    {['Store','Category','Country','Status','Action'].map(h=>(
+                    {['Store','Category','Status','Verified','Action'].map(h=>(
                       <th key={h} className="px-4 py-3 text-left">{h}</th>
                     ))}
                   </tr>
@@ -752,7 +752,6 @@ const Admin = () => {
                         <p className="text-xs text-warm-400">{v.email}</p>
                       </td>
                       <td className="px-4 py-3 capitalize text-warm-600">{v.category}</td>
-                      <td className="px-4 py-3 text-warm-600">{v.country||'—'}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${
                           v.status==='approved' ? 'bg-green-100 text-green-700' :
@@ -762,31 +761,62 @@ const Admin = () => {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          {v.status !== 'approved' && (
-                            <button onClick={async()=>{
+                        {v.is_verified
+                          ? <span className="text-xs font-semibold text-green-600 flex items-center gap-1">✅ Verified</span>
+                          : <span className="text-xs font-semibold text-amber-600 flex items-center gap-1">⏳ Unverified</span>
+                        }
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {/* Verify & Activate — shown if not yet verified OR not approved */}
+                          {(!v.is_verified || v.status !== 'approved') && (
+                            <button onClick={async () => {
                               const base = import.meta.env.VITE_API_URL||'/api';
-                              await fetch(`${base}/vendor/admin/vendors/${v.id}/status`,{
-                                method:'PUT', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`},
-                                body: JSON.stringify({status:'approved'})});
-                              fetchVendors(); toast.success('Vendor approved!');
-                            }} className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-semibold">
-                              Approve
+                              const hdr  = {'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`};
+                              try {
+                                const r = await fetch(`${base}/vendor/admin/vendors/${v.id}/verify-activate`, { method:'POST', headers: hdr });
+                                const d = await r.json();
+                                if (!r.ok) throw new Error(d.error);
+                                toast.success(d.message);
+                                fetchVendors();
+                              } catch(e) { toast.error(e.message); }
+                            }} className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-semibold border border-green-200">
+                              ✅ Verify &amp; Activate
                             </button>
                           )}
-                          {v.status === 'approved' && (
-                            <button onClick={async()=>{
+
+                          {/* Resend verification — only if not yet verified */}
+                          {!v.is_verified && (
+                            <button onClick={async () => {
                               const base = import.meta.env.VITE_API_URL||'/api';
-                              await fetch(`${base}/vendor/admin/vendors/${v.id}/status`,{
-                                method:'PUT', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`},
-                                body: JSON.stringify({status:'suspended'})});
-                              fetchVendors(); toast.success('Vendor suspended');
-                            }} className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-semibold">
+                              const hdr  = {'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`};
+                              try {
+                                const r = await fetch(`${base}/vendor/admin/vendors/${v.id}/resend-verify`, { method:'POST', headers: hdr });
+                                const d = await r.json();
+                                if (!r.ok) throw new Error(d.error);
+                                toast.success(d.message);
+                              } catch(e) { toast.error(e.message); }
+                            }} className="text-xs px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 font-semibold border border-amber-200">
+                              📧 Resend link
+                            </button>
+                          )}
+
+                          {/* Suspend if currently approved */}
+                          {v.status === 'approved' && (
+                            <button onClick={async () => {
+                              const base = import.meta.env.VITE_API_URL||'/api';
+                              const hdr  = {'Content-Type':'application/json', Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`};
+                              try {
+                                await fetch(`${base}/vendor/admin/vendors/${v.id}/status`, { method:'PUT', headers: hdr, body: JSON.stringify({status:'suspended'}) });
+                                fetchVendors(); toast.success('Vendor suspended');
+                              } catch(e) { toast.error(e.message); }
+                            }} className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-semibold border border-red-200">
                               Suspend
                             </button>
                           )}
+
                           <a href={`/c/${v.slug}`} target="_blank" rel="noopener noreferrer"
-                            className="text-xs px-3 py-1.5 rounded-lg bg-purple-50 text-primary-600 hover:bg-purple-100 font-semibold">
+                            className="text-xs px-3 py-1.5 rounded-lg bg-purple-50 text-primary-600 hover:bg-purple-100 font-semibold border border-purple-200">
                             View store
                           </a>
                         </div>

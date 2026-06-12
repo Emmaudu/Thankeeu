@@ -25,9 +25,14 @@ router.get('/support',         vendorAuth, v.getVendorTickets);
 router.post('/support',        vendorAuth, v.createVendorTicket);
 router.put('/me/password',     vendorAuth, v.changeVendorPassword);
 
+// Public: vendor clicks verify link from email
+router.get('/verify-email', v.vendorVerifyEmail);
+
 // Admin
-router.get('/admin/vendors',           adminAuth, v.adminListVendors);
-router.put('/admin/vendors/:id/status',adminAuth, v.adminUpdateVendorStatus);
-router.get('/admin/orders',            adminAuth, v.adminListOrders);
+router.get('/admin/vendors',                       adminAuth, v.adminListVendors);
+router.put('/admin/vendors/:id/status',            adminAuth, v.adminUpdateVendorStatus);
+router.get('/admin/orders',                        adminAuth, v.adminListOrders);
+router.post('/admin/vendors/:id/resend-verify',    adminAuth, v.adminResendVerification);
+router.post('/admin/vendors/:id/verify-activate',  adminAuth, v.adminVerifyActivate);
 
 module.exports = router;

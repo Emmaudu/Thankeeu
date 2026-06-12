@@ -464,16 +464,62 @@ const memberForgotPassword = async (req, res) => {
 const memberResetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
-    const { data: member } = await supabase
-      .from('company_members').select('id, reset_token_expires').eq('reset_token', token).maybeSingle();
-    if (!member || new Date(member.reset_token_expires) < new Date())
-      return res.status(400).json({ error: 'Invalid or expired reset link' });
+    if (!token) return res.status(400).json({ error: 'Token is required' });
+    if (!password || password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    // Check reset_token first (from forgot-password flow, expires in 1hr)
+    let member = null;
+    let tokenType = null;
+
+    const { data: byReset } = await supabase
+      .from('company_members')
+      .select('id, reset_token_expires, status')
+      .eq('reset_token', token)
+      .maybeSingle();
+
+    if (byReset) {
+      // Check expiry only for reset tokens
+      if (new Date(byReset.reset_token_expires) < new Date()) {
+        return res.status(400).json({ error: 'This reset link has expired. Please request a new one.' });
+      }
+      member = byReset;
+      tokenType = 'reset';
+    } else {
+      // Try invite_token (from HR import / bulk upload — never expires)
+      const { data: byInvite } = await supabase
+        .from('company_members')
+        .select('id, status')
+        .eq('invite_token', token)
+        .maybeSingle();
+
+      if (byInvite) {
+        member = byInvite;
+        tokenType = 'invite';
+      }
+    }
+
+    if (!member) {
+      return res.status(400).json({ error: 'Invalid reset link. It may have already been used. Please request a new one.' });
+    }
 
     const password_hash = await hashPassword(password, 12);
-    await supabase.from('company_members').update({ password_hash, reset_token: null, reset_token_expires: null }).eq('id', member.id);
-    res.json({ message: 'Password reset successfully' });
+
+    if (tokenType === 'reset') {
+      await supabase.from('company_members')
+        .update({ password_hash, reset_token: null, reset_token_expires: null, status: 'approved' })
+        .eq('id', member.id);
+    } else {
+      // invite_token — clear it and mark approved so member can log in
+      await supabase.from('company_members')
+        .update({ password_hash, invite_token: null, status: 'approved' })
+        .eq('id', member.id);
+    }
+
+    res.json({ message: 'Password set successfully! You can now sign in.' });
   } catch (err) {
-    res.status(500).json({ error: 'Server error' });
+    console.error('memberResetPassword error:', err.message);
+    res.status(500).json({ error: 'Server error. Please try again.' });
   }
 };
 

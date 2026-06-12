@@ -269,7 +269,7 @@ const placeOrder = async (req, res) => {
 const adminListVendors = async (req, res) => {
   try {
     const { status } = req.query;
-    let q = supabase.from('vendors').select('id, business_name, email, slug, category, status, created_at').order('created_at', { ascending: false });
+    let q = supabase.from('vendors').select('id, business_name, email, slug, category, status, is_verified, created_at').order('created_at', { ascending: false });
     if (status) q = q.eq('status', status);
     const { data } = await q;
     res.json(data || []);
@@ -363,11 +363,129 @@ const adminListOrders = async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 
+
+// ── GET /api/vendor/verify-email?token= — vendor clicks link from email ───────
+const vendorVerifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ error: 'Verification token is required' });
+
+    const { data: vendor, error } = await supabase
+      .from('vendors')
+      .select('id, email, business_name, is_verified, status')
+      .eq('verify_token', token)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!vendor) {
+      return res.status(400).json({ error: 'Invalid or already-used verification link. Contact support or ask admin to resend.' });
+    }
+    if (vendor.is_verified) {
+      return res.json({ ok: true, already_verified: true, message: 'Email already verified. You can log in once admin approves your store.' });
+    }
+
+    // Mark verified and set status approved so vendor can log in immediately
+    const { error: updateErr } = await supabase.from('vendors').update({
+      is_verified:  true,
+      status:       'approved',
+      verify_token: null,          // clear token so it cannot be reused
+      updated_at:   new Date(),
+    }).eq('id', vendor.id);
+
+    if (updateErr) throw updateErr;
+
+    // Send approval confirmation email
+    await sendEmail({
+      to:       vendor.email,
+      template: 'vendorApproved',
+      data:     { name: vendor.business_name, dashUrl: `${FRONTEND_URL}/vendor/dashboard` },
+    }).catch(() => {});
+
+    res.json({ ok: true, message: 'Email verified! Your store is now active. You can log in to your dashboard.', vendor_id: vendor.id });
+  } catch (err) {
+    console.error('vendorVerifyEmail error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ── POST /api/vendor/admin/vendors/:id/resend-verification ───────────────────
+// Admin resends the verification email with a fresh token
+const adminResendVerification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data: vendor } = await supabase
+      .from('vendors').select('id, email, business_name, is_verified').eq('id', id).single();
+    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+    if (vendor.is_verified) return res.status(400).json({ error: 'Vendor is already verified' });
+
+    // Generate a fresh token
+    const verifyToken = require('crypto').randomBytes(32).toString('hex');
+    const { error } = await supabase.from('vendors').update({
+      verify_token: verifyToken,
+      updated_at:   new Date(),
+    }).eq('id', id);
+    if (error) throw error;
+
+    // Resend the verification email
+    await sendEmail({
+      to:       vendor.email,
+      template: 'vendorWelcome',
+      data: {
+        name:      vendor.business_name,
+        slug:      '', // slug shown in email footer only
+        appUrl:    FRONTEND_URL,
+        verifyUrl: `${FRONTEND_URL}/vendor/verify-email?token=${verifyToken}`,
+      },
+    });
+
+    res.json({ ok: true, message: `Verification email resent to ${vendor.email}` });
+  } catch (err) {
+    console.error('adminResendVerification error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ── POST /api/vendor/admin/vendors/:id/verify-activate ──────────────────────
+// Admin manually verifies + activates vendor (bypasses email verification)
+const adminVerifyActivate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data: vendor } = await supabase
+      .from('vendors').select('id, email, business_name, is_verified, status').eq('id', id).single();
+    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
+
+    const { error } = await supabase.from('vendors').update({
+      is_verified:  true,
+      status:       'approved',
+      verify_token: null,
+      updated_at:   new Date(),
+    }).eq('id', id);
+    if (error) throw error;
+
+    // Notify vendor their store is live
+    await sendEmail({
+      to:       vendor.email,
+      template: 'vendorApproved',
+      data:     { name: vendor.business_name, dashUrl: `${FRONTEND_URL}/vendor/dashboard` },
+    }).catch(() => {});
+
+    res.json({
+      ok:      true,
+      message: `${vendor.business_name} is now verified and approved. They can log in immediately.`,
+    });
+  } catch (err) {
+    console.error('adminVerifyActivate error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
+
   listPublicVendors, vendorSignup, vendorLogin, getMyStore, updateStore,
   getProducts, createProduct, updateProduct, deleteProduct,
   getOrders, updateOrderStatus, getAnalytics,
   getPublicStore, placeOrder,
   adminListVendors, adminUpdateVendorStatus, adminListOrders,
+  vendorVerifyEmail, adminResendVerification, adminVerifyActivate,
   getVendorTickets, createVendorTicket, changeVendorPassword,
 };

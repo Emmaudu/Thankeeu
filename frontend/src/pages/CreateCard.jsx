@@ -71,7 +71,7 @@ const CreateCard = () => {
   const { member }  = useMemberAuth();
   const { company } = useCompanyAuth();
   const isCompanyUser  = !!(member || company); // free card creation
-  const isTeamLeader   = member?.role === 'leader';
+  const isTeamLeader   = member?.role === 'team_leader';
   const navigate = useNavigate();
   // Derive a display name for whoever is creating the card
   const creatorName = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'Someone';
@@ -351,7 +351,7 @@ const CreateCard = () => {
                   <div className="flex gap-3">
                     {[
                       { value: 'department', label: 'My Department', desc: 'Only members in the same department' },
-                      { value: 'all',        label: 'Entire Company', desc: 'All team members across all departments' },
+                      { value: 'company_wide', label: 'Entire Company', desc: 'All team members across all departments' },
                     ].map(opt => (
                       <button key={opt.value} type="button"
                         onClick={() => set('notification_scope', opt.value)}

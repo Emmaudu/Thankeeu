@@ -1,9 +1,10 @@
 const supabase = require('../utils/supabase');
 const FRONTEND_URL = (() => {
-  let s = (process.env.FRONTEND_URL || '').trim();
-  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
-  s = s.replace(/['"]/g, '').replace(/\/$/g, '').trim();
-  return s.startsWith('http') ? s : 'https://thankeeu.com';
+  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = raw.trim();
+  if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+  return (s.startsWith('http') ? s : 'https://thankeeu.com');
 })();
 const { pushNotification } = require('../utils/notify');
 const { sendEmail } = require('../utils/email');

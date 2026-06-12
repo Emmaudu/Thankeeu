@@ -206,11 +206,13 @@ const setCompanyMultiplier = async (req, res) => {
 
     if (error) throw error;
 
-    await supabase.from('activity_logs').insert({
-      action:      'admin_set_multiplier',
-      description: `Admin set pricing multiplier to ₦${rate.toLocaleString('en-NG')} for company ${companyId}`,
-      actor_type:  'admin',
-    }).catch(() => {});
+    try {
+      await supabase.from('activity_logs').insert({
+        action:      'admin_set_multiplier',
+        description: `Admin set pricing multiplier to ₦${rate.toLocaleString('en-NG')} for company ${companyId}`,
+        actor_type:  'admin',
+      });
+    } catch (_) {}
 
     res.json({
       ok:         true,
@@ -251,20 +253,24 @@ const grantPilot = async (req, res) => {
     if (error) throw error;
 
     // Also ensure company_subscriptions has a pilot row
-    await supabase.from('company_subscriptions').upsert({
-      company_id: companyId,
-      plan:       'pilot',
-      status:     'active',
-      amount:     0,
-      starts_at:  now,
-      expires_at: endsAt,
-    }, { onConflict: 'company_id' }).catch(() => {});
+    try {
+      await supabase.from('company_subscriptions').upsert({
+        company_id: companyId,
+        plan:       'pilot',
+        status:     'active',
+        amount:     0,
+        starts_at:  now,
+        expires_at: endsAt,
+      }, { onConflict: 'company_id' });
+    } catch (_) {}
 
-    await supabase.from('activity_logs').insert({
-      action:      'admin_grant_pilot',
-      description: `Admin granted ${pilotDays}-day pilot to company ${companyId} until ${endsAt.toISOString().slice(0,10)}`,
-      actor_type:  'admin',
-    }).catch(() => {});
+    try {
+      await supabase.from('activity_logs').insert({
+        action:      'admin_grant_pilot',
+        description: `Admin granted ${pilotDays}-day pilot to company ${companyId} until ${endsAt.toISOString().slice(0,10)}`,
+        actor_type:  'admin',
+      });
+    } catch (_) {}
 
     // Get company details for email
     const { data: company } = await supabase.from('companies')
@@ -273,10 +279,12 @@ const grantPilot = async (req, res) => {
     if (company) {
       const { sendEmail } = require('../utils/email');
       const FRONTEND_URL = (() => {
-        let s = (process.env.FRONTEND_URL || '').trim();
-        if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
-        return s.startsWith('http') ? s : 'https://thankeeu.com';
-      })();
+  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = raw.trim();
+  if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+  return (s.startsWith('http') ? s : 'https://thankeeu.com');
+})();
       sendEmail({
         to:      company.email,
         subject: `Your Thankeeu ${pilotDays}-day pilot has started! 🚀`,

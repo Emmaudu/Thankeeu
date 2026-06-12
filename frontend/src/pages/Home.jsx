@@ -408,13 +408,8 @@ const Home = () => {
             <div className="rounded-3xl p-7 border-2 border-primary-800" style={{ background:'linear-gradient(135deg,#1A1035,#2E1F6B)' }}>
               <div className="text-4xl mb-4">🏢</div>
               <h3 className="font-display text-2xl font-bold text-purple-100 mb-1">For companies</h3>
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-purple-200 font-extrabold text-2xl">
-                  {formatCurrency(200000, homeCurrency)}
-                </span>
-                <span className="text-purple-400 text-sm">/month</span>
-              </div>
-              {homeCurrency !== 'NGN' && <p className="text-xs text-purple-400 mb-3">≈ ₦200,000 · charged at live rate</p>}
+              <p className="text-purple-200 font-extrabold text-2xl mb-1">Get a quote</p>
+              <p className="text-xs text-purple-400 mb-2">Price based on your team size</p>
               <p className="text-purple-300 mb-5 text-sm leading-relaxed">Automate all team celebrations. Connect your HRIS. Never forget a birthday again.</p>
               <ul className="space-y-2 mb-6">
                 {['✓ Unlimited employees','✓ HRIS integration','✓ 12 automated occasions','✓ HR analytics dashboard'].map(f => (

@@ -312,7 +312,7 @@ const importOccasionMembers = async (req, res) => {
 
     // Create member accounts + send invites for all successfully imported rows
     const { data: companyData } = await supabase.from('companies').select('name').eq('id', req.company.id).single();
-    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
+    const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
 
     for (const row of toInsert) {
       const inviteToken = crypto.randomBytes(24).toString('hex');
@@ -626,7 +626,7 @@ const importGeneralTemplate = async (req, res) => {
     const cgI  = ci('congratulat');                // Congratulatory Message
 
     const { sendEmail } = require('../utils/email');
-    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
+    const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
     const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
 
     for (let i = 1; i < rows.length; i++) {
@@ -770,7 +770,7 @@ const updateOccasionTypeScope = async (req, res) => {
   try {
     const { occasionTypeId } = req.params;
     const { default_scope } = req.body;
-    if (!['all','department'].includes(default_scope))
+    if (!['all','company_wide','department'].includes(default_scope))
       return res.status(400).json({ error:'Scope must be "all" or "department"' });
     const { error } = await supabase.from('occasion_types')
       .update({ default_scope, updated_at: new Date() })
@@ -822,10 +822,11 @@ const triggerOccasionNow = async (req, res) => {
     const sendDate  = new Date(Date.now() + 5 * 86400000);
     const deadline  = sendDate;
     const FRONTEND_URL = (() => {
-  let s = (process.env.FRONTEND_URL || '').trim();
-  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
-  s = s.replace(/['"]/g, '').replace(/\/$/g, '').trim();
-  return s.startsWith('http') ? s : 'https://thankeeu.com';
+  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = raw.trim();
+  if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+  return (s.startsWith('http') ? s : 'https://thankeeu.com');
 })();
 
     // Guard: check no existing card with same slug pattern this year
@@ -864,6 +865,7 @@ const triggerOccasionNow = async (req, res) => {
     // Notify colleagues
     let membersQuery = supabase.from('company_members')
       .select('email, first_name').eq('company_id', req.company.id).eq('status', 'approved').neq('email', m.email);
+    // 'department' = dept only; 'company_wide' or 'all' = entire company
     if (ot.default_scope === 'department') membersQuery = membersQuery.eq('department', m.department);
     const { data: colleagues } = await membersQuery;
 
@@ -950,7 +952,7 @@ const importByOccasionName = async (req, res) => {
 
     let imported = 0; const errors = [];
     const { sendEmail } = require('../utils/email');
-    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
+    const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
     const { data: coData } = await supabase.from('companies').select('name,contact_person').eq('id', companyId).single();
 
     for (let i = 1; i < rows.length; i++) {

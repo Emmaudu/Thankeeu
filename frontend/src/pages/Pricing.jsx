@@ -63,11 +63,11 @@ const INDIVIDUAL_PLANS = [
 
 const COMPANY_PLANS = [
   {
-    id: 'monthly', name: 'Monthly', priceNGN: 200000, period: '/month',
+    id: 'monthly', name: 'Monthly', period: '/month',
     features: ['Unlimited employees','Automated birthday emails','Birthday card delivery','Gift pot collection via Flutterwave','HR dashboard & analytics','Import & re-import team data','Email support within 24 hours'],
   },
   {
-    id: 'yearly', name: 'Yearly', priceNGN: 2400000, period: '/year', popular: true,
+    id: 'yearly', name: 'Yearly', period: '/year', popular: true,
     features: ['Everything in Monthly','2 months FREE vs monthly','Priority phone & email support','Custom email branding','Dedicated account manager','Advanced birthday analytics','Team data export anytime'],
   },
 ];
@@ -86,7 +86,7 @@ import { CurrencyToggle, RotatingPrice } from '../utils/currencyUI';
 const Pricing = () => {
   useSEO({
     title: 'Pricing — Group Cards for Everyone Worldwide · Thankeeu',
-    description: 'Send beautiful group cards from anywhere in the world. Pay in NGN, USD, GBP, EUR, CAD and more. Individual cards from ₦5,000. Team automation from ₦200,000/month.',
+    description: 'Send beautiful group cards from anywhere in the world. Pay in NGN, USD, GBP, EUR, CAD and more. Individual cards from ₦5,000. Team automation — pricing based on your headcount.',
     canonical: '/pricing',
   });
 
@@ -98,6 +98,7 @@ const Pricing = () => {
   const [currency,     setCurrency]     = useState('NGN');
   const [loadingPlan,  setLoadingPlan]  = useState(null);
   const [openFAQ,      setOpenFAQ]      = useState(null);
+  const [showDemo,     setShowDemo]     = useState(false);
 
   const cur = getCurrency(currency);
 
@@ -285,7 +286,7 @@ const Pricing = () => {
               <p className="text-warm-500 max-w-lg mx-auto text-sm leading-relaxed">
                 Upload your employees once. Thankeeu handles everything — cards, emails, gift pots. All automatic.
               </p>
-              <p className="text-primary-600 font-semibold text-sm mt-2">₦2,000 per employee per month · Price based on your team size</p>
+              <p className="text-primary-600 font-semibold text-sm mt-2">Price based on your team headcount — get a quote to see your rate</p>
 
               {/* Currency toggle for company plans */}
               <div className="mt-5">
@@ -325,9 +326,8 @@ const Pricing = () => {
                   )}
                   <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
                   <div className="mb-3">
-                    <span className="text-2xl font-bold text-warm-900">₦2,000</span>
-                    <span className="text-warm-400 text-sm"> / employee{plan.id==='monthly'?' / month':' / year'}</span>
-                    <p className="text-xs text-warm-400 mt-1">Final price based on your team headcount</p>
+                    <p className="text-2xl font-bold text-warm-900">Get a quote</p>
+                    <p className="text-xs text-warm-400 mt-1">Price based on your team headcount</p>
                   </div>
                   <div className="h-px bg-purple-100 mb-4" />
                   <ul className="space-y-2 mb-7">
@@ -401,6 +401,41 @@ const Pricing = () => {
           </div>
         </div>
       </section>
+
+      {/* Get a quote modal */}
+      {showDemo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background:'rgba(26,16,53,0.7)', backdropFilter:'blur(8px)' }}
+          onClick={() => setShowDemo(false)}>
+          <div className="bg-white rounded-3xl p-7 max-w-md w-full" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-warm-900 mb-1">Get a quote for your team</h3>
+            <p className="text-sm text-warm-500 mb-5">Tell us about your company and we will send you a custom price within 24 hours.</p>
+            <form onSubmit={async e => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              try {
+                await fetch('/api/demo/request', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(Object.fromEntries(fd))
+                });
+                toast.success('Request sent! We will reach out within 24 hours.');
+                setShowDemo(false);
+              } catch { toast.error('Failed to send. Email us at hello@thankeeu.com'); }
+            }} className="space-y-3">
+              <input name="contact_name" required placeholder="Your name" className="input w-full" />
+              <input name="email" type="email" required placeholder="Work email" className="input w-full" />
+              <input name="company_name" required placeholder="Company name" className="input w-full" />
+              <input name="team_size" placeholder="Team size (e.g. 50)" className="input w-full" />
+              <textarea name="message" placeholder="Anything else?" rows={2} className="input w-full" />
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setShowDemo(false)} className="btn-secondary flex-1 py-2.5 text-sm">Cancel</button>
+                <button type="submit" className="btn-primary flex-1 py-2.5 text-sm">Send request →</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Fade-slide animation */}
       <style>{`

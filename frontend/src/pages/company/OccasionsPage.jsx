@@ -83,7 +83,7 @@ const OCCASION_TABS = [
 
 const SCOPE_OPTIONS = [
   { value: 'department', label: 'Department only' },
-  { value: 'company',    label: 'Entire company' },
+  { value: 'company_wide', label: 'Entire company' },
 ];
 
 export default function OccasionsPage() {
@@ -186,7 +186,7 @@ export default function OccasionsPage() {
   };
 
   const handleToggleTypeScope = async (typeId, currentScope) => {
-    const newScope = currentScope === 'company' ? 'department' : 'company';
+    const newScope = currentScope === 'company_wide' ? 'department' : 'company_wide';
     setTypeScopeLoading(typeId);
     // Optimistic update immediately so UI feels instant
     setTypeScopes(p => ({ ...p, [typeId]: newScope }));
@@ -197,7 +197,7 @@ export default function OccasionsPage() {
         headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ [typeId]: newScope }),
       });
-      toast.success(`Notifications: ${newScope === 'company' ? '🌍 All departments' : '🏢 Own department only'}`);
+      toast.success(`Notifications: ${newScope === 'company_wide' ? '🌍 All departments' : '🏢 Own department only'}`);
     } catch {
       // Revert on failure
       setTypeScopes(p => ({ ...p, [typeId]: currentScope }));
@@ -365,11 +365,11 @@ export default function OccasionsPage() {
                     disabled={typeScopeLoading === tab.id}
                     onClick={() => handleToggleTypeScope(tab.id, typeScopes[tab.id] || 'department')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                      (typeScopes[tab.id] || 'department') === 'company'
+                      (typeScopes[tab.id] || 'department') === 'company_wide'
                         ? 'bg-primary-50 border-primary-200 text-primary-600'
                         : 'bg-warm-50 border-warm-200 text-warm-600'
                     }`}>
-                    {(typeScopes[tab.id] || 'department') === 'company' ? '🌍 All Depts' : '🏢 Own Dept Only'}
+                    {(typeScopes[tab.id] || 'department') === 'company_wide' ? '🌍 All Depts' : '🏢 Own Dept Only'}
                   </button>
                 </div>
               ))}

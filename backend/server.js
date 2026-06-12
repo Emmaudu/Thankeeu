@@ -6,7 +6,13 @@ const rateLimit = require('express-rate-limit');
 const cron         = require('node-cron');
 const cookieParser = require('cookie-parser');
 const supabase      = require('./utils/supabase');
-const FRONTEND_URL = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
+const FRONTEND_URL = (() => {
+  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = raw.trim();
+  if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+  return (s.startsWith('http') ? s : 'https://thankeeu.com');
+})();
 const { sendEmail } = require('./utils/email');
 
 const app = express();

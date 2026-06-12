@@ -8,10 +8,11 @@ const argon2      = require('argon2');
 const crypto      = require('crypto');
 const { sendEmail } = require('../utils/email');
 const FRONTEND_URL = (() => {
-  let s = (process.env.FRONTEND_URL || '').trim();
-  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
-  s = s.replace(/['"]/g, '').replace(/\/$/, '').trim();
-  return s.startsWith('http') ? s : 'https://thankeeu.com';
+  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = raw.trim();
+  if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+  return (s.startsWith('http') ? s : 'https://thankeeu.com');
 })();
 
 // ── Vendor signup / onboarding ───────────────────────────────────────────────
@@ -212,7 +213,7 @@ const getPublicStore = async (req, res) => {
       .eq('vendor_id', vendor.id).eq('is_available', true).order('featured', { ascending: false });
 
     // Log store view (fire-and-forget)
-    supabase.from('vendor_store_views').insert({ vendor_id: vendor.id, path: `/c/${slug}` }).then(() => {}).catch(() => {});
+    (async () => { try { await supabase.from('vendor_store_views').insert({ vendor_id: vendor.id, path: `/c/${slug}` }); } catch (_) {} })();
 
     res.json({ vendor, products: products || [] });
   } catch (err) { res.status(500).json({ error: err.message }); }

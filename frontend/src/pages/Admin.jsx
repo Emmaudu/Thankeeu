@@ -79,6 +79,10 @@ const Admin = () => {
   const [blogPosts, setBlogPosts]       = useState([]);
   const [blogLoading, setBlogLoading]   = useState(false);
   const [blogEditing, setBlogEditing]   = useState(null);
+
+  const [vendors,       setVendors]       = useState([]);
+  const [vendorOrders,  setVendorOrders]  = useState([]);
+  const [vendorsLoading,setVendorsLoading]= useState(false);
   const [blogForm, setBlogForm]         = useState({
     title:'', excerpt:'', content:'', category:'General',
     tags:'', status:'draft', is_featured:false, cover_image:'',

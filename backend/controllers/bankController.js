@@ -369,18 +369,20 @@ const withdrawGift = async (req, res) => {
     }).eq('id', card.id);
 
     // Also record in gift_claims table for admin visibility
-    await supabase.from('gift_claims').upsert({
-      card_id:         card.id,
-      recipient_name:  card.recipient_name,
-      recipient_email: callerEmail || card.recipient_email,
-      claim_type:      'transfer',
-      amount:          net,
-      bank_name:       bank.bank_name,
-      account_number:  bank.account_number,
-      account_name:    bank.account_name,
-      status:          'paid',
-      processed_at:    new Date(),
-    }, { onConflict: 'card_id' }).catch(() => {});
+    try {
+      await supabase.from('gift_claims').upsert({
+        card_id:         card.id,
+        recipient_name:  card.recipient_name,
+        recipient_email: callerEmail || card.recipient_email,
+        claim_type:      'transfer',
+        amount:          net,
+        bank_name:       bank.bank_name,
+        account_number:  bank.account_number,
+        account_name:    bank.account_name,
+        status:          'paid',
+        processed_at:    new Date(),
+      }, { onConflict: 'card_id' });
+    } catch (_) {}
 
     pushNotification(callerId, userId ? 'user' : 'member', 'gift_withdrawn',
       '💸 Gift withdrawal initiated',

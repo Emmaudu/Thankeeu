@@ -26,6 +26,7 @@ const MemberOccasionsPage = () => {
   useSEO({ title: 'Occasions — Thankeeu for Teams', noIndex: true });
 
   const { member } = useMemberAuth();
+  const isLeader  = member?.role === 'team_leader';
   const navigate = useNavigate();
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -310,6 +311,39 @@ const MemberOccasionsPage = () => {
                 <span>💡</span>
                 <span>A signing link will be copied to your clipboard. Share it on WhatsApp with your colleagues — they do <strong>not</strong> need an account to sign!</span>
               </div>
+
+              {/* Deadline & delivery — team leader only */}
+              {isLeader && (
+                <div className="border-t border-purple-100 pt-4 space-y-4">
+                  <p className="text-sm font-bold text-warm-800">⏰ Schedule</p>
+                  <div>
+                    <label className="block text-xs font-semibold text-warm-600 mb-1.5">
+                      Signing deadline <span className="text-warm-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="input w-full text-sm"
+                      value={cardForm.deadline}
+                      min={new Date().toISOString().slice(0,16)}
+                      onChange={e => setCardForm(p => ({ ...p, deadline: e.target.value }))}
+                    />
+                    <p className="text-xs text-warm-400 mt-1">Signers locked out after this date & time</p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-warm-600 mb-1.5">
+                      Delivery date & time <span className="text-warm-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="input w-full text-sm"
+                      value={cardForm.send_date}
+                      min={cardForm.deadline || new Date().toISOString().slice(0,16)}
+                      onChange={e => setCardForm(p => ({ ...p, send_date: e.target.value }))}
+                    />
+                    <p className="text-xs text-warm-400 mt-1">Card delivered to recipient on this date</p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary flex-1">Cancel</button>

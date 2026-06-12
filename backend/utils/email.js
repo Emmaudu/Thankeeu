@@ -1,19 +1,31 @@
 // ── Robust FRONTEND_URL parser ─────────────────────────────────────────────
-// Handles malformed env values like "FRONTEND_URLS=https://thankeeu.com"
-const _rawFE = process.env.FRONTEND_URL || '';
-const _cleanFE = (() => {
-  let s = _rawFE.trim();
-  // Strip any "KEY=value" wrapper
-  if (s.includes('=') && !s.startsWith('http')) {
-    s = s.slice(s.indexOf('=') + 1).trim();
+// Handles all Railway env var corruption patterns:
+//   "FRONTEND_URLS=https://thankeeu.com"
+//   "FRONTEND_URL=https://thankeeu.com"
+//   " https://thankeeu.com " (whitespace)
+//   "https://thankeeu.com/" (trailing slash)
+const FRONTEND_URL = (() => {
+  // Try all possible env var names (Railway sometimes appends S)
+  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = raw.trim();
+  // Strip KEY=value wrapper (handles FRONTEND_URL=https://... or FRONTEND_URLS=https://...)
+  if (!s.startsWith('http') && s.includes('=')) {
+    s = s.slice(s.lastIndexOf('=') + 1).trim();
   }
-  // Strip extra quotes
-  s = s.replace(/['"]/g, '').trim();
-  // Remove trailing slash
-  s = s.replace(/\/$/, '');
-  return s.startsWith('http') ? s : 'https://thankeeu.com';
+  // Strip any URL-encoded = signs
+  s = s.replace(/%3D/gi, '=');
+  if (!s.startsWith('http') && s.includes('=')) {
+    s = s.slice(s.lastIndexOf('=') + 1).trim();
+  }
+  // Strip quotes and trailing slash
+  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+  // Final validation
+  if (!s.startsWith('https://') && !s.startsWith('http://')) {
+    console.warn('[email.js] FRONTEND_URL could not be parsed from env, using fallback. Raw value:', JSON.stringify(raw));
+    return 'https://thankeeu.com';
+  }
+  return s;
 })();
-const FRONTEND_URL = _cleanFE;
 const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 

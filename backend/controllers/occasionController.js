@@ -320,8 +320,8 @@ const importOccasionMembers = async (req, res) => {
       const passHash    = await hashPassword(tempPass, 12);
       const nameParts   = row.first_name ? [row.first_name, row.last_name] : ['Member', ''];
 
-      // Upsert member account
-      await supabase.from('company_members').upsert({
+      // Upsert member account — check for errors and only email if stored successfully
+      const { data: upserted, error: upsertErr } = await supabase.from('company_members').upsert({
         company_id:    req.company.id,
         email:         row.email,
         first_name:    row.first_name,
@@ -332,7 +332,12 @@ const importOccasionMembers = async (req, res) => {
         status:        'approved',
         password_hash: passHash,
         invite_token:  inviteToken,
-      }, { onConflict: 'company_id,email' });
+      }, { onConflict: 'company_id,email' }).select('id').maybeSingle();
+
+      if (upsertErr) {
+        console.error(`company_members upsert error for ${row.email}:`, upsertErr.message);
+        continue; // skip email if DB write failed
+      }
 
       // Send invite email
       const setPasswordLink = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(row.email)}`;
@@ -643,46 +648,69 @@ const importGeneralTemplate = async (req, res) => {
       const gender = gnI >= 0 ? String(row[gnI] || '').trim().toLowerCase() : null;
       const base   = { first_name: fn, last_name: ln, email, department: dept, gender: gender || null, is_active: true };
 
-      // Create or update company_members row — safe upsert
+      // Create or update company_members row — always store invite_token atomically
+      const inviteToken = require('crypto').randomBytes(32).toString('hex');
+      // Fix role value: DB and middleware use 'team_leader' not 'leader'
+      const memberRole = role === 'leader' ? 'team_leader' : 'member';
       let memberId = null;
+      let isNew = false;
       try {
-        // Check if exists first
         const { data: existing } = await supabase.from('company_members')
           .select('id').eq('company_id', companyId).eq('email', email).maybeSingle();
+
         if (existing) {
-          await supabase.from('company_members')
-            .update({ first_name: fn, last_name: ln, department: dept,
-                      role, gender: gender||null, job_title: jt, phone,
-                      updated_at: new Date() })
-            .eq('id', existing.id);
+          // Update existing — include invite_token so the new link always works
+          const { error: ue } = await supabase.from('company_members')
+            .update({
+              first_name: fn, last_name: ln, department: dept,
+              role: memberRole, gender: gender||null, job_title: jt, phone,
+              invite_token: inviteToken,   // ← always refresh token on re-import
+              status: 'approved',
+              updated_at: new Date(),
+            }).eq('id', existing.id);
+          if (ue) throw ue;
           memberId = existing.id;
         } else {
+          // Insert new — include invite_token from the start
           const { data: inserted, error: ie } = await supabase.from('company_members').insert({
             company_id: companyId, first_name: fn, last_name: ln, email,
-            department: dept, role, gender: gender||null, job_title: jt,
-            phone, status: 'approved',
+            department: dept, role: memberRole, gender: gender||null,
+            job_title: jt, phone, status: 'approved',
+            invite_token: inviteToken,  // ← stored atomically with the row
           }).select('id').single();
           if (ie) throw ie;
           memberId = inserted?.id;
+          isNew = true;
         }
       } catch (e) {
         console.error(`company_members upsert failed for ${email}:`, e.message);
       }
 
-      // Send invite email
-      try {
-        const inviteToken = require('crypto').randomBytes(32).toString('hex');
-        if (memberId) await supabase.from('company_members').update({ invite_token: inviteToken }).eq('id', memberId);
-        const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email)}`;
-        await sendEmail({ to: email,
-          subject: `Welcome to ${companyData?.name || 'your company'} on Thankeeu! 🎉`,
-          html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;">
-            <h2>Welcome, ${fn}!</h2>
-            <p>${companyData?.contact_person || companyData?.name || 'Your HR team'} has added you to <strong>${companyData?.name || 'your company'}</strong> on Thankeeu.</p>
-            <a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;">Set your password 🚀</a>
-            <p style="color:#aaa;font-size:12px;">This link expires in 7 days.</p></div>`
-        });
-      } catch (_) {}
+      // Send invite email — only if we successfully stored the token
+      if (memberId) {
+        try {
+          const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email)}`;
+          await sendEmail({ to: email,
+            subject: `You've been added to ${companyData?.name || 'your company'} on Thankeeu! 🎉`,
+            html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#fff;border-radius:16px;">
+              <h2 style="color:#7C3AED;margin:0 0 8px;">Welcome, ${fn}! 🎉</h2>
+              <p style="color:#555;margin:0 0 20px;">${companyData?.contact_person || companyData?.name || 'Your HR team'} has added you to <strong>${companyData?.name || 'your company'}</strong> on Thankeeu — the platform that makes team celebrations effortless.</p>
+              <p style="color:#555;margin:0 0 20px;">Click the button below to set your password and access your team dashboard:</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+                <tr><td style="border-radius:8px;background:#7C3AED;">
+                  <a href="${link}" style="display:inline-block;background:#7C3AED;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Set your password →</a>
+                </td></tr>
+              </table>
+              <p style="color:#aaa;font-size:12px;margin:8px 0 0;">Or copy this link: <a href="${link}" style="color:#7C3AED;">${link}</a></p>
+              <p style="color:#aaa;font-size:12px;margin:16px 0 0;">This link does not expire. If you have issues, contact your HR team.</p>
+            </div>`,
+          });
+        } catch (emailErr) {
+          console.error(`Invite email failed for ${email}:`, emailErr.message);
+        }
+      } else {
+        console.error(`Skipping invite email for ${email} — member record not created`);
+      }
 
       const oBase = { ...base, member_id: memberId || null };
 

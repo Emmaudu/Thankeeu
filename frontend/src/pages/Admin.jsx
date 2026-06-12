@@ -90,7 +90,7 @@ const Admin = () => {
 
   // Lazy-loaded tabs
   const [companies, setCompanies]       = useState([]);
-  const [companiesLoading, setCompanieLoading] = useState(false);
+  const [companiesLoading, setCompaniesLoading] = useState(false);
   const [companyMembers, setCompanyMembers] = useState({});
   const [openCompany, setOpenCompany]   = useState(null);
 
@@ -162,10 +162,10 @@ const Admin = () => {
   };
 
   const fetchCompanies = async () => {
-    setCompanieLoading(true);
+    setCompaniesLoading(true);
     try { const r = await adminCompanyAPI.getAll(); setCompanies(r.data || []); }
     catch { toast.error('Failed to load companies'); }
-    finally { setCompanieLoading(false); }
+    finally { setCompaniesLoading(false); }
   };
 
   const fetchDemos = async () => {
@@ -326,16 +326,16 @@ const Admin = () => {
   const newDemos    = demos.filter(d => d.status === 'new');
 
   const TABS = [
-    { id:'overview',  label:'📊 Overview' },
-    { id:'users',     label:`👥 Users (${users.length})` },
-    { id:'cards',     label:`🃏 Cards (${cards.length})` },
-    { id:'companies', label:`🏢 Companies` },
-    { id:'support',   label:`💬 Support${openTickets.length ? ` · ${openTickets.length}` : ''}` },
-    { id:'demos',     label:`📅 Demos${newDemos.length ? ` · ${newDemos.length} new` : ''}` },
-    { id:'visitors',  label:`👤 Visitors${visitors.length ? ` (${visitors.length})` : ''}` },
-    { id:'blog',      label:`✍️ Blog` },
-    { id:'vendors',   label:`🏪 Vendors` },
-    { id:'pals',      label:`👥 Pals${palApplications.filter(p=>p.status==='pending').length ? ` · ${palApplications.filter(p=>p.status==='pending').length} new` : ''}` },
+    { id:'overview',  label:'Overview' },
+    { id:'users',     label:`Users (${users.length})` },
+    { id:'cards',     label:`Cards (${cards.length})` },
+    { id:'companies', label:'Companies' },
+    { id:'support',   label:`Support${openTickets.length ? ` · ${openTickets.length}` : ''}` },
+    { id:'demos',     label:`Demos${newDemos.length ? ` · ${newDemos.length} new` : ''}` },
+    { id:'visitors',  label:`Visitors${visitors.length ? ` (${visitors.length})` : ''}` },
+    { id:'blog',      label:'Blog' },
+    { id:'vendors',   label:'Vendors' },
+    { id:'pals',      label:`Pals${palApplications.filter(p=>p.status==='pending').length ? ` · ${palApplications.filter(p=>p.status==='pending').length} new` : ''}` },
   ];
 
   return (

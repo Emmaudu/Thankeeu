@@ -248,8 +248,6 @@ const placeOrder = async (req, res) => {
       vendor_id: vendor.id, customer_name, customer_email, customer_phone,
       delivery_address, card_slug, note,
       total_amount: total,
-      platform_fee: 5000,
-      vendor_payout: Math.max(0, total - 5000),  // Thankeeu keeps ₦5000
       status: 'pending',
     }).select().single();
     if (error) throw error;
@@ -347,9 +345,7 @@ const checkoutOrder = async (req, res) => {
       vendor_id: vendor.id, customer_name, customer_email, customer_phone,
       delivery_address, card_slug, note,
       total_amount: total,
-      platform_fee: 5000,
-      vendor_payout: Math.max(0, total - 5000),
-      status: 'awaiting_payment',
+      status: 'pending',
     }).select().single();
     if (orderErr) throw orderErr;
 
@@ -417,8 +413,8 @@ const verifyVendorOrder = async (req, res) => {
       .eq('flw_reference', tx_ref).maybeSingle();
 
     if (!order) return res.status(404).json({ error: 'Order not found' });
-    if (order.status === 'pending' || order.status === 'confirmed' || order.status === 'processing' || order.status === 'shipped' || order.status === 'delivered') {
-      // Already verified and confirmed
+    // If already confirmed/processed, return success without re-processing
+    if (['confirmed','processing','shipped','delivered'].includes(order.status)) {
       return res.json({ ok: true, order_id: order.id, status: order.status, already_verified: true });
     }
 

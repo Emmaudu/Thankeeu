@@ -334,7 +334,7 @@ const subscribeNewsletter = async (req, res) => {
       });
     }
 
-    const frontendUrl = process.env.FRONTEND_URL || FRONTEND_URL;
+    const frontendUrl = FRONTEND_URL;  // use hardened constant, not raw env
     await sendEmail({ to: email, template: 'blogSubscribeConfirm', data: {
       name: name || 'Friend',
       confirmUrl: `${frontendUrl}/blog/confirm-subscription?token=${confirmToken}`,  // token only — no email (avoids encoding issues)
@@ -384,7 +384,7 @@ const getSubscribers = async (req, res) => {
 const notifySubscribersNewPost = async (post) => {
   const { data: subscribers } = await supabase.from('blog_subscribers')
     .select('email, name, unsubscribe_token').eq('confirmed', true);
-  const frontendUrl = process.env.FRONTEND_URL || FRONTEND_URL;
+  const frontendUrl = FRONTEND_URL;  // use hardened constant, not raw env
 
   for (const sub of (subscribers || [])) {
     await sendEmail({ to: sub.email, template: 'newBlogPost', data: {

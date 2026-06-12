@@ -21,7 +21,7 @@ const FAQS = [
   { cat:'Cards & media', q:'Can signers set a deadline for signing?', a:'The card creator sets a signing deadline. After the deadline, the card is locked and sent. Contributors who miss the deadline won\'t be able to add their message.' },
   { cat:'For companies', q:'What is Thankeeu for Teams?', a:'Thankeeu for Teams is a subscription service for HR teams. It automatically creates birthday and occasion cards for your employees, notifies their department to sign, and handles the gift pot — all without any manual effort.' },
   { cat:'For companies', q:'How does the HRIS integration work?', a:'Connect your HRIS platform (SeamlessHR, BambooHR, Zoho People, WorkPay etc). Thankeeu imports all employee birthdays and occasion data. After that, cards are created and sent automatically on schedule.' },
-  { cat:'For companies', q:'What is the company subscription price?', a:'₦200,000/month or ₦2,400,000/year. This covers unlimited employees and all automated occasions. HRIS sync and advanced analytics are included.' },
+  { cat:'For companies', q:'What is the company subscription price?', a:'Pricing is based on your team headcount — the more employees you have, the lower the per-person rate. Sign up and import your team to get an exact quote. HRIS sync and advanced analytics included.' },
   { cat:'For companies', q:'Can team leaders request deductions from gift pots?', a:'Yes. Team leaders can request a deduction from a card\'s gift pot (e.g. for physical decorations or a team lunch). HR approves the amount, and the leader withdraws directly to their bank account.' },
 ];
 

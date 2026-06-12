@@ -359,7 +359,7 @@ async function syncEmployeesToOccasionTables(companyId, employees, occasionTypes
       // instead of free text ('member'/'team_leader') — retry with the
       // enum-compatible value if the first attempt fails on that column.
       if (cmErr && /role/i.test(cmErr.message || '')) {
-        cmRowToUpsert.role = cmRowToUpsert.role === 'team_leader' ? 'team_leader' : 'team_member';
+        cmRowToUpsert.role = cmRowToUpsert.role === 'team_leader' ? 'team_leader' : 'member';
         ({ error: cmErr } = await supabase.from('company_members')
           .upsert(cmRowToUpsert, { onConflict: 'company_id,email' }));
       }

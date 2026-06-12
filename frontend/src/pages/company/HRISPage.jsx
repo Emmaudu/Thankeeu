@@ -179,7 +179,7 @@ const HRISPage = () => {
             <div className="text-5xl mb-4">🔒</div>
             <h2 className="font-display text-2xl font-bold text-warm-900 mb-2">Subscription required</h2>
             <p className="text-warm-500 mb-6 text-sm leading-relaxed">
-              HRIS integration and employee import are available on the <strong>Company subscription</strong> plan (₦200,000/month or ₦2,400,000/year).
+              HRIS integration and employee import are available on the <strong>Company subscription</strong> plan — pricing is based on your team size. <a href='/company/subscription' style={{color:'#7C3AED'}}>View your quote →</a>
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 text-left">
               {['HRIS sync (SeamlessHR, BambooHR, Zoho…)','Auto birthday card creation','Gift pot per employee','12 automated occasions','HR analytics dashboard','Priority support'].map(f => (

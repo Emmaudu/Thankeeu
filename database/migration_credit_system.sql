@@ -85,3 +85,16 @@ ALTER TABLE vendor_orders DROP CONSTRAINT IF EXISTS vendor_orders_status_check;
 ALTER TABLE vendor_orders ADD CONSTRAINT vendor_orders_status_check
   CHECK (status IN ('awaiting_payment','pending','confirmed','processing','shipped','delivered','cancelled'));
 ALTER TABLE vendor_orders ADD COLUMN IF NOT EXISTS flw_reference TEXT;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Vendor orders: add platform_fee and vendor_payout columns
+-- Also fix status constraint to include awaiting_payment
+-- ═══════════════════════════════════════════════════════════════════════════
+ALTER TABLE vendor_orders ADD COLUMN IF NOT EXISTS platform_fee  NUMERIC(12,2) DEFAULT 0;
+ALTER TABLE vendor_orders ADD COLUMN IF NOT EXISTS vendor_payout NUMERIC(12,2) DEFAULT 0;
+ALTER TABLE vendors        ADD COLUMN IF NOT EXISTS country TEXT;
+ALTER TABLE vendors        ADD COLUMN IF NOT EXISTS state   TEXT;
+
+-- Blog subscribers: add index on confirm_token for faster confirmation lookups
+CREATE INDEX IF NOT EXISTS idx_blog_subscribers_confirm_token ON blog_subscribers(confirm_token)
+  WHERE confirm_token IS NOT NULL;

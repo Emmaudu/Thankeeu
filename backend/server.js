@@ -26,7 +26,7 @@ app.use(helmet({
       styleSrc:       ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc:        ["'self'", "https://fonts.gstatic.com"],
       imgSrc:         ["'self'", "data:", "https:", "blob:"],
-      connectSrc:     ["'self'", "https://api.flutterwave.com", "https://auth.reloadly.com", "https://giftcards.reloadly.com", "https://giftcards-sandbox.reloadly.com"],
+      connectSrc:     ["'self'", "https://api.flutterwave.com", "https://auth.reloadly.com", "https://giftcards.reloadly.com", "https://giftcards-sandbox.reloadly.com", "https://*.supabase.co", "https://res.cloudinary.com", "https://api.cloudinary.com"],
       frameSrc:       ["https://checkout.flutterwave.com"],
       objectSrc:      ["'none'"],
       upgradeInsecureRequests: [],
@@ -89,6 +89,13 @@ app.use('/api/auth/forgot-password',        authLimiter);
 app.use('/api/auth/reset-password',         authLimiter);
 app.use('/api/company/signup',              authLimiter);
 app.use('/api/company/forgot-password',     authLimiter);
+app.use('/api/auth/send-code',              authLimiter);
+app.use('/api/auth/verify-code',            authLimiter);
+app.use('/api/members/forgot-password',     authLimiter);
+app.use('/api/members/reset-password',      authLimiter);
+app.use('/api/vendor/login',                authLimiter);
+app.use('/api/vendor/signup',               authLimiter);
+app.use('/api/pals/forgot-password',        authLimiter);
 app.use('/api/demo/request',         demoLimiter);
 
 // Query-string sanitisation

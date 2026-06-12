@@ -5,15 +5,28 @@ import { vendorAPI } from '../../utils/api';
 
 export default function VendorOrderSuccess() {
   const [params]  = useSearchParams();
-  const txRef     = params.get('tx_ref') || params.get('transaction_id');
-  const [state, setState] = useState('verifying'); // verifying | success | failed
+  const txRef       = params.get('tx_ref') || params.get('transaction_id');
+  const returnStatus = (params.get('status') || '').toLowerCase();
+  const [state, setState] = useState('verifying'); // verifying | success | failed | cancelled
   const [order, setOrder] = useState(null);
 
   useEffect(() => {
     if (!txRef) { setState('failed'); return; }
+    // FLW sends status=cancelled when user cancels on their checkout page
+    if (returnStatus === 'cancelled' || returnStatus === 'canceled') {
+      setState('cancelled');
+      return;
+    }
     vendorAPI.verifyOrder(txRef)
       .then(r => { setState('success'); setOrder(r.data); })
-      .catch(() => setState('failed'));
+      .catch(err => {
+        const msg = err?.response?.data?.error || '';
+        if (msg.toLowerCase().includes('not completed') || msg.toLowerCase().includes('cancelled')) {
+          setState('cancelled');
+        } else {
+          setState('failed');
+        }
+      });
   }, [txRef]);
 
   return (
@@ -43,12 +56,21 @@ export default function VendorOrderSuccess() {
             </>
           )}
 
+          {state === 'cancelled' && (
+            <>
+              <div className="text-6xl mb-4">↩️</div>
+              <h2 className="text-2xl font-extrabold text-warm-900 mb-2">Payment cancelled</h2>
+              <p className="text-warm-600 text-sm mb-6">You cancelled the payment. You have not been charged. Go back to the store to try again.</p>
+              <Link to="/vendors" className="btn-primary px-8 py-3 inline-block">Back to marketplace →</Link>
+            </>
+          )}
+
           {state === 'failed' && (
             <>
               <div className="text-6xl mb-4">⚠️</div>
               <h2 className="text-2xl font-extrabold text-warm-900 mb-2">Payment incomplete</h2>
               <p className="text-warm-600 text-sm mb-6">Your payment was not completed or could not be verified. You have not been charged. Please try again.</p>
-              <Link to="/" className="btn-primary px-8 py-3 inline-block">Go back →</Link>
+              <Link to="/vendors" className="btn-primary px-8 py-3 inline-block">Back to marketplace →</Link>
             </>
           )}
         </div>

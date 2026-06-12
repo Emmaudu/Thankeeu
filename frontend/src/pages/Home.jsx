@@ -502,6 +502,122 @@ const Home = () => {
         </div>
       </section>
 
+
+      {/* ── ECOSYSTEM: Pals + Vendor Marketplace ─────────────────────────── */}
+      <section className="py-14 md:py-20 px-4" style={{ background:'#fff' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5">
+              <Icon name="Layers" size={13}/> More ways to celebrate
+            </div>
+            <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(1.6rem,5vw,2.4rem)' }}>
+              Beyond the card
+            </h2>
+            <p className="text-warm-500 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
+              Thankeeu is a full celebration platform — not just a card tool. 
+              Send real gifts. Celebrate with your inner circle. Do it all in one place.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* ── Thankeeu Pals ────────────────────────────── */}
+            <div className="relative rounded-3xl overflow-hidden border-2 border-purple-100 p-7 flex flex-col"
+              style={{ background:'linear-gradient(135deg,#F5F0FF 0%,#FFF0F8 100%)' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+                  style={{ background:'linear-gradient(135deg,#8B5CF6,#EC4899)' }}>
+                  🤝
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-primary-500 uppercase tracking-wider mb-0.5">New</p>
+                  <h3 className="text-xl font-extrabold text-warm-900">Thankeeu Pals</h3>
+                </div>
+              </div>
+
+              <p className="text-warm-600 text-sm leading-relaxed mb-4">
+                A private celebration circle for your closest people — best friends, family, 
+                a tight-knit crew. Everyone joins, adds their dates, and Thankeeu automatically 
+                creates a group card when someone's birthday or special day arrives.
+              </p>
+
+              <ul className="space-y-2 mb-6">
+                {[
+                  'Up to 15 people in a private group',
+                  'Auto-created cards for every occasion',
+                  'Gift pot collected and paid out at 6 pm on the day',
+                  'No HR. No company. Just your people.',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-warm-700">
+                    <span className="text-primary-500 mt-0.5 flex-shrink-0">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto flex flex-wrap gap-3">
+                <Link to="/pals"
+                  className="btn-primary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">
+                  <Icon name="Users" size={14}/> Learn about Pals
+                </Link>
+                <Link to="/pals/signup"
+                  className="btn-secondary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">
+                  Start a group →
+                </Link>
+              </div>
+            </div>
+
+            {/* ── Vendor Marketplace ───────────────────────── */}
+            <div className="relative rounded-3xl overflow-hidden border-2 border-amber-100 p-7 flex flex-col"
+              style={{ background:'linear-gradient(135deg,#FFFBEB 0%,#FFF5F0 100%)' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+                  style={{ background:'linear-gradient(135deg,#F59E0B,#EF4444)' }}>
+                  🛍️
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-0.5">Marketplace</p>
+                  <h3 className="text-xl font-extrabold text-warm-900">Gift Marketplace</h3>
+                </div>
+              </div>
+
+              <p className="text-warm-600 text-sm leading-relaxed mb-4">
+                Attach a real, physical gift to any card — straight from local vendors. 
+                Pick from cakes, flowers, chocolates, jewellery, hampers and more. 
+                The vendor is notified with the delivery deadline so your gift arrives on time.
+              </p>
+
+              <ul className="space-y-2 mb-6">
+                {[
+                  'Browse verified local gift vendors',
+                  'Order cakes, flowers, chocolates & more',
+                  'Vendor notified with your celebration date',
+                  'Sell on Thankeeu? Apply to become a vendor',
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-warm-700">
+                    <span className="text-amber-500 mt-0.5 flex-shrink-0">✓</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto flex flex-wrap gap-3">
+                <Link to="/vendors"
+                  className="px-5 py-2.5 text-sm font-bold rounded-2xl inline-flex items-center gap-1.5 transition-all"
+                  style={{ background:'linear-gradient(135deg,#F59E0B,#EF4444)', color:'#fff' }}>
+                  <Icon name="Store" size={14}/> Browse gift vendors
+                </Link>
+                <Link to="/vendors"
+                  className="px-5 py-2.5 text-sm font-bold rounded-2xl border-2 border-amber-200 text-amber-700 hover:bg-amber-50 transition-all inline-flex items-center gap-1.5">
+                  Sell on Thankeeu →
+                </Link>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 
       {/* ── BOTTOM CTA ───────────────────── */}

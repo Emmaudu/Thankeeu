@@ -652,7 +652,7 @@ const importGeneralTemplate = async (req, res) => {
       const inviteToken = require('crypto').randomBytes(32).toString('hex');
       // Fix role value: DB and middleware use 'team_leader' not 'leader'
       const memberRole = role === 'leader' ? 'team_leader' : 'member';
-      const memberRoleFallback = role === 'leader' ? 'team_leader' : 'team_member';
+      const memberRoleFallback = role === 'leader' ? 'team_leader' : 'member';
       let memberId = null;
       let isNew = false;
       let needsInvite = false;
@@ -1014,27 +1014,47 @@ const importByOccasionName = async (req, res) => {
       const email = String(row[emI]||'').trim().toLowerCase();
       if (!fn||!ln||!email) continue;
 
-      const dept   = dpI>=0 ? String(row[dpI]||'').trim()||'General' : 'General';
-      const role   = roI>=0 && String(row[roI]||'').toLowerCase().includes('leader') ? 'leader' : 'member';
-      const jt     = jtI>=0 ? String(row[jtI]||'').trim()||null : null;
-      const phone  = phI>=0 ? String(row[phI]||'').trim()||null : null;
-      const gender = gnI>=0 ? String(row[gnI]||'').trim().toLowerCase()||null : null;
+      const dept       = dpI>=0 ? String(row[dpI]||'').trim()||'General' : 'General';
+      const roleRaw    = roI>=0 && String(row[roI]||'').toLowerCase().includes('leader') ? 'leader' : 'member';
+      const memberRole = roleRaw === 'leader' ? 'team_leader' : 'member'; // DB stores 'team_leader'
+      const jt         = jtI>=0 ? String(row[jtI]||'').trim()||null : null;
+      const phone      = phI>=0 ? String(row[phI]||'').trim()||null : null;
+      const gender     = gnI>=0 ? String(row[gnI]||'').trim().toLowerCase()||null : null;
 
-      // Upsert member
-      const { data: member } = await supabase.from('company_members')
-        .upsert({ company_id:companyId, first_name:fn, last_name:ln, email, department:dept, role, gender:gender||null, job_title:jt, phone, status:'approved' },
-                 { onConflict:'company_id,email' }).select('id').single();
+      // Generate invite token FIRST, then include in the upsert atomically
+      const invTok = require('crypto').randomBytes(32).toString('hex');
+
+      // Upsert member with invite_token included atomically
+      const { data: member, error: mErr } = await supabase.from('company_members')
+        .upsert({
+          company_id:companyId, first_name:fn, last_name:ln, email,
+          department:dept, role:memberRole, gender:gender||null,
+          job_title:jt, phone, status:'approved', invite_token:invTok,
+        }, { onConflict:'company_id,email' }).select('id').single();
       const memberId = member?.id;
+      if (mErr) { errors.push(`Row: upsert failed for ${email}: ${mErr.message}`); }
 
-      // Send invite email
-      try {
-        const tok = require('crypto').randomBytes(32).toString('hex');
-        if (memberId) { try { await supabase.from('company_members').update({invite_token:tok}).eq('id',memberId); } catch {} }
-        const link = `${frontendUrl}/member/reset-password?token=${tok}&email=${encodeURIComponent(email)}`;
-        await sendEmail({ to:email, subject:`Welcome to ${coData?.name||'your company'} on Thankeeu! 🎉`,
-          html:`<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;text-align:center;"><h2>Welcome, ${fn}!</h2><p>${coData?.contact_person||coData?.name||'HR'} added you to <strong>${coData?.name||'your company'}</strong> on Thankeeu.</p><a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;">Set your password 🚀</a><p style="color:#aaa;font-size:12px;">Expires in 7 days.</p></div>`
-        });
-      } catch(_) {}
+      // Send invite email ONLY if member record was stored
+      if (memberId) {
+        try {
+          const link = `${frontendUrl}/member/reset-password?token=${invTok}&email=${encodeURIComponent(email)}`;
+          await sendEmail({ to:email, subject:`You've been added to ${coData?.name||'your company'} on Thankeeu! 🎉`,
+            html:`<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;background:#fff;border-radius:16px;">
+              <h2 style="color:#7C3AED;margin:0 0 8px;">Welcome, ${fn}! 🎉</h2>
+              <p style="color:#555;margin:0 0 20px;">${coData?.contact_person||coData?.name||'Your HR team'} has added you to <strong>${coData?.name||'your company'}</strong> on Thankeeu.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+                <tr><td style="border-radius:8px;background:#7C3AED;">
+                  <a href="${link}" style="display:inline-block;background:#7C3AED;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Set your password →</a>
+                </td></tr>
+              </table>
+              <p style="color:#aaa;font-size:12px;margin:8px 0 0;">Or copy this link: <a href="${link}" style="color:#7C3AED;">${link}</a></p>
+              <p style="color:#aaa;font-size:12px;margin:16px 0 0;">This link does not expire.</p>
+            </div>`
+          });
+        } catch(emailErr) { console.error(`Invite email failed for ${email}:`, emailErr.message); }
+      } else if (!mErr) {
+        console.error(`importByOccasionName: skipping invite for ${email} — no memberId`);
+      }
 
       const base = { first_name:fn, last_name:ln, email, department:dept, gender:gender||null, is_active:true, member_id:memberId||null };
 

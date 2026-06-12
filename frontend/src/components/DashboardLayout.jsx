@@ -3,17 +3,18 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
+import Icon from './ui/Icon';
 
 const NAV = [
-  { to: '/dashboard',           icon: '🏠', label: 'Home' },
-  { to: '/dashboard/cards',     icon: '💌', label: 'My Cards' },
-  { to: '/dashboard/credits',   icon: '💳', label: 'Credits & Plans' },
-  { to: '/dashboard/delivered', icon: '🚀', label: 'Delivered' },
-  { to: '/dashboard/received',  icon: '🎁', label: 'Received' },
-  { to: '/dashboard/pending',   icon: '✍️', label: 'Pending to Sign' },
-  { to: '/dashboard/finances',  icon: '💰', label: 'Financials' },
-  { to: '/dashboard/reminders', icon: '⏰', label: 'Reminders' },
-  { to: '/dashboard/settings',  icon: '⚙️', label: 'Settings' },
+  { to: '/dashboard',           icon: 'Home',     label: 'Home' },
+  { to: '/dashboard/cards',     icon: 'Heart',    label: 'My Cards' },
+  { to: '/dashboard/credits',   icon: 'Card',     label: 'Credits & Plans' },
+  { to: '/dashboard/delivered', icon: 'Send',     label: 'Delivered' },
+  { to: '/dashboard/received',  icon: 'Gift',     label: 'Received' },
+  { to: '/dashboard/pending',   icon: 'Edit',     label: 'Pending to Sign' },
+  { to: '/dashboard/finances',  icon: 'Wallet',   label: 'Financials' },
+  { to: '/dashboard/reminders', icon: 'Clock',    label: 'Reminders' },
+  { to: '/dashboard/settings',  icon: 'Settings', label: 'Settings' },
 ];
 
 const DashboardLayout = ({ children, title, subtitle }) => {
@@ -32,7 +33,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5" style={{ borderBottom: '1px solid rgba(124,110,255,0.12)' }}>
         <div style={{width:36,height:36,borderRadius:10,flexShrink:0,background:'linear-gradient(135deg,#A855F7,#7C3AED)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 14px rgba(124,58,237,0.45)'}}>
-          <span style={{fontSize:20}}>💌</span>
+          <Icon name="Heart" size={18} style={{color:'#fff'}}/>
         </div>
         <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 15, color: '#E4E2F6' }}>
           Thank<span style={{ color: '#7C6EFF' }}>eeu</span>
@@ -76,7 +77,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
             style={isActive(to)
               ? { background: 'rgba(124,110,255,0.18)', color: '#B8B4FF', borderLeft: '3px solid #7C6EFF', paddingLeft: '9px' }
               : { color: '#6B678A', borderLeft: '3px solid transparent', paddingLeft: '9px' }}>
-            <span className="text-base flex-shrink-0">{icon}</span>
+            <Icon name={icon} size={16} className="flex-shrink-0"/>
             {label}
           </Link>
         ))}

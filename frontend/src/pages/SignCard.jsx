@@ -78,21 +78,51 @@ const SignCard = () => {
 
   useEffect(() => {
     const run = async () => {
-      // FLW redirects browser directly here with ?tx_ref=... after payment
+      // FLW redirects browser back here with ?tx_ref=...&status=... after payment
       const returnTxRef = searchParams.get('tx_ref') || searchParams.get('reference');
+      const returnStatus = (searchParams.get('status') || '').toLowerCase();
+
       if (returnTxRef) {
+        // Clean the URL immediately so refresh doesn't re-trigger
+        window.history.replaceState({}, '', `/sign/${slug}`);
+
+        // FLW sends status=cancelled when user clicks "Cancel" on their checkout page
+        if (returnStatus === 'cancelled' || returnStatus === 'canceled') {
+          toast.error('Payment was cancelled. Your message is still here — you can try again or choose a different option.');
+          await fetchCard();
+          setStage('idle');
+          // DO NOT setSubmitted — keep the form intact so they can retry
+          return;
+        }
+
+        // Attempt to verify with backend
         setStage('verifying');
         try {
           await paymentsAPI.verifyContribution(returnTxRef);
           toast.success('Your message and gift are on the card! 🎉');
+          await fetchCard();
+          setSubmitted(true);
+          setStage('idle');
         } catch (e) {
-          toast.success('Gift received! 🎉');
+          // 400 = payment not completed (declined, failed, etc.)
+          // 500 = server error during verify
+          const status = e?.response?.status;
+          const msg    = e?.response?.data?.error || e?.message || '';
+          if (status === 400 || msg.toLowerCase().includes('not completed') || msg.toLowerCase().includes('cancelled')) {
+            toast.error('Payment was not completed. Your message is still here — please try again.');
+            await fetchCard();
+            setStage('idle');
+            // DO NOT setSubmitted — keep form so they can retry
+          } else {
+            // Verify failed due to server error but payment may have gone through
+            // Show success to avoid double-charging but log the error
+            console.error('verifyContribution server error:', msg);
+            toast.success('Gift received! 🎉');
+            await fetchCard();
+            setSubmitted(true);
+            setStage('idle');
+          }
         }
-        window.history.replaceState({}, '', `/sign/${slug}`);
-        // Must fetch card first so card object exists (needed for success screen design/recipient)
-        await fetchCard();
-        setSubmitted(true);
-        setStage('idle');
         return;
       }
       await fetchCard();

@@ -527,6 +527,12 @@ const Home = () => {
           <p className="text-xs text-warm-400 mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <span>🔒 Secure payments</span><span>·</span><span>✨ No credit card needed</span><span>·</span><span>🌍 Used worldwide</span>
           </p>
+          <p className="text-xs text-warm-300 mt-4">
+            Got a tight group of friends or family?{' '}
+            <Link to="/pals/signup" className="text-primary-400 hover:text-primary-600 hover:underline">Start a free Thankeeu Pals group</Link>
+            {' '}· Sell cakes, flowers & gifts?{' '}
+            <Link to="/vendor/signup" className="text-primary-400 hover:text-primary-600 hover:underline">Become a vendor</Link>
+          </p>
         </div>
       </section>
 

@@ -870,4 +870,87 @@ Object.assign(emailTemplates, {
       ${btn('View order in dashboard →', d.ordersUrl, '#EC4899')}
     `)
   }),
+
+  // ── Thankeeu Pals ──────────────────────────────────────────────────────
+  palApplicationReceived: (d) => ({
+    subject: `New Thankeeu Pals application — ${d.groupName}`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">New Pals group application 👥</h2>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:12px 0;">
+        <tr><td style="padding:6px 0;color:#888;font-size:13px;">Group name</td><td style="padding:6px 0;color:#1a1a1a;font-size:13px;font-weight:600;text-align:right;">${d.groupName}</td></tr>
+        <tr><td style="padding:6px 0;color:#888;font-size:13px;">Username</td><td style="padding:6px 0;color:#1a1a1a;font-size:13px;font-weight:600;text-align:right;">@${d.groupUsername}</td></tr>
+        <tr><td style="padding:6px 0;color:#888;font-size:13px;">Email</td><td style="padding:6px 0;color:#1a1a1a;font-size:13px;text-align:right;">${d.email}</td></tr>
+        <tr><td style="padding:6px 0;color:#888;font-size:13px;">Group size</td><td style="padding:6px 0;color:#1a1a1a;font-size:13px;text-align:right;">${d.size}</td></tr>
+      </table>
+      ${d.description ? `<p style="color:#555;font-size:13px;">"${d.description}"</p>` : ''}
+      ${btn('Review in admin dashboard →', d.adminUrl, '#7C3AED')}
+    `)
+  }),
+  palApproved: (d) => ({
+    subject: `🎉 Your Thankeeu Pals group "${d.groupName}" is approved!`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Congratulations! 🎉</h2>
+      <p style="color:#555;line-height:1.8;">Your Thankeeu Pals group <strong>${d.groupName}</strong> (@${d.groupUsername}) has been approved!</p>
+      <p style="color:#555;line-height:1.8;">Click the button below to verify your email and unlock your group dashboard, where you can invite up to 15 friends, family, or teammates to celebrate life's moments together.</p>
+      ${btn('Verify email & get started →', d.verifyUrl, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:20px;">After verifying, log in at thankeeu.com/pals/login with your group username <strong>@${d.groupUsername}</strong> and your password.</p>
+    `)
+  }),
+  palRejected: (d) => ({
+    subject: `Update on your Thankeeu Pals application`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">About your Pals application</h2>
+      <p style="color:#555;line-height:1.8;">Thanks for applying to create the Thankeeu Pals group <strong>${d.groupName}</strong>. Unfortunately, we're unable to approve it at this time.</p>
+      <div style="background:#FEF3F2;border:1px solid #FECDD3;border-radius:12px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#9F1239;font-weight:700;font-size:13px;margin:0 0 4px;">Reason:</p>
+        <p style="color:#9F1239;font-size:13px;margin:0;">${d.reason}</p>
+      </div>
+      <p style="color:#555;font-size:13px;">You're welcome to apply again once the above is addressed.</p>
+    `)
+  }),
+  palMemberInvite: (d) => ({
+    subject: `${d.name}, you're invited to join "${d.groupName}" on Thankeeu! 🎉`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">You're invited! 🎉</h2>
+      <p style="color:#555;line-height:1.8;">Hi ${d.name}, you've been added to <strong>${d.groupName}</strong> on Thankeeu Pals — a shared space for your group to celebrate birthdays, send group gift cards, and never miss a special moment together.</p>
+      <div style="background:#F8F7FF;border-radius:12px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#1a1a1a;font-weight:700;font-size:14px;margin:0 0 8px;">How it works:</p>
+        <p style="color:#555;font-size:13px;margin:4px 0;">• Click the button below to set your own password</p>
+        <p style="color:#555;font-size:13px;margin:4px 0;">• You'll then access the shared "${d.groupName}" dashboard using @${d.groupUsername} + your password</p>
+        <p style="color:#555;font-size:13px;margin:4px 0;">• When it's someone's birthday or special day, Thankeeu automatically creates a group card and emails everyone a link to sign it and contribute to a gift</p>
+        <p style="color:#555;font-size:13px;margin:4px 0;">• Complete your profile (with bank details) so the group can celebrate YOU too — gifts are sent automatically on your special day</p>
+      </div>
+      ${btn('Set my password & join →', d.joinUrl, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:20px;">If you weren't expecting this, you can safely ignore this email.</p>
+    `)
+  }),
+  palProfileReminder: (d) => ({
+    subject: `${d.name}, complete your Thankeeu Pals profile`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Don't miss your celebration! 🎂</h2>
+      <p style="color:#555;line-height:1.8;">Hi ${d.name}, your <strong>${d.groupName}</strong> group hasn't finished setting up your profile yet.</p>
+      <p style="color:#555;line-height:1.8;">It's important to add your <strong>bank account details and photo</strong> so that when it's your special day, the group's gift can be credited to you automatically and on time.</p>
+      ${btn('Complete my profile →', d.profileUrl, '#EC4899')}
+      <p style="color:#aaa;font-size:12px;margin-top:20px;">This is reminder ${d.reminderNumber} of 2.</p>
+    `)
+  }),
+  palEventReminder: (d) => ({
+    subject: `${d.daysLeft === 0 ? 'Today' : `${d.daysLeft} day${d.daysLeft===1?'':'s'} left`}: Sign ${d.recipientName}'s ${d.occasionLabel} card! 🎁`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">${d.daysLeft === 0 ? "It's the big day! 🎉" : `${d.daysLeft} day${d.daysLeft===1?'':'s'} to go! ⏰`}</h2>
+      <p style="color:#555;line-height:1.8;">${d.recipientName}'s ${d.occasionLabel} ${d.daysLeft === 0 ? 'is today' : `is coming up in ${d.daysLeft} day${d.daysLeft===1?'':'s'}`}! Add your message and chip in to the group gift before it's sent.</p>
+      ${btn('Sign the card →', d.signUrl, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:20px;">This link works only for members of ${d.groupName}.</p>
+    `)
+  }),
+  palSupportReply: (d) => ({
+    subject: `Re: ${d.subject} — Thankeeu Pals Support`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Reply from Thankeeu support 💬</h2>
+      <p style="color:#555;">Hi ${d.groupName}, regarding your message "<strong>${d.subject}</strong>":</p>
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#166534;font-size:13px;margin:0;">${d.reply}</p>
+      </div>
+    `)
+  }),
 });

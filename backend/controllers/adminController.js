@@ -342,4 +342,78 @@ const grantPilot = async (req, res) => {
   }
 };
 
-module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, getAllCards, deleteCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot };
+
+// ── GET /api/admin/pals — list pal group applications ────────────────────────
+const listPalApplications = async (req, res) => {
+  try {
+    const { status } = req.query;
+    let q = supabase.from('pal_groups')
+      .select('id, group_name, group_username, email, group_size, description, status, is_verified, created_at')
+      .order('created_at', { ascending: false });
+    if (status) q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) {
+      if (error.code === '42P01') return res.json([]); // table not migrated yet
+      throw error;
+    }
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// ── POST /api/admin/pals/:id/approve ──────────────────────────────────────────
+const approvePalGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data: group } = await supabase.from('pal_groups').select('*').eq('id', id).single();
+    if (!group) return res.status(404).json({ error: 'Pals group not found' });
+
+    const verify_token = require('crypto').randomBytes(32).toString('hex');
+    await supabase.from('pal_groups').update({ status: 'approved', verify_token, updated_at: new Date() }).eq('id', id);
+
+    const { sendEmail } = require('../utils/email');
+    const FRONTEND_URL = (() => {
+      const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+      let s = raw.trim();
+      if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+      s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+      return (s.startsWith('http') ? s : 'https://thankeeu.com');
+    })();
+
+    sendEmail({
+      to: group.email,
+      template: 'palApproved',
+      data: {
+        groupName: group.group_name,
+        groupUsername: group.group_username,
+        verifyUrl: `${FRONTEND_URL}/pals/verify-email?token=${verify_token}`,
+      },
+    }).catch(() => {});
+
+    res.json({ ok: true, message: `${group.group_name} approved and notified.` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+// ── POST /api/admin/pals/:id/reject ───────────────────────────────────────────
+const rejectPalGroup = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    if (!reason?.trim()) return res.status(400).json({ error: 'A rejection reason is required' });
+
+    const { data: group } = await supabase.from('pal_groups').select('*').eq('id', id).single();
+    if (!group) return res.status(404).json({ error: 'Pals group not found' });
+
+    await supabase.from('pal_groups').update({ status: 'rejected', rejection_reason: reason.trim(), updated_at: new Date() }).eq('id', id);
+
+    const { sendEmail } = require('../utils/email');
+    sendEmail({
+      to: group.email,
+      template: 'palRejected',
+      data: { groupName: group.group_name, reason: reason.trim() },
+    }).catch(() => {});
+
+    res.json({ ok: true, message: `${group.group_name} rejected and notified.` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+};
+
+module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, getAllCards, deleteCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot, listPalApplications, approvePalGroup, rejectPalGroup };

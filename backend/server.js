@@ -83,6 +83,8 @@ app.use('/api/auth/signup',          authLimiter);
 app.use('/api/company/login',        authLimiter);
 app.use('/api/members/login',        authLimiter);
 app.use('/api/members/signup',       authLimiter);
+app.use('/api/pals/signup',           authLimiter);
+app.use('/api/pals/login',            authLimiter);
 app.use('/api/auth/forgot-password',        authLimiter);
 app.use('/api/auth/reset-password',         authLimiter);
 app.use('/api/company/signup',              authLimiter);
@@ -147,6 +149,7 @@ app.use('/api/hris', require('./routes/hris'));
 app.use('/api/demo', require('./routes/demo'));
 app.use('/api/blog', require('./routes/blog'));
 app.use('/api/reminders', require('./routes/reminders'));
+app.use('/api/pals', require('./routes/pals'));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', app: 'Thankeeu API', time: new Date() }));
@@ -227,6 +230,10 @@ cron.schedule('0 8 * * *', async () => {
     }
   }
 });
+
+// Thankeeu Pals automation — auto-create cards, send reminders, settle gift pots
+const { runPalAutomation } = require('./utils/palAutomation');
+cron.schedule('0 * * * *', () => runPalAutomation().catch(e => console.error('Pal automation error:', e.message)));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

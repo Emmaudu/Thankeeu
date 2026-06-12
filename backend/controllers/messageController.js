@@ -18,11 +18,29 @@ const addMessage = async (req, res) => {
              product_id, product_name, product_price } = req.body;
 
     const { data: card } = await supabase
-      .from('cards').select('id, status, allow_private_messages')
+      .from('cards').select('id, status, allow_private_messages, pal_group_id, pal_member_id')
       .eq('slug', card_slug).single();
 
     if (!card) return res.status(404).json({ error: 'Card not found' });
     if (card.status === 'draft') return res.status(403).json({ error: 'Card is not yet active' });
+
+    // Thankeeu Pals: only the group's own members (incl. the celebrant's
+    // group owner) may sign — this enforces "signers can't exceed group size"
+    // and prevents the link being shared outside the group.
+    if (card.pal_group_id && author_email) {
+      const cleanEmail = author_email.toLowerCase().trim();
+      const { data: group } = await supabase.from('pal_groups').select('email').eq('id', card.pal_group_id).maybeSingle();
+      const isOwner = group?.email?.toLowerCase() === cleanEmail;
+      let isMember = isOwner;
+      if (!isMember) {
+        const { data: m } = await supabase.from('pal_members')
+          .select('id').eq('pal_group_id', card.pal_group_id).eq('email', cleanEmail).maybeSingle();
+        isMember = !!m;
+      }
+      if (!isMember) {
+        return res.status(403).json({ error: 'This card can only be signed by members of the group it was created for.' });
+      }
+    }
 
     // Primary media file — first file named 'media', or first file of any name
     const primaryFile = req.files?.find(f => f.fieldname === 'media') || req.files?.[0] || req.file;

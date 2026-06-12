@@ -39,6 +39,39 @@ const EmptyState = ({ icon, title, sub }) => (
   </div>
 );
 
+const PalTicketRow = ({ ticket, onReply }) => {
+  const [reply, setReply] = useState(ticket.admin_reply || '');
+  const [open, setOpen] = useState(false);
+  const STATUS_COLOR = { open:'bg-amber-100 text-amber-700', answered:'bg-green-100 text-green-700', closed:'bg-gray-100 text-gray-600' };
+
+  return (
+    <div className="px-5 py-4">
+      <div className="flex items-start justify-between gap-3 mb-1">
+        <div>
+          <p className="font-medium text-warm-900 text-sm">{ticket.group_name} — {ticket.subject}</p>
+          <p className="text-xs text-warm-400 mt-0.5">{ticket.message}</p>
+        </div>
+        <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 capitalize ${STATUS_COLOR[ticket.status]||STATUS_COLOR.open}`}>{ticket.status}</span>
+      </div>
+      {ticket.admin_reply && !open && (
+        <div className="mt-2 p-2.5 bg-green-50 rounded-lg border-l-2 border-green-400">
+          <p className="text-xs text-green-800">{ticket.admin_reply}</p>
+        </div>
+      )}
+      {open ? (
+        <div className="mt-2 flex gap-2">
+          <input value={reply} onChange={e=>setReply(e.target.value)} placeholder="Type a reply..." className="input flex-1 text-sm"/>
+          <button onClick={()=>{ onReply(ticket.id, reply); setOpen(false); }} className="px-3 py-1.5 rounded-lg bg-primary-600 text-white text-xs font-semibold">Send</button>
+        </div>
+      ) : (
+        <button onClick={()=>setOpen(true)} className="mt-2 text-xs text-primary-600 font-semibold">
+          {ticket.admin_reply ? 'Edit reply' : 'Reply'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 const ticketColor = { open:'amber', in_progress:'blue', resolved:'green', closed:'gray' };
 const demoColor  = { new:'amber', contacted:'blue', scheduled:'purple', converted:'green', declined:'gray' };
 
@@ -100,6 +133,7 @@ const Admin = () => {
     if (tab === 'visitors'  && !visitors.length && !visitorStats) fetchVisitors();
     if (tab === 'blog'      && !blogPosts.length)     fetchBlog();
     if (tab === 'vendors'   && !vendors.length)      fetchVendors();
+    if (tab === 'pals'      && !palApplications.length) fetchPals();
   }, [tab]);
 
   const fetchCore = async () => {
@@ -155,6 +189,54 @@ const Admin = () => {
       toast.error('Failed to load visitors');
       setVisitors([]);
     } finally { setVisitorsLoading(false); }
+  };
+
+  const fetchPals = async () => {
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const hdr  = { Authorization: `Bearer ${localStorage.getItem('thankeeu_token')}` };
+      const [pRes, tRes] = await Promise.all([
+        fetch(`${base}/admin/pals`, { headers: hdr }).then(r => r.json()),
+        fetch(`${base}/admin/pals/tickets`, { headers: hdr }).then(r => r.json()).catch(() => []),
+      ]);
+      setPalApplications(Array.isArray(pRes) ? pRes : []);
+      setPalTickets(Array.isArray(tRes) ? tRes : []);
+    } catch { toast.error('Failed to load Pals data'); }
+  };
+
+  const approvePal = async (id, name) => {
+    const base = import.meta.env.VITE_API_URL||'/api';
+    const res = await fetch(`${base}/admin/pals/${id}/approve`, { method:'POST', headers:{Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`} });
+    const d = await res.json();
+    if (!res.ok) return toast.error(d.error||'Failed');
+    toast.success(d.message || `${name} approved!`);
+    fetchPals();
+  };
+
+  const rejectPal = async () => {
+    if (!rejectReason.trim()) return toast.error('Please provide a reason');
+    const base = import.meta.env.VITE_API_URL||'/api';
+    const res = await fetch(`${base}/admin/pals/${rejectModal.id}/reject`, {
+      method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`},
+      body: JSON.stringify({ reason: rejectReason })
+    });
+    const d = await res.json();
+    if (!res.ok) return toast.error(d.error||'Failed');
+    toast.success(d.message);
+    setRejectModal(null); setRejectReason('');
+    fetchPals();
+  };
+
+  const replyPalTicket = async (id, reply) => {
+    const base = import.meta.env.VITE_API_URL||'/api';
+    const res = await fetch(`${base}/admin/pals/tickets/${id}/reply`, {
+      method:'PUT', headers:{'Content-Type':'application/json',Authorization:`Bearer ${localStorage.getItem('thankeeu_token')}`},
+      body: JSON.stringify({ reply })
+    });
+    const d = await res.json();
+    if (!res.ok) return toast.error(d.error||'Failed');
+    toast.success('Reply sent!');
+    fetchPals();
   };
 
   const fetchVendors = async () => {
@@ -248,6 +330,7 @@ const Admin = () => {
     { id:'visitors',  label:`👤 Visitors${visitors.length ? ` (${visitors.length})` : ''}` },
     { id:'blog',      label:`✍️ Blog` },
     { id:'vendors',   label:`🏪 Vendors` },
+    { id:'pals',      label:`👥 Pals${palApplications.filter(p=>p.status==='pending').length ? ` · ${palApplications.filter(p=>p.status==='pending').length} new` : ''}` },
   ];
 
   return (
@@ -718,7 +801,101 @@ const Admin = () => {
         )}
 
         {/* ─────────────── BLOG ─────────────── */}
-        {tab === 'vendors' && (
+        {tab === 'pals' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {[
+                { l:'Total Groups',  v: palApplications.length },
+                { l:'Approved',      v: palApplications.filter(p=>p.status==='approved').length },
+                { l:'Pending',       v: palApplications.filter(p=>p.status==='pending').length },
+                { l:'Open Tickets',  v: palTickets.filter(t=>t.status==='open').length },
+              ].map(s=>(
+                <div key={s.l} className="bg-white rounded-2xl border border-purple-100 p-4">
+                  <p className="text-xs text-warm-400 mb-1">{s.l}</p>
+                  <p className="text-2xl font-bold text-warm-900">{s.v}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
+              <div className="px-5 py-4 border-b border-purple-50 font-semibold text-warm-900">Pals Group Applications</div>
+              {palApplications.length === 0 ? (
+                <EmptyState icon="👥" title="No Pals applications yet" sub="Groups that apply for a Thankeeu Pals account will appear here." />
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-purple-50 text-xs uppercase text-warm-500">
+                    <tr>{['Group','Username','Email','Size','Status','Action'].map(h=>(
+                      <th key={h} className="px-4 py-3 text-left">{h}</th>
+                    ))}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-purple-50">
+                    {palApplications.map(p=>(
+                      <tr key={p.id}>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-warm-900">{p.group_name}</p>
+                          {p.description && <p className="text-xs text-warm-400 line-clamp-1 max-w-xs">{p.description}</p>}
+                        </td>
+                        <td className="px-4 py-3 text-warm-600">@{p.group_username}</td>
+                        <td className="px-4 py-3 text-warm-600">{p.email}</td>
+                        <td className="px-4 py-3 text-warm-600">{p.group_size}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${
+                            p.status==='approved' ? 'bg-green-100 text-green-700' :
+                            p.status==='pending'  ? 'bg-amber-100 text-amber-700' :
+                            'bg-red-100 text-red-600'}`}>
+                            {p.status}{p.status==='approved' && !p.is_verified ? ' (unverified)' : ''}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {p.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <button onClick={()=>approvePal(p.id, p.group_name)}
+                                className="text-xs px-3 py-1.5 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 font-semibold">
+                                Approve
+                              </button>
+                              <button onClick={()=>setRejectModal(p)}
+                                className="text-xs px-3 py-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-semibold">
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {palTickets.length > 0 && (
+              <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
+                <div className="px-5 py-4 border-b border-purple-50 font-semibold text-warm-900">💬 Pals Support Tickets</div>
+                <div className="divide-y divide-purple-50">
+                  {palTickets.map(t => (
+                    <PalTicketRow key={t.id} ticket={t} onReply={replyPalTicket} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Reject modal */}
+            {rejectModal && (
+              <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
+                  <h3 className="font-bold text-warm-900 mb-3">Reject "{rejectModal.group_name}"</h3>
+                  <textarea rows={3} className="input w-full mb-4" placeholder="Reason (will be emailed to the applicant)..."
+                    value={rejectReason} onChange={e=>setRejectReason(e.target.value)} />
+                  <div className="flex gap-3">
+                    <button onClick={()=>{setRejectModal(null); setRejectReason('');}} className="flex-1 py-2.5 rounded-xl border border-purple-200 text-sm font-semibold text-warm-600">Cancel</button>
+                    <button onClick={rejectPal} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold">Reject & notify</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+                {tab === 'vendors' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {[

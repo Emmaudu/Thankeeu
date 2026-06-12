@@ -423,3 +423,46 @@ export const vendorAPI = {
   placeOrder: (slug,d) => publicAxios.post(`/vendor/store/${slug}/order`, d),
 };
 
+// ── Pals API (group accounts) ────────────────────────────────────────────────
+const palAxios = axios.create({ baseURL: BASE_URL, withCredentials: true });
+palAxios.interceptors.request.use(cfg => {
+  const t = localStorage.getItem('tk_pal');
+  if (t) cfg.headers.Authorization = `Bearer ${t}`;
+  return cfg;
+});
+palAxios.interceptors.response.use(r => r, err => {
+  if (err.response?.status === 401 && !window.location.pathname.includes('/pals/login')) {
+    localStorage.removeItem('tk_pal');
+    localStorage.removeItem('thankeeu_pal');
+    window.location.href = '/pals/login';
+  }
+  return Promise.reject(err);
+});
+export { palAxios };
+
+export const palAPI = {
+  signup:       (data) => publicAxios.post('/pals/signup', data),
+  login:        (data) => publicAxios.post('/pals/login', data),
+  verifyEmail:  (token) => publicAxios.get(`/pals/verify-email?token=${token}`),
+  previewInvite:(token) => publicAxios.get(`/pals/invite/${token}`),
+  acceptInvite: (data) => publicAxios.post('/pals/accept-invite', data),
+
+  me:            ()      => palAxios.get('/pals/me'),
+  getSettings:   ()      => palAxios.get('/pals/settings'),
+  updateSettings:(data)  => palAxios.put('/pals/settings', data),
+  uploadLogo:    (file)  => { const fd = new FormData(); fd.append('file', file); return palAxios.post('/pals/settings/logo', fd, { headers: { 'Content-Type': undefined } }); },
+
+  getMembers:        ()       => palAxios.get('/pals/members'),
+  getMemberProfile:  (id)     => palAxios.get(`/pals/members/${id}`),
+  updateMemberProfile:(id,d)  => palAxios.put(`/pals/members/${id}`, d),
+  updateMemberEvent: (id,d)   => palAxios.put(`/pals/members/${id}/event`, d),
+  uploadAvatar:      (id,file)=> { const fd = new FormData(); fd.append('file', file); return palAxios.post(`/pals/members/${id}/avatar`, fd, { headers: { 'Content-Type': undefined } }); },
+  inviteMember:      (data)   => palAxios.post('/pals/invite', data),
+  inviteCSV:         (file)   => { const fd = new FormData(); fd.append('file', file); return palAxios.post('/pals/invite/csv', fd, { headers: { 'Content-Type': undefined } }); },
+
+  getMyCards:    ()  => palAxios.get('/pals/cards'),
+  getAnalytics:  ()  => palAxios.get('/pals/analytics'),
+
+  getTickets:    ()      => palAxios.get('/pals/support'),
+  createTicket:  (data)  => palAxios.post('/pals/support', data),
+};

@@ -78,6 +78,15 @@ const Footer = () => (
         </div>
       </div>
 
+      <div className="border-t border-purple-100 pt-5 pb-5 flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-2">
+        <Link to="/pals/signup" onClick={scrollTop} className="text-xs text-warm-400 hover:text-primary-600 transition-colors">
+          👥 Start a Thankeeu Pals group (free)
+        </Link>
+        <Link to="/vendor/signup" onClick={scrollTop} className="text-xs text-warm-400 hover:text-primary-600 transition-colors">
+          🏪 Become a gift vendor
+        </Link>
+      </div>
+
       <div className="border-t border-purple-200 pt-7 flex flex-col sm:flex-row items-center justify-between gap-4">
         <p className="text-xs text-warm-500 text-center sm:text-left">
           © {new Date().getFullYear()} Thankeeu. Made with 💜 worldwide 🌍

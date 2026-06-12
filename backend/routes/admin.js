@@ -6,7 +6,9 @@ const {
   getAllCards, deleteCard,
   getAllCompanies, deleteCompany, getCompanyTeamMembers,
   getVisitors, setCompanyMultiplier, grantPilot,
+  listPalApplications, approvePalGroup, rejectPalGroup,
 } = require('../controllers/adminController');
+const { adminListPalTickets, adminReplyPalTicket } = require('../controllers/palSupportController');
 
 router.use(adminAuth);
 
@@ -33,5 +35,12 @@ router.get('/visitors',                  getVisitors);
 // Company pricing & pilot management
 router.post('/companies/:companyId/set-multiplier', setCompanyMultiplier);
 router.post('/companies/:companyId/grant-pilot',    grantPilot);
+
+// Thankeeu Pals — group account applications
+router.get('/pals',              listPalApplications);
+router.post('/pals/:id/approve', approvePalGroup);
+router.post('/pals/:id/reject',  rejectPalGroup);
+router.get('/pals/tickets',            adminListPalTickets);
+router.put('/pals/tickets/:id/reply',  adminReplyPalTicket);
 
 module.exports = router;

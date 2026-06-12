@@ -39,6 +39,17 @@ import VendorStorefront        from './pages/vendor/VendorStorefront';
 import VendorBank              from './pages/vendor/VendorBank';
 import VendorCustomers         from './pages/vendor/VendorCustomers';
 import VendorStorefrontPublic  from './pages/vendor/VendorStorefrontPublic';
+import PalSignup       from './pages/pals/PalSignup';
+import PalLogin        from './pages/pals/PalLogin';
+import PalVerifyEmail  from './pages/pals/PalVerifyEmail';
+import PalJoin         from './pages/pals/PalJoin';
+import PalDashboard    from './pages/pals/PalDashboard';
+import PalMembers      from './pages/pals/PalMembers';
+import PalInvite       from './pages/pals/PalInvite';
+import PalMemberProfile from './pages/pals/PalMemberProfile';
+import PalSettings     from './pages/pals/PalSettings';
+import PalSupport      from './pages/pals/PalSupport';
+import PalMyCards      from './pages/pals/PalMyCards';
 import VendorLogin            from './pages/vendor/VendorLogin';
 import VendorSignup           from './pages/vendor/VendorSignup';
 import VendorVerifyEmail      from './pages/vendor/VendorVerifyEmail';
@@ -189,6 +200,17 @@ const App = () => (
             <Route path="/vendor/bank"        element={<VendorBank />} />
             <Route path="/vendor/customers"    element={<VendorCustomers />} />
             <Route path="/c/:slug"             element={<VendorStorefrontPublic />} />
+            <Route path="/pals/signup"             element={<PalSignup />} />
+            <Route path="/pals/login"              element={<PalLogin />} />
+            <Route path="/pals/verify-email"       element={<PalVerifyEmail />} />
+            <Route path="/pals/join"               element={<PalJoin />} />
+            <Route path="/pals/dashboard"          element={<PalDashboard />} />
+            <Route path="/pals/dashboard/members"  element={<PalMembers />} />
+            <Route path="/pals/dashboard/members/:id" element={<PalMemberProfile />} />
+            <Route path="/pals/dashboard/invite"   element={<PalInvite />} />
+            <Route path="/pals/dashboard/settings" element={<PalSettings />} />
+            <Route path="/pals/dashboard/support"  element={<PalSupport />} />
+            <Route path="/pals/dashboard/cards"    element={<PalMyCards />} />
             <Route path="/blog/confirm-subscription" element={<BlogConfirmSubscription />} />
             <Route path="/blog/unsubscribe"            element={<BlogUnsubscribe />} />
             <Route path="/payment/callback"   element={<PaymentCallback />} />

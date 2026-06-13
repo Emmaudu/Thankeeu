@@ -352,15 +352,20 @@ const SignCard = () => {
 
   const handleProductGift = async () => {
     if (!selectedProduct) return toast.error('Please select a product');
+    if (!selectedVendor) return toast.error('Please select a vendor');
     if (!form.author_name.trim()) return toast.error('Please enter your name');
     if (!form.author_email.trim()) return toast.error('Email is needed so the vendor can contact you');
+    if (!form.content.trim()) return toast.error('Please write a message');
+
+    const messageContent = form.content.trim();
+
     setProductSubmitting(true);
     try {
       // 1. Post the card message first
       const fd = new FormData();
       fd.append('author_name', form.author_name.trim());
       fd.append('author_email', form.author_email.trim());
-      if (form.message.trim()) fd.append('content', form.message.trim());
+      fd.append('content', messageContent);
       fd.append('gift_type', 'product');
       fd.append('product_vendor_id', selectedVendor.id);
       fd.append('product_vendor_name', selectedVendor.business_name);
@@ -376,7 +381,7 @@ const SignCard = () => {
         customer_name:  form.author_name.trim(),
         customer_email: form.author_email.trim(),
         card_slug:      slug,
-        note:           form.message.trim(),
+        note:           messageContent,
       });
       const { payment_link } = orderRes.data;
 

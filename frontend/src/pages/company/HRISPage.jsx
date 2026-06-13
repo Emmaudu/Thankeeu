@@ -33,13 +33,8 @@ const PROVIDERS = [
     logo:     '🔴',
     color:    'bg-red-50 border-red-200',
     desc:     'Comprehensive HR suite for businesses of all sizes',
-    fields:   [
-      { key: 'api_key',       label: 'Client ID',      type: 'text',     help: 'Zoho API Console → Your app → Client ID' },
-      { key: 'api_secret',    label: 'Client Secret',  type: 'password', help: 'Zoho API Console → Your app → Client Secret' },
-      { key: 'refresh_token', label: 'Refresh Token',  type: 'password', help: 'Zoho API Console → Self Client → Generate token with scope: ZohoPeople.employee.READ' },
-      { key: 'base_url',      label: 'Region Base URL', type: 'text',    placeholder: 'https://people.zoho.com', help: 'Change only if your Zoho is in EU (.eu), India (.in), Australia (.com.au), or Japan (.jp)' },
-    ],
-    hint: 'Do NOT paste an Access Token — it expires in 1 hour. Use a Refresh Token instead and Thankeeu will auto-renew it.',
+    useOAuth: true,   // uses /api/hris/zoho-auth redirect flow instead of manual fields
+    fields:   [],     // no manual fields needed
   },
   {
     id:       'workpay',
@@ -137,6 +132,17 @@ const HRISPage = () => {
   const [subLoading, setSubLoading]   = useState(true);
 
   useEffect(() => {
+    // Handle Zoho OAuth callback params
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('zoho_connected') === '1') {
+      toast.success('Zoho People connected successfully! Click Test to verify.');
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('error')) {
+      const err = params.get('error');
+      const detail = params.get('detail');
+      toast.error('Zoho connection failed: ' + err + (detail ? ' — ' + detail : ''));
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     fetchAll();
     subscriptionAPI.get()
       .then(r => setSub(r.data))
@@ -460,18 +466,36 @@ const HRISPage = () => {
 
                   {/* Expanded connection form */}
                   {isSelected && (
-                    <form onSubmit={handleConnect} className="border-t border-purple-100 p-5 space-y-3 bg-warm-100 rounded-b-2xl">
+                    <div className="border-t border-purple-100 p-5 space-y-3 bg-warm-100 rounded-b-2xl">
+                      {p.useOAuth ? (
+                        /* OAuth providers — single click to connect */
+                        <div className="text-center py-4 space-y-3">
+                          <p className="text-sm text-warm-600">Click below to connect your {p.name} account securely. You will be redirected to {p.name} to approve access and brought back automatically.</p>
+                          <button type="button"
+                            onClick={async () => {
+                              try {
+                                const BASE = import.meta.env.VITE_API_URL || '/api';
+                                const tok  = localStorage.getItem('thankeeu_company_token') || '';
+                                const r    = await fetch(`${BASE}/hris/zoho-init`, {
+                                  headers: { Authorization: `Bearer ${tok}` }
+                                });
+                                const d = await r.json();
+                                if (!r.ok) { toast.error(d.error || 'Could not start Zoho login'); return; }
+                                window.location.href = d.url;
+                              } catch(e) { toast.error('Could not start Zoho login: ' + e.message); }
+                            }}
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
+                            style={{ background: 'linear-gradient(135deg,#E03A2F,#C0392B)' }}>
+                            {p.logo} Connect with {p.name} →
+                          </button>
+                          <p className="text-xs text-warm-400">You will be redirected to Zoho and back automatically. No codes to copy.</p>
+                        </div>
+                      ) : (
+                    <form onSubmit={handleConnect} className="space-y-3">
                       {p.hint && (
                         <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
                           <p className="text-xs text-amber-700 font-medium">⚠️ {p.hint}</p>
                         </div>
-                      )}
-                      {p.id === 'zoho_people' && (
-                        <ZohoExchangeHelper
-                          clientId={formData.api_key || ''}
-                          clientSecret={formData.api_secret || ''}
-                          onRefreshToken={tok => setFormData(prev => ({ ...prev, refresh_token: tok }))}
-                        />
                       )}
                       {p.fields.map(field => (
                         <div key={field.key}>
@@ -504,6 +528,8 @@ const HRISPage = () => {
                         </button>
                       </div>
                     </form>
+                      )}
+                    </div>
                   )}
                 </div>
               );

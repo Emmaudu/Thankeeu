@@ -17,12 +17,6 @@ const { sendEmail } = require('./utils/email');
 
 const app = express();
 
-// Railway (and most PaaS) run the app behind a reverse proxy that sets
-// X-Forwarded-For. Without this, express-rate-limit throws
-// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request (seen in production
-// logs) and req.ip resolves to the proxy's IP instead of the real client.
-app.set('trust proxy', 1);
-
 // Security
 app.use(helmet({
   contentSecurityPolicy: {
@@ -160,7 +154,8 @@ app.use('/api/activity-log', require('./routes/activityLog'));
 app.use('/api/vendor',       require('./routes/vendor'));
 app.use('/api/members', require('./routes/companyMembers'));
 app.use('/api/deductions', require('./routes/deductions'));
-app.use('/api/hris', require('./routes/hris'));
+app.use('/api/hris', require('./routes/hrisPublic')); // public: zoho-callback (no auth)
+app.use('/api/hris', require('./routes/hris'));       // protected: all other hris routes
 app.use('/api/demo', require('./routes/demo'));
 app.use('/api/blog', require('./routes/blog'));
 app.use('/api/reminders', require('./routes/reminders'));

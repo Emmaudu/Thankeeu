@@ -269,17 +269,20 @@ async function fetchFromZohoPeople(connection) {
   const timeout    = 30000;
   let   records    = [];
 
-  // Zoho People API — try multiple endpoint variants in order
-  // api_domain from OAuth is https://www.zohoapis.com but People API uses people.zoho.com
+  // Zoho People API — correct endpoint formats per Zoho docs
+  // Base is always people.zoho.com (not zohoapis.com which is for CRM/other apps)
+  const peopleBase = 'https://people.zoho.com';
   const endpoints = [
-    // Current recommended endpoint
-    { url: `${zohoBase}/people/api/forms/employee/getRecords?sIndex=1&limit=200`, label: 'v1-employee' },
-    // Alternate form name
-    { url: `${zohoBase}/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200`, label: 'v1-P_EmployeeView' },
-    // zohoapis.com variant
-    { url: `https://people.zoho.com/people/api/forms/employee/getRecords?sIndex=1&limit=200`, label: 'v1-zoho.com' },
-    // v2 API
-    { url: `${zohoBase}/api/v2/forms/employee/getRecords?page=1&limit=200`, label: 'v2' },
+    // Format 1: /people/api/forms/<formLinkName>/getRecords
+    { url: `${peopleBase}/people/api/forms/employee/getRecords?sIndex=1&limit=200`, label: 'forms/employee' },
+    // Format 2: using P_EmployeeView (internal form link name)
+    { url: `${peopleBase}/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200`, label: 'P_EmployeeView' },
+    // Format 3: /api/forms/employee/getRecords (without /people prefix)
+    { url: `${peopleBase}/api/forms/employee/getRecords?sIndex=1&limit=200`, label: 'api/forms/employee' },
+    // Format 4: records endpoint (some Zoho versions)
+    { url: `${peopleBase}/people/api/forms/employee/records?page=1&per_page=200`, label: 'employee/records' },
+    // Format 5: zohoapis.com People API (newer)
+    { url: `https://www.zohoapis.com/people/v2.1/forms/employee/getRecords?sIndex=1&limit=200`, label: 'zohoapis-v2.1' },
   ];
 
   let lastStatus = null;

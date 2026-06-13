@@ -12,8 +12,6 @@ const {
 // ── Public routes (no auth) ───────────────────────────────────────────────────
 router.get('/sitemap',          getBlogSitemap);        // SEO sitemap data
 router.get('/categories',       getCategories);
-router.get('/',                 getPosts);
-router.get('/:slug',            getPost);               // must be last public route
 
 // ── Subscriber routes (public + admin) ────────────────────────────────────────
 router.post('/subscribe',              subscribeNewsletter);
@@ -29,5 +27,9 @@ router.put('/admin/posts/:id',          adminAuth, adminUpdatePost);
 router.patch('/admin/posts/:id/status', adminAuth, adminSetStatus);
 router.patch('/admin/posts/:id/featured', adminAuth, adminToggleFeatured);
 router.delete('/admin/posts/:id',       adminAuth, adminDeletePost);
+
+// ── Slug lookup — MUST be last (catches any /blog/<anything>) ────────────────
+router.get('/',                 getPosts);
+router.get('/:slug',            getPost);
 
 module.exports = router;

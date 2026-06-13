@@ -7,6 +7,8 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI, visitorsAPI, vendorAPI } from '../utils/api';
 import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import VoiceRecorder from '../components/VoiceRecorder';
+import EmojiPicker from '../components/EmojiPicker';
+import GifPicker from '../components/GifPicker';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import { formatNGN, CURRENCIES, formatCurrency, getFLWPaymentParams } from '../utils/currency';
@@ -15,7 +17,7 @@ const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
 
 const SignCard = () => {
   const { slug }       = useParams();
-  const { user }       = useAuth();
+  const { user, loginWithToken } = useAuth();
   const { member }     = useMemberAuth();
   const { company }    = useCompanyAuth();
   // isSignedIn: normal user, team member/leader, or HR company
@@ -30,12 +32,17 @@ const SignCard = () => {
   const [giftCurrency,setGiftCurrency] = useState('NGN');
   const [submitted,   setSubmitted]   = useState(false);
   // track whether the signee created an account during this signing flow
-  const [createdAccount, setCreatedAccount] = useState(false);
+  const [, setCreatedAccount] = useState(false);
+  const [accountJustCreated, setAccountJustCreated] = useState(false);
+  const [showCreateAccountPrompt, setShowCreateAccountPrompt] = useState(false);
 
   // Media files (up to 5, carousel)
   const [mediaFiles,   setMediaFiles]   = useState([]);
   const [carouselIdx,  setCarouselIdx]  = useState(0);
   const fileRef = useRef();
+  const textareaRef = useRef();
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showGifPicker,   setShowGifPicker]   = useState(false);
 
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [giftMode, setGiftMode] = useState('money'); // 'money' | 'product'
@@ -79,8 +86,60 @@ const SignCard = () => {
   useEffect(() => {
     const run = async () => {
       // FLW redirects browser back here with ?tx_ref=...&status=... after payment
+      const shareMode = searchParams.get('mode') || readShareMode();
+      const isSharePage = searchParams.get('share') === '1';
+      const productTxRef = searchParams.get('product_tx_ref');
       const returnTxRef = searchParams.get('tx_ref') || searchParams.get('reference');
       const returnStatus = (searchParams.get('status') || '').toLowerCase();
+
+      if (isSharePage) {
+        applyShareMode(shareMode);
+        await fetchCard();
+        setSubmitted(true);
+        setStage('idle');
+        clearShareMode();
+        return;
+      }
+
+      if (productTxRef) {
+        if (returnStatus === 'cancelled' || returnStatus === 'canceled') {
+          window.history.replaceState({}, '', `/sign/${slug}`);
+          toast.error('Payment was cancelled. Your message is still here — you can try again or choose a different option.');
+          await fetchCard();
+          setStage('idle');
+          return;
+        }
+
+        setStage('verifying');
+        try {
+          await vendorAPI.verifyOrder(productTxRef);
+          window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${shareMode}`);
+          toast.success('Your gift order is confirmed! 🎉');
+          applyShareMode(shareMode);
+          await fetchCard();
+          setSubmitted(true);
+          setStage('idle');
+          clearShareMode();
+        } catch (e) {
+          const msg = e?.response?.data?.error || e?.message || '';
+          if (msg.toLowerCase().includes('not completed') || msg.toLowerCase().includes('cancelled')) {
+            window.history.replaceState({}, '', `/sign/${slug}`);
+            toast.error('Payment was not completed. Your message is still here — please try again.');
+            await fetchCard();
+            setStage('idle');
+          } else {
+            window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${shareMode}`);
+            console.error('verifyVendorOrder server error:', msg);
+            toast.success('Gift order received! 🎉');
+            applyShareMode(shareMode);
+            await fetchCard();
+            setSubmitted(true);
+            setStage('idle');
+            clearShareMode();
+          }
+        }
+        return;
+      }
 
       if (returnTxRef) {
         // Clean the URL immediately so refresh doesn't re-trigger
@@ -99,10 +158,13 @@ const SignCard = () => {
         setStage('verifying');
         try {
           await paymentsAPI.verifyContribution(returnTxRef);
+          window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${shareMode}`);
           toast.success('Your message and gift are on the card! 🎉');
+          applyShareMode(shareMode);
           await fetchCard();
           setSubmitted(true);
           setStage('idle');
+          clearShareMode();
         } catch (e) {
           // 400 = payment not completed (declined, failed, etc.)
           // 500 = server error during verify
@@ -117,10 +179,13 @@ const SignCard = () => {
             // Verify failed due to server error but payment may have gone through
             // Show success to avoid double-charging but log the error
             console.error('verifyContribution server error:', msg);
+            window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${shareMode}`);
             toast.success('Gift received! 🎉');
+            applyShareMode(shareMode);
             await fetchCard();
             setSubmitted(true);
             setStage('idle');
+            clearShareMode();
           }
         }
         return;
@@ -142,6 +207,94 @@ const SignCard = () => {
       setLoading(false);
     }
   };
+
+  const shareStateKey = () => `thankeeu_sign_share_${slug}`;
+  const accountCreatedKey = () => `thankeeu_sign_account_created_${slug}`;
+  const currentShareMode = () => (!isSignedIn && submitMode === 'guest' ? 'guest' : 'account');
+  const readShareMode = () => {
+    try { return JSON.parse(localStorage.getItem(shareStateKey()) || '{}').mode || 'guest'; }
+    catch { return 'guest'; }
+  };
+  const rememberShareMode = (mode) => {
+    try { localStorage.setItem(shareStateKey(), JSON.stringify({ mode, ts: Date.now() })); }
+    catch {}
+  };
+  const clearShareMode = () => {
+    try {
+      localStorage.removeItem(shareStateKey());
+      localStorage.removeItem(accountCreatedKey());
+    } catch {}
+  };
+  const applyShareMode = (mode) => {
+    setShowCreateAccountPrompt(!isSignedIn && mode === 'guest');
+    setCreatedAccount(mode !== 'guest');
+    try {
+      if (localStorage.getItem(accountCreatedKey()) === '1') setAccountJustCreated(true);
+    } catch {}
+  };
+  const goToSharePage = (mode) => {
+    rememberShareMode(mode);
+    window.location.assign(`/sign/${slug}?share=1&mode=${mode}`);
+  };
+
+  const validateSignupFields = () => {
+    const { full_name, username, email, password, confirm_password } = signupForm;
+    const resolvedName  = full_name  || form.author_name;
+    const resolvedEmail = email      || form.author_email;
+    if (!resolvedName.trim())       { toast.error('Please enter your full name'); return false; }
+    if (!username.trim())           { toast.error('Please choose a username'); return false; }
+    if (username.trim().length < 3) { toast.error('Username must be at least 3 characters'); return false; }
+    if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) { toast.error('Username can only contain letters, numbers and underscores'); return false; }
+    if (!resolvedEmail.trim())      { toast.error('Please enter your email'); return false; }
+    if (!password)                  { toast.error('Please choose a password'); return false; }
+    if (password.length < 8)        { toast.error('Password must be at least 8 characters'); return false; }
+    if (password !== confirm_password) { toast.error('Passwords do not match'); return false; }
+    return true;
+  };
+
+  const createSignerAccount = async () => {
+    const resolvedName  = signupForm.full_name  || form.author_name;
+    const resolvedEmail = signupForm.email      || form.author_email;
+    const res = await authAPI.signup({
+      full_name:     resolvedName,
+      username:      signupForm.username.trim().toLowerCase(),
+      email:         resolvedEmail,
+      password:      signupForm.password,
+      date_of_birth: signupForm.date_of_birth || null,
+    });
+    // Log the signer into THIS browser immediately — backend already returns
+    // a valid session token + verified-pending user record at signup time.
+    if (res?.data?.token && res?.data?.user) {
+      loginWithToken(res.data.token, res.data.user);
+    }
+    setCreatedAccount(true);
+    setAccountJustCreated(true);
+    // Survive the full-page redirect to Flutterwave and back
+    try { localStorage.setItem(accountCreatedKey(), '1'); } catch {}
+    toast.success('Account created! Check your email to verify.');
+  };
+
+  // Insert an emoji at the current cursor position in the message textarea
+  // (falls back to appending at the end if the textarea ref isn't available).
+  const insertEmoji = useCallback((emoji) => {
+    const el = textareaRef.current;
+    if (el && typeof el.selectionStart === 'number') {
+      const start = el.selectionStart;
+      const end   = el.selectionEnd;
+      setForm(p => {
+        const next = p.content.slice(0, start) + emoji + p.content.slice(end);
+        return { ...p, content: next };
+      });
+      // Restore focus + move cursor after the inserted emoji
+      requestAnimationFrame(() => {
+        el.focus();
+        const pos = start + emoji.length;
+        el.setSelectionRange(pos, pos);
+      });
+    } else {
+      setForm(p => ({ ...p, content: p.content + emoji }));
+    }
+  }, []);
 
   const addMediaFiles = useCallback((files) => {
     const items = [];
@@ -182,17 +335,7 @@ const SignCard = () => {
 
     // Validate signup fields if chosen
     if (!isSignedIn && submitMode === 'signup') {
-      const { full_name, username, email, password, confirm_password } = signupForm;
-      const resolvedName  = full_name  || form.author_name;
-      const resolvedEmail = email      || form.author_email;
-      if (!resolvedName.trim())       return toast.error('Please enter your full name');
-      if (!username.trim())           return toast.error('Please choose a username');
-      if (username.trim().length < 3) return toast.error('Username must be at least 3 characters');
-      if (!/^[a-zA-Z0-9_]+$/.test(username.trim())) return toast.error('Username can only contain letters, numbers and underscores');
-      if (!resolvedEmail.trim())      return toast.error('Please enter your email');
-      if (!password)                  return toast.error('Please choose a password');
-      if (password.length < 8)        return toast.error('Password must be at least 8 characters');
-      if (password !== confirm_password) return toast.error('Passwords do not match');
+      if (!validateSignupFields()) return;
     }
 
     setSubmitting(true);
@@ -210,26 +353,16 @@ const SignCard = () => {
 
       // ── STEP 2: Create account if chosen (non-blocking on failure) ─────────
       if (!isSignedIn && submitMode === 'signup') {
-        const resolvedName  = signupForm.full_name  || form.author_name;
-        const resolvedEmail = signupForm.email      || form.author_email;
         try {
-          await authAPI.signup({
-            full_name:     resolvedName,
-            username:      signupForm.username.trim().toLowerCase(),
-            email:         resolvedEmail,
-            password:      signupForm.password,
-            date_of_birth: signupForm.date_of_birth || null,
-          });
-          setCreatedAccount(true);
-          toast.success('Account created! Check your email to verify. 🎉');
+          await createSignerAccount();
         } catch (err) {
           toast(err.response?.data?.error || 'Could not create account — your message was still saved!');
         }
       }
 
       // ── STEP 3: Payment (only if gift selected) ────────────────────────────
+      const shareMode = currentShareMode();
       if (!wantsGift) {
-        setSubmitted(true);
         setSubmitting(false);
         setStage('idle');
         // Bug 5 fix: track guest visitor for follow-up nudge emails
@@ -240,6 +373,7 @@ const SignCard = () => {
             card_slug: slug,
           }).catch(() => {});
         }
+        goToSharePage(shareMode);
         return;
       }
 
@@ -263,6 +397,7 @@ const SignCard = () => {
       // FLW redirects browser directly back to /sign/slug?tx_ref=TK-GIFT-...
       // This page's useEffect detects ?tx_ref= and calls verifyContribution
       setStage('redirecting');
+      rememberShareMode(shareMode);
       window.location.assign(payment_link);
 
     } catch (err) {
@@ -309,8 +444,8 @@ const SignCard = () => {
           <h2 className="text-3xl font-bold text-warm-900 mb-3">You are on {card.recipient_name}'s card! 🎉</h2>
           <p className="text-warm-600 mb-7">Your heartfelt note is now part of their special celebration.</p>
 
-          {/* Only show "create account" promo if they signed as guest (not if they already created one) */}
-          {!isSignedIn && !createdAccount && (
+          {/* Only show "create account" promo if they signed as guest. */}
+          {showCreateAccountPrompt && (
             <div className="bg-primary-50 border border-primary-100 rounded-2xl p-4 mb-6 text-left">
               <p className="text-sm font-semibold text-primary-700 mb-2">💡 Create a free account to:</p>
               <ul className="text-xs text-primary-600 space-y-1">
@@ -320,6 +455,20 @@ const SignCard = () => {
               </ul>
               <Link to="/signup" className="mt-3 block w-full text-center py-2.5 rounded-xl text-sm font-bold bg-primary-600 text-white">
                 Create free account →
+              </Link>
+            </div>
+          )}
+
+          {/* Shown when the signer chose "Create account & sign card" */}
+          {accountJustCreated && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 mb-6 text-left">
+              <p className="text-sm font-semibold text-emerald-700 mb-1">🎉 Your Thankeeu account is ready!</p>
+              <p className="text-xs text-emerald-600 mb-3">
+                We've sent a welcome email and a verification link to <strong>{form.author_email || signupForm.email}</strong>.
+                Click the link to verify — you're already signed in on this device.
+              </p>
+              <Link to="/dashboard" className="block w-full text-center py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white">
+                Go to my dashboard →
               </Link>
             </div>
           )}
@@ -356,8 +505,10 @@ const SignCard = () => {
     if (!form.author_name.trim()) return toast.error('Please enter your name');
     if (!form.author_email.trim()) return toast.error('Email is needed so the vendor can contact you');
     if (!form.content.trim()) return toast.error('Please write a message');
+    if (!isSignedIn && submitMode === 'signup' && !validateSignupFields()) return;
 
     const messageContent = form.content.trim();
+    const shareMode = currentShareMode();
 
     setProductSubmitting(true);
     try {
@@ -366,14 +517,25 @@ const SignCard = () => {
       fd.append('author_name', form.author_name.trim());
       fd.append('author_email', form.author_email.trim());
       fd.append('content', messageContent);
+      fd.append('is_private', form.is_private);
+      fd.append('font_style', form.font_style);
       fd.append('gift_type', 'product');
       fd.append('product_vendor_id', selectedVendor.id);
       fd.append('product_vendor_name', selectedVendor.business_name);
       fd.append('product_id', selectedProduct.id);
       fd.append('product_name', selectedProduct.name);
       fd.append('product_price', selectedProduct.price);
-      for (const mf of mediaFiles) fd.append('media', mf.file);
+      if (!isSignedIn && submitMode === 'guest') fd.append('is_guest', 'true');
+      mediaFiles.forEach((mf, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, mf.file));
       await messagesAPI.sign(slug, fd);
+
+      if (!isSignedIn && submitMode === 'signup') {
+        try {
+          await createSignerAccount();
+        } catch (err) {
+          toast(err.response?.data?.error || 'Could not create account — your message was still saved!');
+        }
+      }
 
       // 2. Place order + initiate Flutterwave payment
       const orderRes = await vendorAPI.checkout(selectedVendor.slug, {
@@ -381,16 +543,16 @@ const SignCard = () => {
         customer_name:  form.author_name.trim(),
         customer_email: form.author_email.trim(),
         card_slug:      slug,
-        note:           messageContent,
       });
       const { payment_link } = orderRes.data;
 
       if (payment_link) {
         toast.success('Redirecting to pay for your gift...');
+        rememberShareMode(shareMode);
         window.location.href = payment_link;
       } else {
         toast.success('Gift order placed! The vendor will contact you to arrange delivery.');
-        setSubmitted(true);
+        goToSharePage(shareMode);
       }
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to send product gift');
@@ -473,24 +635,49 @@ const SignCard = () => {
 
             {/* Message */}
             <label className="block text-sm font-bold text-warm-700 mb-2">Your message to {card.recipient_name} *</label>
-            <textarea className="input text-base h-44 resize-none"
-              style={{ fontFamily: msgFont.family, fontSize: form.font_style === 'calligraphy' ? '1.55rem' : '1rem' }}
-              placeholder={`Write something unforgettable for ${card.recipient_name}...`}
-              maxLength={1200} value={form.content}
-              onChange={e => setForm(p=>({...p, content: e.target.value}))} />
+            <div className="relative">
+              <textarea ref={textareaRef} className="input text-base h-44 resize-none"
+                style={{ fontFamily: msgFont.family, fontSize: form.font_style === 'calligraphy' ? '1.55rem' : '1rem' }}
+                placeholder={`Write something unforgettable for ${card.recipient_name}...`}
+                maxLength={1200} value={form.content}
+                onChange={e => setForm(p=>({...p, content: e.target.value}))} />
+              <button type="button" onClick={() => { setShowEmojiPicker(s => !s); setShowGifPicker(false); }}
+                title="Add emoji"
+                className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-white border border-purple-100 shadow-sm flex items-center justify-center text-lg hover:bg-purple-50 transition-colors">
+                😊
+              </button>
+              {showEmojiPicker && (
+                <EmojiPicker
+                  onSelect={(emoji) => insertEmoji(emoji)}
+                  onClose={() => setShowEmojiPicker(false)}
+                />
+              )}
+            </div>
             <div className="flex justify-end mt-1 mb-5">
               <span className="text-sm text-warm-400">{form.content.length}/1200</span>
             </div>
 
             {/* Media upload */}
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="relative flex flex-wrap gap-2 mb-4">
               <button type="button" onClick={() => fileRef.current.click()} className="voice-record-button">
                 <span>📷</span>
                 <span>Add photos/video {mediaFiles.length > 0 ? `(${mediaFiles.length}/5)` : '(up to 5)'}</span>
               </button>
+              <button type="button" onClick={() => { setShowGifPicker(s => !s); setShowEmojiPicker(false); }}
+                disabled={mediaFiles.length >= 5}
+                className="voice-record-button disabled:opacity-50">
+                <span>🎞️</span>
+                <span>Add GIF</span>
+              </button>
               <VoiceRecorder onRecorded={f => addMediaFiles([f])} disabled={submitting} />
               <input ref={fileRef} type="file" accept="image/*,video/*,audio/*,.m4a,.ogg,.webm"
                 multiple className="hidden" onChange={e => addMediaFiles(e.target.files)} />
+              {showGifPicker && (
+                <GifPicker
+                  onSelect={(file) => addMediaFiles([file])}
+                  onClose={() => setShowGifPicker(false)}
+                />
+              )}
             </div>
 
             {/* Carousel preview */}

@@ -468,6 +468,10 @@ CREATE TABLE IF NOT EXISTS vendor_orders (
   customer_name    TEXT,
   customer_email   TEXT NOT NULL,
   customer_phone   TEXT,
+  recipient_name   TEXT,
+  recipient_email  TEXT,
+  signer_name      TEXT,
+  signer_email     TEXT,
   delivery_address TEXT,
   card_slug        TEXT,
   note             TEXT,
@@ -481,6 +485,8 @@ CREATE TABLE IF NOT EXISTS vendor_orders (
 );
 CREATE INDEX IF NOT EXISTS idx_vendor_orders_vendor ON vendor_orders(vendor_id);
 CREATE INDEX IF NOT EXISTS idx_vendor_orders_status ON vendor_orders(vendor_id, status);
+CREATE INDEX IF NOT EXISTS idx_vendor_orders_recipient_email ON vendor_orders(recipient_email);
+CREATE INDEX IF NOT EXISTS idx_vendor_orders_signer_email ON vendor_orders(signer_email);
 
 CREATE TABLE IF NOT EXISTS vendor_order_items (
   id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

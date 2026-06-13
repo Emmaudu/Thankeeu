@@ -181,7 +181,11 @@ const getAnalytics = async (req, res) => {
       supabase.from('vendor_store_views').select('id', { count: 'exact', head: true }).eq('vendor_id', vendorId),
     ]);
     const allOrders  = orders.data || [];
-    const revenue    = allOrders.filter(o => o.status === 'delivered').reduce((s, o) => s + (o.total_amount || 0), 0);
+    // Revenue = all PAID orders (anything past 'pending'/'cancelled'), not just
+    // 'delivered' — otherwise the dashboard shows ₦0 until every order is
+    // manually marked delivered, even though payment has been received.
+    const PAID_STATUSES = ['confirmed', 'processing', 'shipped', 'delivered'];
+    const revenue    = allOrders.filter(o => PAID_STATUSES.includes(o.status)).reduce((s, o) => s + (o.total_amount || 0), 0);
     const pending    = allOrders.filter(o => ['confirmed','processing','shipped'].includes(o.status)).length;
     const totalProds = (products.data || []).length;
     const activeProds= (products.data || []).filter(p => p.is_available).length;
@@ -206,7 +210,7 @@ const getPublicStore = async (req, res) => {
     const { slug } = req.params;
     const { data: vendor } = await supabase.from('vendors')
       .select('id, business_name, slug, description, logo_url, banner_url, category, address, country, state, phone, social_links, delivery_info, return_policy, status')
-      .eq('slug', slug).eq('status', 'approved').eq('is_verified', true).single();
+      .eq('slug', slug).eq('status', 'approved').single();
     if (!vendor) return res.status(404).json({ error: 'Store not found or not yet active' });
 
     const { data: products } = await supabase.from('vendor_products')
@@ -318,6 +322,9 @@ const checkoutOrder = async (req, res) => {
     if (!customer_email?.trim()) return res.status(400).json({ error: 'Email is required for checkout' });
     if (!customer_name?.trim())  return res.status(400).json({ error: 'Name is required for checkout' });
 
+    const signerName  = customer_name.trim();
+    const signerEmail = customer_email.trim();
+
     const { data: vendor } = await supabase.from('vendors')
       .select('id, business_name, email, slug')
       .eq('slug', slug).eq('status', 'approved').single();
@@ -340,13 +347,43 @@ const checkoutOrder = async (req, res) => {
       return { product_id: prod.id, product_name: prod.name, quantity: qty, unit_price: prod.price, subtotal: prod.price * qty };
     });
 
+    let cardDetails = null;
+    if (card_slug) {
+      const { data: cardRow, error: cardErr } = await supabase.from('cards')
+        .select('recipient_name, recipient_email, send_date, deadline, occasion, status')
+        .eq('slug', card_slug)
+        .maybeSingle();
+      if (cardErr) throw cardErr;
+      if (!cardRow) return res.status(404).json({ error: 'Card not found for this gift order' });
+      if (cardRow.status === 'sent')
+        return res.status(400).json({ error: 'This card has already been delivered — gift orders are closed.' });
+      cardDetails = cardRow;
+    }
+
     // Create pending order FIRST (so we have an order_id for the tx_ref)
-    const { data: order, error: orderErr } = await supabase.from('vendor_orders').insert({
-      vendor_id: vendor.id, customer_name, customer_email, customer_phone,
-      delivery_address, card_slug, note,
+    const orderPayload = {
+      vendor_id: vendor.id,
+      customer_name: signerName,
+      customer_email: signerEmail,
+      customer_phone,
+      signer_name: signerName,
+      signer_email: signerEmail,
+      recipient_name: cardDetails?.recipient_name || null,
+      recipient_email: cardDetails?.recipient_email || null,
+      delivery_address,
+      card_slug,
+      note: card_slug ? null : note,
       total_amount: total,
       status: 'pending',
-    }).select().single();
+    };
+    let { data: order, error: orderErr } = await supabase.from('vendor_orders').insert(orderPayload).select().single();
+
+    // If the signer/recipient columns don't exist yet (migration not run),
+    // retry without them rather than failing the whole gift order.
+    if (orderErr && /column .* does not exist/i.test(orderErr.message || '')) {
+      const { signer_name, signer_email, recipient_name, recipient_email, ...fallbackPayload } = orderPayload;
+      ({ data: order, error: orderErr } = await supabase.from('vendor_orders').insert(fallbackPayload).select().single());
+    }
     if (orderErr) throw orderErr;
 
     await supabase.from('vendor_order_items')
@@ -365,9 +402,9 @@ const checkoutOrder = async (req, res) => {
       amount:       total,
       currency,
       redirect_url: card_slug
-        ? `${FRONTEND_URL}/card/${card_slug}?gift_paid=1&tx_ref=${txRef}`
+        ? `${FRONTEND_URL}/sign/${card_slug}?product_tx_ref=${txRef}`
         : `${FRONTEND_URL}/vendor/order-success?tx_ref=${txRef}`,
-      customer:     { email: customer_email, name: customer_name, phonenumber: customer_phone || '' },
+      customer:     { email: signerEmail, name: signerName, phonenumber: customer_phone || '' },
       customizations: {
         title:       `${vendor.business_name} — Thankeeu`,
         description: `${lineItems.length} item${lineItems.length !== 1 ? 's' : ''}`,
@@ -403,16 +440,22 @@ const checkoutOrder = async (req, res) => {
 };
 
 // ── GET /api/vendor/order-verify?tx_ref=... ──────────────────────────────────
-// Called after FLW redirect to /vendor/order-success?tx_ref=...
+// Called after FLW redirect for vendor store orders. SignCard also calls this
+// when a product gift payment returns to /sign/:slug?product_tx_ref=...
 const verifyVendorOrder = async (req, res) => {
   try {
     const { tx_ref } = req.query;
     if (!tx_ref) return res.status(400).json({ error: 'tx_ref required' });
 
     // Find order by flw_reference
-    const { data: order } = await supabase.from('vendor_orders')
-      .select('*, vendor_orders_items:vendor_order_items(*), vendors:vendor_id(business_name, email, slug)')
+    const { data: order, error: orderLookupErr } = await supabase.from('vendor_orders')
+      .select('*, vendors:vendor_id(business_name, email, slug)')
       .eq('flw_reference', tx_ref).maybeSingle();
+
+    if (orderLookupErr) {
+      console.error('verifyVendorOrder lookup error:', orderLookupErr.message);
+      return res.status(500).json({ error: 'Could not look up order. Please contact support.' });
+    }
 
     if (!order) return res.status(404).json({ error: 'Order not found' });
     // If already confirmed/processed, return success without re-processing
@@ -444,8 +487,8 @@ const verifyVendorOrder = async (req, res) => {
       return res.status(400).json({ error: `Underpayment detected. Paid: ${amountPaid}, Required: ${amountDue}`, order_id: order.id });
     }
 
-    // Mark order as confirmed
-    await supabase.from('vendor_orders').update({ status: 'pending', updated_at: new Date() }).eq('id', order.id);
+    // Mark order as confirmed (was 'pending' = unpaid; payment just succeeded)
+    await supabase.from('vendor_orders').update({ status: 'confirmed', updated_at: new Date() }).eq('id', order.id);
 
     // Get line items for notifications
     const { data: lineItems } = await supabase.from('vendor_order_items')
@@ -464,15 +507,19 @@ const verifyVendorOrder = async (req, res) => {
     // Notify vendor with deadline
     if (order.vendors?.email) {
       let deadlineLabel = 'As soon as possible';
-      let recipientName = null;
+      let recipientName = order.recipient_name || null;
+      let recipientEmail = order.recipient_email || null;
+      let occasionLabel = null;
       if (order.card_slug) {
         try {
           const { data: card } = await supabase.from('cards')
-            .select('send_date, deadline, recipient_name, occasion').eq('slug', order.card_slug).maybeSingle();
+            .select('send_date, deadline, recipient_name, recipient_email, occasion').eq('slug', order.card_slug).maybeSingle();
           if (card) {
             const d = card.send_date || card.deadline;
             if (d) deadlineLabel = new Date(d).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-            recipientName = card.recipient_name;
+            recipientName = recipientName || card.recipient_name;
+            recipientEmail = recipientEmail || card.recipient_email;
+            occasionLabel = card.occasion ? String(card.occasion).replace(/_/g, ' ') : null;
           }
         } catch(_) {}
       }
@@ -480,8 +527,10 @@ const verifyVendorOrder = async (req, res) => {
       await sendEmail({ to: order.vendors.email, template: 'vendorOrderNotification', data: {
         vendorName:      order.vendors.business_name,
         orderId:         order.id.slice(0,8).toUpperCase(),
-        customerName:    order.customer_name || 'A customer',
-        customerEmail:   order.customer_email,
+        signerName:      order.signer_name || order.customer_name || 'A customer',
+        signerEmail:     order.signer_email || order.customer_email,
+        customerName:    order.signer_name || order.customer_name || 'A customer',
+        customerEmail:   order.signer_email || order.customer_email,
         customerPhone:   order.customer_phone || '',
         deliveryAddress: order.delivery_address || 'Contact customer for address',
         items:           lineItems || [],
@@ -489,11 +538,13 @@ const verifyVendorOrder = async (req, res) => {
         vendorPayout:    `₦${Math.max(0, Number(order.total_amount) - 5000).toLocaleString('en-NG')}`,
         deadlineLabel,
         recipientName,
+        recipientEmail,
+        occasionLabel,
         ordersUrl:       `${FRONTEND_URL}/vendor/orders`,
       }}).catch(() => {});
     }
 
-    res.json({ ok: true, order_id: order.id, status: 'pending', vendor_slug: order.vendors?.slug });
+    res.json({ ok: true, order_id: order.id, status: 'confirmed', vendor_slug: order.vendors?.slug });
   } catch (err) {
     console.error('verifyVendorOrder error:', err.message);
     res.status(500).json({ error: err.message });

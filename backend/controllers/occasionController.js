@@ -1034,17 +1034,33 @@ const importByOccasionName = async (req, res) => {
       const invTok = require('crypto').randomBytes(32).toString('hex');
 
       // Upsert member with invite_token included atomically
-      const { data: member, error: mErr } = await supabase.from('company_members')
-        .upsert({
-          company_id:companyId, first_name:fn, last_name:ln, email,
-          department:dept, role:memberRole, gender:gender||null,
-          job_title:jt, phone, status:'approved', invite_token:invTok,
-        }, { onConflict:'company_id,email' }).select('id').single();
+      // Check whether this member already has a password (existing user)
+      const { data: existingMember } = await supabase.from('company_members')
+        .select('id, password_hash').eq('company_id', companyId).eq('email', email).maybeSingle();
+      const needsInvite = !existingMember?.password_hash;
+      const tempPasswordHash = needsInvite ? await hashPassword(require('crypto').randomBytes(8).toString('hex')) : undefined;
+
+      const upsertPayload = {
+        company_id:companyId, first_name:fn, last_name:ln, email,
+        department:dept, role:memberRole, gender:gender||null,
+        job_title:jt, phone, status:'approved',
+        ...(needsInvite && { password_hash: tempPasswordHash, invite_token: invTok }),
+      };
+      let { data: member, error: mErr } = await supabase.from('company_members')
+        .upsert(upsertPayload, { onConflict:'company_id,email' }).select('id').single();
+
+      // Some databases use an enum for `role` ('team_leader'/'team_member')
+      // instead of free text ('member'/'team_leader') — retry on that error.
+      if (mErr && /role/i.test(mErr.message || '')) {
+        upsertPayload.role = roleRaw === 'leader' ? 'team_leader' : 'team_member';
+        ({ data: member, error: mErr } = await supabase.from('company_members')
+          .upsert(upsertPayload, { onConflict:'company_id,email' }).select('id').single());
+      }
       const memberId = member?.id;
       if (mErr) { errors.push(`Row: upsert failed for ${email}: ${mErr.message}`); }
 
-      // Send invite email ONLY if member record was stored
-      if (memberId) {
+      // Send invite email ONLY for new members who don't have a password yet
+      if (memberId && needsInvite) {
         try {
           const link = `${frontendUrl}/member/reset-password?token=${invTok}&email=${encodeURIComponent(email)}`;
           await sendEmail({ to:email, subject:`You've been added to ${coData?.name||'your company'} on Thankeeu! 🎉`,

@@ -1,4 +1,6 @@
 const crypto = require('crypto');
+const argon2 = require('argon2');
+const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
 const { sendEmail } = require('../utils/email');
 /**
  * occasionBulkController.js
@@ -107,32 +109,49 @@ const bulkSyncEmployees = async (req, res) => {
         }
 
         // Upsert company_member
+        // Check whether this member already has a password (existing user)
+        const { data: existingMember } = await supabase.from('company_members')
+          .select('id, password_hash').eq('company_id', companyId).eq('email', email.trim().toLowerCase()).maybeSingle();
+        const needsInvite = !existingMember?.password_hash;
+        const inviteToken = needsInvite ? crypto.randomBytes(32).toString('hex') : undefined;
+        const tempPasswordHash = needsInvite ? await hashPassword(crypto.randomBytes(8).toString('hex')) : undefined;
+
         const memberData = {
           company_id: companyId, first_name: first_name.trim(), last_name: last_name.trim(),
           email: email.trim().toLowerCase(), department: department?.trim() || 'General',
-          role: role === 'leader' ? 'leader' : 'member', status: 'approved',
+          role: role === 'leader' ? 'team_leader' : 'member', status: 'approved',
           ...(gender && { gender: gender.toLowerCase() }),
           ...(job_title && { job_title }),
           ...(phone && { phone }),
           ...(date_of_birth && { date_of_birth }),
+          ...(needsInvite && { password_hash: tempPasswordHash, invite_token: inviteToken }),
           updated_at: new Date(),
         };
 
-        const { data: member, error: mErr } = await supabase
+        let { data: member, error: mErr } = await supabase
           .from('company_members')
           .upsert(memberData, { onConflict: 'company_id,email' })
           .select('id, status')
           .single();
 
+        // Some databases use an enum for `role` ('team_leader'/'team_member')
+        // instead of free text ('member'/'team_leader') — retry on that error.
+        if (mErr && /role/i.test(mErr.message || '')) {
+          memberData.role = role === 'leader' ? 'team_leader' : 'team_member';
+          ({ data: member, error: mErr } = await supabase
+            .from('company_members')
+            .upsert(memberData, { onConflict: 'company_id,email' })
+            .select('id, status')
+            .single());
+        }
+
         if (mErr) { results.errors.push(`Member upsert failed: ${email}`); continue; }
         const memberId  = member.id;
-        const isNewUser = member.status === 'approved' && !memberData.password_hash;
+        const isNewUser = member.status === 'approved' && needsInvite;
 
         // Send invite email to new members who don't have a password yet
-        if (!memberData.password_hash) {
+        if (needsInvite) {
           try {
-            const inviteToken = crypto.randomBytes(32).toString('hex');
-            await supabase.from('company_members').update({ invite_token: inviteToken }).eq('id', memberId);
             const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
             const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email.trim().toLowerCase())}`;
             const { data: co } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();

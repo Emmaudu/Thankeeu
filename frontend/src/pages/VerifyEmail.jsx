@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { authAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import Icon from '../components/ui/Icon';
 
 const VerifyEmail = () => {
   useSEO({ title: 'Verify Email — Thankeeu', noIndex: true });

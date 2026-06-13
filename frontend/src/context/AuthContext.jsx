@@ -68,6 +68,14 @@ useEffect(() => {
     setUser(null);
   };
 
+  // Authenticate using a token/user pair already obtained from a raw API call
+  // (e.g. account creation during card-signing). Avoids a second API round-trip.
+  const loginWithToken = (token, userObj) => {
+    localStorage.setItem('thankeeu_token', token);
+    localStorage.setItem('thankeeu_user', JSON.stringify(userObj));
+    setUser(userObj);
+  };
+
   const updateUser = (updates) => {
     const updated = { ...user, ...updates };
     setUser(updated);
@@ -75,7 +83,7 @@ useEffect(() => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateUser, loginWithToken }}>
       {children}
     </AuthContext.Provider>
   );

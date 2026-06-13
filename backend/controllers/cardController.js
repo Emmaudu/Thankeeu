@@ -429,7 +429,7 @@ const getPublicCard = async (req, res) => {
     const { slug } = req.params;
     const { data: card, error } = await supabase
       .from('cards')
-      .select('*, messages(id, author_name, content, is_private, font_style, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at), contributions(amount, contributor_name, status)')
+      .select('*, messages(id, author_name, content, is_private, font_style, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at, gift_type, product_id, product_name, product_price, product_vendor_id, product_vendor_name, product_vendor_slug), contributions(amount, contributor_name, status)')
       .eq('slug', slug)
       .in('status', ['active', 'sent'])
       .single();

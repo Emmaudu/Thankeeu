@@ -41,9 +41,13 @@ export default function VendorOrders() {
     finally { setUpdating(false); }
   };
 
+  const recipientName = o => o.recipient_name || o.customer_name || 'Recipient not provided';
+  const recipientEmail = o => o.recipient_email || 'No recipient email';
+  const signerName = o => o.signer_name || o.customer_name || 'Signer not provided';
+  const signerEmail = o => o.signer_email || o.customer_email || 'No signer email';
+
   return (
-    <VendorLayout title="Orders" subtitle="Manage and fulfil customer orders">
-      {/* Filter tabs */}
+    <VendorLayout title="Orders" subtitle="Manage and fulfill customer orders">
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {['', ...STATUSES].map(s => (
           <button key={s} onClick={() => applyFilter(s)}
@@ -69,8 +73,9 @@ export default function VendorOrders() {
                       <p className="font-semibold text-warm-900 text-sm">#{o.id.slice(0,8).toUpperCase()}</p>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${COLOR(o.status)}`}>{o.status}</span>
                     </div>
-                    <p className="text-xs text-warm-500 mt-0.5">{o.customer_name} · {o.customer_email}</p>
-                    {o.card_slug && <p className="text-xs text-primary-500 mt-0.5">🎁 Card gift for /card/{o.card_slug}</p>}
+                    <p className="text-xs text-warm-500 mt-0.5">Recipient: {recipientName(o)} - {recipientEmail(o)}</p>
+                    <p className="text-xs text-warm-400 mt-0.5">Signer: {signerName(o)} - {signerEmail(o)}</p>
+                    {o.card_slug && <p className="text-xs text-primary-500 mt-0.5">Card gift for /card/{o.card_slug}</p>}
                   </div>
                   <div className="text-right flex-shrink-0">
                     <p className="font-bold text-warm-900">{formatNGN(o.total_amount)}</p>
@@ -85,7 +90,6 @@ export default function VendorOrders() {
             </div>
       }
 
-      {/* Order update modal */}
       {selected && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl">
@@ -105,10 +109,14 @@ export default function VendorOrders() {
                 <input value={tracking} onChange={e=>setTracking(e.target.value)} placeholder="Courier tracking number" className="input w-full"/>
               </div>
               <div className="bg-purple-50 rounded-xl p-3 text-xs text-warm-600">
-                <p><strong>Customer:</strong> {selected.customer_name}</p>
-                <p><strong>Email:</strong> {selected.customer_email}</p>
+                <p className="font-semibold text-warm-800 mb-1">Recipient</p>
+                <p><strong>Name:</strong> {recipientName(selected)}</p>
+                <p><strong>Email:</strong> {recipientEmail(selected)}</p>
+                <p className="font-semibold text-warm-800 mt-3 mb-1">Signer</p>
+                <p><strong>Name:</strong> {signerName(selected)}</p>
+                <p><strong>Email:</strong> {signerEmail(selected)}</p>
+                {selected.customer_phone && <p><strong>Phone:</strong> {selected.customer_phone}</p>}
                 {selected.delivery_address && <p><strong>Address:</strong> {selected.delivery_address}</p>}
-                {selected.note && <p><strong>Note:</strong> {selected.note}</p>}
               </div>
             </div>
             <div className="flex gap-3 mt-5">

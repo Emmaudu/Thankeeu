@@ -860,9 +860,15 @@ Object.assign(emailTemplates, {
       </table>
 
       <div style="background:#F8F7FF;border-radius:12px;padding:14px 16px;margin:16px 0;">
-        <p style="color:#1a1a1a;font-weight:700;font-size:14px;margin:0 0 8px;">Customer details</p>
-        <p style="color:#555;font-size:13px;margin:2px 0;">Name: ${d.customerName}</p>
-        <p style="color:#555;font-size:13px;margin:2px 0;">Email: ${d.customerEmail}</p>
+        <p style="color:#1a1a1a;font-weight:700;font-size:14px;margin:0 0 8px;">Recipient details</p>
+        <p style="color:#555;font-size:13px;margin:2px 0;">Name: ${d.recipientName || 'Not provided'}</p>
+        <p style="color:#555;font-size:13px;margin:2px 0;">Email: ${d.recipientEmail || 'Not provided'}</p>
+      </div>
+
+      <div style="background:#F8F7FF;border-radius:12px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#1a1a1a;font-weight:700;font-size:14px;margin:0 0 8px;">Signer details</p>
+        <p style="color:#555;font-size:13px;margin:2px 0;">Name: ${d.signerName || d.customerName}</p>
+        <p style="color:#555;font-size:13px;margin:2px 0;">Email: ${d.signerEmail || d.customerEmail}</p>
         ${d.customerPhone ? `<p style="color:#555;font-size:13px;margin:2px 0;">Phone: ${d.customerPhone}</p>` : ''}
         <p style="color:#555;font-size:13px;margin:2px 0;">Delivery address: ${d.deliveryAddress}</p>
       </div>

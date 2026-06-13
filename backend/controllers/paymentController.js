@@ -324,7 +324,15 @@ const verifyContribution = async (req, res) => {
     const meta        = txn.meta || {};
     const cardId      = meta.card_id;
     const messageId   = meta.message_id || null;
-    const amountNaira = Math.floor(txn.amount);
+
+    // IMPORTANT: txn.amount is in whatever currency the contributor actually
+    // paid (USD/GBP/EUR/etc if they used the currency switcher), NOT
+    // necessarily NGN. The correct NGN amount was already stored when the
+    // contribution was created (status='pending') at init time — reuse it
+    // here rather than overwriting it with a foreign-currency number.
+    const { data: existingContrib } = await supabase.from('contributions')
+      .select('amount').eq('flw_reference', txRef).maybeSingle();
+    const amountNaira = existingContrib?.amount ?? Math.floor(txn.amount);
 
     await upsertContribution({
       cardId,

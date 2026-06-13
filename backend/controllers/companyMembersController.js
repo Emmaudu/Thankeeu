@@ -2,7 +2,8 @@ const bcrypt = require('bcryptjs');
 const argon2  = require('argon2');
 const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
 const verifyPassword = async (plain, stored) => {
-  if (stored && stored.startsWith('$argon2')) return argon2.verify(stored, plain);
+  if (!stored) return false; // no password set yet (invite not completed) — don't throw
+  if (stored.startsWith('$argon2')) return argon2.verify(stored, plain);
   return require('bcryptjs').compare(plain, stored);
 };
 const rehashIfLegacy = async (id, plain, stored, table, supabase) => {
@@ -213,6 +214,7 @@ const memberLogin = async (req, res) => {
     if (!member) return res.status(401).json({ error: 'Invalid email or password' });
     if (member.status === 'pending') return res.status(403).json({ error: 'Your account is pending approval. You will be notified by email.' });
     if (member.status === 'rejected') return res.status(403).json({ error: 'Your account was not approved. Contact your HR.' });
+    if (!member.password_hash) return res.status(403).json({ error: 'Please check your email for an invite link to set up your password first.' });
 
     const valid = await verifyPassword(password, member.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });

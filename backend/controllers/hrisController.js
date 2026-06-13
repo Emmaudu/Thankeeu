@@ -331,19 +331,44 @@ async function fetchFromZohoPeople(connection) {
     try {
       console.log('[zoho] trying:', ep.label, ep.url.split('?')[0]);
       const epRes = await axios.get(ep.url, { headers: authHeader, timeout });
-      // Zoho sometimes returns 200 with an error in the body
       const body = epRes.data;
-      if (body?.response?.errors || body?.errors) {
-        console.warn('[zoho]', ep.label, 'returned body error:', JSON.stringify(body?.response?.errors || body?.errors));
+
+      // Zoho returns errors in MULTIPLE formats — must check ALL:
+      // Format 1: { "code": 7011, "message": "..." }   ← P_EmployeeView invalid (was BREAKING the loop)
+      // Format 2: { "response": { "errors": [...] } }   ← older API style
+      // Format 3: { "errors": [...] }                   ← some endpoints
+      // Format 4: { "error": "..." }                    ← generic
+      const isBodyError =
+        (body?.code && body?.message && !body?.data) ||
+        !!body?.response?.errors ||
+        !!body?.errors ||
+        !!body?.error;
+
+      if (isBodyError) {
+        console.warn('[zoho]', ep.label, 'body error — skipping:', JSON.stringify(body).slice(0, 200));
         lastBody = body;
         continue;
       }
+
+      // Zoho employee/getRecords returns body.data as an ARRAY of wrapper objects:
+      // [ {"ZOHO_ID_1": [empObj]}, {"ZOHO_ID_2": [empObj]}, ... ]
+      // Each wrapper has one key (the Zoho employee ID) whose value is a 1-element array.
+      // We must extract the inner employee from EVERY wrapper object.
       const rows = body?.data || body?.response?.result || body?.result || [];
-      // Zoho's employee/getRecords returns { "ZOHO_ID": [empObj], ... } under body.data
-      // Object.values() gives [[emp1],[emp2],...] — we need to flatten one level.
-      const flat = Array.isArray(rows) ? rows : Object.values(rows || {});
-      records = flat.flat ? flat.flat(1) : [].concat(...flat);
-      records = records.filter(r => r && typeof r === 'object' && !Array.isArray(r));
+      const rowsArr = Array.isArray(rows) ? rows : Object.values(rows || {});
+      records = rowsArr
+        .flatMap(item => {
+          // If item is a wrapper object like {"969...": [empObj]} — extract the employee
+          if (item && typeof item === 'object' && !Array.isArray(item)) {
+            const vals = Object.values(item);
+            // Each value is either an empObj or an array containing an empObj
+            return vals.flatMap(v => Array.isArray(v) ? v : [v]);
+          }
+          // If item is already an array (older API format) — flatten it
+          if (Array.isArray(item)) return item;
+          return [item];
+        })
+        .filter(r => r && typeof r === 'object' && !Array.isArray(r) && (r.EmailID || r.email || r.firstName || r.FirstName));
       console.log('[zoho]', ep.label, 'success — records:', records.length);
       break;
     } catch (epErr) {
@@ -453,6 +478,12 @@ async function syncEmployeesToOccasionTables(companyId, employees, occasionTypes
 
   // Fetch company name/contact once for invite emails
   const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
+
+  // TEMP DEBUG — log first adapted employee to see what fields came through
+  if (employees.length > 0) {
+    console.log('[sync-debug] employees.length:', employees.length);
+    console.log('[sync-debug] first employee raw:', JSON.stringify(employees[0]));
+  }
 
   for (const emp of employees) {
     if (!emp.email || !emp.first_name) {

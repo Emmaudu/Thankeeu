@@ -42,7 +42,7 @@ const CompanyDashboard = () => {
       subscriptionAPI.get(),
       hrMembersAPI.getAll(),
       // Fetch cards pending company-wide scope approval
-      cardsAPI.getAll().catch(() => ({ data: [] })),
+      cardsAPI.getCompanyMine().catch(() => ({ data: [] })),
     ])
       .then(([d, s, p, cards]) => {
         // Backend returns flat: { total_members, teams, upcoming_occasions, active_cards, ... }

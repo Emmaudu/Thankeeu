@@ -16,7 +16,6 @@ export default function TeamMembersPage() {
   const [editData, setEditData] = useState({});
   const [saving,   setSaving]   = useState(false);
   const [teamsCount, setTeamsCount] = useState(0);
-  const [departmentOptions, setDepartmentOptions] = useState([]);
 
   const load = async () => {
     setLoading(true);
@@ -25,19 +24,14 @@ export default function TeamMembersPage() {
       const d = await r.json();
       const memberList = Array.isArray(d) ? d : (d.members || []);
       setMembers(memberList);
-      if (!Array.isArray(d)) {
-        if (d.teams_count !== undefined) setTeamsCount(d.teams_count);
-        if (Array.isArray(d.departments)) setDepartmentOptions(d.departments);
-      }
+      if (!Array.isArray(d) && d.teams_count !== undefined) setTeamsCount(d.teams_count);
     } catch { toast.error('Failed to load team members'); }
     finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, [search, deptF, roleF]);
 
-  const departments = departmentOptions.length
-    ? departmentOptions
-    : [...new Set(members.map(m => m.department).filter(Boolean))].sort();
+  const departments = [...new Set(members.map(m => m.department).filter(Boolean))].sort();
 
   const saveEdit = async () => {
     setSaving(true);

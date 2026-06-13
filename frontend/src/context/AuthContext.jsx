@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
   
   // 30-min inactivity logout
   useEffect(() => {
-    const isLoggedIn = () => !!localStorage.getItem('thankeeu_token') || !!localStorage.getItem('thankeeu_company_token') || !!localStorage.getItem('thankeeu_member_token');
+    const isLoggedIn = () => !!localStorage.getItem('thankeeu_token');
     const h = () => { if (isLoggedIn()) _resetTimer(() => { logout?.(); }); };
     _EVENTS.forEach(e => window.addEventListener(e, h, { passive: true }));
     return () => _EVENTS.forEach(e => window.removeEventListener(e, h));

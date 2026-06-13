@@ -12,38 +12,6 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 router.use(companyAuth);
 
-const cleanFilter = (value) => String(value || '').trim();
-
-const normalizeRole = (role) => {
-  const r = String(role || '').toLowerCase().trim();
-  if (r === 'team_leader' || r === 'leader') return 'leader';
-  if (r === 'team_member' || r === 'member') return 'member';
-  return r || 'member';
-};
-
-const normalizeMember = (member, source) => ({
-  ...member,
-  role: normalizeRole(member.role),
-  status: member.status || 'approved',
-  date_of_birth: member.date_of_birth || member.birthday || null,
-  resumption_date: member.resumption_date || null,
-  source,
-});
-
-const memberMatchesFilters = (member, { search, dept, role }) => {
-  const haystack = [
-    member.first_name,
-    member.last_name,
-    member.email,
-    member.department,
-    member.job_title,
-  ].filter(Boolean).join(' ').toLowerCase();
-
-  return (!search || haystack.includes(search.toLowerCase()))
-    && (!dept || member.department === dept)
-    && (!role || normalizeRole(member.role) === normalizeRole(role));
-};
-
 // Template download & Excel import
 router.get('/template',                downloadTemplate);
 router.post('/import', upload.single('file'), importTeamMembers);
@@ -55,74 +23,65 @@ router.get('/dashboard',               getTeamsDashboard);
 
 // Extended member list with birthday + edit
 router.get('/all-members', async (req, res) => {
+  console.log('[all-members] START — company:', req.company?.id);
   try {
-    const filters = {
-      search: cleanFilter(req.query.search),
-      dept: cleanFilter(req.query.dept),
-      role: cleanFilter(req.query.role),
-    };
+    const search = (req.query.search || '').trim();
+    const dept   = (req.query.dept   || '').trim();
+    const role   = (req.query.role   || '').trim();
     const companyId = req.company.id;
-    console.log('[all-members] companyId:', companyId, 'search:', filters.search, 'dept:', filters.dept, 'role:', filters.role);
 
-    // ── Step 1: query company_members ────────────────────────────────────────
+    // Step 1: company_members — use select('*') so no column name can cause 500
     let q = supabase
       .from('company_members')
       .select('*')
       .eq('company_id', companyId)
+      .neq('status', 'deactivated')
       .order('first_name', { ascending: true });
+    if (search) q = q.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+    if (dept)   q = q.eq('department', dept);
+    if (role)   q = q.eq('role', role);
 
     const { data: cmData, error: cmErr } = await q;
     if (cmErr) {
-      console.error('[all-members] company_members error:', cmErr.message, '|', cmErr.details, '|', cmErr.hint);
-      return res.status(500).json({ error: 'Failed to load members: ' + cmErr.message });
+      console.error('[all-members] company_members FAIL:', JSON.stringify(cmErr));
+      return res.status(500).json({ error: 'company_members: ' + cmErr.message });
     }
-    console.log('[all-members] company_members rows:', (cmData || []).length);
+    console.log('[all-members] company_members OK:', (cmData||[]).length, 'rows');
 
-    // ── Step 2: supplement from occasion_members (deduped, not already in cm) ─
-    const cmEmails = new Set((cmData || []).map(m => m.email?.toLowerCase()).filter(Boolean));
-
-    let omQ = supabase
-      .from('occasion_members')
-      .select('*')
-      .eq('company_id', companyId);
-
-    const { data: omData, error: omErr } = await omQ;
-    if (omErr) {
-      console.error('[all-members] occasion_members error:', omErr.message);
-      // Non-fatal — just skip the supplement
-    }
-    console.log('[all-members] occasion_members rows:', (omData || []).length);
+    // Step 2: occasion_members supplement — non-fatal if it fails
+    const cmEmails = new Set((cmData||[]).map(m=>m.email?.toLowerCase()).filter(Boolean));
+    let omData = [];
+    try {
+      let omQ = supabase
+        .from('occasion_members')
+        .select('id, email, first_name, last_name, department, gender, member_id')
+        .eq('company_id', companyId);
+      if (dept)   omQ = omQ.eq('department', dept);
+      if (search) omQ = omQ.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+      const { data: omRows, error: omErr } = await omQ;
+      if (omErr) console.error('[all-members] occasion_members non-fatal:', omErr.message);
+      else omData = omRows || [];
+    } catch(omEx) { console.error('[all-members] occasion_members exception:', omEx.message); }
+    console.log('[all-members] occasion_members OK:', omData.length, 'rows');
 
     const omUnique = Object.values(
-      (omData || [])
-        .filter(m => m.email && m.is_active !== false && !cmEmails.has(m.email.toLowerCase()))
+      omData
+        .filter(m => m.email && !cmEmails.has(m.email.toLowerCase()))
         .reduce((acc, m) => {
-          const key = m.email.toLowerCase();
-          if (!acc[key] || (!acc[key].member_id && m.member_id)) acc[key] = m;
+          const k = m.email.toLowerCase();
+          if (!acc[k] || (!acc[k].member_id && m.member_id)) acc[k] = m;
           return acc;
         }, {})
-    ).map(m => ({
-      ...m,
-      id:     m.member_id || `om_${m.email}`,
-      status: 'approved',
-      role:   normalizeRole(m.role),
-      source: 'occasion_import',
-    }));
+    ).map(m => ({ ...m, id: m.member_id||`om_${m.email}`, status:'approved', role:m.role||'member', source:'occasion_import' }));
 
-    const allMembers = [
-      ...(cmData || [])
-        .filter(m => String(m.status || '').toLowerCase() !== 'deactivated')
-        .map(m => normalizeMember(m, m.source || 'company_member')),
-      ...omUnique.map(m => normalizeMember(m, 'occasion_import')),
-    ];
-    const departments = [...new Set(allMembers.map(m => m.department).filter(Boolean))];
-    const filteredMembers = allMembers.filter(m => memberMatchesFilters(m, filters));
-    console.log('[all-members] total members returned:', filteredMembers.length);
+    const allMembers  = [...(cmData||[]), ...omUnique];
+    const departments = [...new Set(allMembers.map(m=>m.department).filter(Boolean))];
+    console.log('[all-members] DONE — total:', allMembers.length);
+    res.json({ members: allMembers, teams_count: departments.length, departments });
 
-    res.json({ members: filteredMembers, teams_count: departments.length, departments });
   } catch (err) {
-    console.error('[all-members] unexpected error:', err.message, err.stack);
-    res.status(500).json({ error: err.message });
+    console.error('[all-members] CRASH:', err.message, '\n', err.stack);
+    res.status(500).json({ error: err.message, stack: err.stack });
   }
 });
 
@@ -135,14 +94,7 @@ router.put('/members/:id', async (req, res) => {
     if (last_name  !== undefined)   u.last_name     = last_name;
     if (email      !== undefined)   u.email         = email?.toLowerCase().trim();
     if (department !== undefined)   u.department    = department;
-    if (role       !== undefined) {
-      const { data: currentMember } = await supabase.from('company_members')
-        .select('role').eq('id', req.params.id).eq('company_id', req.company.id).maybeSingle();
-      const normalized = normalizeRole(role);
-      u.role = String(currentMember?.role || '').startsWith('team_')
-        ? `team_${normalized === 'leader' ? 'leader' : 'member'}`
-        : normalized;
-    }
+    if (role       !== undefined)   u.role          = role;
     if (phone      !== undefined)   u.phone         = phone;
     if (job_title  !== undefined)   u.job_title     = job_title;
     if (date_of_birth  !== undefined) u.date_of_birth  = date_of_birth  || null;

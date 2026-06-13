@@ -17,6 +17,12 @@ const { sendEmail } = require('./utils/email');
 
 const app = express();
 
+// Railway (and most PaaS) run the app behind a reverse proxy that sets
+// X-Forwarded-For. Without this, express-rate-limit throws
+// ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on every request (seen in production
+// logs) and req.ip resolves to the proxy's IP instead of the real client.
+app.set('trust proxy', 1);
+
 // Security
 app.use(helmet({
   contentSecurityPolicy: {

@@ -129,6 +129,7 @@ export const cardsAPI = {
   getAll:           ()             => api.get('/cards'),
   getOne:           (slug, token)  => api.get(`/cards/${slug}${token ? `?token=${token}` : ''}`),
   getOneAsCompany:  (slug)         => companyAxios.get(`/cards/${slug}`),
+  getCompanyMine:   ()             => companyAxios.get('/cards/company/mine'),
   getPublic:    (slug)         => publicAxios.get(`/cards/public/${slug}`),
   getRecipient: (slug, token)  => publicAxios.get(`/cards/recipient/${slug}`, { params: { token } }),
   claimGift:    (slug, data)   => publicAxios.post(`/cards/recipient/${slug}/claim`, data),

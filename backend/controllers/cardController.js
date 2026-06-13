@@ -732,7 +732,7 @@ const approveCardScope = async (req, res) => {
 const getCompanyCards = async (req, res) => {
   try {
     const { data } = await supabase.from('cards')
-      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, design_theme')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, design_theme, notification_scope, scope_approved_at, department')
       .eq('company_id', req.company.id)
       .order('created_at', { ascending: false });
     res.json(data || []);

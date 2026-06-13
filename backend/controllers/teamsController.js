@@ -216,7 +216,8 @@ const getTeamsDashboard = async (req, res) => {
     const [{ data: cmRows }, { data: omRows }] = await Promise.all([
       supabase.from('company_members')
         .select('id, first_name, last_name, email, department, role, status, gender, date_of_birth')
-        .eq('company_id', companyId),
+        .eq('company_id', companyId)
+        .neq('status', 'deactivated'),
       supabase.from('occasion_members')
         .select('email, first_name, last_name, department, gender')
         .eq('company_id', companyId)
@@ -224,14 +225,13 @@ const getTeamsDashboard = async (req, res) => {
     ]);
 
     // Deduplicate by email — company_members is authoritative if both exist
-    const activeCmRows = (cmRows || []).filter(m => String(m.status || '').toLowerCase() !== 'deactivated');
-    const cmEmails = new Set(activeCmRows.map(m => m.email?.toLowerCase()));
+    const cmEmails = new Set((cmRows || []).map(m => m.email?.toLowerCase()));
     const omOnly   = (omRows || []).filter(m => m.email && !cmEmails.has(m.email.toLowerCase()));
     // Deduplicate omOnly too (one email per person across occasion types)
     const omUnique = Object.values(
       omOnly.reduce((acc, m) => { acc[m.email.toLowerCase()] = m; return acc; }, {})
     );
-    const allMembers = [...activeCmRows, ...omUnique];
+    const allMembers = [...(cmRows || []), ...omUnique];
     const departments = [...new Set(allMembers.map(m => m.department).filter(Boolean))];
 
     // ── 2. Teams count = distinct departments ──────────────────────────────────

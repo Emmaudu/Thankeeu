@@ -269,42 +269,48 @@ async function fetchFromZohoPeople(connection) {
   const timeout    = 30000;
   let   records    = [];
 
-  // Try v2 API first (current, recommended)
-  try {
-    const v2Res = await axios.get(
-      'https://www.zohoapis.com/people/v2/forms/employee/getRecords?page=1&pageSize=200',
-      { headers: authHeader, timeout }
-    );
-    const v2Data = v2Res.data?.data || v2Res.data?.response?.result || [];
-    records = Array.isArray(v2Data) ? v2Data : [];
-    console.log('[zoho] v2 API success, records:', records.length);
-  } catch (v2Err) {
-    console.warn('[zoho] v2 failed (' + (v2Err.response?.status || v2Err.message) + '), trying v1...');
+  // Zoho People API — try multiple endpoint variants in order
+  // api_domain from OAuth is https://www.zohoapis.com but People API uses people.zoho.com
+  const endpoints = [
+    // Current recommended endpoint
+    { url: `${zohoBase}/people/api/forms/employee/getRecords?sIndex=1&limit=200`, label: 'v1-employee' },
+    // Alternate form name
+    { url: `${zohoBase}/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200`, label: 'v1-P_EmployeeView' },
+    // zohoapis.com variant
+    { url: `https://people.zoho.com/people/api/forms/employee/getRecords?sIndex=1&limit=200`, label: 'v1-zoho.com' },
+    // v2 API
+    { url: `${zohoBase}/api/v2/forms/employee/getRecords?page=1&limit=200`, label: 'v2' },
+  ];
 
-    // Fall back to v1 API
+  let lastStatus = null;
+  let lastBody   = null;
+
+  for (const ep of endpoints) {
     try {
-      const v1Url = `${zohoBase}/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200`;
-      const v1Res = await axios.get(v1Url, { headers: authHeader, timeout });
-      const v1Data = v1Res.data?.response?.result || [];
-      records = Array.isArray(v1Data) ? v1Data : [];
-      console.log('[zoho] v1 API success, records:', records.length);
-    } catch (v1Err) {
-      const status = v1Err.response?.status;
-      if (status === 401) {
-        throw new Error(
-          'Zoho returned 401 Unauthorized. Check: (1) Refresh Token is correct and has scope ZohoPeople.employee.ALL, ' +
-          '(2) Client ID and Client Secret are correct, (3) Your Zoho region — if not Global, set the Base URL field.'
-        );
+      console.log('[zoho] trying:', ep.label, ep.url.split('?')[0]);
+      const epRes = await axios.get(ep.url, { headers: authHeader, timeout });
+      // Zoho sometimes returns 200 with an error in the body
+      const body = epRes.data;
+      if (body?.response?.errors || body?.errors) {
+        console.warn('[zoho]', ep.label, 'returned body error:', JSON.stringify(body?.response?.errors || body?.errors));
+        lastBody = body;
+        continue;
       }
-      if (status === 404) {
-        throw new Error(
-          'Zoho returned 404. Your Zoho People account may be on a different region. ' +
-          'Check the URL when you log into Zoho People and set the Base URL field accordingly: ' +
-          'EU → https://people.zoho.eu | India → https://people.zoho.in | Australia → https://people.zoho.com.au'
-        );
-      }
-      throw new Error(`Zoho API error: ${status || v1Err.message}`);
+      const rows = body?.data || body?.response?.result || body?.result || [];
+      records = Array.isArray(rows) ? rows : Object.values(rows || {});
+      console.log('[zoho]', ep.label, 'success — records:', records.length);
+      break;
+    } catch (epErr) {
+      lastStatus = epErr.response?.status;
+      lastBody   = epErr.response?.data;
+      console.warn('[zoho]', ep.label, 'failed:', lastStatus, JSON.stringify(lastBody)?.slice(0, 200));
     }
+  }
+
+  if (records.length === 0 && lastStatus) {
+    if (lastStatus === 401) throw new Error('Zoho API 401 — token may lack ZohoPeople.employee.ALL scope. Disconnect and reconnect Zoho.');
+    if (lastStatus === 403) throw new Error('Zoho API 403 — your Zoho People plan may not include API access.');
+    throw new Error(`Zoho API error ${lastStatus}: ${JSON.stringify(lastBody)?.slice(0, 300)}`);
   }
 
   return records.map(ADAPTERS.zoho_people);

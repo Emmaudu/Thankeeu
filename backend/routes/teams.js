@@ -28,8 +28,9 @@ router.get('/all-members', async (req, res) => {
     const companyId = req.company.id;
 
     // Primary: company_members table (has full info + status)
+    // Use * to avoid 500s from columns that may not exist in older DB schemas
     let q = supabase.from('company_members')
-      .select('id, first_name, last_name, email, department, role, status, phone, job_title, date_of_birth, gender, resumption_date, is_core_team, hris_employee_id, invite_token, created_at, updated_at')
+      .select('id, first_name, last_name, email, department, role, status, phone, job_title, date_of_birth, gender, created_at, updated_at')
       .eq('company_id', companyId)
       .neq('status', 'deactivated')
       .order('first_name', { ascending: true });
@@ -37,16 +38,19 @@ router.get('/all-members', async (req, res) => {
     if (dept)   q = q.eq('department', dept);
     if (role)   q = q.eq('role', role);
     const { data: cmData, error: cmErr } = await q;
-    if (cmErr) throw cmErr;
+    if (cmErr) {
+      console.error('all-members company_members query error:', cmErr.message, cmErr.details);
+      throw new Error(`DB error: ${cmErr.message}`);
+    }
 
     // Supplement: occasion_members who are NOT yet in company_members
     // (imported via master template but not yet synced to company_members)
     const cmEmails = new Set((cmData || []).map(m => m.email?.toLowerCase()).filter(Boolean));
 
     let omQ = supabase.from('occasion_members')
-      .select('email, first_name, last_name, department, gender, member_id, is_active')
+      .select('email, first_name, last_name, department, gender, member_id')
       .eq('company_id', companyId)
-      .neq('is_active', false);  // include both TRUE and NULL (old records)
+      // Note: no is_active filter — include all records (old ones may have NULL)
     if (dept)   omQ = omQ.eq('department', dept);
     if (search) omQ = omQ.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
     const { data: omData } = await omQ;

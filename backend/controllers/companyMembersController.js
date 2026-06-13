@@ -520,13 +520,13 @@ const memberResetPassword = async (req, res) => {
 
     if (tokenType === 'reset') {
       const { error: upErr } = await supabase.from('company_members')
-        .update({ password_hash, reset_token: null, reset_token_expires: null, status: 'approved' })
+        .update({ password_hash, reset_token: null, reset_token_expires: null, status: 'approved', invite_accepted: true })
         .eq('id', member.id);
       if (upErr) { console.error('memberResetPassword update error (reset):', upErr.message); throw upErr; }
     } else {
-      // invite_token — clear it and mark approved so member can log in
+      // invite_token — clear it, mark approved, mark invite accepted
       const { error: upErr } = await supabase.from('company_members')
-        .update({ password_hash, invite_token: null, status: 'approved' })
+        .update({ password_hash, invite_token: null, status: 'approved', invite_accepted: true })
         .eq('id', member.id);
       if (upErr) { console.error('memberResetPassword update error (invite):', upErr.message); throw upErr; }
     }

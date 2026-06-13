@@ -19,7 +19,7 @@
   ],
   "categories": ["business", "productivity", "social"],
   "screenshots": [
-    { "src": "/og-image.png", "sizes": "1200x630", "type": "image/png", "form_factor": "wide" }
+    { "src": "/og-image.svg", "sizes": "1200x630", "type": "image/svg+xml", "form_factor": "wide" }
   ],
   "related_applications": [],
   "prefer_related_applications": false

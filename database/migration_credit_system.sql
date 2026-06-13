@@ -98,3 +98,13 @@ ALTER TABLE vendors        ADD COLUMN IF NOT EXISTS state   TEXT;
 -- Blog subscribers: add index on confirm_token for faster confirmation lookups
 CREATE INDEX IF NOT EXISTS idx_blog_subscribers_confirm_token ON blog_subscribers(confirm_token)
   WHERE confirm_token IS NOT NULL;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Ensure company_members has all columns needed for Team Members page
+-- ═══════════════════════════════════════════════════════════════════════════
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS resumption_date    DATE;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS hris_employee_id   TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS is_core_team       BOOLEAN DEFAULT FALSE;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS is_active         BOOLEAN DEFAULT TRUE;
+ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS hris_employee_id  TEXT;

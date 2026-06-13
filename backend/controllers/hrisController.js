@@ -129,10 +129,9 @@ const ADAPTERS = {
   }),
 
   zoho_people: (emp) => {
-    // Exact Zoho People P_EmployeeView column names for this account:
-    //   First Name, Last Name, Email address, Department, Designation,
-    //   Zoho Role, Date of Joining, Date of Birth, Gender,
-    //   Personal Mobile Number, Date of Exit
+    // Field names from live Zoho People API (employee/getRecords) confirmed in logs:
+    // EmailID, FirstName, LastName, Department, Designation, Role, Gender,
+    // Date_of_birth, Dateofjoining, Dateofexit, Mobile, EmployeeID
     const d = emp.tabular_data || emp;
 
     const pick = (...keys) => {
@@ -142,34 +141,33 @@ const ADAPTERS = {
       return '';
     };
 
-    // Designation determines team_leader vs member ONLY —
-    // any designation containing 'lead', 'head', 'manager', 'director', 'chief', 'hod'
-    // is treated as a team leader. Designation itself is NOT used as job title.
+    // Designation determines team_leader vs member ONLY
     const designation = String(pick('Designation','Title') || '').trim();
     const designationLower = designation.toLowerCase();
     const isLeader = /\b(lead|head|manager|director|chief|hod|supervisor|ceo|coo|cto|cfo)\b/.test(designationLower);
 
-    // Zoho Role = the person's job title shown throughout the app
-    const jobTitle = String(pick('Zoho Role','ZohoRole','Role','Job Title') || '').trim();
+    // Role field in Zoho = job title shown in the app
+    const jobTitle = String(pick('Role','Zoho Role','ZohoRole','Job Title','Designation') || '').trim();
 
-    // Date of Exit present + non-empty → employee has left (farewell trigger)
-    const dateOfExit = pick('Date of Exit','Date of exit','DateOfExit','Exit Date','Relieving Date');
+    // Date of Exit present + non-empty → employee has left
+    const dateOfExit = pick('Dateofexit','Date of Exit','Date of exit','DateOfExit','Exit Date','Relieving Date');
     const hasExited  = !!normalizeDate(dateOfExit);
 
     return {
-      hris_employee_id: String(pick('EmployeeID','Employee ID','employee_id','ID','id') || emp.ID || ''),
-      first_name:       pick('First Name','FirstName','First_Name','first_name'),
-      last_name:        pick('Last Name','LastName','Last_Name','last_name'),
-      email:            String(pick('Email address','Email Address','Email ID','EmailID','Email','email')).toLowerCase().trim(),
+      hris_employee_id: String(pick('EmployeeID','Employee ID','Zoho_ID','ID') || emp.ID || ''),
+      // Primary field names confirmed in live logs:
+      first_name:       pick('FirstName','First Name','First_Name','first_name'),
+      last_name:        pick('LastName','Last Name','Last_Name','last_name'),
+      email:            String(pick('EmailID','Email ID','Email address','Email Address','Email','email') || '').toLowerCase().trim(),
       department:       pick('Department','department') || 'General',
-      job_title:        jobTitle,                                  // Zoho Role → job title shown in app
-      role:             isLeader ? 'team_leader' : 'member',       // Designation → team_leader/member only
-      designation:      designation,                               // kept for reference, not shown as job title
+      job_title:        jobTitle,
+      role:             isLeader ? 'team_leader' : 'member',
+      designation:      designation,
       gender:           normalizeGender(pick('Gender','gender')),
-      birthday:         normalizeDate(pick('Date of Birth','Date of birth','DOB','DateOfBirth','Birthday')),
-      hire_date:        normalizeDate(pick('Date of Joining','Date of joining','DateOfJoining','HireDate')),
-      phone:            pick('Personal Mobile Number','Personal Mobile','Mobile Number','Phone'),
-      employment_status: hasExited ? 'terminated' : 'active',
+      birthday:         normalizeDate(pick('Date_of_birth','Date of Birth','Date of birth','DOB','DateOfBirth','Birthday')),
+      hire_date:        normalizeDate(pick('Dateofjoining','Date of Joining','Date of joining','DateOfJoining','HireDate')),
+      phone:            pick('Mobile','Personal Mobile Number','Personal Mobile','Mobile Number','Phone'),
+      employment_status: hasExited ? 'terminated' : (pick('Employeestatus','EmployeeStatus','Status') === 'Inactive' ? 'terminated' : 'active'),
       termination_date: normalizeDate(dateOfExit),
       promotion_date:   normalizeDate(pick('Last Promotion Date','LastPromotionDate','promotion_date')),
       new_title:        jobTitle,
@@ -319,7 +317,11 @@ async function fetchFromZohoPeople(connection) {
         continue;
       }
       const rows = body?.data || body?.response?.result || body?.result || [];
-      records = Array.isArray(rows) ? rows : Object.values(rows || {});
+      // Zoho's employee/getRecords returns { "ZOHO_ID": [empObj], ... } under body.data
+      // Object.values() gives [[emp1],[emp2],...] — we need to flatten one level.
+      const flat = Array.isArray(rows) ? rows : Object.values(rows || {});
+      records = flat.flat ? flat.flat(1) : [].concat(...flat);
+      records = records.filter(r => r && typeof r === 'object' && !Array.isArray(r));
       console.log('[zoho]', ep.label, 'success — records:', records.length);
       break;
     } catch (epErr) {

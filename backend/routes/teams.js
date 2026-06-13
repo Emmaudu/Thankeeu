@@ -35,18 +35,20 @@ router.get('/all-members', async (req, res) => {
       .from('company_members')
       .select('*')
       .eq('company_id', companyId)
-      .neq('status', 'deactivated')
       .order('first_name', { ascending: true });
     if (search) q = q.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
     if (dept)   q = q.eq('department', dept);
     if (role)   q = q.eq('role', role);
 
-    const { data: cmData, error: cmErr } = await q;
+    const { data: cmRaw, error: cmErr } = await q;
     if (cmErr) {
       console.error('[all-members] company_members FAIL:', JSON.stringify(cmErr));
       return res.status(500).json({ error: 'company_members: ' + cmErr.message });
     }
-    console.log('[all-members] company_members OK:', (cmData||[]).length, 'rows');
+    // Exclude deactivated members — but rows with status NULL/undefined
+    // (e.g. older HRIS-synced records) count as active, not deactivated.
+    const cmData = (cmRaw || []).filter(m => m.status !== 'deactivated');
+    console.log('[all-members] company_members OK:', (cmRaw||[]).length, 'rows total,', cmData.length, 'after status filter');
 
     // Step 2: occasion_members supplement — non-fatal if it fails
     const cmEmails = new Set((cmData||[]).map(m=>m.email?.toLowerCase()).filter(Boolean));

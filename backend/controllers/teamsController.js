@@ -213,16 +213,17 @@ const getTeamsDashboard = async (req, res) => {
     const in30days  = new Date(today); in30days.setDate(today.getDate() + 30);
 
     // ── 1. Total members: union of company_members + distinct occasion_members ──
-    const [{ data: cmRows }, { data: omRows }] = await Promise.all([
+    const [{ data: cmRowsRaw }, { data: omRows }] = await Promise.all([
       supabase.from('company_members')
         .select('id, first_name, last_name, email, department, role, status, gender, date_of_birth')
-        .eq('company_id', companyId)
-        .neq('status', 'deactivated'),
+        .eq('company_id', companyId),
       supabase.from('occasion_members')
         .select('email, first_name, last_name, department, gender')
         .eq('company_id', companyId)
         .eq('is_active', true),
     ]);
+    // Exclude deactivated members — NULL status counts as active (not deactivated)
+    const cmRows = (cmRowsRaw || []).filter(m => m.status !== 'deactivated');
 
     // Deduplicate by email — company_members is authoritative if both exist
     const cmEmails = new Set((cmRows || []).map(m => m.email?.toLowerCase()));

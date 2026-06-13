@@ -34,10 +34,12 @@ const PROVIDERS = [
     color:    'bg-red-50 border-red-200',
     desc:     'Comprehensive HR suite for businesses of all sizes',
     fields:   [
-      { key: 'api_key',      label: 'Client ID',     type: 'text',     help: 'Zoho API Console → Client ID' },
-      { key: 'api_secret',   label: 'Client Secret', type: 'password', help: 'Zoho API Console → Client Secret' },
-      { key: 'access_token', label: 'Access Token',  type: 'password', help: 'OAuth 2.0 access token from Zoho' },
+      { key: 'api_key',       label: 'Client ID',      type: 'text',     help: 'Zoho API Console → Your app → Client ID' },
+      { key: 'api_secret',    label: 'Client Secret',  type: 'password', help: 'Zoho API Console → Your app → Client Secret' },
+      { key: 'refresh_token', label: 'Refresh Token',  type: 'password', help: 'Zoho API Console → Self Client → Generate token with scope: ZohoPeople.employee.READ' },
+      { key: 'base_url',      label: 'Region Base URL', type: 'text',    placeholder: 'https://people.zoho.com', help: 'Change only if your Zoho is in EU (.eu), India (.in), Australia (.com.au), or Japan (.jp)' },
     ],
+    hint: 'Do NOT paste an Access Token — it expires in 1 hour. Use a Refresh Token instead and Thankeeu will auto-renew it.',
   },
   {
     id:       'workpay',
@@ -413,6 +415,11 @@ const HRISPage = () => {
                   {/* Expanded connection form */}
                   {isSelected && (
                     <form onSubmit={handleConnect} className="border-t border-purple-100 p-5 space-y-3 bg-warm-100 rounded-b-2xl">
+                      {p.hint && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                          <p className="text-xs text-amber-700 font-medium">⚠️ {p.hint}</p>
+                        </div>
+                      )}
                       {p.fields.map(field => (
                         <div key={field.key}>
                           <label className="block text-xs font-medium text-warm-700 mb-1">{field.label}</label>
@@ -422,7 +429,7 @@ const HRISPage = () => {
                             placeholder={field.placeholder || ''}
                             value={formData[field.key] || ''}
                             onChange={e => setFormData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                            required
+                            required={field.key !== 'base_url'}
                             autoComplete="off"
                           />
                           {field.help && <p className="text-xs text-warm-400 mt-1">{field.help}</p>}

@@ -222,19 +222,68 @@ async function fetchFromSAPSuccessFactors(connection) {
 }
 
 async function fetchFromZohoPeople(connection) {
-  // Zoho People — may need OAuth token refresh
-  if (connection.token_expires_at && new Date(connection.token_expires_at) <= new Date()) {
-    await refreshZohoToken(connection);
-    const { data } = await supabase.from('hris_connections').select('access_token').eq('id', connection.id).single();
-    connection.access_token = data?.access_token;
-  }
-  const res = await axios.get(
-    'https://people.zoho.com/people/api/forms/P_EmployeeView/records?sIndex=1&limit=200&searchColumn=ALLCOLUMNS&searchValue=',
-    {
-      headers: { Authorization: `Zoho-oauthtoken ${connection.access_token}` },
-      timeout: 30000,
+  // BUG FIX 1: Always try to refresh if refresh_token exists AND
+  //   (a) token_expires_at is missing/null, OR
+  //   (b) token is expired, OR
+  //   (c) access_token is missing
+  // This handles the case where HR saves credentials but never got an initial access_token
+  const needsRefresh =
+    connection.refresh_token && (
+      !connection.access_token ||
+      !connection.token_expires_at ||
+      new Date(connection.token_expires_at) <= new Date(Date.now() + 60000) // refresh 1 min early
+    );
+
+  if (needsRefresh) {
+    try {
+      await refreshZohoToken(connection);
+      const { data } = await supabase.from('hris_connections')
+        .select('access_token, token_expires_at').eq('id', connection.id).single();
+      connection.access_token    = data?.access_token;
+      connection.token_expires_at = data?.token_expires_at;
+    } catch (refreshErr) {
+      console.error('Zoho token refresh failed:', refreshErr.response?.data || refreshErr.message);
+      throw new Error(
+        'Zoho authentication failed. Your refresh token may be expired. ' +
+        'Please reconnect Zoho People in HRIS settings: go to Zoho API Console → ' +
+        'revoke and regenerate a new refresh token, then save the connection again.'
+      );
     }
-  );
+  }
+
+  if (!connection.access_token) {
+    throw new Error(
+      'No Zoho access token available. Please save your connection credentials ' +
+      '(Client ID, Client Secret, Refresh Token) in HRIS settings first.'
+    );
+  }
+
+  // BUG FIX 2: Zoho has region-specific domains (.com, .eu, .in, .com.au, .jp)
+  // Default to .com but allow override via base_url field
+  const zohoBase = (connection.base_url && connection.base_url.trim() ? connection.base_url.trim() : 'https://people.zoho.com').replace(/\/+$/, '');
+
+  let res;
+  try {
+    res = await axios.get(
+      `${zohoBase}/people/api/forms/P_EmployeeView/records?sIndex=1&limit=200&searchColumn=ALLCOLUMNS&searchValue=`,
+      {
+        headers: { Authorization: `Zoho-oauthtoken ${connection.access_token}` },
+        timeout: 30000,
+      }
+    );
+  } catch (apiErr) {
+    if (apiErr.response?.status === 401) {
+      throw new Error(
+        'Zoho returned 401 Unauthorized. Possible causes: ' +
+        '(1) Wrong Zoho region — if your Zoho account is in EU/India/Australia/Japan, ' +
+        'set the Base URL to https://people.zoho.eu (or .in / .com.au / .jp). ' +
+        '(2) Refresh token expired — regenerate it in Zoho API Console. ' +
+        '(3) Client ID or Secret is incorrect.'
+      );
+    }
+    throw apiErr;
+  }
+
   const records = res.data?.response?.result || [];
   return records.map(ADAPTERS.zoho_people);
 }

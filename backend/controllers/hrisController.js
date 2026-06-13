@@ -129,9 +129,14 @@ const ADAPTERS = {
   }),
 
   zoho_people: (emp) => {
-    // Field names from live Zoho People API (employee/getRecords) confirmed in logs:
-    // EmailID, FirstName, LastName, Department, Designation, Role, Gender,
-    // Date_of_birth, Dateofjoining, Dateofexit, Mobile, EmployeeID
+    // EXACT Zoho People column names (confirmed by account owner):
+    // 'First Name', 'Last Name', 'Email address', 'Department',
+    // 'Designation' → determines role (member/leader),
+    // 'Zoho Role'   → job title shown in the app,
+    // 'Date of Joining' → work anniversary trigger,
+    // 'Date of Birth'   → birthday trigger,
+    // 'Gender', 'Personal Mobile Number',
+    // 'Date of Exit'    → farewell/leaving trigger
     const d = emp.tabular_data || emp;
 
     const pick = (...keys) => {
@@ -141,35 +146,36 @@ const ADAPTERS = {
       return '';
     };
 
-    // Designation determines team_leader vs member ONLY
-    const designation = String(pick('Designation','Title') || '').trim();
+    // 'Designation' = role in Thankeeu (member vs leader)
+    const designation = String(pick('Designation') || '').trim();
     const designationLower = designation.toLowerCase();
-    const isLeader = /\b(lead|head|manager|director|chief|hod|supervisor|ceo|coo|cto|cfo)\b/.test(designationLower);
+    const isLeader = /\b(lead|head|manager|director|chief|hod|supervisor|ceo|coo|cto|cfo|vp|president)\b/.test(designationLower);
 
-    // Role field in Zoho = job title shown in the app
-    const jobTitle = String(pick('Role','Zoho Role','ZohoRole','Job Title','Designation') || '').trim();
+    // 'Zoho Role' = Job Title shown in the app
+    const jobTitle = String(pick('Zoho Role') || '').trim();
 
-    // Date of Exit present + non-empty → employee has left
-    const dateOfExit = pick('Dateofexit','Date of Exit','Date of exit','DateOfExit','Exit Date','Relieving Date');
+    // 'Date of Exit' = farewell trigger
+    const dateOfExit = pick('Date of Exit');
     const hasExited  = !!normalizeDate(dateOfExit);
 
+    // 'Employeestatus' field for active/inactive check (Zoho internal field)
+    const empStatus = String(pick('Employeestatus','EmployeeStatus') || '').toLowerCase();
+
     return {
-      hris_employee_id: String(pick('EmployeeID','Employee ID','Zoho_ID','ID') || emp.ID || ''),
-      // Primary field names confirmed in live logs:
-      first_name:       pick('FirstName','First Name','First_Name','first_name'),
-      last_name:        pick('LastName','Last Name','Last_Name','last_name'),
-      email:            String(pick('EmailID','Email ID','Email address','Email Address','Email','email') || '').toLowerCase().trim(),
-      department:       pick('Department','department') || 'General',
-      job_title:        jobTitle,
-      role:             isLeader ? 'team_leader' : 'member',
-      designation:      designation,
-      gender:           normalizeGender(pick('Gender','gender')),
-      birthday:         normalizeDate(pick('Date_of_birth','Date of Birth','Date of birth','DOB','DateOfBirth','Birthday')),
-      hire_date:        normalizeDate(pick('Dateofjoining','Date of Joining','Date of joining','DateOfJoining','HireDate')),
-      phone:            pick('Mobile','Personal Mobile Number','Personal Mobile','Mobile Number','Phone'),
-      employment_status: hasExited ? 'terminated' : (pick('Employeestatus','EmployeeStatus','Status') === 'Inactive' ? 'terminated' : 'active'),
+      hris_employee_id: String(pick('EmployeeID','Employee ID') || ''),
+      first_name:       pick('First Name'),
+      last_name:        pick('Last Name'),
+      email:            String(pick('Email address') || '').toLowerCase().trim(),
+      department:       pick('Department') || 'General',
+      job_title:        jobTitle,         // 'Zoho Role' → job title
+      role:             isLeader ? 'team_leader' : 'member',  // 'Designation' → role
+      gender:           normalizeGender(pick('Gender')),
+      birthday:         normalizeDate(pick('Date of Birth')),
+      hire_date:        normalizeDate(pick('Date of Joining')),
+      phone:            pick('Personal Mobile Number'),
+      employment_status: hasExited ? 'terminated' : (empStatus === 'inactive' ? 'terminated' : 'active'),
       termination_date: normalizeDate(dateOfExit),
-      promotion_date:   normalizeDate(pick('Last Promotion Date','LastPromotionDate','promotion_date')),
+      promotion_date:   normalizeDate(pick('Last Promotion Date')),
       new_title:        jobTitle,
       previous_title:   pick('Previous Designation','PreviousDesignation'),
     };

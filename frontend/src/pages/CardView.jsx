@@ -92,7 +92,13 @@ const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
         ...(selectedProd.id.includes('AIRTIME') ? { phone_number: phoneNumber } : {}),
       };
       const res = await giftcardsAPI.order(payload);
-      setResult({ type: 'giftcard', message: res.data.message, product: res.data.product_name });
+      setResult({
+        type: 'giftcard',
+        message: res.data.message,
+        product: res.data.product_name,
+        redemptionCode: res.data.redemption_code,
+        redeemUrl: res.data.redeem_url,
+      });
       setStep('done');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Gift card order failed. Please try bank transfer instead.');
@@ -118,6 +124,29 @@ const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
           <div className="flex justify-between"><span>Platform fee (3.5%)</span><span>-{formatNGN(result.fee)}</span></div>
           <div className="flex justify-between font-bold text-warm-900"><span>You receive</span><span>{formatNGN(result.amount)}</span></div>
         </div>
+      )}
+      {result?.type === 'giftcard' && result?.redemptionCode && (
+        <div className="bg-primary-50 border-2 border-dashed border-primary-200 rounded-xl p-4 text-left">
+          <p className="text-[11px] uppercase tracking-wide text-warm-400 font-bold mb-1">Your redemption code</p>
+          <div className="flex items-center gap-2">
+            <p className="font-mono font-extrabold text-base text-warm-900 break-all flex-1">{result.redemptionCode}</p>
+            <button type="button"
+              onClick={() => { navigator.clipboard.writeText(result.redemptionCode); toast.success('Code copied!'); }}
+              className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold bg-primary-600 text-white hover:bg-primary-700">
+              Copy
+            </button>
+          </div>
+          <p className="text-xs text-warm-500 mt-2">Save this code now — keep it safe like cash. We've also emailed it to you.</p>
+          {result.redeemUrl && (
+            <a href={result.redeemUrl} target="_blank" rel="noopener noreferrer"
+              className="mt-3 block w-full text-center py-2.5 rounded-xl text-sm font-bold bg-warm-900 text-white">
+              Redeem on {result.product} →
+            </a>
+          )}
+        </div>
+      )}
+      {result?.type === 'giftcard' && !result?.redemptionCode && (
+        <p className="text-xs text-warm-500">Check your email — your code is on its way and may take a few minutes to arrive.</p>
       )}
       <p className="text-xs text-warm-400">Usually arrives within 1–3 minutes</p>
     </div>

@@ -14,6 +14,7 @@
 
 const axios   = require('axios');
 const supabase = require('../utils/supabase');
+const { sendEmail } = require('../utils/email');
 
 const IS_PROD     = process.env.NODE_ENV === 'production' && process.env.RELOADLY_LIVE === 'true';
 const RL_BASE     = IS_PROD
@@ -214,6 +215,14 @@ const orderGiftCard = async (req, res) => {
       'US_NETFLIX':48,'US_SPOTIFY':27,'US_XBOX':12,'US_PLAYSTATION':13,'US_WALMART':11,
     };
 
+    // Where the recipient can redeem each gift card
+    const REDEEM_URLS = {
+      'NG_JUMIA':'https://www.jumia.com.ng/','UK_AMAZON':'https://www.amazon.co.uk/gc/redeem','UK_ITUNES':'https://redeem.apple.com/',
+      'UK_GOOGLE_PLAY':'https://play.google.com/store/account/subscriptions','UK_NETFLIX':'https://www.netflix.com/redeem','UK_SPOTIFY':'https://www.spotify.com/redeem','UK_ASOS':'https://www.asos.com/',
+      'US_AMAZON':'https://www.amazon.com/gc/redeem','US_ITUNES':'https://redeem.apple.com/','US_GOOGLE_PLAY':'https://play.google.com/store/account/subscriptions',
+      'US_NETFLIX':'https://www.netflix.com/redeem','US_SPOTIFY':'https://www.spotify.com/redeem','US_XBOX':'https://redeem.microsoft.com/','US_PLAYSTATION':'https://www.playstation.com/redeem-codes/','US_WALMART':'https://www.walmart.com/',
+    };
+
     const targetEmail = recipient_email || callerEmail || card.recipient_email;
 
     // Record the claim attempt
@@ -323,7 +332,17 @@ const orderGiftCard = async (req, res) => {
     const orderR = await axios.post(`${RL_BASE}/orders`, orderPayload, { headers: hdrs });
 
     if (orderR.data.status === 'SUCCESSFUL' || orderR.data.transactionId) {
-      const redeemCode = orderR.data.redemptionCode || orderR.data.pin || '(sent to email)';
+      let redeemCode = orderR.data.redemptionCode || orderR.data.pin || null;
+
+      // Some Reloadly gift card products don't return the code in the initial
+      // order response — fetch the transaction's cards as a best-effort follow-up.
+      if (!redeemCode && orderR.data.transactionId) {
+        try {
+          const cardsR = await axios.get(`${RL_BASE}/orders/transactions/${orderR.data.transactionId}/cards`, { headers: hdrs });
+          const firstCard = Array.isArray(cardsR.data) ? cardsR.data[0] : cardsR.data?.cards?.[0];
+          redeemCode = firstCard?.pinCode || firstCard?.cardNumber || firstCard?.redemptionCode || null;
+        } catch (_) { /* best-effort — code may only arrive via Reloadly's own email */ }
+      }
 
       await Promise.all([
         supabase.from('cards').update({
@@ -332,16 +351,30 @@ const orderGiftCard = async (req, res) => {
         }).eq('id', card.id),
         claim?.id && supabase.from('gift_claims').update({
           status: 'paid', processed_at: new Date(),
-          redemption_code: redeemCode,
+          redemption_code: redeemCode || null,
         }).eq('id', claim.id),
       ]);
+
+      // Always send Thankeeu's own confirmation email with the code — don't
+      // rely solely on Reloadly's delivery email (which sandbox mode never sends).
+      sendEmail({ to: targetEmail, template: 'giftCardDelivered', data: {
+        name: card.recipient_name,
+        productName: product.productName,
+        amountLabel: `₦${net.toLocaleString()}`,
+        redemptionCode: redeemCode || 'Check your email from Reloadly for your code, or contact support@thankeeu.com with the order reference below.',
+        redeemUrl: REDEEM_URLS[product_id] || null,
+        orderRef: claimRef,
+      }}).catch(e => console.error('giftCardDelivered email failed:', e.message));
 
       return res.json({
         success: true,
         type:    'giftcard',
-        message: `Your ${product.productName} gift card has been sent to ${targetEmail}!`,
+        message: redeemCode
+          ? `Your ${product.productName} gift card code has been sent to ${targetEmail}.`
+          : `Your ${product.productName} gift card order was placed. The code will arrive at ${targetEmail} from Reloadly shortly.`,
         amount: net, fee, gross: amount,
         redemption_code: redeemCode,
+        redeem_url: REDEEM_URLS[product_id] || null,
         product_name: product.productName,
       });
     }

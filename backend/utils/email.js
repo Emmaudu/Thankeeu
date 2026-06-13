@@ -823,6 +823,23 @@ Object.assign(emailTemplates, {
       ${btn('Go to your dashboard →', d.dashUrl, '#7C3AED')}
     `)
   }),
+  giftCardDelivered: (d) => ({
+    subject: `🎁 Your ${d.productName} gift card is ready!`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Your gift card has arrived! 🎉</h2>
+      <p style="color:#555;line-height:1.7;">Hi ${d.name || 'there'}, you claimed your gift pot of <strong>${d.amountLabel}</strong> as a <strong>${d.productName}</strong> gift card.</p>
+
+      <div style="background:#F8F7FF;border:2px dashed #C4B5FD;border-radius:12px;padding:18px;margin:20px 0;text-align:center;">
+        <p style="color:#888;font-size:12px;margin:0 0 6px;text-transform:uppercase;letter-spacing:.05em;">Your redemption code</p>
+        <p style="color:#1a1a1a;font-size:22px;font-weight:800;letter-spacing:.05em;margin:0;font-family:monospace;">${d.redemptionCode}</p>
+      </div>
+
+      <p style="color:#555;font-size:13px;line-height:1.7;">Keep this code safe — treat it like cash. ${d.redeemInstructions || "You can redeem it on the retailer's website or app at checkout."}</p>
+      ${d.redeemUrl ? btn('Redeem your gift card', d.redeemUrl, '#7C3AED') : ''}
+
+      <p style="color:#aaa;font-size:12px;margin-top:20px;">Order reference: ${d.orderRef || 'N/A'}</p>
+    `)
+  }),
   orderConfirm: (d) => ({
     subject: `Order confirmed — #${d.orderId} from ${d.storeName}`,
     html: BASE(`

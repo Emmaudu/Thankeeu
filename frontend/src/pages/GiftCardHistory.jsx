@@ -134,43 +134,52 @@ export default function GiftCardHistory() {
                 </div>
               </div>
 
-              {/* Gift card code */}
-              {isGiftCard && item.status === 'paid' && (
+              {/* Gift card / airtime code — show whenever code exists, regardless of status */}
+              {isGiftCard && hasCode && (
                 <div className="mt-3 pt-3 border-t border-purple-50">
-                  {hasCode ? (
-                    <>
-                      <p className="text-xs font-semibold text-warm-500 mb-1.5">Your code</p>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 bg-purple-50 rounded-xl px-4 py-2.5 font-mono text-sm font-bold text-primary-700 tracking-widest break-all select-all">
-                          {item.redemption_code}
-                        </div>
-                        <button onClick={() => copyCode(item.id, item.redemption_code)}
-                          title="Copy code"
-                          className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all border-2"
-                          style={{
-                            background:   copied === item.id ? '#D1FAE5' : '#F5F3FF',
-                            borderColor:  copied === item.id ? '#6EE7B7' : '#DDD6FE',
-                          }}>
-                          <Icon name={copied === item.id ? 'Check' : 'Copy'} size={16}
-                            style={{ color: copied === item.id ? '#059669' : '#7C3AED' }}/>
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 flex items-center gap-1.5">
-                      <Icon name="Clock" size={13}/>
-                      Code will arrive in your email from Reloadly shortly.
+                  <p className="text-xs font-semibold text-warm-500 mb-1.5">Your code</p>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-purple-50 rounded-xl px-4 py-2.5 font-mono text-sm font-bold text-primary-700 tracking-widest break-all select-all">
+                      {item.redemption_code}
+                    </div>
+                    <button onClick={() => copyCode(item.id, item.redemption_code)}
+                      title="Copy code"
+                      className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all border-2"
+                      style={{
+                        background:  copied === item.id ? '#D1FAE5' : '#F5F3FF',
+                        borderColor: copied === item.id ? '#6EE7B7' : '#DDD6FE',
+                      }}>
+                      <Icon name={copied === item.id ? 'Check' : 'Copy'} size={16}
+                        style={{ color: copied === item.id ? '#059669' : '#7C3AED' }}/>
+                    </button>
+                  </div>
+                  {item.status === 'rejected' && (
+                    <p className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mt-2 flex items-center gap-1.5">
+                      <Icon name="AlertCircle" size={13}/>
+                      This order was marked rejected (likely sandbox mode). The code above may still work — try redeeming it.
                     </p>
                   )}
                 </div>
               )}
 
-              {/* Processing state */}
-              {isGiftCard && item.status === 'processing' && (
+              {/* No code yet — processing or paid but Reloadly sends code by email */}
+              {isGiftCard && !hasCode && (item.status === 'paid' || item.status === 'processing') && (
                 <div className="mt-3 pt-3 border-t border-purple-50">
                   <p className="text-xs text-blue-700 bg-blue-50 rounded-xl px-3 py-2 flex items-center gap-1.5">
                     <Icon name="Clock" size={13}/>
-                    Processing — your code will appear here and be emailed to you.
+                    {item.status === 'processing'
+                      ? 'Processing — your code will appear here and be emailed to you.'
+                      : 'Code will arrive in your email from Reloadly shortly.'}
+                  </p>
+                </div>
+              )}
+
+              {/* Rejected with no code — explain why */}
+              {isGiftCard && !hasCode && item.status === 'rejected' && (
+                <div className="mt-3 pt-3 border-t border-purple-50">
+                  <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2 flex items-center gap-1.5">
+                    <Icon name="AlertCircle" size={13}/>
+                    Order was rejected and no code was issued. This usually happens in sandbox mode — switch to Reloadly live keys to fix this.
                   </p>
                 </div>
               )}

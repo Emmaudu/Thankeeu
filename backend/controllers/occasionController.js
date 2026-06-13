@@ -665,9 +665,11 @@ const importGeneralTemplate = async (req, res) => {
       let memberId = null;
       let isNew = false;
       let needsInvite = false;
+      let existingMember = null; // hoisted so skipInvite can access it after try{}
       try {
         const { data: existing } = await supabase.from('company_members')
-          .select('id, password_hash').eq('company_id', companyId).eq('email', email).maybeSingle();
+          .select('id, password_hash, invite_accepted').eq('company_id', companyId).eq('email', email).maybeSingle();
+        existingMember = existing;
 
         needsInvite = !existing?.password_hash;
         // Generate a temp password hash so the row satisfies a NOT NULL
@@ -718,9 +720,11 @@ const importGeneralTemplate = async (req, res) => {
         errors.push(`${email}: account setup failed — ${e.message}`);
       }
 
-      // Send invite email — only if we successfully stored the token and the
-      // member doesn't already have a password (avoid re-inviting active users)
-      if (memberId && needsInvite) {
+      // Send invite email on every import — always refresh the token so
+      // the link in the email is always the latest one stored in DB.
+      // We skip only members who have already accepted (logged in) before.
+      const skipInvite = !!existingMember?.invite_accepted;
+      if (memberId && !skipInvite) {
         try {
           const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email)}`;
           await sendEmail({ to: email,
@@ -849,11 +853,27 @@ const updateOccasionMember = async (req, res) => {
     const updates = {};
     for (const k of allowed) { if (req.body[k] !== undefined) updates[k] = req.body[k]; }
     updates.updated_at = new Date();
+
+    // Update occasion_members row
     const { data, error } = await supabase.from('occasion_members')
       .update(updates).eq('id', memberId).eq('company_id', req.company.id).select().single();
     if (error) throw error;
+
+    // Also sync profile fields to company_members so the member's dashboard reflects changes
+    const profileFields = ['first_name','last_name','email','department','gender'];
+    const profileUpdates = {};
+    for (const k of profileFields) { if (updates[k] !== undefined) profileUpdates[k] = updates[k]; }
+    if (Object.keys(profileUpdates).length > 0 && data?.member_id) {
+      profileUpdates.updated_at = new Date();
+      await supabase.from('company_members')
+        .update(profileUpdates).eq('id', data.member_id).eq('company_id', req.company.id);
+    }
+
     res.json(data);
-  } catch (err) { res.status(500).json({ error:'Failed to update' }); }
+  } catch (err) {
+    console.error('updateOccasionMember error:', err.message);
+    res.status(500).json({ error: 'Failed to update member record' });
+  }
 };
 
 

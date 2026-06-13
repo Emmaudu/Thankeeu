@@ -208,13 +208,23 @@ export default function OccasionsPage() {
   const saveEdit = async () => {
     if (!editRow) return;
     try {
-      await axios.patch(`${BASE_URL}/occasions/members/${editRow.id}`, editData, {
-        headers: { Authorization: `Bearer ${tok()}` },
-      });
-      toast.success('Saved');
+      // PUT /occasions/members/:memberId supports first_name, last_name, email,
+      // department, occasion_date, gender, notes — updateOccasionMember in occasionController
+      await axios.put(`${BASE_URL}/occasions/members/${editRow.id}`, {
+        first_name:    editData.first_name    ?? editRow.first_name,
+        last_name:     editData.last_name     ?? editRow.last_name,
+        email:         editData.email         ?? editRow.email,
+        department:    editData.department    ?? editRow.department,
+        occasion_date: editData.occasion_date ?? editRow.occasion_date?.slice(0,10),
+        gender:        editData.gender        ?? editRow.gender,
+        notes:         editData.notes         ?? editRow.notes,
+      }, { headers: { Authorization: `Bearer ${tok()}` } });
+      toast.success('Record saved ✓');
       setEditRow(null); setEditData({});
       loadTables();
-    } catch { toast.error('Save failed'); }
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Save failed — please try again');
+    }
   };
 
   const deleteRow = async (id) => {
@@ -419,22 +429,61 @@ export default function OccasionsPage() {
                     return (
                       <tr key={row.id} className="hover:bg-purple-50/40 transition-colors">
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600 flex-shrink-0">
-                              {row.first_name?.[0]}{row.last_name?.[0]}
+                          {isEditing ? (
+                            <div className="flex flex-col gap-1.5 min-w-[180px]">
+                              <div className="flex gap-1.5">
+                                <input type="text" placeholder="First name" className="input text-xs py-1.5 flex-1"
+                                  value={editData.first_name ?? ''}
+                                  onChange={e => setEditData(d => ({ ...d, first_name: e.target.value }))} />
+                                <input type="text" placeholder="Last name" className="input text-xs py-1.5 flex-1"
+                                  value={editData.last_name ?? ''}
+                                  onChange={e => setEditData(d => ({ ...d, last_name: e.target.value }))} />
+                              </div>
+                              <input type="email" placeholder="Email" className="input text-xs py-1.5"
+                                value={editData.email ?? ''}
+                                onChange={e => setEditData(d => ({ ...d, email: e.target.value }))} />
                             </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-semibold text-warm-900 truncate">{row.first_name} {row.last_name}</p>
-                              <p className="text-xs text-warm-400 truncate">{row.email}</p>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600 flex-shrink-0">
+                                {row.first_name?.[0]}{row.last_name?.[0]}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold text-warm-900 truncate">{row.first_name} {row.last_name}</p>
+                                <p className="text-xs text-warm-400 truncate">{row.email}</p>
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-warm-600">{row.department}</td>
+                        <td className="px-4 py-3 text-sm text-warm-600">
+                          {isEditing ? (
+                            <div className="flex flex-col gap-1.5">
+                              <input type="text" placeholder="Department" className="input text-xs py-1.5"
+                                value={editData.department ?? ''}
+                                onChange={e => setEditData(d => ({ ...d, department: e.target.value }))} />
+                              <select className="input text-xs py-1.5"
+                                value={editData.gender ?? ''}
+                                onChange={e => setEditData(d => ({ ...d, gender: e.target.value }))}>
+                                <option value="">Gender...</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                              </select>
+                            </div>
+                          ) : (
+                            <span>{row.department}{row.gender ? ` · ${row.gender}` : ''}</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-sm text-warm-700 font-medium">
                           {isEditing ? (
-                            <input type="date" className="input text-sm py-1.5"
-                              value={editData.occasion_date || row.occasion_date?.slice(0, 10) || ''}
-                              onChange={e => setEditData(d => ({ ...d, occasion_date: e.target.value }))} />
+                            <div className="flex flex-col gap-1.5">
+                              <input type="date" className="input text-xs py-1.5"
+                                value={editData.occasion_date ?? ''}
+                                onChange={e => setEditData(d => ({ ...d, occasion_date: e.target.value }))} />
+                              <input type="text" placeholder="Notes (optional)" className="input text-xs py-1.5"
+                                value={editData.notes ?? ''}
+                                onChange={e => setEditData(d => ({ ...d, notes: e.target.value }))} />
+                            </div>
                           ) : row.occasion_date?.slice(0, 10) || '—'}
                         </td>
                         <td className="px-4 py-3">
@@ -489,7 +538,18 @@ export default function OccasionsPage() {
                               </>
                             ) : (
                               <>
-                                <button onClick={() => { setEditRow(row); setEditData({}); }}
+                                <button onClick={() => {
+                                  setEditRow(row);
+                                  setEditData({
+                                    first_name:    row.first_name || '',
+                                    last_name:     row.last_name  || '',
+                                    email:         row.email      || '',
+                                    department:    row.department || '',
+                                    occasion_date: row.occasion_date?.slice(0,10) || '',
+                                    gender:        row.gender     || '',
+                                    notes:         row.notes      || '',
+                                  });
+                                }}
                                   className="text-xs text-primary-600 font-semibold px-2.5 py-1.5 rounded-lg bg-primary-50 hover:bg-primary-100">Edit</button>
                                 <button onClick={() => deleteRow(row.id)}
                                   className="text-xs text-red-500 font-semibold px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100">Delete</button>

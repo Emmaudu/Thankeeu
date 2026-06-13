@@ -72,6 +72,52 @@ const STATUS_STYLES = {
   running: 'bg-blue-100 text-blue-700',
 };
 
+
+// ── Zoho token exchange helper component ─────────────────────────────────────
+function ZohoExchangeHelper({ clientId, clientSecret, onRefreshToken }) {
+  const [code,    setCode]    = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [result,  setResult]  = React.useState(null);
+  const [error,   setError]   = React.useState(null);
+  const BASE = import.meta.env.VITE_API_URL || '/api';
+  const tok  = () => localStorage.getItem('thankeeu_company_token') || '';
+
+  const exchange = async () => {
+    if (!code.trim()) return;
+    setLoading(true); setResult(null); setError(null);
+    try {
+      const r = await fetch(`${BASE}/hris/zoho-exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${tok()}` },
+        body: JSON.stringify({ code: code.trim(), client_id: clientId, client_secret: clientSecret }),
+      });
+      const d = await r.json();
+      if (!r.ok) { setError(d.error + (d.detail ? ': ' + JSON.stringify(d.detail) : '')); return; }
+      setResult(d.refresh_token);
+      onRefreshToken(d.refresh_token);
+    } catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="border border-purple-100 rounded-xl p-4 bg-purple-50 space-y-2">
+      <p className="text-xs font-bold text-primary-700">🔑 Get Refresh Token from Authorization Code</p>
+      <p className="text-xs text-warm-500">Generate a Self Client code in Zoho API Console (scope: ZohoPeople.employee.ALL), paste it below, and click Exchange. The Refresh Token will be filled in automatically.</p>
+      <div className="flex gap-2">
+        <input type="text" value={code} onChange={e => setCode(e.target.value)}
+          placeholder="Paste authorization code from Zoho Self Client..."
+          className="input text-xs py-1.5 flex-1" />
+        <button type="button" onClick={exchange} disabled={loading || !code.trim()}
+          className="px-3 py-1.5 rounded-xl bg-primary-600 text-white text-xs font-bold disabled:opacity-50 whitespace-nowrap">
+          {loading ? 'Exchanging…' : 'Exchange →'}
+        </button>
+      </div>
+      {result && <p className="text-xs text-green-700 bg-green-50 rounded-lg px-2 py-1.5">✓ Refresh token filled in above automatically!</p>}
+      {error  && <p className="text-xs text-red-600 bg-red-50 rounded-lg px-2 py-1.5">{error}</p>}
+    </div>
+  );
+}
+
 const HRISPage = () => {
   useSEO({ title: 'HRIS Integration — Thankeeu for Teams', noIndex: true });
 

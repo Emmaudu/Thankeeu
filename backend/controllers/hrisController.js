@@ -129,23 +129,26 @@ const ADAPTERS = {
   }),
 
   zoho_people: (emp) => {
+    // v2 API wraps data differently than v1
+    // v2: { ID, First_Name, Last_Name, Email, Department, ... }
+    // v1: { tabular_data: { EmployeeID, FirstName, ... } }
     const d = emp.tabular_data || emp;
     return {
-      hris_employee_id: String(d.EmployeeID || d.employee_id || d.id || emp.ID),
-      first_name:       d.FirstName   || d.first_name  || '',
-      last_name:        d.LastName    || d.last_name   || '',
-      email:            (d.EmailID || d.Email || d.email || '').toLowerCase().trim(),
+      hris_employee_id: String(d.EmployeeID || d.employee_id || d.ID || d.id || emp.ID || ''),
+      first_name:       d.First_Name  || d.FirstName   || d.first_name  || '',
+      last_name:        d.Last_Name   || d.LastName    || d.last_name   || '',
+      email:            (d.Email || d.EmailID || d.Work_Email || d.email || '').toLowerCase().trim(),
       department:       d.Department  || d.department  || 'General',
-      job_title:        d.Designation || d.job_title   || d.JobTitle || '',
+      job_title:        d.Designation || d.Title       || d.job_title   || d.JobTitle || '',
       gender:           normalizeGender(d.Gender || d.gender),
-      birthday:         normalizeDate(d.DOB || d.DateOfBirth || d.Birthday),
-      hire_date:        normalizeDate(d.DateOfJoining || d.joining_date || d.HireDate),
+      birthday:         normalizeDate(d.Date_of_Birth || d.DOB || d.DateOfBirth || d.Birthday),
+      hire_date:        normalizeDate(d.Joining_Date   || d.DateOfJoining || d.joining_date || d.HireDate),
       employment_status:
-        ['Active','active','Working'].includes(d.EmployeeStatus || d.status) ? 'active' :
-        ['Terminated','terminated','Resigned','resigned'].includes(d.EmployeeStatus || '') ? 'terminated' : 'active',
-      termination_date: normalizeDate(d.RelievingDate || d.ExitDate),
+        ['Active','active','Working'].includes(d.Employee_Status || d.EmployeeStatus || d.status) ? 'active' :
+        ['Terminated','terminated','Resigned','resigned'].includes(d.Employee_Status || d.EmployeeStatus || '') ? 'terminated' : 'active',
+      termination_date: normalizeDate(d.Relieving_Date || d.RelievingDate || d.ExitDate),
       promotion_date:   normalizeDate(d.LastPromotionDate || d.promotion_date),
-      new_title:        d.Designation || '',
+      new_title:        d.Designation || d.Title || '',
       previous_title:   d.PreviousDesignation || '',
     };
   },
@@ -227,12 +230,9 @@ async function fetchFromZohoPeople(connection) {
   //   (b) token is expired, OR
   //   (c) access_token is missing
   // This handles the case where HR saves credentials but never got an initial access_token
-  const needsRefresh =
-    connection.refresh_token && (
-      !connection.access_token ||
-      !connection.token_expires_at ||
-      new Date(connection.token_expires_at) <= new Date(Date.now() + 60000) // refresh 1 min early
-    );
+  // Always refresh on every call to ensure we have a valid token
+  // (access tokens expire in 1 hour; refresh tokens are long-lived)
+  const needsRefresh = !!connection.refresh_token;
 
   if (needsRefresh) {
     try {
@@ -262,44 +262,97 @@ async function fetchFromZohoPeople(connection) {
   // Default to .com but allow override via base_url field
   const zohoBase = (connection.base_url && connection.base_url.trim() ? connection.base_url.trim() : 'https://people.zoho.com').replace(/\/+$/, '');
 
-  let res;
+  // Zoho People v2 API — try the current endpoint first, fall back to v1
+  // v2: https://www.zohoapis.com/people/v2/forms/employee/getRecords
+  // v1: https://people.zoho.com/people/api/forms/P_EmployeeView/getRecords
+  const authHeader = { Authorization: `Zoho-oauthtoken ${connection.access_token}` };
+  const timeout    = 30000;
+  let   records    = [];
+
+  // Try v2 API first (current, recommended)
   try {
-    res = await axios.get(
-      `${zohoBase}/people/api/forms/P_EmployeeView/records?sIndex=1&limit=200&searchColumn=ALLCOLUMNS&searchValue=`,
-      {
-        headers: { Authorization: `Zoho-oauthtoken ${connection.access_token}` },
-        timeout: 30000,
-      }
+    const v2Res = await axios.get(
+      'https://www.zohoapis.com/people/v2/forms/employee/getRecords?page=1&pageSize=200',
+      { headers: authHeader, timeout }
     );
-  } catch (apiErr) {
-    if (apiErr.response?.status === 401) {
-      throw new Error(
-        'Zoho returned 401 Unauthorized. Possible causes: ' +
-        '(1) Wrong Zoho region — if your Zoho account is in EU/India/Australia/Japan, ' +
-        'set the Base URL to https://people.zoho.eu (or .in / .com.au / .jp). ' +
-        '(2) Refresh token expired — regenerate it in Zoho API Console. ' +
-        '(3) Client ID or Secret is incorrect.'
-      );
+    const v2Data = v2Res.data?.data || v2Res.data?.response?.result || [];
+    records = Array.isArray(v2Data) ? v2Data : [];
+    console.log('[zoho] v2 API success, records:', records.length);
+  } catch (v2Err) {
+    console.warn('[zoho] v2 failed (' + (v2Err.response?.status || v2Err.message) + '), trying v1...');
+
+    // Fall back to v1 API
+    try {
+      const v1Url = `${zohoBase}/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200`;
+      const v1Res = await axios.get(v1Url, { headers: authHeader, timeout });
+      const v1Data = v1Res.data?.response?.result || [];
+      records = Array.isArray(v1Data) ? v1Data : [];
+      console.log('[zoho] v1 API success, records:', records.length);
+    } catch (v1Err) {
+      const status = v1Err.response?.status;
+      if (status === 401) {
+        throw new Error(
+          'Zoho returned 401 Unauthorized. Check: (1) Refresh Token is correct and has scope ZohoPeople.employee.ALL, ' +
+          '(2) Client ID and Client Secret are correct, (3) Your Zoho region — if not Global, set the Base URL field.'
+        );
+      }
+      if (status === 404) {
+        throw new Error(
+          'Zoho returned 404. Your Zoho People account may be on a different region. ' +
+          'Check the URL when you log into Zoho People and set the Base URL field accordingly: ' +
+          'EU → https://people.zoho.eu | India → https://people.zoho.in | Australia → https://people.zoho.com.au'
+        );
+      }
+      throw new Error(`Zoho API error: ${status || v1Err.message}`);
     }
-    throw apiErr;
   }
 
-  const records = res.data?.response?.result || [];
   return records.map(ADAPTERS.zoho_people);
 }
 
 async function refreshZohoToken(connection) {
-  const res = await axios.post('https://accounts.zoho.com/oauth/v2/token', null, {
-    params: {
-      refresh_token: connection.refresh_token,
-      client_id:     connection.api_key,
-      client_secret: connection.api_secret,
-      grant_type:    'refresh_token',
-    },
+  // Derive the accounts domain from the base_url region
+  // e.g. people.zoho.eu → accounts.zoho.eu
+  const base = (connection.base_url || '').trim();
+  let accountsDomain = 'https://accounts.zoho.com'; // default global
+  if (base.includes('zoho.eu'))     accountsDomain = 'https://accounts.zoho.eu';
+  else if (base.includes('zoho.in'))     accountsDomain = 'https://accounts.zoho.in';
+  else if (base.includes('zoho.com.au')) accountsDomain = 'https://accounts.zoho.com.au';
+  else if (base.includes('zoho.jp'))     accountsDomain = 'https://accounts.zoho.jp';
+
+  console.log('[zoho-refresh] domain:', accountsDomain);
+  console.log('[zoho-refresh] client_id:', (connection.api_key||'(missing)'));
+  console.log('[zoho-refresh] client_secret (first 8):', (connection.api_secret||'(missing)').slice(0,8));
+  console.log('[zoho-refresh] refresh_token (first 16):', (connection.refresh_token||'(missing)').slice(0,16));
+
+  const params = new URLSearchParams({
+    refresh_token: connection.refresh_token,
+    client_id:     connection.api_key,
+    client_secret: connection.api_secret,
+    grant_type:    'refresh_token',
   });
-  const newToken   = res.data.access_token;
-  const expiresAt  = new Date(Date.now() + (res.data.expires_in || 3600) * 1000);
-  await supabase.from('hris_connections').update({ access_token: newToken, token_expires_at: expiresAt }).eq('id', connection.id);
+
+  const res = await axios.post(
+    `${accountsDomain}/oauth/v2/token`,
+    params.toString(),
+    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 10000 }
+  );
+
+  console.log('[zoho-refresh] response:', JSON.stringify(res.data));
+
+  if (!res.data.access_token) {
+    throw new Error(
+      `Zoho token refresh returned no access_token. Response: ${JSON.stringify(res.data)}. ` +
+      'Common causes: (1) Refresh token is invalid or expired — regenerate it in Zoho API Console. ' +
+      '(2) Client ID or Client Secret is wrong. (3) App does not have ZohoPeople.employee.ALL scope.'
+    );
+  }
+
+  const newToken  = res.data.access_token;
+  const expiresAt = new Date(Date.now() + (res.data.expires_in || 3600) * 1000);
+  await supabase.from('hris_connections')
+    .update({ access_token: newToken, token_expires_at: expiresAt })
+    .eq('id', connection.id);
 }
 
 async function fetchFromWorkPay(connection) {

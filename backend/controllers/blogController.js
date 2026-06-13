@@ -322,16 +322,24 @@ const subscribeNewsletter = async (req, res) => {
     }
 
     if (existing) {
-      await supabase.from('blog_subscribers')
+      const { error: upErr } = await supabase.from('blog_subscribers')
         .update({ name: name || null, confirm_token: confirmToken }).eq('id', existing.id);
+      if (upErr) {
+        console.error('Blog subscribe update error:', upErr.message);
+        return res.status(500).json({ error: 'Subscription failed. Please try again.' });
+      }
     } else {
-      await supabase.from('blog_subscribers').insert({
+      const { error: insErr } = await supabase.from('blog_subscribers').insert({
         email: email.toLowerCase().trim(),
         name:  name?.trim() || null,
         confirmed: false,
         confirm_token: confirmToken,
         unsubscribe_token: unsubscribeToken,
       });
+      if (insErr) {
+        console.error('Blog subscribe insert error:', insErr.message);
+        return res.status(500).json({ error: 'Subscription failed. Please try again.' });
+      }
     }
 
     const frontendUrl = FRONTEND_URL;  // use hardened constant, not raw env

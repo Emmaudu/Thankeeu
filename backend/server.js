@@ -139,6 +139,7 @@ app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/banks',     require('./routes/banks'));
 app.use('/api/giftcards', require('./routes/giftcards'));
+app.use('/api/gifs',      require('./routes/gifs'));
 app.use('/api/credits',   require('./routes/credits'));
 app.use('/api/visitors', require('./routes/visitors'));
 app.use('/api/core-team', require('./routes/coreTeam'));

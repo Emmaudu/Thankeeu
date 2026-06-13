@@ -69,6 +69,8 @@ function anniversaryDetails(hireDateStr) {
 }
 
 // ─── Provider adapters — normalize raw employee to Thankeeu format ─────────
+let _zohoAdapterLogged = false; // one-time debug log flag for zoho_people adapter
+
 const ADAPTERS = {
 
   bamboohr: (emp) => ({
@@ -129,15 +131,31 @@ const ADAPTERS = {
   }),
 
   zoho_people: (emp) => {
-    // EXACT Zoho People column names (confirmed by account owner):
-    // 'First Name', 'Last Name', 'Email address', 'Department',
-    // 'Designation' → determines role (member/leader),
-    // 'Zoho Role'   → job title shown in the app,
-    // 'Date of Joining' → work anniversary trigger,
-    // 'Date of Birth'   → birthday trigger,
-    // 'Gender', 'Personal Mobile Number',
-    // 'Date of Exit'    → farewell/leaving trigger
+    // ACTUAL field names returned by Zoho People API JSON (confirmed from live Railway logs).
+    // These are NOT the display labels in the Zoho template UI — Zoho uses its own
+    // internal camelCase/underscore names in the API response regardless of what
+    // the column is labelled in the UI.
+    //
+    // Zoho API field  →  Zoho template label  →  Thankeeu field
+    // EmailID         →  Email address        →  email
+    // FirstName       →  First Name           →  first_name
+    // LastName        →  Last Name            →  last_name
+    // Department      →  Department           →  department
+    // Designation     →  Designation          →  role (member/leader)
+    // Role            →  Zoho Role            →  job_title
+    // Date_of_birth   →  Date of Birth        →  birthday
+    // Dateofjoining   →  Date of Joining      →  hire_date (work anniversary)
+    // Dateofexit      →  Date of Exit         →  farewell trigger
+    // Gender          →  Gender               →  gender
+    // Mobile          →  Personal Mobile Number → phone
+    // Employeestatus  →  (internal)           →  active/terminated
     const d = emp.tabular_data || emp;
+    // Debug: log keys of first employee so field names are visible in Railway logs
+    if (!_zohoAdapterLogged) {
+      _zohoAdapterLogged = true;
+      console.log('[zoho-adapter] field keys on first record:', Object.keys(d).join(', '));
+      console.log('[zoho-adapter] EmailID:', d.EmailID, '| FirstName:', d.FirstName, '| LastName:', d.LastName);
+    }
 
     const pick = (...keys) => {
       for (const k of keys) {
@@ -146,36 +164,34 @@ const ADAPTERS = {
       return '';
     };
 
-    // 'Designation' = role in Thankeeu (member vs leader)
+    // 'Designation' in Zoho UI → 'Designation' in API → determines member vs leader
     const designation = String(pick('Designation') || '').trim();
-    const designationLower = designation.toLowerCase();
-    const isLeader = /\b(lead|head|manager|director|chief|hod|supervisor|ceo|coo|cto|cfo|vp|president)\b/.test(designationLower);
+    const isLeader = /\b(lead|head|manager|director|chief|hod|supervisor|ceo|coo|cto|cfo|vp|president)\b/.test(designation.toLowerCase());
 
-    // 'Zoho Role' = Job Title shown in the app
-    const jobTitle = String(pick('Zoho Role') || '').trim();
+    // 'Zoho Role' in Zoho UI → 'Role' in API → job title in our app
+    const jobTitle = String(pick('Role') || '').trim();
 
-    // 'Date of Exit' = farewell trigger
-    const dateOfExit = pick('Date of Exit');
+    // 'Date of Exit' in Zoho UI → 'Dateofexit' in API → farewell trigger
+    const dateOfExit = pick('Dateofexit');
     const hasExited  = !!normalizeDate(dateOfExit);
 
-    // 'Employeestatus' field for active/inactive check (Zoho internal field)
-    const empStatus = String(pick('Employeestatus','EmployeeStatus') || '').toLowerCase();
+    const empStatus = String(pick('Employeestatus') || '').toLowerCase();
 
     return {
-      hris_employee_id: String(pick('EmployeeID','Employee ID') || ''),
-      first_name:       pick('First Name'),
-      last_name:        pick('Last Name'),
-      email:            String(pick('Email address') || '').toLowerCase().trim(),
+      hris_employee_id: String(pick('EmployeeID') || ''),
+      first_name:       pick('FirstName'),
+      last_name:        pick('LastName'),
+      email:            String(pick('EmailID') || '').toLowerCase().trim(),
       department:       pick('Department') || 'General',
-      job_title:        jobTitle,         // 'Zoho Role' → job title
-      role:             isLeader ? 'team_leader' : 'member',  // 'Designation' → role
+      job_title:        jobTitle,
+      role:             isLeader ? 'team_leader' : 'member',
       gender:           normalizeGender(pick('Gender')),
-      birthday:         normalizeDate(pick('Date of Birth')),
-      hire_date:        normalizeDate(pick('Date of Joining')),
-      phone:            pick('Personal Mobile Number'),
+      birthday:         normalizeDate(pick('Date_of_birth')),
+      hire_date:        normalizeDate(pick('Dateofjoining')),
+      phone:            pick('Mobile'),
       employment_status: hasExited ? 'terminated' : (empStatus === 'inactive' ? 'terminated' : 'active'),
       termination_date: normalizeDate(dateOfExit),
-      promotion_date:   normalizeDate(pick('Last Promotion Date')),
+      promotion_date:   normalizeDate(pick('LastPromotionDate')),
       new_title:        jobTitle,
       previous_title:   pick('Previous Designation','PreviousDesignation'),
     };

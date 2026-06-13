@@ -269,20 +269,16 @@ async function fetchFromZohoPeople(connection) {
   const timeout    = 30000;
   let   records    = [];
 
-  // Zoho People API — correct endpoint formats per Zoho docs
-  // Base is always people.zoho.com (not zohoapis.com which is for CRM/other apps)
-  const peopleBase = 'https://people.zoho.com';
+  // Zoho People API — correct documented endpoint
+  // Docs: https://www.zoho.com/people/api/get-employees.html
+  // The ONLY correct base is people.zoho.com
+  // The path is /people/api/forms/P_EmployeeView/getRecords
+  // Auth header: Zoho-oauthtoken <token>
   const endpoints = [
-    // Format 1: /people/api/forms/<formLinkName>/getRecords
-    { url: `${peopleBase}/people/api/forms/employee/getRecords?sIndex=1&limit=200`, label: 'forms/employee' },
-    // Format 2: using P_EmployeeView (internal form link name)
-    { url: `${peopleBase}/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200`, label: 'P_EmployeeView' },
-    // Format 3: /api/forms/employee/getRecords (without /people prefix)
-    { url: `${peopleBase}/api/forms/employee/getRecords?sIndex=1&limit=200`, label: 'api/forms/employee' },
-    // Format 4: records endpoint (some Zoho versions)
-    { url: `${peopleBase}/people/api/forms/employee/records?page=1&per_page=200`, label: 'employee/records' },
-    // Format 5: zohoapis.com People API (newer)
-    { url: `https://www.zohoapis.com/people/v2.1/forms/employee/getRecords?sIndex=1&limit=200`, label: 'zohoapis-v2.1' },
+    { url: 'https://people.zoho.com/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200', label: 'P_EmployeeView-zoho.com' },
+    { url: 'https://people.zoho.com/people/api/forms/employee/getRecords?sIndex=1&limit=200',       label: 'employee-zoho.com' },
+    { url: 'https://people.zoho.in/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200',  label: 'P_EmployeeView-zoho.in' },
+    { url: 'https://people.zoho.eu/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200',  label: 'P_EmployeeView-zoho.eu' },
   ];
 
   let lastStatus = null;

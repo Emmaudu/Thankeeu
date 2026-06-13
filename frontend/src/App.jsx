@@ -21,6 +21,9 @@ import DashboardFinances  from './pages/dashboard/DashboardFinances';
 import DashboardReminders from './pages/dashboard/DashboardReminders';
 import DashboardSettings  from './pages/dashboard/DashboardSettings';
 import DashboardCredits  from './pages/dashboard/DashboardCredits';
+import DashboardGiftCards from './pages/dashboard/DashboardGiftCards';
+import MemberGiftCardsPage from './pages/member/MemberGiftCardsPage';
+import CompanyGiftCardsPage from './pages/company/CompanyGiftCardsPage';
 import CreateCard       from './pages/CreateCard';
 import CardView         from './pages/CardView';
 import SignCard         from './pages/SignCard';
@@ -241,6 +244,7 @@ const App = () => (
             {/* ── Individual protected ────────────────────── */}
             <Route path="/dashboard"            element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
             <Route path="/dashboard/credits"     element={<ProtectedRoute><DashboardCredits /></ProtectedRoute>} />
+            <Route path="/dashboard/gift-cards"  element={<ProtectedRoute><DashboardGiftCards /></ProtectedRoute>} />
             <Route path="/dashboard/cards"       element={<ProtectedRoute><DashboardCards /></ProtectedRoute>} />
             <Route path="/dashboard/delivered"   element={<ProtectedRoute><DashboardDelivered /></ProtectedRoute>} />
             <Route path="/dashboard/received"    element={<ProtectedRoute><DashboardReceived /></ProtectedRoute>} />
@@ -269,6 +273,7 @@ const App = () => (
             <Route path="/company/support"     element={<CompanyProtectedRoute><SupportPage /></CompanyProtectedRoute>} />
           <Route path="/blog"          element={<Blog />} />
           <Route path="/blog/:slug"    element={<BlogPost />} />
+          <Route path="/company/gift-cards"  element={<CompanyProtectedRoute><CompanyGiftCardsPage /></CompanyProtectedRoute>} />
           <Route path="/company/hris"        element={<CompanyProtectedRoute><HRISPage /></CompanyProtectedRoute>} />
           <Route path="/company/occasions"   element={<CompanyProtectedRoute><OccasionsPage /></CompanyProtectedRoute>} />
           <Route path="/company/team-members" element={<CompanyProtectedRoute><TeamMembersPage /></CompanyProtectedRoute>} />
@@ -288,6 +293,7 @@ const App = () => (
             <Route path="/member/settings"    element={<MemberProtectedRoute><MemberSettingsPage /></MemberProtectedRoute>} />
             <Route path="/member/support"     element={<MemberProtectedRoute><MemberSupportPage /></MemberProtectedRoute>} />
             <Route path="/member/cards"       element={<MemberProtectedRoute><MemberCardsPage /></MemberProtectedRoute>} />
+            <Route path="/member/gift-cards"  element={<MemberProtectedRoute><MemberGiftCardsPage /></MemberProtectedRoute>} />
             <Route path="/member/received"    element={<MemberProtectedRoute><MemberReceivedPage /></MemberProtectedRoute>} />
             <Route path="/member/pending"     element={<MemberProtectedRoute><MemberPendingPage /></MemberProtectedRoute>} />
             <Route path="/member/finances"    element={<MemberProtectedRoute><MemberFinancesPage /></MemberProtectedRoute>} />

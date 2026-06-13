@@ -20,6 +20,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
     { path: '/member/cards',       icon: 'Heart', label: 'My Cards' },
     { path: '/member/received',    icon: 'Gift', label: 'Received' },
     { path: '/member/pending',     icon: 'Edit', label: 'Pending to Sign' },
+    { path: '/member/gift-cards',  icon: 'Gift',   label: 'Gift Cards' },
     { path: '/member/finances',    icon: 'Wallet', label: 'Financials' },
     { path: '/member/reminders',   icon: 'Clock', label: 'Reminders' },
     ...(isLeader ? [

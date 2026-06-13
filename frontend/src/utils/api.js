@@ -346,6 +346,7 @@ export const giftcardsAPI = {
   getProducts:    (country, currency) => publicAxios.get(`/giftcards/products?country=${country||''}&currency=${currency||''}`),
   getProduct:     (productId)         => publicAxios.get(`/giftcards/product/${productId}`),
   order:          (data)              => anyAxios.post('/giftcards/order', data),
+  myHistory:      ()                  => anyAxios.get('/giftcards/my-history'),
 };
 
 export const banksAPI = {

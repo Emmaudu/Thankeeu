@@ -14,6 +14,7 @@ const NAV = [
   { path: '/company/members',      icon: 'Check', label: 'Approvals' },
   { path: '/company/deductions',   icon: 'Wallet', label: 'Deductions' },
   { path: '/company/subscription', icon: 'Card', label: 'Subscription' },
+  { path: '/company/gift-cards',   icon: 'Gift', label: 'Gift Cards' },
   { path: '/company/hris',         icon: 'Link', label: 'HRIS Sync' },
   { path: '/company/settings',     icon: 'Settings', label: 'Settings' },
   { path: '/company/support',      icon: 'Message', label: 'Support' },

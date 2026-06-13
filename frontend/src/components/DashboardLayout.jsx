@@ -12,6 +12,7 @@ const NAV = [
   { to: '/dashboard/delivered', icon: 'Send',     label: 'Delivered' },
   { to: '/dashboard/received',  icon: 'Gift',     label: 'Received' },
   { to: '/dashboard/pending',   icon: 'Edit',     label: 'Pending to Sign' },
+  { to: '/dashboard/gift-cards', icon: 'Gift',     label: 'Gift Cards' },
   { to: '/dashboard/finances',  icon: 'Wallet',   label: 'Financials' },
   { to: '/dashboard/reminders', icon: 'Clock',    label: 'Reminders' },
   { to: '/dashboard/settings',  icon: 'Settings', label: 'Settings' },

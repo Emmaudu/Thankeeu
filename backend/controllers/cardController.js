@@ -278,8 +278,9 @@ const updateCard = async (req, res) => {
     const updates = req.body;
 
     const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).single();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
     const isOwner = (req.user && card.creator_id === req.user.id) || (req.member && card.created_by_member_id === req.member.id) || (req.company && card.company_id === req.company.id);
-    if (!card || !isOwner) return res.status(403).json({ error: 'Not authorized' });
+    if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     const { data: updated, error } = await supabase
       .from('cards').update({ ...updates, updated_at: new Date() })
@@ -298,13 +299,14 @@ const activateCard = async (req, res) => {
     const { inviteEmails } = req.body;
 
     const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).single();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
 
     // Auth check: works for regular user, member, or HR company
     const isOwner =
       (req.user   && card.creator_id            === req.user.id)   ||
       (req.member && card.created_by_member_id  === req.member.id) ||
       (req.company && card.company_id           === req.company.id);
-    if (!card || !isOwner) return res.status(403).json({ error: 'Not authorized' });
+    if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     if (card.status !== 'active') {
       const { error } = await supabase.from('cards').update({ status: 'active' }).eq('slug', slug);
@@ -357,13 +359,14 @@ const sendCard = async (req, res) => {
   try {
     const { slug } = req.params;
     const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).single();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
 
     // Auth: regular user, team member, or HR company
     const isOwner =
       (req.user   && card.creator_id            === req.user.id)   ||
       (req.member && card.created_by_member_id  === req.member.id) ||
       (req.company && card.company_id           === req.company.id);
-    if (!card || !isOwner) return res.status(403).json({ error: 'Not authorized' });
+    if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     if (!card.recipient_email)
       return res.status(400).json({ error: 'Recipient email required to send card' });
@@ -414,8 +417,9 @@ const deleteCard = async (req, res) => {
   try {
     const { slug } = req.params;
     const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).single();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
     const isOwner2 = (req.user && card.creator_id === req.user.id) || (req.member && card.created_by_member_id === req.member.id) || (req.company && card.company_id === req.company.id);
-    if (!card || !isOwner2) return res.status(403).json({ error: 'Not authorized' });
+    if (!isOwner2) return res.status(403).json({ error: 'Not authorized' });
 
     await supabase.from('cards').delete().eq('slug', slug);
     res.json({ message: 'Card deleted' });
@@ -523,11 +527,12 @@ const claimGift = async (req, res) => {
 
     const { data: card, error: cardError } = await supabase
       .from('cards')
-      .select('id, recipient_name, recipient_email, access_token, company_id')
+      .select('id, recipient_name, recipient_email, access_token, company_id, gift_withdrawn')
       .eq('slug', slug)
       .eq('access_token', token)
       .single();
     if (cardError || !card) return res.status(403).json({ error: 'Invalid recipient link' });
+    if (card.gift_withdrawn) return res.status(409).json({ error: 'This gift has already been claimed' });
 
     const { data: existingClaim } = await supabase
       .from('gift_claims')
@@ -540,7 +545,7 @@ const claimGift = async (req, res) => {
 
     const { data: wallet } = await supabase
       .from('contribution_wallets')
-      .select('amount_to_celebrant, disbursed')
+      .select("id, amount_to_celebrant, disbursed")
       .eq('card_id', card.id)
       .maybeSingle();
     if (wallet?.disbursed) return res.status(409).json({ error: 'This gift has already been paid out' });
@@ -574,6 +579,14 @@ const claimGift = async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Mark the gift pot as claimed immediately — this is the SAME flag
+    // orderGiftCard (gift cards/airtime) checks before allowing a claim,
+    // so it prevents a double-payout via the other claim route.
+    await supabase.from('cards').update({
+      gift_withdrawn: true, gift_withdrawn_at: new Date(),
+      gift_payout_reference: claim.id, gift_payout_amount: amount,
+    }).eq('id', card.id);
 
     // Bug 10 fix: attempt immediate FLW bank transfer for 'transfer' claim type
     if (claim_type === 'transfer') {
@@ -688,12 +701,13 @@ const approveCardScope = async (req, res) => {
     const { slug } = req.params;
     const { data: card } = await supabase
       .from('cards')
-      .select('id, title, recipient_name, occasion, is_gift_enabled, deadline, company_id, created_by_member_id, notification_scope')
+      .select('id, title, recipient_name, occasion, is_gift_enabled, deadline, company_id, created_by_member_id, notification_scope, scope_approved_at')
       .eq('slug', slug)
       .single();
 
     if (!card) return res.status(404).json({ error: 'Card not found' });
     if (card.company_id !== req.company.id) return res.status(403).json({ error: 'Not your company\'s card' });
+    if (card.scope_approved_at) return res.json({ message: 'Already approved — company has already been notified.' });
 
     // Update approval record
     await supabase.from('notification_approvals')

@@ -320,7 +320,7 @@ const checkoutOrder = async (req, res) => {
 
     const { data: vendor } = await supabase.from('vendors')
       .select('id, business_name, email, slug')
-      .eq('slug', slug).eq('status', 'approved').eq('is_verified', true).single();
+      .eq('slug', slug).eq('status', 'approved').single();
     if (!vendor) return res.status(404).json({ error: 'Store not found or not active' });
 
     // Validate products
@@ -364,7 +364,9 @@ const checkoutOrder = async (req, res) => {
       tx_ref:       txRef,
       amount:       total,
       currency,
-      redirect_url: `${FRONTEND_URL}/vendor/order-success`,
+      redirect_url: card_slug
+        ? `${FRONTEND_URL}/card/${card_slug}?gift_paid=1&tx_ref=${txRef}`
+        : `${FRONTEND_URL}/vendor/order-success?tx_ref=${txRef}`,
       customer:     { email: customer_email, name: customer_name, phonenumber: customer_phone || '' },
       customizations: {
         title:       `${vendor.business_name} — Thankeeu`,

@@ -370,21 +370,21 @@ const SignCard = () => {
       for (const mf of mediaFiles) fd.append('media', mf.file);
       await messagesAPI.sign(slug, fd);
 
-      // 2. Place order with vendor
-      const orderRes = await vendorAPI.placeOrder(selectedVendor.slug, {
+      // 2. Place order + initiate Flutterwave payment
+      const orderRes = await vendorAPI.checkout(selectedVendor.slug, {
         items: [{ product_id: selectedProduct.id, quantity: 1 }],
         customer_name:  form.author_name.trim(),
         customer_email: form.author_email.trim(),
         card_slug:      slug,
         note:           form.message.trim(),
       });
-      const { order_id, payment_link } = orderRes.data;
+      const { payment_link } = orderRes.data;
 
       if (payment_link) {
         toast.success('Redirecting to pay for your gift...');
         window.location.href = payment_link;
       } else {
-        toast.success('🎁 Gift order placed! The vendor will contact you to arrange delivery.');
+        toast.success('Gift order placed! The vendor will contact you to arrange delivery.');
         setSubmitted(true);
       }
     } catch (err) {

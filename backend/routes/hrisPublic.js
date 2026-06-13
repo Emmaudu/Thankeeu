@@ -47,7 +47,7 @@ router.get('/zoho-auth', async (req, res) => {
     );
 
     const params = new URLSearchParams({
-      scope:         'ZohoPeople.employee.ALL',
+      scope:         'ZohoPeople.employee.ALL,ZohoPeople.forms.ALL',
       client_id:     ZOHO_CLIENT_ID,
       response_type: 'code',
       access_type:   'offline',

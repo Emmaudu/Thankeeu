@@ -274,11 +274,10 @@ async function fetchFromZohoPeople(connection) {
   // The ONLY correct base is people.zoho.com
   // The path is /people/api/forms/P_EmployeeView/getRecords
   // Auth header: Zoho-oauthtoken <token>
+  // Token is valid on people.zoho.com (confirmed via code 7218 = scope issue, not 7213 = invalid token)
   const endpoints = [
     { url: 'https://people.zoho.com/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200', label: 'P_EmployeeView-zoho.com' },
     { url: 'https://people.zoho.com/people/api/forms/employee/getRecords?sIndex=1&limit=200',       label: 'employee-zoho.com' },
-    { url: 'https://people.zoho.in/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200',  label: 'P_EmployeeView-zoho.in' },
-    { url: 'https://people.zoho.eu/people/api/forms/P_EmployeeView/getRecords?sIndex=1&limit=200',  label: 'P_EmployeeView-zoho.eu' },
   ];
 
   let lastStatus = null;
@@ -307,9 +306,17 @@ async function fetchFromZohoPeople(connection) {
   }
 
   if (records.length === 0 && lastStatus) {
-    if (lastStatus === 401) throw new Error('Zoho API 401 — token may lack ZohoPeople.employee.ALL scope. Disconnect and reconnect Zoho.');
-    if (lastStatus === 403) throw new Error('Zoho API 403 — your Zoho People plan may not include API access.');
-    throw new Error(`Zoho API error ${lastStatus}: ${JSON.stringify(lastBody)?.slice(0, 300)}`);
+    const bodyStr = typeof lastBody === 'string' ? lastBody.slice(0,300) : JSON.stringify(lastBody)?.slice(0,300);
+    if (lastStatus === 401) {
+      throw new Error(
+        `Zoho API 401. Raw response: ${bodyStr}. ` +
+        'Possible causes: (1) Zoho People not activated on your account — log into people.zoho.com and check. ' +
+        '(2) The authorizing user does not have API permissions in Zoho People admin. ' +
+        '(3) Disconnect and reconnect to get a fresh token.'
+      );
+    }
+    if (lastStatus === 403) throw new Error(`Zoho API 403 — your Zoho People plan may not include API access. Body: ${bodyStr}`);
+    throw new Error(`Zoho API error ${lastStatus}: ${bodyStr}`);
   }
 
   return records.map(ADAPTERS.zoho_people);

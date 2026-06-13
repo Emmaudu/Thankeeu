@@ -1,5 +1,5 @@
 import { useSEO } from '../../hooks/useSEO';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { hrisAPI, subscriptionAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
@@ -419,6 +419,13 @@ const HRISPage = () => {
                         <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
                           <p className="text-xs text-amber-700 font-medium">⚠️ {p.hint}</p>
                         </div>
+                      )}
+                      {p.id === 'zoho_people' && (
+                        <ZohoExchangeHelper
+                          clientId={formData.api_key || ''}
+                          clientSecret={formData.api_secret || ''}
+                          onRefreshToken={tok => setFormData(prev => ({ ...prev, refresh_token: tok }))}
+                        />
                       )}
                       {p.fields.map(field => (
                         <div key={field.key}>

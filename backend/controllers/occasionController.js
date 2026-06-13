@@ -321,7 +321,7 @@ const importOccasionMembers = async (req, res) => {
       const nameParts   = row.first_name ? [row.first_name, row.last_name] : ['Member', ''];
 
       // Upsert member account — check for errors and only email if stored successfully
-      const { data: upserted, error: upsertErr } = await supabase.from('company_members').upsert({
+      const upsertPayload = {
         company_id:    req.company.id,
         email:         row.email,
         first_name:    row.first_name,
@@ -332,7 +332,16 @@ const importOccasionMembers = async (req, res) => {
         status:        'approved',
         password_hash: passHash,
         invite_token:  inviteToken,
-      }, { onConflict: 'company_id,email' }).select('id').maybeSingle();
+      };
+      let { data: upserted, error: upsertErr } = await supabase.from('company_members')
+        .upsert(upsertPayload, { onConflict: 'company_id,email' }).select('id').maybeSingle();
+
+      // Retry with enum-compatible role if the DB uses member_role enum
+      if (upsertErr && /role|enum|invalid input/i.test(upsertErr.message || '')) {
+        upsertPayload.role = 'team_member';
+        ({ data: upserted, error: upsertErr } = await supabase.from('company_members')
+          .upsert(upsertPayload, { onConflict: 'company_id,email' }).select('id').maybeSingle());
+      }
 
       if (upsertErr) {
         console.error(`company_members upsert error for ${row.email}:`, upsertErr.message);
@@ -652,7 +661,7 @@ const importGeneralTemplate = async (req, res) => {
       const inviteToken = require('crypto').randomBytes(32).toString('hex');
       // Fix role value: DB and middleware use 'team_leader' not 'leader'
       const memberRole = role === 'leader' ? 'team_leader' : 'member';
-      const memberRoleFallback = role === 'leader' ? 'team_leader' : 'member';
+      const memberRoleFallback = role === 'leader' ? 'team_leader' : 'team_member';
       let memberId = null;
       let isNew = false;
       let needsInvite = false;

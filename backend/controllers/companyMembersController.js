@@ -472,11 +472,13 @@ const memberResetPassword = async (req, res) => {
     let member = null;
     let tokenType = null;
 
-    const { data: byReset } = await supabase
+    const { data: byReset, error: resetErr } = await supabase
       .from('company_members')
       .select('id, reset_token_expires, status')
       .eq('reset_token', token)
       .maybeSingle();
+
+    if (resetErr) console.error('memberResetPassword reset_token query error:', resetErr.message);
 
     if (byReset) {
       // Check expiry only for reset tokens
@@ -487,11 +489,19 @@ const memberResetPassword = async (req, res) => {
       tokenType = 'reset';
     } else {
       // Try invite_token (from HR import / bulk upload — never expires)
-      const { data: byInvite } = await supabase
+      const { data: byInvite, error: inviteErr } = await supabase
         .from('company_members')
         .select('id, status')
         .eq('invite_token', token)
         .maybeSingle();
+
+      if (inviteErr) {
+        console.error('memberResetPassword invite_token query error:', inviteErr.message);
+        // If the column doesn't exist, tell the user clearly
+        if (/column|invite_token|does not exist/i.test(inviteErr.message || '')) {
+          return res.status(500).json({ error: 'Account setup incomplete. Please ask your HR admin to contact support@thankeeu.com.' });
+        }
+      }
 
       if (byInvite) {
         member = byInvite;
@@ -500,20 +510,23 @@ const memberResetPassword = async (req, res) => {
     }
 
     if (!member) {
+      console.error('memberResetPassword: no member found for token (first 8 chars):', token.slice(0, 8));
       return res.status(400).json({ error: 'Invalid reset link. It may have already been used. Please request a new one.' });
     }
 
     const password_hash = await hashPassword(password, 12);
 
     if (tokenType === 'reset') {
-      await supabase.from('company_members')
+      const { error: upErr } = await supabase.from('company_members')
         .update({ password_hash, reset_token: null, reset_token_expires: null, status: 'approved' })
         .eq('id', member.id);
+      if (upErr) { console.error('memberResetPassword update error (reset):', upErr.message); throw upErr; }
     } else {
       // invite_token — clear it and mark approved so member can log in
-      await supabase.from('company_members')
+      const { error: upErr } = await supabase.from('company_members')
         .update({ password_hash, invite_token: null, status: 'approved' })
         .eq('id', member.id);
+      if (upErr) { console.error('memberResetPassword update error (invite):', upErr.message); throw upErr; }
     }
 
     res.json({ message: 'Password set successfully! You can now sign in.' });

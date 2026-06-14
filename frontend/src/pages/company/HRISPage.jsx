@@ -7,106 +7,82 @@ import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
 const PROVIDERS = [
-  // ── Popular / African-first ────────────────────────────────────────────────
+  // ── OAuth2 — HR just clicks Connect, no keys needed ──────────────────────
   {
-    id:      'seamlesshr',
-    name:    'SeamlessHR',
-    logo:    '🔵',
-    color:   'bg-blue-50 border-blue-200',
-    desc:    "Africa's leading cloud HR platform — widely used in Nigeria & across Africa",
-    popular: true,
-    fields:  [
+    id: 'zoho_people', name: 'Zoho People', logo: '🔴',
+    color: 'bg-red-50 border-red-200', popular: true,
+    desc: 'Comprehensive HR suite — widely used in Nigeria & globally',
+    useOAuth: true, fields: [],
+    oauthNote: 'Click Connect — you will be redirected to Zoho to approve access.',
+  },
+  {
+    id: 'gusto', name: 'Gusto', logo: '🟠',
+    color: 'bg-orange-50 border-orange-200',
+    desc: 'Full-service payroll, benefits and HR for modern businesses',
+    useOAuth: true, fields: [],
+    oauthNote: 'Click Connect — you will be redirected to Gusto to approve access.',
+  },
+  {
+    id: 'rippling', name: 'Rippling', logo: '⚡',
+    color: 'bg-purple-50 border-purple-200',
+    desc: 'Modern workforce platform — HR, payroll and IT in one place',
+    useOAuth: true, fields: [],
+    oauthNote: 'Click Connect — you will be redirected to Rippling to approve access.',
+  },
+  {
+    id: 'deel', name: 'Deel', logo: '🌍',
+    color: 'bg-teal-50 border-teal-200',
+    desc: 'Global HR & payroll for international teams and contractors',
+    useOAuth: true, fields: [],
+    oauthNote: 'Click Connect — you will be redirected to Deel to approve access.',
+  },
+  {
+    id: 'bamboohr', name: 'BambooHR', logo: '🟢',
+    color: 'bg-green-50 border-green-200',
+    desc: 'Intuitive HR software trusted by thousands of growing companies',
+    useOAuth: true, needsSubdomain: true, fields: [],
+    oauthNote: 'Enter your BambooHR subdomain (e.g. mycompany from mycompany.bamboohr.com), then click Connect.',
+    subdomainHelp: 'The part before .bamboohr.com in your BambooHR URL',
+  },
+  // ── African platforms — simple API key ────────────────────────────────────
+  {
+    id: 'seamlesshr', name: 'SeamlessHR', logo: '🔵',
+    color: 'bg-blue-50 border-blue-200', popular: true,
+    desc: "Africa's leading cloud HR platform — widely used in Nigeria & across Africa",
+    useOAuth: false,
+    fields: [
       { key: 'api_key', label: 'API Key', type: 'password',
-        help: 'SeamlessHR → Settings → API Access → Generate API Key' },
+        help: 'SeamlessHR → Settings → API Access → Generate API Key → copy the key' },
     ],
   },
   {
-    id:      'workpay',
-    name:    'WorkPay',
-    logo:    '🟡',
-    color:   'bg-yellow-50 border-yellow-200',
-    desc:    'Pan-African payroll & HR platform',
-    popular: true,
-    fields:  [
+    id: 'workpay', name: 'WorkPay', logo: '🟡',
+    color: 'bg-yellow-50 border-yellow-200', popular: true,
+    desc: 'Pan-African payroll & HR platform',
+    useOAuth: false,
+    fields: [
       { key: 'api_key', label: 'API Key', type: 'password',
-        help: 'WorkPay Dashboard → Settings → Integrations → API Keys' },
+        help: 'WorkPay Dashboard → Settings → Integrations → API Keys → copy the key' },
     ],
   },
+  // ── Service token — one field ─────────────────────────────────────────────
   {
-    id:      'zoho_people',
-    name:    'Zoho People',
-    logo:    '🔴',
-    color:   'bg-red-50 border-red-200',
-    desc:    'Comprehensive HR suite — popular with SMEs in Nigeria & globally',
-    popular: true,
-    useOAuth: true,
-    fields:  [],
-  },
-  {
-    id:      'bamboohr',
-    name:    'BambooHR',
-    logo:    '🟢',
-    color:   'bg-green-50 border-green-200',
-    desc:    'Intuitive HR software trusted by thousands of growing companies',
-    fields:  [
-      { key: 'subdomain', label: 'Company Subdomain', type: 'text',
-        placeholder: 'mycompany (from mycompany.bamboohr.com)',
-        help: 'Your BambooHR subdomain — the part before .bamboohr.com' },
-      { key: 'api_key',   label: 'API Key', type: 'password',
-        help: 'BambooHR → Your Name (top right) → API Keys → Add New Key' },
-    ],
-  },
-  {
-    id:      'rippling',
-    name:    'Rippling',
-    logo:    '⚡',
-    color:   'bg-purple-50 border-purple-200',
-    desc:    'Modern workforce platform — HR, payroll and IT in one place',
-    fields:  [
-      { key: 'api_key', label: 'API Key', type: 'password',
-        help: 'Rippling → Settings → API → Create API Key (scope: employees:read)' },
-    ],
-  },
-  {
-    id:      'gusto',
-    name:    'Gusto',
-    logo:    '🟠',
-    color:   'bg-orange-50 border-orange-200',
-    desc:    'Full-service payroll, benefits and HR for modern businesses',
-    fields:  [
-      { key: 'api_key', label: 'Access Token', type: 'password',
-        help: 'Gusto Developer Portal → Your App → OAuth2 → Company Access Token' },
-    ],
-  },
-  {
-    id:      'hibob',
-    name:    'HiBob (Bob)',
-    logo:    '🟣',
-    color:   'bg-violet-50 border-violet-200',
-    desc:    'Modern HRIS loved by fast-growing tech companies',
-    fields:  [
+    id: 'hibob', name: 'HiBob (Bob)', logo: '🟣',
+    color: 'bg-violet-50 border-violet-200',
+    desc: 'Modern HRIS loved by fast-growing tech companies',
+    useOAuth: false,
+    fields: [
       { key: 'api_key', label: 'Service User Token', type: 'password',
-        help: 'HiBob → Settings → Integrations → Service Users → Create → copy the token' },
+        help: 'HiBob → Settings → Integrations → Service Users → Create service user → copy the token shown once' },
     ],
   },
+  // ── Machine-to-machine credential pairs ───────────────────────────────────
   {
-    id:      'deel',
-    name:    'Deel',
-    logo:    '🌍',
-    color:   'bg-teal-50 border-teal-200',
-    desc:    'Global HR & payroll for international teams and contractors',
-    fields:  [
-      { key: 'api_key', label: 'API Token', type: 'password',
-        help: 'Deel → Settings → API → Create Token (select People permissions)' },
-    ],
-  },
-  {
-    id:      'personio',
-    name:    'Personio',
-    logo:    '🔶',
-    color:   'bg-amber-50 border-amber-200',
-    desc:    "Europe's leading HR platform for SMEs",
-    fields:  [
+    id: 'personio', name: 'Personio', logo: '🔶',
+    color: 'bg-amber-50 border-amber-200',
+    desc: "Europe's leading HR platform for SMEs",
+    useOAuth: false,
+    fields: [
       { key: 'api_key',    label: 'Client ID',     type: 'text',
         help: 'Personio → Settings → Integrations → API credentials → Client ID' },
       { key: 'api_secret', label: 'Client Secret', type: 'password',
@@ -114,56 +90,52 @@ const PROVIDERS = [
     ],
   },
   {
-    id:      'sap_successfactors',
-    name:    'SAP SuccessFactors',
-    logo:    '🔷',
-    color:   'bg-sky-50 border-sky-200',
-    desc:    'Enterprise HR platform from SAP — used by large organisations',
-    fields:  [
+    id: 'adp', name: 'ADP Workforce Now', logo: '🔴',
+    color: 'bg-red-50 border-red-100',
+    desc: 'Enterprise payroll & HR platform',
+    useOAuth: false,
+    fields: [
+      { key: 'api_key',    label: 'Client ID',     type: 'text',
+        help: 'ADP Developer Portal → Your App → Credentials → Client ID' },
+      { key: 'api_secret', label: 'Client Secret', type: 'password',
+        help: 'ADP Developer Portal → Your App → Credentials → Client Secret' },
+    ],
+  },
+  // ── Enterprise — require IT/admin setup ───────────────────────────────────
+  {
+    id: 'sap_successfactors', name: 'SAP SuccessFactors', logo: '🔷',
+    color: 'bg-sky-50 border-sky-200',
+    desc: 'Enterprise HR platform from SAP — requires IT configuration',
+    useOAuth: false,
+    fields: [
       { key: 'company_code', label: 'Company ID',       type: 'text',
-        help: 'Your SuccessFactors Company ID (visible in Settings → Company Info)' },
+        help: 'Your SuccessFactors Company ID — found in Settings → Company Info' },
       { key: 'api_key',      label: 'API Username',     type: 'text',
-        help: 'SuccessFactors API username in format: username@companyID' },
+        help: 'API username in format: username@CompanyID' },
       { key: 'api_secret',   label: 'API Password',     type: 'password',
         help: 'Your SuccessFactors API password' },
       { key: 'base_url',     label: 'Data Centre URL',  type: 'text',
         placeholder: 'https://api4.successfactors.com',
-        help: 'Your SuccessFactors data centre URL (varies by region)' },
+        help: 'Your SuccessFactors data centre URL — varies by region' },
     ],
   },
   {
-    id:      'adp',
-    name:    'ADP Workforce Now',
-    logo:    '🔴',
-    color:   'bg-red-50 border-red-100',
-    desc:    'Enterprise payroll & HR used by large enterprises globally',
-    fields:  [
-      { key: 'api_key',    label: 'Client ID',     type: 'text',
-        help: 'ADP Developer Portal → Your App → Client ID' },
-      { key: 'api_secret', label: 'Client Secret', type: 'password',
-        help: 'ADP Developer Portal → Your App → Client Secret' },
-      { key: 'base_url',   label: 'API Base URL',  type: 'text',
-        placeholder: 'https://api.adp.com',
-        help: 'Leave as https://api.adp.com for production, or use sandbox URL for testing' },
-    ],
-  },
-  {
-    id:      'oracle_hcm',
-    name:    'Oracle HCM Cloud',
-    logo:    '🔴',
-    color:   'bg-red-50 border-red-200',
-    desc:    'Enterprise HR suite from Oracle — used by large corporations',
-    fields:  [
-      { key: 'api_key',    label: 'Username',      type: 'text',
-        help: 'Oracle HCM API username (usually in format: username@TenantID)' },
-      { key: 'api_secret', label: 'Password',      type: 'password',
+    id: 'oracle_hcm', name: 'Oracle HCM Cloud', logo: '🔴',
+    color: 'bg-red-50 border-red-200',
+    desc: 'Enterprise HR suite from Oracle — requires IT configuration',
+    useOAuth: false,
+    fields: [
+      { key: 'api_key',    label: 'Username',    type: 'text',
+        help: 'Oracle HCM API username (format: username@TenantID)' },
+      { key: 'api_secret', label: 'Password',    type: 'password',
         help: 'Oracle HCM API password' },
-      { key: 'base_url',   label: 'Tenant URL',    type: 'text',
+      { key: 'base_url',   label: 'Tenant URL',  type: 'text',
         placeholder: 'https://mycompany.fa.oraclecloud.com',
         help: 'Your Oracle HCM Cloud tenant URL' },
     ],
   },
 ];
+
 
 const STATUS_STYLES = {
   success: 'bg-green-100 text-green-700',
@@ -227,6 +199,7 @@ const HRISPage = () => {
   const [loading, setLoading]         = useState(true);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [formData, setFormData]       = useState({});
+  const [subdomain, setSubdomain]     = useState('');
   const [autoSync, setAutoSync]       = useState(false);
   const [syncing, setSyncing]         = useState(null);
   const [testing, setTesting]         = useState(null);
@@ -238,15 +211,19 @@ const HRISPage = () => {
   const [subLoading, setSubLoading]   = useState(true);
 
   useEffect(() => {
-    // Handle Zoho OAuth callback params
+    // Handle OAuth callback params — works for all providers
     const params = new URLSearchParams(window.location.search);
-    if (params.get('zoho_connected') === '1') {
-      toast.success('Zoho People connected successfully! Click Test to verify.');
+    const connected = params.get('connected');
+    const legacyZoho = params.get('zoho_connected');
+    if (connected || legacyZoho) {
+      const name = PROVIDERS.find(p => p.id === connected)?.name || connected || 'Zoho People';
+      toast.success(`${name} connected successfully! Click Test to verify.`);
       window.history.replaceState({}, '', window.location.pathname);
     } else if (params.get('error')) {
-      const err = params.get('error');
+      const err    = params.get('error');
       const detail = params.get('detail');
-      toast.error('Zoho connection failed: ' + err + (detail ? ' — ' + detail : ''));
+      const name   = PROVIDERS.find(p => err.startsWith(p.id))?.name || '';
+      toast.error(`${name} connection failed: ${err}${detail ? ' — ' + detail : ''}`);
       window.history.replaceState({}, '', window.location.pathname);
     }
     fetchAll();
@@ -576,25 +553,50 @@ const HRISPage = () => {
                       {p.useOAuth ? (
                         /* OAuth providers — single click to connect */
                         <div className="text-center py-4 space-y-3">
-                          <p className="text-sm text-warm-600">Click below to connect your {p.name} account securely. You will be redirected to {p.name} to approve access and brought back automatically.</p>
+                          {p.oauthNote && (
+                            <p className="text-sm text-warm-600">{p.oauthNote}</p>
+                          )}
+                          {/* BambooHR needs subdomain before we can build the OAuth URL */}
+                          {p.needsSubdomain && (
+                            <div className="text-left">
+                              <label className="block text-xs font-semibold text-warm-700 mb-1">
+                                Company Subdomain *
+                              </label>
+                              <input
+                                type="text"
+                                className="input text-sm"
+                                placeholder="mycompany (from mycompany.bamboohr.com)"
+                                value={subdomain}
+                                onChange={e => setSubdomain(e.target.value)}
+                                autoComplete="off"
+                              />
+                              {p.subdomainHelp && (
+                                <p className="text-xs text-warm-400 mt-1">{p.subdomainHelp}</p>
+                              )}
+                            </div>
+                          )}
                           <button type="button"
                             onClick={async () => {
+                              if (p.needsSubdomain && !subdomain.trim()) {
+                                toast.error('Please enter your BambooHR subdomain first');
+                                return;
+                              }
                               try {
                                 const BASE = import.meta.env.VITE_API_URL || '/api';
                                 const tok  = localStorage.getItem('thankeeu_company_token') || '';
-                                const r    = await fetch(`${BASE}/hris/zoho-init`, {
+                                const qs   = p.needsSubdomain ? `?subdomain=${encodeURIComponent(subdomain.trim())}` : '';
+                                const r    = await fetch(`${BASE}/hris/${p.id}/init${qs}`, {
                                   headers: { Authorization: `Bearer ${tok}` }
                                 });
                                 const d = await r.json();
-                                if (!r.ok) { toast.error(d.error || 'Could not start Zoho login'); return; }
+                                if (!r.ok) { toast.error(d.error || `Could not start ${p.name} connection`); return; }
                                 window.location.href = d.url;
-                              } catch(e) { toast.error('Could not start Zoho login: ' + e.message); }
+                              } catch(e) { toast.error(`Could not start ${p.name} connection: ` + e.message); }
                             }}
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
-                            style={{ background: 'linear-gradient(135deg,#E03A2F,#C0392B)' }}>
+                            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 bg-primary-600">
                             {p.logo} Connect with {p.name} →
                           </button>
-                          <p className="text-xs text-warm-400">You will be redirected to Zoho and back automatically. No codes to copy.</p>
+                          <p className="text-xs text-warm-400">You will be redirected to {p.name} to approve access and brought back automatically. No keys to copy.</p>
                         </div>
                       ) : (
                     <form onSubmit={handleConnect} className="space-y-3">

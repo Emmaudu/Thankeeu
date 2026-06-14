@@ -1,5 +1,6 @@
 const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
+const { getMemberOccasions } = require('../utils/occasionEngine');
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();
@@ -215,7 +216,7 @@ const getTeamsDashboard = async (req, res) => {
     // ── 1. Total members: union of company_members + distinct occasion_members ──
     const [{ data: cmRowsRaw }, { data: omRows }] = await Promise.all([
       supabase.from('company_members')
-        .select('id, first_name, last_name, email, department, role, status, gender, date_of_birth')
+        .select('id, first_name, last_name, email, department, role, status, gender, date_of_birth, resumption_date, promotion_date, leaving_date')
         .eq('company_id', companyId),
       supabase.from('occasion_members')
         .select('email, first_name, last_name, department, gender')
@@ -250,51 +251,52 @@ const getTeamsDashboard = async (req, res) => {
     const totalCollected = (cardRows || []).reduce((s, c) => s + (c.total_collected || 0), 0);
 
     // ── 5. Upcoming occasions (all types, next 30 days) ────────────────────────
-    const { data: occRows } = await supabase
-      .from('occasion_members')
-      .select('first_name, last_name, department, occasion_type, occasion_date, gender')
-      .eq('company_id', companyId)
-      .not('occasion_date', 'is', null);
+    // Computed directly from company_members + companies.country, the single
+    // source of truth — no separate occasion_members query needed.
+    const { data: companyForOccasions } = await supabase
+      .from('companies').select('country').eq('id', companyId).maybeSingle();
 
     const OCCASION_LABELS = {
       birthday:         '🎂 Birthday',
       work_anniversary: '🏆 Work Anniversary',
       new_hire:         '🎉 New Hire',
-      valentine:        '💝 Valentine Day',
+      valentines_day:   '💝 Valentine Day',
       womens_day:       '👩 Womens Day',
+      mens_day:         '👨 Mens Day',
       mothers_day:      '🌹 Mothers Day',
       fathers_day:      '👔 Fathers Day',
+      workers_day:      '✊ Workers Day',
       promotion:        '⭐ Promotion',
       leaving:          '👋 Farewell',
     };
 
-    const upcoming_occasions = (occRows || []).map(m => {
-      if (!m.occasion_date) return null;
-      try {
-        let occasionDate = new Date(m.occasion_date);
-        if (isNaN(occasionDate)) return null;
+    // Upcoming occasions, computed directly from company_members (single
+    // source of truth) — same logic the daily automation cron uses.
+    const upcoming_occasions = [];
+    {
+      const todayMidnight = new Date(today); todayMidnight.setHours(0, 0, 0, 0);
+      const year = todayMidnight.getFullYear();
 
-        // For recurring occasions (birthday, work_anniversary) — find next occurrence
-        const recurring = ['birthday','work_anniversary'];
-        if (recurring.includes(m.occasion_type)) {
-          const thisYear = new Date(today.getFullYear(), occasionDate.getMonth(), occasionDate.getDate());
-          if (thisYear < today) thisYear.setFullYear(today.getFullYear() + 1);
-          occasionDate = thisYear;
+      for (const m of allMembers) {
+        const occasions = getMemberOccasions(m, companyForOccasions || {}, year);
+        for (const occ of occasions) {
+          const occDate = new Date(occ.occasionDate + 'T00:00:00');
+          if (isNaN(occDate)) continue;
+          const diff = Math.round((occDate - todayMidnight) / 86400000);
+          if (diff < 0 || diff > 30) continue;
+
+          upcoming_occasions.push({
+            name: `${m.first_name} ${m.last_name}`,
+            department: m.department || 'General',
+            occasion_type: occ.occasionName,
+            label: OCCASION_LABELS[occ.occasionName] || occ.occasionName,
+            occasion_date: occ.occasionDate,
+            days_until: diff,
+          });
         }
-
-        const diff = Math.ceil((occasionDate - today) / (1000 * 60 * 60 * 24));
-        if (diff < 0 || diff > 30) return null;
-
-        return {
-          name: `${m.first_name} ${m.last_name}`,
-          department: m.department || 'General',
-          occasion_type: m.occasion_type,
-          label: OCCASION_LABELS[m.occasion_type] || m.occasion_type,
-          occasion_date: occasionDate.toISOString().slice(0, 10),
-          days_until: diff,
-        };
-      } catch { return null; }
-    }).filter(Boolean).sort((a, b) => a.days_until - b.days_until);
+      }
+      upcoming_occasions.sort((a, b) => a.days_until - b.days_until);
+    }
 
     // Response shape matches what CompanyDashboard frontend expects
     // Frontend reads: data.total_members, data.upcoming_occasions, data.active_cards etc.

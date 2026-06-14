@@ -3,6 +3,7 @@ const router   = express.Router();
 const multer   = require('multer');
 const { companyAuth } = require('../middleware/companyAuth');
 const supabase = require('../utils/supabase');
+const { getWorkersDayDate } = require('../utils/workersDay');
 const {
   downloadTemplate, importTeamMembers, getTeamMembers,
   getDepartments, deleteTeamMember, getTeamsDashboard,
@@ -78,6 +79,21 @@ router.get('/all-members', async (req, res) => {
 
     const allMembers  = [...(cmData||[]), ...omUnique];
     const departments = [...new Set(allMembers.map(m=>m.department).filter(Boolean))];
+
+    // leaving_date and promotion_date are now native company_members columns
+    // (added via migration_credit_system.sql) — already present in cmData rows
+    // via select('*'). omUnique (occasion_members-only supplement rows) don't
+    // have these columns, so default them to null.
+    for (const m of allMembers) {
+      if (m.leaving_date   === undefined) m.leaving_date   = null;
+      if (m.promotion_date === undefined) m.promotion_date = null;
+    }
+
+    // workers_day_date is computed from the company's country — same for everyone,
+    // not stored per-member.
+    const workersDayDate = getWorkersDayDate(req.company?.country, new Date().getFullYear());
+    for (const m of allMembers) m.workers_day_date = workersDayDate;
+
     console.log('[all-members] DONE — total:', allMembers.length);
     res.json({ members: allMembers, teams_count: departments.length, departments });
 
@@ -88,9 +104,17 @@ router.get('/all-members', async (req, res) => {
 });
 
 // Edit member
+// company_members (Team Members page) is the single source of truth for
+// occasion automation. Editing birthday, work anniversary, gender, farewell,
+// or promotion date here directly controls what the daily cron will act on —
+// no separate occasion_members rows to keep in sync.
 router.put('/members/:id', async (req, res) => {
   try {
-    const { first_name, last_name, email, department, role, phone, job_title, date_of_birth, gender, resumption_date } = req.body;
+    const {
+      first_name, last_name, email, department, role, phone, job_title,
+      date_of_birth, gender, resumption_date,
+      leaving_date, promotion_date,
+    } = req.body;
     const u = { updated_at: new Date() };
     if (first_name !== undefined)   u.first_name    = first_name;
     if (last_name  !== undefined)   u.last_name     = last_name;
@@ -102,11 +126,39 @@ router.put('/members/:id', async (req, res) => {
     if (date_of_birth  !== undefined) u.date_of_birth  = date_of_birth  || null;
     if (gender         !== undefined) u.gender         = gender         || null;
     if (resumption_date!== undefined) u.resumption_date= resumption_date|| null;
+    if (leaving_date   !== undefined) u.leaving_date   = leaving_date   || null;
+    if (promotion_date !== undefined) u.promotion_date = promotion_date || null;
     // Explicitly block is_core_team from being set via this route
     delete req.body.is_core_team;
+
+    // Fetch current row first so we can detect date CHANGES and reset
+    // per-occasion notification tracking only for the occasion(s) that changed.
+    const { data: before } = await supabase.from('company_members')
+      .select('date_of_birth, resumption_date, leaving_date, promotion_date, occasion_tracking')
+      .eq('id', req.params.id).eq('company_id', req.company.id).maybeSingle();
+
+    const tracking = { ...(before?.occasion_tracking || {}) };
+    const dateChanged = (field, occasionKey) => {
+      if (u[field] === undefined) return;
+      const oldVal = before?.[field] || null;
+      const newVal = u[field] || null;
+      if (oldVal !== newVal && tracking[occasionKey]) {
+        delete tracking[occasionKey]; // allow automation to re-fire for the new date
+      }
+    };
+    dateChanged('date_of_birth',    'birthday');
+    dateChanged('resumption_date',  'work_anniversary');
+    dateChanged('resumption_date',  'new_hire');
+    dateChanged('leaving_date',     'leaving');
+    dateChanged('promotion_date',   'promotion');
+    if (Object.keys(tracking).length !== Object.keys(before?.occasion_tracking || {}).length) {
+      u.occasion_tracking = tracking;
+    }
+
     const { data, error } = await supabase.from('company_members')
       .update(u).eq('id', req.params.id).eq('company_id', req.company.id).select().single();
     if (error) throw error;
+
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -133,55 +185,5 @@ router.patch('/members/:id/status', async (req, res) => {
 
 // Delete by old route
 router.delete('/:memberId', deleteTeamMember);
-
-
-// POST /api/teams/members/:id/sync-occasions — auto-sync birthday/gender/resumption to occasion tables
-router.post('/members/:id/sync-occasions', companyAuth, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { date_of_birth, gender, resumption_date } = req.body;
-
-    const { data: m } = await supabase.from('company_members')
-      .select('email, first_name, last_name, department').eq('id', id).eq('company_id', req.company.id).single();
-    if (!m) return res.status(404).json({ error: 'Member not found' });
-
-    const { data: ots } = await supabase.from('occasion_types')
-      .select('*').eq('company_id', req.company.id).eq('is_active', true);
-    const typeMap = Object.fromEntries((ots || []).map(o => [o.name, o]));
-    const yr = new Date().getFullYear();
-    const base = { company_id: req.company.id, first_name: m.first_name, last_name: m.last_name, email: m.email, department: m.department };
-    const synced = [];
-
-    if (date_of_birth && typeMap.birthday) {
-      const dob = new Date(date_of_birth);
-      const bday = `${yr}-${String(dob.getMonth()+1).padStart(2,'0')}-${String(dob.getDate()).padStart(2,'0')}`;
-      await supabase.from('occasion_members').upsert({ ...base, occasion_type_id: typeMap.birthday.id, occasion_date: bday }, { onConflict: 'company_id,occasion_type_id,email' });
-      synced.push('birthday');
-    }
-    if (resumption_date && typeMap.work_anniversary) {
-      const rd = new Date(resumption_date);
-      const anniv = `${yr}-${String(rd.getMonth()+1).padStart(2,'0')}-${String(rd.getDate()).padStart(2,'0')}`;
-      await supabase.from('occasion_members').upsert({ ...base, occasion_type_id: typeMap.work_anniversary.id, occasion_date: anniv }, { onConflict: 'company_id,occasion_type_id,email' });
-      synced.push('work_anniversary');
-    }
-    if (gender === 'female' && typeMap.womens_day) {
-      await supabase.from('occasion_members').upsert({ ...base, gender: 'female', occasion_type_id: typeMap.womens_day.id, occasion_date: `${yr}-03-08` }, { onConflict: 'company_id,occasion_type_id,email' });
-      synced.push('womens_day');
-    }
-    if (gender === 'male' && typeMap.mens_day) {
-      await supabase.from('occasion_members').upsert({ ...base, gender: 'male', occasion_type_id: typeMap.mens_day.id, occasion_date: `${yr}-11-19` }, { onConflict: 'company_id,occasion_type_id,email' });
-      synced.push('mens_day');
-    }
-    if (typeMap.valentines_day) {
-      await supabase.from('occasion_members').upsert({ ...base, occasion_type_id: typeMap.valentines_day.id, occasion_date: `${yr}-02-14` }, { onConflict: 'company_id,occasion_type_id,email' });
-      synced.push('valentines_day');
-    }
-
-    res.json({ message: `Synced to ${synced.length} occasion table${synced.length !== 1 ? 's' : ''}`, synced });
-  } catch (err) {
-    console.error('sync-occasions:', err);
-    res.status(500).json({ error: 'Sync failed' });
-  }
-});
 
 module.exports = router;

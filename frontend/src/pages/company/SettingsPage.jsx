@@ -28,6 +28,7 @@ const SettingsPage = () => {
     industry: company?.industry || '',
     logo_url: company?.logo_url || '',
     theme: company?.theme || 'light',
+    country: company?.country || 'Nigeria',
   });
 
   const [passwords, setPasswords] = useState({
@@ -168,6 +169,18 @@ const SettingsPage = () => {
                 <label className="block text-sm font-medium text-warm-700 mb-1.5">Industry</label>
                 <input className="input" placeholder="e.g. Technology" value={profile.industry} onChange={e => setProfile(p => ({ ...p, industry: e.target.value }))} />
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-warm-700 mb-1.5">Country</label>
+              <select className="input" value={profile.country} onChange={e => setProfile(p => ({ ...p, country: e.target.value }))}>
+                {[
+                  'Nigeria','Kenya','Ghana','South Africa','Egypt','Ethiopia','Morocco','Algeria',
+                  'Tanzania','Uganda','Rwanda','Senegal','Côte d\'Ivoire','Cameroon','Zambia',
+                  'Zimbabwe','Botswana','Namibia','Mozambique','Angola','United Kingdom','United States',
+                  'Canada','Other',
+                ].map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <p className="text-xs text-warm-400 mt-1">Used to set the correct Workers&apos; Day date for your team automatically.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-warm-700 mb-1.5">Company email</label>

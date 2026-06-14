@@ -14,6 +14,7 @@ const rehashIfLegacy = async (id, plain, stored, table, supabase) => {
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
+const { getMemberOccasions } = require('../utils/occasionEngine');
 
 const setCookie = (res, name, token, expiresIn = '7d') => {
   const maxAge = expiresIn.endsWith('d')
@@ -111,14 +112,36 @@ const memberSignup = async (req, res) => {
     const password_hash = await hashPassword(password, 12);
     let member, memberError;
 
+    // company_members is the single source of truth for occasion automation
+    // (date_of_birth, resumption_date, gender). HR-entered data (via the
+    // master template or HRIS) takes priority — if these fields are already
+    // filled in on a pre-imported record, don't overwrite them with what the
+    // employee enters at signup. Only fill in if currently empty.
+    const fillGapSignup = (existingVal, newVal) => {
+      const existingIsEmpty = existingVal === null || existingVal === undefined || existingVal === '';
+      return existingIsEmpty ? (newVal || null) : existingVal;
+    };
+
     if (preImported) {
+      // Fetch current values so we can fill-gaps-only
+      const { data: preImportedFull } = await supabase
+        .from('company_members')
+        .select('date_of_birth, resumption_date, gender')
+        .eq('id', preImported.id).maybeSingle();
+
+      const occasionFields = {
+        gender:          fillGapSignup(preImportedFull?.gender,          gender),
+        resumption_date: fillGapSignup(preImportedFull?.resumption_date, resumption_date),
+        date_of_birth:   fillGapSignup(preImportedFull?.date_of_birth,   date_of_birth),
+      };
+
       // Employee was pre-imported by HR — update their record with password + personal details
       if (preImported.status === 'approved') {
         // Already approved (imported + approved by HR), just set password
         const { data: updated, error } = await supabase
           .from('company_members')
           .update({ first_name, last_name, password_hash, department: department || undefined, profile_picture_url: profile_picture_url || null,
-            gender: gender || null, resumption_date: resumption_date || null, date_of_birth: date_of_birth || null })
+            ...occasionFields })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
           .single();
@@ -127,7 +150,8 @@ const memberSignup = async (req, res) => {
         // Pre-imported but not yet approved — update details, keep status as pending
         const { data: updated, error } = await supabase
           .from('company_members')
-          .update({ first_name, last_name, password_hash, role, department: department || undefined, profile_picture_url: profile_picture_url || null, status: 'pending' })
+          .update({ first_name, last_name, password_hash, role, department: department || undefined, profile_picture_url: profile_picture_url || null, status: 'pending',
+            ...occasionFields })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
           .single();
@@ -140,39 +164,13 @@ const memberSignup = async (req, res) => {
 
       const { data: inserted, error } = await supabase
         .from('company_members')
-        .insert({ company_id: company.id, first_name, last_name, email: email.toLowerCase().trim(), password_hash, role, department, profile_picture_url: profile_picture_url || null, status: 'pending' })
+        .insert({ company_id: company.id, first_name, last_name, email: email.toLowerCase().trim(), password_hash, role, department, profile_picture_url: profile_picture_url || null, status: 'pending',
+          gender: gender || null, resumption_date: resumption_date || null, date_of_birth: date_of_birth || null })
         .select('id, first_name, last_name, email, role, department, status, company_id')
         .single();
       member = inserted; memberError = error;
     }
     if (memberError) throw memberError;
-
-    // Auto-sync to occasion tables based on signup fields
-    setImmediate(async () => {
-      try {
-        const { data: ots } = await supabase.from('occasion_types')
-          .select('*').eq('company_id', company.id).eq('is_active', true);
-        if (!ots || !ots.length) return;
-        const typeMap = Object.fromEntries(ots.map(o => [o.name, o]));
-        const yr = new Date().getFullYear();
-        const memberBase = { company_id: company.id, first_name, last_name, email: email.toLowerCase().trim(), department, gender: gender || null };
-
-        if (date_of_birth && typeMap.birthday) {
-          const dob = new Date(date_of_birth);
-          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.birthday.id, occasion_date: `${yr}-${String(dob.getMonth()+1).padStart(2,'0')}-${String(dob.getDate()).padStart(2,'0')}` }, { onConflict: 'company_id,occasion_type_id,email' });
-        }
-        if (resumption_date && typeMap.work_anniversary) {
-          const rd = new Date(resumption_date);
-          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.work_anniversary.id, occasion_date: `${yr}-${String(rd.getMonth()+1).padStart(2,'0')}-${String(rd.getDate()).padStart(2,'0')}` }, { onConflict: 'company_id,occasion_type_id,email' });
-        }
-        if (gender === 'female' && typeMap.womens_day)
-          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.womens_day.id, occasion_date: `${yr}-03-08` }, { onConflict: 'company_id,occasion_type_id,email' });
-        if (gender === 'male' && typeMap.mens_day)
-          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.mens_day.id, occasion_date: `${yr}-11-19` }, { onConflict: 'company_id,occasion_type_id,email' });
-        if (typeMap.valentines_day)
-          await supabase.from('occasion_members').upsert({ ...memberBase, occasion_type_id: typeMap.valentines_day.id, occasion_date: `${yr}-02-14` }, { onConflict: 'company_id,occasion_type_id,email' });
-      } catch (e) { console.error('Post-signup occasion sync:', e.message); }
-    });
 
     // Notify HR + team leader
     const { data: hrCompany } = await supabase.from('companies').select('email, name, contact_person').eq('id', company.id).single();
@@ -251,8 +249,11 @@ const getDepartmentOptions = async (req, res) => {
     const { companyId } = req.query;
     let uploadedDepts = [];
     if (companyId) {
-      const { data } = await supabase.from('occasion_members').select('department').eq('company_id', companyId).eq('is_active', true);
-      uploadedDepts = [...new Set((data || []).map(d => d.department))];
+      // company_members is the single source of truth for HR-imported data
+      // (master template + HRIS sync), so pull departments from there.
+      const { data } = await supabase.from('company_members')
+        .select('department').eq('company_id', companyId).neq('status', 'deactivated');
+      uploadedDepts = [...new Set((data || []).map(d => d.department).filter(Boolean))];
     }
     const merged = [...new Set([...uploadedDepts, ...DEFAULT_DEPARTMENTS])].sort();
     res.json(merged);
@@ -358,29 +359,52 @@ const getMemberDashboard = async (req, res) => {
     const member = req.member;
     const isLeader = member.role === 'team_leader';
 
-    // Get dept members — include date_of_birth for birthday calculation
+    // Get dept members — include all fields needed for occasion computation
+    // (date_of_birth, resumption_date, gender, promotion_date, leaving_date).
+    // company_members is the single source of truth for occasion automation.
     const { data: deptMembers } = await supabase
       .from('company_members')
-      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, date_of_birth, job_title, phone')
+      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, date_of_birth, resumption_date, gender, promotion_date, leaving_date, job_title, phone')
       .eq('company_id', member.company_id)
       .eq('department', member.department)
       .eq('status', 'approved');
 
-    // Get upcoming birthdays in dept from occasion_members
-    const today = new Date();
-    const { data: upcoming } = await supabase
-      .from('occasion_members')
-      .select('*, occasion_types(name, label, icon)')
-      .eq('company_id', member.company_id)
-      .eq('department', member.department)
-      .eq('is_active', true);
+    // Get upcoming occasions for dept members — computed directly from
+    // company_members columns (same logic the daily automation cron uses).
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const year = today.getFullYear();
 
-    const withDays = (upcoming || []).map(m => {
-      const bd = new Date(m.occasion_date);
-      const next = new Date(today.getFullYear(), bd.getMonth(), bd.getDate());
-      if (next < today) next.setFullYear(today.getFullYear() + 1);
-      return { ...m, days_until: Math.ceil((next - today) / 86400000) };
-    }).filter(m => m.days_until <= 30).sort((a, b) => a.days_until - b.days_until);
+    const { data: company } = await supabase
+      .from('companies').select('country').eq('id', member.company_id).maybeSingle();
+
+    const { data: ots } = await supabase
+      .from('occasion_types')
+      .select('name, label, icon')
+      .eq('company_id', member.company_id)
+      .eq('is_active', true);
+    const otByName = Object.fromEntries((ots || []).map(o => [o.name, o]));
+
+    const withDays = [];
+    for (const m of (deptMembers || [])) {
+      const occasions = getMemberOccasions(m, company || {}, year);
+      for (const occ of occasions) {
+        const ot = otByName[occ.occasionName];
+        if (!ot) continue; // company doesn't have this occasion type configured/active
+
+        const occDate = new Date(occ.occasionDate + 'T00:00:00');
+        if (isNaN(occDate)) continue;
+        const daysUntil = Math.round((occDate - today) / 86400000);
+        if (daysUntil < 0 || daysUntil > 30) continue;
+
+        withDays.push({
+          first_name: m.first_name, last_name: m.last_name, department: m.department,
+          occasion_date: occ.occasionDate, days_until: daysUntil,
+          occasion_type: occ.occasionName,
+          occasion_types: { name: ot.name, label: ot.label, icon: ot.icon },
+        });
+      }
+    }
+    withDays.sort((a, b) => a.days_until - b.days_until);
 
     // Cards involving dept members — filter for active cards for signing
     const { data: deptCards } = await supabase

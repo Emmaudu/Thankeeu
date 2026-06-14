@@ -85,8 +85,7 @@ export const JoinResetPassword = () => {
     try {
       await memberAPI.resetPassword({ token, password: form.password });
       setDone(true);
-      toast.success('Password reset!');
-      setTimeout(() => navigate('/member/login'), 2500);
+      toast.success('Password set! Welcome to the team.');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Reset failed — link may have expired');
     } finally { setLoading(false); }
@@ -106,9 +105,15 @@ export const JoinResetPassword = () => {
         <div className="bg-white rounded-3xl shadow-xl p-7 border border-purple-100">
           {done ? (
             <div className="text-center py-4">
-              <div className="text-5xl mb-4">✅</div>
-              <h3 className="font-display text-xl font-semibold text-warm-900 mb-2">Password updated!</h3>
-              <p className="text-warm-700 text-sm">Redirecting to sign in...</p>
+              <div className="text-5xl mb-4">🎉</div>
+              <h3 className="font-display text-xl font-semibold text-warm-900 mb-2">Password set — you're in!</h3>
+              <p className="text-warm-500 text-sm mb-6">Sign in with your team member credentials to access your dashboard.</p>
+              <Link to="/member/login" className="btn-primary w-full block text-center py-3.5 mb-3">
+                👥 Sign in as Team Member
+              </Link>
+              <p className="text-xs text-warm-400">
+                Core team members with HR access can also switch to the HR dashboard from inside the member portal.
+              </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">

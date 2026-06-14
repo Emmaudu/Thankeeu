@@ -103,7 +103,7 @@ const inviteCoreMember = async (req, res) => {
           </div>
 
           <p style="color:#aaa;font-size:12px;text-align:center;margin-top:16px;">
-            This link expires in 7 days. If you didn't expect this invitation, you can safely ignore it.
+            This link does not expire. If you didn't expect this invitation, you can safely ignore it.
           </p>
           <p style="color:#ccc;font-size:11px;text-align:center;">
             Powered by <a href="${frontendUrl}" style="color:#7C3AED;">Thankeeu</a> — Group Cards &amp; Gifts
@@ -160,9 +160,9 @@ const inviteCoreMemberInternally = async (company, memberData) => {
   await supabase.from('company_members').upsert({
     company_id: company.id, email: cleanEmail,
     first_name: nameParts[0] || '', last_name: nameParts.slice(1).join(' ') || '',
-    role: permission_level === 'full' ? 'leader' : 'member',
+    role: 'team_leader',
     status: 'approved', job_title: title || null, password_hash: passHash,
-    role: 'team_leader', is_core_team: true, invite_token: inviteToken,
+    is_core_team: true, invite_token: inviteToken,
   }, { onConflict: 'company_id,email' });
 
   const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
@@ -177,7 +177,7 @@ const inviteCoreMemberInternally = async (company, memberData) => {
       <a href="${link}" style="display:inline-block;background:#7C3AED;color:white;padding:14px 32px;border-radius:12px;text-decoration:none;font-weight:700;margin:20px 0;">
         Set your password & join 🚀
       </a>
-      <p style="color:#aaa;font-size:12px;">This link expires in 7 days.</p>
+      <p style="color:#aaa;font-size:12px;">This link does not expire.</p>
     </div>`
   });
 };

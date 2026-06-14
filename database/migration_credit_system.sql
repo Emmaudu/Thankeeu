@@ -108,3 +108,21 @@ ALTER TABLE company_members ADD COLUMN IF NOT EXISTS hris_employee_id   TEXT;
 ALTER TABLE company_members ADD COLUMN IF NOT EXISTS is_core_team       BOOLEAN DEFAULT FALSE;
 ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS is_active         BOOLEAN DEFAULT TRUE;
 ALTER TABLE occasion_members ADD COLUMN IF NOT EXISTS hris_employee_id  TEXT;
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- SOURCE-OF-TRUTH MIGRATION: company_members (Team Members page) becomes the
+-- single source of truth for occasion automation. Occasions Manager and HRIS
+-- sync both write into these columns; the daily cron reads directly from here.
+-- ═══════════════════════════════════════════════════════════════════════════
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS leaving_date    DATE;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS promotion_date  DATE;
+
+-- Tracking columns so the cron doesn't re-send the same notification/card
+-- twice for the same occasion in the same year, per occasion type.
+-- Stored as JSONB: { "birthday": {"year": 2026, "card_slug": "...", "celebrant_notified": true, "dept_notified": true}, ... }
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS occasion_tracking JSONB DEFAULT '{}'::jsonb;
+
+-- Optional custom messages for Farewell/Promotion cards, settable via the
+-- master template's Farewell Message / Congratulatory Message columns.
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS farewell_message   TEXT;
+ALTER TABLE company_members ADD COLUMN IF NOT EXISTS promotion_message  TEXT;

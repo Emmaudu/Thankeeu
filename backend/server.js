@@ -17,6 +17,11 @@ const { sendEmail } = require('./utils/email');
 
 const app = express();
 
+// Trust Railway's reverse proxy so req.ip / X-Forwarded-For are read correctly.
+// Without this, express-rate-limit throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on
+// every request and falls back to the proxy's IP, breaking per-IP rate limits.
+app.set('trust proxy', 1);
+
 // Security
 app.use(helmet({
   contentSecurityPolicy: {
@@ -255,214 +260,126 @@ app.listen(PORT, () => {
 // ═══════════════════════════════════════════════════════════
 // CRON: All Occasion Types — runs daily at 6AM
 // ═══════════════════════════════════════════════════════════
+// PostgREST caps results at 1000 rows per request by default. This helper
+// pages through `.range()` until a short page is returned, so the cron
+// doesn't silently drop data once Thankeeu scales past 1000 rows in any of
+// these tables.
+async function fetchAllPages(buildQuery, label) {
+  const PAGE_SIZE = 1000;
+  const all = [];
+  let from = 0;
+  while (true) {
+    const { data: page, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+    if (error) { console.error(`Occasions cron: ${label} page error:`, error.message); break; }
+    all.push(...(page || []));
+    if (!page || page.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
+  }
+  return all;
+}
+
 cron.schedule('0 6 * * *', async () => {
-  console.log('Running all-occasions cron...');
+  console.log('Running all-occasions cron (source: company_members)...');
   try {
+    const { getMemberOccasions } = require('./utils/occasionEngine');
     const today = new Date();
-    const mm  = String(today.getMonth() + 1).padStart(2, '0');
-    const dd  = String(today.getDate()).padStart(2, '0');
+    const year  = today.getFullYear();
+    today.setHours(0, 0, 0, 0);
 
     // Companies with active subscriptions
-    const { data: subs } = await supabase
+    const subs = await fetchAllPages(() => supabase
       .from('company_subscriptions').select('company_id')
-      .eq('status', 'active').gt('expires_at', today.toISOString());
-    const companyIds = (subs || []).map(s => s.company_id);
+      .eq('status', 'active').gt('expires_at', new Date().toISOString()), 'company_subscriptions');
+    const companyIds = [...new Set(subs.map(s => s.company_id))];
     if (!companyIds.length) return;
 
-    // Get all active occasion types for subscribed companies
-    const { data: occasionTypes } = await supabase
+    // Active occasion types per company, keyed by company_id then name
+    const occasionTypes = await fetchAllPages(() => supabase
       .from('occasion_types')
       .select('*')
       .in('company_id', companyIds)
-      .eq('is_active', true);
+      .eq('is_active', true), 'occasion_types');
 
-    for (const ot of (occasionTypes || [])) {
-      const notifyDays = ot.notify_days_before || 7;
-      const notifyDate = new Date(today.getTime() + notifyDays * 86400000);
-      const nm = String(notifyDate.getMonth() + 1).padStart(2, '0');
-      const nd = String(notifyDate.getDate()).padStart(2, '0');
+    const otByCompany = {};
+    for (const ot of occasionTypes) {
+      if (!otByCompany[ot.company_id]) otByCompany[ot.company_id] = {};
+      otByCompany[ot.company_id][ot.name] = ot;
+    }
 
-      // ── STEP 1: Notify departments N days before occasion ──
-      // Point 3 fix: match YYYY-MM-DD format reliably using current year
-      const targetDateStr = `${notifyDate.getFullYear()}-${nm}-${nd}`;
-      const { data: upcoming } = await supabase
-        .from('occasion_members')
-        .select('*')
-        .eq('company_id', ot.company_id)
-        .eq('occasion_type_id', ot.id)
-        .eq('is_active', true)
-        // Match both the full year date AND the year-agnostic suffix (recurring occasions)
-        .or(`occasion_date.eq.${targetDateStr},occasion_date.like.%-${nm}-${nd}`);
+    // Companies (for country, name, contact)
+    const companies = await fetchAllPages(() => supabase
+      .from('companies').select('*').in('id', companyIds), 'companies');
+    const companyById = Object.fromEntries(companies.map(c => [c.id, c]));
 
-      for (const m of (upcoming || [])) {
-        if (m.last_dept_notified_at) {
-          const notifiedYear = new Date(m.last_dept_notified_at).getFullYear();
-          if (notifiedYear === today.getFullYear()) continue;
+    // All active company_members for these companies
+    const members = await fetchAllPages(() => supabase
+      .from('company_members')
+      .select('*')
+      .in('company_id', companyIds)
+      .neq('status', 'deactivated'), 'company_members');
+
+    for (const m of members) {
+      const company = companyById[m.company_id];
+      if (!company) continue;
+      const otMap = otByCompany[m.company_id] || {};
+
+      const occasions = getMemberOccasions(m, company, year);
+      let trackingChanged = false;
+      const tracking = { ...(m.occasion_tracking || {}) };
+
+      for (const occ of occasions) {
+        const ot = otMap[occ.occasionName];
+        if (!ot) continue; // company doesn't have this occasion type configured/active
+
+        const notifyDays = ot.notify_days_before || 7;
+        const occasionDate = new Date(occ.occasionDate + 'T00:00:00');
+        if (isNaN(occasionDate)) continue;
+
+        const daysUntil = Math.round((occasionDate - today) / 86400000);
+        const trackKey = occ.occasionName;
+        const track = tracking[trackKey] || {};
+
+        // Skip if already fully processed for this occasion this year
+        // (recurring occasions reset each year; one-time occasions don't repeat —
+        //  track.year stays fixed to the year they were processed, so this
+        //  condition permanently blocks re-processing for one-time occasions).
+        if (track.year === year && track.celebrant_notified) continue;
+        if (!occ.isRecurring && track.celebrant_notified) continue; // one-time, ever-processed
+
+        // ── STEP 1: Notify department N days before the occasion ──
+        // For one-time occasions (promotion/leaving/new_hire), also catch up if
+        // the date has already passed by up to 7 days (e.g. HR entered it late,
+        // or the cron missed a run) and it hasn't been processed yet.
+        const isDeptDue = occ.isRecurring
+          ? daysUntil === notifyDays
+          : (daysUntil <= notifyDays && daysUntil >= -7);
+
+        if (isDeptDue && !(track.year === year && track.dept_notified) && !(!occ.isRecurring && track.dept_notified)) {
+          await notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate, year, tracking, trackKey });
+          trackingChanged = true;
         }
 
-        const { data: company } = await supabase.from('companies').select('*').eq('id', ot.company_id).single();
-        const { nanoid } = require('nanoid');
-        const slug = `${m.first_name.toLowerCase()}-${ot.name.replace('_','-')}-${nanoid(6)}`;
-        const deadline = new Date(notifyDate.getTime() + notifyDays * 86400000);
-        const occasionDateStr = new Date(m.occasion_date).toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
+        // ── STEP 2: Deliver card to celebrant ON the occasion date ──
+        // For one-time occasions, also catch up if the date has passed by up to
+        // 7 days and the card hasn't been delivered yet.
+        const isCelebrantDue = occ.isRecurring
+          ? daysUntil === 0
+          : (daysUntil <= 0 && daysUntil >= -7);
 
-        // Point 5 fix: check for existing card for this person/occasion/year BEFORE inserting
-        const thisYear = today.getFullYear();
-        const { data: existingCard } = await supabase.from('cards')
-          .select('id, slug').eq('occasion_type_id', ot.id).eq('recipient_email', m.email)
-          .gte('created_at', `${thisYear}-01-01T00:00:00Z`).maybeSingle();
-        if (existingCard) {
-          console.log(`[${ot.label}] Card already exists for ${m.first_name} ${m.last_name} this year — skipping`);
-          // Ensure card_slug is set on the member row
-          if (!m.card_slug) {
-            await supabase.from('occasion_members')
-              .update({ card_slug: existingCard.slug, last_dept_notified_at: new Date() }).eq('id', m.id);
-          }
-          continue;
+        if (isCelebrantDue && !(track.year === year && track.celebrant_notified) && !(!occ.isRecurring && track.celebrant_notified)) {
+          await deliverCard({ m, ot, occ, company, year, tracking, trackKey });
+          trackingChanged = true;
         }
-
-        // Create card
-        const { data: card } = await supabase.from('cards').insert({
-          slug, recipient_name: `${m.first_name} ${m.last_name}`,
-          recipient_email: m.email, occasion: ot.name,
-          title: `Happy ${ot.label}, ${m.first_name}! ${ot.icon}`,
-          design_theme: 'rose_love', background_color: '#FBEAF0',
-          status: 'active', is_gift_enabled: true, gift_type: 'pot',
-          suggested_amount: 2500, send_date: notifyDate.toISOString(),
-          deadline: deadline.toISOString(), allow_private_messages: true,
-          company_id: ot.company_id, occasion_type_id: ot.id,
-          notification_scope: ot.default_scope || 'department',
-        }).select().maybeSingle();
-        if (!card) continue;
-
-        await supabase.from('occasion_members')
-          .update({ card_slug: slug, last_dept_notified_at: new Date() })
-          .eq('id', m.id);
-
-        // Create wallet for card
-        try {
-          await supabase.from('contribution_wallets').insert({
-            card_id: card.id, company_id: ot.company_id,
-            total_contributed: 0, platform_fee: 0, net_after_fee: 0, amount_to_celebrant: 0,
-          });
-        } catch (walletError) {
-          console.error('Contribution wallet creation failed:', walletError);
-        }
-
-        // Determine who to notify based on scope
-        let colleagueQuery = supabase.from('occasion_members')
-          .select('email, first_name').eq('company_id', ot.company_id)
-          .eq('is_active', true).neq('id', m.id);
-
-        if (ot.default_scope === 'department' || ot.default_scope === 'pending_approval') {
-          colleagueQuery = colleagueQuery.eq('department', m.department);
-        }
-        const { data: colleagues } = await colleagueQuery;
-
-        // Also notify registered company members
-        let membersQuery = supabase.from('company_members')
-          .select('email, first_name').eq('company_id', ot.company_id).eq('status', 'approved').neq('email', m.email);
-        if (ot.default_scope === 'department') {
-          membersQuery = membersQuery.eq('department', m.department);
-        }
-        const { data: regMembers } = await membersQuery;
-
-        const allEmails = new Set([
-          ...(colleagues || []).map(c => c.email),
-          ...(regMembers  || []).map(c => c.email),
-        ]);
-        allEmails.delete(m.email);
-
-        const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
-
-        // Use occasion-specific email templates for new_hire and leaving
-        for (const email of allEmails) {
-          if (ot.name === 'new_hire') {
-            await sendEmail({ to: email, template: 'newHireDeptNotice', data: {
-              newHireName: `${m.first_name} ${m.last_name}`,
-              newHireFirstName: m.first_name,
-              department: m.department,
-              companyName: company.name,
-              startDate: occasionDateStr,
-              jobTitle: m.job_title || '',
-              cardSlug: slug,
-              deadline: dlStr,
-            }});
-          } else if (ot.name === 'leaving') {
-            await sendEmail({ to: email, template: 'farewellDeptNotice', data: {
-              leavingName: `${m.first_name} ${m.last_name}`,
-              leavingFirstName: m.first_name,
-              department: m.department,
-              companyName: company.name,
-              lastDay: occasionDateStr,
-              cardSlug: slug,
-              giftEnabled: true,
-              deadline: dlStr,
-            }});
-          } else {
-            await sendEmail({ to: email, template: 'occasionNotice', data: {
-              icon: ot.icon, occasionLabel: ot.label,
-              memberName: `${m.first_name} ${m.last_name}`,
-              memberFirstName: m.first_name,
-              department: m.department,
-              companyName: company.name,
-              cardSlug: slug, giftEnabled: true,
-              occasionDate: occasionDateStr,
-              daysLeft: notifyDays,
-              deadline: dlStr,
-            }});
-          }
-        }
-        console.log(`[${ot.label}] Dept notified for ${m.first_name}: ${allEmails.size} emails`);
       }
 
-      // ── STEP 2: Send card to celebrant ON occasion date ──
-      // Point 3 fix: reliable date matching
-      const todayDateStr = `${today.getFullYear()}-${mm}-${dd}`;
-      const { data: celebrants } = await supabase
-        .from('occasion_members').select('*')
-        .eq('company_id', ot.company_id).eq('occasion_type_id', ot.id).eq('is_active', true)
-        .or(`occasion_date.eq.${todayDateStr},occasion_date.like.%-${mm}-${dd}`);
-
-      for (const m of (celebrants || [])) {
-        if (m.celebrant_notified_at) {
-          const yr = new Date(m.celebrant_notified_at).getFullYear();
-          if (yr === today.getFullYear()) continue;
-        }
-        const cardSlug = m.card_slug;
-        if (!cardSlug) continue;
-        const { data: card } = await supabase.from('cards').select('*').eq('slug', cardSlug).maybeSingle();
-        if (!card) continue;
-
-        const { data: msgs } = await supabase.from('messages').select('count').eq('card_id', card.id);
-        const count = msgs?.[0]?.count || 0;
-        const { data: co } = await supabase.from('companies').select('name').eq('id', ot.company_id).single();
-
-        // Calculate gift amount after fee
-        const { data: wallet } = await supabase.from('contribution_wallets').select('amount_to_celebrant').eq('card_id', card.id).maybeSingle();
-        const giftAmount = wallet?.amount_to_celebrant > 0 ? wallet.amount_to_celebrant : null;
-
-        // Use occasion-specific delivery templates for new_hire and leaving
-        let deliveryTemplate = 'occasionCelebrant';
-        let deliveryData = { icon: ot.icon, occasionLabel: ot.label, firstName: m.first_name, companyName: co.name, cardSlug, accessToken: card.access_token, signerCount: count, giftAmount };
-
-        if (ot.name === 'new_hire') {
-          deliveryTemplate = 'newHireWelcome';
-          deliveryData = { firstName: m.first_name, companyName: co.name, department: m.department, jobTitle: m.job_title || '', cardSlug, accessToken: card.access_token, signerCount: count, giftAmount };
-        } else if (ot.name === 'leaving') {
-          deliveryTemplate = 'farewellCelebrant';
-          deliveryData = { firstName: m.first_name, companyName: co.name, department: m.department, cardSlug, accessToken: card.access_token, signerCount: count, giftAmount };
-        }
-
-        await sendEmail({ to: m.email, template: deliveryTemplate, data: deliveryData });
-        await supabase.from('cards').update({ status: 'sent', recipient_notified: true }).eq('slug', cardSlug);
-        await supabase.from('occasion_members').update({
-          celebrant_notified_at: new Date(), year_processed: today.getFullYear()
-        }).eq('id', m.id);
-        console.log(`[${ot.label}] Card delivered to ${m.first_name} ${m.last_name}`);
+      if (trackingChanged) {
+        await supabase.from('company_members')
+          .update({ occasion_tracking: tracking, updated_at: new Date() })
+          .eq('id', m.id);
       }
     }
-    // ── Individual user birthday reminders ─────────────────────────────────
+
+    // ── Individual user birthday reminders (unrelated to company_members) ──
     try {
       const now7  = new Date(today); now7.setDate(now7.getDate() + 7);
       const now2  = new Date(today); now2.setDate(now2.getDate() + 2);
@@ -492,6 +409,152 @@ cron.schedule('0 6 * * *', async () => {
 
   } catch (err) { console.error('Occasions cron error:', err); }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// notifyDepartment — Step 1: create the card + notify colleagues N days before
+// ─────────────────────────────────────────────────────────────────────────────
+async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate, year, tracking, trackKey }) {
+  const { nanoid } = require('nanoid');
+
+  // Check for existing card for this person/occasion/year BEFORE inserting
+  const { data: existingCard } = await supabase.from('cards')
+    .select('id, slug').eq('occasion_type_id', ot.id).eq('recipient_email', m.email)
+    .gte('created_at', `${year}-01-01T00:00:00Z`).maybeSingle();
+
+  if (existingCard) {
+    console.log(`[${ot.label}] Card already exists for ${m.first_name} ${m.last_name} this year — skipping`);
+    tracking[trackKey] = { ...(tracking[trackKey]||{}), year, dept_notified: true, card_slug: existingCard.slug };
+    return;
+  }
+
+  const slug = `${m.first_name.toLowerCase()}-${ot.name.replace('_','-')}-${nanoid(6)}`;
+  const notifyDate = occasionDate; // the occasion happens 'notifyDays' from now
+  // Gift contributions stay open until notifyDays AFTER the occasion date itself
+  // (matches original behaviour: deadline = notifyDate + notifyDays).
+  // If we're catching up on a date that already passed (e.g. HR entered it
+  // late), that would put the deadline in the past too — extend it to at
+  // least a week from today so contributions remain possible.
+  let deadline = new Date(occasionDate.getTime() + notifyDays * 86400000);
+  const minDeadline = new Date(Date.now() + 7 * 86400000);
+  if (deadline < minDeadline) deadline = minDeadline;
+  const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
+
+  const { data: card } = await supabase.from('cards').insert({
+    slug, recipient_name: `${m.first_name} ${m.last_name}`,
+    recipient_email: m.email, occasion: ot.name,
+    title: `Happy ${ot.label}, ${m.first_name}! ${ot.icon}`,
+    design_theme: 'rose_love', background_color: '#FBEAF0',
+    status: 'active', is_gift_enabled: true, gift_type: 'pot',
+    suggested_amount: 2500, send_date: notifyDate.toISOString(),
+    deadline: deadline.toISOString(), allow_private_messages: true,
+    company_id: ot.company_id, occasion_type_id: ot.id,
+    notification_scope: ot.default_scope || 'department',
+  }).select().maybeSingle();
+  if (!card) return;
+
+  tracking[trackKey] = { year, dept_notified: true, card_slug: slug };
+
+  // Create wallet for card
+  try {
+    await supabase.from('contribution_wallets').insert({
+      card_id: card.id, company_id: ot.company_id,
+      total_contributed: 0, platform_fee: 0, net_after_fee: 0, amount_to_celebrant: 0,
+    });
+  } catch (walletError) {
+    console.error('Contribution wallet creation failed:', walletError);
+  }
+
+  // Determine who to notify based on scope — active company_members in the
+  // same company (and department if scope requires it), excluding the celebrant
+  let colleagueQuery = supabase.from('company_members')
+    .select('email, first_name').eq('company_id', ot.company_id)
+    .eq('status', 'approved').neq('id', m.id);
+
+  if (ot.default_scope === 'department' || ot.default_scope === 'pending_approval') {
+    colleagueQuery = colleagueQuery.eq('department', m.department);
+  }
+  const { data: colleagues } = await colleagueQuery;
+
+  const allEmails = new Set((colleagues || []).map(c => c.email));
+  allEmails.delete(m.email);
+
+  const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
+
+  for (const email of allEmails) {
+    if (ot.name === 'new_hire') {
+      await sendEmail({ to: email, template: 'newHireDeptNotice', data: {
+        newHireName: `${m.first_name} ${m.last_name}`,
+        newHireFirstName: m.first_name,
+        department: m.department,
+        companyName: company.name,
+        startDate: occasionDateStr,
+        jobTitle: m.job_title || '',
+        cardSlug: slug,
+        deadline: dlStr,
+      }});
+    } else if (ot.name === 'leaving') {
+      await sendEmail({ to: email, template: 'farewellDeptNotice', data: {
+        leavingName: `${m.first_name} ${m.last_name}`,
+        leavingFirstName: m.first_name,
+        department: m.department,
+        companyName: company.name,
+        lastDay: occasionDateStr,
+        cardSlug: slug,
+        giftEnabled: true,
+        deadline: dlStr,
+      }});
+    } else {
+      await sendEmail({ to: email, template: 'occasionNotice', data: {
+        icon: ot.icon, occasionLabel: ot.label,
+        memberName: `${m.first_name} ${m.last_name}`,
+        memberFirstName: m.first_name,
+        department: m.department,
+        companyName: company.name,
+        cardSlug: slug, giftEnabled: true,
+        occasionDate: occasionDateStr,
+        daysLeft: notifyDays,
+        deadline: dlStr,
+      }});
+    }
+  }
+  console.log(`[${ot.label}] Dept notified for ${m.first_name}: ${allEmails.size} emails`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// deliverCard — Step 2: deliver the finished card to the celebrant on the day
+// ─────────────────────────────────────────────────────────────────────────────
+async function deliverCard({ m, ot, occ, company, year, tracking, trackKey }) {
+  const track = tracking[trackKey] || {};
+  const cardSlug = track.card_slug;
+  if (!cardSlug) return; // STEP 1 hasn't created the card yet (shouldn't normally happen if notify_days_before >= 0)
+
+  const { data: card } = await supabase.from('cards').select('*').eq('slug', cardSlug).maybeSingle();
+  if (!card) return;
+
+  const { data: msgs } = await supabase.from('messages').select('count').eq('card_id', card.id);
+  const count = msgs?.[0]?.count || 0;
+
+  // Calculate gift amount after fee
+  const { data: wallet } = await supabase.from('contribution_wallets').select('amount_to_celebrant').eq('card_id', card.id).maybeSingle();
+  const giftAmount = wallet?.amount_to_celebrant > 0 ? wallet.amount_to_celebrant : null;
+
+  let deliveryTemplate = 'occasionCelebrant';
+  let deliveryData = { icon: ot.icon, occasionLabel: ot.label, firstName: m.first_name, companyName: company.name, cardSlug, accessToken: card.access_token, signerCount: count, giftAmount };
+
+  if (ot.name === 'new_hire') {
+    deliveryTemplate = 'newHireWelcome';
+    deliveryData = { firstName: m.first_name, companyName: company.name, department: m.department, jobTitle: m.job_title || '', cardSlug, accessToken: card.access_token, signerCount: count, giftAmount };
+  } else if (ot.name === 'leaving') {
+    deliveryTemplate = 'farewellCelebrant';
+    deliveryData = { firstName: m.first_name, companyName: company.name, department: m.department, cardSlug, accessToken: card.access_token, signerCount: count, giftAmount };
+  }
+
+  await sendEmail({ to: m.email, template: deliveryTemplate, data: deliveryData });
+  await supabase.from('cards').update({ status: 'sent', recipient_notified: true }).eq('slug', cardSlug);
+
+  tracking[trackKey] = { ...track, year, celebrant_notified: true };
+  console.log(`[${ot.label}] Card delivered to ${m.first_name} ${m.last_name}`);
+}
 
 // ═══════════════════════════════════════════════════════════
 // CRON: HRIS Auto-sync — daily at 5AM for companies with auto_sync=true

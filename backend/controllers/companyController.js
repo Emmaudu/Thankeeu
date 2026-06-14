@@ -48,7 +48,7 @@ const companySignup = async (req, res) => {
     const { data: company, error } = await supabase
       .from('companies')
       .insert({ name, email, password_hash, contact_person, phone, industry, city, state, country: country || '' })
-      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role')
+      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country')
       .single();
 
     if (error) throw error;
@@ -126,7 +126,7 @@ const getCompanyMe = async (req, res) => {
   try {
     const { data: company, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, created_at')
+      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country, created_at')
       .eq('id', req.company.id)
       .single();
     if (error) throw error;
@@ -153,14 +153,25 @@ const getCompanyMe = async (req, res) => {
 
 const updateCompanyProfile = async (req, res) => {
   try {
-    const { name, contact_person, phone, industry, logo_url, theme } = req.body;
+    const { name, contact_person, phone, industry, logo_url, theme, country } = req.body;
+    const updates = { name, contact_person, phone, industry, logo_url, theme, updated_at: new Date() };
+
+    if (country !== undefined) updates.country = country;
+
     const { data, error } = await supabase
       .from('companies')
-      .update({ name, contact_person, phone, industry, logo_url, theme, updated_at: new Date() })
+      .update(updates)
       .eq('id', req.company.id)
-      .select('id, name, email, contact_person, phone, industry, logo_url, theme')
+      .select('id, name, email, contact_person, phone, industry, logo_url, theme, country')
       .single();
     if (error) throw error;
+
+    // Note: Workers' Day no longer needs a re-sync step when the country
+    // changes. company_members is the single source of truth, and the daily
+    // cron computes each member's Workers' Day date fresh from
+    // companies.country every run (see utils/occasionEngine.js). Changing
+    // the country here takes effect automatically on the next cron run.
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: 'Failed to update profile' });

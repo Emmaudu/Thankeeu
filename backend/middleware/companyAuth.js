@@ -11,7 +11,7 @@ const companyAuth = async (req, res, next) => {
 
     const { data: company, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_person, role, theme, logo_url')
+      .select('id, name, email, contact_person, role, theme, logo_url, country')
       .eq('id', decoded.companyId)
       .single();
 

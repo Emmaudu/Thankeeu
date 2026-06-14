@@ -209,6 +209,8 @@ const HRISPage = () => {
   const [tab, setTab]                 = useState('integrations');
   const [sub, setSub]                 = useState(null);
   const [subLoading, setSubLoading]   = useState(true);
+  // Track which OAuth providers are activated (env vars set on Railway)
+  const [oauthReady, setOauthReady]   = useState({});
 
   useEffect(() => {
     // Handle OAuth callback params — works for all providers
@@ -227,11 +229,35 @@ const HRISPage = () => {
       window.history.replaceState({}, '', window.location.pathname);
     }
     fetchAll();
+    checkOAuthProviders();
     subscriptionAPI.get()
       .then(r => setSub(r.data))
       .catch(() => setSub(null))
       .finally(() => setSubLoading(false));
   }, []);
+
+  // Silently probe which OAuth providers have env vars configured on Railway
+  const checkOAuthProviders = async () => {
+    const BASE = import.meta.env.VITE_API_URL || '/api';
+    const tok  = localStorage.getItem('thankeeu_company_token') || '';
+    const oauthProviders = PROVIDERS.filter(p => p.useOAuth);
+    const results = {};
+    await Promise.all(oauthProviders.map(async (p) => {
+      try {
+        // Send a probe with a dummy subdomain — we only care about the 503 vs 200/400
+        const qs = p.needsSubdomain ? '?subdomain=probe' : '';
+        const r  = await fetch(`${BASE}/hris/${p.id}/init${qs}`, {
+          headers: { Authorization: `Bearer ${tok}` }
+        });
+        const d = await r.json().catch(() => ({}));
+        // 503 + coming_soon = not configured; 200 or 400 (subdomain_required) = configured
+        results[p.id] = !(d.coming_soon);
+      } catch {
+        results[p.id] = false;
+      }
+    }));
+    setOauthReady(results);
+  };
 
   const fetchAll = async () => {
     try {
@@ -556,8 +582,8 @@ const HRISPage = () => {
                           {p.oauthNote && (
                             <p className="text-sm text-warm-600">{p.oauthNote}</p>
                           )}
-                          {/* BambooHR needs subdomain before we can build the OAuth URL */}
-                          {p.needsSubdomain && (
+                          {/* BambooHR needs subdomain — only show if OAuth is active */}
+                          {p.needsSubdomain && oauthReady[p.id] !== false && (
                             <div className="text-left">
                               <label className="block text-xs font-semibold text-warm-700 mb-1">
                                 Company Subdomain *
@@ -575,28 +601,52 @@ const HRISPage = () => {
                               )}
                             </div>
                           )}
-                          <button type="button"
-                            onClick={async () => {
-                              if (p.needsSubdomain && !subdomain.trim()) {
-                                toast.error('Please enter your BambooHR subdomain first');
-                                return;
-                              }
-                              try {
-                                const BASE = import.meta.env.VITE_API_URL || '/api';
-                                const tok  = localStorage.getItem('thankeeu_company_token') || '';
-                                const qs   = p.needsSubdomain ? `?subdomain=${encodeURIComponent(subdomain.trim())}` : '';
-                                const r    = await fetch(`${BASE}/hris/${p.id}/init${qs}`, {
-                                  headers: { Authorization: `Bearer ${tok}` }
-                                });
-                                const d = await r.json();
-                                if (!r.ok) { toast.error(d.error || `Could not start ${p.name} connection`); return; }
-                                window.location.href = d.url;
-                              } catch(e) { toast.error(`Could not start ${p.name} connection: ` + e.message); }
-                            }}
-                            className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 bg-primary-600">
-                            {p.logo} Connect with {p.name} →
-                          </button>
-                          <p className="text-xs text-warm-400">You will be redirected to {p.name} to approve access and brought back automatically. No keys to copy.</p>
+                          {oauthReady[p.id] === false ? (
+                            /* Not yet activated on Railway — show coming soon */
+                            <div className="flex flex-col items-center gap-2 py-2">
+                              <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-2xl text-xs font-bold bg-amber-50 border border-amber-200 text-amber-700">
+                                🔧 Coming Soon
+                              </span>
+                              <p className="text-xs text-warm-400 text-center max-w-xs">
+                                {p.name} OAuth is being set up and will be available very soon.
+                              </p>
+                            </div>
+                          ) : (
+                            <button type="button"
+                              onClick={async () => {
+                                if (p.needsSubdomain && !subdomain.trim()) {
+                                  toast.error('Please enter your BambooHR subdomain first');
+                                  return;
+                                }
+                                try {
+                                  const BASE = import.meta.env.VITE_API_URL || '/api';
+                                  const tok  = localStorage.getItem('thankeeu_company_token') || '';
+                                  const qs   = p.needsSubdomain ? `?subdomain=${encodeURIComponent(subdomain.trim())}` : '';
+                                  const r    = await fetch(`${BASE}/hris/${p.id}/init${qs}`, {
+                                    headers: { Authorization: `Bearer ${tok}` }
+                                  });
+                                  const d = await r.json();
+                                  if (!r.ok) {
+                                    if (d.coming_soon) {
+                                      toast(`${p.name} OAuth is being activated — available very soon!`, { icon: '🔧', duration: 5000 });
+                                      setOauthReady(prev => ({ ...prev, [p.id]: false }));
+                                    } else if (d.error === 'subdomain_required') {
+                                      toast.error('Please enter your BambooHR subdomain first');
+                                    } else {
+                                      toast.error(d.error || `Could not start ${p.name} connection`);
+                                    }
+                                    return;
+                                  }
+                                  window.location.href = d.url;
+                                } catch(e) { toast.error(`Could not start ${p.name} connection: ` + e.message); }
+                              }}
+                              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90 bg-primary-600">
+                              {p.logo} Connect with {p.name} →
+                            </button>
+                          )}
+                          {oauthReady[p.id] !== false && (
+                            <p className="text-xs text-warm-400">You will be redirected to {p.name} to approve access and brought back automatically. No keys to copy.</p>
+                          )}
                         </div>
                       ) : (
                     <form onSubmit={handleConnect} className="space-y-3">

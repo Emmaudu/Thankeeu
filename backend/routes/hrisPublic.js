@@ -126,8 +126,35 @@ router.get('/:provider/init', companyAuth, async (req, res) => {
 
   const clientId = cfg.clientId();
   if (!clientId) {
-    return res.status(500).json({
-      error: `${cfg.name} OAuth not configured on Thankeeu. Please contact support@thankeeu.com.`
+    const setup = {
+      zoho_people: {
+        envVars: 'ZOHO_CLIENT_ID and ZOHO_CLIENT_SECRET',
+        steps: 'Go to api-console.zoho.com → Add Client → Server-based Applications → set redirect URI to https://thankeeu-production.up.railway.app/api/hris/zoho_people/callback → copy Client ID and Secret into Railway env vars',
+      },
+      bamboohr: {
+        envVars: 'BAMBOOHR_CLIENT_ID and BAMBOOHR_CLIENT_SECRET',
+        steps: 'Go to developers.bamboohr.com → Create Application → set redirect URI to https://thankeeu-production.up.railway.app/api/hris/bamboohr/callback → copy Client ID and Secret into Railway env vars',
+      },
+      rippling: {
+        envVars: 'RIPPLING_CLIENT_ID, RIPPLING_CLIENT_SECRET and RIPPLING_APP_NAME',
+        steps: 'Go to developer.rippling.com → Create App → OAuth2 → set redirect URI to https://thankeeu-production.up.railway.app/api/hris/rippling/callback → copy credentials into Railway env vars',
+      },
+      gusto: {
+        envVars: 'GUSTO_CLIENT_ID and GUSTO_CLIENT_SECRET',
+        steps: 'Go to dev.gusto.com → Create Application → set redirect URI to https://thankeeu-production.up.railway.app/api/hris/gusto/callback → copy Client ID and Secret into Railway env vars',
+      },
+      deel: {
+        envVars: 'DEEL_CLIENT_ID and DEEL_CLIENT_SECRET',
+        steps: 'Go to developer.deel.com → Create OAuth App → set redirect URI to https://thankeeu-production.up.railway.app/api/hris/deel/callback → copy Client ID and Secret into Railway env vars',
+      },
+    };
+    const info = setup[provider] || { envVars: `${provider.toUpperCase()}_CLIENT_ID and ${provider.toUpperCase()}_CLIENT_SECRET`, steps: 'Register Thankeeu as an OAuth app on the provider developer portal and add credentials to Railway env vars.' };
+    console.error(`[oauth][${provider}] env vars not set — ${info.envVars} missing from Railway`);
+    return res.status(503).json({
+      error: `${cfg.name} OAuth not yet activated`,
+      message: `To enable ${cfg.name} OAuth, add these Railway environment variables: ${info.envVars}`,
+      setup_steps: info.steps,
+      coming_soon: true,
     });
   }
 

@@ -468,7 +468,7 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
   // same company (and department if scope requires it), excluding the celebrant
   let colleagueQuery = supabase.from('company_members')
     .select('email, first_name').eq('company_id', ot.company_id)
-    .eq('status', 'approved').neq('id', m.id);
+    .in('status', ['approved', 'active']).neq('id', m.id);
 
   if (ot.default_scope === 'department' || ot.default_scope === 'pending_approval') {
     colleagueQuery = colleagueQuery.eq('department', m.department);

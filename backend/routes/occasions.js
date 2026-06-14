@@ -56,23 +56,46 @@ router.put('/types/:occasionTypeId/scope',   companyAuth, updateOccasionTypeScop
 
 // ── Company-level occasion scopes (stored by name string, not UUID) ───────────
 // GET  /api/occasions/scopes    → { birthday: 'department', fathers_day: 'company', ... }
-// PUT  /api/occasions/scopes    → body: { birthday: 'company' }
+// PUT  /api/occasions/scopes    → body: { birthday: 'company_wide' }
 router.get('/scopes', companyAuth, async (req, res) => {
   try {
-    const { data } = await require('../utils/supabase')
-      .from('companies').select('occasion_scopes').eq('id', req.company.id).single();
-    res.json(data?.occasion_scopes || {});
+    const supabase = require('../utils/supabase');
+    // Read directly from occasion_types so the UI always reflects what the cron sees
+    const { data: ots } = await supabase
+      .from('occasion_types')
+      .select('name, default_scope')
+      .eq('company_id', req.company.id);
+    const scopes = {};
+    for (const ot of (ots || [])) scopes[ot.name] = ot.default_scope || 'department';
+    res.json(scopes);
   } catch { res.json({}); }
 });
 
 router.put('/scopes', companyAuth, async (req, res) => {
   try {
     const supabase = require('../utils/supabase');
+    // req.body = { birthday: 'company_wide', work_anniversary: 'department', ... }
+    // Update BOTH occasion_types.default_scope (used by cron) AND
+    // companies.occasion_scopes (legacy JSON cache — kept for backward compat)
+    const updates = req.body;
+    const names   = Object.keys(updates);
+
+    if (names.length === 0) return res.json({ ok: true });
+
+    // Update each occasion_type row that belongs to this company
+    await Promise.all(names.map(name =>
+      supabase.from('occasion_types')
+        .update({ default_scope: updates[name], updated_at: new Date() })
+        .eq('company_id', req.company.id)
+        .eq('name', name)
+    ));
+
+    // Also keep companies.occasion_scopes in sync for any code still reading it
     const { data: existing } = await supabase
       .from('companies').select('occasion_scopes').eq('id', req.company.id).single();
-    const merged = { ...(existing?.occasion_scopes || {}), ...req.body };
-    await supabase.from('companies')
-      .update({ occasion_scopes: merged }).eq('id', req.company.id);
+    const merged = { ...(existing?.occasion_scopes || {}), ...updates };
+    await supabase.from('companies').update({ occasion_scopes: merged }).eq('id', req.company.id);
+
     res.json({ ok: true, scopes: merged });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

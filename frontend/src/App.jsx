@@ -63,6 +63,7 @@ import BlogConfirmSubscription from './pages/BlogConfirmSubscription';
 import BlogUnsubscribe          from './pages/BlogUnsubscribe';
 import PaymentCallback from './pages/PaymentCallback';
 import CardFeeVerify  from './pages/CardFeeVerify';
+import SampleCard from './pages/SampleCard';
 import NotFound         from './pages/NotFound';
 import BirthdayPage    from './pages/occasions/Birthday';
 import FarewellPage    from './pages/occasions/Farewell';
@@ -232,6 +233,7 @@ const App = () => (
             <Route path="/verify-email"  element={<VerifyEmail />} />
 
             {/* ── Card view — requires auth, preserves token for recipient links ── */}
+            <Route path="/sample" element={<SampleCard />} />
             <Route path="/card/:slug"    element={<CardViewGate />} />
 
             {/* ── Individual auth ─────────────────────────── */}

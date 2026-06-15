@@ -54,16 +54,64 @@ export default function CoreTeamPage() {
     finally { setInviting(false); }
   };
 
+  // Known core-team field names — used to normalize header variations like
+  // "Email", " email ", "Full Name", "full_name" all to the same key.
+  const FIELD_ALIASES = {
+    email: 'email', 'e-mail': 'email', mail: 'email',
+    fullname: 'full_name', full_name: 'full_name', name: 'full_name',
+    title: 'title', jobtitle: 'title', role: 'title', position: 'title',
+    permissionlevel: 'permission_level', permission_level: 'permission_level',
+    permission: 'permission_level', access: 'permission_level',
+  };
+
+  function normalizeHeader(h) {
+    const cleaned = h.replace(/^\uFEFF/, '').trim().toLowerCase().replace(/[\s_-]+/g, '');
+    return FIELD_ALIASES[cleaned] || h.trim().toLowerCase().replace(/\s+/g, '_');
+  }
+
+  // Minimal CSV line splitter — handles double-quoted fields that may
+  // contain commas (e.g. "Adeyemi, John") and escaped "" quotes.
+  function splitCsvLine(line) {
+    const out = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { cur += ch; }
+      } else {
+        if (ch === '"') inQuotes = true;
+        else if (ch === ',') { out.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
   const bulkInvite = async () => {
     if (!bulkText.trim()) return toast.error('Paste CSV data first');
     setSending(true);
     try {
-      const lines   = bulkText.split('\n').map(l=>l.trim()).filter(l=>l && !l.startsWith('#'));
-      const headers = lines[0].split(',').map(h=>h.trim());
+      // Strip a leading BOM (common when copy-pasting from Excel-exported
+      // CSVs) and normalize Windows-style CRLF line endings.
+      const cleanText = bulkText.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+      const lines   = cleanText.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+      if (!lines.length) return toast.error('No data found — paste CSV rows including a header row');
+
+      const headers = splitCsvLine(lines[0]).map(normalizeHeader);
+      if (!headers.includes('email')) {
+        return toast.error('CSV must include an "email" column in the header row');
+      }
+
       const members = lines.slice(1).map(line => {
-        const vals = line.split(',');
-        return Object.fromEntries(headers.map((h,i) => [h, vals[i]?.trim()||'']));
+        const vals = splitCsvLine(line);
+        return Object.fromEntries(headers.map((h, i) => [h, (vals[i] ?? '').trim()]));
       }).filter(m => m.email);
+
+      if (!members.length) return toast.error('No valid rows found — each row needs an email address');
 
       const r = await fetch(`${BASE}/core-team/bulk-invite`, {
         method:'POST', headers: hdr(), body: JSON.stringify({ members })

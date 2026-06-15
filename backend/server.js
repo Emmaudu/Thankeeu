@@ -65,44 +65,6 @@ app.use(cors({
   credentials: true
 }));
 
-// Rate limiting
-// ── Tiered rate limiting ──────────────────────────────────────────────────
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 200,
-  standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many requests. Please try again later.' },
-});
-const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 5,  // 5 attempts per hour
-  skipSuccessfulRequests: true,
-  standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many sign-in attempts. Please wait 1 hour and try again.' },
-});
-const demoLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 5,
-  message: { error: 'Too many demo requests from this IP. Please try again later.' },
-});
-app.use('/api/', generalLimiter);
-app.use('/api/auth/login',           authLimiter);
-app.use('/api/auth/signup',          authLimiter);
-app.use('/api/company/login',        authLimiter);
-app.use('/api/members/login',        authLimiter);
-app.use('/api/members/signup',       authLimiter);
-app.use('/api/pals/signup',           authLimiter);
-app.use('/api/pals/login',            authLimiter);
-app.use('/api/auth/forgot-password',        authLimiter);
-app.use('/api/auth/reset-password',         authLimiter);
-app.use('/api/company/signup',              authLimiter);
-app.use('/api/company/forgot-password',     authLimiter);
-app.use('/api/auth/send-code',              authLimiter);
-app.use('/api/auth/verify-code',            authLimiter);
-app.use('/api/members/forgot-password',     authLimiter);
-app.use('/api/members/reset-password',      authLimiter);
-app.use('/api/vendor/login',                authLimiter);
-app.use('/api/vendor/signup',               authLimiter);
-app.use('/api/pals/forgot-password',        authLimiter);
-app.use('/api/demo/request',         demoLimiter);
-
 // Query-string sanitisation
 app.use((req, _res, next) => {
   if (req.query) {
@@ -134,6 +96,61 @@ const _startupFE = (() => {
 })();
 console.log('✓ FRONTEND_URL resolved to:', _startupFE);
 app.use(express.urlencoded({ extended: true }));
+
+// ── Tiered rate limiting ──────────────────────────────────────────────────
+// Placed after body-parsing so authLimiter's keyGenerator can read
+// req.body.email (POST bodies aren't available to middleware mounted
+// before express.json()/express.urlencoded()).
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 200,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+});
+
+// Key auth attempts by (IP + email) rather than IP alone. Without this,
+// express-rate-limit's default IP-based key means one account being
+// hammered with bad passwords from a shared IP (office network, mobile
+// carrier NAT, VPN) locks out every OTHER account on that same IP too.
+// Falling back to IP alone when no email is present in the body keeps
+// non-credential endpoints (if ever added to this limiter) protected.
+const authKeyGenerator = (req) => {
+  const email = (req.body && typeof req.body.email === 'string')
+    ? req.body.email.trim().toLowerCase()
+    : '';
+  return email ? `${req.ip}:${email}` : req.ip;
+};
+
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 5,  // 5 attempts per hour per IP+email
+  skipSuccessfulRequests: true,
+  standardHeaders: true, legacyHeaders: false,
+  keyGenerator: authKeyGenerator,
+  message: { error: 'Too many sign-in attempts. Please wait 1 hour and try again.' },
+});
+const demoLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 5,
+  message: { error: 'Too many demo requests from this IP. Please try again later.' },
+});
+app.use('/api/', generalLimiter);
+app.use('/api/auth/login',           authLimiter);
+app.use('/api/auth/signup',          authLimiter);
+app.use('/api/company/login',        authLimiter);
+app.use('/api/members/login',        authLimiter);
+app.use('/api/members/signup',       authLimiter);
+app.use('/api/pals/signup',           authLimiter);
+app.use('/api/pals/login',            authLimiter);
+app.use('/api/auth/forgot-password',        authLimiter);
+app.use('/api/auth/reset-password',         authLimiter);
+app.use('/api/company/signup',              authLimiter);
+app.use('/api/company/forgot-password',     authLimiter);
+app.use('/api/auth/send-code',              authLimiter);
+app.use('/api/auth/verify-code',            authLimiter);
+app.use('/api/members/forgot-password',     authLimiter);
+app.use('/api/members/reset-password',      authLimiter);
+app.use('/api/vendor/login',                authLimiter);
+app.use('/api/vendor/signup',               authLimiter);
+app.use('/api/pals/forgot-password',        authLimiter);
+app.use('/api/demo/request',         demoLimiter);
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

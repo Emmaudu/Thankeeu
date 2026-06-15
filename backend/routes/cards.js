@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const supabase = require('../utils/supabase');
 const { auth, anyAuth } = require('../middleware/auth');
 const { companyAuth } = require('../middleware/companyAuth');
 const { memberAuth } = require('../middleware/memberAuth');
@@ -20,7 +21,6 @@ const flexUserAuth = async (req, res, next) => {
   if (!token) return res.status(401).json({ error: 'No token provided' });
   try {
     const jwt = require('jsonwebtoken');
-    const supabase = require('../utils/supabase');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (decoded.type === 'company') {
@@ -89,49 +89,80 @@ router.post('/:slug/notify-signers', companyAuth, async (req, res) => {
     const { slug } = req.params;
     const { scope, department } = req.body; // scope: 'all' | 'department'
 
-    const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).single();
-    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const { data: card, error: cardErr } = await supabase
+      .from('cards').select('*').eq('slug', slug).maybeSingle();
+    if (cardErr) throw new Error(`Card query: ${cardErr.message}`);
+    if (!card)   return res.status(404).json({ error: 'Card not found' });
 
-    // Get members to notify
-    const supabaseClient = require('../utils/supabase');
-    let query = supabaseClient.from('company_members')
-      .select('email, first_name, id').eq('company_id', req.company.id).eq('status', 'approved');
+    // Verify this card belongs to this company
+    if (card.company_id !== req.company.id)
+      return res.status(403).json({ error: 'Card does not belong to your company' });
+
+    // Get members to notify — approved + active, exclude the card recipient
+    let query = supabase.from('company_members')
+      .select('email, first_name, id')
+      .eq('company_id', req.company.id)
+      .in('status', ['approved', 'active']);
     if (scope === 'department' && department) query = query.eq('department', department);
-    const { data: members } = await query;
+    const { data: members, error: membersErr } = await query;
+    if (membersErr) throw new Error(`Members query: ${membersErr.message}`);
 
-    const { sendEmail } = require('../utils/email');
-    const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
+    const { sendEmail }   = require('../utils/email');
+    const { logActivity } = require('../utils/activityLog');
     let sent = 0;
+
     for (const m of (members || [])) {
-      if (m.email === card.recipient_email) continue;
-      await sendEmail({ to: m.email, template: 'occasionNotice', data: {
-        icon: '💌',
-        occasionLabel: card.occasion?.replace(/_/g,' ') || 'occasion',
-        memberName: card.recipient_name,
-        memberFirstName: card.recipient_name?.split(' ')[0] || 'them',
-        department: department || 'the team',
-        companyName: req.company.name,
-        cardSlug: slug,
-        giftEnabled: card.is_gift_enabled,
-        occasionDate: card.send_date ? new Date(card.send_date).toLocaleDateString('en-NG', {day:'numeric',month:'long',year:'numeric'}) : 'soon',
-        daysLeft: 7,
-        deadline: card.deadline ? new Date(card.deadline).toLocaleDateString('en-NG', {day:'numeric',month:'long'}) : 'soon',
-      }}).catch(() => {});
+      if (!m.email) continue;
+      // Skip the recipient — they should not see the card early
+      if (card.recipient_email &&
+          m.email.toLowerCase() === card.recipient_email.toLowerCase()) continue;
+
+      await sendEmail({
+        to: m.email,
+        template: 'occasionNotice',
+        data: {
+          icon:            '💌',
+          occasionLabel:   card.occasion?.replace(/_/g, ' ') || 'occasion',
+          memberName:      card.recipient_name,
+          memberFirstName: card.recipient_name?.split(' ')[0] || 'them',
+          department:      department || 'the team',
+          companyName:     req.company.name,
+          cardSlug:        slug,
+          giftEnabled:     card.is_gift_enabled,
+          occasionDate:    card.send_date
+            ? new Date(card.send_date).toLocaleDateString('en-NG', { day: 'numeric', month: 'long', year: 'numeric' })
+            : 'soon',
+          daysLeft: card.deadline
+            ? Math.max(1, Math.round((new Date(card.deadline) - Date.now()) / 86400000))
+            : 7,
+          deadline: card.deadline
+            ? new Date(card.deadline).toLocaleDateString('en-NG', { day: 'numeric', month: 'long' })
+            : 'soon',
+        },
+      }).catch(e => console.error(`[notify-signers] email failed for ${m.email}:`, e.message));
       sent++;
     }
 
-    const { logActivity } = require('../utils/activityLog');
-    await logActivity({ company_id: req.company.id, actor_id: req.company.id,
-      actor_type: 'hr', actor_name: req.company.name,
-      action: 'notified_signers', entity_type: 'card', entity_id: card.id,
+    await logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name,
+      action:      'notified_signers',
+      entity_type: 'card',
+      entity_id:   card.id,
       entity_name: card.title || `For ${card.recipient_name}`,
-      details: { scope, department, sent }
+      details:     { scope, department: department || null, sent },
     }).catch(() => {});
 
-    res.json({ message: `Notified ${sent} team member${sent !== 1 ? 's' : ''} to sign the card.`, sent });
+    res.json({
+      message: `Notified ${sent} team member${sent !== 1 ? 's' : ''} to sign the card.`,
+      sent,
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to send notifications' });
+    console.error('[notify-signers] error:', err.message);
+    res.status(500).json({ error: `Failed to send notifications: ${err.message}` });
   }
-});
+});;
 
 module.exports = router;

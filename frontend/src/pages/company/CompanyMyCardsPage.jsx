@@ -195,7 +195,7 @@ export default function CompanyMyCardsPage() {
           {cards.map(card => (
             <CardRow key={card.id} card={card} onCopySigningLink={copySigningLink} onCopyViewLink={copyViewLink}
               onTransfer={tab === 'my' ? (c) => { setTransferCard(c); loadMembers(); } : null}
-              onNotify={tab === 'my' ? (c) => setNotifyCard(c) : null} />
+              onNotify={tab === 'my' ? (c) => { setNotifyCard(c); loadDepts(); } : null} />
           ))}
         </div>
       )}

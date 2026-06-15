@@ -18,7 +18,7 @@ const statusColor = {
   sent: 'bg-green-50 text-green-700',
 };
 
-const CardRow = ({ card, onCopyLink, onTransfer, onNotify }) => (
+const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify }) => (
   <div className="bg-white rounded-2xl border border-purple-100 p-4 hover:shadow-sm transition-shadow">
     <div className="flex flex-col gap-3">
       {/* Card info */}

@@ -23,6 +23,21 @@ const CALLI_FONTS = [
   'font-allura','font-courgette',
 ];
 
+// Ornate scripts need more size + line-height to stay readable in a full
+// paragraph; rounder/simpler scripts work fine closer to body size.
+const MSG_FONT_STYLE = {
+  'font-dancing':   { fontSize:'1.15rem', lineHeight:'1.8' },
+  'font-vibes':     { fontSize:'1.35rem', lineHeight:'1.9' },
+  'font-pacifico':  { fontSize:'1.05rem', lineHeight:'1.85' },
+  'font-satisfy':   { fontSize:'1.1rem',  lineHeight:'1.8' },
+  'font-pinyon':    { fontSize:'1.4rem',  lineHeight:'1.9' },
+  'font-sacramento':{ fontSize:'1.3rem',  lineHeight:'1.9' },
+  'font-kaushan':   { fontSize:'1.05rem', lineHeight:'1.85' },
+  'font-alex':      { fontSize:'1.35rem', lineHeight:'1.9' },
+  'font-allura':    { fontSize:'1.35rem', lineHeight:'1.9' },
+  'font-courgette': { fontSize:'1.05rem', lineHeight:'1.8' },
+};
+
 // ── Real Unsplash people photos ───────────────────────────────────────────────
 const AVATARS = [
   'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=120&h=120&fit=crop&crop=face',
@@ -388,7 +403,7 @@ function SignerCard({ signer, index }) {
 
       {/* Message */}
       <div className="relative">
-        <p className="text-sm text-warm-700 leading-relaxed">
+        <p className={`text-warm-700 ${signer.font}`} style={MSG_FONT_STYLE[signer.font]}>
           {expanded ? signer.msg : preview}
         </p>
         {isLong && (

@@ -745,20 +745,12 @@ const approveCardScope = async (req, res) => {
 // ── HR: get company's own created cards ────────────────────────────────────
 const getCompanyCards = async (req, res) => {
   try {
-    // Fetch all cards associated with this company:
-    // 1. Cards created by the HR account (company_id matches)
-    // 2. Cards created by company members (created_by_member_id → company_members.company_id)
-    const { data: byCompany } = await supabase.from('cards')
+    const { data } = await supabase.from('cards')
       .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, design_theme, notification_scope, scope_approved_at, department')
       .eq('company_id', req.company.id)
       .order('created_at', { ascending: false });
-
-    console.log(`[company-cards] company ${req.company.id} → found ${byCompany?.length || 0} cards`);
-    res.json(byCompany || []);
-  } catch (err) {
-    console.error('[company-cards] error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch cards' });
-  }
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to fetch cards' }); }
 };
 
 // ── HR: get delivered cards (status=sent) ─────────────────────────────────
@@ -772,56 +764,21 @@ const getCompanyDeliveredCards = async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Failed to fetch delivered cards' }); }
 };
 
-// ── HR: get received cards — cards sent TO employees of this company ────────
+// ── HR: get received cards (transferred to HR company) ─────────────────────
 const getCompanyReceivedCards = async (req, res) => {
   try {
-    // 1. Cards received via explicit transfer
     const { data: transfers } = await supabase.from('received_cards')
-      .select('card_id')
+      .select('card_id, created_at')
       .eq('recipient_user_id', req.company.id)
-      .eq('recipient_type', 'company');
-
-    // 2. Cards where recipient_email matches any company member
-    const { data: members } = await supabase.from('company_members')
-      .select('email')
-      .eq('company_id', req.company.id)
-      .in('status', ['approved', 'active']);
-
-    const memberEmails = (members || []).map(m => m.email).filter(Boolean);
-    const transferIds  = (transfers || []).map(t => t.card_id);
-
-    // Fetch cards for member emails
-    let byEmail = [];
-    if (memberEmails.length) {
-      const { data } = await supabase.from('cards')
-        .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date')
-        .in('recipient_email', memberEmails)
-        .order('created_at', { ascending: false });
-      byEmail = data || [];
-    }
-
-    // Fetch transferred cards
-    let byTransfer = [];
-    if (transferIds.length) {
-      const { data } = await supabase.from('cards')
-        .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date')
-        .in('id', transferIds)
-        .order('created_at', { ascending: false });
-      byTransfer = data || [];
-    }
-
-    // Merge, deduplicate by id
-    const seen = new Set();
-    const all  = [...byEmail, ...byTransfer].filter(c => {
-      if (seen.has(c.id)) return false;
-      seen.add(c.id); return true;
-    });
-
-    res.json(all);
-  } catch (err) {
-    console.error('[company-received] error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch received cards' });
-  }
+      .eq('recipient_type', 'company')
+      .order('created_at', { ascending: false });
+    const ids = (transfers || []).map(t => t.card_id);
+    if (!ids.length) return res.json([]);
+    const { data } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at')
+      .in('id', ids);
+    res.json(data || []);
+  } catch (err) { res.status(500).json({ error: 'Failed to fetch received cards' }); }
 };
 
 // ── HR: transfer card to a team member ────────────────────────────────────

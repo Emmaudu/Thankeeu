@@ -85,7 +85,7 @@ const ADAPTERS = {
     email:            (emp.workEmail   || emp.email      || '').toLowerCase().trim(),
     department:       emp.department   || emp.Division   || 'General',
     job_title:        emp.jobTitle     || emp.position   || emp.job_title || '',
-    role:             isLeaderTitle(emp.jobTitle || emp.position) ? 'team_leader' : 'member',
+    role:             isLeaderTitle(emp.jobTitle || emp.position) ? 'team_leader' : 'team_member',
     gender:           normalizeGender(emp.gender),
     birthday:         normalizeDate(emp.dateOfBirth || emp.dob),
     hire_date:        normalizeDate(emp.hireDate    || emp.startDate || emp.hire_date),
@@ -114,7 +114,7 @@ const ADAPTERS = {
     email:            (emp.work_email || emp.email || emp.workEmail || '').toLowerCase().trim(),
     department:       emp.department  || emp.branch      || 'General',
     job_title:        emp.position    || emp.job_title   || emp.jobTitle || emp.job_grade || '',
-    role:             isLeaderTitle(emp.position || emp.job_title) ? 'team_leader' : 'member',
+    role:             isLeaderTitle(emp.position || emp.job_title) ? 'team_leader' : 'team_member',
     gender:           normalizeGender(emp.gender || emp.sex),
     birthday:         normalizeDate(emp.date_of_birth || emp.dateOfBirth || emp.dob),
     hire_date:        normalizeDate(emp.employment_date || emp.hireDate || emp.hire_date || emp.resumption_date),
@@ -144,7 +144,7 @@ const ADAPTERS = {
     email:            (emp.email || emp.defaultEmail || emp.workEmail || '').toLowerCase().trim(),
     department:       emp.department  || emp.Division   || 'General',
     job_title:        emp.title       || emp.jobTitle   || emp.position || '',
-    role:             isLeaderTitle(emp.title || emp.jobTitle) ? 'team_leader' : 'member',
+    role:             isLeaderTitle(emp.title || emp.jobTitle) ? 'team_leader' : 'team_member',
     gender:           normalizeGender(emp.gender === 'M' ? 'male' : emp.gender === 'F' ? 'female' : emp.gender),
     birthday:         normalizeDate(emp.dateOfBirth || emp.dob),
     hire_date:        normalizeDate(emp.startDate || emp.hireDate || emp.originalStartDate),
@@ -187,7 +187,7 @@ const ADAPTERS = {
       email:            String(pick('EmailID') || '').toLowerCase().trim(),
       department:       pick('Department') || 'General',
       job_title:        jobTitle,
-      role:             isLeaderTitle(designation) ? 'team_leader' : 'member',
+      role:             isLeaderTitle(designation) ? 'team_leader' : 'team_member',
       gender:           normalizeGender(pick('Gender')),
       birthday:         normalizeDate(pick('Date_of_birth')),
       hire_date:        normalizeDate(pick('Dateofjoining')),
@@ -215,7 +215,7 @@ const ADAPTERS = {
     email:            (emp.work_email || emp.email || emp.personal_email || '').toLowerCase().trim(),
     department:       (emp.department?.name || emp.department || emp.team || 'General'),
     job_title:        emp.job_title   || emp.title      || emp.position || '',
-    role:             isLeaderTitle(emp.job_title || emp.title) ? 'team_leader' : 'member',
+    role:             isLeaderTitle(emp.job_title || emp.title) ? 'team_leader' : 'team_member',
     gender:           normalizeGender(emp.gender || emp.sex),
     birthday:         normalizeDate(emp.date_of_birth || emp.dob || emp.birthday),
     hire_date:        normalizeDate(emp.date_of_joining || emp.hire_date || emp.start_date || emp.employment_date),
@@ -243,7 +243,7 @@ const ADAPTERS = {
     email:            (emp.workEmail  || emp.email || emp.personalEmail || '').toLowerCase().trim(),
     department:       emp.department?.name || emp.department || emp.team?.name || 'General',
     job_title:        emp.role        || emp.jobTitle   || emp.title || emp.position || '',
-    role:             isLeaderTitle(emp.role || emp.jobTitle || emp.title) ? 'team_leader' : 'member',
+    role:             isLeaderTitle(emp.role || emp.jobTitle || emp.title) ? 'team_leader' : 'team_member',
     gender:           normalizeGender(emp.gender),
     birthday:         normalizeDate(emp.birthday || emp.dateOfBirth || emp.dob),
     hire_date:        normalizeDate(emp.startDate || emp.hireDate   || emp.start_date),
@@ -284,7 +284,7 @@ const ADAPTERS = {
                       || emails[0]?.emailUri || worker.email || '').toLowerCase().trim(),
       department:       deptName,
       job_title:        jobCode.longName   || assignments.jobTitle || worker.jobTitle || '',
-      role:             isLeaderTitle(jobCode.longName || assignments.jobTitle) ? 'team_leader' : 'member',
+      role:             isLeaderTitle(jobCode.longName || assignments.jobTitle) ? 'team_leader' : 'team_member',
       gender:           normalizeGender(person.genderCode?.codeValue || person.gender),
       birthday:         normalizeDate(person.birthDate || person.dateOfBirth),
       hire_date:        normalizeDate(dates.originalHireDate || dates.hireDate || worker.hireDate),
@@ -313,7 +313,7 @@ const ADAPTERS = {
     email:            (emp.email || emp.work_email || emp.personal_email || '').toLowerCase().trim(),
     department:       emp.department?.title || emp.department || 'General',
     job_title:        emp.job_title   || emp.title     || emp.jobTitle || '',
-    role:             isLeaderTitle(emp.job_title || emp.title) ? 'team_leader' : 'member',
+    role:             isLeaderTitle(emp.job_title || emp.title) ? 'team_leader' : 'team_member',
     gender:           normalizeGender(emp.gender === 'M' ? 'male' : emp.gender === 'F' ? 'female' : emp.gender),
     birthday:         normalizeDate(emp.date_of_birth  || emp.dateOfBirth  || emp.dob),
     hire_date:        normalizeDate(emp.start_date     || emp.hireDate     || emp.hire_date),
@@ -343,7 +343,7 @@ const ADAPTERS = {
       email:            (profile.email    || emp.email     || '').toLowerCase().trim(),
       department:       job.department    || emp.department || 'General',
       job_title:        job.title         || emp.jobTitle  || emp.job_title  || '',
-      role:             isLeaderTitle(job.title || emp.jobTitle) ? 'team_leader' : 'member',
+      role:             isLeaderTitle(job.title || emp.jobTitle) ? 'team_leader' : 'team_member',
       gender:           normalizeGender(profile.gender || emp.gender),
       birthday:         normalizeDate(profile.dateOfBirth || emp.dateOfBirth || emp.date_of_birth),
       hire_date:        normalizeDate(contract.startDate  || emp.startDate  || emp.start_date),
@@ -379,7 +379,7 @@ const ADAPTERS = {
       email:            (work.email   || personal.email || emp.email || '').toLowerCase().trim(),
       department:       work.department || 'General',
       job_title:        work.title    || work.jobTitle  || emp.jobTitle || '',
-      role:             isLeaderTitle(work.title || work.jobTitle) ? 'team_leader' : 'member',
+      role:             isLeaderTitle(work.title || work.jobTitle) ? 'team_leader' : 'team_member',
       gender:           normalizeGender(personal.gender || emp.gender),
       birthday:         normalizeDate(personal.dateOfBirth || personal.dob || emp.dob),
       hire_date:        normalizeDate(work.startDate   || emp.startDate || emp.hireDate),
@@ -423,7 +423,7 @@ const ADAPTERS = {
       email:            String(v('email')       || '').toLowerCase().trim(),
       department:       dept,
       job_title:        jobTitle,
-      role:             isLeaderTitle(jobTitle) ? 'team_leader' : 'member',
+      role:             isLeaderTitle(jobTitle) ? 'team_leader' : 'team_member',
       gender:           normalizeGender(v('gender')),
       birthday:         normalizeDate(String(attrs.birth_date?.value || attrs.date_of_birth?.value || '')),
       hire_date:        normalizeDate(String(v('hire_date') || '')),
@@ -463,7 +463,7 @@ const ADAPTERS = {
       email:            email.toLowerCase().trim(),
       department:       dept,
       job_title:        title,
-      role:             isLeaderTitle(title) ? 'team_leader' : 'member',
+      role:             isLeaderTitle(title) ? 'team_leader' : 'team_member',
       gender:           normalizeGender(gender === 'M' ? 'male' : gender === 'F' ? 'female' : gender),
       birthday:         normalizeDate(worker.DateOfBirth || worker.dateOfBirth),
       hire_date:        normalizeDate(worker.HireDate    || worker.hireDate    || worker.StartDate),
@@ -907,7 +907,7 @@ async function syncEmployeesToOccasionTables(companyId, employees, _occasionType
         date_of_birth:   emp.birthday || null,
         resumption_date: emp.hire_date || null,
         phone:           emp.phone || null,
-        role:            emp.role || 'member',
+        role:            emp.role || 'team_member',
         // Farewell/Promotion dates — company_members (Team Members page) is the
         // single source of truth for automation, so HRIS writes these directly
         // here too (fill-gaps-only, same as every other field below).
@@ -948,9 +948,9 @@ async function syncEmployeesToOccasionTables(companyId, employees, _occasionType
         .upsert(cmRowToUpsert, { onConflict: 'company_id,email' });
 
       // If the upsert fails specifically on the role column for any reason,
-      // retry with the safe default 'member' rather than failing the whole sync.
+      // retry with the safe default 'team_member' rather than failing the whole sync.
       if (cmErr && /role/i.test(cmErr.message || '')) {
-        cmRowToUpsert.role = cmRowToUpsert.role === 'team_leader' ? 'team_leader' : 'member';
+        cmRowToUpsert.role = cmRowToUpsert.role === 'team_leader' ? 'team_leader' : 'team_member';
         ({ error: cmErr } = await supabase.from('company_members')
           .upsert(cmRowToUpsert, { onConflict: 'company_id,email' }));
       }

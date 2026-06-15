@@ -300,7 +300,7 @@ describe('Page-level SEO coverage', () => {
   });
 
   it('private pages are in robots.txt Disallow list', () => {
-    const DISALLOWED = ['/dashboard', '/admin', '/company/dashboard', '/member/dashboard', '/create'];
+    const DISALLOWED = ['/dashboard', '/admin', '/company/dashboard', '/company/teams', '/member/dashboard', '/create'];
     PRIVATE_PAGES.forEach(p => expect(DISALLOWED.some(d => p.startsWith(d))).toBe(true));
   });
 

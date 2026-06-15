@@ -61,9 +61,9 @@ function validateCardCreateForm(form) {
 
 const PRICING = {
   individual: [
-    { id: 'free',   name: 'Free',       price: 0,      popular: false, credits: 0 },
-    { id: 'single', name: 'Classic',    price: 5000,   popular: true,  credits: 1 },
-    { id: 'pack5',  name: 'Pack of 5',  price: 20000,  popular: false, credits: 5 },
+    { id: 'single',   name: 'Classic',   price: 5000,  popular: false, credits: 1 },
+    { id: 'standard', name: 'Standard',  price: 9000,  popular: true,  credits: 2 },
+    { id: 'pack5',    name: 'Pack of 5', price: 19000, popular: false, credits: 5 },
   ],
   company: [
     { id: 'monthly', name: 'Monthly', price: 20000,  period: '/month', popular: false },
@@ -230,12 +230,12 @@ describe('Card create form validation', () => {
 });
 
 describe('Pricing display logic (Pricing.jsx)', () => {
-  it('individual plans: free is not popular', () => {
-    const free = PRICING.individual.find(p => p.id === 'free');
-    expect(free?.popular).toBe(false);
+  it('individual plans: classic (single) is not popular', () => {
+    const single = PRICING.individual.find(p => p.id === 'single');
+    expect(single?.popular).toBe(false);
   });
-  it('individual plans: classic (single) is popular', () => {
-    expect(getPopularPlan(PRICING.individual)?.id).toBe('single');
+  it('individual plans: standard is popular (best per-card price)', () => {
+    expect(getPopularPlan(PRICING.individual)?.id).toBe('standard');
   });
   it('company plans: yearly is popular', () => {
     expect(getPopularPlan(PRICING.company)?.id).toBe('yearly');
@@ -243,9 +243,9 @@ describe('Pricing display logic (Pricing.jsx)', () => {
   it('yearly saves ₦40,000 vs 12× monthly', () => {
     expect(getSavings(PRICING.company)).toBe(40000);
   });
-  it('pack5 per-card cost is ₦1,000', () => {
+  it('pack5 per-card cost is ₦3,800', () => {
     const pack5 = PRICING.individual.find(p => p.id === 'pack5');
-    expect(pack5?.price / pack5?.credits).toBe(1000);
+    expect(pack5?.price / pack5?.credits).toBe(3800);
   });
   it('has exactly 3 individual plans', () => {
     expect(PRICING.individual.length).toBe(3);

@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "generate-sitemap": "node scripts/generate-sitemap.js",
+    "prebuild": "node scripts/generate-sitemap.js",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

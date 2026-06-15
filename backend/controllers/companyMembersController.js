@@ -208,7 +208,11 @@ const memberSignup = async (req, res) => {
 const memberLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { data: member } = await supabase.from('company_members').select('*').eq('email', email).single();
+    if (!email || !password)
+      return res.status(400).json({ error: 'Email and password are required' });
+
+    const { data: member } = await supabase.from('company_members')
+      .select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
     if (!member) return res.status(401).json({ error: 'Invalid email or password' });
     if (member.status === 'pending') return res.status(403).json({ error: 'Your account is pending approval. You will be notified by email.' });
     if (member.status === 'rejected') return res.status(403).json({ error: 'Your account was not approved. Contact your HR.' });
@@ -471,7 +475,7 @@ const getMemberDashboard = async (req, res) => {
 const memberForgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const { data: member } = await supabase.from('company_members').select('id, first_name').eq('email', email).maybeSingle();
+    const { data: member } = await supabase.from('company_members').select('id, first_name').eq('email', (email || '').toLowerCase().trim()).maybeSingle();
     if (!member) return res.json({ message: 'If that email exists, a reset link has been sent' });
 
     const token = crypto.randomBytes(32).toString('hex');

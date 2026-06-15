@@ -3,9 +3,15 @@
 -- Countries: Nigeria, UK, US, Canada
 -- Run in Supabase SQL Editor → New Query → Run
 -- Safe to re-run: ON CONFLICT updates existing rows
+--
+-- ⚠️  DO NOT UNCOMMENT THE DELETE BELOW — it removes ALL posts with
+-- author_name = 'Thankeeu Team', including the 15 foundational posts and
+-- the 22 "Recognition & Celebration Culture" company posts, which also use
+-- that author name. For the combined set of all 77 posts, use
+-- seed_blog_posts_combined.sql instead — it coexists safely with everything.
 -- ═══════════════════════════════════════════════════════════════════════
 
-DELETE FROM blog_posts WHERE author_name = 'Thankeeu Team';
+-- DELETE FROM blog_posts WHERE author_name = 'Thankeeu Team';
 
 
 INSERT INTO blog_posts(title,slug,excerpt,content,cover_image,cover_alt,category,tags,status,is_featured,author_name,read_time,published_at,meta_title,meta_description)

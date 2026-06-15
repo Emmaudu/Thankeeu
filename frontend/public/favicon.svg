@@ -12,17 +12,13 @@
   <!-- Purple rounded square background -->
   <rect width="64" height="64" rx="15" fill="url(#bg)"/>
   <rect width="64" height="64" rx="15" fill="url(#shine)"/>
-  <!-- Envelope body -->
-  <rect x="10" y="18" width="44" height="30" rx="5" fill="white" opacity="0.92"/>
-  <!-- Envelope flap / V shape -->
-  <path d="M10 18 L32 34 L54 18Z" fill="white" opacity="0.72"/>
-  <!-- Heart seal -->
-  <path d="M32 44
-           C30 42, 26 40, 26 37.5
-           C26 35.8 27.4 35 28.7 35
-           C30 35 31.2 35.8 32 36.8
-           C32.8 35.8 34 35 35.3 35
-           C36.6 35 38 35.8 38 37.5
-           C38 40 34 42 32 44Z"
-        fill="#F43F5E"/>
+
+  <!-- Gift box icon (matches navbar/footer logo mark) -->
+  <g transform="translate(14,13)" stroke="white" stroke-width="3.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="2"  y="13" width="32" height="9"  rx="1.5"/>
+    <rect x="5"  y="22" width="26" height="16" rx="1.5"/>
+    <line x1="18" y1="13" x2="18" y2="38"/>
+    <path d="M18 13c0-4.5-3.8-7.5-7.5-7.5S5 8 8 11.5s10 1.5 10 1.5z"/>
+    <path d="M18 13c0-4.5 3.8-7.5 7.5-7.5S31 8 28 11.5s-10 1.5-10 1.5z"/>
+  </g>
 </svg>

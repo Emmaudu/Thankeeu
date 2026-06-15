@@ -357,143 +357,98 @@ const Media = ({ message, large = false }) => {
   return <MediaCarousel items={items} large={large} />;
 };
 
-const CALLI_FONTS = [
-  "'Dancing Script', cursive",
-  "'Great Vibes', cursive",
-  "'Kaushan Script', cursive",
-  "'Satisfy', cursive",
-  "'Sacramento', cursive",
-];
-
 const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }) => {
   const [reacted, setReacted] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  // font = signee's chosen writing style (elegant/calligraphy/handwritten/classic/modern)
-  const font     = getFontStyle(message.font_style);
+  const font = getFontStyle(message.font_style);
   const hasMedia = !!(message.media_url || message.media_gallery);
-  const isLong   = (message.content?.length || 0) > 220;
-  const emoji    = ['✨','🌸','💜','🎉','🌟','💫','🎂','🦋','🌈','💐'][index % 10];
-  // Author name uses a cycling calligraphic font (decorative)
-  const calliFont = CALLI_FONTS[index % CALLI_FONTS.length];
-
-  // Card background tinted by the card's design theme (soft colour)
-  const cardBg = design.soft
-    ? `linear-gradient(135deg, ${design.soft}cc 0%, #ffffff 100%)`
-    : 'linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%)';
-  const borderColor = (design.accent || '#A855F7') + '55';
+  const isLong = (message.content?.length || 0) > 140;
+  const preview = isLong ? message.content.slice(0, 140).trimEnd() + '…' : message.content;
+  const rotation = index % 3 === 0 ? '-.45deg' : index % 3 === 1 ? '.35deg' : '-.15deg';
 
   return (
     <article
-      className="rounded-3xl border-2 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col relative overflow-hidden"
-      style={{ background: cardBg, borderColor }}>
-
-      {/* Decorative quote — theme accent colour */}
-      <div className="absolute -top-1 -left-0.5 text-5xl leading-none pointer-events-none select-none font-serif opacity-20"
-        style={{ color: design.accent }}>"</div>
-
-      {/* Author row */}
-      <div className="flex items-start gap-3 p-4 pb-2 relative z-10">
-        <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-sm font-extrabold flex-shrink-0 shadow-sm"
-          style={{ background: (design.accent || '#A855F7') + '22', color: design.accent }}>
+      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border border-white/70 flex flex-col`}
+      style={{ background: design.background, color: design.ink, transform: `rotate(${rotation})` }}
+    >
+      {/* ── 1. Author row (avatar, name, date) ── */}
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2 flex-shrink-0">
+        <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold bg-white/80 shadow-sm flex-shrink-0" style={{ color: design.accent }}>
           {message.author_name?.slice(0, 2).toUpperCase() || '??'}
         </div>
-        <div className="flex-1 min-w-0">
-          {/* Author name in calligraphic font */}
-          <p className="font-bold text-base leading-tight truncate"
-            style={{ fontFamily: calliFont, color: design.ink }}>
-            {message.author_name}
-          </p>
-          <p className="text-xs opacity-60 mt-0.5" style={{ color: design.ink }}>
-            {message.created_at ? format(new Date(message.created_at), 'MMM d, yyyy') : ''}
-            {message.font_style && message.font_style !== 'modern' && (
-              <span className="ml-2">· {font.name}</span>
-            )}
-          </p>
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
-            {message.contributed_amount > 0 && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                💰 {formatNGN(message.contributed_amount)}
-              </span>
-            )}
-            {message.gift_type === 'product' && message.product_name && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-pink-50 text-pink-700 border border-pink-200">
-                🌸 {message.product_name}
-              </span>
-            )}
-            {message.media_url?.includes('.gif') && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-200">GIF</span>
-            )}
-            {message.is_private && canViewPrivate && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-500">🔒 Private</span>
-            )}
-          </div>
+        <div className="min-w-0 flex-1">
+          <p className="font-extrabold truncate text-sm" style={{ color: design.ink }}>{message.author_name}</p>
+          <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{message.created_at ? format(new Date(message.created_at), 'MMM d, yyyy') : ''}</p>
         </div>
-        <div className="text-xl opacity-30 flex-shrink-0">{emoji}</div>
+        {message.is_private && canViewPrivate && <span title="Private message" className="text-base flex-shrink-0">🔒</span>}
       </div>
 
-      {/* Media */}
+      {/* ── 2. Media full-width below author, above text (Instagram style) ── */}
       {hasMedia && (
-        <button type="button" onClick={() => onOpen(message)} className="w-full overflow-hidden max-h-48 block flex-shrink-0">
+        <button type="button" onClick={() => onOpen(message)} className="w-full block flex-shrink-0">
           <Media message={message} />
         </button>
       )}
 
-      {/* ── Message text — signee's chosen font_style renders here ── */}
-      <div className="px-4 pt-1 pb-2 relative z-10 flex-1">
-        <p style={{
-          fontFamily:  font.family,
-          color:       design.ink,
-          fontSize:    message.font_style === 'calligraphy' ? '1.4rem'
-                     : message.font_style === 'classic'     ? '1.1rem'
-                     : message.font_style === 'handwritten' ? '1.05rem'
-                     : '0.9rem',
-          lineHeight:  message.font_style === 'calligraphy' ? 1.5
-                     : message.font_style === 'handwritten' ? 1.7
-                     : 1.65,
-          wordBreak: 'break-word',
-        }}>
-          {expanded || !isLong
-            ? message.content
-            : message.content?.slice(0, 220).trimEnd() + '…'}
-        </p>
-        {isLong && (
-          <button onClick={() => setExpanded(!expanded)}
-            className="text-xs font-bold mt-1 transition-colors"
-            style={{ color: design.accent }}>
-            {expanded ? 'Show less ↑' : 'Read more →'}
-          </button>
-        )}
-        {message.is_private && !canViewPrivate && (
-          <div className="flex items-center gap-2 mt-2 text-xs rounded-xl px-3 py-2 opacity-60"
-            style={{ background: (design.accent || '#A855F7') + '15', color: design.ink }}>
-            🔒 Private — visible only to the recipient
-          </div>
-        )}
+      {/* ── 3. Text message below media — capped at 3 lines so reactions stay visible ── */}
+      <div className="px-4 pt-3 pb-1 flex-shrink-0">
+        <button type="button" onClick={() => onOpen(message)} className="text-left w-full">
+          <p
+            style={{
+              color: design.ink,
+              fontFamily: font.family,
+              fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
+              lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
+              display: '-webkit-box',
+              WebkitLineClamp: hasMedia ? 2 : 4,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              wordBreak: 'break-word',
+            }}
+          >
+            {message.content}
+          </p>
+          {isLong && (
+            <span className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2 opacity-70" style={{ color: design.accent }}>
+              see more ↗
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Reaction */}
-      <div className="px-4 pb-4 flex items-center justify-between relative z-10">
-        <button type="button"
-          onClick={async () => { if (reacted) return; setReacted(true); await onReact(message.id).catch(() => {}); }}
-          className="rounded-full px-3 py-1.5 text-xs font-bold shadow-sm border transition-colors"
-          style={{
-            background:  'rgba(255,255,255,0.85)',
-            borderColor: reacted ? '#e11d48' : (design.accent || '#A855F7') + '44',
-            color:       reacted ? '#e11d48' : design.ink,
-          }}>
+      {/* ── 4. Gift amount + reaction at bottom ── */}
+      <div className="px-4 pb-4 pt-2 flex items-center justify-between flex-shrink-0">
+        <button
+          type="button"
+          onClick={async () => {
+            if (reacted) return;
+            setReacted(true);
+            await onReact(message.id).catch(() => {});
+          }}
+          className="rounded-full bg-white/75 px-3 py-1.5 text-xs font-bold shadow-sm"
+          style={{ color: reacted ? '#e11d48' : design.ink }}
+        >
           ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
         </button>
-        {isLong && !expanded && (
-          <button type="button" onClick={() => onOpen(message)}
-            className="text-xs font-semibold opacity-50 hover:opacity-80 transition-opacity"
-            style={{ color: design.accent }}>
-            Open full ↗
-          </button>
-        )}
+        {message.gift_type === 'product' && message.product_name ? (
+          <a href={`/c/${message.product_vendor_slug || '#'}`} target="_blank" rel="noopener noreferrer"
+            className="rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center gap-1.5 hover:bg-white transition-colors"
+            title={`View ${message.product_vendor_name || 'vendor'} store`}>
+            <span className="text-sm">🎂</span>
+            <span className="text-xs font-extrabold truncate max-w-[90px]" style={{ color: design.accent }}>
+              {message.product_name}
+            </span>
+          </a>
+        ) : message.contributed_amount > 0 ? (
+          <div className="rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center gap-1.5">
+            <span className="text-xs font-bold" style={{ color: design.ink }}>🎁</span>
+            <span className="text-sm font-extrabold" style={{ color: design.accent }}>{formatNGN(message.contributed_amount)}</span>
+          </div>
+        ) : null}
       </div>
     </article>
   );
 };
+
 const TransferCardButton = ({ slug }) => {
   const [open, setOpen]           = useState(false);
   const [query, setQuery]         = useState('');
@@ -712,24 +667,6 @@ const CardView = () => {
   const layoutType = member ? 'member' : company ? 'company' : 'user';
 
   const content = (
-    <>
-    <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Kaushan+Script&family=Satisfy&family=Sacramento&display=swap');
-      @keyframes fall-cv {
-        0%   { transform: translateY(-20px) rotate(0deg); opacity:1; }
-        100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
-      }
-      .cv-confetti-piece { position:fixed; top:-20px; pointer-events:none; border-radius:50%; animation: fall-cv linear infinite; }
-    `}</style>
-    {/* Confetti — only for 8 seconds */}
-    {Array.from({length:30},(_,i)=>(
-      <div key={i} className="cv-confetti-piece" style={{
-        left:`${(i*3.3+7)%100}%`, width:8+i%6, height:8+i%6, zIndex:9999,
-        background:['#A855F7','#EC4899','#F59E0B','#10B981','#3B82F6','#EF4444'][i%6],
-        animationDuration:`${4+i%5}s`, animationDelay:`${i*0.2}s`,
-        borderRadius: i%3===0?'50%':i%3===1?'2px':'50% 0 50% 0',
-      }}/>
-    ))}
     <div className="min-h-0 flex flex-col bg-[#faf8ff]">
 
       <header className={`card-art ${cardArtClass(design)} relative px-4 py-16 sm:py-24`} style={{ background: design.background, color: design.ink }}>
@@ -799,53 +736,16 @@ const CardView = () => {
           </section>
         )}
 
-        {/* ── Share / Link buttons — clearly labelled ── */}
-        <div className="no-print mb-9 space-y-3">
-          {/* Signing link — public, for people to send messages */}
-          {card.status === 'active' && (
-            <div className="rounded-2xl border-2 border-primary-200 bg-primary-50 p-4">
-              <p className="text-xs font-extrabold uppercase tracking-widest text-primary-600 mb-1">✍️ Signing link — share with signers</p>
-              <p className="text-xs text-warm-500 mb-3">This link lets anyone write a message on the card. Share it with colleagues, friends or family so they can add their wishes before delivery.</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    const base = window.location.origin;
-                    const link = `${base}/sign/${slug}`;
-                    navigator.clipboard.writeText(link);
-                    toast.success('✓ Signing link copied — share this so people can write on the card!');
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors flex items-center gap-2">
-                  🔗 Copy signing link
-                </button>
-                <button
-                  onClick={() => {
-                    const base = window.location.origin;
-                    const link = `${base}/sign/${slug}`;
-                    window.open(`https://wa.me/?text=${encodeURIComponent(`✍️ You are invited to sign this card!\n\nClick the link to write a message:\n${link}`)}`, '_blank');
-                  }}
-                  className="px-4 py-2.5 rounded-xl bg-[#25D366] text-white text-sm font-bold hover:opacity-90 transition-colors">
-                  Share on WhatsApp
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* View link — private, for recipient and creator only */}
-          <div className="rounded-2xl border border-purple-100 bg-white p-4">
-            <p className="text-xs font-extrabold uppercase tracking-widest text-warm-500 mb-1">👁 View link — for recipient only</p>
-            <p className="text-xs text-warm-400 mb-3">This is the private card view link. Share it only with <strong>{card.recipient_name}</strong> so they can see all the messages and access any gift.</p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('✓ Card view link copied — send this to the recipient!'); }}
-                className="px-4 py-2.5 rounded-xl btn-secondary text-sm font-bold flex items-center gap-2">
-                🔒 Copy private link
-              </button>
-              <button onClick={() => window.print()} className="px-4 py-2.5 rounded-xl btn-secondary text-sm">
-                🖨 Save or print
-              </button>
-              {card.isCreator && <TransferCardButton slug={slug} />}
-            </div>
-          </div>
+        <div className="no-print flex flex-wrap gap-2 mb-9">
+          <button
+            onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`See this special Thankeeu card: ${window.location.href}`)}`, '_blank')}
+            className="px-5 py-3 rounded-2xl bg-[#25D366] text-white text-sm font-bold"
+          >
+            Share on WhatsApp
+          </button>
+          <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied'); }} className="btn-secondary">Copy link</button>
+          <button onClick={() => window.print()} className="btn-secondary">Save or print</button>
+          {card.isCreator && <TransferCardButton slug={slug} />}
         </div>
 
         <section>
@@ -938,7 +838,6 @@ const CardView = () => {
 
 
     </div>
-    </>
   );
 
   if (layoutType === 'member')  return <MemberLayout title={cardTitle} subtitle="Card view">{content}</MemberLayout>;

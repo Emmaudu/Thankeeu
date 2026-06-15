@@ -119,7 +119,7 @@ const bulkSyncEmployees = async (req, res) => {
         const memberData = {
           company_id: companyId, first_name: first_name.trim(), last_name: last_name.trim(),
           email: email.trim().toLowerCase(), department: department?.trim() || 'General',
-          role: role === 'leader' ? 'team_leader' : 'member', status: 'approved',
+          role: role === 'leader' ? 'team_leader' : 'team_member', status: 'approved',
           ...(gender && { gender: gender.toLowerCase() }),
           ...(job_title && { job_title }),
           ...(phone && { phone }),

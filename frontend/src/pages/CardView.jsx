@@ -82,160 +82,147 @@ function Confetti() {
 // Uses the Web Audio API to synthesise a soft, warm piano-like melody so there
 // are no external audio files to load and no copyright concerns.
 function MusicPlayer() {
-  const [playing,   setPlaying]   = useState(false);
-  const [done,      setDone]      = useState(false);
-  const [visible,   setVisible]   = useState(true);
-  const [progress,  setProgress]  = useState(0);   // 0–100
-  const ctxRef  = useRef(null);
+  const [playing,  setPlaying]  = useState(false);
+  const [done,     setDone]     = useState(false);
+  const [visible,  setVisible]  = useState(true);
+  const [progress, setProgress] = useState(0);
+  const ctxRef   = useRef(null);
   const timerRef = useRef(null);
   const startRef = useRef(null);
-  const DURATION = 30; // seconds
+  const DURATION = 32;
 
-  // Soft pentatonic melody — warm, happy, loving
-  const NOTES = [
-    // freq, start(s), dur(s), vol
-    [523.25, 0.0,  0.9, 0.22], [659.25, 0.9,  0.9, 0.20], [783.99, 1.8,  0.6, 0.18],
-    [880.00, 2.4,  1.2, 0.20], [783.99, 3.6,  0.9, 0.18], [659.25, 4.5,  0.9, 0.20],
-    [523.25, 5.4,  1.2, 0.22], [392.00, 6.6,  0.9, 0.18], [440.00, 7.5,  0.9, 0.18],
-    [523.25, 8.4,  0.6, 0.20], [659.25, 9.0,  0.9, 0.20], [783.99, 9.9,  1.2, 0.22],
-    [880.00,11.1,  0.6, 0.20], [1046.5,11.7,  0.9, 0.18], [880.00,12.6,  0.9, 0.20],
-    [783.99,13.5,  1.2, 0.22], [659.25,14.7,  0.9, 0.20], [523.25,15.6,  0.9, 0.22],
-    [440.00,16.5,  0.6, 0.18], [392.00,17.1,  1.2, 0.16], [440.00,18.3,  0.9, 0.18],
-    [523.25,19.2,  0.9, 0.20], [659.25,20.1,  0.6, 0.20], [783.99,20.7,  0.9, 0.22],
-    [880.00,21.6,  1.2, 0.20], [783.99,22.8,  0.6, 0.18], [659.25,23.4,  0.9, 0.20],
-    [523.25,24.3,  0.6, 0.22], [440.00,24.9,  0.6, 0.18], [392.00,25.5,  0.9, 0.16],
-    [523.25,26.4,  0.9, 0.20], [659.25,27.3,  0.9, 0.20], [783.99,28.2,  1.8, 0.22],
+  // Dreamy romantic melody in D major — chord progression D-Bm-G-A
+  // Four layered voices: melody (sine+triangle), warm pad, deep bass, shimmer
+  const MELODY = [
+    [587.33,0.0,1.0,0.18],[523.25,1.0,0.5,0.15],[587.33,1.5,0.5,0.16],
+    [659.25,2.0,1.2,0.20],[587.33,3.2,0.8,0.18],[493.88,4.0,1.0,0.17],
+    [440.00,5.0,0.6,0.16],[493.88,5.6,0.6,0.17],[523.25,6.2,1.8,0.19],
+    [440.00,8.0,0.6,0.16],[493.88,8.6,0.6,0.17],[523.25,9.2,0.8,0.18],
+    [587.33,10.0,0.8,0.20],[659.25,10.8,1.2,0.22],[739.99,12.0,0.6,0.20],
+    [659.25,12.6,0.6,0.19],[587.33,13.2,0.8,0.18],[523.25,14.0,2.0,0.20],
+    [493.88,16.0,1.0,0.18],[440.00,17.0,0.5,0.16],[369.99,17.5,0.5,0.15],
+    [440.00,18.0,1.0,0.17],[493.88,19.0,0.8,0.18],[523.25,19.8,0.8,0.19],
+    [587.33,20.6,1.4,0.21],[523.25,22.0,0.6,0.18],[493.88,22.6,1.4,0.17],
+    [440.00,24.0,0.8,0.18],[493.88,24.8,0.8,0.19],[523.25,25.6,0.8,0.20],
+    [587.33,26.4,1.2,0.21],[659.25,27.6,0.8,0.19],[587.33,28.4,0.6,0.18],
+    [523.25,29.0,0.6,0.17],[587.33,29.6,2.4,0.15],
   ];
-
-  // Bass notes — gentle accompaniment
+  const PAD = [
+    [293.66,0.0,4.0,0.08],[369.99,0.0,4.0,0.06],[440.00,0.0,4.0,0.06],
+    [246.94,4.0,4.0,0.08],[293.66,4.0,4.0,0.06],[369.99,4.0,4.0,0.05],
+    [196.00,8.0,4.0,0.08],[246.94,8.0,4.0,0.06],[293.66,8.0,4.0,0.06],
+    [220.00,12.0,4.0,0.08],[277.18,12.0,4.0,0.06],[329.63,12.0,4.0,0.05],
+    [293.66,16.0,4.0,0.08],[369.99,16.0,4.0,0.06],[440.00,16.0,4.0,0.06],
+    [246.94,20.0,4.0,0.08],[293.66,20.0,4.0,0.06],[369.99,20.0,4.0,0.05],
+    [196.00,24.0,4.0,0.07],[246.94,24.0,4.0,0.05],
+    [220.00,28.0,4.0,0.08],[277.18,28.0,4.0,0.06],[293.66,28.0,4.0,0.07],
+  ];
   const BASS = [
-    [130.81, 0.0, 1.8, 0.10], [164.81, 1.8, 1.8, 0.09],
-    [196.00, 3.6, 1.8, 0.09], [174.61, 5.4, 1.8, 0.08],
-    [130.81, 7.2, 1.8, 0.10], [146.83, 9.0, 1.8, 0.09],
-    [164.81,10.8, 1.8, 0.09], [130.81,12.6, 1.8, 0.10],
-    [98.000,14.4, 1.8, 0.08], [130.81,16.2, 1.8, 0.10],
-    [146.83,18.0, 1.8, 0.09], [164.81,19.8, 1.8, 0.09],
-    [130.81,21.6, 1.8, 0.10], [196.00,23.4, 1.8, 0.09],
-    [174.61,25.2, 1.8, 0.09], [130.81,27.0, 3.0, 0.10],
+    [73.42,0.0,3.8,0.12],[61.74,4.0,3.8,0.11],[49.00,8.0,3.8,0.11],[55.00,12.0,3.8,0.12],
+    [73.42,16.0,3.8,0.12],[61.74,20.0,3.8,0.11],[49.00,24.0,3.8,0.11],[55.00,28.0,3.8,0.10],
+  ];
+  const SHIMMER = [
+    [1174.7,0.0,0.3,0.04],[1174.7,2.0,0.3,0.04],[1174.7,4.0,0.3,0.04],[1318.5,6.0,0.3,0.04],
+    [1174.7,8.0,0.3,0.04],[1318.5,10.0,0.3,0.04],[1174.7,12.0,0.3,0.04],[1174.7,14.0,0.3,0.04],
+    [1174.7,16.0,0.3,0.04],[1318.5,18.0,0.3,0.04],[1174.7,20.0,0.3,0.04],[1174.7,22.0,0.3,0.04],
+    [1174.7,24.0,0.3,0.04],[1318.5,26.0,0.3,0.04],[1174.7,28.0,0.3,0.04],[1174.7,30.0,0.3,0.03],
   ];
 
-  function playNote(ctx, freq, start, dur, vol, type = 'sine') {
-    const osc   = ctx.createOscillator();
-    const gain  = ctx.createGain();
-    const filt  = ctx.createBiquadFilter();
-    filt.type      = 'lowpass';
-    filt.frequency.value = 1800;
-    osc.connect(filt);
-    filt.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type      = type;
+  function schedNote(ctx, master, freq, start, dur, vol, type, detune) {
+    const osc = ctx.createOscillator();
+    const gn  = ctx.createGain();
+    const lp  = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 0.5;
+    osc.connect(lp); lp.connect(gn); gn.connect(master);
+    osc.type = type || 'sine';
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0, ctx.currentTime + start);
-    gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.04);
-    gain.gain.setValueAtTime(vol, ctx.currentTime + start + dur - 0.08);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
-    osc.start(ctx.currentTime + start);
-    osc.stop(ctx.currentTime + start + dur + 0.01);
+    if (detune) osc.detune.value = detune;
+    const t0 = ctx.currentTime + start;
+    gn.gain.setValueAtTime(0, t0);
+    gn.gain.linearRampToValueAtTime(vol, t0 + 0.06);
+    gn.gain.setValueAtTime(vol * 0.8, t0 + dur * 0.35);
+    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.start(t0); osc.stop(t0 + dur + 0.05);
   }
 
   const startMusic = () => {
     if (done) return;
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
     ctxRef.current = ctx;
-    // Schedule all melody notes
-    NOTES.forEach(([f, s, d, v]) => playNote(ctx, f, s, d, v, 'sine'));
-    // Schedule all bass notes (triangle = warmer)
-    BASS.forEach(([f, s, d, v]) => playNote(ctx, f, s, d, v, 'triangle'));
+    const master = ctx.createGain();
+    master.connect(ctx.destination);
+    master.gain.setValueAtTime(0, ctx.currentTime);
+    master.gain.linearRampToValueAtTime(1, ctx.currentTime + 2);
+    master.gain.setValueAtTime(1, ctx.currentTime + DURATION - 3);
+    master.gain.linearRampToValueAtTime(0, ctx.currentTime + DURATION);
+    MELODY.forEach(([f,s,d,v]) => { schedNote(ctx,master,f,s,d,v,'sine',0); schedNote(ctx,master,f,s,d,v*0.5,'triangle',4); });
+    PAD.forEach(([f,s,d,v])    => schedNote(ctx,master,f,s,d,v,'triangle',0));
+    BASS.forEach(([f,s,d,v])   => schedNote(ctx,master,f,s,d,v,'sine',0));
+    SHIMMER.forEach(([f,s,d,v])=> schedNote(ctx,master,f,s,d,v,'sine',0));
     setPlaying(true);
     startRef.current = Date.now();
     timerRef.current = setInterval(() => {
-      const elapsed = (Date.now() - startRef.current) / 1000;
-      const pct = Math.min(100, (elapsed / DURATION) * 100);
-      setProgress(pct);
-      if (elapsed >= DURATION) {
-        clearInterval(timerRef.current);
-        setPlaying(false);
-        setDone(true);
-        setTimeout(() => setVisible(false), 3000);
-      }
-    }, 200);
+      const el = (Date.now() - startRef.current) / 1000;
+      setProgress(Math.min(100, (el / DURATION) * 100));
+      if (el >= DURATION) { clearInterval(timerRef.current); setPlaying(false); setDone(true); setTimeout(() => setVisible(false), 3000); }
+    }, 250);
   };
 
   const stopMusic = () => {
     if (ctxRef.current) { ctxRef.current.close().catch(() => {}); ctxRef.current = null; }
     clearInterval(timerRef.current);
-    setPlaying(false);
-    setDone(true);
+    setPlaying(false); setDone(true);
     setTimeout(() => setVisible(false), 2000);
   };
 
   useEffect(() => {
-    // Auto-start after 800ms — give the page time to render
-    const t = setTimeout(() => startMusic(), 800);
-    return () => {
-      clearTimeout(t);
-      clearInterval(timerRef.current);
-      if (ctxRef.current) ctxRef.current.close().catch(() => {});
-    };
+    const t = setTimeout(() => startMusic(), 1000);
+    return () => { clearTimeout(t); clearInterval(timerRef.current); if (ctxRef.current) ctxRef.current.close().catch(() => {}); };
   }, []);
 
   if (!visible) return null;
 
   return (
     <div style={{
-      position: 'fixed', bottom: 20, right: 20, zIndex: 9999,
-      background: 'rgba(124,58,237,0.92)', backdropFilter: 'blur(12px)',
-      borderRadius: 20, padding: '10px 16px', boxShadow: '0 8px 32px rgba(124,58,237,0.35)',
-      display: 'flex', alignItems: 'center', gap: 10, minWidth: 220,
-      border: '1px solid rgba(255,255,255,0.2)',
-      animation: 'music-slide-in 0.5s ease',
+      position:'fixed', bottom:24, right:20, zIndex:9999,
+      background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))',
+      backdropFilter:'blur(16px)', borderRadius:22, padding:'11px 16px',
+      boxShadow:'0 8px 40px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.15)',
+      display:'flex', alignItems:'center', gap:11, minWidth:230,
+      border:'1px solid rgba(255,255,255,0.25)',
+      animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)',
     }}>
       <style>{`
-        @keyframes music-slide-in {
-          from { transform: translateY(60px); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
-        }
-        @keyframes music-pulse {
-          0%,100% { transform: scale(1); }
-          50%      { transform: scale(1.15); }
-        }
+        @keyframes music-slide-in { from{transform:translateY(80px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+        @keyframes music-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+        @keyframes music-wave { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
       `}</style>
-      <div style={{
-        width: 36, height: 36, borderRadius: '50%',
-        background: 'rgba(255,255,255,0.2)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 16,
-        animation: playing ? 'music-pulse 1.2s ease infinite' : 'none',
-        flexShrink: 0,
-      }}>
-        {done ? '🎵' : playing ? '🎶' : '🎵'}
+      <div style={{ width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0,animation:playing?'music-pulse 1.4s ease infinite':'none' }}>
+        {done?'♥':'🎵'}
       </div>
-      <div style={{ flex: 1 }}>
-        <p style={{ color: 'white', fontSize: 11, fontWeight: 700, margin: 0, letterSpacing: '0.05em' }}>
-          {done ? '♥ With love' : playing ? 'Playing your welcome song…' : 'Welcome song'}
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{color:'white',fontSize:11,fontWeight:700,margin:'0 0 2px',letterSpacing:'0.06em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+          {done?'♥ Sent with love':playing?'A melody just for you…':'Welcome ♥'}
         </p>
-        {!done && (
-          <div style={{ marginTop: 5, height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' }}>
-            <div style={{
-              height: '100%', background: '#FBBF24',
-              borderRadius: 2, width: `${progress}%`,
-              transition: 'width 0.2s linear',
-            }} />
+        {playing&&!done&&(
+          <div style={{display:'flex',alignItems:'flex-end',gap:2.5,height:20}}>
+            {[0,1,2,3,4,5,6,7].map(i=>(
+              <div key={i} style={{width:3,borderRadius:2,background:'rgba(255,255,255,0.75)',animation:`music-wave ${0.55+i*0.1}s ${i*0.07}s ease infinite`}}/>
+            ))}
+          </div>
+        )}
+        {!done&&(
+          <div style={{marginTop:playing?3:5,height:3,background:'rgba(255,255,255,0.2)',borderRadius:2,overflow:'hidden'}}>
+            <div style={{height:'100%',background:'#FBBF24',borderRadius:2,width:`${progress}%`,transition:'width 0.25s linear'}}/>
           </div>
         )}
       </div>
-      {!done && (
-        <button onClick={stopMusic} style={{
-          background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
-          color: 'white', fontSize: 12, padding: '4px 8px', cursor: 'pointer', flexShrink: 0,
-        }}>Stop</button>
-      )}
+      {!done&&<button onClick={stopMusic} style={{background:'rgba(255,255,255,0.18)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:10,color:'white',fontSize:12,fontWeight:600,padding:'5px 10px',cursor:'pointer',flexShrink:0}}>✕</button>}
     </div>
   );
 }
-
 
 // ── Gift Claim Panel — Bank Transfer (FLW) or Gift Card (Reloadly) ───────────
 const GiftClaimPanel = ({ slug, token, amount, user, member }) => {

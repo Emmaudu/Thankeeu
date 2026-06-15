@@ -392,6 +392,24 @@ const teamsTemplates = {
     `)
   }),
 
+  // Mid-period reminder — sent 3 days before the occasion to colleagues who have NOT signed yet
+  occasionReminder: (data) => ({
+    subject: `⏰ Reminder — ${data.memberFirstName}'s ${data.occasionLabel} is in ${data.daysLeft} days. You haven't signed yet!`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">${data.icon} Don't miss this one!</h2>
+      <p style="color:#555;line-height:1.8;">
+        <strong>${data.memberName}'s ${data.occasionLabel}</strong> is just <strong>${data.daysLeft} days away</strong> and the group card from <strong>${data.companyName}</strong> is waiting for your message!
+      </p>
+      <p style="color:#555;line-height:1.8;">You haven't signed yet — it only takes a minute. Make sure ${data.memberFirstName} sees your name on this card.</p>
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 The gift pot is still open — add your contribution before it closes on ${data.deadline}.</p></div>` : ''}
+      <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
+        <p style="color:#7a5f00;font-size:13px;margin:0;">🤫 Keep it a surprise — don't tell ${data.memberFirstName}!</p>
+      </div>
+      ${btn(`Sign ${data.memberFirstName}'s card now →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Card signing closes on <strong>${data.deadline}</strong>. No account needed.</p>
+    `)
+  }),
+
   occasionCelebrant: (data) => ({
     subject: `${data.icon} Happy ${data.occasionLabel}, ${data.firstName}! You have a surprise from ${data.companyName}!`,
     html: BASE(`

@@ -34,8 +34,7 @@ function handleUnauthorized(tokenKey, dataKey, redirectPath) {
 // Plan pricing helpers
 const PLANS = {
   single:  { price: 5000,  label: '₦5,000',   credits: 1 },
-  standard:{ price: 9000,  label: '₦9,000',   credits: 2 },
-  pack5:   { price: 19000, label: '₦19,000',  credits: 5 },
+  pack5:   { price: 20000, label: '₦20,000',  credits: 5 },
   monthly: { price: 20000, label: '₦20,000/month' },
   yearly:  { price: 200000,label: '₦200,000/year' },
 };
@@ -130,14 +129,14 @@ describe('Price & fee calculations (api.js / Pricing.jsx)', () => {
     expect(PLANS.single.price).toBe(5000);
   });
 
-  it('pack5 is ₦19,000 (₦3,800/card)', () => {
-    expect(PLANS.pack5.price).toBe(19000);
-    expect(PLANS.pack5.price / PLANS.pack5.credits).toBe(3800);
+  it('pack5 is ₦5,000 (₦1,000/card)', () => {
+    expect(PLANS.pack5.price).toBe(5000);
+    expect(PLANS.pack5.price / PLANS.pack5.credits).toBe(1000);
   });
 
-  it('pack5 saves ₦6,000 vs 5 singles', () => {
+  it('pack5 saves ₦2,500 vs 5 singles', () => {
     const savings = PLANS.single.price * 5 - PLANS.pack5.price;
-    expect(savings).toBe(6000);
+    expect(savings).toBe(2500);
   });
 
   it('monthly subscription is ₦20,000', () => {

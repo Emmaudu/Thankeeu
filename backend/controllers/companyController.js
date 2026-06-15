@@ -41,15 +41,13 @@ const companySignup = async (req, res) => {
     if (!name || !email || !password || !contact_person)
       return res.status(400).json({ error: 'Name, email, password and contact person are required' });
 
-    const cleanEmail = email.toLowerCase().trim();
-
-    const { data: existing } = await supabase.from('companies').select('id').eq('email', cleanEmail).maybeSingle();
+    const { data: existing } = await supabase.from('companies').select('id').eq('email', email).maybeSingle();
     if (existing) return res.status(400).json({ error: 'Email already registered as a company' });
 
     const password_hash = await hashPassword(password, 12);
     const { data: company, error } = await supabase
       .from('companies')
-      .insert({ name, email: cleanEmail, password_hash, contact_person, phone, industry, city, state, country: country || '' })
+      .insert({ name, email, password_hash, contact_person, phone, industry, city, state, country: country || '' })
       .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country')
       .single();
 
@@ -100,10 +98,7 @@ const companySignup = async (req, res) => {
 const companyLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: 'Email and password are required' });
-
-    const { data: company, error } = await supabase.from('companies').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
+    const { data: company, error } = await supabase.from('companies').select('*').eq('email', email).single();
     if (error || !company) return res.status(401).json({ error: 'Invalid email or password' });
 
     const valid = await verifyPassword(password, company.password_hash);
@@ -200,7 +195,7 @@ const changeCompanyPassword = async (req, res) => {
 const companyForgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const { data: company } = await supabase.from('companies').select('id, name, contact_person').eq('email', (email || '').toLowerCase().trim()).maybeSingle();
+    const { data: company } = await supabase.from('companies').select('id, name, contact_person').eq('email', email).maybeSingle();
     if (!company) return res.json({ message: 'If email exists, reset link sent' });
 
     const token = crypto.randomBytes(32).toString('hex');

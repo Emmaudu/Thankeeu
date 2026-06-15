@@ -7,12 +7,20 @@ const { getWorkersDayDate } = require('./workersDay');
 
 // Returns this year's MM-DD recurrence of a stored date (DOB, hire date, etc.)
 // e.g. date_of_birth = '1992-05-15' → this year's '2026-05-15'
+// Leap day (Feb 29) → skipped in non-leap years to avoid rolling to Mar 1
 function recurringThisYear(dateStr, year) {
   if (!dateStr) return null;
   const d = new Date(dateStr + 'T00:00:00');
   if (isNaN(d)) return null;
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
+  const month = d.getMonth() + 1; // 1-based
+  const day   = d.getDate();
+  // Skip Feb 29 in non-leap years — otherwise JS rolls it to Mar 1
+  if (month === 2 && day === 29) {
+    const isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    if (!isLeap) return null; // person's birthday doesn't exist this year
+  }
+  const mm = String(month).padStart(2, '0');
+  const dd = String(day).padStart(2, '0');
   return `${year}-${mm}-${dd}`;
 }
 

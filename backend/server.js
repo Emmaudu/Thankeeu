@@ -205,7 +205,8 @@ cron.schedule('0 8 * * *', async () => {
     .not('recipient_email', 'is', null);
 
   for (const card of (cardsToSend || [])) {
-    const { data: msgs } = await supabase.from('messages').select('count').eq('card_id', card.id);
+    const { count: senderCount } = await supabase.from('messages')
+      .select('*', { count: 'exact', head: true }).eq('card_id', card.id);
     await sendEmail({
       to: card.recipient_email,
       template: 'cardDelivery',
@@ -214,7 +215,7 @@ cron.schedule('0 8 * * *', async () => {
         occasion: card.occasion,
         cardSlug: card.slug,
         accessToken: card.access_token,
-        senderCount: msgs?.[0]?.count || 0,
+        senderCount: senderCount || 0,
         giftAmount: card.total_collected > 0 ? card.total_collected : null
       }
     });
@@ -233,6 +234,9 @@ cron.schedule('0 8 * * *', async () => {
       .lte('deadline', twoDaysFromNow.toISOString());
 
     for (const card of (closingSoon || [])) {
+      // Skip personal cards (no company_id) — colleague lookup would return nothing
+      if (!card.company_id) continue;
+
       // Who has already signed?
       const { data: signedMsgs } = await supabase.from('messages')
         .select('author_email').eq('card_id', card.id);
@@ -339,11 +343,13 @@ cron.schedule('0 6 * * *', async () => {
     const companyById = Object.fromEntries(companies.map(c => [c.id, c]));
 
     // All active company_members for these companies
+    // Only 'approved' (manually added, accepted invite) and 'active' (HRIS-synced)
+    // Excludes: pending (not yet accepted), deactivated, null status (stale data)
     const members = await fetchAllPages(() => supabase
       .from('company_members')
       .select('*')
       .in('company_id', companyIds)
-      .neq('status', 'deactivated'), 'company_members');
+      .in('status', ['approved', 'active']), 'company_members');
 
     for (const m of members) {
       const company = companyById[m.company_id];
@@ -386,16 +392,17 @@ cron.schedule('0 6 * * *', async () => {
           trackingChanged = true;
         }
 
-        // ── STEP 1b: Mid-period reminder to colleagues who have NOT yet signed ──
-        // Fires 3 days before the occasion (halfway nudge).
-        // Only fires if: initial notification already sent, card not yet delivered,
-        // and this reminder hasn't been sent yet this year.
-        const isMidReminderDue = occ.isRecurring
-          ? daysUntil === 3
-          : (daysUntil === 3 && track.dept_notified);
-
-        if (isMidReminderDue
-          && (track.year === year && track.dept_notified)
+        // ── STEP 1b: Mid-period reminder — 3 days before occasion ──
+        // Sends to colleagues who have NOT signed yet.
+        // Only fires if: dept was notified this year AND mid reminder not sent yet
+        // AND there is a card slug to remind about.
+        // Skipped entirely if notify_days_before <= 3 (dept email goes out <= 3 days
+        // before, so the mid-reminder would fire before the initial email — wrong).
+        const midReminderEnabled = notifyDays > 3;
+        if (midReminderEnabled
+          && daysUntil === 3
+          && track.year === year
+          && track.dept_notified
           && !track.mid_reminded
           && track.card_slug) {
           await sendMidReminder({ m, ot, company, tracking, trackKey });
@@ -553,7 +560,8 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
   }).select().maybeSingle();
   if (!card) return;
 
-  tracking[trackKey] = { year, dept_notified: true, card_slug: slug };
+  // Preserve any existing tracking fields (defensive — normally this is a fresh write)
+  tracking[trackKey] = { ...(tracking[trackKey] || {}), year, dept_notified: true, card_slug: slug };
 
   // Create wallet for card
   try {
@@ -632,8 +640,10 @@ async function deliverCard({ m, ot, occ, company, year, tracking, trackKey }) {
   const { data: card } = await supabase.from('cards').select('*').eq('slug', cardSlug).maybeSingle();
   if (!card) return;
 
-  const { data: msgs } = await supabase.from('messages').select('count').eq('card_id', card.id);
-  const count = msgs?.[0]?.count || 0;
+  // Count messages properly using Supabase count API
+  const { count: msgCount } = await supabase.from('messages')
+    .select('*', { count: 'exact', head: true }).eq('card_id', card.id);
+  const count = msgCount || 0;
 
   // Calculate gift amount after fee
   const { data: wallet } = await supabase.from('contribution_wallets').select('amount_to_celebrant').eq('card_id', card.id).maybeSingle();

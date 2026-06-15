@@ -349,7 +349,7 @@ const importOccasionMembers = async (req, res) => {
         last_name:   row.last_name,
         department:  fillGap(existingMember?.department, row.department) || 'General',
         gender:      fillGap(existingMember?.gender, row.gender || null),
-        role:        existingMember?.role || 'team_member',
+        role:        existingMember?.role || 'member',
         status:      existingMember?.status || 'approved',
         updated_at:  new Date(),
         // Write the occasion date into the right company_members column (fill-gaps-only)
@@ -698,7 +698,7 @@ const importGeneralTemplate = async (req, res) => {
       // Create or update company_members row — always store invite_token atomically
       const inviteToken = require('crypto').randomBytes(32).toString('hex');
       // Fix role value: DB and middleware use 'team_leader' not 'leader'
-      const memberRole = role === 'leader' ? 'team_leader' : 'team_member';
+      const memberRole = role === 'leader' ? 'team_leader' : 'member';
       const memberRoleFallback = role === 'leader' ? 'team_leader' : 'team_member';
       let memberId = null;
       let isNew = false;
@@ -1087,7 +1087,7 @@ const importByOccasionName = async (req, res) => {
 
       const dept       = dpI>=0 ? String(row[dpI]||'').trim()||'General' : 'General';
       const roleRaw    = roI>=0 && String(row[roI]||'').toLowerCase().includes('leader') ? 'leader' : 'member';
-      const memberRole = roleRaw === 'leader' ? 'team_leader' : 'team_member'; // DB stores 'team_leader'/'team_member'
+      const memberRole = roleRaw === 'leader' ? 'team_leader' : 'member'; // DB stores 'team_leader'
       const jt         = jtI>=0 ? String(row[jtI]||'').trim()||null : null;
       const phone      = phI>=0 ? String(row[phI]||'').trim()||null : null;
       const gender     = gnI>=0 ? String(row[gnI]||'').trim().toLowerCase()||null : null;

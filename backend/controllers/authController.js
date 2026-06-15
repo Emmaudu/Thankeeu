@@ -412,7 +412,7 @@ const uploadAvatar = async (req, res) => {
 const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-    const { data: user } = await supabase.from('users').select('id, full_name').eq('email', (email || '').toLowerCase().trim()).maybeSingle();
+    const { data: user } = await supabase.from('users').select('id, full_name').eq('email', email).single();
     if (!user) return res.json({ message: 'If email exists, reset link sent' });
 
     const token = crypto.randomBytes(32).toString('hex');

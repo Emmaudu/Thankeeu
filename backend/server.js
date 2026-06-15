@@ -65,6 +65,44 @@ app.use(cors({
   credentials: true
 }));
 
+// Rate limiting
+// ── Tiered rate limiting ──────────────────────────────────────────────────
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 200,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again later.' },
+});
+const authLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 5,  // 5 attempts per hour
+  skipSuccessfulRequests: true,
+  standardHeaders: true, legacyHeaders: false,
+  message: { error: 'Too many sign-in attempts. Please wait 1 hour and try again.' },
+});
+const demoLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 5,
+  message: { error: 'Too many demo requests from this IP. Please try again later.' },
+});
+app.use('/api/', generalLimiter);
+app.use('/api/auth/login',           authLimiter);
+app.use('/api/auth/signup',          authLimiter);
+app.use('/api/company/login',        authLimiter);
+app.use('/api/members/login',        authLimiter);
+app.use('/api/members/signup',       authLimiter);
+app.use('/api/pals/signup',           authLimiter);
+app.use('/api/pals/login',            authLimiter);
+app.use('/api/auth/forgot-password',        authLimiter);
+app.use('/api/auth/reset-password',         authLimiter);
+app.use('/api/company/signup',              authLimiter);
+app.use('/api/company/forgot-password',     authLimiter);
+app.use('/api/auth/send-code',              authLimiter);
+app.use('/api/auth/verify-code',            authLimiter);
+app.use('/api/members/forgot-password',     authLimiter);
+app.use('/api/members/reset-password',      authLimiter);
+app.use('/api/vendor/login',                authLimiter);
+app.use('/api/vendor/signup',               authLimiter);
+app.use('/api/pals/forgot-password',        authLimiter);
+app.use('/api/demo/request',         demoLimiter);
+
 // Query-string sanitisation
 app.use((req, _res, next) => {
   if (req.query) {
@@ -96,61 +134,6 @@ const _startupFE = (() => {
 })();
 console.log('✓ FRONTEND_URL resolved to:', _startupFE);
 app.use(express.urlencoded({ extended: true }));
-
-// ── Tiered rate limiting ──────────────────────────────────────────────────
-// Placed after body-parsing so authLimiter's keyGenerator can read
-// req.body.email (POST bodies aren't available to middleware mounted
-// before express.json()/express.urlencoded()).
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 200,
-  standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many requests. Please try again later.' },
-});
-
-// Key auth attempts by (IP + email) rather than IP alone. Without this,
-// express-rate-limit's default IP-based key means one account being
-// hammered with bad passwords from a shared IP (office network, mobile
-// carrier NAT, VPN) locks out every OTHER account on that same IP too.
-// Falling back to IP alone when no email is present in the body keeps
-// non-credential endpoints (if ever added to this limiter) protected.
-const authKeyGenerator = (req) => {
-  const email = (req.body && typeof req.body.email === 'string')
-    ? req.body.email.trim().toLowerCase()
-    : '';
-  return email ? `${req.ip}:${email}` : req.ip;
-};
-
-const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 5,  // 5 attempts per hour per IP+email
-  skipSuccessfulRequests: true,
-  standardHeaders: true, legacyHeaders: false,
-  keyGenerator: authKeyGenerator,
-  message: { error: 'Too many sign-in attempts. Please wait 1 hour and try again.' },
-});
-const demoLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 5,
-  message: { error: 'Too many demo requests from this IP. Please try again later.' },
-});
-app.use('/api/', generalLimiter);
-app.use('/api/auth/login',           authLimiter);
-app.use('/api/auth/signup',          authLimiter);
-app.use('/api/company/login',        authLimiter);
-app.use('/api/members/login',        authLimiter);
-app.use('/api/members/signup',       authLimiter);
-app.use('/api/pals/signup',           authLimiter);
-app.use('/api/pals/login',            authLimiter);
-app.use('/api/auth/forgot-password',        authLimiter);
-app.use('/api/auth/reset-password',         authLimiter);
-app.use('/api/company/signup',              authLimiter);
-app.use('/api/company/forgot-password',     authLimiter);
-app.use('/api/auth/send-code',              authLimiter);
-app.use('/api/auth/verify-code',            authLimiter);
-app.use('/api/members/forgot-password',     authLimiter);
-app.use('/api/members/reset-password',      authLimiter);
-app.use('/api/vendor/login',                authLimiter);
-app.use('/api/vendor/signup',               authLimiter);
-app.use('/api/pals/forgot-password',        authLimiter);
-app.use('/api/demo/request',         demoLimiter);
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -239,25 +222,52 @@ cron.schedule('0 8 * * *', async () => {
     console.log(`Auto-sent card: ${card.slug}`);
   }
 
-  // Send reminder emails
+  // Send 2-day deadline reminders to colleagues who have NOT signed yet
   if (true) {
     const { data: closingSoon } = await supabase
       .from('cards')
-      .select('*, messages(author_email)')
+      .select('id, slug, recipient_name, deadline, company_id, notification_scope, department')
       .eq('status', 'active')
       .eq('send_reminders', true)
       .gte('deadline', now.toISOString())
       .lte('deadline', twoDaysFromNow.toISOString());
 
     for (const card of (closingSoon || [])) {
-      const emails = [...new Set((card.messages || []).map(m => m.author_email).filter(Boolean))];
+      // Who has already signed?
+      const { data: signedMsgs } = await supabase.from('messages')
+        .select('author_email').eq('card_id', card.id);
+      const signedEmails = new Set((signedMsgs || []).map(m => m.author_email?.toLowerCase()).filter(Boolean));
+
+      // Get all eligible colleagues for this card
+      let colleagueQuery = supabase.from('company_members')
+        .select('email, first_name')
+        .eq('company_id', card.company_id)
+        .in('status', ['approved', 'active']);
+
+      if (card.notification_scope === 'department' && card.department) {
+        colleagueQuery = colleagueQuery.eq('department', card.department);
+      }
+      const { data: colleagues } = await colleagueQuery;
+
+      // Only remind those who have NOT yet signed
+      const unsigned = (colleagues || []).filter(c =>
+        c.email && !signedEmails.has(c.email.toLowerCase())
+      );
+
       const hoursLeft = Math.round((new Date(card.deadline) - now) / 3600000);
-      for (const email of emails) {
+      for (const colleague of unsigned) {
         await sendEmail({
-          to: email,
+          to: colleague.email,
           template: 'cardReminder',
-          data: { recipientName: card.recipient_name, cardSlug: card.slug, hoursLeft }
-        });
+          data: {
+            recipientName: card.recipient_name,
+            cardSlug:      card.slug,
+            hoursLeft,
+          }
+        }).catch(() => {});
+      }
+      if (unsigned.length) {
+        console.log(`[deadline-reminder] ${card.slug}: reminded ${unsigned.length} unsigned colleagues (${hoursLeft}h left)`);
       }
     }
   }
@@ -376,6 +386,22 @@ cron.schedule('0 6 * * *', async () => {
           trackingChanged = true;
         }
 
+        // ── STEP 1b: Mid-period reminder to colleagues who have NOT yet signed ──
+        // Fires 3 days before the occasion (halfway nudge).
+        // Only fires if: initial notification already sent, card not yet delivered,
+        // and this reminder hasn't been sent yet this year.
+        const isMidReminderDue = occ.isRecurring
+          ? daysUntil === 3
+          : (daysUntil === 3 && track.dept_notified);
+
+        if (isMidReminderDue
+          && (track.year === year && track.dept_notified)
+          && !track.mid_reminded
+          && track.card_slug) {
+          await sendMidReminder({ m, ot, company, tracking, trackKey });
+          trackingChanged = true;
+        }
+
         // ── STEP 2: Deliver card to celebrant ON the occasion date ──
         // For one-time occasions, also catch up if the date has passed by up to
         // 7 days and the card hasn't been delivered yet.
@@ -426,6 +452,64 @@ cron.schedule('0 6 * * *', async () => {
 
   } catch (err) { console.error('Occasions cron error:', err); }
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// sendMidReminder — Step 1b: remind colleagues who have NOT signed yet
+// Fires 3 days before the occasion. Skips anyone who already signed.
+// ─────────────────────────────────────────────────────────────────────────────
+async function sendMidReminder({ m, ot, company, tracking, trackKey }) {
+  const track = tracking[trackKey] || {};
+  const cardSlug = track.card_slug;
+  if (!cardSlug) return;
+
+  const { data: card } = await supabase.from('cards').select('id, deadline').eq('slug', cardSlug).maybeSingle();
+  if (!card) return;
+
+  // Who has already signed?
+  const { data: signedMsgs } = await supabase.from('messages')
+    .select('author_email').eq('card_id', card.id);
+  const signedEmails = new Set((signedMsgs || []).map(msg => msg.author_email?.toLowerCase()).filter(Boolean));
+
+  // Get all eligible colleagues (same scope as original notification)
+  let colleagueQuery = supabase.from('company_members')
+    .select('email, first_name').eq('company_id', ot.company_id)
+    .in('status', ['approved', 'active']).neq('id', m.id);
+
+  if (ot.default_scope === 'department') {
+    colleagueQuery = colleagueQuery.eq('department', m.department);
+  }
+  const { data: colleagues } = await colleagueQuery;
+
+  // Send reminder ONLY to those who have NOT signed yet
+  const unsigned = (colleagues || []).filter(c => !signedEmails.has(c.email?.toLowerCase()));
+
+  const dlStr = card.deadline
+    ? new Date(card.deadline).toLocaleDateString('en', { day: 'numeric', month: 'long' })
+    : 'soon';
+
+  let sentCount = 0;
+  for (const colleague of unsigned) {
+    await sendEmail({
+      to: colleague.email,
+      template: 'occasionReminder',
+      data: {
+        icon:            ot.icon,
+        occasionLabel:   ot.label,
+        memberName:      `${m.first_name} ${m.last_name}`,
+        memberFirstName: m.first_name,
+        companyName:     company.name,
+        cardSlug,
+        daysLeft:        3,
+        deadline:        dlStr,
+        giftEnabled:     true,
+      },
+    }).catch(e => console.error(`Mid-reminder email failed for ${colleague.email}:`, e.message));
+    sentCount++;
+  }
+
+  tracking[trackKey] = { ...track, mid_reminded: true };
+  console.log(`[${ot.label}] Mid-reminder sent to ${sentCount} unsigned colleagues for ${m.first_name} ${m.last_name}`);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // notifyDepartment — Step 1: create the card + notify colleagues N days before

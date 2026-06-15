@@ -98,11 +98,13 @@ router.post('/:slug/notify-signers', companyAuth, async (req, res) => {
     if (card.company_id !== req.company.id)
       return res.status(403).json({ error: 'Card does not belong to your company' });
 
-    // Get members to notify — approved + active, exclude the card recipient
+    // Get members to notify — status='approved' only (the only valid active member status in the enum)
+    // member_status enum: ('pending', 'approved', 'rejected', 'deactivated')
+    // 'active' is NOT a valid member status — it belongs to the cards table enum
     let query = supabase.from('company_members')
       .select('email, first_name, id')
       .eq('company_id', req.company.id)
-      .in('status', ['approved', 'active']);
+      .eq('status', 'approved');
     if (scope === 'department' && department) query = query.eq('department', department);
     const { data: members, error: membersErr } = await query;
     if (membersErr) throw new Error(`Members query: ${membersErr.message}`);

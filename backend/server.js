@@ -274,7 +274,7 @@ cron.schedule('0 8 * * *', async () => {
 
       let colleagueQuery = supabase.from('company_members')
         .select('email').eq('company_id', card.company_id)
-        .in('status', ['approved', 'active']);
+        .eq('status', 'approved');
       if (department) colleagueQuery = colleagueQuery.eq('department', department);
       const { data: colleagues } = await colleagueQuery;
       const unsigned = (colleagues || []).filter(c => c.email && !signedEmails.has(c.email.toLowerCase()));
@@ -371,7 +371,7 @@ cron.schedule('0 12 * * *', async () => {
       .from('company_members')
       .select('*')
       .in('company_id', companyIds)
-      .in('status', ['approved', 'active']), 'company_members');
+      .eq('status', 'approved'), 'company_members');
 
     for (const m of members) {
       const company = companyById[m.company_id];
@@ -535,7 +535,7 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
     // Notify the entire company once
     const { data: allMembers } = await supabase.from('company_members')
       .select('email, first_name').eq('company_id', ot.company_id)
-      .in('status', ['approved', 'active']);
+      .eq('status', 'approved');
 
     const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
     const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
@@ -616,7 +616,7 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
   // same company (and department if scope requires it), excluding the celebrant
   let colleagueQuery = supabase.from('company_members')
     .select('email, first_name').eq('company_id', ot.company_id)
-    .in('status', ['approved', 'active']).neq('id', m.id);
+    .eq('status', 'approved').neq('id', m.id);
 
   if (ot.default_scope === 'department' || ot.default_scope === 'pending_approval') {
     colleagueQuery = colleagueQuery.eq('department', m.department);
@@ -703,7 +703,7 @@ async function sendMidReminder({ m, ot, occ, company, occasionDate, daysUntil, y
 
         const { data: allMembers } = await supabase.from('company_members')
           .select('email, first_name').eq('company_id', ot.company_id)
-          .in('status', ['approved', 'active']);
+          .eq('status', 'approved');
         const unsigned = (allMembers || []).filter(c => c.email && !signedEmails.has(c.email.toLowerCase()));
 
         const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -735,7 +735,7 @@ async function sendMidReminder({ m, ot, occ, company, occasionDate, daysUntil, y
   // Who was originally notified (same audience as notifyDepartment)
   let colleagueQuery = supabase.from('company_members')
     .select('email, first_name').eq('company_id', ot.company_id)
-    .in('status', ['approved', 'active']).neq('id', m.id);
+    .eq('status', 'approved').neq('id', m.id);
 
   if (ot.default_scope === 'department' || ot.default_scope === 'pending_approval') {
     colleagueQuery = colleagueQuery.eq('department', m.department);

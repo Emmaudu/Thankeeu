@@ -53,3 +53,21 @@ SELECT
    WHERE table_name='activity_logs') AS activity_logs_table,
   (SELECT COUNT(*) FROM information_schema.columns
    WHERE table_name='company_members' AND column_name='occasion_tracking') AS occasion_tracking_col;
+
+-- 5. Extend member_status enum to include 'deactivated' (for HRIS-terminated
+--    employees) and 'suspended'. Postgres requires ALTER TYPE to add values.
+--    Safe to run even if values already exist (uses DO block with exception handling).
+DO $$
+BEGIN
+  BEGIN
+    ALTER TYPE member_status ADD VALUE IF NOT EXISTS 'deactivated';
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+  BEGIN
+    ALTER TYPE member_status ADD VALUE IF NOT EXISTS 'suspended';
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+END $$;
+
+-- Verify the enum now has all required values
+SELECT unnest(enum_range(NULL::member_status)) AS member_status_values;

@@ -17,49 +17,225 @@ import { formatNGN } from '../utils/currency';
 
 // ── Calligraphic font styles for signer names (decorative only — the actual
 // message text uses the signee's chosen font_style via getFontStyle) ────────
+// ── Fonts — calligraphic for author names + extra richness ───────────────────
 const FONT_INJECT = `
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Great+Vibes&family=Satisfy&family=Sacramento&family=Kaushan+Script&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Great+Vibes&family=Satisfy&family=Sacramento&family=Kaushan+Script&family=Pinyon+Script&family=Alex+Brush&family=Allura&display=swap');
 .font-dancing   { font-family:'Dancing Script', cursive; }
 .font-vibes     { font-family:'Great Vibes', cursive; }
 .font-satisfy   { font-family:'Satisfy', cursive; }
 .font-sacramento{ font-family:'Sacramento', cursive; }
 .font-kaushan   { font-family:'Kaushan Script', cursive; }
+.font-pinyon    { font-family:'Pinyon Script', cursive; }
+.font-alex      { font-family:'Alex Brush', cursive; }
+.font-allura    { font-family:'Allura', cursive; }
 `;
 
-const CALLI_FONTS = ['font-dancing', 'font-vibes', 'font-satisfy', 'font-sacramento', 'font-kaushan'];
+const CALLI_FONTS = [
+  'font-dancing','font-vibes','font-satisfy','font-sacramento',
+  'font-kaushan','font-pinyon','font-alex','font-allura',
+];
 
-// ── Confetti — lightweight, matches the Sample card page ─────────────────────
+// ── Infinite Confetti — runs forever, never stops ────────────────────────────
 function Confetti() {
-  const pieces = Array.from({ length: 30 }, (_, i) => ({
+  // 50 pieces with varied shapes, colours, speeds — infinite loop
+  const pieces = Array.from({ length: 50 }, (_, i) => ({
     id: i,
-    left: Math.random() * 100,
-    size: 6 + Math.random() * 8,
-    color: ['#7C3AED', '#EC4899', '#FBBF24', '#34D399', '#60A5FA'][i % 5],
-    duration: 3 + Math.random() * 3,
-    delay: Math.random() * 2,
-    rotate: Math.random() * 360,
+    left:     Math.random() * 100,
+    size:     6 + Math.random() * 10,
+    color:    ['#7C3AED','#EC4899','#FBBF24','#34D399','#60A5FA','#F97316','#EF4444','#A855F7','#06B6D4','#84CC16'][i % 10],
+    duration: 4 + Math.random() * 6,   // 4–10 s per loop
+    delay:    -(Math.random() * 10),    // negative delay = starts mid-fall immediately
+    rotate:   Math.random() * 360,
+    shape:    i % 4, // 0=circle, 1=square, 2=diamond, 3=star-ish
   }));
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
+    <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 9 }}>
       {pieces.map(p => (
         <div key={p.id} style={{
-          position: 'absolute', left: `${p.left}%`, top: '-20px',
-          width: p.size, height: p.size, background: p.color,
-          borderRadius: p.id % 3 === 0 ? '50%' : p.id % 3 === 1 ? '2px' : '50% 0 50% 0',
+          position: 'absolute',
+          left:     `${p.left}%`,
+          top:      '-24px',
+          width:    p.size,
+          height:   p.size,
+          background: p.color,
+          borderRadius: p.shape === 0 ? '50%'
+                      : p.shape === 1 ? '2px'
+                      : p.shape === 2 ? '0'
+                      : '50% 0 50% 0',
           transform: `rotate(${p.rotate}deg)`,
-          animation: `cardview-fall ${p.duration}s ${p.delay}s infinite linear`,
-          opacity: 0.8,
+          animation: `cv-fall ${p.duration}s ${p.delay}s infinite linear`,
+          opacity: 0.85,
         }} />
       ))}
       <style>{`
-        @keyframes cardview-fall {
-          0%   { transform: translateY(-20px) rotate(0deg); opacity:1; }
-          100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
+        @keyframes cv-fall {
+          0%   { transform: translateY(-24px) rotate(0deg)   scaleX(1);   opacity: 1; }
+          50%  { transform: translateY(50vh)  rotate(360deg) scaleX(-1);  opacity: 0.9; }
+          100% { transform: translateY(112vh) rotate(720deg) scaleX(1);   opacity: 0; }
         }
       `}</style>
     </div>
   );
 }
+
+// ── Soft Music Player — plays a 30s gentle instrumental on page open ─────────
+// Uses the Web Audio API to synthesise a soft, warm piano-like melody so there
+// are no external audio files to load and no copyright concerns.
+function MusicPlayer() {
+  const [playing,   setPlaying]   = useState(false);
+  const [done,      setDone]      = useState(false);
+  const [visible,   setVisible]   = useState(true);
+  const [progress,  setProgress]  = useState(0);   // 0–100
+  const ctxRef  = useRef(null);
+  const timerRef = useRef(null);
+  const startRef = useRef(null);
+  const DURATION = 30; // seconds
+
+  // Soft pentatonic melody — warm, happy, loving
+  const NOTES = [
+    // freq, start(s), dur(s), vol
+    [523.25, 0.0,  0.9, 0.22], [659.25, 0.9,  0.9, 0.20], [783.99, 1.8,  0.6, 0.18],
+    [880.00, 2.4,  1.2, 0.20], [783.99, 3.6,  0.9, 0.18], [659.25, 4.5,  0.9, 0.20],
+    [523.25, 5.4,  1.2, 0.22], [392.00, 6.6,  0.9, 0.18], [440.00, 7.5,  0.9, 0.18],
+    [523.25, 8.4,  0.6, 0.20], [659.25, 9.0,  0.9, 0.20], [783.99, 9.9,  1.2, 0.22],
+    [880.00,11.1,  0.6, 0.20], [1046.5,11.7,  0.9, 0.18], [880.00,12.6,  0.9, 0.20],
+    [783.99,13.5,  1.2, 0.22], [659.25,14.7,  0.9, 0.20], [523.25,15.6,  0.9, 0.22],
+    [440.00,16.5,  0.6, 0.18], [392.00,17.1,  1.2, 0.16], [440.00,18.3,  0.9, 0.18],
+    [523.25,19.2,  0.9, 0.20], [659.25,20.1,  0.6, 0.20], [783.99,20.7,  0.9, 0.22],
+    [880.00,21.6,  1.2, 0.20], [783.99,22.8,  0.6, 0.18], [659.25,23.4,  0.9, 0.20],
+    [523.25,24.3,  0.6, 0.22], [440.00,24.9,  0.6, 0.18], [392.00,25.5,  0.9, 0.16],
+    [523.25,26.4,  0.9, 0.20], [659.25,27.3,  0.9, 0.20], [783.99,28.2,  1.8, 0.22],
+  ];
+
+  // Bass notes — gentle accompaniment
+  const BASS = [
+    [130.81, 0.0, 1.8, 0.10], [164.81, 1.8, 1.8, 0.09],
+    [196.00, 3.6, 1.8, 0.09], [174.61, 5.4, 1.8, 0.08],
+    [130.81, 7.2, 1.8, 0.10], [146.83, 9.0, 1.8, 0.09],
+    [164.81,10.8, 1.8, 0.09], [130.81,12.6, 1.8, 0.10],
+    [98.000,14.4, 1.8, 0.08], [130.81,16.2, 1.8, 0.10],
+    [146.83,18.0, 1.8, 0.09], [164.81,19.8, 1.8, 0.09],
+    [130.81,21.6, 1.8, 0.10], [196.00,23.4, 1.8, 0.09],
+    [174.61,25.2, 1.8, 0.09], [130.81,27.0, 3.0, 0.10],
+  ];
+
+  function playNote(ctx, freq, start, dur, vol, type = 'sine') {
+    const osc   = ctx.createOscillator();
+    const gain  = ctx.createGain();
+    const filt  = ctx.createBiquadFilter();
+    filt.type      = 'lowpass';
+    filt.frequency.value = 1800;
+    osc.connect(filt);
+    filt.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type      = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, ctx.currentTime + start);
+    gain.gain.linearRampToValueAtTime(vol, ctx.currentTime + start + 0.04);
+    gain.gain.setValueAtTime(vol, ctx.currentTime + start + dur - 0.08);
+    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + start + dur);
+    osc.start(ctx.currentTime + start);
+    osc.stop(ctx.currentTime + start + dur + 0.01);
+  }
+
+  const startMusic = () => {
+    if (done) return;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    ctxRef.current = ctx;
+    // Schedule all melody notes
+    NOTES.forEach(([f, s, d, v]) => playNote(ctx, f, s, d, v, 'sine'));
+    // Schedule all bass notes (triangle = warmer)
+    BASS.forEach(([f, s, d, v]) => playNote(ctx, f, s, d, v, 'triangle'));
+    setPlaying(true);
+    startRef.current = Date.now();
+    timerRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startRef.current) / 1000;
+      const pct = Math.min(100, (elapsed / DURATION) * 100);
+      setProgress(pct);
+      if (elapsed >= DURATION) {
+        clearInterval(timerRef.current);
+        setPlaying(false);
+        setDone(true);
+        setTimeout(() => setVisible(false), 3000);
+      }
+    }, 200);
+  };
+
+  const stopMusic = () => {
+    if (ctxRef.current) { ctxRef.current.close().catch(() => {}); ctxRef.current = null; }
+    clearInterval(timerRef.current);
+    setPlaying(false);
+    setDone(true);
+    setTimeout(() => setVisible(false), 2000);
+  };
+
+  useEffect(() => {
+    // Auto-start after 800ms — give the page time to render
+    const t = setTimeout(() => startMusic(), 800);
+    return () => {
+      clearTimeout(t);
+      clearInterval(timerRef.current);
+      if (ctxRef.current) ctxRef.current.close().catch(() => {});
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 20, right: 20, zIndex: 9999,
+      background: 'rgba(124,58,237,0.92)', backdropFilter: 'blur(12px)',
+      borderRadius: 20, padding: '10px 16px', boxShadow: '0 8px 32px rgba(124,58,237,0.35)',
+      display: 'flex', alignItems: 'center', gap: 10, minWidth: 220,
+      border: '1px solid rgba(255,255,255,0.2)',
+      animation: 'music-slide-in 0.5s ease',
+    }}>
+      <style>{`
+        @keyframes music-slide-in {
+          from { transform: translateY(60px); opacity: 0; }
+          to   { transform: translateY(0);    opacity: 1; }
+        }
+        @keyframes music-pulse {
+          0%,100% { transform: scale(1); }
+          50%      { transform: scale(1.15); }
+        }
+      `}</style>
+      <div style={{
+        width: 36, height: 36, borderRadius: '50%',
+        background: 'rgba(255,255,255,0.2)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 16,
+        animation: playing ? 'music-pulse 1.2s ease infinite' : 'none',
+        flexShrink: 0,
+      }}>
+        {done ? '🎵' : playing ? '🎶' : '🎵'}
+      </div>
+      <div style={{ flex: 1 }}>
+        <p style={{ color: 'white', fontSize: 11, fontWeight: 700, margin: 0, letterSpacing: '0.05em' }}>
+          {done ? '♥ With love' : playing ? 'Playing your welcome song…' : 'Welcome song'}
+        </p>
+        {!done && (
+          <div style={{ marginTop: 5, height: 4, background: 'rgba(255,255,255,0.25)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', background: '#FBBF24',
+              borderRadius: 2, width: `${progress}%`,
+              transition: 'width 0.2s linear',
+            }} />
+          </div>
+        )}
+      </div>
+      {!done && (
+        <button onClick={stopMusic} style={{
+          background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
+          color: 'white', fontSize: 12, padding: '4px 8px', cursor: 'pointer', flexShrink: 0,
+        }}>Stop</button>
+      )}
+    </div>
+  );
+}
+
 
 // ── Gift Claim Panel — Bank Transfer (FLW) or Gift Card (Reloadly) ───────────
 const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
@@ -651,12 +827,6 @@ const CardView = () => {
   const [openMessage, setOpenMessage] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
-  const [confetti, setConfetti] = useState(true);
-
-  useEffect(() => {
-    const t = setTimeout(() => setConfetti(false), 9000);
-    return () => clearTimeout(t);
-  }, []);
 
   useSEO({
     title: card ? `${card.recipient_name}'s ${occasionLabel[card.occasion] || ''} Card` : 'View Card - Thankeeu',
@@ -758,24 +928,97 @@ const CardView = () => {
   const content = (
     <div className="min-h-0 flex flex-col bg-[#faf8ff]">
       <style>{FONT_INJECT}</style>
-      {confetti && <Confetti />}
+      {/* Confetti runs forever — never stops */}
+      <Confetti />
+      {/* Soft welcome music — auto-plays for 30s when recipient opens the card */}
+      <MusicPlayer />
 
-      <header className={`card-art ${cardArtClass(design)} relative px-4 py-16 sm:py-24`} style={{ background: design.background, color: design.ink }}>
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <span className="inline-flex bg-white/75 rounded-full px-4 py-2 text-[11px] font-extrabold tracking-[.2em] uppercase shadow-sm mb-7" style={{ color: design.accent }}>
-            A keepsake made with love
-          </span>
-          <div className="text-6xl sm:text-7xl mb-5 animate-float">{design.icon}</div>
-          <h1 className="max-w-4xl mx-auto" style={{ color: design.ink, fontFamily: titleFont.family }}>
-            {card.title || `Celebrating ${card.recipient_name}`}
-          </h1>
-          <p className={`max-w-2xl mx-auto mt-5 text-base sm:text-lg ${design.dark ? 'text-white/75' : 'text-warm-600'}`}>
-            {messages.length} {messages.length === 1 ? 'person has' : 'people have'} filled this card with memories, laughter, and love.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3 mt-7">
-            <span className="bg-white/80 rounded-full px-5 py-2.5 text-sm font-bold shadow-sm" style={{ color: design.ink }}>{'\uD83D\uDC8C'} {messages.length} messages</span>
-            {totalCollected > 0 && <span className="bg-emerald-600 text-white rounded-full px-5 py-2.5 text-sm font-bold shadow-sm">{'\uD83C\uDF81'} {formatNGN(totalCollected)} gift</span>}
+      {/* ── HERO BANNER — Sample-page style ───────────────────────── */}
+      <header className="relative overflow-hidden" style={{ background: design.background, color: design.ink }}>
+        {/* Decorative blurred circles */}
+        <div style={{ position:'absolute', top:'-60px', right:'-60px', width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,0.08)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', bottom:'-40px', left:'-40px', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top:'40%', left:'50%', transform:'translate(-50%,-50%)', width:340, height:340, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
+
+        <div className="relative max-w-5xl mx-auto px-4 py-14 sm:py-20 text-center" style={{ zIndex:1 }}>
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase mb-6"
+            style={{ background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', color: design.dark ? 'rgba(255,255,255,0.9)' : design.accent, border:'1px solid rgba(255,255,255,0.25)' }}>
+            ✨ A keepsake made with love
           </div>
+
+          {/* Floating icon */}
+          <div className="text-6xl sm:text-7xl mb-5 animate-float select-none">{design.icon}</div>
+
+          {/* Big calligraphic title */}
+          <h1 className="mb-3 px-2" style={{
+            fontFamily: "'Great Vibes', cursive",
+            fontSize: 'clamp(2.4rem, 8vw, 5rem)',
+            lineHeight: 1.2,
+            color: design.dark ? '#ffffff' : design.accent,
+            textShadow: design.dark ? '0 2px 24px rgba(0,0,0,0.25)' : 'none',
+          }}>
+            {card.title || `Happy ${(card.occasion||'').replace(/_/g,' ')}, ${card.recipient_name}!`}
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-base sm:text-lg max-w-xl mx-auto mb-7" style={{
+            color: design.dark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.52)',
+          }}>
+            {messages.length} {messages.length === 1 ? 'person has' : 'people have'} filled this card with love, laughter and warmth just for you.
+          </p>
+
+          {/* Stat badges */}
+          <div className="flex flex-wrap justify-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm"
+              style={{ background:'rgba(255,255,255,0.82)', color: design.accent }}>
+              💌 {messages.length} messages
+            </span>
+            {totalCollected > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm bg-emerald-600 text-white">
+                🎁 {formatNGN(totalCollected)} gift
+              </span>
+            )}
+            {card.send_date && (
+              <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm"
+                style={{ background:'rgba(255,255,255,0.82)', color: design.ink }}>
+                📅 {format(new Date(card.send_date), 'MMMM d, yyyy')}
+              </span>
+            )}
+          </div>
+
+          {/* Signer avatar strip — up to 10 initials */}
+          {messages.length > 0 && (
+            <div className="flex justify-center mt-7" style={{ gap:'-8px' }}>
+              <div style={{ display:'flex', marginLeft:0 }}>
+                {messages.slice(0, 10).map((msg, i) => (
+                  <div key={i} style={{
+                    width:36, height:36, borderRadius:'50%',
+                    background: design.accent, color:'#fff',
+                    border:'2.5px solid rgba(255,255,255,0.7)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:11, fontWeight:800, flexShrink:0,
+                    marginLeft: i === 0 ? 0 : -10, zIndex: 10-i,
+                    boxShadow:'0 2px 8px rgba(0,0,0,0.15)',
+                  }}>
+                    {msg.author_name?.slice(0,2).toUpperCase()||'??'}
+                  </div>
+                ))}
+                {messages.length > 10 && (
+                  <div style={{
+                    width:36, height:36, borderRadius:'50%',
+                    background:'rgba(255,255,255,0.25)', color: design.dark?'#fff':design.accent,
+                    border:'2.5px solid rgba(255,255,255,0.6)',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    fontSize:10, fontWeight:800, marginLeft:-10,
+                    boxShadow:'0 2px 8px rgba(0,0,0,0.1)',
+                  }}>
+                    +{messages.length - 10}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

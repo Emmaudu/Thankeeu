@@ -257,7 +257,7 @@ const getDepartmentOptions = async (req, res) => {
       // company_members is the single source of truth for HR-imported data
       // (master template + HRIS sync), so pull departments from there.
       const { data } = await supabase.from('company_members')
-        .select('department').eq('company_id', companyId).neq('status', 'deactivated');
+        .select('department').eq('company_id', companyId).eq('status', 'approved');
       uploadedDepts = [...new Set((data || []).map(d => d.department).filter(Boolean))];
     }
     const merged = [...new Set([...uploadedDepts, ...DEFAULT_DEPARTMENTS])].sort();

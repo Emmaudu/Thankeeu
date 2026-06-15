@@ -52,9 +52,15 @@ const CardRow = ({ card, onCopyLink, onTransfer, onNotify }) => (
             ✍️ Sign
           </Link>
         )}
-        <button onClick={() => onCopyLink(card)}
+        {card.status === 'active' && onCopySigningLink && (
+          <button onClick={() => onCopySigningLink(card)}
+            className="text-xs bg-primary-50 border border-primary-200 text-primary-700 hover:bg-primary-100 px-3 py-2 rounded-xl transition-colors font-semibold">
+            ✍️ Copy signing link
+          </button>
+        )}
+        <button onClick={() => onCopyViewLink(card)}
           className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors">
-          🔗 Copy link
+          👁 Copy view link
         </button>
         {card.status === 'active' && onNotify && (
           <button onClick={() => onNotify(card)}
@@ -101,12 +107,16 @@ export default function CompanyMyCardsPage() {
     finally { setLoading(false); }
   };
 
-  const copyLink = (card) => {
-    const base = (import.meta.env.VITE_API_URL || 'https://thankeeu.com/api').replace('/api','');
-    const isActive = card.status === 'active';
-    const link = isActive ? `${base}/sign/${card.slug}` : `${base}/card/${card.slug}`;
+  const copySigningLink = (card) => {
+    const link = `${window.location.origin}/sign/${card.slug}`;
     navigator.clipboard.writeText(link);
-    toast.success(isActive ? '✓ Signing link copied!' : '✓ Card link copied!');
+    toast.success('✓ Signing link copied — share this with colleagues to sign!');
+  };
+
+  const copyViewLink = (card) => {
+    const link = `${window.location.origin}/card/${card.slug}`;
+    navigator.clipboard.writeText(link);
+    toast.success('✓ Private link copied — send this to the recipient only!');
   };
 
   const loadDepts = async () => {
@@ -183,7 +193,7 @@ export default function CompanyMyCardsPage() {
       ) : (
         <div className="space-y-3">
           {cards.map(card => (
-            <CardRow key={card.id} card={card} onCopyLink={copyLink}
+            <CardRow key={card.id} card={card} onCopySigningLink={copySigningLink} onCopyViewLink={copyViewLink}
               onTransfer={tab === 'my' ? (c) => { setTransferCard(c); loadMembers(); } : null}
               onNotify={tab === 'my' ? (c) => setNotifyCard(c) : null} />
           ))}

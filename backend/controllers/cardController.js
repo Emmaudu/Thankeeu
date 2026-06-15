@@ -195,6 +195,22 @@ const createCard = async (req, res) => {
       }
     }
 
+    // Log card creation to activity log
+    if (effectiveCompanyId && card) {
+      const { logActivity } = require('../utils/activityLog');
+      logActivity({
+        company_id:  effectiveCompanyId,
+        actor_id:    req.company?.id || req.member?.id || req.user?.id || effectiveCompanyId,
+        actor_type:  req.actorType || (req.company ? 'hr' : req.member ? 'core_team' : 'member'),
+        actor_name:  req.actorName || req.company?.name || (req.member ? `${req.member.first_name} ${req.member.last_name}`.trim() : 'Unknown'),
+        action:      'created_card',
+        entity_type: 'card',
+        entity_id:   card.id,
+        entity_name: recipient_name,
+        details:     { occasion, slug: card.slug },
+      }).catch(() => {});
+    }
+
     res.status(201).json(card);
   } catch (err) {
     console.error('Create card error:', err);

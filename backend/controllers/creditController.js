@@ -209,26 +209,54 @@ const verifyPurchase = async (req, res) => {
 };
 
 // Helper: add credits to user's balance
+// Uses an optimistic-lock retry loop to avoid a lost update if two
+// concurrent purchases (different tx_refs) for the same user are verified
+// at nearly the same time — a plain read-then-write would let one
+// purchase's credits silently overwrite the other's.
 const addCreditsToUser = async (userId, creditsToAdd, planType, txRef) => {
-  // Upsert credit balance
-  const { data: existing } = await supabase.from('card_credits')
-    .select('id, credits_remaining, total_purchased').eq('user_id', userId).maybeSingle();
+  const MAX_ATTEMPTS = 5;
+  let success = false;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const { data: existing } = await supabase.from('card_credits')
+      .select('id, credits_remaining, total_purchased').eq('user_id', userId).maybeSingle();
 
-  if (existing) {
-    await supabase.from('card_credits').update({
-      credits_remaining: (existing.credits_remaining || 0) + creditsToAdd,
-      total_purchased:   (existing.total_purchased   || 0) + creditsToAdd,
-      plan_type_v2:      planType,
-      updated_at:        new Date(),
-    }).eq('id', existing.id);
-  } else {
-    await supabase.from('card_credits').insert({
-      user_id:           userId,
-      credits_remaining: creditsToAdd,
-      total_purchased:   creditsToAdd,
-      plan_type_v2:      planType,
-      flw_reference:     txRef,
-    });
+    if (existing) {
+      const { data: updated } = await supabase.from('card_credits').update({
+        credits_remaining: (existing.credits_remaining || 0) + creditsToAdd,
+        total_purchased:   (existing.total_purchased   || 0) + creditsToAdd,
+        plan_type_v2:      planType,
+        updated_at:        new Date(),
+      })
+        .eq('id', existing.id)
+        .eq('credits_remaining', existing.credits_remaining) // optimistic lock
+        .select('id').maybeSingle();
+
+      if (updated) { success = true; break; }
+      // Lock missed (concurrent update in between) — retry with fresh balance
+      continue;
+    } else {
+      const { error: insertErr } = await supabase.from('card_credits').insert({
+        user_id:           userId,
+        credits_remaining: creditsToAdd,
+        total_purchased:   creditsToAdd,
+        plan_type_v2:      planType,
+        flw_reference:     txRef,
+      });
+      if (!insertErr) { success = true; break; }
+      // Insert failed (likely a row was created concurrently — unique
+      // constraint on user_id) — retry, which will now find `existing`
+      if (attempt === MAX_ATTEMPTS - 1) console.error('addCreditsToUser: insert failed after retries:', insertErr.message);
+    }
+  }
+
+  if (!success) {
+    // All attempts hit lock collisions — don't silently mark the purchase
+    // 'paid' while the balance was never actually updated, or the user
+    // would lose the credits they paid for with no way to retry (verify
+    // is gated by status !== 'paid'). Leave status as-is so a retry of
+    // verifyPurchase can pick it up again.
+    console.error(`addCreditsToUser: FAILED to add ${creditsToAdd} credits for user ${userId} (txRef ${txRef}) after ${MAX_ATTEMPTS} attempts — purchase NOT marked paid, safe to retry.`);
+    return;
   }
 
   // Mark purchase as paid
@@ -269,14 +297,23 @@ const spendCredit = async (req, res) => {
     if (card.status === 'active') return res.status(400).json({ error: 'This card is already active' });
 
     // Deduct credit first, then activate
-    const { error: deductErr } = await supabase.from('card_credits')
+    const { data: deducted, error: deductErr } = await supabase.from('card_credits')
       .update({ credits_remaining: balance.credits_remaining - 1, updated_at: new Date() })
       .eq('id', balance.id)
-      .eq('credits_remaining', balance.credits_remaining); // optimistic lock
+      .eq('credits_remaining', balance.credits_remaining) // optimistic lock
+      .select('id')
+      .maybeSingle();
 
     if (deductErr) {
       console.error('spendCredit deduct error:', deductErr.message);
       return res.status(500).json({ error: 'Failed to deduct credit. Please try again.' });
+    }
+
+    // If the optimistic lock didn't match any row, the balance changed
+    // between our read and write (e.g. a concurrent spend on another card) —
+    // do NOT activate the card on a stale balance.
+    if (!deducted) {
+      return res.status(409).json({ error: 'Your credit balance just changed — please try again.' });
     }
 
     // Activate the card

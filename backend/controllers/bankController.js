@@ -239,8 +239,11 @@ const initiateWithdrawal = async (req, res) => {
 
       // Reduce card total_collected if gift_pot
       if (source_type === 'gift_pot') {
+        const { data: currentCard } = await supabase.from('cards')
+          .select('total_collected').eq('id', source_id).maybeSingle();
+        const newTotal = Math.max(0, (currentCard?.total_collected || 0) - amount);
         await supabase.from('cards')
-          .update({ total_collected: supabase.raw(`total_collected - ${amount}`) })
+          .update({ total_collected: newTotal })
           .eq('id', source_id);
       }
 
@@ -300,14 +303,27 @@ const withdrawGift = async (req, res) => {
       callerEmail = memberInfo?.email;
     }
 
-    // Recipient check: email match OR transferred card
+    // Recipient check: email match OR transferred card. A card can reach this
+    // caller via two different transfer paths that use two different tables:
+    //  - received_cards.recipient_user_id  — users.id or company_members.id
+    //    (creator transfer / HR transfer to a team member)
+    //  - member_received_cards.recipient_member_id — company_members.id only
+    //    (member-to-member transfer via transferCardToMember)
     const isEmailRecipient = card.recipient_email && callerEmail &&
       card.recipient_email.toLowerCase() === callerEmail.toLowerCase();
     const { data: received } = await supabase.from('received_cards')
       .select('id').eq('card_id', card.id)
-      .eq('recipient_user_id', userId || '').maybeSingle();
+      .eq('recipient_user_id', callerId).maybeSingle();
 
-    if (!isEmailRecipient && !received) {
+    let receivedAsMember = null;
+    if (!received && memberId) {
+      const { data: mrc } = await supabase.from('member_received_cards')
+        .select('id').eq('card_id', card.id)
+        .eq('recipient_member_id', memberId).maybeSingle();
+      receivedAsMember = mrc;
+    }
+
+    if (!isEmailRecipient && !received && !receivedAsMember) {
       return res.status(403).json({
         error: 'Only the recipient can claim this gift. If your email is different, ask the card creator to transfer it to your account.',
       });
@@ -343,30 +359,58 @@ const withdrawGift = async (req, res) => {
 
     const transferRef = `TK-GIFT-WD-${card.id.slice(0,8).toUpperCase()}-${Date.now()}`;
 
+    // Atomically claim the withdrawal BEFORE calling FLW — only one request
+    // can flip gift_withdrawn from false to true. Without this, a double
+    // click or retried request could both pass the earlier check (both read
+    // gift_withdrawn=false) and trigger two separate bank transfers for the
+    // same gift pot.
+    const { data: claimed, error: claimErr } = await supabase.from('cards')
+      .update({
+        gift_withdrawn:        true,
+        gift_withdrawn_at:     new Date(),
+        gift_payout_reference: transferRef,
+        gift_payout_amount:    net,
+      })
+      .eq('id', card.id)
+      .eq('gift_withdrawn', false)
+      .select('id')
+      .maybeSingle();
+
+    if (claimErr || !claimed) {
+      return res.status(400).json({ error: 'Gift has already been claimed' });
+    }
+
     // Initiate Flutterwave bank transfer
-    const r = await axios.post(`${FLW}/transfers`, {
-      account_bank:     bank.bank_code,
-      account_number:   bank.account_number,
-      amount:           net, // FLW uses Naira directly (not kobo)
-      narration:        `Gift from "${card.title || card.recipient_name + "'s card"}"`,
-      currency:         'NGN',
-      reference:        transferRef,
-      beneficiary_name: bank.account_name || 'Recipient',
-      debit_currency:   'NGN',
-    }, { headers: flwH() });
+    let r;
+    try {
+      r = await axios.post(`${FLW}/transfers`, {
+        account_bank:     bank.bank_code,
+        account_number:   bank.account_number,
+        amount:           net, // FLW uses Naira directly (not kobo)
+        narration:        `Gift from "${card.title || card.recipient_name + "'s card"}"`,
+        currency:         'NGN',
+        reference:        transferRef,
+        beneficiary_name: bank.account_name || 'Recipient',
+        debit_currency:   'NGN',
+      }, { headers: flwH() });
+    } catch (transferErr) {
+      // Transfer call failed outright — release the claim so the user can retry
+      await supabase.from('cards').update({
+        gift_withdrawn: false, gift_withdrawn_at: null,
+        gift_payout_reference: null, gift_payout_amount: null,
+      }).eq('id', card.id);
+      throw transferErr;
+    }
 
     if (!['NEW', 'success', 'PENDING'].includes(r.data?.data?.status || '') &&
         r.data?.status !== 'success') {
+      // FLW rejected the transfer — release the claim so the user can retry
+      await supabase.from('cards').update({
+        gift_withdrawn: false, gift_withdrawn_at: null,
+        gift_payout_reference: null, gift_payout_amount: null,
+      }).eq('id', card.id);
       throw new Error(r.data?.message || r.data?.data?.complete_message || 'Transfer failed');
     }
-
-    // Mark card gift as withdrawn
-    await supabase.from('cards').update({
-      gift_withdrawn:       true,
-      gift_withdrawn_at:    new Date(),
-      gift_payout_reference: transferRef,
-      gift_payout_amount:   net,
-    }).eq('id', card.id);
 
     // Also record in gift_claims table for admin visibility
     try {

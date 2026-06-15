@@ -392,6 +392,23 @@ const teamsTemplates = {
     `)
   }),
 
+  // Mid-period nudge — sent to colleagues who have NOT yet signed, partway
+  // between the initial notification and the occasion date.
+  occasionReminder: (data) => ({
+    subject: `⏰ Reminder — ${data.memberName}'s ${data.occasionLabel} is in ${data.daysLeft} days. You haven't signed yet!`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">⏰ Don't forget ${data.memberName}'s card!</h2>
+      <p style="color:#555;line-height:1.8;">Just a friendly reminder — <strong>${data.memberName}</strong>'s <strong>${data.occasionLabel}</strong> is coming up on <strong>${data.occasionDate}</strong>, and you haven't added your message to the card yet.</p>
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 The gift pot is still open — contribute any amount via Flutterwave</p></div>` : ''}
+      <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
+        <p style="color:#7a5f00;font-size:13px;margin:0;">Keep this a surprise — please do not mention the card to ${data.memberFirstName}!</p>
+      </div>
+      ${btn(`Sign ${data.memberFirstName}'s card now`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. It only takes a minute!</p>
+    `)
+  }),
+
+
   occasionCelebrant: (data) => ({
     subject: `${data.icon} Happy ${data.occasionLabel}, ${data.firstName}! You have a surprise from ${data.companyName}!`,
     html: BASE(`

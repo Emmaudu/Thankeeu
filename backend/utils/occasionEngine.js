@@ -7,13 +7,27 @@ const { getWorkersDayDate } = require('./workersDay');
 
 // Returns this year's MM-DD recurrence of a stored date (DOB, hire date, etc.)
 // e.g. date_of_birth = '1992-05-15' → this year's '2026-05-15'
+//
+// Special case: Feb 29 (leap day). new Date('2026-02-29T00:00:00') silently
+// rolls over to March 1 in non-leap years — so without this guard, someone
+// born on Feb 29 would get notified/delivered on March 1 every non-leap
+// year, which is incorrect. Instead, we observe Feb 29 birthdays on Feb 28
+// in non-leap years (the conventional approach), and on Feb 29 itself in
+// leap years.
+function isLeapYear(y) {
+  return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+}
+
 function recurringThisYear(dateStr, year) {
   if (!dateStr) return null;
   const d = new Date(dateStr + 'T00:00:00');
   if (isNaN(d)) return null;
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${year}-${mm}-${dd}`;
+  const mm = d.getMonth() + 1;
+  const dd = d.getDate();
+  if (mm === 2 && dd === 29 && !isLeapYear(year)) {
+    return `${year}-02-28`;
+  }
+  return `${year}-${String(mm).padStart(2, '0')}-${String(dd).padStart(2, '0')}`;
 }
 
 // Builds the list of occasions a member is eligible for THIS YEAR, with the

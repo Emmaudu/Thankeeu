@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
 const { nanoid } = require('nanoid');
+const { logActivity } = require('../utils/activityLog');
 
 // All possible occasion types with their template columns
 const OCCASION_CONFIGS = {
@@ -416,6 +417,18 @@ const importOccasionMembers = async (req, res) => {
       invites_sent: invitesSent,
       row_errors: errors,
     });
+
+    logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.coreTeamMember?.id || req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      'imported_members',
+      entity_type: 'occasion_type',
+      entity_id:   occasionTypeId,
+      entity_name: ot.label || ot.name,
+      details:     { imported: data.length, invites_sent: invitesSent },
+    }).catch(() => {});
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Import failed' });
@@ -1193,17 +1206,17 @@ const importByOccasionName = async (req, res) => {
             break;
           }
           case 'womens_day': {
-            if (gender && gender !== 'female') { errors.push(`Row ${i+1}: ${fn} skipped — not female`); continue; }
+            if (gender !== 'female') { errors.push(`Row ${i+1}: ${fn} skipped — Gender column must say "female"`); continue; }
             await upsertOcc('womens_day', {...base, gender:'female', occasion_date:`${year}-03-08`});
             break;
           }
           case 'mothers_day': {
-            if (gender && gender !== 'female') { errors.push(`Row ${i+1}: ${fn} skipped — not female`); continue; }
+            if (gender !== 'female') { errors.push(`Row ${i+1}: ${fn} skipped — Gender column must say "female"`); continue; }
             await upsertOcc('mothers_day', {...base, gender:'female', occasion_date:mothersDate});
             break;
           }
           case 'fathers_day': {
-            if (gender && gender !== 'male') { errors.push(`Row ${i+1}: ${fn} skipped — not male`); continue; }
+            if (gender !== 'male') { errors.push(`Row ${i+1}: ${fn} skipped — Gender column must say "male"`); continue; }
             await upsertOcc('fathers_day', {...base, gender:'male', occasion_date:fathersDate});
             break;
           }
@@ -1221,6 +1234,17 @@ const importByOccasionName = async (req, res) => {
       message: `✅ ${imported} records imported into ${occasionName.replace('_',' ')} table.`,
       imported, errors,
     });
+
+    logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.coreTeamMember?.id || req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      'imported_members',
+      entity_type: 'occasion',
+      entity_name: occasionName.replace(/_/g, ' '),
+      details:     { imported, errors: errors.length },
+    }).catch(() => {});
   } catch(err) {
     console.error('importByOccasionName error:', err);
     res.status(500).json({ error: `Import failed: ${err.message}` });

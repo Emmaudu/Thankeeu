@@ -197,15 +197,56 @@ const orderGiftCard = async (req, res) => {
     const emailMatch = card.recipient_email &&
       callerEmail?.toLowerCase() === card.recipient_email.toLowerCase();
     const { data: received } = await supabase.from('received_cards')
-      .select('id').eq('card_id', card.id).eq('recipient_user_id', req.user?.id || '').maybeSingle();
+      .select('id').eq('card_id', card.id).eq('recipient_user_id', callerId).maybeSingle();
 
-    if (!emailMatch && !received) {
+    // Also check member-to-member transfers (a separate table —
+    // member_received_cards.recipient_member_id — used by transferCardToMember)
+    let receivedAsMember = null;
+    if (!received && req.member?.id) {
+      const { data: mrc } = await supabase.from('member_received_cards')
+        .select('id').eq('card_id', card.id)
+        .eq('recipient_member_id', req.member.id).maybeSingle();
+      receivedAsMember = mrc;
+    }
+
+    if (!emailMatch && !received && !receivedAsMember) {
       return res.status(403).json({ error: 'Only the gift recipient can claim this gift pot.' });
     }
 
     // Platform fee: 3.5%
     const fee = Math.round(amount * 0.035);
     const net = amount - fee;
+
+    // Atomically claim the gift pot BEFORE calling Reloadly/Airtime — only
+    // one concurrent request can flip gift_withdrawn from false to true.
+    // Without this, a double-click (or retried request) could both pass the
+    // earlier check (both read gift_withdrawn=false), both place an order
+    // with Reloadly, and result in two gift cards issued for one gift pot.
+    const claimRefForLock = `TK-GC-${Date.now()}-${card.id.slice(0,8).toUpperCase()}`;
+    const { data: lockClaimed, error: lockErr } = await supabase.from('cards')
+      .update({
+        gift_withdrawn: true, gift_withdrawn_at: new Date(),
+        gift_payout_reference: claimRefForLock, gift_payout_amount: net,
+      })
+      .eq('id', card.id).eq('gift_withdrawn', false)
+      .select('id').maybeSingle();
+
+    if (lockErr || !lockClaimed) {
+      return res.status(400).json({ error: 'Gift already claimed' });
+    }
+
+    // Helper to release the claim if the order ultimately fails, so the
+    // recipient can retry. Uses try/catch rather than .catch() chaining —
+    // Supabase query builders implement PromiseLike via .then() but don't
+    // reliably expose .catch() directly on the builder chain.
+    const releaseClaim = async () => {
+      try {
+        await supabase.from('cards').update({
+          gift_withdrawn: false, gift_withdrawn_at: null,
+          gift_payout_reference: null, gift_payout_amount: null,
+        }).eq('id', card.id);
+      } catch (_) { /* best-effort */ }
+    };
 
     // Map product_id to Reloadly numeric ID
     const RELOADLY_IDS = {
@@ -251,7 +292,7 @@ const orderGiftCard = async (req, res) => {
         'NG_AIRTIME_9MOBILE':5,
       };
       const operatorId = OPERATOR_IDS[product_id];
-      if (!operatorId) return res.status(400).json({ error: 'Unknown airtime operator' });
+      if (!operatorId) { await releaseClaim(); return res.status(400).json({ error: 'Unknown airtime operator' }); }
 
       const AT_BASE = IS_PROD
         ? 'https://topups.reloadly.com'
@@ -288,7 +329,7 @@ const orderGiftCard = async (req, res) => {
 
     // Gift card order via Reloadly
     const rlId = RELOADLY_IDS[product_id];
-    if (!rlId) return res.status(400).json({ error: 'Unknown gift card product' });
+    if (!rlId) { await releaseClaim(); return res.status(400).json({ error: 'Unknown gift card product' }); }
 
     const hdrs = await rlHeaders();
 
@@ -316,6 +357,7 @@ const orderGiftCard = async (req, res) => {
 
     // Minimum $1 check
     if (senderAmountUSD < 1) {
+      await releaseClaim();
       return res.status(400).json({ error: `Amount too low for gift card after conversion. Minimum is ₦${Math.ceil(NGN_TO_USD).toLocaleString()}` });
     }
 
@@ -385,14 +427,26 @@ const orderGiftCard = async (req, res) => {
     const msg = err.response?.data?.message || err.message;
     console.error('orderGiftCard error:', msg, err.response?.data);
 
-    // Update claim status to failed
+    // Update claim status to failed, and release the gift_withdrawn lock
+    // (if it was claimed) so the recipient can retry.
     if (req.body?.card_slug) {
       const { data: card } = await supabase.from('cards')
-        .select('id').eq('slug', req.body.card_slug).maybeSingle();
+        .select('id, gift_withdrawn, gift_payout_reference').eq('slug', req.body.card_slug).maybeSingle();
       if (card?.id) {
         await supabase.from('gift_claims')
           .update({ status: 'rejected' })
           .eq('card_id', card.id).eq('status', 'processing');
+
+        // Only release if this card was claimed via the TK-GC- lock pattern
+        // and no payout was actually delivered (status update above failed
+        // to find a 'paid' claim — if it had succeeded we'd have returned
+        // already).
+        if (card.gift_withdrawn && String(card.gift_payout_reference || '').startsWith('TK-GC-')) {
+          await supabase.from('cards').update({
+            gift_withdrawn: false, gift_withdrawn_at: null,
+            gift_payout_reference: null, gift_payout_amount: null,
+          }).eq('id', card.id);
+        }
       }
     }
 

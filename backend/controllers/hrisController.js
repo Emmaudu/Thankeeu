@@ -5,6 +5,7 @@ const bcrypt  = require('bcryptjs');
 const argon2  = require('argon2');
 const crypto  = require('crypto');
 const { sendEmail } = require('../utils/email');
+const { logActivity } = require('../utils/activityLog');
 
 const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
 
@@ -1063,6 +1064,18 @@ const saveConnection = async (req, res) => {
       const { data } = await supabase.from('hris_connections').insert(payload).select().single();
       result = data;
     }
+
+    await logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      existing?.id ? 'updated_hris_connection' : 'connected_hris',
+      entity_type: 'hris_connection',
+      entity_id:   result?.id,
+      entity_name: display_name || provider,
+    }).catch(() => {});
+
     res.status(201).json({ message: 'Connection saved', connection: result });
   } catch (err) {
     console.error(err);
@@ -1182,6 +1195,18 @@ const syncHRIS = async (req, res) => {
     const monthlyPrice = headCount * 2000;
     const yearlyPrice  = headCount * 20000;
 
+    await logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      'synced_hris',
+      entity_type: 'hris_connection',
+      entity_id:   connectionId,
+      entity_name: conn.display_name || conn.provider,
+      details:     { total_employees: employees.length, status: finalStatus },
+    }).catch(() => {});
+
     res.json({
       success:                  true,
       provider:                 conn.display_name,
@@ -1210,6 +1235,18 @@ async function deactivateMissingEmployees(companyId, hrisEmployees, _occasionTyp
   const activeHRISIds = new Set(
     hrisEmployees.filter(e => e.employment_status !== 'terminated').map(e => e.hris_employee_id)
   );
+
+  // Safety guard: if the HRIS feed came back with no active employees at all
+  // (e.g. a transient API error returned an empty array, a pagination bug
+  // only fetched page 1, or the API key's scope was restricted), treating
+  // that as "everyone left" would mass-deactivate the entire company's
+  // workforce in one sync. Skip deactivation entirely in that case — an
+  // empty/all-terminated feed is far more likely to be a bad sync than a
+  // company that genuinely has zero active employees.
+  if (activeHRISIds.size === 0) {
+    console.warn(`[HRIS sync] company ${companyId}: HRIS feed returned 0 active employees — skipping deactivation to avoid mass-deactivating existing members.`);
+    return 0;
+  }
 
   const { data: thankeeuMembers } = await supabase.from('company_members')
     .select('id, hris_employee_id')

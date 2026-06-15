@@ -1,5 +1,6 @@
 const supabase  = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
+const { logActivity } = require('../utils/activityLog');
 const crypto    = require('crypto');
 const bcrypt    = require('bcryptjs');
 const argon2    = require('argon2');
@@ -50,7 +51,13 @@ const inviteCoreMember = async (req, res) => {
       .select().single();
     if (error) throw error;
 
-    // Also create company_member account so they can sign in
+    // Also create/update company_member account so they can sign in. If
+    // they're already an active member with a password set, do NOT
+    // overwrite password_hash/invite_token — that would silently lock them
+    // out of their existing account until they used a new invite link.
+    const { data: existingMember } = await supabase.from('company_members')
+      .select('password_hash').eq('company_id', req.company.id).eq('email', cleanEmail).maybeSingle();
+    const memberNeedsInvite = !existingMember?.password_hash;
     const tempPassword = crypto.randomBytes(8).toString('hex');
     const passwordHash = await hashPassword(tempPassword);
     const nameParts = (full_name || email.split('@')[0]).split(' ');
@@ -63,9 +70,8 @@ const inviteCoreMember = async (req, res) => {
       role: 'team_leader',  // Core team always get team_leader role
       status: 'approved',
       job_title: title || null,
-      password_hash: passwordHash,
       is_core_team: true,       // Grants switching access to HR dashboard
-      invite_token: inviteToken,
+      ...(memberNeedsInvite && { password_hash: passwordHash, invite_token: inviteToken }),
     }, { onConflict: 'company_id,email' });
 
     // Send invite email with set-password link
@@ -113,6 +119,18 @@ const inviteCoreMember = async (req, res) => {
     });
 
     res.status(201).json({ message: `Invitation sent to ${cleanEmail}`, invite });
+
+    logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.coreTeamMember?.id || req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      'invited_core_team_member',
+      entity_type: 'core_team',
+      entity_id:   invite?.id,
+      entity_name: full_name || cleanEmail,
+      details:     { permission_level },
+    }).catch(() => {});
   } catch (err) {
     console.error('inviteCoreMember error:', err);
     res.status(500).json({ error: err.message || 'Failed to send invitation' });
@@ -138,6 +156,17 @@ const bulkInviteCoreTeam = async (req, res) => {
       }
     }
     res.json({ message: `${results.sent} invitation${results.sent !== 1 ? 's' : ''} sent`, results });
+
+    logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.coreTeamMember?.id || req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      'invited_core_team_member',
+      entity_type: 'core_team',
+      entity_name: 'Bulk invite',
+      details:     { sent: results.sent, failed: results.failed },
+    }).catch(() => {});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -157,12 +186,19 @@ const inviteCoreMemberInternally = async (company, memberData) => {
     full_name, title, permission_level, invite_token: inviteToken,
   }, { onConflict: 'company_id,email' });
 
+  // Don't overwrite password_hash/invite_token if this person is already an
+  // active member with a password set — same protection as inviteCoreMember.
+  const { data: existingMember } = await supabase.from('company_members')
+    .select('password_hash').eq('company_id', company.id).eq('email', cleanEmail).maybeSingle();
+  const memberNeedsInvite = !existingMember?.password_hash;
+
   await supabase.from('company_members').upsert({
     company_id: company.id, email: cleanEmail,
     first_name: nameParts[0] || '', last_name: nameParts.slice(1).join(' ') || '',
     role: 'team_leader',
-    status: 'approved', job_title: title || null, password_hash: passHash,
-    is_core_team: true, invite_token: inviteToken,
+    status: 'approved', job_title: title || null,
+    is_core_team: true,
+    ...(memberNeedsInvite && { password_hash: passHash, invite_token: inviteToken }),
   }, { onConflict: 'company_id,email' });
 
   const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
@@ -185,7 +221,33 @@ const inviteCoreMemberInternally = async (company, memberData) => {
 // DELETE /api/company/core-team/:id
 const removeCoreMember = async (req, res) => {
   try {
+    const { data: removed } = await supabase.from('company_core_team')
+      .select('full_name, email').eq('id', req.params.id).eq('company_id', req.company.id).maybeSingle();
+
     await supabase.from('company_core_team').delete().eq('id', req.params.id).eq('company_id', req.company.id);
+
+    // IMPORTANT: get-company-access (the "Switch to HR View" flow) checks
+    // company_members.is_core_team, not the company_core_team table. Without
+    // resetting this flag, a removed core team member would retain
+    // permanent access to the HR dashboard via that endpoint.
+    if (removed?.email) {
+      await supabase.from('company_members')
+        .update({ is_core_team: false })
+        .eq('company_id', req.company.id)
+        .eq('email', removed.email);
+    }
+
+    logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.coreTeamMember?.id || req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      'removed_core_team_member',
+      entity_type: 'core_team',
+      entity_id:   req.params.id,
+      entity_name: removed?.full_name || removed?.email || 'Core team member',
+    }).catch(() => {});
+
     res.json({ message: 'Removed from core team' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };

@@ -322,8 +322,18 @@ const verifyContribution = async (req, res) => {
     }
 
     const meta        = txn.meta || {};
-    const cardId      = meta.card_id;
+    let   cardId      = meta.card_id;
     const messageId   = meta.message_id || null;
+
+    // Fallback: some payment flows / FLW responses can drop numeric meta
+    // fields. If card_id is missing but card_slug is present, resolve it —
+    // otherwise the contribution would be saved with no card_id and never
+    // count toward that card's total_collected.
+    if (!cardId && meta.card_slug) {
+      const { data: cardBySlug } = await supabase.from('cards')
+        .select('id').eq('slug', meta.card_slug).maybeSingle();
+      cardId = cardBySlug?.id || null;
+    }
 
     // IMPORTANT: txn.amount is in whatever currency the contributor actually
     // paid (USD/GBP/EUR/etc if they used the currency switcher), NOT

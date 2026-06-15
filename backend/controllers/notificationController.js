@@ -66,10 +66,16 @@ const markAllRead = async (req, res) => {
 // POST /api/notifications/:id/read — mark single as read
 const markOneRead = async (req, res) => {
   try {
+    const id   = req.user?.id || req.member?.id || req.company?.id;
+    const type = req.user ? 'user' : req.member ? 'member' : 'company';
+    if (!id) return res.status(401).json({ error: 'Not authenticated' });
+
     await supabase
       .from('dashboard_notifications')
       .update({ is_read: true })
-      .eq('id', req.params.id);
+      .eq('id', req.params.id)
+      .eq('recipient_id', id)
+      .eq('recipient_type', type);
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: 'Failed' });

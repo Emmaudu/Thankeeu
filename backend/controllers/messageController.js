@@ -1,4 +1,5 @@
 const supabase      = require('../utils/supabase');
+const { sendEmail } = require('../utils/email');
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();

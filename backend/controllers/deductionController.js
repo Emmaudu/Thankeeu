@@ -163,6 +163,20 @@ const approveDeduction = async (req, res) => {
     if (dr.company_id !== req.company.id) return res.status(403).json({ error: 'Not authorized' });
     if (dr.status !== 'pending')     return res.status(400).json({ error: 'Request already processed' });
 
+    // Atomically claim this request: only one concurrent call can succeed in
+    // flipping status from 'pending' to 'approved'. Without this, a double
+    // click (or two near-simultaneous requests) could both pass the check
+    // above, both deduct from the wallet, and both trigger a bank transfer
+    // to the team leader for the same request.
+    const { data: claimed, error: claimErr } = await supabase.from('deduction_requests')
+      .update({ status: 'approved', reviewed_by_id: req.company.id, reviewed_at: new Date(), review_note: note || null })
+      .eq('id', requestId).eq('status', 'pending')
+      .select('id').maybeSingle();
+
+    if (claimErr || !claimed) {
+      return res.status(400).json({ error: 'Request already processed' });
+    }
+
     // Update wallet totals
     const { data: wallet } = await supabase.from('contribution_wallets').select('*').eq('id', dr.wallet_id).single();
     const newDeducted      = (wallet.total_deducted || 0) + dr.amount;
@@ -171,11 +185,6 @@ const approveDeduction = async (req, res) => {
     await supabase.from('contribution_wallets').update({
       total_deducted: newDeducted, amount_to_celebrant: newToCelebrant,
     }).eq('id', dr.wallet_id);
-
-    await supabase.from('deduction_requests').update({
-      status: 'approved', reviewed_by_id: req.company.id,
-      reviewed_at: new Date(), review_note: note || null,
-    }).eq('id', requestId);
 
     // Get card info for narration
     const { data: card } = await supabase.from('cards').select('title, recipient_name').eq('id', dr.card_id).maybeSingle();
@@ -248,10 +257,27 @@ const withdrawDeduction = async (req, res) => {
     if (dr.status !== 'approved')             return res.status(400).json({ error: 'Request not approved yet' });
     if (dr.withdrawal_requested)              return res.status(400).json({ error: 'Already withdrawn' });
 
+    // Atomically claim this withdrawal before calling FLW — only one
+    // concurrent call can flip withdrawal_requested from false to true.
+    // Without this, two near-simultaneous requests could both pass the
+    // check above (both read withdrawal_requested=false) and both trigger
+    // a transfer for the same deduction.
+    const { data: claimed, error: claimErr } = await supabase.from('deduction_requests')
+      .update({ withdrawal_requested: true })
+      .eq('id', requestId).eq('withdrawal_requested', false)
+      .select('id').maybeSingle();
+
+    if (claimErr || !claimed) {
+      return res.status(400).json({ error: 'Already withdrawn' });
+    }
+
     const cardTitle = dr.card?.title || `${dr.card?.recipient_name || 'Employee'}'s card`;
     const transfer  = await tryInstantTransfer(req.member.id, dr.amount, requestId, cardTitle);
 
     if (!transfer.ok) {
+      // Transfer didn't go through — release the claim so the leader can retry
+      await supabase.from('deduction_requests').update({ withdrawal_requested: false }).eq('id', requestId);
+
       if (transfer.reason === 'no_bank') {
         return res.status(400).json({
           error: 'No verified bank account found. Please add and verify your bank account in Settings → Bank Accounts first.',

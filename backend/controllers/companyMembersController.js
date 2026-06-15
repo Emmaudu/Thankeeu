@@ -15,6 +15,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
 const { getMemberOccasions } = require('../utils/occasionEngine');
+const { logActivity } = require('../utils/activityLog');
 
 const setCookie = (res, name, token, expiresIn = '7d') => {
   const maxAge = expiresIn.endsWith('d')
@@ -237,7 +238,7 @@ const getMemberMe = async (req, res) => {
   try {
     const { data: member, error } = await supabase
       .from('company_members')
-      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, company_id, created_at')
+      .select('id, first_name, last_name, email, role, department, status, profile_picture_url, company_id, created_at, is_core_team')
       .eq('id', req.member.id).single();
     if (error) throw error;
     const { data: company } = await supabase.from('companies').select('id, name, email, logo_url').eq('id', member.company_id).single();
@@ -329,6 +330,17 @@ const approveMember = async (req, res) => {
       department: member.department,
     }});
 
+    logActivity({
+      company_id:  member.company_id,
+      actor_id:    approver.id,
+      actor_type:  isHR ? 'hr' : 'core_team',
+      actor_name:  isHR ? (req.company.contact_person || req.company.name || company?.name || 'HR') : `${req.member.first_name} ${req.member.last_name}`,
+      action:      'approved_member',
+      entity_type: 'company_member',
+      entity_id:   member.id,
+      entity_name: `${member.first_name} ${member.last_name}`,
+    }).catch(() => {});
+
     res.json({ message: `${member.first_name} has been approved` });
   } catch (err) {
     res.status(500).json({ error: 'Approval failed' });
@@ -350,6 +362,18 @@ const rejectMember = async (req, res) => {
     await sendEmail({ to: member.email, template: 'memberRejected', data: {
       memberName: member.first_name, reason: reason || 'No reason provided'
     }});
+
+    logActivity({
+      company_id:  member.company_id,
+      actor_id:    req.company?.id || req.member?.id,
+      actor_type:  req.company ? 'hr' : 'core_team',
+      actor_name:  req.company ? (req.company.contact_person || req.company.name || 'HR') : `${req.member.first_name} ${req.member.last_name}`,
+      action:      'rejected_member',
+      entity_type: 'company_member',
+      entity_id:   member.id,
+      entity_name: `${member.first_name} ${member.last_name}`,
+      details:     { reason: reason || 'No reason provided' },
+    }).catch(() => {});
 
     res.json({ message: 'Member rejected' });
   } catch (err) {

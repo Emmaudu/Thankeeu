@@ -1,5 +1,6 @@
 const axios    = require('axios');
 const supabase = require('../utils/supabase');
+const { logActivity } = require('../utils/activityLog');
 
 const FLW_BASE = 'https://api.flutterwave.com/v3';
 const headers  = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
@@ -155,8 +156,14 @@ const verifySubscription = async (req, res) => {
     const txn = response.data.data;
     console.log('[verifySubscription] FLW status:', txn.status, 'amount:', txn.amount);
 
-    if (['failed', 'abandoned', 'reversed', 'cancelled', 'error'].includes(txn.status)) {
-      return res.status(400).json({ error: `Payment was not completed (status: ${txn.status})` });
+    // Use the same strict allowlist as the rest of the payment flows — only
+    // proceed for transactions FLW has confirmed as paid. Previously this
+    // checked a blocklist, so a 'pending' (or any other unrecognized) status
+    // would fall through and activate the subscription before payment was
+    // actually confirmed.
+    const FLW_SUCCESS = new Set(['successful', 'completed', 'success']);
+    if (!FLW_SUCCESS.has(txn.status)) {
+      return res.status(400).json({ error: `Payment not completed (status: ${txn.status})` });
     }
 
     const resolvedPlan = txn.meta?.plan || req.query.plan || 'monthly';
@@ -166,6 +173,17 @@ const verifySubscription = async (req, res) => {
       : new Date(new Date(now).setMonth(now.getMonth() + 1));
 
     await saveSubscription(req.company.id, resolvedPlan, reference, expires_at);
+
+    logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.coreTeamMember?.id || req.company.id,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      'subscribed_plan',
+      entity_type: 'subscription',
+      entity_name: `${resolvedPlan} plan`,
+      details:     { reference, expires_at },
+    }).catch(() => {});
 
     res.json({ success: true, plan: resolvedPlan, expires_at });
   } catch (err) {

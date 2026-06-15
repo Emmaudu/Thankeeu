@@ -26,7 +26,6 @@ const CompanyLayout = ({ children, title, subtitle }) => {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => { logout(); navigate('/company/login'); };
   const isActive = (p) => location.pathname === p;
   // Check if this company session was obtained via core team switching
   const companyData = (() => {
@@ -40,6 +39,20 @@ const CompanyLayout = ({ children, title, subtitle }) => {
       return !!payload.via_core_team;
     } catch { return false; }
   })();
+
+  const handleLogout = () => {
+    if (isViaCoreTeam) {
+      // This is a temporary HR session for a core team member — clear just
+      // the temporary company token and return to their own dashboard,
+      // rather than the full company logout (they don't have HR credentials
+      // to log back in with at /company/login).
+      localStorage.removeItem('thankeeu_company_token');
+      localStorage.removeItem('thankeeu_company');
+      navigate('/member/dashboard');
+      return;
+    }
+    logout(); navigate('/company/login');
+  };
 
   const initials = company?.name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'CO';
 
@@ -70,10 +83,27 @@ const CompanyLayout = ({ children, title, subtitle }) => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold truncate" style={{ color: '#E4E2F6' }}>{company?.name || 'Company'}</p>
-            <p className="text-xs" style={{ color: '#6B678A' }}>HR Admin</p>
+            <p className="text-xs" style={{ color: '#6B678A' }}>{isViaCoreTeam ? 'Core Team Access' : 'HR Admin'}</p>
           </div>
         </div>
       </div>
+
+      {/* ─── Core team: switch back to own member dashboard ─── */}
+      {isViaCoreTeam && (
+        <div className="px-3 pb-1 flex-shrink-0">
+          <button
+            onClick={() => {
+              localStorage.removeItem('thankeeu_company_token');
+              localStorage.removeItem('thankeeu_company');
+              navigate('/member/dashboard');
+            }}
+            className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+            style={{ background:'rgba(124,110,255,0.12)', color:'#9D95FF', border:'1.5px solid rgba(124,110,255,0.25)' }}>
+            <span className="text-base">👤</span>
+            <span>Switch back to my dashboard</span>
+          </button>
+        </div>
+      )}
 
       {/* Nav */}
       
@@ -86,9 +116,10 @@ const CompanyLayout = ({ children, title, subtitle }) => {
           onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
           onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}>
           <span style={{fontSize:18}}>🚪</span>
-          <span>Sign out</span>
+          <span>{isViaCoreTeam ? 'Exit HR view' : 'Sign out'}</span>
         </button>
       </div>
+
 
 <nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
         {NAV.map(({ path, icon, label }) => (

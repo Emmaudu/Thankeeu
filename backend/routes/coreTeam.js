@@ -1,6 +1,7 @@
 const express = require('express');
 const router  = express.Router();
 const { companyAuth } = require('../middleware/companyAuth');
+const supabase = require('../utils/supabase');
 
 const {
   inviteCoreMember, bulkInviteCoreTeam,
@@ -60,12 +61,40 @@ router.post('/get-company-access', async (req, res) => {
 });
 
 
+// ── Require 'full' permission for core-team management ────────────────────
+// companyAuth accepts ANY valid company token, including the temporary
+// via_core_team token issued to core team members (4hr HR-view session) —
+// regardless of their permission_level. Without this check, a core team
+// member with 'medium' or 'limited' permission could use that session to
+// invite themselves (or anyone) as a 'full' permission core team member, or
+// remove other core team members — a privilege escalation / lockout risk.
+// Direct HR logins (not via_core_team) always pass, since HR has full access
+// by definition.
+const requireFullCoreTeamPermission = async (req, res, next) => {
+  try {
+    if (!req.coreTeamMember) return next(); // direct HR login — always allowed
+
+    const { data: ctRow } = await supabase.from('company_core_team')
+      .select('permission_level')
+      .eq('company_id', req.company.id)
+      .eq('email', req.coreTeamMember.email)
+      .maybeSingle();
+
+    if (ctRow?.permission_level !== 'full') {
+      return res.status(403).json({ error: 'Only full-access core team members can manage the core team.' });
+    }
+    next();
+  } catch (err) {
+    res.status(500).json({ error: 'Permission check failed' });
+  }
+};
+
 // ── HR-only routes (require company token) ────────────────────────────────
 router.use(companyAuth);
 router.get('/',                getCoreTeam);
-router.post('/invite',         inviteCoreMember);
-router.post('/bulk-invite',    bulkInviteCoreTeam);
-router.delete('/:id',          removeCoreMember);
+router.post('/invite',         requireFullCoreTeamPermission, inviteCoreMember);
+router.post('/bulk-invite',    requireFullCoreTeamPermission, bulkInviteCoreTeam);
+router.delete('/:id',          requireFullCoreTeamPermission, removeCoreMember);
 
 
 module.exports = router;

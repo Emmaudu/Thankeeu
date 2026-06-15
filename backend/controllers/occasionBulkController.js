@@ -8,6 +8,7 @@ const { sendEmail } = require('../utils/email');
  * A single "general" template auto-populates birthday, farewell, promotion, valentine, etc.
  */
 const supabase = require('../utils/supabase');
+const { logActivity } = require('../utils/activityLog');
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();
@@ -147,7 +148,14 @@ const bulkSyncEmployees = async (req, res) => {
 
         if (mErr) { results.errors.push(`Member upsert failed: ${email}`); continue; }
         const memberId  = member.id;
-        const isNewUser = member.status === 'approved' && needsInvite;
+
+        // Track whether this was a new member (no existing row found before
+        // the upsert) vs. an update to an existing one — previously
+        // results.created was never incremented and results.updated counted
+        // every row, so the response always showed "0 created" even on a
+        // first-time import of all-new employees.
+        if (existingMember) results.updated++;
+        else results.created++;
 
         // Send invite email to new members who don't have a password yet
         if (needsInvite) {
@@ -176,9 +184,6 @@ const bulkSyncEmployees = async (req, res) => {
           }
         }
 
-        // Increment counters
-        results.updated++;
-
         // Birthday occasion row
         if (date_of_birth) {
           const bday = date_of_birth.slice(5); // MM-DD
@@ -188,7 +193,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General', gender: gender || null,
             occasion_date: `${year}-${bday}`,
             is_active: true,
-          });
+          }, { onConflict: 'company_id,member_id,occasion_type' });
           results.occasion_rows++;
         }
 
@@ -200,7 +205,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General',
             occasion_date: work_anniversary_date,
             is_active: true,
-          });
+          }, { onConflict: 'company_id,member_id,occasion_type' });
           results.occasion_rows++;
         }
 
@@ -212,7 +217,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General', gender: 'male',
             occasion_date: OCCASION_FIXED_DATES.fathers_day(year),
             is_active: true,
-          });
+          }, { onConflict: 'company_id,member_id,occasion_type' });
           results.occasion_rows++;
         }
 
@@ -224,7 +229,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General', gender: 'female',
             occasion_date: OCCASION_FIXED_DATES.mothers_day(year),
             is_active: true,
-          });
+          }, { onConflict: 'company_id,member_id,occasion_type' });
           results.occasion_rows++;
         }
 
@@ -236,7 +241,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General', gender: 'female',
             occasion_date: OCCASION_FIXED_DATES.womens_day(year),
             is_active: true,
-          });
+          }, { onConflict: 'company_id,member_id,occasion_type' });
           results.occasion_rows++;
         }
 
@@ -247,7 +252,7 @@ const bulkSyncEmployees = async (req, res) => {
           department: department || 'General',
           occasion_date: OCCASION_FIXED_DATES.valentine(year),
           is_active: true,
-          });
+          }, { onConflict: 'company_id,member_id,occasion_type' });
         results.occasion_rows++;
 
         // Promotion if date set
@@ -259,7 +264,7 @@ const bulkSyncEmployees = async (req, res) => {
             occasion_date: promotion_date,
             is_active: true,
             meta: JSON.stringify({ promotion_level: 1 }),
-          });
+          }, { onConflict: 'company_id,member_id,occasion_type' });
           results.occasion_rows++;
         }
 
@@ -271,7 +276,7 @@ const bulkSyncEmployees = async (req, res) => {
             department: department || 'General',
             occasion_date: leaving_date,
             is_active: true,
-          });
+          }, { onConflict: 'company_id,member_id,occasion_type' });
           results.occasion_rows++;
         }
 
@@ -281,9 +286,20 @@ const bulkSyncEmployees = async (req, res) => {
     }
 
     res.json({
-      message: `Sync complete! ${results.updated} employees synced, ${results.occasion_rows} occasion entries created/updated.`,
+      message: `Sync complete! ${results.created + results.updated} employee${results.created + results.updated === 1 ? '' : 's'} synced (${results.created} new, ${results.updated} updated), ${results.occasion_rows} occasion entries created/updated.`,
       results,
     });
+
+    logActivity({
+      company_id:  companyId,
+      actor_id:    req.coreTeamMember?.id || companyId,
+      actor_type:  req.actorType || 'hr',
+      actor_name:  req.actorName || req.company.name || 'HR',
+      action:      'imported_members',
+      entity_type: 'bulk_sync',
+      entity_name: 'Employee bulk sync',
+      details:     { updated: results.updated, occasion_rows: results.occasion_rows, errors: results.errors.length },
+    }).catch(() => {});
   } catch (err) {
     console.error('bulkSyncEmployees error:', err);
     res.status(500).json({ error: err.message || 'Bulk sync failed' });

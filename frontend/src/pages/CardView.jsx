@@ -15,6 +15,52 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
 
+// ── Calligraphic font styles for signer names (decorative only — the actual
+// message text uses the signee's chosen font_style via getFontStyle) ────────
+const FONT_INJECT = `
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Great+Vibes&family=Satisfy&family=Sacramento&family=Kaushan+Script&display=swap');
+.font-dancing   { font-family:'Dancing Script', cursive; }
+.font-vibes     { font-family:'Great Vibes', cursive; }
+.font-satisfy   { font-family:'Satisfy', cursive; }
+.font-sacramento{ font-family:'Sacramento', cursive; }
+.font-kaushan   { font-family:'Kaushan Script', cursive; }
+`;
+
+const CALLI_FONTS = ['font-dancing', 'font-vibes', 'font-satisfy', 'font-sacramento', 'font-kaushan'];
+
+// ── Confetti — lightweight, matches the Sample card page ─────────────────────
+function Confetti() {
+  const pieces = Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    left: Math.random() * 100,
+    size: 6 + Math.random() * 8,
+    color: ['#7C3AED', '#EC4899', '#FBBF24', '#34D399', '#60A5FA'][i % 5],
+    duration: 3 + Math.random() * 3,
+    delay: Math.random() * 2,
+    rotate: Math.random() * 360,
+  }));
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-50">
+      {pieces.map(p => (
+        <div key={p.id} style={{
+          position: 'absolute', left: `${p.left}%`, top: '-20px',
+          width: p.size, height: p.size, background: p.color,
+          borderRadius: p.id % 3 === 0 ? '50%' : p.id % 3 === 1 ? '2px' : '50% 0 50% 0',
+          transform: `rotate(${p.rotate}deg)`,
+          animation: `cardview-fall ${p.duration}s ${p.delay}s infinite linear`,
+          opacity: 0.8,
+        }} />
+      ))}
+      <style>{`
+        @keyframes cardview-fall {
+          0%   { transform: translateY(-20px) rotate(0deg); opacity:1; }
+          100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 // ── Gift Claim Panel — Bank Transfer (FLW) or Gift Card (Reloadly) ───────────
 const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
   const [step,        setStep]        = useState('choose');   // choose | bank | giftcard | loading | done
@@ -299,11 +345,13 @@ const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
 };
 
 const occasionLabel = {
-  birthday: 'Birthday', valentine: "Valentine's Day", leaving: 'Farewell',
-  anniversary: 'Anniversary', wedding: 'Wedding', baby_shower: 'Baby Shower',
+  birthday: 'Birthday', valentine: "Valentine's Day", valentines_day: "Valentine's Day",
+  leaving: 'Farewell', anniversary: 'Anniversary', work_anniversary: 'Work Anniversary',
+  wedding: 'Wedding', baby_shower: 'Baby Shower', new_baby: 'New Baby',
   retirement: 'Retirement', congratulations: 'Congratulations', graduation: 'Graduation',
   promotion: 'Promotion', christmas: 'Christmas', get_well: 'Get Well Soon',
-  new_year: 'New Year', other: 'Special Day',
+  new_year: 'New Year', workers_day: "Workers' Day", womens_day: "Women's Day",
+  mens_day: "Men's Day", new_hire: 'Welcome', other: 'Special Day',
 };
 
 const MediaCarousel = ({ items, large = false }) => {
@@ -359,24 +407,49 @@ const Media = ({ message, large = false }) => {
 
 const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }) => {
   const [reacted, setReacted] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const font = getFontStyle(message.font_style);
   const hasMedia = !!(message.media_url || message.media_gallery);
   const isLong = (message.content?.length || 0) > 140;
   const preview = isLong ? message.content.slice(0, 140).trimEnd() + '…' : message.content;
   const rotation = index % 3 === 0 ? '-.45deg' : index % 3 === 1 ? '.35deg' : '-.15deg';
+  const calliFont = CALLI_FONTS[index % CALLI_FONTS.length];
+
+  const giftBadge = () => {
+    if (message.gift_type === 'product' && message.product_name) {
+      return (
+        <a href={`/c/${message.product_vendor_slug || '#'}`} target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/75 border border-white hover:bg-white transition-colors"
+          style={{ color: design.accent }} title={`View ${message.product_vendor_name || 'vendor'} store`}>
+          🎂 {message.product_name}
+        </a>
+      );
+    }
+    if (message.contributed_amount > 0) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/75 border border-white" style={{ color: design.accent }}>
+          🎁 {formatNGN(message.contributed_amount)}
+        </span>
+      );
+    }
+    return null;
+  };
 
   return (
     <article
-      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border border-white/70 flex flex-col`}
-      style={{ background: design.background, color: design.ink, transform: `rotate(${rotation})` }}
+      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border-2 flex flex-col relative`}
+      style={{ background: design.background, color: design.ink, borderColor: `${design.accent}40`, transform: `rotate(${rotation})` }}
     >
+      {/* Decorative quote mark */}
+      <div className="absolute top-1 left-3 text-5xl leading-none pointer-events-none select-none font-serif opacity-15" style={{ color: design.accent }}>"</div>
+
       {/* ── 1. Author row (avatar, name, date) ── */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-2 flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2 flex-shrink-0 relative z-10">
         <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold bg-white/80 shadow-sm flex-shrink-0" style={{ color: design.accent }}>
           {message.author_name?.slice(0, 2).toUpperCase() || '??'}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="font-extrabold truncate text-sm" style={{ color: design.ink }}>{message.author_name}</p>
+          <p className={`font-bold truncate text-base ${calliFont}`} style={{ color: design.ink }}>{message.author_name}</p>
           <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{message.created_at ? format(new Date(message.created_at), 'MMM d, yyyy') : ''}</p>
         </div>
         {message.is_private && canViewPrivate && <span title="Private message" className="text-base flex-shrink-0">🔒</span>}
@@ -389,34 +462,58 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
         </button>
       )}
 
-      {/* ── 3. Text message below media — capped at 3 lines so reactions stay visible ── */}
-      <div className="px-4 pt-3 pb-1 flex-shrink-0">
-        <button type="button" onClick={() => onOpen(message)} className="text-left w-full">
-          <p
-            style={{
-              color: design.ink,
-              fontFamily: font.family,
-              fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
-              lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
-              display: '-webkit-box',
-              WebkitLineClamp: hasMedia ? 2 : 4,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              wordBreak: 'break-word',
-            }}
-          >
-            {message.content}
-          </p>
-          {isLong && (
-            <span className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2 opacity-70" style={{ color: design.accent }}>
-              see more ↗
-            </span>
-          )}
-        </button>
+      {/* ── 3. Text message below media ── */}
+      <div className="px-4 pt-3 pb-1 flex-shrink-0 relative z-10">
+        {hasMedia ? (
+          // Media present: keep the compact clamp + open the modal for the full view
+          <button type="button" onClick={() => onOpen(message)} className="text-left w-full">
+            <p
+              style={{
+                color: design.ink,
+                fontFamily: font.family,
+                fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
+                lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                wordBreak: 'break-word',
+              }}
+            >
+              {message.content}
+            </p>
+            {isLong && (
+              <span className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2 opacity-70" style={{ color: design.accent }}>
+                see more ↗
+              </span>
+            )}
+          </button>
+        ) : (
+          // No media: inline expand/collapse like the Sample card
+          <div className="text-left w-full">
+            <p
+              className="whitespace-pre-wrap break-words"
+              style={{
+                color: design.ink,
+                fontFamily: font.family,
+                fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
+                lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
+              }}
+            >
+              {expanded ? message.content : preview}
+            </p>
+            {isLong && (
+              <button type="button" onClick={() => setExpanded(e => !e)}
+                className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2 opacity-70" style={{ color: design.accent }}>
+                {expanded ? 'Show less ↑' : 'Read more →'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ── 4. Gift amount + reaction at bottom ── */}
-      <div className="px-4 pb-4 pt-2 flex items-center justify-between flex-shrink-0">
+      {/* ── 4. Gift badge + reaction at bottom ── */}
+      <div className="px-4 pb-4 pt-2 flex items-center justify-between flex-shrink-0 relative z-10">
         <button
           type="button"
           onClick={async () => {
@@ -429,21 +526,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
         >
           ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
         </button>
-        {message.gift_type === 'product' && message.product_name ? (
-          <a href={`/c/${message.product_vendor_slug || '#'}`} target="_blank" rel="noopener noreferrer"
-            className="rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center gap-1.5 hover:bg-white transition-colors"
-            title={`View ${message.product_vendor_name || 'vendor'} store`}>
-            <span className="text-sm">🎂</span>
-            <span className="text-xs font-extrabold truncate max-w-[90px]" style={{ color: design.accent }}>
-              {message.product_name}
-            </span>
-          </a>
-        ) : message.contributed_amount > 0 ? (
-          <div className="rounded-xl bg-white/75 border border-white px-3 py-1.5 flex items-center gap-1.5">
-            <span className="text-xs font-bold" style={{ color: design.ink }}>🎁</span>
-            <span className="text-sm font-extrabold" style={{ color: design.accent }}>{formatNGN(message.contributed_amount)}</span>
-          </div>
-        ) : null}
+        {giftBadge()}
       </div>
     </article>
   );
@@ -568,6 +651,12 @@ const CardView = () => {
   const [openMessage, setOpenMessage] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
+  const [confetti, setConfetti] = useState(true);
+
+  useEffect(() => {
+    const t = setTimeout(() => setConfetti(false), 9000);
+    return () => clearTimeout(t);
+  }, []);
 
   useSEO({
     title: card ? `${card.recipient_name}'s ${occasionLabel[card.occasion] || ''} Card` : 'View Card - Thankeeu',
@@ -668,6 +757,8 @@ const CardView = () => {
 
   const content = (
     <div className="min-h-0 flex flex-col bg-[#faf8ff]">
+      <style>{FONT_INJECT}</style>
+      {confetti && <Confetti />}
 
       <header className={`card-art ${cardArtClass(design)} relative px-4 py-16 sm:py-24`} style={{ background: design.background, color: design.ink }}>
         <div className="max-w-5xl mx-auto text-center relative z-10">
@@ -736,16 +827,57 @@ const CardView = () => {
           </section>
         )}
 
-        <div className="no-print flex flex-wrap gap-2 mb-9">
-          <button
-            onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`See this special Thankeeu card: ${window.location.href}`)}`, '_blank')}
-            className="px-5 py-3 rounded-2xl bg-[#25D366] text-white text-sm font-bold"
-          >
-            Share on WhatsApp
-          </button>
-          <button onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Link copied'); }} className="btn-secondary">Copy link</button>
-          <button onClick={() => window.print()} className="btn-secondary">Save or print</button>
-          {card.isCreator && <TransferCardButton slug={slug} />}
+        {/* ── Share your card ──────────────────────────────────────────── */}
+        <div className="no-print mb-9 space-y-3">
+          {/* Box 1 — Public signing link (only while the card is still open for signing) */}
+          {card.status === 'active' && (
+            <div className="rounded-2xl border-2 p-4 sm:p-5" style={{ borderColor: '#A855F740', background: 'linear-gradient(135deg,#F5F3FF,#FCE7F3)' }}>
+              <p className="text-xs font-extrabold tracking-[.15em] uppercase text-primary-600 mb-1">✍️ Signing link — for everyone</p>
+              <p className="text-sm text-warm-600 mb-3">
+                This link lets anyone write a message on the card. Share it with colleagues, friends or family so they can add their wishes before delivery.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${slug}`); toast.success('✓ Signing link copied!'); }}
+                  className="btn-primary text-sm"
+                >
+                  🔗 Copy signing link
+                </button>
+                <button
+                  onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Add your message to ${card.recipient_name}'s card: ${window.location.origin}/sign/${slug}`)}`, '_blank')}
+                  className="px-5 py-3 rounded-2xl bg-[#25D366] text-white text-sm font-bold"
+                >
+                  Share on WhatsApp
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Box 2 — Private view link (recipient + creator only) */}
+          {(canViewPrivate && (card.access_token || card.isCreator)) && (
+            <div className="rounded-2xl border border-purple-100 bg-white p-4 sm:p-5">
+              <p className="text-xs font-extrabold tracking-[.15em] uppercase text-warm-400 mb-1">👁 Private view link — for you and {card.recipient_name} only</p>
+              <p className="text-sm text-warm-600 mb-3">
+                This is the private card view link. Share it only with <strong>{card.recipient_name}</strong> so they can see all the messages and access any gift.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    const url = card.access_token
+                      ? `${window.location.origin}/card/${slug}?token=${card.access_token}`
+                      : `${window.location.origin}/card/${slug}`;
+                    navigator.clipboard.writeText(url);
+                    toast.success('✓ Private link copied!');
+                  }}
+                  className="btn-secondary"
+                >
+                  Copy private link
+                </button>
+                <button onClick={() => window.print()} className="btn-secondary">Save or print</button>
+                {card.isCreator && <TransferCardButton slug={slug} />}
+              </div>
+            </div>
+          )}
         </div>
 
         <section>

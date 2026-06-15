@@ -53,6 +53,6 @@ router.post('/:card_slug',       upload.any(), addMessage);
 router.post('/react/:message_id', reactToMessage);
 router.delete('/:message_id',     auth, deleteMessage);
 // Access-token recipients can reply without a login session
-router.post('/:card_slug/reply',  flexAuth, sendReply);
+router.post('/:card_slug/reply',  flexAuth, requireAuth, sendReply);
 
 module.exports = router;

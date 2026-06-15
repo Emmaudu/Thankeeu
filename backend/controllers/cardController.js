@@ -266,7 +266,15 @@ const getCard = async (req, res) => {
       card.messages = card.messages?.map(message => ({ ...message, contributed_amount: null }));
     }
 
-    res.json({ ...card, isCreator, isRecipient });
+    // access_token is the private view link's credential — only the
+    // creator and the recipient should ever receive it. Strip it for
+    // everyone else (e.g. colleagues viewing an active card to sign it).
+    const responseCard = (isCreator || isRecipient) ? card : (() => {
+      const { access_token: _accessToken, ...rest } = card;
+      return rest;
+    })();
+
+    res.json({ ...responseCard, isCreator, isRecipient });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch card' });
   }
@@ -448,8 +456,10 @@ const getPublicCard = async (req, res) => {
       .filter(message => !message.is_private)
       .map(message => card.hide_amounts ? { ...message, contributed_amount: null } : message);
 
+    const { access_token: _accessToken, ...safeCard } = card;
+
     res.json({
-      ...card,
+      ...safeCard,
       messages: publicMessages,
       signed_count: signedCount,
       total_collected: totalCollected,
@@ -745,40 +755,87 @@ const approveCardScope = async (req, res) => {
 // ── HR: get company's own created cards ────────────────────────────────────
 const getCompanyCards = async (req, res) => {
   try {
-    const { data } = await supabase.from('cards')
-      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, design_theme, notification_scope, scope_approved_at, department')
+    const { data, error } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, design_theme, notification_scope, scope_approved_at')
       .eq('company_id', req.company.id)
       .order('created_at', { ascending: false });
+    if (error) {
+      console.error('[company-cards] query error:', error.message);
+      return res.status(500).json({ error: 'Failed to fetch cards' });
+    }
+    console.log(`[company-cards] company ${req.company.id} -> found ${data?.length || 0} cards`);
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: 'Failed to fetch cards' }); }
+  } catch (err) {
+    console.error('[company-cards] exception:', err.message);
+    res.status(500).json({ error: 'Failed to fetch cards' });
+  }
 };
 
 // ── HR: get delivered cards (status=sent) ─────────────────────────────────
 const getCompanyDeliveredCards = async (req, res) => {
   try {
-    const { data } = await supabase.from('cards')
+    const { data, error } = await supabase.from('cards')
       .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date')
       .eq('company_id', req.company.id).eq('status', 'sent')
       .order('send_date', { ascending: false });
+    if (error) {
+      console.error('[company-delivered] query error:', error.message);
+      return res.status(500).json({ error: 'Failed to fetch delivered cards' });
+    }
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: 'Failed to fetch delivered cards' }); }
+  } catch (err) {
+    console.error('[company-delivered] exception:', err.message);
+    res.status(500).json({ error: 'Failed to fetch delivered cards' });
+  }
 };
 
-// ── HR: get received cards (transferred to HR company) ─────────────────────
+// ── HR: get received cards — cards sent to company members + cards
+// explicitly transferred to the company via the received_cards table ────────
 const getCompanyReceivedCards = async (req, res) => {
   try {
-    const { data: transfers } = await supabase.from('received_cards')
+    // 1. Cards explicitly transferred to this company
+    const { data: transfers, error: transferErr } = await supabase.from('received_cards')
       .select('card_id, created_at')
       .eq('recipient_user_id', req.company.id)
       .eq('recipient_type', 'company')
       .order('created_at', { ascending: false });
-    const ids = (transfers || []).map(t => t.card_id);
+    if (transferErr) console.error('[company-received] transfers error:', transferErr.message);
+    const transferIds = (transfers || []).map(t => t.card_id);
+
+    // 2. Cards sent to any of this company's members (by recipient_email) —
+    // this is what "received" means for HR: cards their employees received,
+    // whether created via automation, by colleagues, or by individuals.
+    const { data: members, error: membersErr } = await supabase.from('company_members')
+      .select('email').eq('company_id', req.company.id);
+    if (membersErr) console.error('[company-received] members error:', membersErr.message);
+    const memberEmails = (members || []).map(m => m.email?.toLowerCase()).filter(Boolean);
+
+    let memberCardIds = [];
+    if (memberEmails.length) {
+      const { data: memberCards, error: mcErr } = await supabase.from('cards')
+        .select('id')
+        .in('recipient_email', memberEmails)
+        .neq('company_id', req.company.id); // exclude cards already counted as "My Cards"
+      if (mcErr) console.error('[company-received] member-cards error:', mcErr.message);
+      memberCardIds = (memberCards || []).map(c => c.id);
+    }
+
+    const ids = [...new Set([...transferIds, ...memberCardIds])];
     if (!ids.length) return res.json([]);
-    const { data } = await supabase.from('cards')
-      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at')
-      .in('id', ids);
+
+    const { data, error } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at')
+      .in('id', ids)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('[company-received] cards error:', error.message);
+      return res.status(500).json({ error: 'Failed to fetch received cards' });
+    }
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: 'Failed to fetch received cards' }); }
+  } catch (err) {
+    console.error('[company-received] exception:', err.message);
+    res.status(500).json({ error: 'Failed to fetch received cards' });
+  }
 };
 
 // ── HR: transfer card to a team member ────────────────────────────────────

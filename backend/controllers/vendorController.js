@@ -487,8 +487,21 @@ const verifyVendorOrder = async (req, res) => {
       return res.status(400).json({ error: `Underpayment detected. Paid: ${amountPaid}, Required: ${amountDue}`, order_id: order.id });
     }
 
-    // Mark order as confirmed (was 'pending' = unpaid; payment just succeeded)
-    await supabase.from('vendor_orders').update({ status: 'confirmed', updated_at: new Date() }).eq('id', order.id);
+    // Atomically claim the confirmation — only one concurrent call can flip
+    // status from 'pending' to 'confirmed'. Without this, two near-
+    // simultaneous calls (e.g. the frontend retrying after FLW redirect)
+    // would both pass the earlier "already confirmed" check, both pass FLW
+    // verification (which is itself idempotent), and both send duplicate
+    // confirmation emails to the customer and vendor.
+    const { data: claimed, error: claimErr } = await supabase.from('vendor_orders')
+      .update({ status: 'confirmed', updated_at: new Date() })
+      .eq('id', order.id).eq('status', order.status)
+      .select('id').maybeSingle();
+
+    if (claimErr || !claimed) {
+      // Someone else already confirmed it between our read and write
+      return res.json({ ok: true, order_id: order.id, status: 'confirmed', already_verified: true });
+    }
 
     // Get line items for notifications
     const { data: lineItems } = await supabase.from('vendor_order_items')

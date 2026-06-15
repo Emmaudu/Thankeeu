@@ -211,7 +211,6 @@ async function runSettlement() {
     .select('id, slug, recipient_name, pal_group_id, pal_member_id, send_date, settled_at')
     .not('pal_group_id', 'is', null)
     .is('settled_at', null)
-    .gte('send_date', `${todayStr}T00:00:00`)
     .lte('send_date', `${todayStr}T23:59:59`);
 
   for (const card of (cards || [])) {

@@ -181,7 +181,7 @@ app.use('/api/payments/verify', paymentVerifyLimiter);
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
 // Bank account verification is a lookup that could be abused to enumerate accounts
-app.use('/api/banks/verify-account', bankVerifyLimiter);
+app.use('/api/banks/verify', bankVerifyLimiter);
 app.use('/api/banks',     require('./routes/banks'));
 app.use('/api/giftcards', require('./routes/giftcards'));
 app.use('/api/gifs',      require('./routes/gifs'));

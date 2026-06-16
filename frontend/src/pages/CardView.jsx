@@ -318,21 +318,57 @@ function MusicPlayer() {
     [1174.7,24.0,0.3,0.04],[1318.5,26.0,0.3,0.04],[1174.7,28.0,0.3,0.04],[1174.7,30.0,0.3,0.03],
   ];
 
-  function schedNote(ctx, master, freq, start, dur, vol, type, detune) {
-    const osc = ctx.createOscillator();
-    const gn  = ctx.createGain();
-    const lp  = ctx.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 0.5;
-    osc.connect(lp); lp.connect(gn); gn.connect(master);
-    osc.type = type || 'sine';
-    osc.frequency.value = freq;
-    if (detune) osc.detune.value = detune;
+  // Synthesizes one note with a warm, piano/music-box-like timbre instead of
+  // a pure sine tone. A single sine oscillator has zero overtones, which is
+  // exactly what makes a breath-blown instrument like a recorder or flute
+  // sound — airy and whistly. Real plucked/struck instruments (piano, harp,
+  // music box) are bright at the very start (the "attack") and are built from
+  // several harmonics (the fundamental frequency plus quieter multiples of it),
+  // which is what actually reads as "warm" rather than "thin and breathy".
+  function schedNote(ctx, master, freq, start, dur, vol, _type, _detune) {
     const t0 = ctx.currentTime + start;
-    gn.gain.setValueAtTime(0, t0);
-    gn.gain.linearRampToValueAtTime(vol, t0 + 0.06);
-    gn.gain.setValueAtTime(vol * 0.8, t0 + dur * 0.35);
-    gn.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    osc.start(t0); osc.stop(t0 + dur + 0.05);
+
+    // A small lowpass + slight body resonance shapes the tone without making
+    // it sound like a flute (a narrow, fixed-frequency filter is what gives
+    // a windy/breathy character).
+    const toneShaper = ctx.createBiquadFilter();
+    toneShaper.type = 'lowpass';
+    toneShaper.frequency.value = Math.min(8000, freq * 7);
+    toneShaper.Q.value = 0.3;
+    toneShaper.connect(master);
+
+    // Harmonic stack: fundamental (strongest) + 2nd/3rd/4th partials (quieter,
+    // decaying faster than the fundamental) — this combination is what the
+    // ear recognises as a plucked/struck "piano-like" tone rather than a
+    // single pure whistle tone.
+    const harmonics = [
+      { mult: 1, gain: 1.00, decayMul: 1.00 },
+      { mult: 2, gain: 0.28, decayMul: 0.55 },
+      { mult: 3, gain: 0.12, decayMul: 0.40 },
+      { mult: 4, gain: 0.05, decayMul: 0.30 },
+    ];
+
+    harmonics.forEach(({ mult, gain, decayMul }) => {
+      const osc = ctx.createOscillator();
+      const gn  = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq * mult;
+      osc.connect(gn);
+      gn.connect(toneShaper);
+
+      const noteVol  = vol * gain;
+      const noteDur  = dur * decayMul + 0.05;
+
+      // Percussive attack: a fast 8ms rise (not the soft 60ms fade that reads
+      // as a breath instrument starting), then an exponential decay — the
+      // same envelope shape a piano hammer or plucked string naturally has.
+      gn.gain.setValueAtTime(0, t0);
+      gn.gain.linearRampToValueAtTime(noteVol, t0 + 0.008);
+      gn.gain.exponentialRampToValueAtTime(Math.max(noteVol * 0.001, 0.0001), t0 + noteDur);
+
+      osc.start(t0);
+      osc.stop(t0 + noteDur + 0.05);
+    });
   }
 
   const startMusic = () => {
@@ -347,10 +383,10 @@ function MusicPlayer() {
     master.gain.linearRampToValueAtTime(1, ctx.currentTime + 2);
     master.gain.setValueAtTime(1, ctx.currentTime + DURATION - 3);
     master.gain.linearRampToValueAtTime(0, ctx.currentTime + DURATION);
-    MELODY.forEach(([f,s,d,v]) => { schedNote(ctx,master,f,s,d,v,'sine',0); schedNote(ctx,master,f,s,d,v*0.2,'triangle',4); });
-    PAD.forEach(([f,s,d,v])    => schedNote(ctx,master,f,s,d,v,'triangle',0));
-    BASS.forEach(([f,s,d,v])   => schedNote(ctx,master,f,s,d,v,'sine',0));
-    SHIMMER.forEach(([f,s,d,v])=> schedNote(ctx,master,f,s,d,v,'sine',0));
+    MELODY.forEach(([f,s,d,v]) => schedNote(ctx,master,f,s,d,v));
+    PAD.forEach(([f,s,d,v])    => schedNote(ctx,master,f,s,d,v));
+    BASS.forEach(([f,s,d,v])   => schedNote(ctx,master,f,s,d,v));
+    SHIMMER.forEach(([f,s,d,v])=> schedNote(ctx,master,f,s,d,v));
     setPlaying(true);
     startRef.current = Date.now();
     timerRef.current = setInterval(() => {

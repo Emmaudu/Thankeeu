@@ -109,7 +109,7 @@ const getMyStore = async (req, res) => {
 
 const updateStore = async (req, res) => {
   try {
-    const allowed = ['business_name','description','phone','address','country','state','logo_url','banner_url','social_links','delivery_info','return_policy'];
+    const allowed = ['business_name','description','phone','address','country','state','logo_url','banner_url','social_links','delivery_info','return_policy','bank_details'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     const { data, error } = await supabase.from('vendors').update({ ...updates, updated_at: new Date() }).eq('id', req.vendor.id).select().maybeSingle();
     if (error) throw error;

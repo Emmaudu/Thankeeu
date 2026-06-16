@@ -216,8 +216,11 @@ const getVisitors = async (req, res) => {
 
 
 // ── POST /api/admin/companies/:companyId/set-multiplier ──────────────────────
-// Admin sets the per-employee pricing rate for a specific company
+// Admin sets the per-employee pricing rate for a specific company.
 // multiplier = 0 → free, null → not set (get quote), >0 → rate per head
+// IMPORTANT: Also upserts an active company_subscriptions row so the nightly
+// occasions cron (which only runs for companies with active subscriptions)
+// immediately picks up this company and auto-creates birthday cards etc.
 const setCompanyMultiplier = async (req, res) => {
   try {
     const { companyId } = req.params;
@@ -230,11 +233,49 @@ const setCompanyMultiplier = async (req, res) => {
     if (isNaN(rate) || rate < 0)
       return res.status(400).json({ error: 'multiplier must be a non-negative number' });
 
+    // 1. Update pricing_multiplier on companies table
     const { error } = await supabase.from('companies')
-      .update({ pricing_multiplier: rate, updated_at: new Date() })
+      .update({
+        pricing_multiplier:  rate,
+        subscription_status: 'active',
+        updated_at:          new Date(),
+      })
       .eq('id', companyId);
 
     if (error) throw error;
+
+    // 2. Ensure an active subscription row exists so the nightly occasions cron
+    //    includes this company. The cron checks company_subscriptions.status='active'
+    //    AND expires_at > now. We use UPDATE-then-INSERT (no upsert) to avoid
+    //    needing a unique constraint on company_id.
+    const farFuture = new Date();
+    farFuture.setFullYear(farFuture.getFullYear() + 10);
+    const subPayload = {
+      status:     'active',
+      amount:     0,
+      starts_at:  new Date(),
+      expires_at: farFuture,
+      auto_renew: false,
+    };
+
+    // Try to UPDATE the most recent existing row first
+    const { data: existingSub } = await supabase.from('company_subscriptions')
+      .select('id').eq('company_id', companyId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle().catch(() => ({ data: null }));
+
+    if (existingSub?.id) {
+      const { error: subErr } = await supabase.from('company_subscriptions')
+        .update(subPayload).eq('id', existingSub.id);
+      if (subErr) console.warn('[setMultiplier] subscription update warning:', subErr.message);
+    } else {
+      // No existing row — INSERT a new one
+      const { error: subErr } = await supabase.from('company_subscriptions').insert({
+        company_id: companyId,
+        plan:       'admin',   // requires migration_subscription_enum.sql to be run
+        ...subPayload,
+      });
+      if (subErr) console.warn('[setMultiplier] subscription insert warning:', subErr.message);
+    }
 
     try {
       await supabase.from('activity_logs').insert({

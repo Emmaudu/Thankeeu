@@ -113,7 +113,13 @@ async function catchUpMemberCards(member, company) {
       const ot = otMap[occ.occasionName];
       if (!ot) continue;
 
-      const notifyDays   = ot.notify_days_before || 7;
+      // Always use at least 7 days as the catch-up window for recurring occasions
+      // regardless of what notify_days_before is in the DB. This handles the case
+      // where the migration hasn't run yet (DB still has 2) and ensures a birthday
+      // in 6 days is always caught when HR imports.
+      const dbNotifyDays = ot.notify_days_before || 7;
+      const notifyDays   = Math.max(dbNotifyDays, 7);
+
       const occasionDate = new Date(occ.occasionDate + 'T00:00:00');
       if (isNaN(occasionDate)) continue;
 
@@ -121,9 +127,17 @@ async function catchUpMemberCards(member, company) {
       const trackKey  = occ.occasionName;
       const track     = tracking[trackKey] || {};
 
+      console.log(`[catchUp] ${member.first_name} ${member.last_name} — ${occ.occasionName}: ${daysUntil} days away (window 0-${notifyDays}), tracked=${JSON.stringify(track)}`);
+
       // Already processed this year → skip
-      if (track.year === year && track.dept_notified) continue;
-      if (!occ.isRecurring && track.dept_notified)    continue;
+      if (track.year === year && track.dept_notified) {
+        console.log(`[catchUp] SKIP — already notified this year`);
+        continue;
+      }
+      if (!occ.isRecurring && track.dept_notified) {
+        console.log(`[catchUp] SKIP — one-time occasion already processed`);
+        continue;
+      }
 
       // Only act if the occasion is within the notification window (0 … notifyDays days away).
       // For one-time occasions, allow up to 7 days late (matching cron catch-up logic).
@@ -131,13 +145,16 @@ async function catchUpMemberCards(member, company) {
         ? (daysUntil >= 0 && daysUntil <= notifyDays)
         : (daysUntil <= notifyDays && daysUntil >= -7);
 
-      if (!inWindow) continue;
+      if (!inWindow) {
+        console.log(`[catchUp] SKIP — outside window (${daysUntil} days, window 0-${notifyDays})`);
+        continue;
+      }
 
       // Skip company-wide shared occasions (valentine, workers_day) —
       // one card per company, the cron handles those.
       if (['valentines_day', 'workers_day'].includes(ot.name)) continue;
 
-      console.log(`[catchUp][${ot.label}] ${member.first_name} ${member.last_name}: ${daysUntil} days away — checking for existing card`);
+      console.log(`[catchUp][${ot.label}] ✅ IN WINDOW — ${member.first_name} ${member.last_name}: ${daysUntil} days away — checking for existing card`);
 
       // ── Check if card already exists this year ───────────────────────────
       let existingCard = null;

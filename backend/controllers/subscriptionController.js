@@ -227,71 +227,103 @@ const verifySubscription = async (req, res) => {
 // ── Get current subscription status ──────────────────────────────────────────
 const getSubscription = async (req, res) => {
   try {
-    // Primary: company_subscriptions table
+    const companyId = req.company.id;
+
+    // Always fetch the companies row first — pricing_multiplier and pilot fields live here
+    const { data: co } = await supabase.from('companies')
+      .select('subscription_status, subscription_plan, subscription_expires_at, pilot_starts_at, pilot_ends_at, pilot_days, pricing_multiplier')
+      .eq('id', companyId).maybeSingle();
+
+    const now = new Date();
+
+    // ── RULE 1: Admin set pricing_multiplier (any value including 0 = free)
+    //    → Always active. Free is still fully active — automation runs, cards are created.
+    if (co?.pricing_multiplier !== null && co?.pricing_multiplier !== undefined) {
+      return res.json({
+        status:             'active',
+        is_active:          true,
+        plan:               co.pricing_multiplier === 0 ? 'free' : 'admin',
+        expires_at:         null,
+        pricing_multiplier: co.pricing_multiplier,
+        pilot_active:       false,
+        _source:            'pricing_multiplier',
+      });
+    }
+
+    // ── RULE 2: Active pilot period
+    const pilotActive = co?.pilot_ends_at && new Date(co.pilot_ends_at) > now;
+    if (pilotActive) {
+      return res.json({
+        status:           'active',
+        is_active:        true,
+        plan:             'pilot',
+        expires_at:       co.pilot_ends_at,
+        pilot_active:     true,
+        pilot_ends_at:    co.pilot_ends_at,
+        pilot_days:       co.pilot_days || null,
+        pricing_multiplier: null,
+        _source:          'pilot',
+      });
+    }
+
+    // ── RULE 3: Active company_subscriptions row (paid subscription)
     const { data: rows, error } = await supabase
       .from('company_subscriptions')
       .select('*')
-      .eq('company_id', req.company.id)
+      .eq('company_id', companyId)
       .order('created_at', { ascending: false })
-      .limit(1);    // returns array — safe against multiple rows / maybeSingle errors
+      .limit(5); // get a few in case some are expired
 
-    if (error) {
-      console.warn('[getSubscription] company_subscriptions query error:', error.message, '— trying fallback');
+    if (error) console.warn('[getSubscription] query error:', error.message);
+
+    // Find the best row: prefer active and not expired
+    const activeRow = (rows || []).find(r =>
+      r.status === 'active' && (!r.expires_at || new Date(r.expires_at) > now)
+    );
+
+    if (activeRow) {
+      return res.json({
+        ...activeRow,
+        is_active:          true,
+        pilot_active:       false,
+        pricing_multiplier: co?.pricing_multiplier ?? null,
+        _source:            'company_subscriptions',
+      });
     }
 
-    const data = rows?.[0] || null;
-
-    // Fallback: check companies.subscription_status (set by verifySubscription)
-    if (!data || data.status !== 'active') {
-      const { data: co } = await supabase.from('companies')
-        .select('subscription_status, subscription_plan, subscription_expires_at')
-        .eq('id', req.company.id)
-        .maybeSingle();
-
-      if (co?.subscription_status === 'active') {
-        const expired = co.subscription_expires_at
-          ? new Date(co.subscription_expires_at) < new Date()
-          : false;
-        if (!expired) {
-          return res.json({
-            status:     'active',
-            is_active:  true,
-            plan:       co.subscription_plan || 'monthly',
-            expires_at: co.subscription_expires_at,
-            _source:    'companies_fallback',
-          });
-        }
+    // ── RULE 4: companies.subscription_status fallback (set by payment webhook)
+    if (co?.subscription_status === 'active') {
+      const expired = co.subscription_expires_at
+        ? new Date(co.subscription_expires_at) < now : false;
+      if (!expired) {
+        return res.json({
+          status:             'active',
+          is_active:          true,
+          plan:               co.subscription_plan || 'monthly',
+          expires_at:         co.subscription_expires_at,
+          pilot_active:       false,
+          pricing_multiplier: co?.pricing_multiplier ?? null,
+          _source:            'companies_fallback',
+        });
       }
-
-      if (!data) return res.json({ status: 'none', is_active: false });
     }
 
-    // Evaluate from company_subscriptions row
-    const now     = new Date();
-    const expired = data.expires_at ? new Date(data.expires_at) < now : false;
-    const is_active = data.status === 'active' && !expired;
-
-    // Auto-expire if past expiry
-    if (data.status === 'active' && expired) {
-      try { await supabase.from('company_subscriptions').update({ status: 'expired' }).eq('id', data.id); } catch {}
-      try { await supabase.from('companies').update({ subscription_status: 'expired' }).eq('id', req.company.id); } catch {}
+    // Auto-expire any stale active rows
+    const staleRow = (rows || []).find(r => r.status === 'active');
+    if (staleRow) {
+      supabase.from('company_subscriptions')
+        .update({ status: 'expired' }).eq('id', staleRow.id).catch(() => {});
     }
 
-    // Also attach pilot info from companies table
-    const { data: co } = await supabase.from('companies')
-      .select('pilot_starts_at, pilot_ends_at, pilot_days, subscription_status, pricing_multiplier')
-      .eq('id', req.company.id).maybeSingle();
-
-    const pilotActive = co?.pilot_ends_at && new Date(co.pilot_ends_at) > new Date();
-    const effectivelyActive = is_active || pilotActive;
-
+    // No active subscription of any kind
+    const latestRow = rows?.[0] || null;
     res.json({
-      ...data,
-      is_active:      effectivelyActive,
-      pilot_active:   !!pilotActive,
-      pilot_ends_at:  co?.pilot_ends_at || null,
-      pilot_days:     co?.pilot_days || null,
+      ...(latestRow || {}),
+      status:             latestRow?.status || 'none',
+      is_active:          false,
+      pilot_active:       false,
       pricing_multiplier: co?.pricing_multiplier ?? null,
+      _source:            'none',
     });
   } catch (err) {
     console.error('[getSubscription] error:', err.message);

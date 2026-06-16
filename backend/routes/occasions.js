@@ -124,4 +124,92 @@ router.put('/scopes', companyAuth, async (req, res) => {
   }
 });
 
+// ── POST /api/occasions/resync ───────────────────────────────────────────────
+// HR calls this to immediately re-check ALL approved company members for
+// upcoming occasions within the notification window, creating cards + sending
+// notifications without waiting for the nightly cron.
+// Useful after: HR imports members, admin sets multiplier, toggle scope change.
+router.post('/resync', companyAuth, async (req, res) => {
+  try {
+    const supabase             = require('../utils/supabase');
+    const { getMemberOccasions } = require('../utils/occasionEngine');
+    const { catchUpMemberCards } = require('../utils/catchUpCards');
+
+    const companyId = req.company.id;
+
+    // Fetch company row (catchUpMemberCards needs id, name, country, occasion_scopes)
+    const { data: company } = await supabase
+      .from('companies')
+      .select('id, name, email, country, occasion_scopes')
+      .eq('id', companyId)
+      .maybeSingle();
+
+    if (!company) return res.status(404).json({ error: 'Company not found' });
+
+    // Seed occasion_types if missing
+    const { data: existingOTs } = await supabase
+      .from('occasion_types').select('id').eq('company_id', companyId).limit(1);
+    if (!existingOTs || existingOTs.length === 0) {
+      await supabase.rpc('seed_occasion_types', { p_company_id: companyId }).catch(() => {});
+    }
+
+    // Ensure company has an active subscription row so the nightly cron
+    // will also pick them up going forward. Use UPDATE-then-INSERT to avoid
+    // needing a unique constraint on company_id.
+    const farFuture = new Date();
+    farFuture.setFullYear(farFuture.getFullYear() + 10);
+    const { data: existingSub } = await supabase.from('company_subscriptions')
+      .select('id').eq('company_id', companyId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      .catch(() => ({ data: null }));
+    if (existingSub?.id) {
+      await supabase.from('company_subscriptions')
+        .update({ status: 'active', expires_at: farFuture }).eq('id', existingSub.id)
+        .catch(() => {});
+    } else {
+      await supabase.from('company_subscriptions').insert({
+        company_id: companyId, plan: 'admin', status: 'active',
+        amount: 0, starts_at: new Date(), expires_at: farFuture, auto_renew: false,
+      }).catch(() => {});
+    }
+
+    // Fetch all approved members
+    const { data: members, error: mErr } = await supabase
+      .from('company_members')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('status', 'approved');
+
+    if (mErr) throw mErr;
+    if (!members || members.length === 0)
+      return res.json({ ok: true, checked: 0, message: 'No approved members found' });
+
+    // Respond immediately — process in background so HR isn't left waiting
+    res.json({
+      ok:      true,
+      checked: members.length,
+      message: `Checking ${members.length} member${members.length !== 1 ? 's' : ''} for upcoming occasions. Cards and notifications will appear shortly.`,
+    });
+
+    // Run catch-up for every member asynchronously
+    setImmediate(async () => {
+      let created = 0;
+      for (const member of members) {
+        try {
+          await catchUpMemberCards(member, company);
+          created++;
+        } catch (e) {
+          console.error(`[resync] error for ${member.email}:`, e.message);
+        }
+      }
+      console.log(`[resync] company ${companyId}: processed ${created}/${members.length} members`);
+    });
+
+  } catch (err) {
+    console.error('[resync] error:', err.message);
+    // Only send error if we haven't already responded
+    if (!res.headersSent) res.status(500).json({ error: 'Resync failed' });
+  }
+});
+
 module.exports = router;

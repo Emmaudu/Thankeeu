@@ -390,11 +390,19 @@ cron.schedule('0 12 * * *', async () => {
     const year  = today.getFullYear();
     today.setHours(0, 0, 0, 0);
 
-    // Companies with active subscriptions
-    const subs = await fetchAllPages(() => supabase
-      .from('company_subscriptions').select('company_id')
-      .eq('status', 'active').gt('expires_at', new Date().toISOString()), 'company_subscriptions');
-    const companyIds = [...new Set(subs.map(s => s.company_id))];
+    // Companies with active subscriptions OR admin-set pricing_multiplier (free or paid).
+    // A company with pricing_multiplier set (even 0 = free) has full automation.
+    const [subsResult, freeCompaniesResult] = await Promise.all([
+      fetchAllPages(() => supabase
+        .from('company_subscriptions').select('company_id')
+        .eq('status', 'active').gt('expires_at', new Date().toISOString()),
+        'company_subscriptions'),
+      supabase.from('companies').select('id')
+        .not('pricing_multiplier', 'is', null),
+    ]);
+    const subIds  = (subsResult || []).map(s => s.company_id);
+    const freeIds = (freeCompaniesResult.data || []).map(c => c.id);
+    const companyIds = [...new Set([...subIds, ...freeIds])];
     if (!companyIds.length) return;
 
     // Active occasion types per company, keyed by company_id then name

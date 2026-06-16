@@ -93,6 +93,7 @@ export default function CompanyMyCardsPage() {
   const [notifyScope, setNotifyScope]       = useState('all');
   const [notifyDept, setNotifyDept]         = useState('');
   const [notifying, setNotifying]           = useState(false);
+  const [resyncing, setResyncing]           = useState(false);
   const [departments, setDepartments]       = useState([]);
 
   useEffect(() => { fetchCards(); }, [tab]);
@@ -166,6 +167,20 @@ export default function CompanyMyCardsPage() {
     } finally { setTransferring(false); }
   };
 
+  const handleResync = async () => {
+    setResyncing(true);
+    try {
+      const res = await companyAxios.post('/occasions/resync');
+      toast.success(res.data?.message || 'Resync started! Cards will appear shortly.');
+      // Refresh cards after a short delay to pick up newly created ones
+      setTimeout(() => fetchCards(), 4000);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Resync failed. Please try again.');
+    } finally {
+      setResyncing(false);
+    }
+  };
+
   return (
     <CompanyLayout title="My Cards 🃏" subtitle="Create, manage and share group cards">
       {/* Tabs + Create button */}
@@ -180,7 +195,18 @@ export default function CompanyMyCardsPage() {
             </button>
           ))}
         </div>
-        <Link to="/create-card" className="btn-primary text-sm py-2 px-4 whitespace-nowrap self-start sm:self-center flex-shrink-0">+ Create Card</Link>
+        <div className="flex gap-2 self-start sm:self-center flex-shrink-0">
+          <button
+            onClick={handleResync}
+            disabled={resyncing}
+            title="Re-check all members for upcoming birthdays and occasions, creating cards and sending notifications immediately"
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl border border-purple-200 text-primary-600 bg-white hover:bg-purple-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            <span className={resyncing ? 'animate-spin inline-block' : ''}>🔄</span>
+            {resyncing ? 'Checking...' : 'Sync Occasions'}
+          </button>
+          <Link to="/create-card" className="btn-primary text-sm py-2 px-4 whitespace-nowrap">+ Create Card</Link>
+        </div>
       </div>
 
       {/* Cards list */}

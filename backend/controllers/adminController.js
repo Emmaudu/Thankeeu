@@ -124,27 +124,37 @@ const deleteCard = async (req, res) => {
 
 const getAllCompanies = async (req, res) => {
   try {
-    const { data, error } = await supabase
+    // Fetch companies first — no nested select to avoid PostgREST FK requirement
+    const { data: companiesRaw, error: coErr } = await supabase
       .from('companies')
-      .select(`
-        id, name, email, contact_person, phone, industry,
-        role, created_at,
-        company_subscriptions(status, plan, expires_at, amount)
-      `)
+      .select('id, name, email, contact_person, phone, industry, role, created_at, pricing_multiplier, subscription_status, subscription_plan, subscription_expires_at, pilot_ends_at')
       .order('created_at', { ascending: false });
-    if (error) throw error;
+    if (coErr) throw coErr;
 
-    // Flatten latest subscription per company
-    const companies = (data || []).map(c => {
-      const subs = c.company_subscriptions || [];
-      const latest = subs.sort((a, b) =>
-        new Date(b.expires_at) - new Date(a.expires_at))[0] || null;
-      const { company_subscriptions, ...rest } = c;
-      return { ...rest, subscription: latest };
-    });
+    if (!companiesRaw || companiesRaw.length === 0) return res.json([]);
+
+    // Fetch subscriptions separately for all companies in one query
+    const companyIds = companiesRaw.map(c => c.id);
+    const { data: subs } = await supabase
+      .from('company_subscriptions')
+      .select('company_id, status, plan, expires_at, amount')
+      .in('company_id', companyIds)
+      .order('created_at', { ascending: false });
+
+    // Build a map: companyId → latest subscription
+    const subMap = {};
+    for (const s of (subs || [])) {
+      if (!subMap[s.company_id]) subMap[s.company_id] = s; // already ordered desc
+    }
+
+    const companies = companiesRaw.map(c => ({
+      ...c,
+      subscription: subMap[c.id] || null,
+    }));
 
     res.json(companies);
   } catch (err) {
+    console.error('[admin] getAllCompanies error:', err.message);
     res.status(500).json({ error: 'Failed to fetch companies' });
   }
 };

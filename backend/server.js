@@ -610,7 +610,7 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
         companyName: company.name,
         cardSlug: slug, giftEnabled: false,
         occasionDate: occasionDateStr,
-        daysLeft: notifyDays,
+        daysLeft: daysUntil,   // actual days until occasion, not the notification window
         deadline: dlStr,
       }}).catch(() => {});
     }
@@ -734,7 +734,7 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
         companyName: company.name,
         cardSlug: slug, giftEnabled: true,
         occasionDate: occasionDateStr,
-        daysLeft: notifyDays,
+        daysLeft: daysUntil,   // actual days until occasion, not the notification window
         deadline: dlStr,
       }});
     }

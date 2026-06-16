@@ -329,8 +329,8 @@ const SignCard = () => {
     const amountNGN = Number(customAmount || selectedAmount || 0);
     const wantsGift = card.is_gift_enabled && amountNGN >= 2500;
 
-    // Email required if paying or creating account
-    if ((wantsGift || submitMode === 'signup') && !form.author_email.trim())
+    // Email always required — needed for gift payments and to send them a copy of their message
+    if (!form.author_email.trim())
       return toast.error('Please enter your email address');
 
     // Validate signup fields if chosen
@@ -614,9 +614,9 @@ const SignCard = () => {
               </div>
               <div>
                 <label className="block text-sm font-bold text-warm-700 mb-2">
-                  Your email {card.is_gift_enabled ? '(required for gifts)' : '(optional)'}
+                  Your email <span className="text-rose-500">*</span>
                 </label>
-                <input type="email" className="input text-base" placeholder="kemi@email.com"
+                <input type="email" className="input text-base" placeholder="kemi@email.com" required
                   value={form.author_email} onChange={e => setForm(p=>({...p, author_email: e.target.value}))} />
               </div>
             </div>

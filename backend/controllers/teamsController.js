@@ -130,14 +130,23 @@ const importTeamMembers = async (req, res) => {
     const results = [];
     const inviteQueue = []; // { member, inviteToken }
 
+    // Pre-generate ONE shared placeholder hash — reused for all new members.
+    // invite_token is unique per member so each person's set-password link is individual.
+    // This avoids N × 300ms argon2 calls that cause timeout on large imports.
+    const sharedPlaceholderHash = await hashPassword(crypto.randomBytes(16).toString('hex'));
+
+    // Batch-fetch ALL existing company_members in one query instead of N queries
+    const importEmails = toInsert.map(r => r.email);
+    const { data: existingRows } = await supabase
+      .from('company_members')
+      .select('id, password_hash, invite_token, invite_accepted, status, date_of_birth, resumption_date, gender')
+      .eq('company_id', req.company.id)
+      .in('email', importEmails);
+    const existingByEmail = {};
+    for (const m of (existingRows || [])) existingByEmail[m.email] = m;
+
     for (const row of toInsert) {
-      // Fetch existing company_member row (if any) to avoid clobbering passwords/tokens
-      const { data: existing } = await supabase
-        .from('company_members')
-        .select('id, password_hash, invite_token, invite_accepted, status, date_of_birth, resumption_date, gender')
-        .eq('company_id', req.company.id)
-        .eq('email', row.email)
-        .maybeSingle();
+      const existing = existingByEmail[row.email] || null;
 
       const needsInvite = !existing?.password_hash && !existing?.invite_accepted;
       const inviteToken = needsInvite
@@ -162,7 +171,7 @@ const importTeamMembers = async (req, res) => {
       if (needsInvite) {
         cmRow.invite_token  = inviteToken;
         // placeholder hash so the column is never null; will be replaced when member sets password
-        cmRow.password_hash = existing?.password_hash || await hashPassword(crypto.randomBytes(8).toString('hex'));
+        cmRow.password_hash = existing?.password_hash || sharedPlaceholderHash;
       }
 
       const { data: upserted, error: upsertErr } = await supabase

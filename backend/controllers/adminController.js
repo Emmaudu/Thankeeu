@@ -322,22 +322,30 @@ const setCompanyMultiplier = async (req, res) => {
     };
 
     // Try to UPDATE the most recent existing row first
-    const { data: existingSub } = await supabase.from('company_subscriptions')
-      .select('id').eq('company_id', companyId)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle().catch(() => ({ data: null }));
+    let existingSub = null;
+    try {
+      const { data } = await supabase.from('company_subscriptions')
+        .select('id').eq('company_id', companyId)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle();
+      existingSub = data;
+    } catch (_) {}
 
     if (existingSub?.id) {
-      const { error: subErr } = await supabase.from('company_subscriptions')
-        .update(subPayload).eq('id', existingSub.id);
-      if (subErr) console.warn('[setMultiplier] subscription update warning:', subErr.message);
+      try {
+        const { error: subErr } = await supabase.from('company_subscriptions')
+          .update(subPayload).eq('id', existingSub.id);
+        if (subErr) console.warn('[setMultiplier] subscription update warning:', subErr.message);
+      } catch (e) { console.warn('[setMultiplier] subscription update exception:', e.message); }
     } else {
       // No existing row — INSERT a new one
-      const { error: subErr } = await supabase.from('company_subscriptions').insert({
-        company_id: companyId,
-        plan:       'admin',   // requires migration_subscription_enum.sql to be run
-        ...subPayload,
-      });
-      if (subErr) console.warn('[setMultiplier] subscription insert warning:', subErr.message);
+      try {
+        const { error: subErr } = await supabase.from('company_subscriptions').insert({
+          company_id: companyId,
+          plan:       'monthly', // safe default — 'admin' requires migration_subscription_enum.sql
+          ...subPayload,
+        });
+        if (subErr) console.warn('[setMultiplier] subscription insert warning:', subErr.message);
+      } catch (e) { console.warn('[setMultiplier] subscription insert exception:', e.message); }
     }
 
     try {

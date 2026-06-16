@@ -904,7 +904,7 @@ async function syncEmployeesToOccasionTables(companyId, employees, _occasionType
       // HR must manually re-import them if they should be added back.
       const { data: isDeleted } = await supabase.from('company_deleted_members')
         .select('email').eq('company_id', companyId)
-        .eq('email', base.email.toLowerCase()).maybeSingle().catch(() => ({ data: null }));
+        .eq('email', base.email.toLowerCase()).maybeSingle().then(r => r).catch(() => ({ data: null }));
       if (isDeleted) {
         console.log(`[HRIS sync] Skipping ${base.email} — manually deleted by HR`);
         continue;

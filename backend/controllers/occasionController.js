@@ -340,14 +340,29 @@ const importOccasionMembers = async (req, res) => {
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/, ''):'https://thankeeu.com'); })();
     let invitesSent = 0;
 
+    // Pre-generate ONE placeholder hash shared by all new members.
+    // Each new member gets a UNIQUE invite_token so their set-password link is individual.
+    // The placeholder hash is only a temporary stand-in until they set their own password —
+    // it never needs to be unique per member. Generating it once (not N times) avoids
+    // N × 300ms argon2 calls that cause request timeouts on large imports.
+    const sharedPlaceholderHash = await hashPassword(crypto.randomBytes(16).toString('hex'));
+
+    // Fetch ALL existing company_members rows for this company in one query
+    // instead of one query per member inside the loop (avoids N+1 query problem).
+    const memberEmails = toInsert.map(r => r.email);
+    const { data: existingMembers } = await supabase.from('company_members')
+      .select('*')
+      .eq('company_id', req.company.id)
+      .in('email', memberEmails);
+    const existingByEmail = {};
+    for (const m of (existingMembers || [])) existingByEmail[m.email] = m;
+
     for (const row of toInsert) {
-      // Fetch existing company_members row so we can use fill-gaps-only logic
-      const { data: existingMember } = await supabase.from('company_members')
-        .select('*').eq('company_id', req.company.id).eq('email', row.email).maybeSingle();
+      const existingMember = existingByEmail[row.email] || null;
 
       const needsInvite = !existingMember?.password_hash && !existingMember?.invite_accepted;
       const inviteToken = needsInvite ? crypto.randomBytes(32).toString('hex') : null;
-      const passHash    = needsInvite ? await hashPassword(crypto.randomBytes(8).toString('hex')) : null;
+      const passHash    = needsInvite ? sharedPlaceholderHash : null;
 
       const fillGap = (existingVal, newVal) => {
         const isEmpty = existingVal === null || existingVal === undefined || existingVal === '';
@@ -691,6 +706,21 @@ const importGeneralTemplate = async (req, res) => {
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
     const { data: companyData } = await supabase.from('companies').select('id, name, contact_person, country, email, occasion_scopes').eq('id', companyId).maybeSingle();
 
+    // Pre-generate ONE shared placeholder hash — reused for all new members.
+    // Each member gets a unique invite_token so their set-password links are individual.
+    // Avoids N × 300ms argon2 calls that timeout on large imports.
+    const sharedPlaceholderHash = await hashPassword(require('crypto').randomBytes(16).toString('hex'));
+
+    // Pre-fetch ALL existing company_members in one query (avoids N+1 DB calls)
+    const allEmails = rows.slice(1)
+      .map(r => String(r[emI] || '').trim().toLowerCase())
+      .filter(Boolean);
+    const { data: existingMembersAll } = allEmails.length
+      ? await supabase.from('company_members').select('*').eq('company_id', companyId).in('email', allEmails)
+      : { data: [] };
+    const existingMemberMap = {};
+    for (const m of (existingMembersAll || [])) existingMemberMap[m.email] = m;
+
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const fn    = String(row[fnI] || '').trim();
@@ -729,21 +759,13 @@ const importGeneralTemplate = async (req, res) => {
       let needsInvite = false;
       let existingMember = null; // hoisted so skipInvite can access it after try{}
       try {
-        // company_members is the single source of truth for automation —
-        // fetch the FULL existing row so date/gender fields can be
-        // fill-gaps-only (don't silently overwrite a value HR set directly
-        // in the Team Members table with a blank cell from this import).
-        const { data: existing } = await supabase.from('company_members')
-          .select('*').eq('company_id', companyId).eq('email', email).maybeSingle();
+        // Use pre-fetched existing member from the batch query above (no N+1)
+        const existing = existingMemberMap[email] || null;
         existingMember = existing;
 
         needsInvite = !existing?.password_hash;
-        // Generate a temp password hash so the row satisfies a NOT NULL
-        // password_hash constraint on older schemas, and so the invite
-        // link actually has something to "reset" from.
-        const passwordHash = needsInvite
-          ? await hashPassword(require('crypto').randomBytes(8).toString('hex'))
-          : undefined;
+        // Use the shared placeholder hash generated once before the loop
+        const passwordHash = needsInvite ? sharedPlaceholderHash : undefined;
 
         // Fill-gaps-only fields: only overwrite if the existing value is empty/null.
         const fillGap = (existingVal, newVal) => {
@@ -878,7 +900,7 @@ const importGeneralTemplate = async (req, res) => {
       // e.g. birthday in 3 days and member was just imported → card now.
       if (memberId) {
         const { data: freshMember } = await supabase.from('company_members')
-          .select('*').eq('id', memberId).maybeSingle().catch(() => ({ data: null }));
+          .select('*').eq('id', memberId).maybeSingle().then(r => r).catch(() => ({ data: null }));
         if (freshMember) {
           setImmediate(() => catchUpMemberCards(freshMember, companyData).catch(() => {}));
         }
@@ -1114,6 +1136,15 @@ const importByOccasionName = async (req, res) => {
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
     const { data: coData } = await supabase.from('companies').select('id, name, contact_person, country, email, occasion_scopes').eq('id', companyId).maybeSingle();
 
+    // Pre-generate shared placeholder hash and batch-fetch existing members
+    const sharedHash = await hashPassword(require('crypto').randomBytes(16).toString('hex'));
+    const allRowEmails = rows.slice(1).map(r => String(r[emI]||'').trim().toLowerCase()).filter(Boolean);
+    const { data: existingMembersPreFetch } = allRowEmails.length
+      ? await supabase.from('company_members').select('id, password_hash').eq('company_id', companyId).in('email', allRowEmails)
+      : { data: [] };
+    const existingMemberMapByEmail = {};
+    for (const m of (existingMembersPreFetch || [])) existingMemberMapByEmail[m.email] = m;
+
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
       const fn    = String(row[fnI]||'').trim();
@@ -1131,12 +1162,10 @@ const importByOccasionName = async (req, res) => {
       // Generate invite token FIRST, then include in the upsert atomically
       const invTok = require('crypto').randomBytes(32).toString('hex');
 
-      // Upsert member with invite_token included atomically
-      // Check whether this member already has a password (existing user)
-      const { data: existingMember } = await supabase.from('company_members')
-        .select('id, password_hash').eq('company_id', companyId).eq('email', email).maybeSingle();
+      // Use pre-fetched data instead of per-member DB query
+      const existingMember = existingMemberMapByEmail[email] || null;
       const needsInvite = !existingMember?.password_hash;
-      const tempPasswordHash = needsInvite ? await hashPassword(require('crypto').randomBytes(8).toString('hex')) : undefined;
+      const tempPasswordHash = needsInvite ? sharedHash : undefined;
 
       const upsertPayload = {
         company_id:companyId, first_name:fn, last_name:ln, email,
@@ -1253,7 +1282,7 @@ const importByOccasionName = async (req, res) => {
         // the notification window (member was imported late / mid-period).
         if (memberId) {
           const { data: freshMember } = await supabase.from('company_members')
-            .select('*').eq('id', memberId).maybeSingle().catch(() => ({ data: null }));
+            .select('*').eq('id', memberId).maybeSingle().then(r => r).catch(() => ({ data: null }));
           if (freshMember) {
             setImmediate(() => catchUpMemberCards(freshMember, coData).catch(() => {}));
           }

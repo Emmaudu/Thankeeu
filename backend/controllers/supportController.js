@@ -25,7 +25,7 @@ const createTicket = async (req, res) => {
       sender_email: sender.email,
       subject,
       message
-    }).select().single();
+    }).select().maybeSingle();
 
     if (error) {
       console.error('Support ticket DB error:', error);
@@ -103,7 +103,7 @@ const replyToTicket = async (req, res) => {
   try {
     const { ticketId } = req.params;
     const { reply } = req.body;
-    const { data: ticket } = await supabase.from('support_tickets').select('*').eq('id', ticketId).single();
+    const { data: ticket } = await supabase.from('support_tickets').select('*').eq('id', ticketId).maybeSingle();
     if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
 
     await supabase.from('support_tickets').update({

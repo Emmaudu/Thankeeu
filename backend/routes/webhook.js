@@ -100,7 +100,7 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
       if (!alreadyDone) {
         let cardRow = null;
         try {
-          const { data } = await supabase.from('cards').select('total_collected').eq('id', cardId).single();
+          const { data } = await supabase.from('cards').select('total_collected').eq('id', cardId).maybeSingle();
           cardRow = data;
         } catch {}
         try {

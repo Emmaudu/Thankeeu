@@ -48,7 +48,7 @@ const inviteCoreMember = async (req, res) => {
         company_id: req.company.id, email: cleanEmail,
         full_name, title, permission_level, include_in_celebrations, invite_token: inviteToken,
       })
-      .select().single();
+      .select().maybeSingle();
     if (error) throw error;
 
     // Also create/update company_member account so they can sign in. If
@@ -264,7 +264,7 @@ const updateCoreMember = async (req, res) => {
       .update(updates)
       .eq('id', req.params.id)
       .eq('company_id', req.company.id)
-      .select().single();
+      .select().maybeSingle();
     if (error) throw error;
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }

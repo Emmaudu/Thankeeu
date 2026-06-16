@@ -33,7 +33,7 @@ const FONT_INJECT = `
 // ── MagicSearch — a playful floating search experience ────────────────────────
 // Expands from a pill into a full search field, cycles placeholder names,
 // shows sparkle particles when a match is found, highlights matched cards.
-function MagicSearch({ messages, query, setQuery, active, setActive, design }) {
+function MagicSearch({ messages, query, setQuery, active, setActive, design, found, setFound }) {
   const inputRef   = useRef(null);
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   const [sparkles,       setSparkles]       = useState([]);
@@ -264,6 +264,11 @@ function Confetti() {
           0%   { transform: translateY(-24px) rotate(0deg)   scaleX(1);   opacity: 1; }
           50%  { transform: translateY(50vh)  rotate(360deg) scaleX(-1);  opacity: 0.9; }
           100% { transform: translateY(112vh) rotate(720deg) scaleX(1);   opacity: 0; }
+        }
+        @keyframes msg-found {
+          0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(168,85,247,0); }
+          40%  { transform: scale(1.03); box-shadow: 0 0 0 6px rgba(168,85,247,0.3); }
+          100% { transform: scale(1);    box-shadow: 0 0 0 3px rgba(168,85,247,0.15); }
         }
       `}</style>
     </div>
@@ -789,9 +794,9 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
       style={{
         background: design.background, color: design.ink,
         borderColor: highlighted ? design.accent : `${design.accent}40`,
-        transform: `rotate(${rotation})`,
         boxShadow: highlighted ? `0 0 0 3px ${design.accent}, 0 6px 28px ${design.accent}44` : undefined,
-        transition: 'box-shadow .35s ease, border-color .35s ease',
+        transition: 'box-shadow .35s ease, border-color .35s ease, transform .35s ease',
+        transform: highlighted ? 'scale(1.01)' : undefined,
       }}
     >
       {/* Decorative quote mark */}
@@ -1004,7 +1009,6 @@ const CardView = () => {
   const [showAll,      setShowAll]      = useState(false);
   const [searchQuery,  setSearchQuery]  = useState('');
   const [searchActive, setSearchActive] = useState(false);
-  const [searchFound,  setSearchFound]  = useState(null); // null | number
   const [openMessage, setOpenMessage] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
@@ -1329,8 +1333,6 @@ const CardView = () => {
                 setQuery={setSearchQuery}
                 active={searchActive}
                 setActive={setSearchActive}
-                found={searchFound}
-                setFound={setSearchFound}
                 design={design}
               />
             )}
@@ -1376,7 +1378,7 @@ const CardView = () => {
                   </div>
                 ))}
               </div>
-              {messages.length > 8 && !showAll && (
+              {messages.length > 8 && !showAll && !searchQuery.trim() && (
                 <div className="text-center mt-8">
                   <button onClick={() => setShowAll(true)} className="btn-primary">See all {messages.length} messages</button>
                 </div>

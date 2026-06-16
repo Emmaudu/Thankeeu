@@ -92,7 +92,7 @@ router.put('/scopes', companyAuth, async (req, res) => {
 
     // Also keep companies.occasion_scopes in sync for any code still reading it
     const { data: existing } = await supabase
-      .from('companies').select('occasion_scopes').eq('id', req.company.id).single();
+      .from('companies').select('occasion_scopes').eq('id', req.company.id).maybeSingle();
     const merged = { ...(existing?.occasion_scopes || {}), ...updates };
     await supabase.from('companies').update({ occasion_scopes: merged }).eq('id', req.company.id);
 

@@ -24,7 +24,7 @@ const createPalTicket = async (req, res) => {
       pal_group_id: req.palGroup.id,
       group_name: req.palGroup.group_name,
       subject: subject.trim(), message: message.trim(), status: 'open',
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
 
     sendEmail({
@@ -61,7 +61,7 @@ const adminReplyPalTicket = async (req, res) => {
 
     const { data: ticket, error } = await supabase.from('pal_support_tickets')
       .update({ admin_reply: reply.trim(), status: 'answered', replied_at: new Date() })
-      .eq('id', id).select('*, pal_groups(email, group_name)').single();
+      .eq('id', id).select('*, pal_groups(email, group_name)').maybeSingle();
     if (error) throw error;
 
     if (ticket.pal_groups?.email) {

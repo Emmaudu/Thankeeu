@@ -164,7 +164,7 @@ async function ensureCardExists(group, member, evt, occDate, occKey) {
     pal_member_id: member.id,
     pal_occasion_key: occKey,
     access_token: crypto.randomBytes(16).toString('hex'),
-  }).select('id, slug, access_token').single();
+  }).select('id, slug, access_token').maybeSingle();
 
   if (error) { console.error('Pal card creation error:', error.message); return null; }
   return card;
@@ -219,8 +219,8 @@ async function runSettlement() {
     const total = (contribs || []).reduce((s, c) => s + (c.amount || 0), 0);
     if (total <= 0) { await supabase.from('cards').update({ settled_at: now }).eq('id', card.id); continue; }
 
-    const { data: group } = await supabase.from('pal_groups').select('pricing_commission_pct').eq('id', card.pal_group_id).single();
-    const { data: member } = await supabase.from('pal_members').select('bank_details, email, name').eq('id', card.pal_member_id).single();
+    const { data: group } = await supabase.from('pal_groups').select('pricing_commission_pct').eq('id', card.pal_group_id).maybeSingle();
+    const { data: member } = await supabase.from('pal_members').select('bank_details, email, name').eq('id', card.pal_member_id).maybeSingle();
 
     const commissionPct = group?.pricing_commission_pct ?? 3.5;
     const payout = Math.round(total * (1 - commissionPct / 100));

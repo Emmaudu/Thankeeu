@@ -127,7 +127,7 @@ const importTeamMembers = async (req, res) => {
     setImmediate(async () => {
       const appUrl = FRONTEND_URL;
       let co = null;
-      try { const { data } = await supabase.from('companies').select('name').eq('id', req.company.id).single(); co = data; } catch {}
+      try { const { data } = await supabase.from('companies').select('name').eq('id', req.company.id).maybeSingle(); co = data; } catch {}
       for (const m of (data||[])) {
         await sendEmail({ to: m.email, template:'teamMemberInvite', data:{
           name: m.first_name,

@@ -20,7 +20,7 @@ const addMessage = async (req, res) => {
 
     const { data: card } = await supabase
       .from('cards').select('id, status, allow_private_messages, pal_group_id, pal_member_id')
-      .eq('slug', card_slug).single();
+      .eq('slug', card_slug).maybeSingle();
 
     if (!card) return res.status(404).json({ error: 'Card not found' });
     if (card.status === 'draft') return res.status(403).json({ error: 'Card is not yet active' });
@@ -123,7 +123,7 @@ const addMessage = async (req, res) => {
 
     let message, error;
     for (const attempt of attempts) {
-      ({ data: message, error } = await supabase.from('messages').insert(attempt).select().single());
+      ({ data: message, error } = await supabase.from('messages').insert(attempt).select().maybeSingle());
       if (!error || !isMissingColumn(error)) break;
     }
     if (error) throw error;
@@ -197,7 +197,7 @@ const reactToMessage = async (req, res) => {
     const { emoji = 'heart', reactor_name } = req.body;
 
     const { data: message } = await supabase
-      .from('messages').select('reactions').eq('id', message_id).single();
+      .from('messages').select('reactions').eq('id', message_id).maybeSingle();
 
     if (!message) return res.status(404).json({ error: 'Message not found' });
 
@@ -218,10 +218,10 @@ const reactToMessage = async (req, res) => {
 const deleteMessage = async (req, res) => {
   try {
     const { message_id } = req.params;
-    const { data: msg } = await supabase.from('messages').select('card_id').eq('id', message_id).single();
+    const { data: msg } = await supabase.from('messages').select('card_id').eq('id', message_id).maybeSingle();
     if (!msg) return res.status(404).json({ error: 'Message not found' });
 
-    const { data: card } = await supabase.from('cards').select('creator_id').eq('id', msg.card_id).single();
+    const { data: card } = await supabase.from('cards').select('creator_id').eq('id', msg.card_id).maybeSingle();
     if (card?.creator_id !== req.user.id && req.user.role !== 'admin')
       return res.status(403).json({ error: 'Not authorized' });
 
@@ -248,7 +248,7 @@ const sendReply = async (req, res) => {
 
     const { data: card } = await supabase
       .from('cards').select('id, creator_id, recipient_name, title, slug, created_by_member_id')
-      .eq('slug', card_slug).single();
+      .eq('slug', card_slug).maybeSingle();
 
     if (!card) return res.status(404).json({ error: 'Card not found' });
 

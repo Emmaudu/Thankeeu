@@ -13,18 +13,18 @@ const userOrMemberAuth = async (req, res, next) => {
 
     if (d.type === 'company_member') {
       const { data } = await supabase.from('company_members')
-        .select('id,first_name,last_name,email,status').eq('id', d.memberId).single();
+        .select('id,first_name,last_name,email,status').eq('id', d.memberId).maybeSingle();
       if (!data || data.status !== 'approved') return res.status(401).json({ error: 'Invalid member token' });
       req.member = data;
     } else if (d.type === 'company') {
       // HR account — look up company contact email
       const { data } = await supabase.from('companies')
-        .select('id,name,email').eq('id', d.companyId).single();
+        .select('id,name,email').eq('id', d.companyId).maybeSingle();
       if (!data) return res.status(401).json({ error: 'Invalid company token' });
       req.company = data;
     } else {
       const { data } = await supabase.from('users')
-        .select('id,email,full_name,is_verified').eq('id', d.userId).single();
+        .select('id,email,full_name,is_verified').eq('id', d.userId).maybeSingle();
       if (!data) return res.status(401).json({ error: 'Invalid user token' });
       req.user = data;
     }

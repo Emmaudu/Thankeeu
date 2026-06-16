@@ -35,7 +35,9 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
             {card.recipient_email && ` · ${card.recipient_email}`}
           </p>
           <p className="text-xs text-warm-400 mt-0.5">
-            {card.occasion?.replace(/_/g,' ')} · {card.created_at ? format(new Date(card.created_at), 'MMM d, yyyy') : ''}
+            {card.occasion?.replace(/_/g,' ')} · {card.send_date
+              ? format(new Date(card.send_date), 'MMM d, yyyy')
+              : card.created_at ? format(new Date(card.created_at), 'MMM d, yyyy') : ''}
             {card.total_collected > 0 && ` · 🎁 ${formatNGN(card.total_collected)}`}
           </p>
         </div>

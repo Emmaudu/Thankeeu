@@ -93,7 +93,7 @@ const saveBankAccount = async (req, res) => {
         updated_at: new Date(),
       }, { onConflict: 'owner_id,account_number' })
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -159,7 +159,7 @@ const initiateWithdrawal = async (req, res) => {
       .select('*')
       .eq('id', bank_account_id)
       .eq('owner_id', requesterId)
-      .single();
+      .maybeSingle();
     if (baErr || !bankAccount) return res.status(404).json({ error: 'Bank account not found or not yours' });
     if (!bankAccount.flw_beneficiary_id) {
       return res.status(400).json({ error: 'Bank account not yet verified. Please re-save your account to link it with Flutterwave.' });
@@ -183,7 +183,7 @@ const initiateWithdrawal = async (req, res) => {
         .from('deduction_requests')
         .select('*')
         .eq('id', source_id)
-        .single();
+        .maybeSingle();
       if (!ded) return res.status(404).json({ error: 'Deduction not found' });
       if (ded.status !== 'approved') return res.status(400).json({ error: 'Deduction must be approved first' });
       if (ded.requested_by_id !== requesterId) return res.status(403).json({ error: 'Not your deduction' });
@@ -203,7 +203,7 @@ const initiateWithdrawal = async (req, res) => {
         status: 'processing',
       })
       .select()
-      .single();
+      .maybeSingle();
     if (wErr) throw wErr;
 
     // Mark deduction as withdrawal requested
@@ -286,7 +286,7 @@ const withdrawGift = async (req, res) => {
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
 
     const { data: card } = await supabase
-      .from('cards').select('*').eq('slug', card_slug).single();
+      .from('cards').select('*').eq('slug', card_slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
     // Get caller email — scoped correctly so no "userInfo not defined" bug
@@ -294,12 +294,12 @@ const withdrawGift = async (req, res) => {
     let emailVerified = true; // members skip email verification
     if (userId) {
       const { data: userInfo } = await supabase.from('users')
-        .select('email, is_verified').eq('id', userId).single();
+        .select('email, is_verified').eq('id', userId).maybeSingle();
       callerEmail   = userInfo?.email;
       emailVerified = userInfo?.is_verified !== false;
     } else if (memberId) {
       const { data: memberInfo } = await supabase.from('company_members')
-        .select('email').eq('id', memberId).single();
+        .select('email').eq('id', memberId).maybeSingle();
       callerEmail = memberInfo?.email;
     }
 

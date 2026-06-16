@@ -13,7 +13,7 @@ const companyAuth = async (req, res, next) => {
       .from('companies')
       .select('id, name, email, contact_person, role, theme, logo_url, country')
       .eq('id', decoded.companyId)
-      .single();
+      .maybeSingle();
 
     if (error || !company) return res.status(401).json({ error: 'Invalid token' });
     req.company = company;

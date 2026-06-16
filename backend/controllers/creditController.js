@@ -102,7 +102,7 @@ const purchaseCredits = async (req, res) => {
 
     // Get user info
     const { data: user } = await supabase.from('users')
-      .select('email, full_name').eq('id', userId).single();
+      .select('email, full_name').eq('id', userId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const txRef = `TK-CR-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;

@@ -69,7 +69,7 @@ const createReminder = async (req, res) => {
         is_active: true
       })
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw error;
 
     // Dashboard notification
@@ -99,7 +99,7 @@ const updateReminder = async (req, res) => {
       .eq('id', id)
       .eq('user_id', req.user.id)
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw error;
     res.json(data);
   } catch (err) { res.status(500).json({ error: 'Failed to update reminder' }); }

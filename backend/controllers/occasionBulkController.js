@@ -133,7 +133,7 @@ const bulkSyncEmployees = async (req, res) => {
           .from('company_members')
           .upsert(memberData, { onConflict: 'company_id,email' })
           .select('id, status')
-          .single();
+          .maybeSingle();
 
         // Some databases use an enum for `role` ('team_leader'/'team_member')
         // instead of free text ('member'/'team_leader') — retry on that error.
@@ -143,7 +143,7 @@ const bulkSyncEmployees = async (req, res) => {
             .from('company_members')
             .upsert(memberData, { onConflict: 'company_id,email' })
             .select('id, status')
-            .single());
+            .maybeSingle());
         }
 
         if (mErr) { results.errors.push(`Member upsert failed: ${email}`); continue; }
@@ -162,7 +162,7 @@ const bulkSyncEmployees = async (req, res) => {
           try {
             const frontendUrl = (() => { let s=(process.env.FRONTEND_URL||'').trim(); if(s.includes('=')&&!s.startsWith('http'))s=s.slice(s.indexOf('=')+1).trim(); return s.startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'; })();
             const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(email.trim().toLowerCase())}`;
-            const { data: co } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).single();
+            const { data: co } = await supabase.from('companies').select('name, contact_person').eq('id', companyId).maybeSingle();
             await sendEmail({
               to: email.trim().toLowerCase(),
               subject: `Welcome to ${co?.name || 'your company'}'s team on Thankeeu! 🎉`,
@@ -352,7 +352,7 @@ const updateOccasionMember = async (req, res) => {
 
     // Promotion level stored in meta
     if (promotion_level !== undefined) {
-      const { data: existing } = await supabase.from('occasion_members').select('meta').eq('id', id).single();
+      const { data: existing } = await supabase.from('occasion_members').select('meta').eq('id', id).maybeSingle();
       const existingMeta = typeof existing?.meta === 'string' ? JSON.parse(existing.meta || '{}') : (existing?.meta || {});
       updates.meta = JSON.stringify({
         ...existingMeta,
@@ -368,7 +368,7 @@ const updateOccasionMember = async (req, res) => {
       .eq('id', id)
       .eq('company_id', req.company.id)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     res.json(data);

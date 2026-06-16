@@ -54,7 +54,7 @@ const palSignup = async (req, res) => {
       group_size: size,
       description: description?.trim() || null,
       status: 'pending',
-    }).select('id, group_name, group_username').single();
+    }).select('id, group_name, group_username').maybeSingle();
 
     if (error) {
       if (error.code === '23505') return res.status(400).json({ error: 'That group username is already taken' });
@@ -163,7 +163,7 @@ const acceptInvite = async (req, res) => {
     const password_hash = await hashPassword(password);
     await supabase.from('pal_members').update({ password_hash, status: 'joined', invite_token: null }).eq('id', member.id);
 
-    const { data: group } = await supabase.from('pal_groups').select('id, group_name, group_username, logo_url, group_size').eq('id', member.pal_group_id).single();
+    const { data: group } = await supabase.from('pal_groups').select('id, group_name, group_username, logo_url, group_size').eq('id', member.pal_group_id).maybeSingle();
 
     const jwtToken = generatePalToken(member.pal_group_id, member.id);
     res.json({

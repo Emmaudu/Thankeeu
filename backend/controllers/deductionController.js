@@ -35,7 +35,7 @@ const ensureWallet = async (cardId, companyId) => {
       card_id: cardId, company_id: companyId,
       total_contributed: total, platform_fee: fee,
       net_after_fee: total - fee, amount_to_celebrant: total - fee,
-    }).select().single();
+    }).select().maybeSingle();
 
     if (insertErr) return { id: null, card_id: cardId, total_contributed: total, platform_fee: fee, net_after_fee: total - fee, total_deducted: 0, _synthetic: true };
     return wallet;
@@ -131,12 +131,12 @@ const requestDeduction = async (req, res) => {
       requested_by_id:   req.member.id,
       requested_by_name: `${req.member.first_name} ${req.member.last_name}`,
       amount, reason,
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
 
     // Notify HR
-    const { data: company } = await supabase.from('companies').select('email, contact_person, name').eq('id', req.member.company_id).single();
-    const { data: card }    = await supabase.from('cards').select('title, recipient_name').eq('id', card_id).single();
+    const { data: company } = await supabase.from('companies').select('email, contact_person, name').eq('id', req.member.company_id).maybeSingle();
+    const { data: card }    = await supabase.from('cards').select('title, recipient_name').eq('id', card_id).maybeSingle();
     await sendEmail({ to: company.email, template: 'deductionRequest', data: {
       hrName: company.contact_person, companyName: company.name,
       leaderName: `${req.member.first_name} ${req.member.last_name}`,
@@ -158,7 +158,7 @@ const approveDeduction = async (req, res) => {
     const { requestId } = req.params;
     const { note } = req.body;
 
-    const { data: dr } = await supabase.from('deduction_requests').select('*').eq('id', requestId).single();
+    const { data: dr } = await supabase.from('deduction_requests').select('*').eq('id', requestId).maybeSingle();
     if (!dr)                         return res.status(404).json({ error: 'Request not found' });
     if (dr.company_id !== req.company.id) return res.status(403).json({ error: 'Not authorized' });
     if (dr.status !== 'pending')     return res.status(400).json({ error: 'Request already processed' });
@@ -178,7 +178,7 @@ const approveDeduction = async (req, res) => {
     }
 
     // Update wallet totals
-    const { data: wallet } = await supabase.from('contribution_wallets').select('*').eq('id', dr.wallet_id).single();
+    const { data: wallet } = await supabase.from('contribution_wallets').select('*').eq('id', dr.wallet_id).maybeSingle();
     const newDeducted      = (wallet.total_deducted || 0) + dr.amount;
     const newToCelebrant   = wallet.net_after_fee - newDeducted;
 
@@ -192,7 +192,7 @@ const approveDeduction = async (req, res) => {
 
     // Get team leader
     const { data: leader } = await supabase.from('company_members')
-      .select('email, first_name, id').eq('id', dr.requested_by_id).single();
+      .select('email, first_name, id').eq('id', dr.requested_by_id).maybeSingle();
 
     // ── ATTEMPT INSTANT TRANSFER ─────────────────────────────────────────────
     const transfer = await tryInstantTransfer(dr.requested_by_id, dr.amount, requestId, cardTitle);
@@ -250,7 +250,7 @@ const withdrawDeduction = async (req, res) => {
   try {
     const { requestId } = req.params;
     const { data: dr } = await supabase.from('deduction_requests')
-      .select('*, card:cards(title, recipient_name)').eq('id', requestId).single();
+      .select('*, card:cards(title, recipient_name)').eq('id', requestId).maybeSingle();
 
     if (!dr)                                  return res.status(404).json({ error: 'Request not found' });
     if (dr.requested_by_id !== req.member.id) return res.status(403).json({ error: 'Not your request' });
@@ -299,7 +299,7 @@ const rejectDeduction = async (req, res) => {
   try {
     const { requestId } = req.params;
     const { note } = req.body;
-    const { data: dr } = await supabase.from('deduction_requests').select('*').eq('id', requestId).single();
+    const { data: dr } = await supabase.from('deduction_requests').select('*').eq('id', requestId).maybeSingle();
     if (!dr || dr.company_id !== req.company.id) return res.status(404).json({ error: 'Not found' });
 
     await supabase.from('deduction_requests').update({
@@ -307,7 +307,7 @@ const rejectDeduction = async (req, res) => {
       reviewed_at: new Date(), review_note: note,
     }).eq('id', requestId);
 
-    const { data: leader } = await supabase.from('company_members').select('email, first_name').eq('id', dr.requested_by_id).single();
+    const { data: leader } = await supabase.from('company_members').select('email, first_name').eq('id', dr.requested_by_id).maybeSingle();
     if (leader) {
       await sendEmail({ to: leader.email, template: 'deductionRejected', data: {
         leaderName: leader.first_name, amount: dr.amount, reason: dr.reason, note,
@@ -345,12 +345,12 @@ const requestCrossDept = async (req, res) => {
       card_id, company_id: req.member?.company_id || req.company.id,
       requested_by_id: requesterId, requested_by_type: requesterType,
       requested_by_name: requesterName, reason,
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
 
     if (req.member) {
-      const { data: company } = await supabase.from('companies').select('email, contact_person, name').eq('id', req.member.company_id).single();
-      const { data: card }    = await supabase.from('cards').select('title').eq('id', card_id).single();
+      const { data: company } = await supabase.from('companies').select('email, contact_person, name').eq('id', req.member.company_id).maybeSingle();
+      const { data: card }    = await supabase.from('cards').select('title').eq('id', card_id).maybeSingle();
       await sendEmail({ to: company.email, template: 'crossDeptRequest', data: {
         hrName: company.contact_person, companyName: company.name,
         requesterName, cardTitle: card?.title, reason, requestId: data.id,
@@ -378,7 +378,7 @@ const approveCrossDept = async (req, res) => {
     await supabase.from('notification_approvals').update({
       status: 'approved', reviewed_by_id: req.company.id, reviewed_at: new Date(),
     }).eq('id', requestId).eq('company_id', req.company.id);
-    const { data: nr } = await supabase.from('notification_approvals').select('card_id').eq('id', requestId).single();
+    const { data: nr } = await supabase.from('notification_approvals').select('card_id').eq('id', requestId).maybeSingle();
     if (nr?.card_id) await supabase.from('cards').update({ notification_scope: 'company_wide' }).eq('id', nr.card_id);
     res.json({ message: 'Cross-department notification approved' });
   } catch (err) { res.status(500).json({ error: 'Failed to approve' }); }

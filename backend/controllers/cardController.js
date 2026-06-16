@@ -91,7 +91,7 @@ const createCard = async (req, res) => {
       .from('cards')
       .insert({ ...insertData, font_style: font_style || 'elegant' })
       .select()
-      .single());
+      .maybeSingle());
 
     // If font_style column doesn't exist, retry without it
     if (error && error.message && error.message.includes('font_style')) {
@@ -99,7 +99,7 @@ const createCard = async (req, res) => {
         .from('cards')
         .insert(insertData)
         .select()
-        .single());
+        .maybeSingle());
     }
 
     if (error) throw error;
@@ -116,7 +116,7 @@ const createCard = async (req, res) => {
             .from('company_members')
             .select('first_name, last_name, department, email')
             .eq('id', effectiveMemberId)
-            .single();
+            .maybeSingle();
           if (creator) {
             creatorDept  = creator.department;
             creatorName  = `${creator.first_name} ${creator.last_name}`;
@@ -176,7 +176,7 @@ const createCard = async (req, res) => {
             await notifyAllCompany(effectiveCompanyId, card, slug, recipient_name, occasion, title, is_gift_enabled, deadline, creatorName, creatorEmail, signLink);
           } else {
             // Member created — notify HR to approve
-            const { data: company } = await supabase.from('companies').select('email, contact_person, name, id').eq('id', effectiveCompanyId).single();
+            const { data: company } = await supabase.from('companies').select('email, contact_person, name, id').eq('id', effectiveCompanyId).maybeSingle();
             if (company) {
               await sendEmail({ to: company.email, template: 'cardApprovalRequest', data: {
                 hrName: company.contact_person || 'HR', companyName: company.name,
@@ -246,7 +246,7 @@ const getCard = async (req, res) => {
       .from('cards')
       .select(`*, messages(*), contributions(amount, status, contributor_name)`)
       .eq('slug', slug)
-      .single();
+      .maybeSingle();
 
     if (error || !card) return res.status(404).json({ error: 'Card not found' });
 
@@ -301,14 +301,14 @@ const updateCard = async (req, res) => {
     const { slug } = req.params;
     const updates = req.body;
 
-    const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).single();
+    const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
     const isOwner = (req.user && card.creator_id === req.user.id) || (req.member && card.created_by_member_id === req.member.id) || (req.company && card.company_id === req.company.id);
     if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     const { data: updated, error } = await supabase
       .from('cards').update({ ...updates, updated_at: new Date() })
-      .eq('slug', slug).select().single();
+      .eq('slug', slug).select().maybeSingle();
 
     if (error) throw error;
     res.json(updated);
@@ -322,7 +322,7 @@ const activateCard = async (req, res) => {
     const { slug } = req.params;
     const { inviteEmails } = req.body;
 
-    const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).single();
+    const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
     // Auth check: works for regular user, member, or HR company
@@ -382,7 +382,7 @@ const OCCASION_EMOJI = {
 const sendCard = async (req, res) => {
   try {
     const { slug } = req.params;
-    const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).single();
+    const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
     // Auth: regular user, team member, or HR company
@@ -440,7 +440,7 @@ const sendCard = async (req, res) => {
 const deleteCard = async (req, res) => {
   try {
     const { slug } = req.params;
-    const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).single();
+    const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
     const isOwner2 = (req.user && card.creator_id === req.user.id) || (req.member && card.created_by_member_id === req.member.id) || (req.company && card.company_id === req.company.id);
     if (!isOwner2) return res.status(403).json({ error: 'Not authorized' });
@@ -460,7 +460,7 @@ const getPublicCard = async (req, res) => {
       .select('*, messages(id, author_name, content, is_private, font_style, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at, gift_type, product_id, product_name, product_price, product_vendor_id, product_vendor_name, product_vendor_slug), contributions(amount, contributor_name, status)')
       .eq('slug', slug)
       .in('status', ['active', 'sent'])
-      .single();
+      .maybeSingle();
 
     if (error || !card) return res.status(404).json({ error: 'Card not found or not active' });
 
@@ -497,7 +497,7 @@ const getRecipientCard = async (req, res) => {
       .select('*, messages(*), contributions(amount, status, contributor_name)')
       .eq('slug', slug)
       .eq('access_token', token)
-      .single();
+      .maybeSingle();
 
     if (error || !card) return res.status(403).json({ error: 'Invalid recipient link' });
 
@@ -556,7 +556,7 @@ const claimGift = async (req, res) => {
       .select('id, recipient_name, recipient_email, access_token, company_id, gift_withdrawn')
       .eq('slug', slug)
       .eq('access_token', token)
-      .single();
+      .maybeSingle();
     if (cardError || !card) return res.status(403).json({ error: 'Invalid recipient link' });
     if (card.gift_withdrawn) return res.status(409).json({ error: 'This gift has already been claimed' });
 
@@ -602,7 +602,7 @@ const claimGift = async (req, res) => {
         status: 'pending'
       })
       .select('id, claim_type, amount, status, created_at')
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -703,7 +703,7 @@ const getMemberCards = async (req, res) => {
     const memberId = req.member.id;
     const { data: cards, error } = await supabase
       .from('cards')
-      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, is_gift_enabled, messages(count)')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, send_date, is_gift_enabled, messages(count)')
       .eq('created_by_member_id', memberId)
       .order('created_at', { ascending: false });
 
@@ -729,7 +729,7 @@ const approveCardScope = async (req, res) => {
       .from('cards')
       .select('id, title, recipient_name, occasion, is_gift_enabled, deadline, company_id, created_by_member_id, notification_scope, scope_approved_at')
       .eq('slug', slug)
-      .single();
+      .maybeSingle();
 
     if (!card) return res.status(404).json({ error: 'Card not found' });
     if (card.company_id !== req.company.id) return res.status(403).json({ error: 'Not your company\'s card' });
@@ -746,7 +746,7 @@ const approveCardScope = async (req, res) => {
     let creatorEmail = req.company.email;
     if (card.created_by_member_id) {
       const { data: creator } = await supabase.from('company_members')
-        .select('first_name, last_name, email').eq('id', card.created_by_member_id).single();
+        .select('first_name, last_name, email').eq('id', card.created_by_member_id).maybeSingle();
       if (creator) { creatorName = `${creator.first_name} ${creator.last_name}`; creatorEmail = creator.email; }
 
       // Notify the creator that it was approved
@@ -861,11 +861,11 @@ const transferCardToMember = async (req, res) => {
     const { member_id } = req.body;
     if (!member_id) return res.status(400).json({ error: 'member_id required' });
 
-    const { data: card } = await supabase.from('cards').select('id, title, recipient_name').eq('slug', slug).single();
+    const { data: card } = await supabase.from('cards').select('id, title, recipient_name').eq('slug', slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
     const { data: member } = await supabase.from('company_members')
-      .select('id, email, first_name, last_name, company_id').eq('id', member_id).single();
+      .select('id, email, first_name, last_name, company_id').eq('id', member_id).maybeSingle();
     if (!member || member.company_id !== req.company.id)
       return res.status(404).json({ error: 'Member not found in your company' });
 

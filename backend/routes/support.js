@@ -17,7 +17,7 @@ const flexAuth = async (req, res, next) => {
         .from('companies')
         .select('id, name, email, contact_person, role')
         .eq('id', decoded.companyId)
-        .single();
+        .maybeSingle();
       if (error || !company) return res.status(401).json({ error: 'Invalid token' });
       req.company = company;
     } else if (decoded.type === 'company_member') {
@@ -25,7 +25,7 @@ const flexAuth = async (req, res, next) => {
         .from('company_members')
         .select('id, first_name, last_name, email, role, department, status, company_id')
         .eq('id', decoded.memberId)
-        .single();
+        .maybeSingle();
       if (error || !member) return res.status(401).json({ error: 'Invalid token' });
       if (member.status !== 'approved') return res.status(403).json({ error: 'Account not approved' });
       req.member = member;
@@ -34,7 +34,7 @@ const flexAuth = async (req, res, next) => {
         .from('users')
         .select('id, email, full_name, role, avatar_url')
         .eq('id', decoded.userId)
-        .single();
+        .maybeSingle();
       if (error || !user) return res.status(401).json({ error: 'Invalid token' });
       req.user = user;
     }
@@ -51,7 +51,7 @@ const adminAuth = async (req, res, next) => {
     if (!token) return res.status(401).json({ error: 'No token provided' });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { data: user, error } = await supabase
-      .from('users').select('id, email, full_name, role').eq('id', decoded.userId).single();
+      .from('users').select('id, email, full_name, role').eq('id', decoded.userId).maybeSingle();
     if (error || !user) return res.status(401).json({ error: 'Invalid token' });
     if (user.role !== 'admin') return res.status(403).json({ error: 'Admin access required' });
     req.user = user;

@@ -214,7 +214,7 @@ const getSubscription = async (req, res) => {
       const { data: co } = await supabase.from('companies')
         .select('subscription_status, subscription_plan, subscription_expires_at')
         .eq('id', req.company.id)
-        .single();
+        .maybeSingle();
 
       if (co?.subscription_status === 'active') {
         const expired = co.subscription_expires_at
@@ -248,7 +248,7 @@ const getSubscription = async (req, res) => {
     // Also attach pilot info from companies table
     const { data: co } = await supabase.from('companies')
       .select('pilot_starts_at, pilot_ends_at, pilot_days, subscription_status, pricing_multiplier')
-      .eq('id', req.company.id).single();
+      .eq('id', req.company.id).maybeSingle();
 
     const pilotActive = co?.pilot_ends_at && new Date(co.pilot_ends_at) > new Date();
     const effectivelyActive = is_active || pilotActive;
@@ -315,7 +315,7 @@ const countUniqueEmployees = async (companyId) => {
 // ── Helper: get admin-set pricing multiplier for a company ───────────────────
 const getCompanyMultiplier = async (companyId) => {
   const { data } = await supabase.from('companies')
-    .select('pricing_multiplier').eq('id', companyId).single();
+    .select('pricing_multiplier').eq('id', companyId).maybeSingle();
   // null means not set yet — use default. 0 means free. Any other number is the rate.
   if (data?.pricing_multiplier === null || data?.pricing_multiplier === undefined) return null; // not set
   return Number(data.pricing_multiplier);

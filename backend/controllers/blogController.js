@@ -86,7 +86,7 @@ const getPost = async (req, res) => {
       .select('*')
       .eq('slug', slug)
       .eq('status', 'published')
-      .single();
+      .maybeSingle();
 
     if (error || !post) return res.status(404).json({ error: 'Post not found' });
 
@@ -136,7 +136,7 @@ const adminGetPosts = async (req, res) => {
 const adminGetPost = async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('blog_posts').select('*').eq('id', req.params.id).single();
+      .from('blog_posts').select('*').eq('id', req.params.id).maybeSingle();
     if (error || !data) return res.status(404).json({ error: 'Post not found' });
     res.json(data);
   } catch (err) {
@@ -182,7 +182,7 @@ const adminCreatePost = async (req, res) => {
       meta_title:       meta_title       || null,
       meta_description: meta_description || null,
       og_image:         og_image         || null,
-    }).select().single();
+    }).select().maybeSingle();
 
     if (error) throw error;
     res.status(201).json({ message: 'Post created', post: data });
@@ -202,7 +202,7 @@ const adminUpdatePost = async (req, res) => {
       meta_title, meta_description, og_image,
     } = req.body;
 
-    const { data: existing } = await supabase.from('blog_posts').select('*').eq('id', id).single();
+    const { data: existing } = await supabase.from('blog_posts').select('*').eq('id', id).maybeSingle();
     if (!existing) return res.status(404).json({ error: 'Post not found' });
 
     const read_time    = content ? estimateReadTime(content) : existing.read_time;
@@ -227,7 +227,7 @@ const adminUpdatePost = async (req, res) => {
       meta_description: meta_description ?? existing.meta_description,
       og_image:         og_image         ?? existing.og_image,
       updated_at:       new Date().toISOString(),
-    }).eq('id', id).select().single();
+    }).eq('id', id).select().maybeSingle();
 
     if (error) throw error;
     res.json({ message: 'Post updated', post: data });
@@ -245,7 +245,7 @@ const adminSetStatus = async (req, res) => {
     const valid      = ['draft', 'published', 'archived'];
     if (!valid.includes(status)) return res.status(400).json({ error: 'Invalid status' });
 
-    const { data: post } = await supabase.from('blog_posts').select('*').eq('id', id).single();
+    const { data: post } = await supabase.from('blog_posts').select('*').eq('id', id).maybeSingle();
     const published_at   = status === 'published' && !post?.published_at
       ? new Date().toISOString()
       : post?.published_at;

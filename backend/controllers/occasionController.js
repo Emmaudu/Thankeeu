@@ -82,7 +82,7 @@ const createOccasionType = async (req, res) => {
     const { data, error } = await supabase
       .from('occasion_types')
       .insert({ company_id: req.company.id, name, label, icon: icon || '🎉', notify_days_before: notify_days_before || 7, gender_filter, default_scope: default_scope || 'department' })
-      .select().single();
+      .select().maybeSingle();
     if (error) throw error;
     res.status(201).json(data);
   } catch (err) {
@@ -244,7 +244,7 @@ const importOccasionMembers = async (req, res) => {
     const { occasionTypeId } = req.params;
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const { data: ot } = await supabase.from('occasion_types').select('*').eq('id', occasionTypeId).single();
+    const { data: ot } = await supabase.from('occasion_types').select('*').eq('id', occasionTypeId).maybeSingle();
     if (!ot || ot.company_id !== req.company.id) return res.status(404).json({ error: 'Occasion type not found' });
 
     const wb = XLSX.read(req.file.buffer, { type: 'buffer' });
@@ -325,7 +325,7 @@ const importOccasionMembers = async (req, res) => {
     };
     const memberDateField = occasionToMemberField[ot.name] || null;
 
-    const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', req.company.id).single();
+    const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', req.company.id).maybeSingle();
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/, ''):'https://thankeeu.com'); })();
     let invitesSent = 0;
 
@@ -678,7 +678,7 @@ const importGeneralTemplate = async (req, res) => {
 
     const { sendEmail } = require('../utils/email');
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
-    const { data: companyData } = await supabase.from('companies').select('name, contact_person, country').eq('id', companyId).single();
+    const { data: companyData } = await supabase.from('companies').select('name, contact_person, country').eq('id', companyId).maybeSingle();
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
@@ -795,10 +795,10 @@ const importGeneralTemplate = async (req, res) => {
             invite_token: inviteToken,  // ← stored atomically with the row
             password_hash: passwordHash,
           };
-          let { data: inserted, error: ie } = await supabase.from('company_members').insert(insertPayload).select('id').single();
+          let { data: inserted, error: ie } = await supabase.from('company_members').insert(insertPayload).select('id').maybeSingle();
           if (ie && /role/i.test(ie.message || '')) {
             insertPayload.role = memberRoleFallback;
-            ({ data: inserted, error: ie } = await supabase.from('company_members').insert(insertPayload).select('id').single());
+            ({ data: inserted, error: ie } = await supabase.from('company_members').insert(insertPayload).select('id').maybeSingle());
           }
           if (ie) throw ie;
           memberId = inserted?.id;
@@ -911,7 +911,7 @@ const updateOccasionMember = async (req, res) => {
 
     // Update occasion_members row
     const { data, error } = await supabase.from('occasion_members')
-      .update(updates).eq('id', memberId).eq('company_id', req.company.id).select().single();
+      .update(updates).eq('id', memberId).eq('company_id', req.company.id).select().maybeSingle();
     if (error) throw error;
 
     // Also sync profile fields to company_members so the member's dashboard reflects changes
@@ -937,7 +937,7 @@ const triggerOccasionNow = async (req, res) => {
   try {
     const { memberId } = req.params;
     const { data: m } = await supabase.from('occasion_members')
-      .select('*, occasion_types(*)').eq('id', memberId).eq('company_id', req.company.id).single();
+      .select('*, occasion_types(*)').eq('id', memberId).eq('company_id', req.company.id).maybeSingle();
     if (!m) return res.status(404).json({ error: 'Member not found' });
 
     const ot = m.occasion_types;
@@ -951,7 +951,7 @@ const triggerOccasionNow = async (req, res) => {
         return res.status(400).json({ error: 'Card already created for this occasion this year' });
     }
 
-    const { data: company } = await supabase.from('companies').select('*').eq('id', req.company.id).single();
+    const { data: company } = await supabase.from('companies').select('*').eq('id', req.company.id).maybeSingle();
     const { nanoid } = require('nanoid');
     const slug      = `${m.first_name.toLowerCase()}-${ot.name.replace('_','-')}-${nanoid(6)}`;
     // 5-day signing window, then auto-deliver
@@ -983,7 +983,7 @@ const triggerOccasionNow = async (req, res) => {
       deadline: deadline.toISOString(), allow_private_messages: true,
       company_id: req.company.id, occasion_type_id: ot.id,
       notification_scope: ot.default_scope || 'department',
-    }).select().single();
+    }).select().maybeSingle();
     if (!card) throw new Error('Card creation failed');
 
     await supabase.from('occasion_members')
@@ -1089,7 +1089,7 @@ const importByOccasionName = async (req, res) => {
     let imported = 0; const errors = [];
     const { sendEmail } = require('../utils/email');
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
-    const { data: coData } = await supabase.from('companies').select('name,contact_person').eq('id', companyId).single();
+    const { data: coData } = await supabase.from('companies').select('name,contact_person').eq('id', companyId).maybeSingle();
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
@@ -1122,14 +1122,14 @@ const importByOccasionName = async (req, res) => {
         ...(needsInvite && { password_hash: tempPasswordHash, invite_token: invTok }),
       };
       let { data: member, error: mErr } = await supabase.from('company_members')
-        .upsert(upsertPayload, { onConflict:'company_id,email' }).select('id').single();
+        .upsert(upsertPayload, { onConflict:'company_id,email' }).select('id').maybeSingle();
 
       // Some databases use an enum for `role` ('team_leader'/'team_member')
       // instead of free text ('member'/'team_leader') — retry on that error.
       if (mErr && /role/i.test(mErr.message || '')) {
         upsertPayload.role = roleRaw === 'leader' ? 'team_leader' : 'team_member';
         ({ data: member, error: mErr } = await supabase.from('company_members')
-          .upsert(upsertPayload, { onConflict:'company_id,email' }).select('id').single());
+          .upsert(upsertPayload, { onConflict:'company_id,email' }).select('id').maybeSingle());
       }
       const memberId = member?.id;
       if (mErr) { errors.push(`Row: upsert failed for ${email}: ${mErr.message}`); }

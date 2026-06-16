@@ -68,17 +68,17 @@ const upsertContribution = async ({ cardId, txRef, amount, contributorName, cont
   };
   const { data, error } = await supabase.from('contributions')
     .upsert(row, { onConflict: 'flw_reference', ignoreDuplicates: false })
-    .select('id, message_id, status').single();
+    .select('id, message_id, status').maybeSingle();
   if (!error) return data;
   const { data: ex } = await supabase.from('contributions')
     .select('id').eq('flw_reference', txRef).maybeSingle();
   if (ex) {
     const { data: up } = await supabase.from('contributions')
       .update({ status: status || 'pending', amount, ...(messageId ? { message_id: messageId } : {}) })
-      .eq('id', ex.id).select('id, message_id, status').single();
+      .eq('id', ex.id).select('id, message_id, status').maybeSingle();
     return up;
   }
-  const { data: ins } = await supabase.from('contributions').insert(row).select().single();
+  const { data: ins } = await supabase.from('contributions').insert(row).select().maybeSingle();
   return ins;
 };
 
@@ -251,7 +251,7 @@ const initContribution = async (req, res) => {
 
     const { data: card } = await supabase.from('cards')
       .select('id, slug, title, recipient_name, is_gift_enabled, status')
-      .eq('slug', card_slug).single();
+      .eq('slug', card_slug).maybeSingle();
 
     if (!card)                  return res.status(404).json({ error: 'Card not found' });
     if (!card.is_gift_enabled)  return res.status(400).json({ error: 'Gifts not enabled for this card' });

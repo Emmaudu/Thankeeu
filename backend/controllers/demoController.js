@@ -23,7 +23,7 @@ const submitDemoRequest = async (req, res) => {
       team_size:    team_size || null,
       message:      message?.trim() || null,
       status:       'new',
-    }).select().single();
+    }).select().maybeSingle();
 
     if (error) throw error;
 

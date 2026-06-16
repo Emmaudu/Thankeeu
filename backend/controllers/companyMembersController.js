@@ -66,7 +66,7 @@ const getDomain = (email) => email.split('@')[1]?.toLowerCase();
 
 // Validate member email matches company domain
 const validateDomain = async (memberEmail, companyId) => {
-  const { data: company } = await supabase.from('companies').select('email').eq('id', companyId).single();
+  const { data: company } = await supabase.from('companies').select('email').eq('id', companyId).maybeSingle();
   if (!company) return false;
   const companyDomain = getDomain(company.email);
   const memberDomain  = getDomain(memberEmail);
@@ -82,7 +82,7 @@ const memberSignup = async (req, res) => {
     if (!company_code) return res.status(400).json({ error: 'Company code is required' });
 
     // Find company by code (we use company ID as the code)
-    const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', company_code).single();
+    const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', company_code).maybeSingle();
     if (!company) return res.status(404).json({ error: 'Company not found. Check your company code.' });
 
     // Check if employee was pre-imported by HR (skip domain validation for pre-seeded members)
@@ -145,7 +145,7 @@ const memberSignup = async (req, res) => {
             ...occasionFields })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
-          .single();
+          .maybeSingle();
         member = updated; memberError = error;
       } else {
         // Pre-imported but not yet approved — update details, keep status as pending
@@ -155,7 +155,7 @@ const memberSignup = async (req, res) => {
             ...occasionFields })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
-          .single();
+          .maybeSingle();
         member = updated; memberError = error;
       }
     } else {
@@ -168,13 +168,13 @@ const memberSignup = async (req, res) => {
         .insert({ company_id: company.id, first_name, last_name, email: email.toLowerCase().trim(), password_hash, role, department, profile_picture_url: profile_picture_url || null, status: 'pending',
           gender: gender || null, resumption_date: resumption_date || null, date_of_birth: date_of_birth || null })
         .select('id, first_name, last_name, email, role, department, status, company_id')
-        .single();
+        .maybeSingle();
       member = inserted; memberError = error;
     }
     if (memberError) throw memberError;
 
     // Notify HR + team leader
-    const { data: hrCompany } = await supabase.from('companies').select('email, name, contact_person').eq('id', company.id).single();
+    const { data: hrCompany } = await supabase.from('companies').select('email, name, contact_person').eq('id', company.id).maybeSingle();
     await sendEmail({ to: hrCompany.email, template: 'memberJoinRequest', data: {
       companyName: hrCompany.name, hrName: hrCompany.contact_person,
       memberName: `${first_name} ${last_name}`, memberEmail: email,
@@ -223,7 +223,7 @@ const memberLogin = async (req, res) => {
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
     // Get company info
-    const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', member.company_id).single();
+    const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', member.company_id).maybeSingle();
     const token = generateToken(member.id, member.company_id);
     const { password_hash, reset_token, ...safeMember } = member;
     setCookie(res, 'tk_member', token);
@@ -239,9 +239,9 @@ const getMemberMe = async (req, res) => {
     const { data: member, error } = await supabase
       .from('company_members')
       .select('id, first_name, last_name, email, role, department, status, profile_picture_url, company_id, created_at, is_core_team')
-      .eq('id', req.member.id).single();
+      .eq('id', req.member.id).maybeSingle();
     if (error) throw error;
-    const { data: company } = await supabase.from('companies').select('id, name, email, logo_url').eq('id', member.company_id).single();
+    const { data: company } = await supabase.from('companies').select('id, name, email, logo_url').eq('id', member.company_id).maybeSingle();
     res.json({ ...member, company });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch member' });
@@ -306,7 +306,7 @@ const approveMember = async (req, res) => {
     const isHR = !!req.company;
     const approver = isHR ? req.company : req.member;
 
-    const { data: member } = await supabase.from('company_members').select('*').eq('id', memberId).single();
+    const { data: member } = await supabase.from('company_members').select('*').eq('id', memberId).maybeSingle();
     if (!member) return res.status(404).json({ error: 'Member not found' });
 
     // Team leader can only approve team members in their own department
@@ -322,7 +322,7 @@ const approveMember = async (req, res) => {
       approved_at: new Date(),
     }).eq('id', memberId);
 
-    const { data: company } = await supabase.from('companies').select('name').eq('id', member.company_id).single();
+    const { data: company } = await supabase.from('companies').select('name').eq('id', member.company_id).maybeSingle();
     await sendEmail({ to: member.email, template: 'memberApproved', data: {
       memberName: member.first_name,
       companyName: company.name,
@@ -352,7 +352,7 @@ const rejectMember = async (req, res) => {
   try {
     const { memberId } = req.params;
     const { reason } = req.body;
-    const { data: member } = await supabase.from('company_members').select('*').eq('id', memberId).single();
+    const { data: member } = await supabase.from('company_members').select('*').eq('id', memberId).maybeSingle();
     if (!member) return res.status(404).json({ error: 'Member not found' });
 
     await supabase.from('company_members').update({
@@ -628,7 +628,7 @@ const updateMemberProfile = async (req, res) => {
       .update(extendedData)
       .eq('id', req.member.id)
       .select('id, first_name, last_name, email, role, department, status, profile_picture_url, username, phone, company_id')
-      .single());
+      .maybeSingle());
 
     // If schema error on extended fields, retry with base fields only
     if (error && (error.code === 'PGRST204' || error.message?.includes('column') || error.message?.includes('schema cache'))) {
@@ -638,7 +638,7 @@ const updateMemberProfile = async (req, res) => {
         .update(updateData)
         .eq('id', req.member.id)
         .select('id, first_name, last_name, email, role, department, status, profile_picture_url, username, phone, company_id')
-        .single());
+        .maybeSingle());
     }
 
     if (error) throw error;
@@ -660,7 +660,7 @@ const changeMemberPassword = async (req, res) => {
       .from('company_members')
       .select('password_hash')
       .eq('id', req.member.id)
-      .single();
+      .maybeSingle();
 
     const valid = await verifyPassword(current_password, member.password_hash);
     if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
@@ -798,7 +798,7 @@ const createMemberReminder = async (req, res) => {
     const { data, error } = await supabase
       .from('member_reminders')
       .insert({ member_id: req.member.id, recipient_name, recipient_email, occasion, occasion_date, frequency: frequency || 'yearly', notes })
-      .select().single();
+      .select().maybeSingle();
     if (error) throw error;
     res.status(201).json(data);
   } catch (err) { res.status(500).json({ error: 'Failed to create reminder' }); }

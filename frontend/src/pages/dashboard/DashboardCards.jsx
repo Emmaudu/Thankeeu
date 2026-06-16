@@ -61,7 +61,7 @@ export default function DashboardCards() {
                 <div className="flex flex-wrap gap-3 text-xs" style={{color:'#9490C8'}}>
                   <span>✍️ {card.signed_count||0} signed</span>
                   {(card.total_collected||0)>0 && <span className="font-semibold" style={{color:'#059669'}}>🎁 {formatNGN(card.total_collected)}</span>}
-                  {card.created_at && <span>{format(new Date(card.created_at),'MMM d, yy')}</span>}
+                  {(card.send_date || card.created_at) && <span>{format(new Date(card.send_date || card.created_at),'MMM d, yy')}</span>}
                 </div>
               </div>
               <div className="flex border-t" style={{borderColor:'#EDE9FF'}}>

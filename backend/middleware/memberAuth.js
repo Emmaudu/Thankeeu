@@ -14,7 +14,7 @@ const memberAuth = async (req, res, next) => {
       .from('company_members')
       .select('id, first_name, last_name, email, role, department, status, profile_picture_url, company_id')
       .eq('id', decoded.memberId)
-      .single();
+      .maybeSingle();
 
     if (error || !member) return res.status(401).json({ error: 'Invalid token' });
     if (member.status !== 'approved') return res.status(403).json({ error: 'Account not yet approved' });
@@ -46,7 +46,7 @@ const hrOrMemberAuth = async (req, res, next) => {
         .from('companies')
         .select('id, name, email, contact_person, role')
         .eq('id', decoded.companyId)
-        .single();
+        .maybeSingle();
       if (!company) return res.status(401).json({ error: 'Invalid token' });
       req.company = company;
     } else if (decoded.type === 'company_member') {
@@ -54,7 +54,7 @@ const hrOrMemberAuth = async (req, res, next) => {
         .from('company_members')
         .select('id, first_name, last_name, email, role, department, status, company_id')
         .eq('id', decoded.memberId)
-        .single();
+        .maybeSingle();
       if (!member || member.status !== 'approved') return res.status(403).json({ error: 'Not authorized' });
       req.member = member;
     } else {

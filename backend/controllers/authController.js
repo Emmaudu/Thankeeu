@@ -143,7 +143,7 @@ const verifyCodeAndSignup = async (req, res) => {
       verification_token: null,
       ...(pending.date_of_birth ? { date_of_birth: pending.date_of_birth } : {}),
       terms_accepted_at:  new Date(),
-    }).select('id, email, full_name, username, role, avatar_url, is_verified').single();
+    }).select('id, email, full_name, username, role, avatar_url, is_verified').maybeSingle();
 
     if (error) {
       if (error.code === '23505') return res.status(400).json({ error: 'Email or username already registered' });
@@ -229,7 +229,7 @@ const signup = async (req, res) => {
         terms_accepted_at: new Date(),
       })
       .select('id, email, full_name, username, role, avatar_url, is_verified')
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Signup DB error:', error);
@@ -332,7 +332,7 @@ const getMe = async (req, res) => {
       .from('users')
       .select('id, email, full_name, username, role, avatar_url, bio, is_verified, created_at')
       .eq('id', req.user.id)
-      .single();
+      .maybeSingle();
     if (error || !user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {
@@ -357,7 +357,7 @@ const updateProfile = async (req, res) => {
       .update({ full_name, avatar_url, bio, ...(username && { username: username.trim().toLowerCase() }), updated_at: new Date() })
       .eq('id', req.user.id)
       .select('id, email, full_name, username, role, avatar_url, bio')
-      .single();
+      .maybeSingle();
     if (error) throw error;
     res.json(user);
   } catch (err) {
@@ -389,7 +389,7 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ error: 'Both passwords are required' });
     if (new_password.length < 8)
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
-    const { data: user } = await supabase.from('users').select('password_hash').eq('id', req.user.id).single();
+    const { data: user } = await supabase.from('users').select('password_hash').eq('id', req.user.id).maybeSingle();
     const valid = await verifyPassword(current_password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
     const password_hash = await hashPassword(new_password);
@@ -436,7 +436,7 @@ const resetPassword = async (req, res) => {
       .from('users')
       .select('id, reset_token_expires')
       .eq('reset_token', token)
-      .single();
+      .maybeSingle();
 
     if (!user || new Date(user.reset_token_expires) < new Date())
       return res.status(400).json({ error: 'Invalid or expired reset token' });
@@ -484,7 +484,7 @@ const seedAdmin = async (req, res) => {
         is_verified: true
       })
       .select('id, email, full_name, role')
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
     res.status(201).json({ message: 'Admin created', email: adminEmail, seeded: true });
@@ -529,7 +529,7 @@ const resendVerification = async (req, res) => {
       .from('users')
       .select('id, full_name, email, is_verified, verification_token')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.is_verified) return res.status(400).json({ error: 'Email already verified' });

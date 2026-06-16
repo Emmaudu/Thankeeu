@@ -11,15 +11,15 @@ const flexAuth = async (req, res, next) => {
     if (!token) return res.status(401).json({ error: 'No token' });
     const d = jwt.verify(token, process.env.JWT_SECRET);
     if (d.type === 'company') {
-      const { data } = await supabase.from('companies').select('id,name,email').eq('id', d.companyId).single();
+      const { data } = await supabase.from('companies').select('id,name,email').eq('id', d.companyId).maybeSingle();
       if (!data) return res.status(401).json({ error: 'Invalid' });
       req.company = data;
     } else if (d.type === 'company_member') {
-      const { data } = await supabase.from('company_members').select('id,first_name,last_name,email,status').eq('id', d.memberId).single();
+      const { data } = await supabase.from('company_members').select('id,first_name,last_name,email,status').eq('id', d.memberId).maybeSingle();
       if (!data || data.status !== 'approved') return res.status(401).json({ error: 'Invalid' });
       req.member = data;
     } else {
-      const { data } = await supabase.from('users').select('id,email,full_name,role').eq('id', d.userId).single();
+      const { data } = await supabase.from('users').select('id,email,full_name,role').eq('id', d.userId).maybeSingle();
       if (!data) return res.status(401).json({ error: 'Invalid' });
       req.user = data;
     }

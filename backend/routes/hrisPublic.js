@@ -297,7 +297,7 @@ router.get('/zoho-callback', async (req, res) => {
     const cfg = OAUTH_CONFIGS.zoho_people;
     const params = new URLSearchParams({
       code, client_id: cfg.clientId(), client_secret: cfg.clientSecret(),
-      redirect_uri: `${BACKEND_URL}/api/hris/zoho-callback`,
+      redirect_uri: `${BACKEND_URL}/api/hris/zoho_people/callback`,
       grant_type: 'authorization_code',
     });
     const r = await axios.post('https://accounts.zoho.com/oauth/v2/token', params.toString(),

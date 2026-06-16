@@ -176,7 +176,7 @@ const orderGiftCard = async (req, res) => {
     // Load the Thankeeu card
     const { data: card } = await supabase.from('cards')
       .select('id, slug, title, recipient_name, recipient_email, total_collected, gift_withdrawn, is_gift_enabled')
-      .eq('slug', card_slug).single();
+      .eq('slug', card_slug).maybeSingle();
 
     if (!card)                return res.status(404).json({ error: 'Card not found' });
     if (!card.is_gift_enabled) return res.status(400).json({ error: 'Gift not enabled on this card' });
@@ -187,10 +187,10 @@ const orderGiftCard = async (req, res) => {
     // Verify recipient identity
     let callerEmail = null;
     if (req.user?.id) {
-      const { data: u } = await supabase.from('users').select('email').eq('id', req.user.id).single();
+      const { data: u } = await supabase.from('users').select('email').eq('id', req.user.id).maybeSingle();
       callerEmail = u?.email;
     } else if (req.member?.id) {
-      const { data: m } = await supabase.from('company_members').select('email').eq('id', req.member.id).single();
+      const { data: m } = await supabase.from('company_members').select('email').eq('id', req.member.id).maybeSingle();
       callerEmail = m?.email;
     }
 
@@ -279,7 +279,7 @@ const orderGiftCard = async (req, res) => {
         status:          'processing',
         product_id,
         reloadly_ref:    claimRef,
-      }).select().single();
+      }).select().maybeSingle();
       claim = claimData;
     } catch (_) {}
 

@@ -9,7 +9,7 @@ const vendorAuth = async (req, res, next) => {
     if (decoded.type !== 'vendor') return res.status(403).json({ error: 'Vendor token required' });
     const { data: vendor } = await supabase.from('vendors')
       .select('id, business_name, email, slug, category, status, logo_url')
-      .eq('id', decoded.vendorId).single();
+      .eq('id', decoded.vendorId).maybeSingle();
     if (!vendor || vendor.status !== 'approved') return res.status(403).json({ error: 'Vendor account not approved' });
     req.vendor = vendor;
     next();

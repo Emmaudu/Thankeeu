@@ -48,7 +48,7 @@ const updateUserRole = async (req, res) => {
     const { userId } = req.params;
     const { role } = req.body;
     if (!['user', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
-    const { data, error } = await supabase.from('users').update({ role }).eq('id', userId).select().single();
+    const { data, error } = await supabase.from('users').update({ role }).eq('id', userId).select().maybeSingle();
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -216,7 +216,7 @@ const setCompanyMultiplier = async (req, res) => {
 
     // Notify HR by email — pricing for their account has changed
     const { data: company } = await supabase.from('companies')
-      .select('name, email').eq('id', companyId).single();
+      .select('name, email').eq('id', companyId).maybeSingle();
 
     if (company?.email) {
       const { sendEmail } = require('../utils/email');
@@ -304,7 +304,7 @@ const grantPilot = async (req, res) => {
 
     // Get company details for email
     const { data: company } = await supabase.from('companies')
-      .select('name, email').eq('id', companyId).single();
+      .select('name, email').eq('id', companyId).maybeSingle();
 
     if (company) {
       const { sendEmail } = require('../utils/email');
@@ -364,7 +364,7 @@ const listPalApplications = async (req, res) => {
 const approvePalGroup = async (req, res) => {
   try {
     const { id } = req.params;
-    const { data: group } = await supabase.from('pal_groups').select('*').eq('id', id).single();
+    const { data: group } = await supabase.from('pal_groups').select('*').eq('id', id).maybeSingle();
     if (!group) return res.status(404).json({ error: 'Pals group not found' });
 
     const verify_token = require('crypto').randomBytes(32).toString('hex');
@@ -400,7 +400,7 @@ const rejectPalGroup = async (req, res) => {
     const { reason } = req.body;
     if (!reason?.trim()) return res.status(400).json({ error: 'A rejection reason is required' });
 
-    const { data: group } = await supabase.from('pal_groups').select('*').eq('id', id).single();
+    const { data: group } = await supabase.from('pal_groups').select('*').eq('id', id).maybeSingle();
     if (!group) return res.status(404).json({ error: 'Pals group not found' });
 
     await supabase.from('pal_groups').update({ status: 'rejected', rejection_reason: reason.trim(), updated_at: new Date() }).eq('id', id);

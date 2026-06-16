@@ -568,7 +568,7 @@ async function fetchFromZohoPeople(connection) {
     try {
       await refreshZohoToken(connection);
       const { data } = await supabase.from('hris_connections')
-        .select('access_token, token_expires_at').eq('id', connection.id).single();
+        .select('access_token, token_expires_at').eq('id', connection.id).maybeSingle();
       connection.access_token     = data?.access_token;
       connection.token_expires_at = data?.token_expires_at;
     } catch (refreshErr) {
@@ -843,7 +843,7 @@ async function syncEmployeesToOccasionTables(companyId, employees, _occasionType
   const errors  = [];
 
   // Fetch company name/contact once for invite emails
-  const { data: companyData } = await supabase.from('companies').select('name, contact_person, country').eq('id', companyId).single();
+  const { data: companyData } = await supabase.from('companies').select('name, contact_person, country').eq('id', companyId).maybeSingle();
 
   // TEMP DEBUG — log first adapted employee to see what fields came through
   if (employees.length > 0) {
@@ -1058,10 +1058,10 @@ const saveConnection = async (req, res) => {
 
     let result;
     if (existing?.id) {
-      const { data } = await supabase.from('hris_connections').update({ ...payload, updated_at: new Date() }).eq('id', existing.id).select().single();
+      const { data } = await supabase.from('hris_connections').update({ ...payload, updated_at: new Date() }).eq('id', existing.id).select().maybeSingle();
       result = data;
     } else {
-      const { data } = await supabase.from('hris_connections').insert(payload).select().single();
+      const { data } = await supabase.from('hris_connections').insert(payload).select().maybeSingle();
       result = data;
     }
 
@@ -1087,7 +1087,7 @@ const saveConnection = async (req, res) => {
 const testConnection = async (req, res) => {
   try {
     const { connectionId } = req.params;
-    const { data: conn, error } = await supabase.from('hris_connections').select('*').eq('id', connectionId).eq('company_id', req.company.id).single();
+    const { data: conn, error } = await supabase.from('hris_connections').select('*').eq('id', connectionId).eq('company_id', req.company.id).maybeSingle();
     if (error || !conn) return res.status(404).json({ error: 'Connection not found' });
 
     const fetcher = PROVIDER_FETCHERS[conn.provider];
@@ -1119,7 +1119,7 @@ const testConnection = async (req, res) => {
 const syncHRIS = async (req, res) => {
   try {
     const { connectionId } = req.params;
-    const { data: conn, error } = await supabase.from('hris_connections').select('*').eq('id', connectionId).eq('company_id', req.company.id).single();
+    const { data: conn, error } = await supabase.from('hris_connections').select('*').eq('id', connectionId).eq('company_id', req.company.id).maybeSingle();
     if (error || !conn) return res.status(404).json({ error: 'Connection not found' });
 
     const fetcher = PROVIDER_FETCHERS[conn.provider];
@@ -1129,7 +1129,7 @@ const syncHRIS = async (req, res) => {
     const { data: logEntry } = await supabase.from('hris_sync_logs').insert({
       company_id: req.company.id, connection_id: connectionId,
       provider: conn.provider, status: 'running',
-    }).select().single();
+    }).select().maybeSingle();
 
     const startTime = Date.now();
 
@@ -1308,7 +1308,7 @@ const saveBranch = async (req, res) => {
     if (is_default) {
       await supabase.from('company_branches').update({ is_default: false }).eq('company_id', req.company.id);
     }
-    const { data } = await supabase.from('company_branches').insert({ company_id: req.company.id, name, city, state, is_default: !!is_default }).select().single();
+    const { data } = await supabase.from('company_branches').insert({ company_id: req.company.id, name, city, state, is_default: !!is_default }).select().maybeSingle();
     res.status(201).json(data);
   } catch (err) {
     res.status(500).json({ error: 'Failed to save branch' });

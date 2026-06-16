@@ -15,7 +15,7 @@ const palAuth = async (req, res, next) => {
       .from('pal_groups')
       .select('id, group_name, group_username, email, logo_url, description, group_size, status, is_verified, pricing_commission_pct')
       .eq('id', decoded.palGroupId)
-      .single();
+      .maybeSingle();
 
     if (error || !group) return res.status(401).json({ error: 'Invalid token' });
     if (group.status !== 'approved') return res.status(403).json({ error: 'This Pals group is not yet approved' });
@@ -28,7 +28,7 @@ const palAuth = async (req, res, next) => {
         .from('pal_members')
         .select('id, name, email, role, status')
         .eq('id', decoded.palMemberId)
-        .single();
+        .maybeSingle();
       if (member) req.palMember = member;
     }
 

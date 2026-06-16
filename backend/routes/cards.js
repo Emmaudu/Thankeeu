@@ -28,7 +28,7 @@ const flexUserAuth = async (req, res, next) => {
         .from('companies')
         .select('id, name, email, contact_person')
         .eq('id', decoded.companyId)
-        .single();
+        .maybeSingle();
       if (!company) return res.status(401).json({ error: 'Invalid token' });
       req.company = company;
     } else if (decoded.type === 'company_member') {
@@ -36,7 +36,7 @@ const flexUserAuth = async (req, res, next) => {
         .from('company_members')
         .select('id, first_name, last_name, email, role, department, status, company_id')
         .eq('id', decoded.memberId)
-        .single();
+        .maybeSingle();
       if (!member || member.status !== 'approved') return res.status(403).json({ error: 'Not authorized' });
       req.member = member;
     } else {
@@ -44,7 +44,7 @@ const flexUserAuth = async (req, res, next) => {
         .from('users')
         .select('id, email, full_name, role, avatar_url')
         .eq('id', decoded.userId)
-        .single();
+        .maybeSingle();
       if (!user) return res.status(401).json({ error: 'Invalid token' });
       req.user = user;
     }

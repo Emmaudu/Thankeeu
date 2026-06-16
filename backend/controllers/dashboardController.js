@@ -280,7 +280,7 @@ const trackCardOpened = async (req, res) => {
         meta: { card_slug: slug }
       });
       // Email creator
-      const { data: creator } = await supabase.from('users').select('email, full_name').eq('id', card.creator_id).single();
+      const { data: creator } = await supabase.from('users').select('email, full_name').eq('id', card.creator_id).maybeSingle();
       if (creator) {
         const { sendEmail } = require('../utils/email');
         sendEmail({ to: creator.email, template: 'cardOpened', data: { name: creator.full_name, cardTitle: card.title, cardSlug: slug, appUrl: FRONTEND_URL } }).catch(() => {});

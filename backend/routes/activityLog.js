@@ -12,12 +12,12 @@ const hrOrCoreTeamAuth = async (req, res, next) => {
   try {
     const d = jwt.verify(tok, process.env.JWT_SECRET);
     if (d.type === 'company') {
-      const { data: co } = await supabase.from('companies').select('id,name').eq('id', d.companyId).single();
+      const { data: co } = await supabase.from('companies').select('id,name').eq('id', d.companyId).maybeSingle();
       if (!co) return res.status(401).json({ error: 'Invalid' });
       req.company = co; req.actorType = 'hr'; req.actorName = co.name;
     } else if (d.type === 'company_member') {
       const { data: m } = await supabase.from('company_members')
-        .select('id,first_name,last_name,company_id,is_core_team,status').eq('id', d.memberId).single();
+        .select('id,first_name,last_name,company_id,is_core_team,status').eq('id', d.memberId).maybeSingle();
       if (!m || m.status !== 'approved' || !m.is_core_team)
         return res.status(403).json({ error: 'Core team access only' });
       req.member    = m;

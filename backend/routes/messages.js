@@ -13,11 +13,11 @@ const flexAuth = async (req, res, next) => {
     const d = jwt.verify(token, process.env.JWT_SECRET);
     if (d.type === 'company_member') {
       const { data } = await supabase.from('company_members')
-        .select('id,first_name,last_name,email,status').eq('id', d.memberId).single();
+        .select('id,first_name,last_name,email,status').eq('id', d.memberId).maybeSingle();
       if (data?.status === 'approved') req.member = data;
     } else if (d.userId) {
       const { data } = await supabase.from('users')
-        .select('id,email,full_name').eq('id', d.userId).single();
+        .select('id,email,full_name').eq('id', d.userId).maybeSingle();
       if (data) req.user = data;
     }
     next();

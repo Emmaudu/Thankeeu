@@ -81,6 +81,8 @@ const Admin = () => {
   const { user } = useAuth();
   const [loading, setLoading]           = useState(true);
   const [tab, setTab]                   = useState('overview');
+  const [sidebarOpen, setSidebarOpen]   = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Core data
   const [stats, setStats]               = useState({});
@@ -181,6 +183,8 @@ const Admin = () => {
   const fetchAnalytics = async (days = analyticsDays) => {
     setAnalyticsLoading(true);
     try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const tok  = localStorage.getItem('thankeeu_token') || '';
       const r = await fetch(`${base}/analytics/dashboard?days=${days}`, { headers: { Authorization: `Bearer ${tok}` } });
       const d = await r.json();
       setAnalytics(d);
@@ -210,6 +214,7 @@ const Admin = () => {
   };
 
   const fetchPals = async () => {
+    setPalLoading(true);
     try {
       const base = import.meta.env.VITE_API_URL || '/api';
       const hdr  = { Authorization: `Bearer ${localStorage.getItem('thankeeu_token')}` };
@@ -220,6 +225,7 @@ const Admin = () => {
       setPalApplications(Array.isArray(pRes) ? pRes : []);
       setPalTickets(Array.isArray(tRes) ? tRes : []);
     } catch { toast.error('Failed to load Pals data'); }
+    finally { setPalLoading(false); }
   };
 
   const approvePal = async (id, name) => {
@@ -258,6 +264,7 @@ const Admin = () => {
   };
 
   const fetchVendors = async () => {
+    setVendorsLoading(true);
     try {
       const base = import.meta.env.VITE_API_URL || '/api';
       const hdr  = { Authorization: `Bearer ${localStorage.getItem('thankeeu_token')}` };
@@ -268,6 +275,7 @@ const Admin = () => {
       setVendors(Array.isArray(vRes) ? vRes : []);
       setVendorOrders(Array.isArray(oRes) ? oRes : []);
     } catch { toast.error('Failed to load vendor data'); }
+    finally { setVendorsLoading(false); }
   };
 
   const fetchBlog = async () => {

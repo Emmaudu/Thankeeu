@@ -21,7 +21,7 @@ const updateSettings = async (req, res) => {
     if (logo_url !== undefined) updates.logo_url = logo_url || null;
 
     const { data, error } = await supabase.from('pal_groups').update(updates).eq('id', req.palGroup.id)
-      .select('id, group_name, group_username, email, logo_url, description, group_size, status, is_verified').single();
+      .select('id, group_name, group_username, email, logo_url, description, group_size, status, is_verified').maybeSingle();
     if (error) throw error;
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -45,7 +45,7 @@ const getMembers = async (req, res) => {
 const getMemberProfile = async (req, res) => {
   try {
     const { id } = req.params;
-    const { data, error } = await supabase.from('pal_members').select('*').eq('id', id).eq('pal_group_id', req.palGroup.id).single();
+    const { data, error } = await supabase.from('pal_members').select('*').eq('id', id).eq('pal_group_id', req.palGroup.id).maybeSingle();
     if (error || !data) return res.status(404).json({ error: 'Member not found' });
     delete data.password_hash;
     delete data.invite_token;
@@ -67,7 +67,7 @@ const updateMemberProfile = async (req, res) => {
 
     const { data, error } = await supabase.from('pal_members').update(updates)
       .eq('id', id).eq('pal_group_id', req.palGroup.id)
-      .select('id, name, email, department, role, bio, profile_pic_url, bank_details').single();
+      .select('id, name, email, department, role, bio, profile_pic_url, bank_details').maybeSingle();
     if (error) throw error;
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -92,14 +92,14 @@ const updateMemberEvent = async (req, res) => {
     if (fields[1]) updates[fields[1]] = note?.trim() || null;
     // Reset reminder dedupe flags so new event date gets fresh reminders
     if (date) {
-      const { data: existing } = await supabase.from('pal_members').select('reminders_sent').eq('id', id).single();
+      const { data: existing } = await supabase.from('pal_members').select('reminders_sent').eq('id', id).maybeSingle();
       const reminders = existing?.reminders_sent || {};
       Object.keys(reminders).forEach(k => { if (k.startsWith(event)) delete reminders[k]; });
       updates.reminders_sent = reminders;
     }
 
     const { data, error } = await supabase.from('pal_members').update(updates)
-      .eq('id', id).eq('pal_group_id', req.palGroup.id).select().single();
+      .eq('id', id).eq('pal_group_id', req.palGroup.id).select().maybeSingle();
     if (error) throw error;
     res.json({ message: 'Event updated', member: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -190,7 +190,7 @@ async function inviteOne(group, data) {
     promotion_date: data.promotion_date || null,
     status: 'pending',
     invite_token,
-  }).select('id, name, email, department, role, status, created_at').single();
+  }).select('id, name, email, department, role, status, created_at').maybeSingle();
 
   if (error) return { error: error.message };
 

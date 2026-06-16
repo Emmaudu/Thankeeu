@@ -29,7 +29,7 @@ router.post('/get-company-access', async (req, res) => {
     // Verify member exists, is approved, and IS a core team member
     const { data: member } = await supabase.from('company_members')
       .select('id, company_id, first_name, last_name, email, is_core_team, status')
-      .eq('id', decoded.memberId).single();
+      .eq('id', decoded.memberId).maybeSingle();
 
     if (!member || member.status !== 'approved')
       return res.status(401).json({ error: 'Invalid member' });
@@ -39,7 +39,7 @@ router.post('/get-company-access', async (req, res) => {
 
     // Get company details
     const { data: company } = await supabase.from('companies')
-      .select('id, name, email, contact_person').eq('id', member.company_id).single();
+      .select('id, name, email, contact_person').eq('id', member.company_id).maybeSingle();
     if (!company) return res.status(404).json({ error: 'Company not found' });
 
     // Issue a short-lived company JWT (4 hours — enough for a work session)

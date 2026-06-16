@@ -36,7 +36,7 @@ const vendorSignup = async (req, res) => {
       phone, category: category || 'general', description, slug,
       status: 'pending',      // pending → approved by admin
       verify_token: verifyToken, is_verified: false,
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
 
     await sendEmail({ to: email, template: 'vendorWelcome', data: {
@@ -51,7 +51,7 @@ const vendorSignup = async (req, res) => {
 const vendorLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { data: vendor } = await supabase.from('vendors').select('*').eq('email', email.toLowerCase()).single();
+    const { data: vendor } = await supabase.from('vendors').select('*').eq('email', email.toLowerCase()).maybeSingle();
     if (!vendor) return res.status(401).json({ error: 'Invalid email or password' });
     if (!vendor.is_verified) return res.status(403).json({ error: 'Please verify your email first' });
     if (vendor.status !== 'approved') return res.status(403).json({ error: `Your store is ${vendor.status}. Contact support.` });
@@ -79,7 +79,7 @@ const vendorLogin = async (req, res) => {
 // ── Store / products ─────────────────────────────────────────────────────────
 const getMyStore = async (req, res) => {
   try {
-    const { data } = await supabase.from('vendors').select('*, vendor_products(count)').eq('id', req.vendor.id).single();
+    const { data } = await supabase.from('vendors').select('*, vendor_products(count)').eq('id', req.vendor.id).maybeSingle();
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
@@ -88,7 +88,7 @@ const updateStore = async (req, res) => {
   try {
     const allowed = ['business_name','description','phone','address','country','state','logo_url','banner_url','social_links','delivery_info','return_policy'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
-    const { data, error } = await supabase.from('vendors').update({ ...updates, updated_at: new Date() }).eq('id', req.vendor.id).select().single();
+    const { data, error } = await supabase.from('vendors').update({ ...updates, updated_at: new Date() }).eq('id', req.vendor.id).select().maybeSingle();
     if (error) throw error;
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -109,7 +109,7 @@ const createProduct = async (req, res) => {
       vendor_id: req.vendor.id, name, description, price: Number(price),
       category: category || req.vendor.category, images: images || [],
       stock: stock ?? null, is_available,
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -121,7 +121,7 @@ const updateProduct = async (req, res) => {
     const allowed = ['name','description','price','category','images','stock','is_available','featured'];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     const { data, error } = await supabase.from('vendor_products').update({ ...updates, updated_at: new Date() })
-      .eq('id', id).eq('vendor_id', req.vendor.id).select().single();
+      .eq('id', id).eq('vendor_id', req.vendor.id).select().maybeSingle();
     if (error || !data) return res.status(404).json({ error: 'Product not found' });
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -154,7 +154,7 @@ const updateOrderStatus = async (req, res) => {
 
     const { data, error } = await supabase.from('vendor_orders')
       .update({ status, tracking_number, notes, updated_at: new Date() })
-      .eq('id', id).eq('vendor_id', req.vendor.id).select('*, customer_email, customer_name').single();
+      .eq('id', id).eq('vendor_id', req.vendor.id).select('*, customer_email, customer_name').maybeSingle();
     if (error || !data) return res.status(404).json({ error: 'Order not found' });
 
     // Notify customer on key status changes
@@ -210,7 +210,7 @@ const getPublicStore = async (req, res) => {
     const { slug } = req.params;
     const { data: vendor } = await supabase.from('vendors')
       .select('id, business_name, slug, description, logo_url, banner_url, category, address, country, state, phone, social_links, delivery_info, return_policy, status')
-      .eq('slug', slug).eq('status', 'approved').single();
+      .eq('slug', slug).eq('status', 'approved').maybeSingle();
     if (!vendor) return res.status(404).json({ error: 'Store not found or not yet active' });
 
     const { data: products } = await supabase.from('vendor_products')
@@ -232,7 +232,7 @@ const placeOrder = async (req, res) => {
 
     if (!items?.length || !customer_email) return res.status(400).json({ error: 'items and customer_email are required' });
 
-    const { data: vendor } = await supabase.from('vendors').select('id, business_name, email').eq('slug', slug).eq('status', 'approved').single();
+    const { data: vendor } = await supabase.from('vendors').select('id, business_name, email').eq('slug', slug).eq('status', 'approved').maybeSingle();
     if (!vendor) return res.status(404).json({ error: 'Store not found' });
 
     const productIds = items.map(i => i.product_id);
@@ -253,7 +253,7 @@ const placeOrder = async (req, res) => {
       delivery_address, card_slug, note,
       total_amount: total,
       status: 'pending',
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
 
     await supabase.from('vendor_order_items').insert(lineItems.map(li => ({ ...li, order_id: order.id })));
@@ -327,7 +327,7 @@ const checkoutOrder = async (req, res) => {
 
     const { data: vendor } = await supabase.from('vendors')
       .select('id, business_name, email, slug')
-      .eq('slug', slug).eq('status', 'approved').single();
+      .eq('slug', slug).eq('status', 'approved').maybeSingle();
     if (!vendor) return res.status(404).json({ error: 'Store not found or not active' });
 
     // Validate products
@@ -376,13 +376,13 @@ const checkoutOrder = async (req, res) => {
       total_amount: total,
       status: 'pending',
     };
-    let { data: order, error: orderErr } = await supabase.from('vendor_orders').insert(orderPayload).select().single();
+    let { data: order, error: orderErr } = await supabase.from('vendor_orders').insert(orderPayload).select().maybeSingle();
 
     // If the signer/recipient columns don't exist yet (migration not run),
     // retry without them rather than failing the whole gift order.
     if (orderErr && /column .* does not exist/i.test(orderErr.message || '')) {
       const { signer_name, signer_email, recipient_name, recipient_email, ...fallbackPayload } = orderPayload;
-      ({ data: order, error: orderErr } = await supabase.from('vendor_orders').insert(fallbackPayload).select().single());
+      ({ data: order, error: orderErr } = await supabase.from('vendor_orders').insert(fallbackPayload).select().maybeSingle());
     }
     if (orderErr) throw orderErr;
 
@@ -590,7 +590,7 @@ const adminUpdateVendorStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     if (!['pending','approved','suspended','rejected'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
-    const { data: vendor } = await supabase.from('vendors').update({ status }).eq('id', id).select('email, business_name').single();
+    const { data: vendor } = await supabase.from('vendors').update({ status }).eq('id', id).select('email, business_name').maybeSingle();
     if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
     if (status === 'approved') {
       await sendEmail({ to: vendor.email, template: 'vendorApproved', data: { name: vendor.business_name, dashUrl: `${FRONTEND_URL}/vendor/dashboard` }}).catch(() => {});
@@ -633,7 +633,7 @@ const createVendorTicket = async (req, res) => {
     const { data, error } = await supabase.from('vendor_support_tickets').insert({
       vendor_id: req.vendor.id, vendor_name: req.vendor.business_name,
       subject, message, status: 'open',
-    }).select().single();
+    }).select().maybeSingle();
     if (error) throw error;
     // Notify admins via email
     await sendEmail({ to: process.env.ADMIN_EMAIL || 'admin@thankeeu.com',
@@ -648,7 +648,7 @@ const createVendorTicket = async (req, res) => {
 const changeVendorPassword = async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
-    const { data: vendor } = await supabase.from('vendors').select('password_hash').eq('id', req.vendor.id).single();
+    const { data: vendor } = await supabase.from('vendors').select('password_hash').eq('id', req.vendor.id).maybeSingle();
     const valid = vendor?.password_hash?.startsWith('$argon2')
       ? await require('argon2').verify(vendor.password_hash, current_password)
       : await require('bcryptjs').compare(current_password, vendor.password_hash);
@@ -723,7 +723,7 @@ const adminResendVerification = async (req, res) => {
   try {
     const { id } = req.params;
     const { data: vendor } = await supabase
-      .from('vendors').select('id, email, business_name, is_verified').eq('id', id).single();
+      .from('vendors').select('id, email, business_name, is_verified').eq('id', id).maybeSingle();
     if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
     if (vendor.is_verified) return res.status(400).json({ error: 'Vendor is already verified' });
 
@@ -760,7 +760,7 @@ const adminVerifyActivate = async (req, res) => {
   try {
     const { id } = req.params;
     const { data: vendor } = await supabase
-      .from('vendors').select('id, email, business_name, is_verified, status').eq('id', id).single();
+      .from('vendors').select('id, email, business_name, is_verified, status').eq('id', id).maybeSingle();
     if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
 
     const { error } = await supabase.from('vendors').update({

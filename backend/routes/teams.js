@@ -156,7 +156,7 @@ router.put('/members/:id', async (req, res) => {
     }
 
     const { data, error } = await supabase.from('company_members')
-      .update(u).eq('id', req.params.id).eq('company_id', req.company.id).select().single();
+      .update(u).eq('id', req.params.id).eq('company_id', req.company.id).select().maybeSingle();
     if (error) throw error;
 
     res.json(data);
@@ -177,7 +177,7 @@ router.patch('/members/:id/status', async (req, res) => {
     const { status } = req.body;
     if (!['approved','suspended','pending'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
     const { data, error } = await supabase.from('company_members')
-      .update({ status, updated_at: new Date() }).eq('id', req.params.id).eq('company_id', req.company.id).select().single();
+      .update({ status, updated_at: new Date() }).eq('id', req.params.id).eq('company_id', req.company.id).select().maybeSingle();
     if (error) throw error;
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }

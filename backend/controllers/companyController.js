@@ -51,7 +51,7 @@ const companySignup = async (req, res) => {
       .from('companies')
       .insert({ name, email: cleanEmail, password_hash, contact_person, phone, industry, city, state, country: country || '' })
       .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country')
-      .single();
+      .maybeSingle();
 
     if (error) throw error;
 
@@ -133,7 +133,7 @@ const getCompanyMe = async (req, res) => {
       .from('companies')
       .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country, created_at')
       .eq('id', req.company.id)
-      .single();
+      .maybeSingle();
     if (error) throw error;
 
     const { data: sub } = await supabase
@@ -168,7 +168,7 @@ const updateCompanyProfile = async (req, res) => {
       .update(updates)
       .eq('id', req.company.id)
       .select('id, name, email, contact_person, phone, industry, logo_url, theme, country')
-      .single();
+      .maybeSingle();
     if (error) throw error;
 
     // Note: Workers' Day no longer needs a re-sync step when the country
@@ -186,7 +186,7 @@ const updateCompanyProfile = async (req, res) => {
 const changeCompanyPassword = async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
-    const { data: company } = await supabase.from('companies').select('password_hash').eq('id', req.company.id).single();
+    const { data: company } = await supabase.from('companies').select('password_hash').eq('id', req.company.id).maybeSingle();
     const valid = await verifyPassword(current_password, company.password_hash);
     if (!valid) return res.status(400).json({ error: 'Current password is incorrect' });
     const password_hash = await hashPassword(new_password, 12);

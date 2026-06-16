@@ -458,7 +458,7 @@ cron.schedule('0 12 * * *', async () => {
         // the date has already passed by up to 7 days (e.g. HR entered it late,
         // or the cron missed a run) and it hasn't been processed yet.
         const isDeptDue = occ.isRecurring
-          ? daysUntil === notifyDays
+          ? (daysUntil >= 0 && daysUntil <= notifyDays)
           : (daysUntil <= notifyDays && daysUntil >= -7);
 
         if (isDeptDue && !(track.year === year && track.dept_notified) && !(!occ.isRecurring && track.dept_notified)) {

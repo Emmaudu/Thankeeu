@@ -3,6 +3,7 @@ const supabase = require('../utils/supabase');
 const { getMemberOccasions } = require('../utils/occasionEngine');
 const crypto = require('crypto');
 const argon2 = require('argon2');
+const { catchUpMemberCards } = require('../utils/catchUpCards');
 const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
@@ -178,6 +179,16 @@ const importTeamMembers = async (req, res) => {
 
       results.push(upserted);
       if (needsInvite && inviteToken) inviteQueue.push({ member: upserted || row, inviteToken });
+
+      // ── Catch-up: create card immediately if birthday (or other occasion)
+      // is already within the notification window for this newly imported member.
+      if (upserted) {
+        const freshMember = upserted;
+        supabase.from('companies').select('*').eq('id', req.company.id).maybeSingle()
+          .then(({ data: companyRow }) => {
+            if (companyRow) catchUpMemberCards(freshMember, companyRow).catch(() => {});
+          }).catch(() => {});
+      }
     }
 
     // Also mirror into team_members for dashboard counts (legacy — non-blocking)

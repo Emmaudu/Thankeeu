@@ -16,6 +16,7 @@ const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
 const { nanoid } = require('nanoid');
 const { logActivity } = require('../utils/activityLog');
+const { catchUpMemberCards } = require('../utils/catchUpCards');
 
 // All possible occasion types with their template columns
 const OCCASION_CONFIGS = {
@@ -871,6 +872,17 @@ const importGeneralTemplate = async (req, res) => {
       // resumption_date, gender, country) — no separate occasion_members
       // rows needed.
       totalImported++; // Valentine's + Workers' Day applied to everyone automatically
+
+      // ── Catch-up: if any occasion is ALREADY within the notify window,
+      // create the card immediately rather than waiting for tonight's cron.
+      // e.g. birthday in 3 days and member was just imported → card now.
+      if (memberId) {
+        const { data: freshMember } = await supabase.from('company_members')
+          .select('*').eq('id', memberId).maybeSingle().catch(() => ({ data: null }));
+        if (freshMember) {
+          setImmediate(() => catchUpMemberCards(freshMember, companyData).catch(() => {}));
+        }
+      }
     }
 
     // Count active company_members for per-head subscription pricing
@@ -1235,6 +1247,16 @@ const importByOccasionName = async (req, res) => {
             continue;
         }
         imported++;
+
+        // ── Catch-up: create card immediately if occasion is already within
+        // the notification window (member was imported late / mid-period).
+        if (memberId) {
+          const { data: freshMember } = await supabase.from('company_members')
+            .select('*').eq('id', memberId).maybeSingle().catch(() => ({ data: null }));
+          if (freshMember) {
+            setImmediate(() => catchUpMemberCards(freshMember, coData).catch(() => {}));
+          }
+        }
       } catch(rowErr) {
         errors.push(`Row ${i+1}: ${rowErr.message}`);
       }

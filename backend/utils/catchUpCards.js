@@ -198,6 +198,11 @@ async function catchUpMemberCards(member, company) {
       const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
       const dlStr           = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
 
+      // Effective scope: team_leader → always company_wide; team_member → HR toggle
+      const effectiveScope = (member.role === 'team_leader')
+        ? 'company_wide'
+        : (ot.default_scope || 'department');
+
       const { data: card, error: cardErr } = await supabase.from('cards').insert({
         slug,
         recipient_name:         `${member.first_name} ${member.last_name}`,
@@ -215,7 +220,7 @@ async function catchUpMemberCards(member, company) {
         allow_private_messages: true,
         company_id:             company.id,
         occasion_type_id:       ot.id || null,
-        notification_scope:     ot.default_scope || 'department',
+        notification_scope:     effectiveScope,
       }).select().maybeSingle();
 
       if (cardErr || !card) {
@@ -249,7 +254,16 @@ async function catchUpMemberCards(member, company) {
       // ── Notify colleagues (async, non-blocking) ──────────────────────────
       setImmediate(async () => {
         try {
-          const scope = ot.default_scope || 'department';
+          // Team leaders always notify the entire company (company_wide),
+          // regardless of what the HR scope toggle is set to.
+          // Team members follow the HR scope toggle (department or company_wide).
+          const isLeader = member.role === 'team_leader';
+          const scope = isLeader
+            ? 'company_wide'
+            : (ot.default_scope || 'department');
+
+          console.log(`[catchUp] Scope for ${member.first_name} (${member.role || 'team_member'}): ${scope}`);
+
           let colleagueQuery = supabase
             .from('company_members')
             .select('id, email, first_name')
@@ -260,7 +274,7 @@ async function catchUpMemberCards(member, company) {
           if (scope === 'department') {
             colleagueQuery = colleagueQuery.eq('department', member.department);
           }
-          // scope === 'company_wide' → no department filter → everyone
+          // scope === 'company_wide' → no department filter → entire company
 
           const { data: colleagues } = await colleagueQuery;
           const toNotify = (colleagues || []).filter(c => c.email && c.email !== member.email);

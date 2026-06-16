@@ -656,7 +656,9 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
     suggested_amount: 2500, send_date: notifyDate.toISOString(),
     deadline: deadline.toISOString(), allow_private_messages: true,
     company_id: ot.company_id, occasion_type_id: ot.id,
-    notification_scope: ot.default_scope || 'department',
+    // Team leaders always notify the entire company regardless of scope toggle.
+    // Team members follow the HR scope toggle.
+    notification_scope: (m.role === 'team_leader') ? 'company_wide' : (ot.default_scope || 'department'),
   }).select().maybeSingle();
   if (!card) return;
 
@@ -672,13 +674,18 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
     console.error('Contribution wallet creation failed:', walletError);
   }
 
-  // Determine who to notify based on scope — active company_members in the
-  // same company (and department if scope requires it), excluding the celebrant
+  // Determine effective scope:
+  // - team_leader → company_wide (all departments notified, always)
+  // - team_member → follow HR scope toggle (department or company_wide)
+  const effectiveScope = (m.role === 'team_leader')
+    ? 'company_wide'
+    : (ot.default_scope || 'department');
+
   let colleagueQuery = supabase.from('company_members')
     .select('email, first_name').eq('company_id', ot.company_id)
     .eq('status', 'approved').neq('id', m.id);
 
-  if (ot.default_scope === 'department' || ot.default_scope === 'pending_approval') {
+  if (effectiveScope === 'department' || effectiveScope === 'pending_approval') {
     colleagueQuery = colleagueQuery.eq('department', m.department);
   }
   const { data: colleagues } = await colleagueQuery;

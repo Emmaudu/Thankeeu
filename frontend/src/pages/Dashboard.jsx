@@ -159,39 +159,41 @@ const Dashboard = () => {
             {[...Array(4)].map((_,i) => <div key={i} className="bg-purple-50 rounded-2xl h-24 animate-pulse" />)}
           </div>
         ) : (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            <StatCard icon="🎴" label="Active cards"    value={stats.active_cards || 0}  sub="collecting now" />
-            <StatCard icon="📋" label="Total cards"     value={stats.total_cards  || 0}  sub="all time" />
-            <StatCard icon="🚀" label="Cards sent"      value={stats.sent_cards   || 0}  sub="delivered" />
-            <StatCard icon="🎁" label="Gifts collected" value={formatNGN(stats.total_collected||0)} sub="total" highlight />
-          </div>
-
-          {/* Credit balance banner */}
-          <div className={`rounded-2xl border-2 px-4 py-3 mb-6 flex items-center gap-3 ${
-            credits === 0 ? 'border-amber-200 bg-amber-50' : 'border-primary-200 bg-primary-50'
-          }`}>
-            <span className="text-2xl flex-shrink-0">💳</span>
-            <div className="flex-1 min-w-0">
-              <p className={`text-sm font-bold ${credits === 0 ? 'text-amber-800' : 'text-primary-700'}`}>
-                {credits === 0
-                  ? '⚠️ No credits — top up to create cards instantly'
-                  : `${credits} card credit${credits !== 1 ? 's' : ''} remaining`}
-              </p>
-              <p className="text-xs text-warm-400">
-                {credits === 0
-                  ? 'Each card creation uses 1 credit. Or pay directly when creating.'
-                  : `You can create ${credits} more card${credits !== 1 ? 's' : ''} with your credit balance.`}
-              </p>
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+              <StatCard icon="🎴" label="Active cards"    value={stats.active_cards || 0}  sub="collecting now" />
+              <StatCard icon="📋" label="Total cards"     value={stats.total_cards  || 0}  sub="all time" />
+              <StatCard icon="🚀" label="Cards sent"      value={stats.sent_cards   || 0}  sub="delivered" />
+              <StatCard icon="🎁" label="Gifts collected" value={formatNGN(stats.total_collected||0)} sub="total" highlight />
             </div>
-            <Link to="/dashboard/credits"
-              className={`text-xs font-bold px-3 py-2 rounded-xl flex-shrink-0 transition-all ${
-                credits === 0
-                  ? 'bg-amber-500 text-white hover:bg-amber-600'
-                  : 'bg-primary-100 text-primary-600 hover:bg-primary-200'
-              }`}>
-              {credits === 0 ? '+ Top up' : 'Buy more'}
-            </Link>
-          </div>
+
+            {/* Credit balance banner */}
+            <div className={`rounded-2xl border-2 px-4 py-3 mb-6 flex items-center gap-3 ${
+              credits === 0 ? 'border-amber-200 bg-amber-50' : 'border-primary-200 bg-primary-50'
+            }`}>
+              <span className="text-2xl flex-shrink-0">💳</span>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-bold ${credits === 0 ? 'text-amber-800' : 'text-primary-700'}`}>
+                  {credits === 0
+                    ? '⚠️ No credits — top up to create cards instantly'
+                    : `${credits} card credit${credits !== 1 ? 's' : ''} remaining`}
+                </p>
+                <p className="text-xs text-warm-400">
+                  {credits === 0
+                    ? 'Each card creation uses 1 credit. Or pay directly when creating.'
+                    : `You can create ${credits} more card${credits !== 1 ? 's' : ''} with your credit balance.`}
+                </p>
+              </div>
+              <Link to="/dashboard/credits"
+                className={`text-xs font-bold px-3 py-2 rounded-xl flex-shrink-0 transition-all ${
+                  credits === 0
+                    ? 'bg-amber-500 text-white hover:bg-amber-600'
+                    : 'bg-primary-100 text-primary-600 hover:bg-primary-200'
+                }`}>
+                {credits === 0 ? '+ Top up' : 'Buy more'}
+              </Link>
+            </div>
+          </>
         )}
 
         {/* Filter pills */}

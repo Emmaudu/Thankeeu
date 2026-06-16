@@ -4,6 +4,7 @@ const multer   = require('multer');
 const { companyAuth } = require('../middleware/companyAuth');
 const supabase = require('../utils/supabase');
 const { getWorkersDayDate } = require('../utils/workersDay');
+const { validateUUIDParam } = require('../utils/paramGuard');
 const {
   downloadTemplate, importTeamMembers, getTeamMembers,
   getDepartments, deleteTeamMember, getTeamsDashboard,

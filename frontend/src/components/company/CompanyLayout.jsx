@@ -173,33 +173,40 @@ const CompanyLayout = ({ children, title, subtitle }) => {
         </div>
       </div>
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar drawer */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div style={{ width: 240 }}><SidebarContent /></div>
-          <div className="flex-1 bg-black/50" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-50 md:hidden" style={{ display:'flex' }}>
+          <div className="flex-1 bg-black/60" onClick={() => setMobileOpen(false)} />
         </div>
       )}
+      <div className="fixed top-0 left-0 h-full z-50 md:hidden" style={{
+        width:260, transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+        transition:'transform .28s cubic-bezier(.4,0,.2,1)',
+        boxShadow: mobileOpen ? '4px 0 32px rgba(0,0,0,0.4)' : 'none',
+      }}>
+        <SidebarContent />
+      </div>
 
       {/* Main */}
       <main className="flex-1 min-w-0" style={{ background: '#F5F3FF', borderRadius: '20px 0 0 0', minHeight: '100vh' }}>
         {/* Mobile topbar */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: '#F5F3FF', borderBottom: '1px solid #EDE9FF' }}>
-          <button onClick={() => setMobileOpen(true)} className="p-2 rounded-xl"
-            style={{ background: 'rgba(124,110,255,0.1)', color: '#5B4BDF', fontSize: '1.5rem', width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>☰</button>
-          <span style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, color: '#1A1730', fontSize: 14 }}>
-            Thank<span style={{ color: '#7C6EFF' }}>eeu</span> Teams
+        <div className="md:hidden flex items-center justify-between px-4 sticky top-0 z-30"
+          style={{ background:'rgba(245,243,255,0.98)', backdropFilter:'blur(8px)', borderBottom:'1px solid #EDE9FF', height:56 }}>
+          <button onClick={() => setMobileOpen(true)}
+            style={{ width:44, height:44, borderRadius:12, border:'none', background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 2px 8px rgba(92,75,223,0.3)' }}>
+            ☰
+          </button>
+          <span style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, color:'#1A1730', fontSize:15 }}>
+            Thank<span style={{ color:'#7C6EFF' }}>eeu</span> <span style={{ color:'#9CA3AF', fontWeight:500, fontSize:12 }}>HR</span>
           </span>
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold"
-            style={{ background: 'linear-gradient(135deg,#EC4899,#7C6EFF)', color: '#fff' }}>{initials}</div>
+          <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#EC4899,#7C6EFF)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:13 }}>{initials}</div>
         </div>
 
         {/* Page content */}
-        <div className="px-4 md:px-8 py-6 md:py-8">
+        <div className="px-4 md:px-8 py-4 md:py-8">
           {(title || subtitle) && (
             <div className="mb-6">
-              {title && <h1 style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, fontSize: '1.5rem', color: '#1A1730' }}>{title}</h1>}
+              {title && <h1 style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, fontSize: 'clamp(1.1rem,4vw,1.5rem)', color: '#1A1730' }}>{title}</h1>}
               {subtitle && <p className="text-sm mt-1" style={{ color: '#7A7898' }}>{subtitle}</p>}
             </div>
           )}

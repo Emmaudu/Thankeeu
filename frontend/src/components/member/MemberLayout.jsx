@@ -150,26 +150,32 @@ const MemberLayout = ({ children, title, subtitle }) => {
 
       {/* Mobile sidebar — RIGHT side */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="flex-1 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <div style={{ width:260 }}><SidebarContent /></div>
-        </div>
+        <div className="fixed inset-0 z-50 md:hidden" style={{ background:'rgba(0,0,0,0.55)', backdropFilter:'blur(2px)' }}
+          onClick={() => setMobileOpen(false)} />
       )}
+      <div className="fixed top-0 left-0 h-full z-50 md:hidden" style={{
+        width:265, transform:mobileOpen?'translateX(0)':'translateX(-100%)',
+        transition:'transform .28s cubic-bezier(.4,0,.2,1)',
+        boxShadow:mobileOpen?'6px 0 40px rgba(0,0,0,0.45)':'none',
+      }}>
+        <SidebarContent />
+      </div>
 
       {/* Main */}
       <main className="flex-1 min-w-0" style={{ background:'#F5F3FF', borderRadius:'20px 0 0 0', minHeight:'100vh' }}>
         {/* Mobile topbar */}
-        <div className="md:hidden flex items-center justify-between px-5 py-4 sticky top-0 z-30"
-          style={{ background:'#F5F3FF', borderBottom:'1px solid #EDE9FF' }}>
-          <div style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, color:'#1A1730', fontSize:17 }}>
-            Thank<span style={{ color:'#7C6EFF' }}>eeu</span>
-          </div>
-          {/* Hamburger on RIGHT for mobile */}
+             <div className="md:hidden flex items-center justify-between sticky top-0 z-30"
+          style={{ background:'rgba(15,13,36,0.98)', backdropFilter:'blur(8px)', borderBottom:'1px solid rgba(124,110,255,0.15)', height:56, padding:'0 16px' }}>
           <button onClick={() => setMobileOpen(true)}
-            className="p-3 rounded-xl"
-            style={{ background:'rgba(124,110,255,0.1)', color:'#5B4BDF', fontSize:18, width:48, height:48, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            style={{ width:44, height:44, borderRadius:12, border:'none', background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
             ☰
           </button>
+          <span style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, fontSize:15, color:'#E4E2F6' }}>
+            Thank<span style={{ color:'#7C6EFF' }}>eeu</span>
+          </span>
+          <div style={{ width:36, height:36, borderRadius:10, background:'linear-gradient(135deg,#7C6EFF,#EC4899)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:13 }}>
+            {initials}
+          </div>
         </div>
 
         {/* Page */}

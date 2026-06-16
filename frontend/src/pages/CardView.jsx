@@ -30,6 +30,198 @@ const FONT_INJECT = `
 .font-allura    { font-family:'Allura', cursive; }
 `;
 
+// ── MagicSearch — a playful floating search experience ────────────────────────
+// Expands from a pill into a full search field, cycles placeholder names,
+// shows sparkle particles when a match is found, highlights matched cards.
+function MagicSearch({ messages, query, setQuery, active, setActive, design }) {
+  const inputRef   = useRef(null);
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [sparkles,       setSparkles]       = useState([]);
+  const [resultCount,    setResultCount]    = useState(null);
+
+  // Build placeholder names from actual signers
+  const names = [...new Set(messages.map(m => m.author_name).filter(Boolean))].slice(0, 8);
+
+  // Cycle placeholder every 2.2s when idle
+  useEffect(() => {
+    if (active || !names.length) return;
+    const t = setInterval(() => setPlaceholderIdx(i => (i + 1) % names.length), 2200);
+    return () => clearInterval(t);
+  }, [active, names.length]);
+
+  // Auto-focus when activated
+  useEffect(() => {
+    if (active) { setTimeout(() => inputRef.current?.focus(), 180); }
+  }, [active]);
+
+  // Sparkle burst when results found
+  function burstSparkles(count) {
+    const s = Array.from({ length: count }, (_, i) => ({
+      id: Date.now() + i,
+      x:  Math.random() * 100,
+      y:  Math.random() * 60,
+      color: [design.accent, '#FBBF24', '#EC4899', '#A855F7', '#34D399'][i % 5],
+      size: 4 + Math.random() * 6,
+      dur:  0.6 + Math.random() * 0.5,
+    }));
+    setSparkles(s);
+    setTimeout(() => setSparkles([]), 1200);
+  }
+
+  const handleChange = (val) => {
+    setQuery(val);
+    if (val.trim().length >= 2) {
+      const hits = messages.filter(m =>
+        m.author_name?.toLowerCase().includes(val.toLowerCase().trim())
+      ).length;
+      setResultCount(hits);
+      if (hits > 0) burstSparkles(hits > 5 ? 12 : 6);
+      else setResultCount(0);
+    } else {
+      setResultCount(null);
+    }
+  };
+
+  const handleClose = () => {
+    setQuery('');
+    setActive(false);
+    setResultCount(null);
+    setSparkles([]);
+  };
+
+  const placeholder = names[placeholderIdx] ? `Find ${names[placeholderIdx]}…` : 'Search by name…';
+
+  return (
+    <div style={{ position:'relative', display:'flex', justifyContent:'center', marginBottom: 8 }}>
+      <style>{`
+        @keyframes magic-expand {
+          from { width: 180px; opacity: 0.7; }
+          to   { width: 100%;  opacity: 1;   }
+        }
+        @keyframes sparkle-pop {
+          0%   { transform: scale(0) rotate(0deg);   opacity: 1; }
+          60%  { transform: scale(1.4) rotate(180deg); opacity: 0.9; }
+          100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+        @keyframes pill-pulse {
+          0%,100% { box-shadow: 0 0 0 0 ${design.accent}44; }
+          50%      { box-shadow: 0 0 0 8px ${design.accent}00; }
+        }
+        @keyframes placeholder-fade {
+          0%,85% { opacity: 1; }
+          95%    { opacity: 0; }
+          100%   { opacity: 1; }
+        }
+        .magic-search-input::placeholder { 
+          animation: placeholder-fade 2.2s ease infinite;
+          color: ${design.accent}99;
+        }
+        .magic-search-input:focus { outline: none; }
+      `}</style>
+
+      {/* Sparkle particles */}
+      {sparkles.map(s => (
+        <div key={s.id} style={{
+          position:'absolute', left:`${s.x}%`, top:`${s.y}%`,
+          width:s.size, height:s.size, borderRadius:'50%',
+          background: s.color, pointerEvents:'none', zIndex:10,
+          animation: `sparkle-pop ${s.dur}s ease forwards`,
+        }} />
+      ))}
+
+      {!active ? (
+        /* ── Collapsed pill — inviting tap ── */
+        <button onClick={() => setActive(true)}
+          style={{
+            display:'flex', alignItems:'center', gap:8,
+            padding:'10px 20px', borderRadius:50,
+            border:`2px solid ${design.accent}33`,
+            background:`${design.accent}0F`,
+            color: design.accent, cursor:'pointer',
+            fontSize:13, fontWeight:700,
+            transition:'all .2s ease',
+            animation: 'pill-pulse 3s ease infinite',
+            backdropFilter:'blur(8px)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = design.accent + '22';
+            e.currentTarget.style.transform = 'scale(1.04)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = design.accent + '0F';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}>
+          <span style={{ fontSize:16 }}>🔍</span>
+          <span style={{ fontFamily:"'Dancing Script', cursive", fontSize:15 }}>
+            {placeholder}
+          </span>
+          <span style={{ fontSize:11, opacity:0.5, fontFamily:'sans-serif', fontStyle:'italic' }}>tap to search</span>
+        </button>
+
+      ) : (
+        /* ── Expanded search field ── */
+        <div style={{
+          width:'100%', position:'relative',
+          animation:'magic-expand .25s cubic-bezier(.34,1.56,.64,1)',
+        }}>
+          {/* Glowing border effect */}
+          <div style={{
+            position:'absolute', inset:-2, borderRadius:18,
+            background:`linear-gradient(135deg, ${design.accent}, #EC4899, ${design.accent})`,
+            backgroundSize:'200% 200%',
+            animation:'gradient-shift 3s ease infinite',
+            zIndex:0, opacity:0.5, filter:'blur(3px)',
+          }} />
+          <style>{`@keyframes gradient-shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }`}</style>
+
+          <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', background:'white', borderRadius:16, padding:'2px 4px', boxShadow:'0 4px 20px rgba(0,0,0,0.1)' }}>
+            {/* Search icon */}
+            <span style={{ padding:'0 12px', fontSize:16, opacity:0.6 }}>🔍</span>
+
+            <input
+              ref={inputRef}
+              className="magic-search-input"
+              value={query}
+              onChange={e => handleChange(e.target.value)}
+              placeholder={`Search by name — e.g. ${names[0] || 'Chisom'}…`}
+              style={{
+                flex:1, border:'none', background:'transparent',
+                fontSize:15, fontWeight:500, color:'#1a1a2e',
+                padding:'12px 0', fontFamily:'inherit',
+              }}
+            />
+
+            {/* Result badge */}
+            {resultCount !== null && (
+              <div style={{
+                padding:'4px 10px', borderRadius:20, marginRight:6, flexShrink:0,
+                background: resultCount > 0 ? design.accent : '#EF4444',
+                color:'#fff', fontSize:11, fontWeight:800,
+                animation: resultCount > 0 ? 'sparkle-pop .4s cubic-bezier(.34,1.56,.64,1) forwards, none .4s' : 'none',
+              }}>
+                {resultCount > 0 ? `✨ ${resultCount} found` : '0 found'}
+              </div>
+            )}
+
+            {/* Clear / close */}
+            {query && (
+              <button onClick={() => { setQuery(''); setResultCount(null); inputRef.current?.focus(); }}
+                style={{ padding:'8px', background:'none', border:'none', cursor:'pointer', color:'#9CA3AF', fontSize:16, borderRadius:8, flexShrink:0 }}>
+                ✕
+              </button>
+            )}
+            <button onClick={handleClose}
+              style={{ padding:'8px 12px', background:'none', border:'none', cursor:'pointer', color: design.accent, fontSize:12, fontWeight:700, borderRadius:8, flexShrink:0, whiteSpace:'nowrap' }}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 const CALLI_FONTS = [
   'font-dancing','font-vibes','font-satisfy','font-sacramento',
   'font-kaushan','font-pinyon','font-alex','font-allura',
@@ -107,19 +299,12 @@ function MusicPlayer() {
     [587.33,26.4,1.2,0.21],[659.25,27.6,0.8,0.19],[587.33,28.4,0.6,0.18],
     [523.25,29.0,0.6,0.17],[587.33,29.6,2.4,0.15],
   ];
-  const PAD = [
-    [293.66,0.0,4.0,0.08],[369.99,0.0,4.0,0.06],[440.00,0.0,4.0,0.06],
-    [246.94,4.0,4.0,0.08],[293.66,4.0,4.0,0.06],[369.99,4.0,4.0,0.05],
-    [196.00,8.0,4.0,0.08],[246.94,8.0,4.0,0.06],[293.66,8.0,4.0,0.06],
-    [220.00,12.0,4.0,0.08],[277.18,12.0,4.0,0.06],[329.63,12.0,4.0,0.05],
-    [293.66,16.0,4.0,0.08],[369.99,16.0,4.0,0.06],[440.00,16.0,4.0,0.06],
-    [246.94,20.0,4.0,0.08],[293.66,20.0,4.0,0.06],[369.99,20.0,4.0,0.05],
-    [196.00,24.0,4.0,0.07],[246.94,24.0,4.0,0.05],
-    [220.00,28.0,4.0,0.08],[277.18,28.0,4.0,0.06],[293.66,28.0,4.0,0.07],
-  ];
+  // No pad layer — removed the chord block that caused the organ/chord sound.
+  // The melody + bass + shimmer alone create a clean, warm piano feel.
+  const PAD = [];
   const BASS = [
-    [73.42,0.0,3.8,0.12],[61.74,4.0,3.8,0.11],[49.00,8.0,3.8,0.11],[55.00,12.0,3.8,0.12],
-    [73.42,16.0,3.8,0.12],[61.74,20.0,3.8,0.11],[49.00,24.0,3.8,0.11],[55.00,28.0,3.8,0.10],
+    [73.42,0.0,3.8,0.07],[61.74,4.0,3.8,0.06],[49.00,8.0,3.8,0.06],[55.00,12.0,3.8,0.07],
+    [73.42,16.0,3.8,0.07],[61.74,20.0,3.8,0.06],[49.00,24.0,3.8,0.06],[55.00,28.0,3.8,0.05],
   ];
   const SHIMMER = [
     [1174.7,0.0,0.3,0.04],[1174.7,2.0,0.3,0.04],[1174.7,4.0,0.3,0.04],[1318.5,6.0,0.3,0.04],
@@ -157,7 +342,7 @@ function MusicPlayer() {
     master.gain.linearRampToValueAtTime(1, ctx.currentTime + 2);
     master.gain.setValueAtTime(1, ctx.currentTime + DURATION - 3);
     master.gain.linearRampToValueAtTime(0, ctx.currentTime + DURATION);
-    MELODY.forEach(([f,s,d,v]) => { schedNote(ctx,master,f,s,d,v,'sine',0); schedNote(ctx,master,f,s,d,v*0.5,'triangle',4); });
+    MELODY.forEach(([f,s,d,v]) => { schedNote(ctx,master,f,s,d,v,'sine',0); schedNote(ctx,master,f,s,d,v*0.2,'triangle',4); });
     PAD.forEach(([f,s,d,v])    => schedNote(ctx,master,f,s,d,v,'triangle',0));
     BASS.forEach(([f,s,d,v])   => schedNote(ctx,master,f,s,d,v,'sine',0));
     SHIMMER.forEach(([f,s,d,v])=> schedNote(ctx,master,f,s,d,v,'sine',0));
@@ -568,7 +753,7 @@ const Media = ({ message, large = false }) => {
   return <MediaCarousel items={items} large={large} />;
 };
 
-const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }) => {
+const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, highlighted }) => {
   const [reacted, setReacted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const font = getFontStyle(message.font_style);
@@ -601,7 +786,13 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact }
   return (
     <article
       className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border-2 flex flex-col relative`}
-      style={{ background: design.background, color: design.ink, borderColor: `${design.accent}40`, transform: `rotate(${rotation})` }}
+      style={{
+        background: design.background, color: design.ink,
+        borderColor: highlighted ? design.accent : `${design.accent}40`,
+        transform: `rotate(${rotation})`,
+        boxShadow: highlighted ? `0 0 0 3px ${design.accent}, 0 6px 28px ${design.accent}44` : undefined,
+        transition: 'box-shadow .35s ease, border-color .35s ease',
+      }}
     >
       {/* Decorative quote mark */}
       <div className="absolute top-1 left-3 text-5xl leading-none pointer-events-none select-none font-serif opacity-15" style={{ color: design.accent }}>"</div>
@@ -810,7 +1001,10 @@ const CardView = () => {
   }
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showAll, setShowAll] = useState(false);
+  const [showAll,      setShowAll]      = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState('');
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchFound,  setSearchFound]  = useState(null); // null | number
   const [openMessage, setOpenMessage] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
@@ -902,7 +1096,13 @@ const CardView = () => {
   );
 
   const messages = card.messages || [];
-  const displayMessages = showAll ? messages : messages.slice(0, 8);
+  const filteredMessages = searchQuery.trim().length > 0
+    ? messages.filter(m =>
+        m.author_name?.toLowerCase().includes(searchQuery.toLowerCase().trim()))
+    : messages;
+  const displayMessages = searchQuery.trim().length > 0
+    ? filteredMessages                              // show ALL matches when searching
+    : showAll ? messages : messages.slice(0, 8);   // normal paginated view
   const totalCollected = card.total_collected || 0;
   const design = getCardDesign(card.design_theme);
   const titleFont = getFontStyle(card.font_style);
@@ -1111,12 +1311,29 @@ const CardView = () => {
         </div>
 
         <section>
-          <div className="flex items-end justify-between gap-4 mb-6">
-            <div>
-              <span className="text-xs font-extrabold tracking-[.2em] uppercase text-primary-600">The message wall</span>
-              <h2 className="text-3xl text-warm-900 mt-2">Words to keep forever</h2>
+          {/* ── Section header + magical search ── */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <div>
+                <span className="text-xs font-extrabold tracking-[.2em] uppercase text-primary-600">The message wall</span>
+                <h2 className="text-3xl text-warm-900 mt-2">Words to keep forever</h2>
+              </div>
+              <span className="text-xs font-bold text-warm-400">{messages.length} notes</span>
             </div>
-            <span className="text-xs font-bold text-warm-400">{messages.length} notes</span>
+
+            {/* ── Magic Search Bar ── */}
+            {messages.length > 2 && (
+              <MagicSearch
+                messages={messages}
+                query={searchQuery}
+                setQuery={setSearchQuery}
+                active={searchActive}
+                setActive={setSearchActive}
+                found={searchFound}
+                setFound={setSearchFound}
+                design={design}
+              />
+            )}
           </div>
 
           {messages.length === 0 ? (
@@ -1126,17 +1343,37 @@ const CardView = () => {
             </div>
           ) : (
             <>
+              {/* Search empty state */}
+              {searchQuery.trim() && filteredMessages.length === 0 && (
+                <div className="text-center py-14 rounded-3xl border-2 border-dashed"
+                  style={{ borderColor: design.accent + '44', background: design.accent + '08' }}>
+                  <div className="text-4xl mb-3">🔍</div>
+                  <p className="font-bold text-warm-700">No message from "{searchQuery}"</p>
+                  <p className="text-sm text-warm-400 mt-1">Try a different name or check the spelling</p>
+                  <button onClick={() => setSearchQuery('')}
+                    className="mt-4 text-xs font-bold px-4 py-2 rounded-full"
+                    style={{ background: design.accent, color: '#fff' }}>
+                    Clear search
+                  </button>
+                </div>
+              )}
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
                 {displayMessages.map((message, index) => (
-                  <MessageCard
-                    key={message.id}
-                    message={message}
-                    index={index}
-                    design={design}
-                    canViewPrivate={canViewPrivate}
-                    onOpen={setOpenMessage}
-                    onReact={id => messagesAPI.react(id, { emoji: 'heart' })}
-                  />
+                  <div key={message.id}
+                    style={{
+                      animation: searchQuery && filteredMessages.includes(message)
+                        ? 'msg-found .5s ease forwards' : 'none',
+                    }}>
+                    <MessageCard
+                      message={message}
+                      index={index}
+                      design={design}
+                      canViewPrivate={canViewPrivate}
+                      onOpen={setOpenMessage}
+                      onReact={id => messagesAPI.react(id, { emoji: 'heart' })}
+                      highlighted={!!searchQuery && filteredMessages.includes(message)}
+                    />
+                  </div>
                 ))}
               </div>
               {messages.length > 8 && !showAll && (

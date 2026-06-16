@@ -111,6 +111,9 @@ import MemberReceivedPage    from './pages/member/MemberReceivedPage';
 import MemberPendingPage     from './pages/member/MemberPendingPage';
 import MemberFinancesPage    from './pages/member/MemberFinancesPage';
 import MemberRemindersPage   from './pages/member/MemberRemindersPage';
+import { usePageTracker } from './hooks/usePageTracker';
+
+const PageTracker = () => { usePageTracker(); return null; };
 
 const Spinner = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -181,6 +184,7 @@ const App = () => (
               duration: 4000,
             }}
           />
+          <PageTracker />
           <Routes>
             {/* ── Public (no auth required) ─────────────────── */}
             <Route path="/"              element={<Home />} />

@@ -3,7 +3,6 @@ import { useSEO } from '../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { adminAPI, adminCompanyAPI, adminSupportAPI, demoAPI, blogAPI } from '../utils/api';
-import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
 
@@ -108,6 +107,9 @@ const Admin = () => {
   const [visitors, setVisitors]         = useState([]);
   const [visitorsLoading, setVisitorsLoading] = useState(false);
   const [visitorStats, setVisitorStats] = useState(null);
+  const [analytics, setAnalytics]       = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsDays, setAnalyticsDays] = useState(30);
 
   const [blogPosts, setBlogPosts]       = useState([]);
   const [blogLoading, setBlogLoading]   = useState(false);
@@ -135,6 +137,7 @@ const Admin = () => {
     if (tab === 'support'   && !tickets.length)       fetchTickets();
     if (tab === 'companies' && !companies.length)     fetchCompanies();
     if (tab === 'demos'     && !demos.length)         fetchDemos();
+    if (tab === 'analytics' && !analytics) fetchAnalytics();
     if (tab === 'visitors'  && !visitors.length && !visitorStats) fetchVisitors();
     if (tab === 'blog'      && !blogPosts.length)     fetchBlog();
     if (tab === 'vendors'   && !vendors.length)      fetchVendors();
@@ -173,6 +176,16 @@ const Admin = () => {
     try { const r = await demoAPI.getAll(); setDemos(Array.isArray(r.data) ? r.data : []); }
     catch (err) { toast.error('Failed to load demos'); setDemos([]); }
     finally { setDemosLoading(false); }
+  };
+
+  const fetchAnalytics = async (days = analyticsDays) => {
+    setAnalyticsLoading(true);
+    try {
+      const r = await fetch(`${base}/analytics/dashboard?days=${days}`, { headers: { Authorization: `Bearer ${tok}` } });
+      const d = await r.json();
+      setAnalytics(d);
+    } catch { toast.error('Failed to load analytics'); }
+    finally { setAnalyticsLoading(false); }
   };
 
   const fetchVisitors = async () => {
@@ -332,6 +345,7 @@ const Admin = () => {
     { id:'companies', label:'Companies' },
     { id:'support',   label:`Support${openTickets.length ? ` · ${openTickets.length}` : ''}` },
     { id:'demos',     label:`Demos${newDemos.length ? ` · ${newDemos.length} new` : ''}` },
+    { id:'analytics', label:'📊 Analytics' },
     { id:'visitors',  label:`Visitors${visitors.length ? ` (${visitors.length})` : ''}` },
     { id:'blog',      label:'Blog' },
     { id:'vendors',   label:'Vendors' },
@@ -339,48 +353,204 @@ const Admin = () => {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 40%)' }}>
-      <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div style={{ display:'flex', minHeight:'100vh', background:'#0F0B1E', color:'#fff', fontFamily:'inherit' }}>
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <div className="w-10 h-10 rounded-2xl bg-primary-600 flex items-center justify-center text-white font-bold text-lg">🛡️</div>
-              <h1 className="font-display text-3xl font-bold text-warm-900">Admin Panel</h1>
-            </div>
-            <p className="text-warm-500 text-sm ml-13">Welcome back, {user?.full_name}</p>
-          </div>
-          <button onClick={fetchCore}
-            className="flex items-center gap-2 btn-secondary text-sm py-2.5 px-4">
-            ↻ Refresh
+      {/* SIDEBAR */}
+      {/* Mobile overlay backdrop */}
+      {mobileSidebarOpen && (
+        <div onClick={() => setMobileSidebarOpen(false)}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:49, backdropFilter:'blur(2px)' }}
+          className="md:hidden" />
+      )}
+
+      <aside style={{
+        width: sidebarOpen ? 256 : 64, flexShrink:0, transition:'width .25s ease',
+        background:'linear-gradient(180deg,#1A1030 0%,#110820 100%)',
+        borderRight:'1px solid rgba(139,92,246,0.15)',
+        display:'flex', flexDirection:'column',
+        position:'sticky', top:0, height:'100vh',
+        overflowX:'hidden', zIndex:50,
+      }}
+      className="hidden md:flex">
+        {/* Logo */}
+        <div style={{ padding:'22px 14px 18px', display:'flex', alignItems:'center', gap:11, borderBottom:'1px solid rgba(139,92,246,0.12)', minHeight:72 }}>
+          <div style={{ width:38, height:38, borderRadius:10, background:'linear-gradient(135deg,#7C3AED,#EC4899)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:19, flexShrink:0 }}>&#x1F6E1;&#xFE0F;</div>
+          {sidebarOpen && <div style={{ overflow:'hidden', whiteSpace:'nowrap' }}>
+            <p style={{ fontWeight:800, fontSize:15, margin:0, background:'linear-gradient(90deg,#A78BFA,#F472B6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>Thankeeu</p>
+            <p style={{ fontSize:10, color:'rgba(255,255,255,0.3)', letterSpacing:'0.12em', textTransform:'uppercase', margin:0 }}>Admin Panel</p>
+          </div>}
+        </div>
+
+        {/* Nav */}
+        <nav style={{ flex:1, padding:'10px 8px', overflowY:'auto', overflowX:'hidden' }}>
+          {[
+            { id:'overview',  icon:'⚡', label:'Overview',       badge:null },
+            { id:'analytics', icon:'📊', label:'Analytics',      badge:null },
+            { id:'users',     icon:'👥', label:'Users',          badge:users.length||null },
+            { id:'cards',     icon:'🃏', label:'Cards',          badge:cards.length||null },
+            { id:'companies', icon:'🏢', label:'Companies',      badge:null },
+            { id:'support',   icon:'🎧', label:'Support',        badge:openTickets.length||null },
+            { id:'demos',     icon:'🚀', label:'Demo Requests',  badge:newDemos.length||null },
+            { id:'visitors',  icon:'👣', label:'Visitors',       badge:visitors.length||null },
+            { id:'blog',      icon:'✍️', label:'Blog',           badge:null },
+            { id:'vendors',   icon:'🏪', label:'Vendors',        badge:null },
+            { id:'pals',      icon:'🤝', label:'Pals',           badge:palApplications.filter(p=>p.status==='pending').length||null },
+          ].map(item => {
+            const active = tab === item.id;
+            const isAlert = (item.id==='support'||item.id==='demos') && item.badge > 0;
+            return (
+              <button key={item.id} onClick={() => setTab(item.id)}
+                title={!sidebarOpen ? item.label : undefined}
+                style={{
+                  width:'100%', display:'flex', alignItems:'center', gap:10,
+                  padding: sidebarOpen ? '9px 12px' : '9px 13px',
+                  borderRadius:10, border:'none', cursor:'pointer', marginBottom:2,
+                  background: active ? 'rgba(124,58,237,0.25)' : 'transparent',
+                  color: active ? '#C4B5FD' : 'rgba(255,255,255,0.45)',
+                  boxShadow: active ? 'inset 0 0 0 1px rgba(139,92,246,0.3)' : 'none',
+                  transition:'all .12s', textAlign:'left', position:'relative',
+                }}>
+                {active && <div style={{ position:'absolute', left:0, top:'18%', bottom:'18%', width:3, borderRadius:'0 3px 3px 0', background:'linear-gradient(180deg,#7C3AED,#EC4899)' }} />}
+                <span style={{ fontSize:16, flexShrink:0 }}>{item.icon}</span>
+                {sidebarOpen && <>
+                  <span style={{ fontSize:13, fontWeight:active?700:500, flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.label}</span>
+                  {item.badge > 0 && <span style={{ background:isAlert?'#EF4444':'rgba(139,92,246,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:20, flexShrink:0 }}>{item.badge}</span>}
+                </>}
+                {!sidebarOpen && item.badge > 0 && <div style={{ position:'absolute', top:5, right:5, width:7, height:7, borderRadius:'50%', background:isAlert?'#EF4444':'#7C3AED' }} />}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Collapse toggle */}
+        <div style={{ padding:'10px 8px', borderTop:'1px solid rgba(139,92,246,0.12)' }}>
+          <button onClick={() => setSidebarOpen(o => !o)}
+            style={{ width:'100%', padding:'8px', borderRadius:10, border:'none', cursor:'pointer', background:'rgba(255,255,255,0.06)', color:'rgba(255,255,255,0.35)', fontSize:13, display:'flex', alignItems:'center', justifyContent:sidebarOpen?'flex-end':'center', gap:6 }}>
+            {sidebarOpen ? <><span>Collapse</span><span>&#8592;</span></> : <span>&#8594;</span>}
           </button>
         </div>
+      </aside>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <Stat icon="👥" label="Total users"    value={(stats.total_users  || 0).toLocaleString()} />
-          <Stat icon="🃏" label="Total cards"    value={(stats.total_cards  || 0).toLocaleString()} sub={`${stats.active_cards || 0} active`} />
-          <Stat icon="✅" label="Cards sent"     value={(stats.sent_cards   || 0).toLocaleString()} />
-          <Stat icon="💰" label="Gift volume"    value={formatNGN(stats.total_gift_volume || 0)} sub={`${formatNGN(stats.platform_revenue || 0)} platform`} />
+      {/* Mobile sidebar drawer */}
+      <aside className="md:hidden" style={{
+        position:'fixed', top:0, left: mobileSidebarOpen ? 0 : '-280px',
+        width:260, height:'100vh', zIndex:50,
+        background:'linear-gradient(180deg,#1A1030 0%,#110820 100%)',
+        borderRight:'1px solid rgba(139,92,246,0.15)',
+        display:'flex', flexDirection:'column',
+        transition:'left .28s cubic-bezier(.4,0,.2,1)',
+        overflowX:'hidden', overflowY:'auto',
+      }}>
+        {/* Logo */}
+        <div style={{ padding:'22px 14px 18px', display:'flex', alignItems:'center', gap:11, borderBottom:'1px solid rgba(139,92,246,0.12)' }}>
+          <div style={{ width:38, height:38, borderRadius:10, background:'linear-gradient(135deg,#7C3AED,#EC4899)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:19, flexShrink:0 }}>🛡️</div>
+          <div>
+            <p style={{ fontWeight:800, fontSize:15, margin:0, background:'linear-gradient(90deg,#A78BFA,#F472B6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>Thankeeu</p>
+            <p style={{ fontSize:10, color:'rgba(255,255,255,0.3)', letterSpacing:'0.12em', textTransform:'uppercase', margin:0 }}>Admin Panel</p>
+          </div>
+          <button onClick={() => setMobileSidebarOpen(false)} style={{ marginLeft:'auto', background:'none', border:'none', color:'rgba(255,255,255,0.4)', fontSize:20, cursor:'pointer', padding:4 }}>✕</button>
+        </div>
+        <nav style={{ flex:1, padding:'10px 8px', overflowY:'auto' }}>
+          {[
+            { id:'overview',icon:'⚡',label:'Overview',badge:null },
+            { id:'analytics',icon:'📊',label:'Analytics',badge:null },
+            { id:'users',icon:'👥',label:'Users',badge:users.length||null },
+            { id:'cards',icon:'🃏',label:'Cards',badge:cards.length||null },
+            { id:'companies',icon:'🏢',label:'Companies',badge:null },
+            { id:'support',icon:'🎧',label:'Support',badge:openTickets.length||null },
+            { id:'demos',icon:'🚀',label:'Demo Requests',badge:newDemos.length||null },
+            { id:'visitors',icon:'👣',label:'Visitors',badge:visitors.length||null },
+            { id:'blog',icon:'✍️',label:'Blog',badge:null },
+            { id:'vendors',icon:'🏪',label:'Vendors',badge:null },
+            { id:'pals',icon:'🤝',label:'Pals',badge:palApplications.filter(p=>p.status==='pending').length||null },
+          ].map(item => {
+            const active = tab === item.id;
+            const isAlert = (item.id==='support'||item.id==='demos') && item.badge > 0;
+            return (
+              <button key={item.id} onClick={() => { setTab(item.id); setMobileSidebarOpen(false); }}
+                style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, border:'none', cursor:'pointer', marginBottom:2, background:active?'rgba(124,58,237,0.25)':'transparent', color:active?'#C4B5FD':'rgba(255,255,255,0.55)', textAlign:'left', position:'relative' }}>
+                {active && <div style={{ position:'absolute', left:0, top:'20%', bottom:'20%', width:3, borderRadius:'0 3px 3px 0', background:'linear-gradient(180deg,#7C3AED,#EC4899)' }} />}
+                <span style={{ fontSize:16 }}>{item.icon}</span>
+                <span style={{ fontSize:13, fontWeight:active?700:500, flex:1 }}>{item.label}</span>
+                {item.badge > 0 && <span style={{ background:isAlert?'#EF4444':'rgba(139,92,246,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:20 }}>{item.badge}</span>}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+
+      {/* MAIN */}
+      <main style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', background:'linear-gradient(160deg,#F8F5FF 0%,#FDFCFF 100%)' }}>
+
+        {/* Mobile topbar with hamburger */}
+        <div className="md:hidden" style={{ padding:'12px 16px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.98)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
+          <button onClick={() => setMobileSidebarOpen(true)} style={{ width:40, height:40, borderRadius:10, border:'none', background:'linear-gradient(135deg,#7C3AED,#EC4899)', color:'white', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>☰</button>
+          <span style={{ fontWeight:800, fontSize:15, color:'#1a1a2e' }}>Admin Panel</span>
+          <button onClick={fetchCore} style={{ width:40, height:40, borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:16, cursor:'pointer' }}>↻</button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 border-b border-purple-100 mb-6 overflow-x-auto pb-0" style={{ scrollbarWidth:'none' }}>
-          {TABS.map(t => (
-            <button key={t.id} onClick={() => setTab(t.id)}
-              className={`px-4 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
-                tab === t.id
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-warm-400 hover:text-warm-700'
-              }`}>
-              {t.label}
-            </button>
+        {/* Desktop topbar */}
+        <div className="hidden md:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
+          <div>
+            <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
+              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals'})[tab] || tab}
+            </h1>
+            <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={fetchCore} style={{ padding:'8px 14px', borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:12, fontWeight:700, cursor:'pointer' }}>&#8635; Refresh</button>
+            <button onClick={() => { localStorage.removeItem('thankeeu_admin_token'); window.location.href='/admin/login'; }}
+              style={{ padding:'8px 14px', borderRadius:10, border:'none', background:'#FEE2E2', color:'#DC2626', fontSize:12, fontWeight:700, cursor:'pointer' }}>Sign out</button>
+          </div>
+        </div>
+
+        {/* Stats strip */}
+        <div style={{ padding:'10px 16px', background:'white', borderBottom:'1px solid #F3EEFF', display:'flex', gap:10, overflowX:'auto' }} className='md:flex-wrap md:px-28'>
+          {[
+            { icon:'👥', val:(stats.total_users||0).toLocaleString(),  label:'Users',       color:'#7C3AED' },
+            { icon:'🃏', val:(stats.total_cards||0).toLocaleString(),  label:'Cards',       color:'#2563EB' },
+            { icon:'✅', val:(stats.sent_cards||0).toLocaleString(),   label:'Sent',        color:'#059669' },
+            { icon:'💰', val:formatNGN(stats.total_gift_volume||0),    label:'Gift volume', color:'#D97706' },
+          ].map(s => (
+            <div key={s.label} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', borderRadius:12, background:'#FAFAFF', border:'1px solid #EDE9FF', flex:'1 1 140px' }}>
+              <span style={{ fontSize:20 }}>{s.icon}</span>
+              <div>
+                <p style={{ margin:0, fontSize:17, fontWeight:800, color:s.color, lineHeight:1 }}>{s.val}</p>
+                <p style={{ margin:0, fontSize:11, color:'#9CA3AF', marginTop:1 }}>{s.label}</p>
+              </div>
+            </div>
           ))}
         </div>
 
-        {/* ─────────────── OVERVIEW ─────────────── */}
+        {/* Content */}
+        <div style={{ flex:1, padding:'16px', overflowY:'auto' }} className="admin-content md:p-7">
+          <style>{`
+            .admin-content .input{background:white;border:1px solid #DDD6FE;border-radius:10px;padding:8px 12px;font-size:14px;outline:none;width:100%;color:#1a1a2e;}
+            .admin-content .input:focus{border-color:#7C3AED;box-shadow:0 0 0 3px rgba(124,58,237,0.1);}
+            .admin-content .btn-secondary{background:white;border:1px solid #DDD6FE;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:600;color:#6D28D9;cursor:pointer;}
+            .admin-content .btn-secondary:hover{background:#F5F3FF;}
+            .admin-content table{width:100%;border-collapse:collapse;}
+            .admin-content th{text-align:left;font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.08em;padding:10px 14px;border-bottom:2px solid #F3EEFF;background:white;}
+            .admin-content td{padding:11px 14px;border-bottom:1px solid #F9F7FF;font-size:13px;color:#374151;vertical-align:middle;}
+            .admin-content tr:hover td{background:#FDFCFF;}
+            .admin-content .card-box{background:white;border-radius:16px;border:1px solid #EDE9FF;overflow:hidden;margin-bottom:20px;}
+            .admin-content h2{font-size:18px;font-weight:800;color:#1a1a2e;margin:0 0 16px;}
+            .admin-content h3{font-size:15px;font-weight:700;color:#1a1a2e;margin:0 0 12px;}
+            .admin-content .bg-white{background:white;}
+            .admin-content .rounded-2xl{border-radius:16px;}
+            .admin-content .border{border:1px solid #EDE9FF;}
+            .admin-content .border-warm-100{border-color:#EDE9FF;}
+            .admin-content .p-5{padding:20px;}
+            .admin-content .space-y-6>*+*{margin-top:24px;}
+            .admin-content .space-y-4>*+*{margin-top:16px;}
+            .admin-content .space-y-3>*+*{margin-top:12px;}
+            .admin-content .space-y-2>*+*{margin-top:8px;}
+            .admin-content .text-warm-900{color:#1a1a2e;}
+            .admin-content .text-warm-700{color:#374151;}
+            .admin-content .text-warm-500{color:#6B7280;}
+            .admin-content .text-warm-400{color:#9CA3AF;}
+          `}</style>
+{/* ─────────────── OVERVIEW ─────────────── */}
         {tab === 'overview' && (
           <div className="grid md:grid-cols-2 gap-6">
             {/* Recent signups */}
@@ -733,6 +903,179 @@ const Admin = () => {
         )}
 
         {/* ─────────────── VISITORS ─────────────── */}
+        {tab === 'analytics' && (
+          <div className="space-y-6">
+            {/* Header + range picker */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-warm-900">Website Analytics</h2>
+                <p className="text-sm text-warm-400">Page views and unique visitors to thankeeu.com</p>
+              </div>
+              <div className="flex gap-2">
+                {[7,14,30,90].map(d => (
+                  <button key={d}
+                    onClick={() => { setAnalyticsDays(d); setAnalytics(null); fetchAnalytics(d); }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors ${analyticsDays===d ? 'bg-primary-600 text-white border-primary-600' : 'bg-white text-warm-600 border-warm-200 hover:border-primary-300'}`}>
+                    {d}d
+                  </button>
+                ))}
+                <button onClick={() => fetchAnalytics(analyticsDays)}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold border bg-white text-warm-600 border-warm-200 hover:border-primary-300 transition-colors">
+                  ↻ Refresh
+                </button>
+              </div>
+            </div>
+
+            {analyticsLoading && <div className="text-center py-16 text-warm-400">Loading analytics…</div>}
+
+            {analytics && !analyticsLoading && (
+              <>
+                {/* Summary cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {[
+                    { label: 'Today views',      val: analytics.summary.todayViews,    color: 'text-blue-600',   bg: 'bg-blue-50' },
+                    { label: 'Today visitors',   val: analytics.summary.todayUnique,   color: 'text-violet-600', bg: 'bg-violet-50' },
+                    { label: 'Yesterday views',  val: analytics.summary.yesterdayViews,color: 'text-warm-600',   bg: 'bg-warm-50' },
+                    { label: `${analyticsDays}d views`,  val: analytics.summary.totalViews,    color: 'text-emerald-600',bg: 'bg-emerald-50' },
+                    { label: `${analyticsDays}d visitors`,val: analytics.summary.totalUnique,   color: 'text-pink-600',   bg: 'bg-pink-50' },
+                  ].map(s => (
+                    <div key={s.label} className={`${s.bg} rounded-2xl p-4`}>
+                      <p className={`text-2xl font-extrabold ${s.color}`}>{s.val?.toLocaleString()}</p>
+                      <p className="text-xs text-warm-500 mt-1">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Daily bar chart — pure CSS/HTML, no library needed */}
+                <div className="bg-white rounded-2xl border border-warm-100 p-5">
+                  <h3 className="text-sm font-bold text-warm-700 mb-4">Daily Unique Visitors</h3>
+                  <div className="overflow-x-auto">
+                    <div style={{ minWidth: Math.max(600, analytics.chartData.length * 26), height: 160 }}
+                      className="flex items-end gap-1 pb-6 relative">
+                      {/* Y-axis guide lines */}
+                      {[25,50,75,100].map(pct => {
+                        const maxVal = Math.max(1, ...analytics.chartData.map(d => d.unique));
+                        const lineVal = Math.round(maxVal * pct / 100);
+                        return (
+                          <div key={pct} className="absolute left-0 right-0 border-t border-warm-100 text-[9px] text-warm-300"
+                            style={{ bottom: `${pct}%` }}>
+                            <span className="pl-1">{lineVal}</span>
+                          </div>
+                        );
+                      })}
+                      {analytics.chartData.map((d, i) => {
+                        const maxVal = Math.max(1, ...analytics.chartData.map(x => x.unique));
+                        const heightPct = (d.unique / maxVal) * 100;
+                        const isToday = d.day === new Date().toISOString().split('T')[0];
+                        return (
+                          <div key={i} className="flex flex-col items-center flex-1 group relative">
+                            {/* Tooltip */}
+                            <div className="absolute bottom-full mb-1 hidden group-hover:flex flex-col items-center z-10">
+                              <div className="bg-warm-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap">
+                                {d.label}: {d.unique} visitors / {d.views} views
+                              </div>
+                            </div>
+                            {/* Bar */}
+                            <div className={`w-full rounded-t-sm transition-all ${isToday ? 'bg-primary-500' : 'bg-primary-200 group-hover:bg-primary-400'}`}
+                              style={{ height: `${Math.max(2, heightPct)}%` }} />
+                            {/* Label — show every nth */}
+                            {(i % Math.ceil(analytics.chartData.length / 10) === 0 || isToday) && (
+                              <span className={`text-[8px] mt-1 rotate-45 origin-left whitespace-nowrap ${isToday ? 'text-primary-600 font-bold' : 'text-warm-400'}`}>
+                                {isToday ? 'Today' : d.label}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Views vs Visitors legend */}
+                  <div className="flex gap-4 mt-2 text-xs text-warm-500">
+                    <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-primary-500 inline-block" /> Unique visitors (blue)</span>
+                    <span className="text-warm-300">Hover bars for full data</span>
+                  </div>
+                </div>
+
+                {/* Top pages + Top countries side by side */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Top pages */}
+                  <div className="bg-white rounded-2xl border border-warm-100 p-5">
+                    <h3 className="text-sm font-bold text-warm-700 mb-4">Top Pages</h3>
+                    <div className="space-y-2">
+                      {analytics.topPages.map((p, i) => {
+                        const maxCount = analytics.topPages[0]?.count || 1;
+                        const pct = Math.round((p.count / maxCount) * 100);
+                        return (
+                          <div key={i} className="flex items-center gap-3">
+                            <span className="text-xs text-warm-400 w-5 text-right">{i+1}.</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-xs font-medium text-warm-700 truncate">{p.path || '/'}</span>
+                                <span className="text-xs font-bold text-warm-900 ml-2 flex-shrink-0">{p.count.toLocaleString()}</span>
+                              </div>
+                              <div className="h-1.5 bg-warm-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary-400 rounded-full" style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {analytics.topPages.length === 0 && (
+                        <p className="text-sm text-warm-400 text-center py-4">No data yet — deploy the tracker first.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Top countries */}
+                  <div className="bg-white rounded-2xl border border-warm-100 p-5">
+                    <h3 className="text-sm font-bold text-warm-700 mb-4">🌍 Top Countries</h3>
+                    <div className="space-y-2">
+                      {(analytics.topCountries || []).map((c, i) => {
+                        const maxCount = analytics.topCountries[0]?.count || 1;
+                        const pct = Math.round((c.count / maxCount) * 100);
+                        const flag = c.country ? String.fromCodePoint(
+                          ...[...c.country.toUpperCase()].slice(0,2).map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65)
+                        ) : '🌐';
+                        return (
+                          <div key={i} className="flex items-center gap-3">
+                            <span className="text-base w-6 flex-shrink-0">{flag}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-xs font-medium text-warm-700 truncate">{c.country || 'Unknown'}</span>
+                                <span className="text-xs font-bold text-warm-900 ml-2 flex-shrink-0">{c.count.toLocaleString()}</span>
+                              </div>
+                              <div className="h-1.5 bg-warm-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {!(analytics.topCountries?.length) && (
+                        <p className="text-sm text-warm-400 text-center py-4">Country data starts appearing after first visitors.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Avg per day */}
+                <p className="text-xs text-warm-400 text-center">
+                  Average {analytics.summary.avgPerDay} views/day over the last {analyticsDays} days.
+                  Tracking started counting from your next deployment.
+                </p>
+              </>
+            )}
+
+            {!analytics && !analyticsLoading && (
+              <div className="text-center py-16 text-warm-400">
+                <p className="text-4xl mb-3">📊</p>
+                <p className="font-medium">Click Refresh to load analytics</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {tab === 'visitors' && (
           <div className="space-y-5">
             <div className="flex items-center justify-between">
@@ -1107,8 +1450,8 @@ const Admin = () => {
             ))}
           </div>
         )}
-
-      </div>
+        </div>
+      </main>
     </div>
   );
 };

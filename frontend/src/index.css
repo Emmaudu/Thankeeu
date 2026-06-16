@@ -539,3 +539,44 @@
   from { opacity: 0; transform: translateY(-6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Mobile responsiveness ──────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Tables scroll horizontally on mobile */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Stack grid layouts on mobile */
+  .grid.md\:grid-cols-2, .grid.md\:grid-cols-3, .grid.md\:grid-cols-4 {
+    grid-template-columns: 1fr !important;
+  }
+  .grid.sm\:grid-cols-2 { grid-template-columns: 1fr !important; }
+  .grid.grid-cols-2 { grid-template-columns: 1fr 1fr; }
+
+  /* Reduce padding on mobile */
+  .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .py-8 { padding-top: 1.25rem !important; padding-bottom: 1.25rem !important; }
+
+  /* Card boxes full width */
+  .rounded-2xl.border { border-radius: 14px; }
+
+  /* Hide desktop-only text overflows */
+  .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
+
+  /* Stat grids — 2 col on mobile */
+  .grid.md\:grid-cols-4 { grid-template-columns: 1fr 1fr !important; }
+  .grid.md\:grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
+
+  /* Button groups stack on mobile */
+  .flex.flex-wrap { gap: 8px; }
+
+  /* Input full width on mobile */
+  input[type="text"], input[type="email"], input[type="password"], select, textarea {
+    font-size: 16px !important; /* prevent iOS zoom */
+  }
+}
+
+/* Smooth sidebar transitions */
+aside { transition: transform .28s cubic-bezier(.4,0,.2,1), width .25s ease; }
+
+/* Prevent body scroll when mobile sidebar open */
+body.sidebar-open { overflow: hidden; }

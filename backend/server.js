@@ -172,6 +172,7 @@ app.use('/api/teams', require('./routes/teams'));
 app.use('/api/subscription', require('./routes/subscription'));
 app.use('/api/support', require('./routes/support'));
 app.use('/api/occasions',    require('./routes/occasions'));
+app.use('/api/analytics',    require('./routes/analytics'));
 app.use('/api/activity-log', require('./routes/activityLog'));
 app.use('/api/vendor',       require('./routes/vendor'));
 app.use('/api/members', require('./routes/companyMembers'));

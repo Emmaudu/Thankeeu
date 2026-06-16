@@ -112,29 +112,39 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="w-64 h-full"><Sidebar mobile /></div>
-          <div className="flex-1 bg-black/50" onClick={() => setSidebarOpen(false)} />
-        </div>
+        <div className="fixed inset-0 z-50 md:hidden" style={{ background:'rgba(0,0,0,0.55)', backdropFilter:'blur(2px)' }}
+          onClick={() => setSidebarOpen(false)} />
       )}
+      <div className="fixed top-0 left-0 h-full z-50 md:hidden" style={{
+        width:260, transform:sidebarOpen?'translateX(0)':'translateX(-100%)',
+        transition:'transform .28s cubic-bezier(.4,0,.2,1)',
+        boxShadow:sidebarOpen?'6px 0 40px rgba(0,0,0,0.45)':'none',
+      }}>
+        <Sidebar mobile />
+      </div>
 
       {/* Main content */}
       <main className="flex-1 min-w-0" style={{ background: '#F5F3FF', borderRadius: '20px 0 0 0', minHeight: '100vh' }}>
 
         {/* Mobile top bar */}
-        <div className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-30"
-          style={{ background: '#F5F3FF', borderBottom: '1px solid #EDE9FF' }}>
-          <button onClick={() => setSidebarOpen(true)} className="p-3 rounded-xl" style={{ background: 'rgba(124,110,255,0.1)', color: '#5B4BDF', fontSize: '1.5rem', lineHeight: 1, width: 48, height: 48, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>☰</button>
-          <Link to="/" style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, color: '#1A1730', fontSize: 15 }}>
-            Thank<span style={{ color: '#7C6EFF' }}>eeu</span>
+        <div className="md:hidden flex items-center justify-between sticky top-0 z-30"
+          style={{ background:'rgba(245,243,255,0.98)', backdropFilter:'blur(8px)', borderBottom:'1px solid #EDE9FF', height:56, padding:'0 12px' }}>
+          <button onClick={() => setSidebarOpen(true)}
+            style={{ width:44,height:44,borderRadius:12,border:'none',background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)',color:'#fff',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',boxShadow:'0 2px 8px rgba(92,75,223,0.3)' }}>
+            ☰
+          </button>
+          <Link to="/" style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, color:'#1A1730', fontSize:15 }}>
+            Thank<span style={{ color:'#7C6EFF' }}>eeu</span>
           </Link>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <NotificationBell
               fetchFn={() => notificationsAPI.getAll()}
               markReadFn={() => notificationsAPI.markAllRead()}
             />
-            <Link to="/create-card" className="text-sm font-semibold px-3 py-1.5 rounded-xl"
-              style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff' }}>+ Card</Link>
+            <Link to="/create-card"
+              style={{ background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontSize:12, fontWeight:700, padding:'6px 12px', borderRadius:10, textDecoration:'none', whiteSpace:'nowrap' }}>
+              + Card
+            </Link>
           </div>
         </div>
 

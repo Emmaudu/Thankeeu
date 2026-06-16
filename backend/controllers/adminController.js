@@ -72,7 +72,7 @@ const deleteUser = async (req, res) => {
     if (user.email) {
       await Promise.allSettled([
         supabase.from('messages').delete().eq('author_email', user.email),
-        supabase.from('card_signatures').delete().eq('signer_email', user.email).catch?.(() => {}),
+        supabase.from('card_signatures').delete().eq('signer_email', user.email),
       ]);
     }
 
@@ -194,7 +194,7 @@ const deleteCompany = async (req, res) => {
     await supabase.from('activity_logs').delete().eq('company_id', companyId);
 
     // company_deleted_members — has CASCADE but be explicit
-    await supabase.from('company_deleted_members').delete().eq('company_id', companyId).catch(() => {});
+    try { await supabase.from('company_deleted_members').delete().eq('company_id', companyId); } catch (_) {}
 
     // occasion_hide_amounts / occasion_scopes live on the companies row itself — auto-deleted ✓
 

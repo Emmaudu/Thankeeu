@@ -1,28 +1,30 @@
 const express  = require('express');
 const router   = express.Router();
-const jwt      = require('jsonwebtoken');
 const { companyAuth } = require('../middleware/companyAuth');
 const {
   getConnections, saveConnection, testConnection, syncHRIS,
   getSyncLogs, deleteConnection,
   getBranches, saveBranch, deleteBranch,
 } = require('../controllers/hrisController');
+const { validateUUIDParam } = require('../utils/paramGuard');
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Standard HRIS routes (all require company auth)
-// ─────────────────────────────────────────────────────────────────────────────
 router.use(companyAuth);
 
-router.get('/',                      getConnections);
-router.post('/connect',              saveConnection);
-router.post('/:connectionId/test',   testConnection);
-router.post('/:connectionId/sync',   syncHRIS);
-router.delete('/:connectionId',      deleteConnection);
-router.get('/logs',                  getSyncLogs);
+// Fixed-segment routes BEFORE /:connectionId wildcard
+router.get('/',          getConnections);
+router.post('/connect',  saveConnection);
+router.get('/logs',      getSyncLogs);
 
-// Branches
-router.get('/branches',              getBranches);
-router.post('/branches',             saveBranch);
-router.delete('/branches/:id',       deleteBranch);
+// Branch routes (fixed prefix 'branches') — must be before /:connectionId DELETE
+// because DELETE /branches/:id would otherwise match DELETE /:connectionId
+// with connectionId='branches'.
+router.get('/branches',            getBranches);
+router.post('/branches',           saveBranch);
+router.delete('/branches/:id',     validateUUIDParam('id'), deleteBranch);
+
+// Wildcard connection routes — after all fixed-segment routes
+router.post('/:connectionId/test', validateUUIDParam('connectionId'), testConnection);
+router.post('/:connectionId/sync', validateUUIDParam('connectionId'), syncHRIS);
+router.delete('/:connectionId',    validateUUIDParam('connectionId'), deleteConnection);
 
 module.exports = router;

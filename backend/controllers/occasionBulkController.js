@@ -302,7 +302,7 @@ const bulkSyncEmployees = async (req, res) => {
     }).catch(() => {});
   } catch (err) {
     console.error('bulkSyncEmployees error:', err);
-    res.status(500).json({ error: err.message || 'Bulk sync failed' });
+    res.status(500).json({ error: 'Bulk operation failed' });
   }
 };
 
@@ -373,7 +373,7 @@ const updateOccasionMember = async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (err) {
-    res.status(500).json({ error: err.message || 'Update failed' });
+    res.status(500).json({ error: 'Bulk operation failed' });
   }
 };
 

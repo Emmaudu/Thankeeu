@@ -1,3 +1,4 @@
+const { validateSlugParam } = require('../utils/paramGuard');
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
@@ -8,7 +9,7 @@ const {
 } = require('../controllers/dashboardController');
 
 // Public: track card opened (no auth required - called by anyone viewing card)
-router.post('/card-opened/:slug', trackCardOpened);
+router.post('/card-opened/:slug', validateSlugParam('slug'), trackCardOpened);
 
 router.use(auth);
 router.get('/', getDashboard);

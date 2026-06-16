@@ -9,38 +9,34 @@ const {
   listPalApplications, approvePalGroup, rejectPalGroup,
 } = require('../controllers/adminController');
 const { adminListPalTickets, adminReplyPalTicket } = require('../controllers/palSupportController');
+const { validateUUIDParam } = require('../utils/paramGuard');
 
 router.use(adminAuth);
 
-// Stats
-router.get('/stats', getStats);
+router.get('/stats',    getStats);
+router.get('/visitors', getVisitors);
 
 // Users
-router.get('/users',                     getAllUsers);
-router.put('/users/:userId/role',        updateUserRole);
-router.delete('/users/:userId',          deleteUser);
+router.get('/users',                                    getAllUsers);
+router.put('/users/:userId/role',   validateUUIDParam('userId'),    updateUserRole);
+router.delete('/users/:userId',     validateUUIDParam('userId'),    deleteUser);
 
 // Cards
-router.get('/cards',                     getAllCards);
-router.delete('/cards/:cardId',          deleteCard);
+router.get('/cards',                                    getAllCards);
+router.delete('/cards/:cardId',     validateUUIDParam('cardId'),    deleteCard);
 
-// Companies
-router.get('/companies',                 getAllCompanies);
-router.delete('/companies/:companyId',   deleteCompany);
-router.get('/companies/:companyId/members', getCompanyTeamMembers);
+// Companies — fixed routes before /:companyId wildcard
+router.get('/companies',                                getAllCompanies);
+router.get('/companies/:companyId/members', validateUUIDParam('companyId'), getCompanyTeamMembers);
+router.post('/companies/:companyId/set-multiplier', validateUUIDParam('companyId'), setCompanyMultiplier);
+router.post('/companies/:companyId/grant-pilot',    validateUUIDParam('companyId'), grantPilot);
+router.delete('/companies/:companyId',  validateUUIDParam('companyId'), deleteCompany);
 
-// Visitors (guests who signed cards without an account)
-router.get('/visitors',                  getVisitors);
-
-// Company pricing & pilot management
-router.post('/companies/:companyId/set-multiplier', setCompanyMultiplier);
-router.post('/companies/:companyId/grant-pilot',    grantPilot);
-
-// Thankeeu Pals — group account applications
-router.get('/pals',              listPalApplications);
-router.post('/pals/:id/approve', approvePalGroup);
-router.post('/pals/:id/reject',  rejectPalGroup);
+// Pals — fixed routes (tickets) before /:id wildcard
+router.get('/pals',                    listPalApplications);
 router.get('/pals/tickets',            adminListPalTickets);
-router.put('/pals/tickets/:id/reply',  adminReplyPalTicket);
+router.put('/pals/tickets/:id/reply',  validateUUIDParam('id'), adminReplyPalTicket);
+router.post('/pals/:id/approve',       validateUUIDParam('id'), approvePalGroup);
+router.post('/pals/:id/reject',        validateUUIDParam('id'), rejectPalGroup);
 
 module.exports = router;

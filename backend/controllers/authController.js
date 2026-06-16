@@ -3,6 +3,10 @@ const argon2  = require('argon2');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
+const {
+  validateEmail, validatePassword, sanitizeName, sanitizeUsername,
+  sanitizeDate, isSanitizeError,
+} = require('../utils/sanitize');
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();
@@ -55,19 +59,15 @@ const generateToken = (userId) =>
 // POST /auth/send-verification-code — step 1: validate details, send 6-digit code
 const sendVerificationCode = async (req, res) => {
   try {
-    const { full_name, email, password, username, date_of_birth } = req.body;
+    const raw = req.body;
 
-    if (!full_name || !email || !password)
-      return res.status(400).json({ error: 'Name, email and password are required' });
-    if (!username || username.trim().length < 3)
-      return res.status(400).json({ error: 'Username must be at least 3 characters' });
-    if (!/^[a-zA-Z0-9_]+$/.test(username.trim()))
-      return res.status(400).json({ error: 'Username can only contain letters, numbers and underscores' });
-    if (password.length < 8)
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
-
-    const cleanEmail    = email.toLowerCase().trim();
-    const cleanUsername = username.trim().toLowerCase();
+    // ── Sanitize & validate all fields before any DB access ──────────────
+    const cleanEmail    = validateEmail(raw.email);
+    const cleanPassword = validatePassword(raw.password);
+    const cleanName     = sanitizeName(raw.full_name, 'Full name');
+    const cleanUsername = sanitizeUsername(raw.username);
+    const cleanDOB      = sanitizeDate(raw.date_of_birth, 'Date of birth');
+    // ─────────────────────────────────────────────────────────────────────
 
     // Check availability before sending code
     const { data: existing } = await supabase.from('users').select('id').eq('email', cleanEmail).maybeSingle();
@@ -82,14 +82,14 @@ const sendVerificationCode = async (req, res) => {
 
     // Store pending signup in DB (upsert on email)
     await supabase.from('pending_signups').upsert({
-      email:      cleanEmail,
-      full_name,
-      username:   cleanUsername,
-      password:   await hashPassword(password), // hash immediately so plain password never stays in DB
-      date_of_birth: date_of_birth || null,
+      email:        cleanEmail,
+      full_name:    cleanName,
+      username:     cleanUsername,
+      password:     await hashPassword(cleanPassword), // hash immediately so plain password never stays in DB
+      date_of_birth: cleanDOB,
       code,
-      expires_at: expires,
-      created_at: new Date(),
+      expires_at:   expires,
+      created_at:   new Date(),
     }, { onConflict: 'email' });
 
     // Send code via email
@@ -111,18 +111,18 @@ const sendVerificationCode = async (req, res) => {
 
     res.json({ ok: true, message: `Verification code sent to ${cleanEmail}` });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('sendVerificationCode error:', err);
-    res.status(500).json({ error: err.message || 'Failed to send verification code' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
 // POST /auth/verify-code — step 2: verify code and create account
 const verifyCodeAndSignup = async (req, res) => {
   try {
-    const { email, code } = req.body;
-    if (!email || !code) return res.status(400).json({ error: 'Email and code are required' });
-
-    const cleanEmail = email.toLowerCase().trim();
+    const cleanEmail = validateEmail(req.body.email, 'Email');
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Verification code is required' });
 
     const { data: pending } = await supabase.from('pending_signups')
       .select('*').eq('email', cleanEmail).maybeSingle();
@@ -189,26 +189,23 @@ const verifyCodeAndSignup = async (req, res) => {
     setCookie(res, 'tk_user', token);
     res.json({token, user });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('verifyCodeAndSignup error:', err);
-    res.status(500).json({ error: err.message || 'Failed to create account' });
+    res.status(500).json({ error: 'Server error' });
   }
 };
 
 const signup = async (req, res) => {
   try {
-    const { full_name, email, password, username, date_of_birth } = req.body;
+    const raw = req.body;
 
-    if (!full_name || !email || !password)
-      return res.status(400).json({ error: 'Name, email and password are required' });
-    if (!username || username.trim().length < 3)
-      return res.status(400).json({ error: 'Username must be at least 3 characters' });
-    if (!/^[a-zA-Z0-9_]+$/.test(username.trim()))
-      return res.status(400).json({ error: 'Username can only contain letters, numbers and underscores' });
-    if (password.length < 8)
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
-
-    const cleanUsername = username.trim().toLowerCase();
-    const cleanEmail = email.toLowerCase().trim();
+    // ── Sanitize & validate ───────────────────────────────────────────────
+    const cleanEmail    = validateEmail(raw.email);
+    const cleanPassword = validatePassword(raw.password);
+    const cleanName     = sanitizeName(raw.full_name, 'Full name');
+    const cleanUsername = sanitizeUsername(raw.username);
+    const cleanDOB      = sanitizeDate(raw.date_of_birth, 'Date of birth');
+    // ─────────────────────────────────────────────────────────────────────
 
     const { data: existing } = await supabase
       .from('users').select('id').eq('email', cleanEmail).maybeSingle();
@@ -218,14 +215,15 @@ const signup = async (req, res) => {
       .from('users').select('id').eq('username', cleanUsername).maybeSingle();
     if (existingUsername) return res.status(400).json({ error: 'Username already taken' });
 
-    const password_hash = await hashPassword(password);
+    const password_hash = await hashPassword(cleanPassword);
     const verification_token = crypto.randomBytes(32).toString('hex');
 
     const { data: user, error } = await supabase
       .from('users')
       .insert({
-        full_name, email: cleanEmail, username: cleanUsername, password_hash, verification_token,
-        ...(date_of_birth ? { date_of_birth } : {}),
+        full_name: cleanName, email: cleanEmail, username: cleanUsername,
+        password_hash, verification_token,
+        ...(cleanDOB ? { date_of_birth: cleanDOB } : {}),
         terms_accepted_at: new Date(),
       })
       .select('id, email, full_name, username, role, avatar_url, is_verified')
@@ -248,9 +246,9 @@ const signup = async (req, res) => {
     // Send welcome + verification email
     const appUrl = FRONTEND_URL;
     const verifyLink = `${appUrl}/verify-email?token=${verification_token}`;
-    sendEmail({ to: cleanEmail, template: 'emailVerification', data: { name: full_name, verifyLink } })
+    sendEmail({ to: cleanEmail, template: 'emailVerification', data: { name: cleanName, verifyLink } })
       .catch(e => console.error('Verification email failed:', e));
-    sendEmail({ to: cleanEmail, template: 'welcome', data: { name: full_name } })
+    sendEmail({ to: cleanEmail, template: 'welcome', data: { name: cleanName } })
       .catch(e => console.error('Welcome email failed:', e));
 
     const token = generateToken(user.id);
@@ -277,6 +275,7 @@ const signup = async (req, res) => {
 
     res.status(201).json({ token, user });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Server error during signup' });
   }
@@ -284,16 +283,15 @@ const signup = async (req, res) => {
 
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: 'Email and password are required' });
+    const cleanEmail    = validateEmail(req.body.email);
+    const cleanPassword = validatePassword(req.body.password);
 
     const { data: user } = await supabase
-      .from('users').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
+      .from('users').select('*').eq('email', cleanEmail).maybeSingle();
     if (!user) return res.status(401).json({ error: 'Invalid email or password' });
 
-    const valid = await verifyPassword(password, user.password_hash);
-    if (valid) await rehashIfLegacy(user.id, password, user.password_hash, 'users');
+    const valid = await verifyPassword(cleanPassword, user.password_hash);
+    if (valid) await rehashIfLegacy(user.id, cleanPassword, user.password_hash, 'users');
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
     // Note: email verification is encouraged at signup (verification link sent),
@@ -321,6 +319,7 @@ const login = async (req, res) => {
 
     res.json({token, user: safeUser });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('Login error:', err);
     res.status(500).json({ error: 'Server error during login' });
   }
@@ -336,48 +335,73 @@ const getMe = async (req, res) => {
     if (error || !user) return res.status(404).json({ error: 'User not found' });
     res.json(user);
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to fetch user' });
   }
 };
 
 const updateProfile = async (req, res) => {
   try {
-    const { full_name, avatar_url, username, bio } = req.body;
+    const raw = req.body;
+    const { sanitizeName, sanitizeUsername, sanitizeText, isSanitizeError } = require('../utils/sanitize');
 
-    if (username) {
-      const clean = username.trim().toLowerCase();
-      if (!/^[a-zA-Z0-9_]+$/.test(clean))
-        return res.status(400).json({ error: 'Username can only contain letters, numbers and underscores' });
-      const { data: taken } = await supabase.from('users').select('id').eq('username', clean).neq('id', req.user.id).maybeSingle();
+    const cleanName = raw.full_name !== undefined
+      ? sanitizeName(raw.full_name, 'Full name', { required: false, maxLen: 100 }) : undefined;
+    const cleanBio  = raw.bio !== undefined
+      ? sanitizeText(raw.bio, 'Bio', { maxLen: 300 }) : undefined;
+
+    let cleanUsername;
+    if (raw.username) {
+      cleanUsername = sanitizeUsername(raw.username, 'Username');
+      const { data: taken } = await supabase.from('users').select('id').eq('username', cleanUsername).neq('id', req.user.id).maybeSingle();
       if (taken) return res.status(400).json({ error: 'Username already taken' });
     }
 
+    const updates = { updated_at: new Date() };
+    if (cleanName     !== undefined) updates.full_name = cleanName;
+    if (cleanBio      !== undefined) updates.bio       = cleanBio;
+    if (cleanUsername !== undefined) updates.username  = cleanUsername;
+    if (raw.avatar_url !== undefined) updates.avatar_url = raw.avatar_url; // URL from Cloudinary — trusted
+
     const { data: user, error } = await supabase
       .from('users')
-      .update({ full_name, avatar_url, bio, ...(username && { username: username.trim().toLowerCase() }), updated_at: new Date() })
+      .update(updates)
       .eq('id', req.user.id)
       .select('id, email, full_name, username, role, avatar_url, bio')
       .maybeSingle();
     if (error) throw error;
     res.json(user);
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     res.status(500).json({ error: 'Failed to update profile' });
   }
 };
 
 const searchUsers = async (req, res) => {
   try {
-    const { q } = req.query;
+    const { safeQueryString } = require('../utils/paramGuard');
+    const q = safeQueryString(req.query.q, 'q', { maxLen: 50 });
     if (!q || q.trim().length < 2)
       return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+    // Strip any non-alphanumeric except spaces/hyphens before passing to ILIKE
+    const safeQ = q.trim().replace(/[^a-zA-Z0-9\s\-_'.]/g, '').trim();
+    if (!safeQ) return res.json([]);
     const { data } = await supabase
       .from('users')
       .select('id, username, full_name, avatar_url')
-      .ilike('username', `%${q.trim()}%`)
+      .ilike('username', `%${safeQ}%`)
       .neq('id', req.user.id)
       .limit(8);
     res.json(data || []);
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Search failed' });
   }
 };
@@ -387,15 +411,21 @@ const changePassword = async (req, res) => {
     const { current_password, new_password } = req.body;
     if (!current_password || !new_password)
       return res.status(400).json({ error: 'Both passwords are required' });
-    if (new_password.length < 8)
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    // Use validatePassword which also checks the 72-byte bcrypt limit
+    const { validatePassword } = require('../utils/sanitize');
+    const cleanNew = validatePassword(new_password, 'New password');
     const { data: user } = await supabase.from('users').select('password_hash').eq('id', req.user.id).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'Account not found' });
     const valid = await verifyPassword(current_password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Current password is incorrect' });
-    const password_hash = await hashPassword(new_password);
+    const password_hash = await hashPassword(cleanNew);
     await supabase.from('users').update({ password_hash }).eq('id', req.user.id);
     res.json({ message: 'Password changed' });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to change password' });
   }
 };
@@ -405,14 +435,23 @@ const uploadAvatar = async (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     res.json({ url: req.file.path }); // Cloudinary returns path as URL
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Upload failed' });
   }
 };
 
 const forgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
-    const { data: user } = await supabase.from('users').select('id, full_name').eq('email', (email || '').toLowerCase().trim()).maybeSingle();
+    // Validate email format before hitting the DB — prevents garbage strings
+    // from being passed to .eq() and leaking timing info via DB errors
+    let cleanEmail;
+    try { cleanEmail = validateEmail(req.body.email); }
+    catch { return res.json({ message: 'If email exists, reset link sent' }); } // silent fail — don't confirm email existence
+
+    const { data: user } = await supabase.from('users').select('id, full_name').eq('email', cleanEmail).maybeSingle();
     if (!user) return res.json({ message: 'If email exists, reset link sent' });
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -422,32 +461,48 @@ const forgotPassword = async (req, res) => {
       reset_token: token, reset_token_expires: expires
     }).eq('id', user.id);
 
-    await sendEmail({ to: email, template: 'passwordReset', data: { token, name: user.full_name } });
+    await sendEmail({ to: cleanEmail, template: 'passwordReset', data: { token, name: user.full_name } });
     res.json({ message: 'If email exists, reset link sent' });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Server error' });
   }
 };
 
 const resetPassword = async (req, res) => {
   try {
-    const { token, password } = req.body;
+    const { token } = req.body;
+    // Validate new password before hashing — prevents DoS via huge password strings
+    let cleanPassword;
+    try { cleanPassword = validatePassword(req.body.password); }
+    catch (e) { return res.status(400).json({ error: e.error || 'Invalid password' }); }
+
+    if (!token || typeof token !== 'string' || token.length > 200)
+      return res.status(400).json({ error: 'Invalid reset token' });
+
     const { data: user } = await supabase
       .from('users')
       .select('id, reset_token_expires')
-      .eq('reset_token', token)
+      .eq('reset_token', token.trim())
       .maybeSingle();
 
     if (!user || new Date(user.reset_token_expires) < new Date())
       return res.status(400).json({ error: 'Invalid or expired reset token' });
 
-    const password_hash = await hashPassword(password);
+    const password_hash = await hashPassword(cleanPassword);
     await supabase.from('users').update({
       password_hash, reset_token: null, reset_token_expires: null
     }).eq('id', user.id);
 
     res.json({ message: 'Password reset successful' });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -490,6 +545,10 @@ const seedAdmin = async (req, res) => {
     res.status(201).json({ message: 'Admin created', email: adminEmail, seeded: true });
   } catch (err) {
     console.error(err);
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to seed admin' });
   }
 };
@@ -518,6 +577,10 @@ const verifyEmail = async (req, res) => {
     res.json({ message: 'Email verified successfully!', user: { id: user.id, email: user.email } });
   } catch (err) {
     console.error('Verify email error:', err);
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Server error during verification' });
   }
 };
@@ -545,6 +608,10 @@ const resendVerification = async (req, res) => {
     res.json({ message: 'Verification email sent! Check your inbox.' });
   } catch (err) {
     console.error('Resend verification error:', err);
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to resend verification email' });
   }
 };

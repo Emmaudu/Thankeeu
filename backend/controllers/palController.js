@@ -24,7 +24,7 @@ const updateSettings = async (req, res) => {
       .select('id, group_name, group_username, email, logo_url, description, group_size, status, is_verified').maybeSingle();
     if (error) throw error;
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -39,7 +39,7 @@ const getMembers = async (req, res) => {
       .order('created_at', { ascending: true });
     if (error) throw error;
     res.json((data || []).map(m => ({ ...m, profile_complete: !!(m.bio && m.bank_details?.account_number && m.profile_pic_url) })));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 const getMemberProfile = async (req, res) => {
@@ -50,7 +50,7 @@ const getMemberProfile = async (req, res) => {
     delete data.password_hash;
     delete data.invite_token;
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 const updateMemberProfile = async (req, res) => {
@@ -70,7 +70,7 @@ const updateMemberProfile = async (req, res) => {
       .select('id, name, email, department, role, bio, profile_pic_url, bank_details').maybeSingle();
     if (error) throw error;
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 // Update a member's event date/note — triggers auto-card creation via cron
@@ -102,7 +102,7 @@ const updateMemberEvent = async (req, res) => {
       .eq('id', id).eq('pal_group_id', req.palGroup.id).select().maybeSingle();
     if (error) throw error;
     res.json({ message: 'Event updated', member: data });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 // ── Invite members — manual single add ──────────────────────────────────────
@@ -114,7 +114,7 @@ const inviteMember = async (req, res) => {
     const result = await inviteOne(req.palGroup, { name, email, department, role, birth_date, resignation_date, graduation_date, milestone_date, promotion_date });
     if (result.error) return res.status(400).json({ error: result.error });
     res.json({ message: `Invited ${name}!`, member: result.member });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 // ── Invite members — CSV bulk upload ─────────────────────────────────────────
@@ -150,7 +150,7 @@ const inviteMembersCSV = async (req, res) => {
       message: `${results.invited.length} invited, ${results.errors.length} errors, ${results.skipped.length} skipped (missing name/email)`,
       ...results,
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 function parseDate(val) {
@@ -220,7 +220,7 @@ const getMyCards = async (req, res) => {
       .order('created_at', { ascending: false });
     if (error) throw error;
     res.json((data || []).map(c => ({ ...c, recipient_name: c.recipient_name || c.pal_members?.name })));
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -257,7 +257,7 @@ const getDashboardAnalytics = async (req, res) => {
       thankeeu_commission: Math.round(totalRaised * (commissionPct / 100)),
       commission_pct: commissionPct,
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Operation failed' }); }
 };
 
 module.exports = {

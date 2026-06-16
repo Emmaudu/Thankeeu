@@ -1,3 +1,4 @@
+const { validateUUIDParam } = require('../utils/paramGuard');
 const express = require('express');
 const router  = express.Router();
 const { companyAuth } = require('../middleware/companyAuth');
@@ -94,7 +95,7 @@ router.use(companyAuth);
 router.get('/',                getCoreTeam);
 router.post('/invite',         requireFullCoreTeamPermission, inviteCoreMember);
 router.post('/bulk-invite',    requireFullCoreTeamPermission, bulkInviteCoreTeam);
-router.delete('/:id',          requireFullCoreTeamPermission, removeCoreMember);
+router.delete('/:id', validateUUIDParam('id'),          requireFullCoreTeamPermission, removeCoreMember);
 
 
 module.exports = router;

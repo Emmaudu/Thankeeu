@@ -23,6 +23,7 @@
 
 const axios    = require('axios');
 const supabase = require('../utils/supabase');
+const { safeTxRef } = require('../utils/paramGuard');
 
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
@@ -67,7 +68,7 @@ const getBalance = async (req, res) => {
       last_updated: data?.updated_at || null,
     });
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Credit operation failed' });
   }
 };
 
@@ -83,7 +84,7 @@ const getHistory = async (req, res) => {
 
     return res.json(data || []);
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Credit operation failed' });
   }
 };
 
@@ -154,8 +155,8 @@ const purchaseCredits = async (req, res) => {
 // Called by CardFeeVerify.jsx after FLW redirects with ?tx_ref=TK-CR-...
 const verifyPurchase = async (req, res) => {
   try {
-    const txRef = req.params.txRef || req.query.tx_ref;
-    if (!txRef) return res.status(400).json({ error: 'tx_ref is required' });
+    const txRef = safeTxRef(req.params.txRef || req.query.tx_ref);
+    if (!txRef) return res.status(400).json({ error: 'Invalid or missing tx_ref' });
 
     // Verify with FLW
     const r = await axios.get(
@@ -336,7 +337,7 @@ const spendCredit = async (req, res) => {
 
   } catch (err) {
     console.error('spendCredit error:', err.message);
-    return res.status(500).json({ error: err.message || 'Failed to spend credit' });
+    return res.status(500).json({ error: 'Credit operation failed' });
   }
 };
 

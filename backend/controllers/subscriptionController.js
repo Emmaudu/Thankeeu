@@ -166,7 +166,39 @@ const verifySubscription = async (req, res) => {
       return res.status(400).json({ error: `Payment not completed (status: ${txn.status})` });
     }
 
-    const resolvedPlan = txn.meta?.plan || req.query.plan || 'monthly';
+    // ── CRITICAL: Verify the amount actually paid matches what was expected ──
+    // Without this check, an attacker can pay ₦1, get FLW to mark it successful,
+    // then call verify to activate a full subscription.
+    // We re-compute the expected amount from the DB (employee count × rate per head).
+    try {
+      const employeeCount = await countUniqueEmployees(req.company.id);
+      const multiplier    = await getCompanyMultiplier(req.company.id);
+      const ratePerHead   = multiplier !== null ? multiplier : 2000;
+      if (ratePerHead > 0) {
+        const rawPlanForAmount = (txn.meta?.plan || req.query.plan || 'monthly').toLowerCase();
+        const expectedNaira = rawPlanForAmount === 'yearly'
+          ? employeeCount * ratePerHead * 10
+          : employeeCount * ratePerHead;
+        // Allow ±5% tolerance for currency conversion rounding, but require at minimum
+        // 90% of the expected naira amount (comparing to NGN equivalent of txn.amount)
+        const paidNGN = txn.currency === 'NGN' ? txn.amount : txn.amount_settled;
+        const tolerance = 0.90;
+        if (expectedNaira > 0 && paidNGN && paidNGN < expectedNaira * tolerance) {
+          console.error(`[verifySubscription] UNDERPAYMENT: expected ≥₦${Math.round(expectedNaira * tolerance)}, got ₦${paidNGN}. Company: ${req.company.id}, ref: ${reference}`);
+          return res.status(400).json({ error: 'Payment amount does not match the subscription price. Please contact support.' });
+        }
+      }
+    } catch (amountCheckErr) {
+      // If amount check itself fails, log and continue — don't block genuine payments
+      // but alert so this can be investigated
+      console.error('[verifySubscription] amount check error:', amountCheckErr.message);
+    }
+
+    // Allowlist the plan value — don't trust req.query.plan directly since
+    // an attacker could pass arbitrary strings that get stored and displayed
+    const VALID_PLANS = new Set(['monthly', 'yearly', 'quarterly']);
+    const rawPlan = txn.meta?.plan || req.query.plan || 'monthly';
+    const resolvedPlan = VALID_PLANS.has(String(rawPlan).toLowerCase()) ? String(rawPlan).toLowerCase() : 'monthly';
     const now = new Date();
     const expires_at = resolvedPlan === 'yearly'
       ? new Date(new Date(now).setFullYear(now.getFullYear() + 1))
@@ -187,7 +219,7 @@ const verifySubscription = async (req, res) => {
 
     res.json({ success: true, plan: resolvedPlan, expires_at });
   } catch (err) {
-    console.error('verifySubscription error:', err.response?.data || err.message, 'ref:', req.params?.reference);
+    console.error('verifySubscription error: ref:', req.params?.reference, '| code:', err?.code || err?.response?.status);
     res.status(500).json({ error: 'Failed to verify subscription. Please contact support if payment was charged.' });
   }
 };

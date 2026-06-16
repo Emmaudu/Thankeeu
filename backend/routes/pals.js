@@ -1,3 +1,4 @@
+const { validateUUIDParam } = require('../utils/paramGuard');
 const express = require('express');
 const router  = express.Router();
 const multer  = require('multer');
@@ -30,10 +31,10 @@ router.post('/settings/logo',  palAuth, upload.single('file'), (req, res) => {
 
 // Members
 router.get('/members',                  palAuth, palCtrl.getMembers);
-router.get('/members/:id',              palAuth, palCtrl.getMemberProfile);
-router.put('/members/:id',              palAuth, palCtrl.updateMemberProfile);
-router.put('/members/:id/event',        palAuth, palCtrl.updateMemberEvent);
-router.post('/members/:id/avatar',      palAuth, upload.single('file'), (req, res) => {
+router.get('/members/:id', validateUUIDParam('id'),              palAuth, palCtrl.getMemberProfile);
+router.put('/members/:id', validateUUIDParam('id'),              palAuth, palCtrl.updateMemberProfile);
+router.put('/members/:id/event', validateUUIDParam('id'),        palAuth, palCtrl.updateMemberEvent);
+router.post('/members/:id/avatar', validateUUIDParam('id'),      palAuth, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
   res.json({ url: req.file.path });
 });

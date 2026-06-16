@@ -14,9 +14,13 @@ const parseBoolean = value => value === true || value === 'true' || value === '1
 const addMessage = async (req, res) => {
   try {
     const { card_slug } = req.params;
-    const { author_name, author_email, content, is_private, font_style,
+    const { author_email, content, is_private, font_style,
              gift_type, product_vendor_id, product_vendor_name,
-             product_id, product_name, product_price } = req.body;
+             product_id, product_name } = req.body;
+    const author_name    = req.body.author_name;
+    const product_price  = req.body.product_price != null ? parseFloat(req.body.product_price) : null;
+    if (product_price !== null && (!isFinite(product_price) || product_price < 0))
+      return res.status(400).json({ error: 'Invalid product price' });
 
     const { data: card } = await supabase
       .from('cards').select('id, status, allow_private_messages, pal_group_id, pal_member_id')
@@ -77,11 +81,22 @@ const addMessage = async (req, res) => {
         })))
       : null;
 
+    // Sanitize message fields before storing — messages appear on card view and in emails
+    const { stripHtml } = require('../utils/sanitize');
+    const MAX_CONTENT = 1500;
+    const cleanAuthorName = author_name
+      ? String(author_name).replace(/<[^>]+>/g,'').replace(/on\w+\s*=/gi,'').trim().slice(0, 80)
+      : null;
+    if (!cleanAuthorName) return res.status(400).json({ error: 'Your name is required' });
+    const cleanContent = content ? String(content).slice(0, MAX_CONTENT) : null;
+    if (!cleanContent || !cleanContent.trim())
+      return res.status(400).json({ error: 'Message content is required' });
+
     const msgData = {
       card_id: card.id,
-      author_name,
-      author_email,
-      content,
+      author_name: cleanAuthorName,
+      author_email: author_email ? author_email.toLowerCase().trim().slice(0, 254) : null,
+      content: cleanContent,
       is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
       media_url,
       media_type,
@@ -194,7 +209,11 @@ const addMessage = async (req, res) => {
 const reactToMessage = async (req, res) => {
   try {
     const { message_id } = req.params;
-    const { emoji = 'heart', reactor_name } = req.body;
+    const rawEmoji = req.body.emoji;
+    const reactor_name = req.body.reactor_name;
+    // Allowlist emoji values — prevents prototype pollution via emoji='__proto__' etc.
+    const ALLOWED_EMOJIS = new Set(['heart','fire','laugh','wow','sad','clap','star','gift','pray','100']);
+    const emoji = ALLOWED_EMOJIS.has(rawEmoji) ? rawEmoji : 'heart';
 
     const { data: message } = await supabase
       .from('messages').select('reactions').eq('id', message_id).maybeSingle();
@@ -218,16 +237,33 @@ const reactToMessage = async (req, res) => {
 const deleteMessage = async (req, res) => {
   try {
     const { message_id } = req.params;
-    const { data: msg } = await supabase.from('messages').select('card_id').eq('id', message_id).maybeSingle();
+    const { data: msg } = await supabase
+      .from('messages')
+      .select('card_id, author_email')
+      .eq('id', message_id).maybeSingle();
     if (!msg) return res.status(404).json({ error: 'Message not found' });
 
-    const { data: card } = await supabase.from('cards').select('creator_id').eq('id', msg.card_id).maybeSingle();
-    if (card?.creator_id !== req.user.id && req.user.role !== 'admin')
-      return res.status(403).json({ error: 'Not authorized' });
+    const { data: card } = await supabase
+      .from('cards')
+      .select('creator_id, recipient_email, company_id')
+      .eq('id', msg.card_id).maybeSingle();
+
+    const isAdmin      = req.user.role === 'admin';
+    const isCardOwner  = card?.creator_id === req.user.id;
+    // Recipient can delete messages on their own card too
+    const isRecipient  = card?.recipient_email &&
+      card.recipient_email.toLowerCase() === req.user.email?.toLowerCase();
+    // Message author can delete their own message
+    const isAuthor = msg.author_email &&
+      msg.author_email.toLowerCase() === req.user.email?.toLowerCase();
+
+    if (!isAdmin && !isCardOwner && !isRecipient && !isAuthor)
+      return res.status(403).json({ error: 'Not authorized to delete this message' });
 
     await supabase.from('messages').delete().eq('id', message_id);
     res.json({ message: 'Deleted' });
   } catch (err) {
+    console.error('[deleteMessage]', err.message);
     res.status(500).json({ error: 'Failed to delete message' });
   }
 };
@@ -238,13 +274,20 @@ const sendReply = async (req, res) => {
     const { content } = req.body;
 
     if (!content?.trim()) return res.status(400).json({ error: 'Reply message is required' });
+    // Sanitize reply content before embedding in HTML email
+    const { stripHtml: _sh } = require('../utils/sanitize');
+    const cleanReplyContent = _sh(String(content).slice(0, 1000).trim());
+    if (!cleanReplyContent) return res.status(400).json({ error: 'Reply message is required' });
 
     // Determine sender identity: logged-in user, member, or access_token recipient
     const senderId = req.user?.id || req.member?.id || null;
-    const senderName = req.user?.full_name
+    const { stripHtml: _stripSender } = require('../utils/sanitize');
+    const senderName = _stripSender(String(
+      req.user?.full_name
       || (req.member ? `${req.member.first_name} ${req.member.last_name}` : null)
       || req.recipientName
-      || 'The recipient';
+      || 'The recipient'
+    ).slice(0, 80));
 
     const { data: card } = await supabase
       .from('cards').select('id, creator_id, recipient_name, title, slug, created_by_member_id')
@@ -284,7 +327,7 @@ const sendReply = async (req, res) => {
               <p style="color:#888;font-size:14px;">In response to your message on "${cardTitle}"</p>
             </div>
             <div style="background:#F5F3FF;border-radius:16px;padding:20px 24px;margin:20px 0;border-left:4px solid #7C6EFF;">
-              <p style="color:#1A1730;font-size:16px;line-height:1.7;margin:0;">"${content}"</p>
+              <p style="color:#1A1730;font-size:16px;line-height:1.7;margin:0;">"${cleanReplyContent}"</p>
               <p style="color:#888;font-size:13px;margin-top:12px 0 0;">— ${senderName}</p>
             </div>
             <div style="text-align:center;margin-top:24px;">

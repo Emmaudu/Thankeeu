@@ -106,7 +106,7 @@ const saveBankAccount = async (req, res) => {
     res.json({ message: 'Bank account saved!', account: data });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message || 'Failed to save bank account' });
+    res.status(500).json({ error: 'Bank operation failed' });
   }
 };
 
@@ -149,8 +149,10 @@ const initiateWithdrawal = async (req, res) => {
     const requesterType = req.user ? 'user' : 'member';
     if (!requesterId) return res.status(401).json({ error: 'Not authenticated' });
 
-    const { amount, source_type, source_id, bank_account_id } = req.body;
-    if (!amount || amount < 100) return res.status(400).json({ error: 'Minimum withdrawal is ₦100' });
+    const { source_type, source_id, bank_account_id } = req.body;
+    const amount = parseFloat(req.body.amount);
+    if (!isFinite(amount) || amount < 100) return res.status(400).json({ error: 'Minimum withdrawal is ₦100' });
+    if (amount > 10_000_000) return res.status(400).json({ error: 'Withdrawal amount too large' });
     if (!source_type || !bank_account_id) return res.status(400).json({ error: 'source_type and bank_account_id required' });
 
     // Get bank account
@@ -268,7 +270,7 @@ const initiateWithdrawal = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message || 'Withdrawal failed' });
+    res.status(500).json({ error: 'Bank operation failed' });
   }
 };
 

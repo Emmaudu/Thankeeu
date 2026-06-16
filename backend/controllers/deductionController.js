@@ -98,8 +98,10 @@ const requestDeduction = async (req, res) => {
     if (req.member.role !== 'team_leader')
       return res.status(403).json({ error: 'Only team leaders can request deductions' });
 
-    const { card_id, amount, reason } = req.body;
-    if (!amount || amount <= 0) return res.status(400).json({ error: 'Invalid amount' });
+    const { card_id, reason } = req.body;
+    const amount = parseFloat(req.body.amount);
+    if (!isFinite(amount) || amount <= 0 || amount > 10_000_000)
+      return res.status(400).json({ error: 'Invalid amount. Must be a positive number.' });
     if (!reason?.trim()) return res.status(400).json({ error: 'A reason is required' });
 
     // ── ONE DEDUCTION PER GIFT POT PER LEADER ────────────────────────────────

@@ -1,5 +1,17 @@
 /**
- * paymentController.js — Flutterwave payments
+ 
+
+    // Verify amount paid matches contribution amount recorded in DB
+    const { data: contrib } = await supabase
+      .from('contributions')
+      .select('amount')
+      .eq('tx_ref', txRef)
+      .maybeSingle();
+    if (contrib && txn.amount < contrib.amount * 0.90) {
+      console.error(`[verifyContribution] UNDERPAYMENT: expected ₦${contrib.amount}, got ₦${txn.amount}. ref: ${txRef}`);
+      return res.status(400).json({ error: 'Payment amount does not match. Please contact support.' });
+    }
+* paymentController.js — Flutterwave payments
  *
  * FLOW:
  *  1. Frontend calls init endpoint → gets { payment_link, tx_ref }
@@ -15,6 +27,7 @@
 
 const axios    = require('axios');
 const supabase = require('../utils/supabase');
+const { safeTxRef, safeError } = require('../utils/paramGuard');
 
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
@@ -185,9 +198,8 @@ const initCardFee = async (req, res) => {
     return res.json({ payment_link: r.data.data.link, tx_ref: txRef });
 
   } catch (err) {
-    const msg = err.response?.data?.message || err.message;
-    console.error('initCardFee error:', msg);
-    return res.status(500).json({ error: `Failed to initialize card fee: ${msg}` });
+    console.error('initCardFee error:', err.response?.data?.message || err.message);
+    return res.status(500).json({ error: 'Failed to initialize payment. Please try again.' });
   }
 };
 
@@ -198,8 +210,8 @@ const initCardFee = async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 const verifyCardFee = async (req, res) => {
   try {
-    const txRef = req.query.tx_ref || req.params.txRef;
-    if (!txRef) return res.status(400).json({ error: 'tx_ref is required' });
+    const txRef = safeTxRef(req.query.tx_ref || req.params.txRef);
+    if (!txRef) return res.status(400).json({ error: 'tx_ref is required and must be a valid reference' });
 
     const txn = await fetchFlwTransaction(txRef);
     if (!FLW_SUCCESS.has(txn.status)) {
@@ -221,15 +233,22 @@ const verifyCardFee = async (req, res) => {
       return res.status(404).json({ error: 'Card not found for this payment. Please contact support with ref: ' + txRef });
     }
 
+    // Verify amount paid matches what was expected (prevents ₦1 payment activating card)
+    const CARD_FEE = 500; // ₦500 card creation fee
+    const paidAmount = txn.amount;
+    if (paidAmount < CARD_FEE * 0.90) {
+      console.error(`[verifyCardFee] UNDERPAYMENT: expected ₦${CARD_FEE}, got ₦${paidAmount}. card: ${cardSlug}, ref: ${txRef}`);
+      return res.status(400).json({ error: 'Payment amount does not match. Please contact support.' });
+    }
+
     await supabase.from('cards').update({ status: 'active' }).eq('slug', cardSlug);
     console.log('Card activated:', cardSlug);
 
     return res.json({ ok: true, card_slug: cardSlug });
 
   } catch (err) {
-    const msg = err.response?.data?.message || err.message;
-    console.error('verifyCardFee error:', msg);
-    return res.status(500).json({ error: msg || 'Verification failed' });
+    console.error('verifyCardFee error:', err.response?.data?.message || err.message);
+    return res.status(500).json({ error: 'Payment verification failed. Please try again.' });
   }
 };
 
@@ -300,9 +319,8 @@ const initContribution = async (req, res) => {
     return res.json({ payment_link: r.data.data.link, tx_ref: txRef });
 
   } catch (err) {
-    const msg = err.response?.data?.message || err.message;
-    console.error('initContribution error:', msg);
-    return res.status(500).json({ error: msg || 'Failed to initialize contribution' });
+    console.error('initContribution error:', err.response?.data?.message || err.message);
+    return res.status(500).json({ error: 'Failed to initialize contribution. Please try again.' });
   }
 };
 
@@ -313,8 +331,8 @@ const initContribution = async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 const verifyContribution = async (req, res) => {
   try {
-    const txRef = req.query.tx_ref || req.body?.tx_ref || req.params.txRef;
-    if (!txRef) return res.status(400).json({ error: 'tx_ref is required' });
+    const txRef = safeTxRef(req.query.tx_ref || req.body?.tx_ref || req.params.txRef);
+    if (!txRef) return res.status(400).json({ error: 'tx_ref is required and must be a valid reference' });
 
     const txn = await fetchFlwTransaction(txRef);
     if (!FLW_SUCCESS.has(txn.status)) {
@@ -365,9 +383,8 @@ const verifyContribution = async (req, res) => {
     return res.json({ ok: true, amount: amountNaira });
 
   } catch (err) {
-    const msg = err.response?.data?.message || err.message;
-    console.error('verifyContribution error:', msg);
-    return res.status(500).json({ error: msg || 'Verification failed' });
+    console.error('verifyContribution error:', err.response?.data?.message || err.message);
+    return res.status(500).json({ error: 'Contribution verification failed. Please try again.' });
   }
 };
 
@@ -375,8 +392,8 @@ const verifyContribution = async (req, res) => {
 // Used by PaymentCallback as fallback for any payment type
 const verifyPayment = async (req, res) => {
   try {
-    const txRef = req.params.txRef || req.query.tx_ref;
-    if (!txRef) return res.status(400).json({ error: 'tx_ref is required' });
+    const txRef = safeTxRef(req.params.txRef || req.query.tx_ref);
+    if (!txRef) return res.status(400).json({ error: 'tx_ref is required and must be a valid reference' });
     const txn = await fetchFlwTransaction(txRef);
     const type = txn.meta?.type;
     if (type === 'card_fee') {
@@ -389,7 +406,8 @@ const verifyPayment = async (req, res) => {
     }
     return res.json({ status: 'success', type, amount: txn.amount, meta: txn.meta });
   } catch (err) {
-    return res.status(500).json({ error: err.message || 'Verification failed' });
+    console.error('verifyPayment error:', err.message);
+    return res.status(500).json({ error: 'Payment verification failed. Please try again.' });
   }
 };
 

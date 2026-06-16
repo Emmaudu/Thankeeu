@@ -1,5 +1,9 @@
 const bcrypt = require('bcryptjs');
 const argon2  = require('argon2');
+const {
+  validateEmail, validatePassword, sanitizeName, sanitizePhone,
+  sanitizeText, isSanitizeError,
+} = require('../utils/sanitize');
 const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
 const verifyPassword = async (plain, stored) => {
   if (stored && stored.startsWith('$argon2')) return argon2.verify(stored, plain);
@@ -37,19 +41,33 @@ const generateToken = (companyId) =>
 
 const companySignup = async (req, res) => {
   try {
-    const { name, email, password, contact_person, phone, industry, city, state, country, branch_name } = req.body;
-    if (!name || !email || !password || !contact_person)
-      return res.status(400).json({ error: 'Name, email, password and contact person are required' });
+    const raw = req.body;
 
-    const cleanEmail = email.toLowerCase().trim();
+    // ── Sanitize & validate ───────────────────────────────────────────────
+    const cleanEmail         = validateEmail(raw.email);
+    const cleanPassword      = validatePassword(raw.password);
+    const cleanName          = sanitizeName(raw.name, 'Company name', { maxLen: 120 });
+    const cleanContact       = sanitizeName(raw.contact_person, 'Contact person');
+    const cleanPhone         = sanitizePhone(raw.phone);
+    const cleanIndustry      = sanitizeText(raw.industry, 'Industry', { maxLen: 80 });
+    const cleanCity          = sanitizeText(raw.city, 'City', { maxLen: 80 });
+    const cleanState         = sanitizeText(raw.state, 'State', { maxLen: 80 });
+    const cleanCountry       = sanitizeText(raw.country, 'Country', { maxLen: 80 });
+    const cleanBranchName    = sanitizeText(raw.branch_name, 'Branch name', { maxLen: 120 });
+    // ─────────────────────────────────────────────────────────────────────
 
     const { data: existing } = await supabase.from('companies').select('id').eq('email', cleanEmail).maybeSingle();
     if (existing) return res.status(400).json({ error: 'Email already registered as a company' });
 
-    const password_hash = await hashPassword(password, 12);
+    const password_hash = await hashPassword(cleanPassword, 12);
     const { data: company, error } = await supabase
       .from('companies')
-      .insert({ name, email: cleanEmail, password_hash, contact_person, phone, industry, city, state, country: country || '' })
+      .insert({
+        name: cleanName, email: cleanEmail, password_hash,
+        contact_person: cleanContact, phone: cleanPhone,
+        industry: cleanIndustry, city: cleanCity,
+        state: cleanState, country: cleanCountry || '',
+      })
       .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country')
       .maybeSingle();
 
@@ -57,19 +75,19 @@ const companySignup = async (req, res) => {
 
     // Send welcome email
     await sendEmail({
-      to: email,
+      to: cleanEmail,
       template: 'companyWelcome',
-      data: { companyName: name, contactPerson: contact_person }
+      data: { companyName: cleanName, contactPerson: cleanContact }
     });
 
     // Create default branch if branch_name provided
-    if (branch_name?.trim()) {
+    if (cleanBranchName) {
       try {
         await supabase.from('company_branches').insert({
           company_id: company.id,
-          name: branch_name.trim(),
-          city,
-          state,
+          name: cleanBranchName,
+          city: cleanCity,
+          state: cleanState,
           is_default: true
         });
       } catch (branchError) {
@@ -78,8 +96,10 @@ const companySignup = async (req, res) => {
     }
 
     // Update company with location
-    if (city || state || country) {
-      await supabase.from('companies').update({ city, state, country: country || '' }).eq('id', company.id);
+    if (cleanCity || cleanState || cleanCountry) {
+      await supabase.from('companies').update({
+        city: cleanCity, state: cleanState, country: cleanCountry || '',
+      }).eq('id', company.id);
     }
 
     // Seed all default occasion types for this company
@@ -92,6 +112,7 @@ const companySignup = async (req, res) => {
     const token = generateToken(company.id);
     res.status(201).json({ token, company });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error(err);
     res.status(500).json({ error: 'Server error during company signup' });
   }
@@ -99,14 +120,13 @@ const companySignup = async (req, res) => {
 
 const companyLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: 'Email and password are required' });
+    const cleanEmail    = validateEmail(req.body.email);
+    const cleanPassword = validatePassword(req.body.password);
 
-    const { data: company, error } = await supabase.from('companies').select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
+    const { data: company, error } = await supabase.from('companies').select('*').eq('email', cleanEmail).maybeSingle();
     if (error || !company) return res.status(401).json({ error: 'Invalid email or password' });
 
-    const valid = await verifyPassword(password, company.password_hash);
+    const valid = await verifyPassword(cleanPassword, company.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
     // Get subscription status
@@ -123,6 +143,7 @@ const companyLogin = async (req, res) => {
     setCookie(res, 'tk_company', token);
     res.json({token, company: { ...safeCompany, subscription: sub || null } });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     res.status(500).json({ error: 'Server error during login' });
   }
 };
@@ -158,10 +179,23 @@ const getCompanyMe = async (req, res) => {
 
 const updateCompanyProfile = async (req, res) => {
   try {
-    const { name, contact_person, phone, industry, logo_url, theme, country } = req.body;
-    const updates = { name, contact_person, phone, industry, logo_url, theme, updated_at: new Date() };
+    const raw = req.body;
+    const { sanitizeName, sanitizePhone, sanitizeText, isSanitizeError } = require('../utils/sanitize');
+    const cleanName    = raw.name           !== undefined ? sanitizeName(raw.name,           'Company name',   { required: false, maxLen: 120 }) : undefined;
+    const cleanContact = raw.contact_person !== undefined ? sanitizeName(raw.contact_person, 'Contact person', { required: false, maxLen: 100 }) : undefined;
+    const cleanPhone   = raw.phone          !== undefined ? sanitizePhone(raw.phone)         : undefined;
+    const cleanIndustry= raw.industry       !== undefined ? sanitizeText(raw.industry,  'Industry', { maxLen: 80  }) : undefined;
+    const cleanCountry = raw.country        !== undefined ? sanitizeText(raw.country,   'Country',  { maxLen: 80  }) : undefined;
+    const cleanTheme   = raw.theme          !== undefined ? sanitizeText(raw.theme,     'Theme',    { maxLen: 40  }) : undefined;
 
-    if (country !== undefined) updates.country = country;
+    const updates = { updated_at: new Date() };
+    if (cleanName     !== undefined) updates.name           = cleanName;
+    if (cleanContact  !== undefined) updates.contact_person = cleanContact;
+    if (cleanPhone    !== undefined) updates.phone          = cleanPhone;
+    if (cleanIndustry !== undefined) updates.industry       = cleanIndustry;
+    if (cleanCountry  !== undefined) updates.country        = cleanCountry;
+    if (cleanTheme    !== undefined) updates.theme          = cleanTheme;
+    if (raw.logo_url  !== undefined) updates.logo_url       = raw.logo_url; // URL from Cloudinary — trusted
 
     const { data, error } = await supabase
       .from('companies')
@@ -179,6 +213,8 @@ const updateCompanyProfile = async (req, res) => {
 
     res.json(data);
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     res.status(500).json({ error: 'Failed to update profile' });
   }
 };
@@ -186,28 +222,38 @@ const updateCompanyProfile = async (req, res) => {
 const changeCompanyPassword = async (req, res) => {
   try {
     const { current_password, new_password } = req.body;
+    if (!current_password || !new_password)
+      return res.status(400).json({ error: 'Current and new passwords are required' });
+    const { validatePassword, isSanitizeError } = require('../utils/sanitize');
+    const cleanNew = validatePassword(new_password, 'New password');
     const { data: company } = await supabase.from('companies').select('password_hash').eq('id', req.company.id).maybeSingle();
+    if (!company) return res.status(404).json({ error: 'Account not found' });
     const valid = await verifyPassword(current_password, company.password_hash);
     if (!valid) return res.status(400).json({ error: 'Current password is incorrect' });
-    const password_hash = await hashPassword(new_password, 12);
+    const password_hash = await hashPassword(cleanNew, 12);
     await supabase.from('companies').update({ password_hash }).eq('id', req.company.id);
     res.json({ message: 'Password updated successfully' });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     res.status(500).json({ error: 'Failed to change password' });
   }
 };
 
 const companyForgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
-    const { data: company } = await supabase.from('companies').select('id, name, contact_person').eq('email', (email || '').toLowerCase().trim()).maybeSingle();
+    let cleanEmail;
+    try { cleanEmail = validateEmail(req.body.email); }
+    catch { return res.json({ message: 'If email exists, reset link sent' }); }
+
+    const { data: company } = await supabase.from('companies').select('id, name, contact_person').eq('email', cleanEmail).maybeSingle();
     if (!company) return res.json({ message: 'If email exists, reset link sent' });
 
     const token = crypto.randomBytes(32).toString('hex');
     await supabase.from('companies').update({ reset_token: token, reset_token_expires: new Date(Date.now() + 3600000) }).eq('id', company.id);
 
     await sendEmail({
-      to: email,
+      to: cleanEmail,
       template: 'companyPasswordReset',
       data: { token, companyName: company.name }
     });
@@ -219,11 +265,18 @@ const companyForgotPassword = async (req, res) => {
 
 const companyResetPassword = async (req, res) => {
   try {
-    const { token, password } = req.body;
-    const { data: company } = await supabase.from('companies').select('id, reset_token_expires').eq('reset_token', token).maybeSingle();
+    const { token } = req.body;
+    let cleanPassword;
+    try { cleanPassword = validatePassword(req.body.password); }
+    catch (e) { return res.status(400).json({ error: e.error || 'Invalid password' }); }
+
+    if (!token || typeof token !== 'string' || token.length > 200)
+      return res.status(400).json({ error: 'Invalid reset token' });
+
+    const { data: company } = await supabase.from('companies').select('id, reset_token_expires').eq('reset_token', token.trim()).maybeSingle();
     if (!company || new Date(company.reset_token_expires) < new Date())
       return res.status(400).json({ error: 'Invalid or expired token' });
-    const password_hash = await hashPassword(password, 12);
+    const password_hash = await hashPassword(cleanPassword, 12);
     await supabase.from('companies').update({ password_hash, reset_token: null, reset_token_expires: null }).eq('id', company.id);
     res.json({ message: 'Password reset successful' });
   } catch (err) {
@@ -252,7 +305,7 @@ const uploadCompanyLogo = async (req, res) => {
     res.json({ logo_url: result.secure_url });
   } catch (err) {
     console.error('Logo upload error:', err);
-    res.status(500).json({ error: 'Logo upload failed: ' + err.message });
+    res.status(500).json({ error: 'Logo upload failed. Please try again.' });
   }
 };
 

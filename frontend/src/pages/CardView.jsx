@@ -44,7 +44,7 @@ function MagicSearch({ messages, query, setQuery, active, setActive, design, fou
 
   // Cycle placeholder every 2.2s when idle
   useEffect(() => {
-    if (active || !names.length) return;
+    if (active || names.length < 2) return; // need ≥2 names to cycle; also prevents % 0 = NaN
     const t = setInterval(() => setPlaceholderIdx(i => (i + 1) % names.length), 2200);
     return () => clearInterval(t);
   }, [active, names.length]);

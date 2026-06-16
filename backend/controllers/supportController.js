@@ -3,7 +3,11 @@ const { sendEmail } = require('../utils/email');
 
 const createTicket = async (req, res) => {
   try {
-    const { subject, message } = req.body;
+    const { sanitizeText, isSanitizeError } = require('../utils/sanitize');
+    const cleanSubject = sanitizeText(req.body.subject, 'Subject', { required: true, maxLen: 200 });
+    const cleanMessage = sanitizeText(req.body.message, 'Message', { required: true, maxLen: 5000 });
+    const subject = cleanSubject;
+    const message = cleanMessage;
     if (!subject || !message) return res.status(400).json({ error: 'Subject and message are required' });
 
     const isCompany = !!req.company;
@@ -102,7 +106,10 @@ const getAllTickets = async (req, res) => {
 const replyToTicket = async (req, res) => {
   try {
     const { ticketId } = req.params;
-    const { reply } = req.body;
+    const { sanitizeText } = require('../utils/sanitize');
+    const reply = req.body.reply
+      ? sanitizeText(req.body.reply, 'Reply', { required: true, maxLen: 3000 })
+      : null;
     const { data: ticket } = await supabase.from('support_tickets').select('*').eq('id', ticketId).maybeSingle();
     if (!ticket) return res.status(404).json({ error: 'Ticket not found' });
 

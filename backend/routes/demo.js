@@ -1,3 +1,4 @@
+const { validateUUIDParam } = require('../utils/paramGuard');
 const express = require('express');
 const router  = express.Router();
 const { adminAuth } = require('../middleware/auth');
@@ -8,6 +9,6 @@ router.post('/request', submitDemoRequest);
 
 // Admin only
 router.get('/requests',     adminAuth, getDemoRequests);
-router.patch('/requests/:id', adminAuth, updateDemoStatus);
+router.patch('/requests/:id', validateUUIDParam('id'), adminAuth, updateDemoStatus);
 
 module.exports = router;

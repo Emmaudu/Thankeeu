@@ -4,6 +4,7 @@ const jwt     = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
 const { auth } = require('../middleware/auth');
 const { addMessage, reactToMessage, deleteMessage, sendReply, upload } = require('../controllers/messageController');
+const { validateSlugParam, validateUUIDParam } = require('../utils/paramGuard');
 
 // Flexible auth: accepts user OR member token (no forced redirect on failure)
 const flexAuth = async (req, res, next) => {
@@ -49,10 +50,15 @@ const requireAuth = async (req, res, next) => {
   return res.status(401).json({ error: 'You must be signed in to send a reply' });
 };
 
-router.post('/:card_slug',       upload.any(), addMessage);
-router.post('/react/:message_id', reactToMessage);
-router.delete('/:message_id',     auth, deleteMessage);
+// IMPORTANT: /react/:message_id and /:message_id (delete) are fixed-segment
+// routes that MUST be registered before the /:card_slug wildcard — otherwise
+// Express matches 'react' as card_slug and routes to addMessage instead.
+router.post('/react/:message_id', validateUUIDParam('message_id'), reactToMessage);
+router.delete('/:message_id',     validateUUIDParam('message_id'), auth, deleteMessage);
+
+// Wildcard routes — must be after all fixed-segment routes
+router.post('/:card_slug',        validateSlugParam('card_slug'), upload.any(), addMessage);
 // Access-token recipients can reply without a login session
-router.post('/:card_slug/reply',  flexAuth, requireAuth, sendReply);
+router.post('/:card_slug/reply',  validateSlugParam('card_slug'), flexAuth, requireAuth, sendReply);
 
 module.exports = router;

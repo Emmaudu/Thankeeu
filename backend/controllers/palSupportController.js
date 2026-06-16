@@ -11,7 +11,7 @@ const getPalTickets = async (req, res) => {
       throw error;
     }
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Support operation failed' }); }
 };
 
 // ── POST /api/pals/support — submit a new ticket ─────────────────────────────
@@ -34,7 +34,7 @@ const createPalTicket = async (req, res) => {
     }).catch(() => {});
 
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Support operation failed' }); }
 };
 
 // ── ADMIN: GET /api/admin/pals/tickets — all pal tickets ─────────────────────
@@ -49,7 +49,7 @@ const adminListPalTickets = async (req, res) => {
       throw error;
     }
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Support operation failed' }); }
 };
 
 // ── ADMIN: PUT /api/admin/pals/tickets/:id/reply ──────────────────────────────
@@ -73,7 +73,7 @@ const adminReplyPalTicket = async (req, res) => {
     }
 
     res.json({ ok: true, ticket });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { res.status(500).json({ error: 'Support operation failed' }); }
 };
 
 module.exports = { getPalTickets, createPalTicket, adminListPalTickets, adminReplyPalTicket };

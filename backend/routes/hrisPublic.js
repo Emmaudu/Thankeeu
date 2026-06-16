@@ -4,6 +4,7 @@ const axios    = require('axios');
 const jwt      = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
 const { companyAuth } = require('../middleware/companyAuth');
+const { validateProvider } = require('../utils/paramGuard');
 
 const BACKEND_URL  = process.env.BACKEND_URL || 'https://thankeeu-production.up.railway.app';
 const FRONTEND_URL = (() => {
@@ -119,7 +120,7 @@ const OAUTH_CONFIGS = {
 };
 
 // ── /api/hris/:provider/init — protected, issues redirect URL ────────────────
-router.get('/:provider/init', companyAuth, async (req, res) => {
+router.get('/:provider/init', validateProvider, companyAuth, async (req, res) => {
   const { provider } = req.params;
   const cfg = OAUTH_CONFIGS[provider];
   if (!cfg) return res.status(404).json({ error: `OAuth not supported for ${provider}` });
@@ -184,7 +185,7 @@ router.get('/:provider/init', companyAuth, async (req, res) => {
 });
 
 // ── /api/hris/:provider/callback — browser redirect from provider ─────────────
-router.get('/:provider/callback', async (req, res) => {
+router.get('/:provider/callback', validateProvider, async (req, res) => {
   const { provider } = req.params;
   const { code, state, error } = req.query;
   const cfg = OAUTH_CONFIGS[provider];
@@ -215,10 +216,13 @@ router.get('/:provider/callback', async (req, res) => {
       timeout: 15000,
     });
 
-    console.log(`[oauth][${provider}] token response:`, JSON.stringify(r.data).slice(0, 200));
+    // Token response intentionally not logged (contains access/refresh tokens)
 
     const { access_token, refresh_token, expires_in } = r.data;
-    if (!access_token) throw new Error(`No access_token in response: ${JSON.stringify(r.data)}`);
+    if (!access_token) {
+      console.error(`[oauth][${provider}] no access_token in response:`, JSON.stringify(r.data));
+      throw new Error('OAuth token exchange failed. Please try connecting again.');
+    }
 
     const tokenExpiresAt = expires_in
       ? new Date(Date.now() + expires_in * 1000) : null;

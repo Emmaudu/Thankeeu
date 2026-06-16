@@ -167,11 +167,13 @@ const orderGiftCard = async (req, res) => {
     const callerType = req.user ? 'user' : 'member';
     if (!callerId) return res.status(401).json({ error: 'Not authenticated' });
 
-    const { card_slug, product_id, amount, recipient_email, access_token } = req.body;
+    const { card_slug, product_id, recipient_email, access_token } = req.body;
 
-    if (!card_slug)       return res.status(400).json({ error: 'card_slug is required' });
-    if (!product_id)      return res.status(400).json({ error: 'product_id is required' });
-    if (!amount || amount < 100) return res.status(400).json({ error: 'Minimum amount is ₦100' });
+    if (!card_slug)  return res.status(400).json({ error: 'card_slug is required' });
+    if (!product_id) return res.status(400).json({ error: 'product_id is required' });
+    const amount = parseFloat(req.body.amount);
+    if (!isFinite(amount) || amount < 100) return res.status(400).json({ error: 'Minimum amount is ₦100' });
+    if (amount > 500_000) return res.status(400).json({ error: 'Amount exceeds maximum gift redemption limit' });
 
     // Load the Thankeeu card
     const { data: card } = await supabase.from('cards')
@@ -324,7 +326,8 @@ const orderGiftCard = async (req, res) => {
           amount: net, fee, gross: amount,
         });
       }
-      throw new Error('Airtime top-up failed: ' + JSON.stringify(airtimeR.data));
+      console.error('[reloadly] airtime failed:', JSON.stringify(airtimeR.data));
+      throw new Error('Airtime top-up failed. Please try again.');
     }
 
     // Gift card order via Reloadly

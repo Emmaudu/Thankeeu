@@ -1,5 +1,6 @@
 const axios = require('axios');
 const supabase = require('../utils/supabase');
+const { safeError } = require('../utils/paramGuard');
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();
@@ -62,6 +63,24 @@ const createCard = async (req, res) => {
       return res.status(400).json({ error: 'Recipient name and occasion are required' });
     }
 
+    // Sanitize and validate all user-supplied fields
+    const { sanitizeName, sanitizeText } = require('../utils/sanitize');
+    const cleanRecipientName = sanitizeName(recipient_name, 'Recipient name', { required: true, maxLen: 100 });
+    const cleanTitle = title?.trim()
+      ? sanitizeText(title, 'Card title', { maxLen: 120 })
+      : null;
+
+    // Validate numeric fields
+    const cleanSuggestedAmount = suggested_amount != null ? parseFloat(suggested_amount) : null;
+    if (cleanSuggestedAmount !== null && (!isFinite(cleanSuggestedAmount) || cleanSuggestedAmount < 0 || cleanSuggestedAmount > 10_000_000))
+      return res.status(400).json({ error: 'Invalid suggested gift amount' });
+
+    // Validate date fields
+    if (send_date && isNaN(new Date(send_date).getTime()))
+      return res.status(400).json({ error: 'Invalid send date' });
+    if (deadline && isNaN(new Date(deadline).getTime()))
+      return res.status(400).json({ error: 'Invalid deadline date' });
+
     const effectiveCompanyId = req.member?.company_id || req.company?.id || company_id;
     const effectiveMemberId = req.member?.id || created_by_member_id;
     const slug = generateSlug(recipient_name, occasion);
@@ -70,10 +89,10 @@ const createCard = async (req, res) => {
     const insertData = {
       slug,
       creator_id: req.user?.id || null,
-      recipient_name: recipient_name.trim(),
+      recipient_name: cleanRecipientName,
       recipient_email: recipient_email?.trim() || null,
       occasion,
-      title: title?.trim() || `${recipient_name}'s Card`,
+      title: cleanTitle || `${cleanRecipientName}'s Card`,
       design_theme, background_color, is_gift_enabled,
       gift_type, suggested_amount,
       send_date: send_date || null,
@@ -213,8 +232,10 @@ const createCard = async (req, res) => {
 
     res.status(201).json(card);
   } catch (err) {
-    console.error('Create card error:', err);
-    res.status(500).json({ error: err.message || 'Failed to create card' });
+    const { isSanitizeError } = require('../utils/sanitize');
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+    console.error('Create card error:', err.message);
+    safeError(res, err, 'Failed to create card');
   }
 };
 

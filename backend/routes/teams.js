@@ -99,7 +99,7 @@ router.get('/all-members', async (req, res) => {
 
   } catch (err) {
     console.error('[all-members] CRASH:', err.message, '\n', err.stack);
-    res.status(500).json({ error: err.message, stack: err.stack });
+    res.status(500).json({ error: 'Failed to load members' });
   }
 });
 
@@ -108,28 +108,25 @@ router.get('/all-members', async (req, res) => {
 // occasion automation. Editing birthday, work anniversary, gender, farewell,
 // or promotion date here directly controls what the daily cron will act on —
 // no separate occasion_members rows to keep in sync.
-router.put('/members/:id', async (req, res) => {
+router.put('/members/:id', validateUUIDParam('id'), async (req, res) => {
   try {
-    const {
-      first_name, last_name, email, department, role, phone, job_title,
-      date_of_birth, gender, resumption_date,
-      leaving_date, promotion_date,
-    } = req.body;
-    const u = { updated_at: new Date() };
-    if (first_name !== undefined)   u.first_name    = first_name;
-    if (last_name  !== undefined)   u.last_name     = last_name;
-    if (email      !== undefined)   u.email         = email?.toLowerCase().trim();
-    if (department !== undefined)   u.department    = department;
-    if (role       !== undefined)   u.role          = role;
-    if (phone      !== undefined)   u.phone         = phone;
-    if (job_title  !== undefined)   u.job_title     = job_title;
-    if (date_of_birth  !== undefined) u.date_of_birth  = date_of_birth  || null;
-    if (gender         !== undefined) u.gender         = gender         || null;
-    if (resumption_date!== undefined) u.resumption_date= resumption_date|| null;
-    if (leaving_date   !== undefined) u.leaving_date   = leaving_date   || null;
-    if (promotion_date !== undefined) u.promotion_date = promotion_date || null;
+    const raw = req.body;
+    const { sanitizeName, sanitizePhone, sanitizeDate, sanitizeText, validateEmail } = require('../utils/sanitize');
     // Explicitly block is_core_team from being set via this route
     delete req.body.is_core_team;
+    const u = { updated_at: new Date() };
+    if (raw.first_name    !== undefined) u.first_name     = sanitizeName(raw.first_name, 'First name', { required: false, maxLen: 60 });
+    if (raw.last_name     !== undefined) u.last_name      = sanitizeName(raw.last_name,  'Last name',  { required: false, maxLen: 60 });
+    if (raw.email         !== undefined) u.email          = raw.email ? validateEmail(raw.email) : null;
+    if (raw.department    !== undefined) u.department     = sanitizeText(raw.department, 'Department', { maxLen: 100 });
+    if (raw.role          !== undefined) u.role           = sanitizeText(raw.role, 'Role', { maxLen: 60 });
+    if (raw.phone         !== undefined) u.phone          = sanitizePhone(raw.phone);
+    if (raw.job_title     !== undefined) u.job_title      = sanitizeText(raw.job_title, 'Job title', { maxLen: 100 });
+    if (raw.date_of_birth !== undefined) u.date_of_birth  = sanitizeDate(raw.date_of_birth, 'Date of birth') || null;
+    if (raw.gender        !== undefined) u.gender         = raw.gender || null;
+    if (raw.resumption_date!==undefined) u.resumption_date= sanitizeDate(raw.resumption_date, 'Resumption date', { allowFuture: true }) || null;
+    if (raw.leaving_date  !== undefined) u.leaving_date   = sanitizeDate(raw.leaving_date,   'Leaving date',   { allowFuture: true }) || null;
+    if (raw.promotion_date!== undefined) u.promotion_date = sanitizeDate(raw.promotion_date, 'Promotion date', { allowFuture: true }) || null;
 
     // Fetch current row first so we can detect date CHANGES and reset
     // per-occasion notification tracking only for the occasion(s) that changed.
@@ -160,27 +157,36 @@ router.put('/members/:id', async (req, res) => {
     if (error) throw error;
 
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error('[teams]', err.message);
+    const { isSanitizeError } = require('../utils/sanitize');
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+    res.status(500).json({ error: 'Operation failed' }); }
 });
 
 // Delete member
-router.delete('/members/:id', async (req, res) => {
+router.delete('/members/:id', validateUUIDParam('id'), async (req, res) => {
   try {
     await supabase.from('company_members').delete().eq('id', req.params.id).eq('company_id', req.company.id);
     res.json({ message: 'Member removed' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { console.error('[teams]', err.message); res.status(500).json({ error: 'Operation failed' }); }
 });
 
 // Suspend / unsuspend member
-router.patch('/members/:id/status', async (req, res) => {
+router.patch('/members/:id/status', validateUUIDParam('id'), async (req, res) => {
   try {
     const { status } = req.body;
-    if (!['approved','suspended','pending'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
+    // Allowlist check prevents prototype pollution via status='__proto__' etc.
+    if (!['approved','suspended','pending'].includes(String(status || '')))
+      return res.status(400).json({ error: 'Invalid status. Must be approved, suspended or pending.' });
+    const cleanStatus = String(status);
     const { data, error } = await supabase.from('company_members')
-      .update({ status, updated_at: new Date() }).eq('id', req.params.id).eq('company_id', req.company.id).select().maybeSingle();
+      .update({ status: cleanStatus, updated_at: new Date() }).eq('id', req.params.id).eq('company_id', req.company.id).select().maybeSingle();
     if (error) throw error;
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error('[teams]', err.message);
+    res.status(500).json({ error: 'Failed to update status' });
+  }
 });
 
 // Delete by old route

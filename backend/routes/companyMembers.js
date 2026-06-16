@@ -15,6 +15,7 @@ const {
   transferCardToMember, getMemberReminders, createMemberReminder,
   deleteMemberReminder,
 } = require('../controllers/companyMembersController');
+const { validateUUIDParam } = require('../utils/paramGuard');
 
 // Public
 router.post('/signup', memberSignup);
@@ -45,12 +46,12 @@ router.get('/received',        memberAuth, getMemberReceivedCards);
 router.post('/transfer-card',  memberAuth, transferCardToMember);
 router.get('/reminders',       memberAuth, getMemberReminders);
 router.post('/reminders',      memberAuth, createMemberReminder);
-router.delete('/reminders/:id', memberAuth, deleteMemberReminder);
+router.delete('/reminders/:id', validateUUIDParam('id'), memberAuth, deleteMemberReminder);
 router.get('/finances',        memberAuth, getMemberFinances);
 
-// HR: full member management
-router.get('/all', companyAuth, getPendingMembers);
-router.post('/:memberId/approve', hrOrMemberAuth, approveMember);
-router.post('/:memberId/reject', hrOrMemberAuth, rejectMember);
+// HR: full member management — after all fixed-segment member routes
+router.get('/all',                                        companyAuth,      getPendingMembers);
+router.post('/:memberId/approve', validateUUIDParam('memberId'), hrOrMemberAuth, approveMember);
+router.post('/:memberId/reject',  validateUUIDParam('memberId'), hrOrMemberAuth, rejectMember);
 
 module.exports = router;

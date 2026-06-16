@@ -23,11 +23,13 @@ const userOrMemberAuth = async (req, res, next) => {
   } catch { return res.status(401).json({ error: 'Invalid token' }); }
 };
 
+const { validateUUIDParam } = require('../utils/paramGuard');
+
 router.get('/list',      getBankList);          // public — no auth needed
 router.post('/verify',   userOrMemberAuth, verifyAccount);
 router.post('/save',     userOrMemberAuth, saveBankAccount);
 router.get('/my',        userOrMemberAuth, getMyAccounts);
-router.delete('/:id',    userOrMemberAuth, deleteBankAccount);
+router.delete('/:id',    validateUUIDParam('id'), userOrMemberAuth, deleteBankAccount);
 router.post('/withdraw', userOrMemberAuth, initiateWithdrawal);
 router.post('/withdraw-gift', userOrMemberAuth, withdrawGift);
 

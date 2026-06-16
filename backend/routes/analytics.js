@@ -155,7 +155,7 @@ router.get('/dashboard', adminAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('[analytics]', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Analytics unavailable' });
   }
 });
 

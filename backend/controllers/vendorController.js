@@ -8,6 +8,10 @@ const argon2      = require('argon2');
 const crypto      = require('crypto');
 const { sendEmail } = require('../utils/email');
 const axios      = require('axios');
+const {
+  validateEmail, validatePassword, sanitizeName, sanitizePhone,
+  sanitizeText, sanitizeSlug, isSanitizeError,
+} = require('../utils/sanitize');
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();
@@ -19,51 +23,65 @@ const FRONTEND_URL = (() => {
 // ── Vendor signup / onboarding ───────────────────────────────────────────────
 const vendorSignup = async (req, res) => {
   try {
-    const { business_name, email, password, phone, category, description, slug: rawSlug } = req.body;
-    if (!business_name || !email || !password) return res.status(400).json({ error: 'business_name, email and password are required' });
+    const raw = req.body;
 
-    const slug = (rawSlug || business_name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    // ── Sanitize & validate ───────────────────────────────────────────────
+    const cleanEmail    = validateEmail(raw.email);
+    const cleanPassword = validatePassword(raw.password);
+    const cleanName     = sanitizeName(raw.business_name, 'Business name', { maxLen: 120 });
+    const cleanPhone    = sanitizePhone(raw.phone);
+    const cleanCategory = sanitizeText(raw.category, 'Category', { maxLen: 60 });
+    const cleanDesc     = sanitizeText(raw.description, 'Description', { maxLen: 1000 });
+    const cleanSlug     = sanitizeSlug(raw.slug || raw.business_name, 'Store URL', { maxLen: 80 });
+    // ─────────────────────────────────────────────────────────────────────
 
     // Check slug + email unique
-    const { data: existing } = await supabase.from('vendors').select('id').or(`email.eq.${email},slug.eq.${slug}`).maybeSingle();
+    const { data: existing } = await supabase.from('vendors').select('id')
+      .or(`email.eq.${cleanEmail},slug.eq.${cleanSlug}`).maybeSingle();
     if (existing) return res.status(409).json({ error: 'Email or store URL already taken' });
 
-    const password_hash = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+    const password_hash = await argon2.hash(cleanPassword, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
     const verifyToken   = crypto.randomBytes(32).toString('hex');
 
     const { data: vendor, error } = await supabase.from('vendors').insert({
-      business_name, email: email.toLowerCase().trim(), password_hash,
-      phone, category: category || 'general', description, slug,
-      status: 'pending',      // pending → approved by admin
+      business_name: cleanName, email: cleanEmail, password_hash,
+      phone: cleanPhone, category: cleanCategory || 'general',
+      description: cleanDesc, slug: cleanSlug,
+      status: 'pending',
       verify_token: verifyToken, is_verified: false,
     }).select().maybeSingle();
     if (error) throw error;
 
-    await sendEmail({ to: email, template: 'vendorWelcome', data: {
-      name: business_name, slug, appUrl: FRONTEND_URL,
+    await sendEmail({ to: cleanEmail, template: 'vendorWelcome', data: {
+      name: cleanName, slug: cleanSlug, appUrl: FRONTEND_URL,
       verifyUrl: `${FRONTEND_URL}/vendor/verify-email?token=${verifyToken}`,
     }}).catch(() => {});
 
-    res.json({ message: 'Vendor account created! Check your email to verify, then await admin approval.', vendor_id: vendor.id, slug });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+    res.json({ message: 'Vendor account created! Check your email to verify, then await admin approval.', vendor_id: vendor.id, slug: cleanSlug });
+  } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+    res.status(500).json({ error: 'Vendor operation failed' });
+  }
 };
 
 const vendorLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    const { data: vendor } = await supabase.from('vendors').select('*').eq('email', email.toLowerCase()).maybeSingle();
+    const cleanEmail    = validateEmail(req.body.email);
+    const cleanPassword = validatePassword(req.body.password);
+
+    const { data: vendor } = await supabase.from('vendors').select('*').eq('email', cleanEmail).maybeSingle();
     if (!vendor) return res.status(401).json({ error: 'Invalid email or password' });
     if (!vendor.is_verified) return res.status(403).json({ error: 'Please verify your email first' });
     if (vendor.status !== 'approved') return res.status(403).json({ error: `Your store is ${vendor.status}. Contact support.` });
 
     const valid = vendor.password_hash?.startsWith('$argon2')
-      ? await argon2.verify(vendor.password_hash, password)
-      : await require('bcryptjs').compare(password, vendor.password_hash);
+      ? await argon2.verify(vendor.password_hash, cleanPassword)
+      : await require('bcryptjs').compare(cleanPassword, vendor.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
     // Re-hash legacy bcrypt
     if (!vendor.password_hash?.startsWith('$argon2')) {
-      const newHash = await argon2.hash(password, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
+      const newHash = await argon2.hash(cleanPassword, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
       await supabase.from('vendors').update({ password_hash: newHash }).eq('id', vendor.id);
     }
 
@@ -73,7 +91,10 @@ const vendorLogin = async (req, res) => {
 
     res.cookie('tk_vendor', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'none', maxAge: 7*86400000, path: '/' });
     res.json({ token, vendor: safe });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+    res.status(500).json({ error: 'Vendor operation failed' });
+  }
 };
 
 // ── Store / products ─────────────────────────────────────────────────────────
@@ -81,7 +102,9 @@ const getMyStore = async (req, res) => {
   try {
     const { data } = await supabase.from('vendors').select('*, vendor_products(count)').eq('id', req.vendor.id).maybeSingle();
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 const updateStore = async (req, res) => {
@@ -91,47 +114,85 @@ const updateStore = async (req, res) => {
     const { data, error } = await supabase.from('vendors').update({ ...updates, updated_at: new Date() }).eq('id', req.vendor.id).select().maybeSingle();
     if (error) throw error;
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 const getProducts = async (req, res) => {
   try {
     const { data } = await supabase.from('vendor_products').select('*').eq('vendor_id', req.vendor.id).order('created_at', { ascending: false });
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 const createProduct = async (req, res) => {
   try {
-    const { name, description, price, category, images, stock, is_available = true } = req.body;
-    if (!name || !price) return res.status(400).json({ error: 'name and price are required' });
+    const { sanitizeName, sanitizeText, isSanitizeError } = require('../utils/sanitize');
+    const raw = req.body;
+    const cleanName  = sanitizeName(raw.name, 'Product name', { required: true, maxLen: 150 });
+    const cleanDesc  = sanitizeText(raw.description, 'Description', { required: false, maxLen: 2000 });
+    const cleanCat   = raw.category ? sanitizeText(raw.category, 'Category', { maxLen: 60 }) : null;
+    const price      = parseFloat(raw.price);
+    const stock      = raw.stock != null ? parseInt(raw.stock) : null;
+    if (!cleanName || !isFinite(price) || price <= 0)
+      return res.status(400).json({ error: 'name and a valid price are required' });
+    if (price > 10_000_000) return res.status(400).json({ error: 'Price too high' });
+    if (stock !== null && (!Number.isInteger(stock) || stock < 0))
+      return res.status(400).json({ error: 'Stock must be a non-negative integer' });
+    const is_available = raw.is_available !== false;
     const { data, error } = await supabase.from('vendor_products').insert({
-      vendor_id: req.vendor.id, name, description, price: Number(price),
-      category: category || req.vendor.category, images: images || [],
-      stock: stock ?? null, is_available,
+      vendor_id: req.vendor.id, name: cleanName, description: cleanDesc, price,
+      category: cleanCat || req.vendor.category, images: Array.isArray(raw.images) ? raw.images : [],
+      stock, is_available,
     }).select().maybeSingle();
     if (error) throw error;
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const allowed = ['name','description','price','category','images','stock','is_available','featured'];
-    const updates = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
-    const { data, error } = await supabase.from('vendor_products').update({ ...updates, updated_at: new Date() })
+    const { sanitizeName, sanitizeText } = require('../utils/sanitize');
+    const raw = req.body;
+    const updates = { updated_at: new Date() };
+    if (raw.name        !== undefined) updates.name        = sanitizeName(raw.name, 'Name', { required: true, maxLen: 150 });
+    if (raw.description !== undefined) updates.description = sanitizeText(raw.description, 'Description', { maxLen: 2000 });
+    if (raw.category    !== undefined) updates.category    = sanitizeText(raw.category, 'Category', { maxLen: 60 });
+    if (raw.price       !== undefined) {
+      const p = parseFloat(raw.price);
+      if (!isFinite(p) || p <= 0 || p > 10_000_000) return res.status(400).json({ error: 'Invalid price' });
+      updates.price = p;
+    }
+    if (raw.stock !== undefined) {
+      const s = raw.stock === null ? null : parseInt(raw.stock);
+      if (s !== null && (!Number.isInteger(s) || s < 0)) return res.status(400).json({ error: 'Invalid stock value' });
+      updates.stock = s;
+    }
+    if (raw.is_available !== undefined) updates.is_available = !!raw.is_available;
+    if (raw.featured     !== undefined) updates.featured     = !!raw.featured;
+    if (raw.images       !== undefined) updates.images       = Array.isArray(raw.images) ? raw.images : [];
+    const { data, error } = await supabase.from('vendor_products').update(updates)
       .eq('id', id).eq('vendor_id', req.vendor.id).select().maybeSingle();
     if (error || !data) return res.status(404).json({ error: 'Product not found' });
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 const deleteProduct = async (req, res) => {
   try {
     await supabase.from('vendor_products').delete().eq('id', req.params.id).eq('vendor_id', req.vendor.id);
     res.json({ message: 'Product deleted' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 // ── Orders ───────────────────────────────────────────────────────────────────
@@ -142,7 +203,9 @@ const getOrders = async (req, res) => {
     if (status) q = q.eq('status', status);
     const { data } = await q;
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 const updateOrderStatus = async (req, res) => {
@@ -168,7 +231,9 @@ const updateOrderStatus = async (req, res) => {
       }}).catch(() => {});
     }
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 // ── Analytics ────────────────────────────────────────────────────────────────
@@ -201,7 +266,9 @@ const getAnalytics = async (req, res) => {
         status: s, count: allOrders.filter(o => o.status === s).length,
       })),
     });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 // ── Public storefront (no auth) ──────────────────────────────────────────────
@@ -221,14 +288,24 @@ const getPublicStore = async (req, res) => {
     (async () => { try { await supabase.from('vendor_store_views').insert({ vendor_id: vendor.id, path: `/c/${slug}` }); } catch (_) {} })();
 
     res.json({ vendor, products: products || [] });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 // ── Order placement (public, tied to card) ───────────────────────────────────
 const placeOrder = async (req, res) => {
   try {
     const { slug } = req.params;
-    const { items, customer_name, customer_email, customer_phone, delivery_address, card_slug, note } = req.body;
+    const { validateEmail, sanitizeName, sanitizePhone, sanitizeText } = require('../utils/sanitize');
+    const raw = req.body;
+    const customer_email = raw.customer_email ? validateEmail(raw.customer_email) : null;
+    const customer_name  = raw.customer_name ? sanitizeName(raw.customer_name, 'Customer name', { required: false, maxLen: 100 }) : null;
+    const customer_phone = raw.customer_phone ? sanitizePhone(raw.customer_phone) : null;
+    const delivery_address = raw.delivery_address ? sanitizeText(raw.delivery_address, 'Delivery address', { maxLen: 300 }) : null;
+    const note = raw.note ? sanitizeText(raw.note, 'Note', { maxLen: 500 }) : null;
+    const card_slug = raw.card_slug || null;
+    const items = raw.items;
 
     if (!items?.length || !customer_email) return res.status(400).json({ error: 'items and customer_email are required' });
 
@@ -304,7 +381,9 @@ const placeOrder = async (req, res) => {
     }
 
     res.json({ order_id: order.id, total, message: 'Order placed! You will receive a confirmation email.' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 
@@ -434,8 +513,12 @@ const checkoutOrder = async (req, res) => {
       total,
     });
   } catch (err) {
-    console.error('checkoutOrder error:', err.message);
-    res.status(500).json({ error: err.response?.data?.message || err.message });
+    console.error('checkoutOrder error:', err?.code || 'unknown');
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
+    res.status(500).json({ error: 'Vendor operation failed' });
   }
 };
 
@@ -453,7 +536,7 @@ const verifyVendorOrder = async (req, res) => {
       .eq('flw_reference', tx_ref).maybeSingle();
 
     if (orderLookupErr) {
-      console.error('verifyVendorOrder lookup error:', orderLookupErr.message);
+      console.error('verifyVendorOrder lookup error for ref:', txRef);
       return res.status(500).json({ error: 'Could not look up order. Please contact support.' });
     }
 
@@ -559,8 +642,12 @@ const verifyVendorOrder = async (req, res) => {
 
     res.json({ ok: true, order_id: order.id, status: 'confirmed', vendor_slug: order.vendors?.slug });
   } catch (err) {
-    console.error('verifyVendorOrder error:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('verifyVendorOrder error:', err?.code || err?.response?.status || 'unknown');
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
+    res.status(500).json({ error: 'Vendor operation failed' });
   }
 };
 
@@ -571,7 +658,9 @@ const uploadBannerImage = async (req, res) => {
     const { secure_url } = req.file;
     await supabase.from('vendors').update({ banner_url: secure_url, updated_at: new Date() }).eq('id', req.vendor.id);
     res.json({ url: secure_url });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 // ── Admin: vendor management ─────────────────────────────────────────────────
@@ -582,7 +671,9 @@ const adminListVendors = async (req, res) => {
     if (status) q = q.eq('status', status);
     const { data } = await q;
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 const adminUpdateVendorStatus = async (req, res) => {
@@ -596,7 +687,9 @@ const adminUpdateVendorStatus = async (req, res) => {
       await sendEmail({ to: vendor.email, template: 'vendorApproved', data: { name: vendor.business_name, dashUrl: `${FRONTEND_URL}/vendor/dashboard` }}).catch(() => {});
     }
     res.json({ message: `Vendor ${status}` });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 
@@ -613,7 +706,9 @@ const listPublicVendors = async (req, res) => {
     if (search)   q = q.ilike('business_name', `%${search}%`);
     const { data } = await q;
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 
@@ -623,7 +718,9 @@ const getVendorTickets = async (req, res) => {
     const { data } = await supabase.from('vendor_support_tickets')
       .select('*').eq('vendor_id', req.vendor.id).order('created_at', { ascending: false });
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 const createVendorTicket = async (req, res) => {
@@ -641,14 +738,21 @@ const createVendorTicket = async (req, res) => {
       data: { name: req.vendor.business_name, subject, message, type: 'Vendor', ticketId: data.id }
     }).catch(() => {});
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 // Password change
 const changeVendorPassword = async (req, res) => {
   try {
-    const { current_password, new_password } = req.body;
+    const { current_password } = req.body;
+    if (!current_password || !req.body.new_password)
+      return res.status(400).json({ error: 'Both current and new passwords are required' });
+    const { validatePassword, isSanitizeError } = require('../utils/sanitize');
+    const new_password = validatePassword(req.body.new_password, 'New password');
     const { data: vendor } = await supabase.from('vendors').select('password_hash').eq('id', req.vendor.id).maybeSingle();
+    if (!vendor) return res.status(404).json({ error: 'Account not found' });
     const valid = vendor?.password_hash?.startsWith('$argon2')
       ? await require('argon2').verify(vendor.password_hash, current_password)
       : await require('bcryptjs').compare(current_password, vendor.password_hash);
@@ -656,7 +760,9 @@ const changeVendorPassword = async (req, res) => {
     const newHash = await require('argon2').hash(new_password, { type: require('argon2').argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
     await supabase.from('vendors').update({ password_hash: newHash }).eq('id', req.vendor.id);
     res.json({ message: 'Password changed successfully' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 
@@ -669,7 +775,9 @@ const adminListOrders = async (req, res) => {
       .limit(200);
     const orders = (data || []).map(o => ({ ...o, vendor_name: o.vendors?.business_name }));
     res.json(orders);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 
@@ -713,7 +821,11 @@ const vendorVerifyEmail = async (req, res) => {
     res.json({ ok: true, message: 'Email verified! Your store is now active. You can log in to your dashboard.', vendor_id: vendor.id });
   } catch (err) {
     console.error('vendorVerifyEmail error:', err.message);
-    res.status(500).json({ error: err.message });
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
+    res.status(500).json({ error: 'Vendor operation failed' });
   }
 };
 
@@ -750,7 +862,11 @@ const adminResendVerification = async (req, res) => {
     res.json({ ok: true, message: `Verification email resent to ${vendor.email}` });
   } catch (err) {
     console.error('adminResendVerification error:', err.message);
-    res.status(500).json({ error: err.message });
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
+    res.status(500).json({ error: 'Vendor operation failed' });
   }
 };
 
@@ -784,7 +900,11 @@ const adminVerifyActivate = async (req, res) => {
     });
   } catch (err) {
     console.error('adminVerifyActivate error:', err.message);
-    res.status(500).json({ error: err.message });
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
+    res.status(500).json({ error: 'Vendor operation failed' });
   }
 };
 
@@ -796,7 +916,9 @@ const uploadProductImage = async (req, res) => {
       ? req.file.path
       : `${FRONTEND_URL}/uploads/${require('path').basename(req.file.path)}`;
     res.json({ url });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Vendor operation failed' }); }
 };
 
 module.exports = {

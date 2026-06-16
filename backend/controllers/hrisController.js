@@ -81,9 +81,9 @@ const ADAPTERS = {
   bamboohr: (emp) => ({
     ...(() => { debugFirstRecord("bamboohr", emp); return {}; })(),
     hris_employee_id: String(emp.id || emp.employeeId || ''),
-    first_name:       emp.firstName    || emp.first_name || '',
-    last_name:        emp.lastName     || emp.last_name  || '',
-    email:            (emp.workEmail   || emp.email      || '').toLowerCase().trim(),
+    first_name:       hrisSanitize(emp.firstName    || emp.first_name || '', 60),
+    last_name:        hrisSanitize(emp.lastName     || emp.last_name  || '', 60),
+    email:            (emp.workEmail   || emp.email      || '').toLowerCase().trim().slice(0, 254),
     department:       emp.department   || emp.Division   || 'General',
     job_title:        emp.jobTitle     || emp.position   || emp.job_title || '',
     role:             isLeaderTitle(emp.jobTitle || emp.position) ? 'team_leader' : 'team_member',
@@ -536,16 +536,17 @@ async function refreshZohoToken(connection) {
   });
   console.log('[zoho-refresh] domain:', domain.replace(/\/$/, ''));
   console.log('[zoho-refresh] client_id:', params.get('client_id'));
-  console.log('[zoho-refresh] client_secret (first 8):', (params.get('client_secret') || '').slice(0, 8));
-  console.log('[zoho-refresh] refresh_token (first 16):', (connection.refresh_token || '').slice(0, 16));
+  // client_secret intentionally not logged
+  // refresh_token intentionally not logged
   const r = await axios.post(
     `${domain.replace(/\/$/, '')}/oauth/v2/token`,
     params.toString(),
     { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 15000 }
   );
-  console.log('[zoho-refresh] response:', JSON.stringify(r.data));
+  // Token response logged at debug level only (redacted in production)
   if (!r.data.access_token) {
-    throw new Error(`Zoho token refresh failed: ${JSON.stringify(r.data)}`);
+    console.error('[zoho-refresh] failed:', JSON.stringify(r.data));
+    throw new Error('Zoho token refresh failed. Please reconnect your Zoho account.');
   }
   const tokenExpiresAt = new Date(Date.now() + (r.data.expires_in || 3600) * 1000);
   if (connection.id) {
@@ -1111,7 +1112,10 @@ const testConnection = async (req, res) => {
   } catch (err) {
     console.error(err.response?.data || err.message);
     await supabase.from('hris_connections').update({ is_verified: false }).eq('id', req.params.connectionId);
-    res.status(400).json({ error: `Connection test failed: ${err.response?.data?.message || err.message}` });
+    // Log full error server-side but return generic message to client
+    // (external API errors can contain internal URLs, tokens, or DB details)
+    console.error('[hris-test] connection error:', err.response?.data || err.message);
+    res.status(400).json({ error: 'Connection test failed. Check your credentials and try again.' });
   }
 };
 

@@ -1,4 +1,5 @@
 const supabase = require('../utils/supabase');
+const { safeError } = require('../utils/paramGuard');
 
 const getStats = async (req, res) => {
   try {
@@ -254,7 +255,7 @@ const setCompanyMultiplier = async (req, res) => {
     });
   } catch (err) {
     console.error('setCompanyMultiplier error:', err.message);
-    res.status(500).json({ error: err.message });
+    safeError(res, err, 'Admin operation failed');
   }
 };
 
@@ -338,7 +339,7 @@ const grantPilot = async (req, res) => {
     });
   } catch (err) {
     console.error('grantPilot error:', err.message);
-    res.status(500).json({ error: err.message });
+    safeError(res, err, 'Admin operation failed');
   }
 };
 
@@ -357,7 +358,7 @@ const listPalApplications = async (req, res) => {
       throw error;
     }
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { safeError(res, err, 'Admin operation failed'); }
 };
 
 // ── POST /api/admin/pals/:id/approve ──────────────────────────────────────────
@@ -390,7 +391,7 @@ const approvePalGroup = async (req, res) => {
     }).catch(() => {});
 
     res.json({ ok: true, message: `${group.group_name} approved and notified.` });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { safeError(res, err, 'Admin operation failed'); }
 };
 
 // ── POST /api/admin/pals/:id/reject ───────────────────────────────────────────
@@ -413,7 +414,7 @@ const rejectPalGroup = async (req, res) => {
     }).catch(() => {});
 
     res.json({ ok: true, message: `${group.group_name} rejected and notified.` });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { safeError(res, err, 'Admin operation failed'); }
 };
 
 module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, getAllCards, deleteCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot, listPalApplications, approvePalGroup, rejectPalGroup };

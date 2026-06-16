@@ -63,7 +63,7 @@ router.get('/my-history', userOrMemberAuth, async (req, res) => {
     res.json(data || []);
   } catch (err) {
     console.error('gift-card history error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Gift card operation failed' });
   }
 });
 

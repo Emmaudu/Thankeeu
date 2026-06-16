@@ -30,8 +30,10 @@ function estimateReadTime(content) {
 // GET /api/blog  — list published posts (with pagination + category filter)
 const getPosts = async (req, res) => {
   try {
-    const { category, tag, limit = 12, page = 1 } = req.query;
-    const offset = (Number(page) - 1) * Number(limit);
+    const { category, tag } = req.query;
+    const limit  = Math.min(Math.max(parseInt(req.query.limit) || 12, 1), 50);   // 1–50
+    const page   = Math.max(parseInt(req.query.page)  || 1, 1);                  // ≥1
+    const offset = (page - 1) * limit;
 
     let query = supabase
       .from('blog_posts')
@@ -39,7 +41,7 @@ const getPosts = async (req, res) => {
       .eq('status', 'published')
       .order('is_featured', { ascending: false })
       .order('published_at', { ascending: false })
-      .range(offset, offset + Number(limit) - 1);
+      .range(offset, offset + limit - 1);
 
     if (category && category !== 'all') query = query.eq('category', category);
     if (tag) query = query.contains('tags', [tag]);
@@ -47,7 +49,7 @@ const getPosts = async (req, res) => {
     const { data, error, count } = await query;
     if (error) throw error;
 
-    res.json({ posts: data || [], total: count || 0, page: Number(page), limit: Number(limit) });
+    res.json({ posts: data || [], total: count || 0, page, limit });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch posts' });
@@ -153,6 +155,16 @@ const adminCreatePost = async (req, res) => {
       meta_title, meta_description, og_image,
     } = req.body;
 
+    const { sanitizeText } = require('../utils/sanitize');
+    const cleanTitle   = title?.trim() ? sanitizeText(title,   'Title',   { required: true,  maxLen: 200 }) : null;
+    const cleanExcerpt = excerpt?.trim() ? sanitizeText(excerpt,'Excerpt', { required: false, maxLen: 500 }) : null;
+    if (!cleanTitle) return res.status(400).json({ error: 'Title is required' });
+    // Override with sanitized values
+    title   = cleanTitle;
+    excerpt = cleanExcerpt || excerpt;
+    // Cap content length — blog posts shouldn't exceed ~50,000 chars
+    if (content && content.length > 50000)
+      return res.status(400).json({ error: 'Content is too long (max 50,000 characters)' });
     if (!title?.trim())   return res.status(400).json({ error: 'Title is required' });
     if (!content?.trim()) return res.status(400).json({ error: 'Content is required' });
 
@@ -195,6 +207,11 @@ const adminCreatePost = async (req, res) => {
 // PUT /api/blog/admin/posts/:id — update post
 const adminUpdatePost = async (req, res) => {
   try {
+    const { sanitizeText } = require('../utils/sanitize');
+    if (req.body.title)   req.body.title   = sanitizeText(req.body.title,   'Title',   { required: true,  maxLen: 200 });
+    if (req.body.excerpt) req.body.excerpt = sanitizeText(req.body.excerpt, 'Excerpt', { required: false, maxLen: 500 });
+    if (req.body.content && req.body.content.length > 50000)
+      return res.status(400).json({ error: 'Content too long (max 50,000 characters)' });
     const { id } = req.params;
     const {
       title, content, excerpt, cover_image, cover_alt,

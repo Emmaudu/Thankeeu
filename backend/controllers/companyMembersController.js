@@ -1,5 +1,9 @@
 const bcrypt = require('bcryptjs');
 const argon2  = require('argon2');
+const {
+  validateEmail, validatePassword, sanitizeName, sanitizeDate,
+  validateUUID, isSanitizeError,
+} = require('../utils/sanitize');
 const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
 const verifyPassword = async (plain, stored) => {
   if (!stored) return false; // no password set yet (invite not completed) — don't throw
@@ -76,13 +80,23 @@ const validateDomain = async (memberEmail, companyId) => {
 // POST /api/members/signup
 const memberSignup = async (req, res) => {
   try {
-    const { company_code, first_name, last_name, email, password, role, department, profile_picture_url,
-            gender, resumption_date, date_of_birth } = req.body;
+    const raw = req.body;
 
-    if (!company_code) return res.status(400).json({ error: 'Company code is required' });
+    // ── Sanitize & validate ───────────────────────────────────────────────
+    const cleanCompanyCode = validateUUID(raw.company_code, 'Company code');
+    const cleanEmail       = validateEmail(raw.email);
+    const cleanPassword    = validatePassword(raw.password);
+    const cleanFirstName   = sanitizeName(raw.first_name, 'First name', { maxLen: 60 });
+    const cleanLastName    = sanitizeName(raw.last_name, 'Last name', { maxLen: 60 });
+    const cleanDOB         = sanitizeDate(raw.date_of_birth, 'Date of birth');
+    const cleanResumption  = sanitizeDate(raw.resumption_date, 'Resumption date', { allowFuture: true });
+    // gender: restrict to known values only
+    const rawGender = raw.gender ? String(raw.gender).toLowerCase().trim() : null;
+    const cleanGender = ['male','female','other'].includes(rawGender) ? rawGender : null;
+    // ─────────────────────────────────────────────────────────────────────
 
     // Find company by code (we use company ID as the code)
-    const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', company_code).maybeSingle();
+    const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', cleanCompanyCode).maybeSingle();
     if (!company) return res.status(404).json({ error: 'Company not found. Check your company code.' });
 
     // Check if employee was pre-imported by HR (skip domain validation for pre-seeded members)
@@ -90,59 +104,51 @@ const memberSignup = async (req, res) => {
       .from('company_members')
       .select('id, status')
       .eq('company_id', company.id)
-      .eq('email', email.toLowerCase().trim())
+      .eq('email', cleanEmail)
       .maybeSingle();
 
     // If not pre-imported, do domain validation as fallback
     if (!preImported) {
-      const domainOk = await validateDomain(email, company.id);
+      const domainOk = await validateDomain(cleanEmail, company.id);
       if (!domainOk) {
         const companyDomain = getDomain(company.email);
-        // Soft warning — allow if HR explicitly added them, block only unknown outsiders
-        // We warn but still check whether company allows open join
         const { data: companySettings } = await supabase
           .from('companies').select('allow_any_domain').eq('id', company.id).maybeSingle();
         if (!companySettings?.allow_any_domain) {
           return res.status(400).json({
-            error: `Your email must match your company domain (@${companyDomain}), or ask your HR to import your email first. Company code: ${company_code}`
+            error: `Your email must match your company domain (@${companyDomain}), or ask your HR to import your email first. Company code: ${cleanCompanyCode}`
           });
         }
       }
     }
 
-    const password_hash = await hashPassword(password, 12);
+    const password_hash = await hashPassword(cleanPassword, 12);
     let member, memberError;
 
-    // company_members is the single source of truth for occasion automation
-    // (date_of_birth, resumption_date, gender). HR-entered data (via the
-    // master template or HRIS) takes priority — if these fields are already
-    // filled in on a pre-imported record, don't overwrite them with what the
-    // employee enters at signup. Only fill in if currently empty.
     const fillGapSignup = (existingVal, newVal) => {
       const existingIsEmpty = existingVal === null || existingVal === undefined || existingVal === '';
       return existingIsEmpty ? (newVal || null) : existingVal;
     };
 
     if (preImported) {
-      // Fetch current values so we can fill-gaps-only
       const { data: preImportedFull } = await supabase
         .from('company_members')
         .select('date_of_birth, resumption_date, gender')
         .eq('id', preImported.id).maybeSingle();
 
       const occasionFields = {
-        gender:          fillGapSignup(preImportedFull?.gender,          gender),
-        resumption_date: fillGapSignup(preImportedFull?.resumption_date, resumption_date),
-        date_of_birth:   fillGapSignup(preImportedFull?.date_of_birth,   date_of_birth),
+        gender:          fillGapSignup(preImportedFull?.gender,          cleanGender),
+        resumption_date: fillGapSignup(preImportedFull?.resumption_date, cleanResumption),
+        date_of_birth:   fillGapSignup(preImportedFull?.date_of_birth,   cleanDOB),
       };
 
-      // Employee was pre-imported by HR — update their record with password + personal details
       if (preImported.status === 'approved') {
-        // Already approved (imported + approved by HR), just set password
         const { data: updated, error } = await supabase
           .from('company_members')
-          .update({ first_name, last_name, password_hash, department: department || undefined, profile_picture_url: profile_picture_url || null,
-            ...occasionFields })
+          .update({
+            first_name: cleanFirstName, last_name: cleanLastName,
+            password_hash, ...occasionFields,
+          })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
           .maybeSingle();
@@ -151,8 +157,10 @@ const memberSignup = async (req, res) => {
         // Pre-imported but not yet approved — update details, keep status as pending
         const { data: updated, error } = await supabase
           .from('company_members')
-          .update({ first_name, last_name, password_hash, role, department: department || undefined, profile_picture_url: profile_picture_url || null, status: 'pending',
-            ...occasionFields })
+          .update({
+            first_name: cleanFirstName, last_name: cleanLastName,
+            password_hash, status: 'pending', ...occasionFields,
+          })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
           .maybeSingle();
@@ -160,13 +168,17 @@ const memberSignup = async (req, res) => {
       }
     } else {
       // New employee — check not already registered with a password
-      const { data: existing } = await supabase.from('company_members').select('id, password_hash').eq('email', email.toLowerCase().trim()).eq('company_id', company.id).maybeSingle();
+      const { data: existing } = await supabase.from('company_members')
+        .select('id, password_hash').eq('email', cleanEmail).eq('company_id', company.id).maybeSingle();
       if (existing?.password_hash) return res.status(400).json({ error: 'Email already registered in this company' });
 
       const { data: inserted, error } = await supabase
         .from('company_members')
-        .insert({ company_id: company.id, first_name, last_name, email: email.toLowerCase().trim(), password_hash, role, department, profile_picture_url: profile_picture_url || null, status: 'pending',
-          gender: gender || null, resumption_date: resumption_date || null, date_of_birth: date_of_birth || null })
+        .insert({
+          company_id: company.id, first_name: cleanFirstName, last_name: cleanLastName,
+          email: cleanEmail, password_hash, status: 'pending',
+          gender: cleanGender, resumption_date: cleanResumption, date_of_birth: cleanDOB,
+        })
         .select('id, first_name, last_name, email, role, department, status, company_id')
         .maybeSingle();
       member = inserted; memberError = error;
@@ -177,29 +189,13 @@ const memberSignup = async (req, res) => {
     const { data: hrCompany } = await supabase.from('companies').select('email, name, contact_person').eq('id', company.id).maybeSingle();
     await sendEmail({ to: hrCompany.email, template: 'memberJoinRequest', data: {
       companyName: hrCompany.name, hrName: hrCompany.contact_person,
-      memberName: `${first_name} ${last_name}`, memberEmail: email,
-      role, department, companyId: company.id
+      memberName: `${cleanFirstName} ${cleanLastName}`, memberEmail: cleanEmail,
+      companyId: company.id,
     }});
-
-    // If team member, also notify the department's team leader
-    if (role === 'team_member') {
-      const { data: leaders } = await supabase.from('company_members')
-        .select('email, first_name')
-        .eq('company_id', company.id)
-        .eq('department', department)
-        .eq('role', 'team_leader')
-        .eq('status', 'approved');
-      for (const leader of (leaders || [])) {
-        await sendEmail({ to: leader.email, template: 'memberJoinRequest', data: {
-          companyName: company.name, hrName: leader.first_name,
-          memberName: `${first_name} ${last_name}`, memberEmail: email,
-          role, department, companyId: company.id, isLeader: true
-        }});
-      }
-    }
 
     res.status(201).json({ message: 'Account created. Awaiting approval.', member });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error(err);
     res.status(500).json({ error: 'Signup failed' });
   }
@@ -208,18 +204,17 @@ const memberSignup = async (req, res) => {
 // POST /api/members/login
 const memberLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password)
-      return res.status(400).json({ error: 'Email and password are required' });
+    const cleanEmail    = validateEmail(req.body.email);
+    const cleanPassword = validatePassword(req.body.password);
 
     const { data: member } = await supabase.from('company_members')
-      .select('*').eq('email', email.toLowerCase().trim()).maybeSingle();
+      .select('*').eq('email', cleanEmail).maybeSingle();
     if (!member) return res.status(401).json({ error: 'Invalid email or password' });
     if (member.status === 'pending') return res.status(403).json({ error: 'Your account is pending approval. You will be notified by email.' });
     if (member.status === 'rejected') return res.status(403).json({ error: 'Your account was not approved. Contact your HR.' });
     if (!member.password_hash) return res.status(403).json({ error: 'Please check your email for an invite link to set up your password first.' });
 
-    const valid = await verifyPassword(password, member.password_hash);
+    const valid = await verifyPassword(cleanPassword, member.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
 
     // Get company info
@@ -229,6 +224,7 @@ const memberLogin = async (req, res) => {
     setCookie(res, 'tk_member', token);
     res.json({token, member: { ...safeMember, company } });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     res.status(500).json({ error: 'Login failed' });
   }
 };
@@ -244,6 +240,10 @@ const getMemberMe = async (req, res) => {
     const { data: company } = await supabase.from('companies').select('id, name, email, logo_url').eq('id', member.company_id).maybeSingle();
     res.json({ ...member, company });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to fetch member' });
   }
 };
@@ -278,6 +278,10 @@ const getPendingMembers = async (req, res) => {
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to fetch members' });
   }
 };
@@ -295,6 +299,10 @@ const getDeptPendingMembers = async (req, res) => {
     if (error) throw error;
     res.json(data || []);
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to fetch pending members' });
   }
 };
@@ -343,6 +351,10 @@ const approveMember = async (req, res) => {
 
     res.json({ message: `${member.first_name} has been approved` });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Approval failed' });
   }
 };
@@ -377,6 +389,10 @@ const rejectMember = async (req, res) => {
 
     res.json({ message: 'Member rejected' });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Rejection failed' });
   }
 };
@@ -491,6 +507,10 @@ const getMemberDashboard = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to load dashboard' });
   }
 };
@@ -498,8 +518,11 @@ const getMemberDashboard = async (req, res) => {
 // POST /api/members/forgot-password
 const memberForgotPassword = async (req, res) => {
   try {
-    const { email } = req.body;
-    const { data: member } = await supabase.from('company_members').select('id, first_name').eq('email', (email || '').toLowerCase().trim()).maybeSingle();
+    let cleanEmail;
+    try { cleanEmail = validateEmail(req.body.email); }
+    catch { return res.json({ message: 'If that email exists, a reset link has been sent' }); }
+
+    const { data: member } = await supabase.from('company_members').select('id, first_name').eq('email', cleanEmail).maybeSingle();
     if (!member) return res.json({ message: 'If that email exists, a reset link has been sent' });
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -507,9 +530,13 @@ const memberForgotPassword = async (req, res) => {
       reset_token: token, reset_token_expires: new Date(Date.now() + 3600000)
     }).eq('id', member.id);
 
-    await sendEmail({ to: email, template: 'memberPasswordReset', data: { token, name: member.first_name } });
+    await sendEmail({ to: cleanEmail, template: 'memberPasswordReset', data: { token, name: member.first_name } });
     res.json({ message: 'If that email exists, a reset link has been sent' });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Server error' });
   }
 };
@@ -517,10 +544,13 @@ const memberForgotPassword = async (req, res) => {
 // POST /api/members/reset-password
 const memberResetPassword = async (req, res) => {
   try {
-    const { token, password } = req.body;
-    if (!token) return res.status(400).json({ error: 'Token is required' });
-    if (!password || password.length < 8)
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    const { token } = req.body;
+    if (!token || typeof token !== 'string' || token.length > 200)
+      return res.status(400).json({ error: 'Invalid reset token' });
+
+    let cleanPassword;
+    try { cleanPassword = validatePassword(req.body.password); }
+    catch (e) { return res.status(400).json({ error: e.error || 'Invalid password' }); }
 
     // Check reset_token first (from forgot-password flow, expires in 1hr)
     let member = null;
@@ -568,7 +598,7 @@ const memberResetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Invalid reset link. It may have already been used. Please request a new one.' });
     }
 
-    const password_hash = await hashPassword(password, 12);
+    const password_hash = await hashPassword(cleanPassword, 12);
 
     if (tokenType === 'reset') {
       const { error: upErr } = await supabase.from('company_members')
@@ -586,6 +616,10 @@ const memberResetPassword = async (req, res) => {
     res.json({ message: 'Password set successfully! You can now sign in.' });
   } catch (err) {
     console.error('memberResetPassword error:', err.message);
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Server error. Please try again.' });
   }
 };
@@ -593,7 +627,24 @@ const memberResetPassword = async (req, res) => {
 // PUT /api/members/profile — update member profile
 const updateMemberProfile = async (req, res) => {
   try {
-    const { first_name, last_name, phone, profile_picture_url, username, job_title, bio, date_of_birth } = req.body;
+    const { sanitizeName, sanitizeDate, sanitizePhone, sanitizeText, isSanitizeError } = require('../utils/sanitize');
+    const raw = req.body;
+
+    // Sanitize all user-supplied fields before touching the DB
+    const cleanFirstName = raw.first_name !== undefined
+      ? sanitizeName(raw.first_name, 'First name', { required: false, maxLen: 60 }) : undefined;
+    const cleanLastName  = raw.last_name  !== undefined
+      ? sanitizeName(raw.last_name,  'Last name',  { required: false, maxLen: 60 }) : undefined;
+    const cleanPhone     = raw.phone      !== undefined
+      ? sanitizePhone(raw.phone) : undefined;
+    const cleanDOB       = raw.date_of_birth !== undefined
+      ? sanitizeDate(raw.date_of_birth, 'Date of birth') : undefined;
+    const cleanJobTitle  = raw.job_title  !== undefined
+      ? sanitizeText(raw.job_title,  'Job title',  { maxLen: 100 }) : undefined;
+    const cleanBio       = raw.bio        !== undefined
+      ? sanitizeText(raw.bio,        'Bio',        { maxLen: 500 }) : undefined;
+
+    const { username, profile_picture_url } = raw;
 
     // Validate username uniqueness if provided
     if (username && username.trim()) {
@@ -608,17 +659,17 @@ const updateMemberProfile = async (req, res) => {
 
     // Build update — only include defined fields
     const updateData = { updated_at: new Date() };
-    if (first_name !== undefined) updateData.first_name = first_name;
-    if (last_name  !== undefined) updateData.last_name  = last_name;
-    if (phone      !== undefined) updateData.phone      = phone;
+    if (cleanFirstName !== undefined) updateData.first_name = cleanFirstName;
+    if (cleanLastName  !== undefined) updateData.last_name  = cleanLastName;
+    if (cleanPhone     !== undefined) updateData.phone      = cleanPhone;
     if (profile_picture_url !== undefined) updateData.profile_picture_url = profile_picture_url;
     if (username !== undefined) updateData.username = username?.toLowerCase().trim() || null;
 
     // These columns may not exist yet — try with them, fall back without if schema error
     const extendedData = { ...updateData };
-    if (job_title    !== undefined) extendedData.job_title    = job_title;
-    if (bio          !== undefined) extendedData.bio          = bio;
-    if (date_of_birth !== undefined) extendedData.date_of_birth = date_of_birth || null;
+    if (cleanJobTitle !== undefined) extendedData.job_title    = cleanJobTitle;
+    if (cleanBio      !== undefined) extendedData.bio          = cleanBio;
+    if (cleanDOB      !== undefined) extendedData.date_of_birth = cleanDOB || null;
 
     let data, error;
 
@@ -644,17 +695,21 @@ const updateMemberProfile = async (req, res) => {
     if (error) throw error;
     res.json(data);
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('Profile update error:', err);
-    res.status(500).json({ error: 'Failed to update profile. ' + (err.message || '') });
+    res.status(500).json({ error: 'Failed to update profile.' });
   }
 };
 
 // PUT /api/members/password — change member password
 const changeMemberPassword = async (req, res) => {
   try {
-    const { current_password, new_password } = req.body;
-    if (!current_password || !new_password) return res.status(400).json({ error: 'Both passwords are required' });
-    if (new_password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    const { current_password } = req.body;
+    if (!current_password || !req.body.new_password)
+      return res.status(400).json({ error: 'Both passwords are required' });
+    const { validatePassword } = require('../utils/sanitize');
+    const new_password = validatePassword(req.body.new_password, 'New password');
 
     const { data: member } = await supabase
       .from('company_members')
@@ -669,6 +724,10 @@ const changeMemberPassword = async (req, res) => {
     await supabase.from('company_members').update({ password_hash }).eq('id', req.member.id);
     res.json({ message: 'Password changed successfully' });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to change password' });
   }
 };
@@ -688,7 +747,9 @@ const getMemberMyCards = async (req, res) => {
       .order('created_at', { ascending: false });
     if (error) throw error;
     res.json((data || []).map(c => ({ ...c, signed_count: c.messages?.[0]?.count || 0, messages: undefined })));
-  } catch (err) { res.status(500).json({ error: 'Failed to load cards' }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Failed to load cards' }); }
 };
 
 // GET /api/members/pending-to-sign — active dept/company cards not yet signed by this member
@@ -716,7 +777,9 @@ const getMemberPendingToSign = async (req, res) => {
     const signedCardIds = new Set((signed || []).map(s => s.card_id));
     const pending = cards.filter(c => !signedCardIds.has(c.id));
     res.json(pending);
-  } catch (err) { res.status(500).json({ error: 'Failed to load pending cards' }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Failed to load pending cards' }); }
 };
 
 // GET /api/members/received — cards transferred to this member
@@ -732,7 +795,9 @@ const getMemberReceivedCards = async (req, res) => {
       ...r,
       card: r.card ? { ...r.card, signed_count: r.card.messages?.[0]?.count || 0, messages: undefined } : null
     })));
-  } catch (err) { res.status(500).json({ error: 'Failed to load received cards' }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Failed to load received cards' }); }
 };
 
 // POST /api/members/transfer-card — transfer a card to another team member
@@ -773,6 +838,10 @@ const transferCardToMember = async (req, res) => {
     res.json({ message: `Card transferred to @${recipient_username} (${recipient.first_name} ${recipient.last_name}) ✓` });
   } catch (err) {
     console.error(err);
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to transfer card' });
   }
 };
@@ -787,7 +856,9 @@ const getMemberReminders = async (req, res) => {
       .order('occasion_date', { ascending: true });
     if (error) throw error;
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: 'Failed to load reminders' }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Failed to load reminders' }); }
 };
 
 // POST /api/members/reminders — create reminder
@@ -801,7 +872,9 @@ const createMemberReminder = async (req, res) => {
       .select().maybeSingle();
     if (error) throw error;
     res.status(201).json(data);
-  } catch (err) { res.status(500).json({ error: 'Failed to create reminder' }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Failed to create reminder' }); }
 };
 
 // DELETE /api/members/reminders/:id
@@ -809,7 +882,9 @@ const deleteMemberReminder = async (req, res) => {
   try {
     await supabase.from('member_reminders').delete().eq('id', req.params.id).eq('member_id', req.member.id);
     res.json({ message: 'Reminder deleted' });
-  } catch (err) { res.status(500).json({ error: 'Failed to delete reminder' }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Failed to delete reminder' }); }
 };
 
 // GET /api/members/finances — financial history for this member
@@ -864,6 +939,10 @@ const getMemberFinances = async (req, res) => {
     });
   } catch (err) {
     console.error('getMemberFinances error:', err);
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Failed to load financial history' });
   }
 };

@@ -40,6 +40,16 @@ app.use(helmet({
   },
   crossOriginEmbedderPolicy: false,
 }));
+
+// Additional security headers not covered by helmet defaults
+const {
+  securityHeaders,
+  publicCardLimiter,
+  paymentVerifyLimiter,
+  bankVerifyLimiter,
+  signCardLimiter,
+} = require('./utils/paramGuard');
+app.use(securityHeaders);
 app.use(cookieParser(process.env.COOKIE_SECRET || process.env.JWT_SECRET));
 app.use(cors({
   origin: (origin, callback) => {
@@ -79,7 +89,8 @@ app.use((req, _res, next) => {
 app.use('/webhook', require('./routes/webhook'));
 
 // Body parsing (all other routes)
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '1mb' }));   // 1mb is plenty for JSON APIs
+// Note: file uploads use multipart/form-data (multer), not JSON body — unaffected
 
 // ── Startup env validation ────────────────────────────────────────────────────
 const _rawEnvFE = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
@@ -150,15 +161,27 @@ app.use('/api/members/reset-password',      authLimiter);
 app.use('/api/vendor/login',                authLimiter);
 app.use('/api/vendor/signup',               authLimiter);
 app.use('/api/pals/forgot-password',        authLimiter);
+app.use('/api/pals/reset-password',         authLimiter);
+app.use('/api/vendor/forgot-password',      authLimiter);
+app.use('/api/vendor/reset-password',       authLimiter);
+app.use('/api/company/reset-password',      authLimiter);
 app.use('/api/demo/request',         demoLimiter);
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/dashboard', require('./routes/dashboard'));
+// Card public route gets its own tighter rate limit to prevent slug enumeration
+app.use('/api/cards/public', publicCardLimiter);
 app.use('/api/cards', require('./routes/cards'));
+// Message signing has its own per-IP+slug rate limit
+app.use('/api/messages', signCardLimiter);
 app.use('/api/messages', require('./routes/messages'));
+// Payment verification is a high-value target — tight limit
+app.use('/api/payments/verify', paymentVerifyLimiter);
 app.use('/api/payments', require('./routes/payments'));
 app.use('/api/notifications', require('./routes/notifications'));
+// Bank account verification is a lookup that could be abused to enumerate accounts
+app.use('/api/banks/verify-account', bankVerifyLimiter);
 app.use('/api/banks',     require('./routes/banks'));
 app.use('/api/giftcards', require('./routes/giftcards'));
 app.use('/api/gifs',      require('./routes/gifs'));
@@ -198,10 +221,38 @@ if (fs.existsSync(uploadsDir)) {
 // 404
 app.use('*', (req, res) => res.status(404).json({ error: 'Route not found' }));
 
-// Error handler
+// ── Global error handler ───────────────────────────────────────────────────
+// This is the final safety net for any unhandled errors that reach here via
+// next(err). Individual controllers that catch their own errors and call
+// res.status(500).json({ error: err.message }) still leak — see paramGuard.js
+// safeError() for the per-controller fix. This handler covers anything that
+// falls through (e.g. middleware errors, unhandled promise rejections that
+// Express catches for async route handlers in Express 5 / with express-async-errors).
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Internal server error' });
+  // Always log full details server-side (Railway logs, not visible to attacker)
+  console.error('[GlobalErrorHandler]', {
+    method:  req.method,
+    path:    req.path,
+    message: err?.message,
+    code:    err?.code,
+    stack:   err?.stack?.split('\n').slice(0, 5).join(' | '),
+  });
+
+  // Map known Supabase/Postgres error codes to safe messages
+  const code = err?.code;
+  if (code === '23505') return res.status(409).json({ error: 'This record already exists.' });
+  if (code === '23503') return res.status(400).json({ error: 'Related record not found.' });
+  if (code === '23502') return res.status(400).json({ error: 'A required field is missing.' });
+  if (code === 'PGRST116') return res.status(404).json({ error: 'Record not found.' });
+
+  // HTTP errors with safe messages — only expose if explicitly marked safe
+  // Never expose err.message for 5xx errors or errors without expose flag
+  if (err?.status && err?.status >= 400 && err?.status < 500 && err?.expose && typeof err?.message === 'string' && err.message.length < 200) {
+    return res.status(err.status).json({ error: err.message });
+  }
+
+  // Everything else: generic message — never expose err.message to client
+  res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
 // CRON: Auto-send cards on scheduled date + send reminders 2 days before deadline

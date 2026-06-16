@@ -1,5 +1,6 @@
 const supabase  = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
+const { safeError } = require('../utils/paramGuard');
 const { logActivity } = require('../utils/activityLog');
 const crypto    = require('crypto');
 const bcrypt    = require('bcryptjs');
@@ -20,7 +21,7 @@ const getCoreTeam = async (req, res) => {
       .order('invited_at', { ascending: false });
     if (error) throw error;
     res.json(data || []);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { safeError(res, err, 'Operation failed'); }
 };
 
 // POST /api/company/core-team/invite — invite one by email
@@ -133,7 +134,7 @@ const inviteCoreMember = async (req, res) => {
     }).catch(() => {});
   } catch (err) {
     console.error('inviteCoreMember error:', err);
-    res.status(500).json({ error: err.message || 'Failed to send invitation' });
+    safeError(res, err, 'Failed to send invitation');
   }
 };
 
@@ -168,7 +169,7 @@ const bulkInviteCoreTeam = async (req, res) => {
       details:     { sent: results.sent, failed: results.failed },
     }).catch(() => {});
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    safeError(res, err, 'Operation failed');
   }
 };
 
@@ -249,7 +250,7 @@ const removeCoreMember = async (req, res) => {
     }).catch(() => {});
 
     res.json({ message: 'Removed from core team' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { safeError(res, err, 'Operation failed'); }
 };
 
 // PATCH /api/company/core-team/:id
@@ -267,7 +268,7 @@ const updateCoreMember = async (req, res) => {
       .select().maybeSingle();
     if (error) throw error;
     res.json(data);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { safeError(res, err, 'Operation failed'); }
 };
 
 module.exports = { getCoreTeam, inviteCoreMember, bulkInviteCoreTeam, removeCoreMember, updateCoreMember };

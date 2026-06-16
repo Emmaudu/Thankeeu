@@ -78,8 +78,18 @@ const getOccasionTypes = async (req, res) => {
 // POST /api/occasions — create custom occasion type
 const createOccasionType = async (req, res) => {
   try {
-    const { name, label, icon, notify_days_before, gender_filter, default_scope } = req.body;
-    const { data, error } = await supabase
+    const { gender_filter, default_scope } = req.body;
+    const { sanitizeText } = require('../utils/sanitize');
+    const name   = req.body.name  ? sanitizeText(req.body.name,  'Name',  { required: true, maxLen: 60 }) : null;
+    const label  = req.body.label ? sanitizeText(req.body.label, 'Label', { required: true, maxLen: 80 }) : null;
+    const icon   = req.body.icon  ? sanitizeText(req.body.icon,  'Icon',  { maxLen: 10  }) : '🎉';
+    const notify_days_before = req.body.notify_days_before != null ? parseInt(req.body.notify_days_before) : 7;
+    if (!name || !label) return res.status(400).json({ error: 'Name and label are required' });
+    if (!Number.isInteger(notify_days_before) || notify_days_before < 1 || notify_days_before > 60)
+      return res.status(400).json({ error: 'notify_days_before must be between 1 and 60' });
+    const { data, error } = await supabase.from('occasion_types')
+      .insert({ company_id: req.company.id, name, label, icon, notify_days_before, gender_filter, default_scope: default_scope || 'department' })
+
       .from('occasion_types')
       .insert({ company_id: req.company.id, name, label, icon: icon || '🎉', notify_days_before: notify_days_before || 7, gender_filter, default_scope: default_scope || 'department' })
       .select().maybeSingle();
@@ -620,7 +630,7 @@ const downloadGeneralTemplate = (req, res) => {
   res.send(buf);
   } catch (err) {
     console.error('downloadGeneralTemplate error:', err.message);
-    if (!res.headersSent) res.status(500).json({ error: 'Template generation failed: ' + err.message });
+    if (!res.headersSent) res.status(500).json({ error: 'Template generation failed. Please try again.' });
   }
 };
 // POST /api/occasions/import-general — import master template → all occasion tables
@@ -882,7 +892,7 @@ const importGeneralTemplate = async (req, res) => {
     });
   } catch (err) {
     console.error('importGeneralTemplate error:', err);
-    res.status(500).json({ error: `Import failed: ${err.message}` });
+    res.status(500).json({ error: 'Occasion operation failed' });
   }
 };
 // PUT /api/occasions/:occasionTypeId/scope — update notification scope for a whole table
@@ -1026,7 +1036,7 @@ const triggerOccasionNow = async (req, res) => {
     res.json({ message: `Card created and ${sent} colleagues notified to sign. Card will be delivered in 5 days.`, card_slug: slug, sent });
   } catch (err) {
     console.error('triggerOccasionNow:', err);
-    res.status(500).json({ error: err.message || 'Trigger failed' });
+    res.status(500).json({ error: 'Occasion operation failed' });
   }
 };
 
@@ -1247,7 +1257,7 @@ const importByOccasionName = async (req, res) => {
     }).catch(() => {});
   } catch(err) {
     console.error('importByOccasionName error:', err);
-    res.status(500).json({ error: `Import failed: ${err.message}` });
+    res.status(500).json({ error: 'Occasion operation failed' });
   }
 };
 

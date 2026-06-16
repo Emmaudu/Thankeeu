@@ -1,3 +1,4 @@
+const { validateUUIDParam } = require('../utils/paramGuard');
 const express = require('express');
 const router  = express.Router();
 const jwt     = require('jsonwebtoken');
@@ -30,6 +31,6 @@ const flexAuth = async (req, res, next) => {
 router.get('/',           flexAuth, getNotifications);
 router.get('/count',      flexAuth, getUnreadCount);
 router.post('/mark-read', flexAuth, markAllRead);
-router.post('/:id/read',  flexAuth, markOneRead);
+router.post('/:id/read', validateUUIDParam('id'),  flexAuth, markOneRead);
 
 module.exports = router;

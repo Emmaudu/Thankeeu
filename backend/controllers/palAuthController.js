@@ -4,6 +4,9 @@ const crypto   = require('crypto');
 const argon2   = require('argon2');
 const bcrypt   = require('bcryptjs');
 const { sendEmail } = require('../utils/email');
+const {
+  validateEmail, validatePassword, sanitizeUsername, sanitizeText, isSanitizeError,
+} = require('../utils/sanitize');
 
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
@@ -26,34 +29,35 @@ const generatePalToken = (palGroupId, palMemberId = null) =>
 // ── POST /api/pals/signup — apply to create a Pals group ────────────────────
 const palSignup = async (req, res) => {
   try {
-    const { group_name, group_username, email, password, confirm_password, group_size, description } = req.body;
+    const raw = req.body;
 
-    if (!group_name || !group_username || !email || !password || !confirm_password)
-      return res.status(400).json({ error: 'All required fields must be filled' });
-    if (password !== confirm_password)
+    // ── Sanitize & validate ───────────────────────────────────────────────
+    const cleanEmail       = validateEmail(raw.email);
+    const cleanPassword    = validatePassword(raw.password);
+    const cleanConfirm     = validatePassword(raw.confirm_password, 'Confirm password');
+    const cleanGroupName   = sanitizeText(raw.group_name, 'Group name', { required: true, maxLen: 100 });
+    const cleanUsername    = sanitizeUsername(raw.group_username, 'Group username', { minLen: 3, maxLen: 30 });
+    const cleanDescription = sanitizeText(raw.description, 'Description', { maxLen: 500 });
+    // ─────────────────────────────────────────────────────────────────────
+
+    if (cleanPassword !== cleanConfirm)
       return res.status(400).json({ error: 'Passwords do not match' });
-    if (password.length < 8)
-      return res.status(400).json({ error: 'Password must be at least 8 characters' });
-    if (!/^[a-zA-Z0-9_]+$/.test(group_username.trim()))
-      return res.status(400).json({ error: 'Group username can only contain letters, numbers and underscores' });
 
-    const size = Math.min(15, Math.max(2, Number(group_size) || 15));
-    const cleanUsername = group_username.trim().toLowerCase();
-    const cleanEmail    = email.toLowerCase().trim();
+    const size = Math.min(15, Math.max(2, Number(raw.group_size) || 15));
 
     const { data: existing } = await supabase.from('pal_groups').select('id').eq('group_username', cleanUsername).maybeSingle();
     if (existing) return res.status(400).json({ error: 'That group username is already taken' });
 
-    const password_hash = await hashPassword(password);
+    const password_hash = await argon2.hash(cleanPassword, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
 
     const { data: group, error } = await supabase.from('pal_groups').insert({
-      group_name: group_name.trim(),
+      group_name:     cleanGroupName,
       group_username: cleanUsername,
-      email: cleanEmail,
+      email:          cleanEmail,
       password_hash,
-      group_size: size,
-      description: description?.trim() || null,
-      status: 'pending',
+      group_size:     size,
+      description:    cleanDescription,
+      status:         'pending',
     }).select('id, group_name, group_username').maybeSingle();
 
     if (error) {
@@ -65,11 +69,12 @@ const palSignup = async (req, res) => {
     sendEmail({
       to: process.env.ADMIN_EMAIL || 'admin@thankeeu.com',
       template: 'palApplicationReceived',
-      data: { groupName: group.group_name, groupUsername: group.group_username, email: cleanEmail, size, description, adminUrl: `${FRONTEND_URL}/admin?tab=pals` },
+      data: { groupName: group.group_name, groupUsername: group.group_username, email: cleanEmail, size, description: cleanDescription, adminUrl: `${FRONTEND_URL}/admin?tab=pals` },
     }).catch(() => {});
 
     res.json({ message: 'Application submitted! We will review it within 24 hours and email you the outcome.' });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('palSignup error:', err.message);
     res.status(500).json({ error: 'Signup failed. Please try again.' });
   }
@@ -92,6 +97,10 @@ const palVerifyEmail = async (req, res) => {
 
     res.json({ message: 'Email verified! You can now log in to your Pals dashboard.', group_username: group.group_username });
   } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+
     res.status(500).json({ error: 'Verification failed' });
   }
 };
@@ -99,10 +108,9 @@ const palVerifyEmail = async (req, res) => {
 // ── POST /api/pals/login — group_username + ANY member's password ───────────
 const palLogin = async (req, res) => {
   try {
-    const { group_username, password } = req.body;
-    if (!group_username || !password) return res.status(400).json({ error: 'Username and password are required' });
+    const cleanUsername = sanitizeUsername(req.body.group_username, 'Group username');
+    const cleanPassword = validatePassword(req.body.password);
 
-    const cleanUsername = group_username.trim().toLowerCase();
     const { data: group } = await supabase.from('pal_groups')
       .select('*').eq('group_username', cleanUsername).maybeSingle();
 
@@ -111,7 +119,7 @@ const palLogin = async (req, res) => {
     if (!group.is_verified) return res.status(403).json({ error: 'Please verify your email first — check your inbox for the verification link' });
 
     // 1. Try group owner password
-    if (await verifyPassword(password, group.password_hash)) {
+    if (await verifyPassword(cleanPassword, group.password_hash)) {
       const token = generatePalToken(group.id, null);
       return res.json({
         token,
@@ -125,7 +133,7 @@ const palLogin = async (req, res) => {
       .select('id, name, email, password_hash, status').eq('pal_group_id', group.id).eq('status', 'joined');
 
     for (const m of (members || [])) {
-      if (await verifyPassword(password, m.password_hash)) {
+      if (await verifyPassword(cleanPassword, m.password_hash)) {
         const token = generatePalToken(group.id, m.id);
         return res.json({
           token,
@@ -137,6 +145,7 @@ const palLogin = async (req, res) => {
 
     return res.status(401).json({ error: 'Invalid username or password' });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('palLogin error:', err.message);
     res.status(500).json({ error: 'Login failed' });
   }
@@ -150,17 +159,23 @@ const palMe = async (req, res) => {
 // ── POST /api/pals/accept-invite — invited member sets their own password ───
 const acceptInvite = async (req, res) => {
   try {
-    const { token, password, confirm_password } = req.body;
-    if (!token || !password || !confirm_password) return res.status(400).json({ error: 'All fields are required' });
-    if (password !== confirm_password) return res.status(400).json({ error: 'Passwords do not match' });
-    if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    const { token, confirm_password } = req.body;
+
+    let cleanPassword;
+    try { cleanPassword = validatePassword(req.body.password); }
+    catch (e) { return res.status(400).json({ error: e.error || 'Invalid password' }); }
+
+    if (!token || typeof token !== 'string' || token.length > 200)
+      return res.status(400).json({ error: 'Invalid invite token' });
+    if (!confirm_password) return res.status(400).json({ error: 'Please confirm your password' });
+    if (cleanPassword !== confirm_password) return res.status(400).json({ error: 'Passwords do not match' });
 
     const { data: member } = await supabase.from('pal_members')
-      .select('id, pal_group_id, name, email, status').eq('invite_token', token).maybeSingle();
+      .select('id, pal_group_id, name, email, status').eq('invite_token', token.trim()).maybeSingle();
 
     if (!member) return res.status(400).json({ error: 'Invalid or expired invite link' });
 
-    const password_hash = await hashPassword(password);
+    const password_hash = await argon2.hash(cleanPassword, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
     await supabase.from('pal_members').update({ password_hash, status: 'joined', invite_token: null }).eq('id', member.id);
 
     const { data: group } = await supabase.from('pal_groups').select('id, group_name, group_username, logo_url, group_size').eq('id', member.pal_group_id).maybeSingle();
@@ -173,6 +188,7 @@ const acceptInvite = async (req, res) => {
       member: { id: member.id, name: member.name, email: member.email },
     });
   } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('acceptInvite error:', err.message);
     res.status(500).json({ error: 'Failed to join group' });
   }
@@ -196,7 +212,9 @@ const previewInvite = async (req, res) => {
       logo_url: member.pal_groups?.logo_url,
       description: member.pal_groups?.description,
     });
-  } catch (err) { res.status(500).json({ error: 'Failed to load invite' }); }
+  } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
+ if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+ res.status(500).json({ error: 'Failed to load invite' }); }
 };
 
 module.exports = {

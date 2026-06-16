@@ -763,6 +763,37 @@ const Admin = () => {
                       {co.pricing_multiplier > 0 && <p className="text-xs text-primary-600 font-semibold mt-1">✓ Currently ₦{co.pricing_multiplier?.toLocaleString('en-NG')}/employee/month</p>}
                     </div>
 
+                    {/* ── Delete Company ───────────────────────────────── */}
+                    <div className="bg-white border border-red-100 rounded-xl p-4">
+                      <p className="text-xs font-bold text-red-700 mb-1">🗑️ Delete company account</p>
+                      <p className="text-xs text-warm-400 mb-3">
+                        Permanently deletes the company and ALL associated data — team members,
+                        cards, occasions, subscriptions, HRIS connections. This cannot be undone.
+                        HR can then re-register with the same email without duplicate issues.
+                      </p>
+                      <button
+                        onClick={async () => {
+                          const confirm1 = window.confirm(`⚠️ Delete "${co.name}"?\n\nThis will permanently remove:\n• All team members\n• All cards and messages\n• All occasion settings\n• All subscriptions and HRIS connections\n\nHR can re-register afterwards with the same email.\n\nType the company name to confirm in the next prompt.`);
+                          if (!confirm1) return;
+                          const typed = window.prompt(`Type the company name exactly to confirm deletion:\n\n"${co.name}"`);
+                          if (typed !== co.name) { toast.error('Company name did not match — deletion cancelled.'); return; }
+                          try {
+                            const r = await fetch(`${import.meta.env.VITE_API_URL||'/api'}/admin/companies/${co.id}`, {
+                              method: 'DELETE',
+                              headers: { Authorization: `Bearer ${localStorage.getItem('thankeeu_token')}` },
+                            });
+                            const d = await r.json();
+                            if (!r.ok) throw new Error(d.error);
+                            toast.success(d.message);
+                            setCompanies(prev => prev.filter(c => c.id !== co.id));
+                            setOpenCompany(null);
+                          } catch(e) { toast.error(e.message || 'Failed to delete company'); }
+                        }}
+                        className="text-xs font-bold bg-red-50 border border-red-200 text-red-600 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors">
+                        🗑️ Delete company &amp; all data
+                      </button>
+                    </div>
+
                     {/* ── Pilot Period ─────────────────────────────────── */}
                     <div className="bg-white border border-purple-100 rounded-xl p-4">
                       <p className="text-xs font-bold text-warm-700 mb-2">🧪 Grant pilot period</p>

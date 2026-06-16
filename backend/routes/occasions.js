@@ -204,7 +204,7 @@ router.post('/resync', companyAuth, async (req, res) => {
     // Fetch company row (catchUpMemberCards needs id, name, country, occasion_scopes)
     const { data: company, error: companyErr } = await supabase
       .from('companies')
-      .select('id, name, email, country, occasion_scopes')
+      .select('id, name, email, country, occasion_scopes, occasion_hide_amounts')
       .eq('id', companyId)
       .maybeSingle();
 

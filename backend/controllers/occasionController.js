@@ -1005,6 +1005,7 @@ const triggerOccasionNow = async (req, res) => {
       deadline: deadline.toISOString(), allow_private_messages: true,
       company_id: req.company.id, occasion_type_id: ot.id,
       notification_scope: ot.default_scope || 'department',
+      scope_approved_at: ot.default_scope === 'company_wide' ? new Date() : null,
     }).select().maybeSingle();
     if (!card) throw new Error('Card creation failed');
 

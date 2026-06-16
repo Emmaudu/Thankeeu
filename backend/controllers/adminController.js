@@ -152,10 +152,63 @@ const getAllCompanies = async (req, res) => {
 const deleteCompany = async (req, res) => {
   try {
     const { companyId } = req.params;
-    await supabase.from('companies').delete().eq('id', companyId);
-    res.json({ message: 'Company deleted' });
+
+    // Verify company exists first
+    const { data: company } = await supabase
+      .from('companies').select('id, name, email').eq('id', companyId).maybeSingle();
+    if (!company) return res.status(404).json({ error: 'Company not found' });
+
+    // ── Step 1: Delete tables that do NOT have ON DELETE CASCADE to companies ──
+    // These must be deleted explicitly before the companies row is removed.
+
+    // Cards — company_id was added via ALTER TABLE (no FK constraint → no cascade).
+    // Deleting cards first also cascades: messages, contribution_wallets,
+    // gift_claims, notification_approvals, received_cards, member_received_cards.
+    const { data: companyCards } = await supabase
+      .from('cards').select('id').eq('company_id', companyId);
+    if (companyCards?.length) {
+      // Delete in batches to avoid hitting Supabase row limits
+      const cardIds = companyCards.map(c => c.id);
+      for (let i = 0; i < cardIds.length; i += 100) {
+        await supabase.from('cards').delete().in('id', cardIds.slice(i, i + 100));
+      }
+    }
+
+    // company_subscriptions — may not have FK depending on which migration ran
+    await supabase.from('company_subscriptions').delete().eq('company_id', companyId);
+
+    // company_core_team — no FK constraint in migration_all_fixes version
+    await supabase.from('company_core_team').delete().eq('company_id', companyId);
+
+    // activity_logs — has CASCADE per migration_activity_logs but delete explicitly to be safe
+    await supabase.from('activity_logs').delete().eq('company_id', companyId);
+
+    // company_deleted_members — has CASCADE but be explicit
+    await supabase.from('company_deleted_members').delete().eq('company_id', companyId).catch(() => {});
+
+    // occasion_hide_amounts / occasion_scopes live on the companies row itself — auto-deleted ✓
+
+    // ── Step 2: Delete the companies row ──────────────────────────────────────
+    // This triggers ON DELETE CASCADE for all properly constrained tables:
+    // company_members, team_members, occasion_types, occasion_members,
+    // notification_approvals, deduction_requests, hris_connections, hris_sync_logs,
+    // bank_accounts (where company_id set), company_subscriptions (schema_teams version),
+    // support_tickets, gift_claims, contribution_wallets (via cards already deleted).
+    const { data: deleted, error: delErr } = await supabase
+      .from('companies').delete().eq('id', companyId).select('id');
+    if (delErr) throw delErr;
+    if (!deleted || deleted.length === 0)
+      return res.status(404).json({ error: 'Company not found or already deleted' });
+
+    console.log(`[admin] Company "${company.name}" (${companyId}) fully deleted by admin`);
+
+    res.json({
+      message: `Company "${company.name}" and all associated data have been permanently deleted.`,
+      deleted_company: { id: companyId, name: company.name, email: company.email },
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Failed to delete company' });
+    console.error('[admin] deleteCompany error:', err.message);
+    res.status(500).json({ error: 'Failed to delete company: ' + err.message });
   }
 };
 

@@ -78,7 +78,8 @@ const MemberOccasionsPage = () => {
     try {
       const title = cardForm.title || `${cardForm.recipient_name}'s ${cardForm.occasion.replace('_', ' ')} Card`;
 
-      // If cross-dept scope, it will need HR approval — handled server-side
+      // If cross-dept scope: team leaders auto-approve, team members need HR approval
+      const isLeader = member?.role === 'team_leader';
       const res = await memberCardsAPI.create({
         ...cardForm,
         occasion: CARD_OCCASION_MAP[cardForm.occasion] || cardForm.occasion,
@@ -96,13 +97,15 @@ const MemberOccasionsPage = () => {
 
       const slug = res.data.slug;
 
-      // If cross-dept, submit approval request automatically
       if (cardForm.notification_scope === 'company_wide') {
-        try {
-          await deductionsAPI.requestCrossDept({ card_id: res.data.id, reason: `Card created by ${member.first_name} ${member.last_name} for ${cardForm.recipient_name}` });
-          toast.success('Card created! Company-wide notification request sent to HR for approval.');
-        } catch {
-          toast.success('Card created! Sent to your department.');
+        if (isLeader) {
+          toast.success('Card created! All departments have been notified to sign. 🎉');
+        } else {
+          // Regular team member — server has sent to HR for approval
+          try {
+            await deductionsAPI.requestCrossDept({ card_id: res.data.id, reason: `Card created by ${member.first_name} ${member.last_name} for ${cardForm.recipient_name}` });
+          } catch {}
+          toast.success('Card created! Sent to HR for company-wide approval.');
         }
       } else {
         toast.success('Card created! Your department has been notified to sign.');
@@ -278,7 +281,7 @@ const MemberOccasionsPage = () => {
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { id: 'department', icon: '👥', label: 'Department only', desc: 'Your dept members' },
-                    { id: 'company_wide', icon: '🏢', label: 'Entire company', desc: 'Needs HR approval' },
+                    { id: 'company_wide', icon: '🏢', label: 'Entire company', desc: member?.role === 'team_leader' ? 'All departments notified instantly' : 'Needs HR approval' },
                   ].map(opt => (
                     <button key={opt.id} type="button" onClick={() => setCardForm(p => ({ ...p, notification_scope: opt.id }))}
                       className={`rounded-3xl p-3 text-left border-2 transition-all ${cardForm.notification_scope === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
@@ -288,9 +291,14 @@ const MemberOccasionsPage = () => {
                     </button>
                   ))}
                 </div>
-                {cardForm.notification_scope === 'company_wide' && (
+                {cardForm.notification_scope === 'company_wide' && member?.role !== 'team_leader' && (
                   <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
                     <span>⚠️</span> This requires HR approval before company-wide emails are sent
+                  </p>
+                )}
+                {cardForm.notification_scope === 'company_wide' && member?.role === 'team_leader' && (
+                  <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                    <span>✅</span> As a team leader, all departments will be notified immediately — no approval needed
                   </p>
                 )}
               </div>

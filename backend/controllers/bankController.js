@@ -136,9 +136,17 @@ const deleteBankAccount = async (req, res) => {
   try {
     const ownerId   = req.user?.id || req.member?.id;
     const ownerType = req.user ? 'user' : 'member';
-    await supabase.from('bank_accounts').delete().eq('id', req.params.id).eq('owner_id', ownerId).eq('owner_type', ownerType);
+    if (!ownerId) return res.status(401).json({ error: 'Not authenticated' });
+    const { data: deleted, error } = await supabase
+      .from('bank_accounts').delete()
+      .eq('id', req.params.id).eq('owner_id', ownerId).eq('owner_type', ownerType)
+      .select('id');
+    if (error) throw error;
+    if (!deleted || deleted.length === 0)
+      return res.status(404).json({ error: 'Account not found or not yours' });
     res.json({ message: 'Account removed' });
   } catch (err) {
+    console.error('[bank] deleteBankAccount:', err.message);
     res.status(500).json({ error: 'Failed to delete' });
   }
 };
@@ -166,16 +174,34 @@ const initiateWithdrawal = async (req, res) => {
       .maybeSingle();
     if (baErr || !bankAccount) return res.status(404).json({ error: 'Bank account not found or not yours' });
 
-    // For gift_pot source — verify card belongs to requester and has sufficient balance
+    // For gift_pot source — verify caller is the card recipient and has sufficient balance
     if (source_type === 'gift_pot') {
       const { data: card } = await supabase
         .from('cards')
-        .select('total_collected, recipient_email, access_token')
+        .select('id, total_collected, recipient_email, gift_withdrawn, status')
         .eq('id', source_id)
         .maybeSingle();
 
       if (!card) return res.status(404).json({ error: 'Card not found' });
-      if (card.total_collected < amount) return res.status(400).json({ error: `Insufficient gift pot balance (available: ₦${card.total_collected?.toLocaleString()})` });
+      if (card.status === 'active') return res.status(400).json({ error: 'Card has not been delivered yet. Gift can only be withdrawn after card delivery.' });
+      if (card.gift_withdrawn) return res.status(400).json({ error: 'Gift has already been claimed' });
+
+      // Verify caller is the recipient (by email)
+      let callerEmail = null;
+      if (req.user) {
+        const { data: u } = await supabase.from('users').select('email').eq('id', requesterId).maybeSingle();
+        callerEmail = u?.email;
+      } else if (req.member) {
+        const { data: m } = await supabase.from('company_members').select('email').eq('id', requesterId).maybeSingle();
+        callerEmail = m?.email;
+      }
+      if (callerEmail && card.recipient_email &&
+          card.recipient_email.toLowerCase() !== callerEmail.toLowerCase()) {
+        return res.status(403).json({ error: 'Only the card recipient can withdraw the gift pot.' });
+      }
+      if ((card.total_collected || 0) < amount) {
+        return res.status(400).json({ error: `Insufficient gift pot balance (available: ₦${(card.total_collected || 0).toLocaleString()})` });
+      }
     }
 
     // For deduction source — verify it's approved and belongs to this leader

@@ -844,7 +844,7 @@ async function syncEmployeesToOccasionTables(companyId, employees, _occasionType
   const errors  = [];
 
   // Fetch company name/contact once for invite emails
-  const { data: companyData } = await supabase.from('companies').select('name, contact_person, country').eq('id', companyId).maybeSingle();
+  const { data: companyData } = await supabase.from('companies').select('id, name, email, contact_person, country, occasion_scopes, occasion_hide_amounts').eq('id', companyId).maybeSingle();
 
   // TEMP DEBUG — log first adapted employee to see what fields came through
   if (employees.length > 0) {
@@ -969,7 +969,19 @@ async function syncEmployeesToOccasionTables(companyId, employees, _occasionType
 
       if (cmErr) {
         errors.push(`company_members sync failed for ${base.email}: ${cmErr.message}`);
-      } else if (needsInvite && inviteToken) {
+      } else {
+        // Catch-up: if this member's birthday (or other occasion) is already within
+        // the 7-day notification window, create the card immediately.
+        // This handles HRIS syncs that push new/updated dates mid-period.
+        const { catchUpMemberCards } = require('../utils/catchUpCards');
+        const { data: freshMember } = await supabase.from('company_members')
+          .select('*').eq('company_id', companyId).eq('email', base.email).maybeSingle()
+          .catch(() => ({ data: null }));
+        if (freshMember) {
+          setImmediate(() => catchUpMemberCards(freshMember, companyData).catch(() => {}));
+        }
+      }
+      if (!cmErr && needsInvite && inviteToken) {
         // Brand new (or password-less) member — send the "set your password" email
         try {
           const link = `${frontendUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(base.email)}`;

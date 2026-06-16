@@ -587,6 +587,7 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
       deadline: deadline.toISOString(), allow_private_messages: true,
       company_id: ot.company_id, occasion_type_id: ot.id,
       notification_scope: 'company_wide',
+      scope_approved_at: new Date(), // auto-created, no HR approval needed
     }).select().maybeSingle();
     if (!card) return;
 
@@ -636,13 +637,15 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
   }
 
   const slug = `${m.first_name.toLowerCase()}-${ot.name.replace('_','-')}-${nanoid(6)}`;
-  const notifyDate = occasionDate; // the occasion happens 'notifyDays' from now
-  // Gift contributions stay open until notifyDays AFTER the occasion date itself
-  // (matches original behaviour: deadline = notifyDate + notifyDays).
-  // If we're catching up on a date that already passed (e.g. HR entered it
-  // late), that would put the deadline in the past too — extend it to at
-  // least a week from today so contributions remain possible.
-  let deadline = new Date(occasionDate.getTime() + notifyDays * 86400000);
+
+  // send_date = when card is delivered to celebrant. Must be at least 24h from now
+  // so colleagues have time to sign before the 8AM auto-delivery cron flips it to 'sent'.
+  // If birthday is today or in the past (catch-up), defer delivery to tomorrow.
+  const minSendDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const sendDate = occasionDate > minSendDate ? occasionDate : minSendDate;
+
+  // Deadline: contributions close notifyDays after the send date, minimum 7 days from now.
+  let deadline = new Date(sendDate.getTime() + notifyDays * 86400000);
   const minDeadline = new Date(Date.now() + 7 * 86400000);
   if (deadline < minDeadline) deadline = minDeadline;
   const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -653,7 +656,7 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
     title: `Happy ${ot.label}, ${m.first_name}! ${ot.icon}`,
     design_theme: 'rose_love', background_color: '#FBEAF0',
     status: 'active', is_gift_enabled: true, gift_type: 'pot',
-    suggested_amount: 2500, send_date: notifyDate.toISOString(),
+    suggested_amount: 2500, send_date: sendDate.toISOString(), // min 24h from now
     deadline: deadline.toISOString(), allow_private_messages: true,
     company_id: ot.company_id, occasion_type_id: ot.id,
     // Team leaders always notify the entire company regardless of scope toggle.
@@ -661,6 +664,8 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
     notification_scope: (m.role === 'team_leader') ? 'company_wide' : (ot.default_scope || 'department'),
     // hide_amounts: read from companies.occasion_hide_amounts (set in Occasions Manager)
     hide_amounts: !!(company.occasion_hide_amounts?.[ot.name]),
+    // Auto-created cards bypass HR approval — mark as already approved
+    scope_approved_at: ((m.role === 'team_leader') || (ot.default_scope === 'company_wide')) ? new Date() : null,
   }).select().maybeSingle();
   if (!card) return;
 

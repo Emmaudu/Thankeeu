@@ -38,7 +38,9 @@ const notifyAllCompany = async (companyId, card, slug, recipientName, occasion, 
     sendEmail({ to: m.email, template: 'cardInvite', data: {
       memberName: m.first_name,
       creatorName, recipientName, occasion,
-      scope: 'your entire company', signLink,
+      scope: 'your entire company',
+      cardSlug:  slug,   // template uses data.cardSlug, NOT signLink
+      signLink,          // kept for reference but template reads cardSlug
       giftEnabled,
       deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
     }}).catch(() => {});
@@ -173,7 +175,9 @@ const createCard = async (req, res) => {
             sendEmail({ to: m.email, template: 'cardInvite', data: {
               memberName: m.first_name,
               creatorName, recipientName: recipient_name, occasion,
-              scope: `${creatorDept} department`, signLink,
+              scope: `${creatorDept} department`,
+              cardSlug:  slug,  // template uses data.cardSlug
+              signLink,
               giftEnabled: is_gift_enabled,
               deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
             }}).catch(() => {});
@@ -181,20 +185,32 @@ const createCard = async (req, res) => {
           if (notifyRows.length) await pushNotificationBulk(notifyRows);
 
         } else if (notification_scope === 'company_wide') {
-          // Create a notification_approval request for HR to approve
+          // Determine if creator can auto-approve company-wide notifications:
+          // HR always auto-approves. Team leaders auto-approve (no HR approval needed
+          // for leader cards — they have authority to notify all departments).
+          // Regular team members need HR to approve.
+          let creatorRole = null;
+          if (effectiveMemberId) {
+            const { data: creatorMember } = await supabase.from('company_members')
+              .select('role').eq('id', effectiveMemberId).maybeSingle();
+            creatorRole = creatorMember?.role;
+          }
+          const canAutoApprove = !!req.company || creatorRole === 'team_leader';
+
+          // Record in notification_approvals
           await supabase.from('notification_approvals').insert({
             card_id:           card.id,
             company_id:        effectiveCompanyId,
             requested_by_id:   effectiveMemberId || req.company?.id,
-            requested_by_type: effectiveMemberId ? (creatorDept ? 'team_member' : 'hr') : 'hr',
-            status:            req.company ? 'approved' : 'pending', // HR auto-approved
+            requested_by_type: effectiveMemberId ? (creatorRole || 'team_member') : 'hr',
+            status:            canAutoApprove ? 'approved' : 'pending',
           });
 
-          if (req.company) {
-            // HR created the card — auto-approve and notify all departments now
+          if (canAutoApprove) {
+            // HR or team_leader created the card — notify all departments immediately
             await notifyAllCompany(effectiveCompanyId, card, slug, recipient_name, occasion, title, is_gift_enabled, deadline, creatorName, creatorEmail, signLink);
           } else {
-            // Member created — notify HR to approve
+            // Regular team_member created — send to HR for approval
             const { data: company } = await supabase.from('companies').select('email, contact_person, name, id').eq('id', effectiveCompanyId).maybeSingle();
             if (company) {
               await sendEmail({ to: company.email, template: 'cardApprovalRequest', data: {

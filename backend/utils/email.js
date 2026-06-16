@@ -250,6 +250,12 @@ const sendEmail = async ({ to, template, data, subject, html }) => {
 
     // If a named template is supplied, resolve it
     if (template) {
+      // Guard: warn if cardSlug is undefined so we can trace the caller
+      if (data && 'cardSlug' in data && (data.cardSlug === undefined || data.cardSlug === null)) {
+        console.error(`[sendEmail] WARNING: cardSlug is ${data.cardSlug} for template "${template}" to ${to}. Stack:`, new Error().stack.split('\n').slice(1,4).join(' | '));
+        // Replace undefined with empty string so template doesn't render "/sign/undefined"
+        data = { ...data, cardSlug: data.cardSlug || '' };
+      }
       const tmpl = emailTemplates[template]?.(data);
       if (!tmpl) throw new Error(`Template "${template}" not found`);
       emailSubject = tmpl.subject;

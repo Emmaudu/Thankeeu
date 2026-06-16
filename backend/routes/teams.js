@@ -158,10 +158,61 @@ router.put('/members/:id', validateUUIDParam('id'), async (req, res) => {
     if (error) throw error;
 
     res.json(data);
+
+    // ── Immediate catch-up: if a date that drives occasion automation changed
+    // (birthday, work anniversary, promotion, leaving) AND the new date puts
+    // the occasion within the 7-day notification window, create the card and
+    // notify colleagues RIGHT NOW — don't wait for the nightly cron.
+    const dateFields = ['date_of_birth', 'resumption_date', 'leaving_date', 'promotion_date'];
+    const anyDateChanged = dateFields.some(f => u[f] !== undefined && u[f] !== (before?.[f] || null));
+
+    if (anyDateChanged && data) {
+      setImmediate(async () => {
+        try {
+          const { catchUpMemberCards } = require('../utils/catchUpCards');
+          // Fetch full company row — catchUpMemberCards needs country, occasion_scopes etc.
+          const { data: company } = await supabase
+            .from('companies')
+            .select('id, name, email, country, occasion_scopes, occasion_hide_amounts')
+            .eq('id', req.company.id)
+            .maybeSingle();
+          if (company) {
+            console.log(`[teams] Date changed for ${data.first_name} ${data.last_name} — running catch-up`);
+            await catchUpMemberCards(data, company);
+          }
+        } catch (e) {
+          console.error('[teams] catch-up after edit failed:', e.message);
+        }
+      });
+    }
   } catch (err) { console.error('[teams]', err.message);
     const { isSanitizeError } = require('../utils/sanitize');
     if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     res.status(500).json({ error: 'Operation failed' }); }
+});
+
+// POST /teams/members/:id/sync-occasions — immediately run catch-up card creation
+// for a single member. Frontend calls this after editing birthday/dates.
+// This is a no-auth-required background operation — catchUpMemberCards handles
+// all the logic, including checking if a card already exists this year.
+router.post('/members/:id/sync-occasions', validateUUIDParam('id'), companyAuth, async (req, res) => {
+  // Respond immediately so the frontend isn't blocked waiting
+  res.json({ ok: true, message: 'Occasion sync started in background' });
+  setImmediate(async () => {
+    try {
+      const { catchUpMemberCards } = require('../utils/catchUpCards');
+      const { data: member } = await supabase.from('company_members')
+        .select('*').eq('id', req.params.id).eq('company_id', req.company.id).maybeSingle();
+      if (!member) return;
+      const { data: company } = await supabase.from('companies')
+        .select('id, name, email, country, occasion_scopes, occasion_hide_amounts')
+        .eq('id', req.company.id).maybeSingle();
+      if (!company) return;
+      await catchUpMemberCards(member, company);
+    } catch (e) {
+      console.error('[sync-occasions]', e.message);
+    }
+  });
 });
 
 // Delete member — hard delete from ALL tables.

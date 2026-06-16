@@ -195,6 +195,14 @@ async function catchUpMemberCards(member, company) {
       const minDeadline = new Date(Date.now() + 7 * 86400000);
       if (deadline < minDeadline) deadline = minDeadline;
 
+      // send_date = when the card is delivered to the celebrant.
+      // IMPORTANT: must be at least 24 hours from now so the 8AM auto-delivery
+      // cron doesn't immediately flip the card to 'sent' before anyone can sign.
+      // If birthday is today (daysUntil=0) or tomorrow (daysUntil=1),
+      // give colleagues at least 24 hours to sign before delivery.
+      const minSendDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // at least tomorrow
+      const sendDate = occasionDate > minSendDate ? occasionDate : minSendDate;
+
       const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
       const dlStr           = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
 
@@ -218,13 +226,15 @@ async function catchUpMemberCards(member, company) {
         is_gift_enabled:        true,
         gift_type:              'pot',
         suggested_amount:       2500,
-        send_date:              occasionDate.toISOString(),
+        send_date:              sendDate.toISOString(), // at least 24h from now so auto-delivery cron doesn't fire immediately
         deadline:               deadline.toISOString(),
         allow_private_messages: true,
         company_id:             company.id,
         occasion_type_id:       ot.id || null,
         notification_scope:     effectiveScope,
         hide_amounts:           hideAmounts,
+        // Auto-created cards bypass HR approval — mark as approved immediately
+        scope_approved_at:      effectiveScope === 'company_wide' ? new Date() : null,
       }).select().maybeSingle();
 
       if (cardErr || !card) {

@@ -588,7 +588,7 @@ const SignCard = () => {
             <p className="text-lg opacity-80 mb-6">Add your words, a memory, a voice note, and an optional gift. ✨</p>
             <div className="flex flex-wrap justify-center gap-2">
               <span className="bg-white/80 text-warm-800 rounded-full px-4 py-2 text-sm font-bold shadow-sm">{card.signed_count || 0} people signed</span>
-              {card.is_gift_enabled && card.total_collected > 0 && (
+              {card.is_gift_enabled && card.total_collected > 0 && !card.hide_amounts && (
                 <span className="bg-emerald-600 text-white rounded-full px-4 py-2 text-sm font-bold shadow-sm">🎁 {formatNGN(card.total_collected)} gift pot</span>
               )}
             </div>
@@ -803,7 +803,7 @@ const SignCard = () => {
                     <p className="text-sm text-warm-500 mt-1">Optional · Secure via Flutterwave</p>
                   </div>
                 </div>
-                {card.total_collected > 0 && (
+                {card.total_collected > 0 && !card.hide_amounts && (
                   <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 mb-4 flex justify-between">
                     <span className="text-sm font-bold text-emerald-700">Gift pot so far</span>
                     <span className="font-bold text-emerald-800">{formatNGN(card.total_collected)}</span>

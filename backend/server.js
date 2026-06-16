@@ -659,6 +659,8 @@ async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate,
     // Team leaders always notify the entire company regardless of scope toggle.
     // Team members follow the HR scope toggle.
     notification_scope: (m.role === 'team_leader') ? 'company_wide' : (ot.default_scope || 'department'),
+    // hide_amounts: read from companies.occasion_hide_amounts (set in Occasions Manager)
+    hide_amounts: !!(company.occasion_hide_amounts?.[ot.name]),
   }).select().maybeSingle();
   if (!card) return;
 

@@ -57,7 +57,7 @@ router.get('/scopes', companyAuth, async (req, res) => {
   try {
     const supabase = require('../utils/supabase');
 
-    // Read from occasion_types rows first
+    // Read from occasion_types rows first (default_scope)
     const { data: ots } = await supabase
       .from('occasion_types')
       .select('name, default_scope')
@@ -65,14 +65,18 @@ router.get('/scopes', companyAuth, async (req, res) => {
     const scopes = {};
     for (const ot of (ots || [])) scopes[ot.name] = ot.default_scope || 'department';
 
-    // Merge in companies.occasion_scopes as the authoritative override
-    // (PUT /scopes always saves here, so this is the reliable source of truth)
+    // Merge in companies.occasion_scopes (authoritative) + occasion_hide_amounts
     const { data: co } = await supabase
-      .from('companies').select('occasion_scopes').eq('id', req.company.id).maybeSingle();
-    const saved = co?.occasion_scopes || {};
-    Object.assign(scopes, saved); // saved values win over occasion_types defaults
+      .from('companies')
+      .select('occasion_scopes, occasion_hide_amounts')
+      .eq('id', req.company.id).maybeSingle();
 
-    res.json(scopes);
+    const savedScopes      = co?.occasion_scopes      || {};
+    const savedHideAmounts = co?.occasion_hide_amounts || {};
+    Object.assign(scopes, savedScopes);
+
+    // Return both scopes and hide_amounts so frontend can read both in one call
+    res.json({ ...scopes, _hide_amounts: savedHideAmounts });
   } catch { res.json({}); }
 });
 
@@ -83,41 +87,62 @@ router.put('/scopes', companyAuth, async (req, res) => {
     const names = Object.keys(raw);
     if (names.length === 0) return res.json({ ok: true });
 
-    // Allowlist valid scope values and occasion names — prevents arbitrary DB writes
-    const VALID_SCOPES = new Set(['department', 'company_wide', 'all']);
+    // Allowlist valid scope values and occasion names — prevents arbitrary DB writes.
+    // Keys can be: 'birthday', 'work_anniversary', etc. (scope value)
+    //         OR: 'birthday_hide_amounts', etc. (boolean hide_amounts per occasion)
+    const VALID_SCOPES  = new Set(['department', 'company_wide', 'all']);
     const VALID_NAME_RE = /^[a-z_]{1,60}$/;
-    const updates = {};
-    for (const name of names) {
-      if (!VALID_NAME_RE.test(name)) continue;
-      if (!VALID_SCOPES.has(raw[name])) continue;
-      updates[name] = raw[name];
-    }
-    if (Object.keys(updates).length === 0) return res.json({ ok: true });
+    const scopeUpdates       = {}; // name → scope string
+    const hideAmountUpdates  = {}; // name → boolean
 
-    // 1. Persist to companies.occasion_scopes (always works — this is the reliable store)
+    for (const key of names) {
+      if (!VALID_NAME_RE.test(key)) continue;
+
+      // hide_amounts key format: 'birthday_hide_amounts'
+      if (key.endsWith('_hide_amounts')) {
+        const occasionName = key.replace(/_hide_amounts$/, '');
+        if (VALID_NAME_RE.test(occasionName)) {
+          hideAmountUpdates[occasionName] = raw[key] === true || raw[key] === 'true';
+        }
+        continue;
+      }
+
+      // Scope value
+      if (!VALID_SCOPES.has(raw[key])) continue;
+      scopeUpdates[key] = raw[key];
+    }
+
+    // 1. Persist to companies.occasion_scopes (scope strings)
+    //    and companies.occasion_hide_amounts (hide_amounts booleans)
     const { data: existing } = await supabase
-      .from('companies').select('occasion_scopes').eq('id', req.company.id).maybeSingle();
-    const merged = { ...(existing?.occasion_scopes || {}), ...updates };
-    const { error: coErr } = await supabase
-      .from('companies').update({ occasion_scopes: merged }).eq('id', req.company.id);
+      .from('companies')
+      .select('occasion_scopes, occasion_hide_amounts')
+      .eq('id', req.company.id).maybeSingle();
+
+    const mergedScopes      = { ...(existing?.occasion_scopes      || {}), ...scopeUpdates };
+    const mergedHideAmounts = { ...(existing?.occasion_hide_amounts || {}), ...hideAmountUpdates };
+
+    const { error: coErr } = await supabase.from('companies').update({
+      occasion_scopes:       mergedScopes,
+      occasion_hide_amounts: mergedHideAmounts,
+    }).eq('id', req.company.id);
     if (coErr) throw coErr;
 
-    // 2. Also try to sync into occasion_types rows if they exist (non-fatal)
-    //    Uses upsert so it works whether or not seed_occasion_types() was ever called
+    // 2. Sync scope into occasion_types rows (non-fatal)
     const LABEL_MAP = {
       birthday: 'Birthday', work_anniversary: 'Work Anniversary', valentine: "Valentine's Day",
       womens_day: "Women's Day", mothers_day: "Mother's Day", fathers_day: "Father's Day",
       promotion: 'Promotion', leaving: 'Leaving Company', new_hire: 'New Employee Welcome',
     };
-    await Promise.allSettled(Object.keys(updates).map(name =>
+    await Promise.allSettled(Object.keys(scopeUpdates).map(name =>
       supabase.from('occasion_types')
         .upsert(
-          { company_id: req.company.id, name, label: LABEL_MAP[name] || name, default_scope: updates[name] },
+          { company_id: req.company.id, name, label: LABEL_MAP[name] || name, default_scope: scopeUpdates[name] },
           { onConflict: 'company_id,name', ignoreDuplicates: false }
         )
     ));
 
-    res.json({ ok: true, scopes: merged });
+    res.json({ ok: true, scopes: mergedScopes, hide_amounts: mergedHideAmounts });
   } catch (err) {
     console.error('update scopes error:', err.message);
     res.status(500).json({ error: 'Failed to update scopes' });

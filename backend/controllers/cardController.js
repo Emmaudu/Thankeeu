@@ -495,12 +495,17 @@ const getPublicCard = async (req, res) => {
 
     const { access_token: _accessToken, ...safeCard } = card;
 
+    // When hide_amounts is true, strip total_collected from the public response
+    // so signers cannot see the running gift pot total (avoids social pressure).
+    // The creator and recipient still see the real total via the private card view.
+    const publicTotal = card.hide_amounts ? null : totalCollected;
+
     res.json({
       ...safeCard,
-      messages: publicMessages,
-      signed_count: signedCount,
-      total_collected: totalCollected,
-      contributors: card.hide_amounts ? [] : verifiedContribs.map(c => c.contributor_name)
+      messages:        publicMessages,
+      signed_count:    signedCount,
+      total_collected: publicTotal,
+      contributors:    card.hide_amounts ? [] : verifiedContribs.map(c => c.contributor_name),
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch card' });

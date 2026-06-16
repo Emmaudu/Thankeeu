@@ -70,7 +70,10 @@ const CompanyDashboard = () => {
   }, []);
 
   const isSubscribed = sub?.status === 'active';
-  const daysLeft = sub?.expires_at ? differenceInDays(new Date(sub.expires_at), new Date()) : 0;
+  // expires_at is null for admin-set (free/multiplier) and pilot plans — they never expire.
+  // Use Infinity so daysLeft-based warnings never fire for these plans.
+  const daysLeft = sub?.expires_at ? differenceInDays(new Date(sub.expires_at), new Date()) : Infinity;
+  const neverExpires = !sub?.expires_at; // free/admin plan — no expiry date
   // data is the flat response: { total_members, teams, upcoming_occasions, active_cards, total_collected }
   const stats   = data || {};
   const upcoming = stats.upcoming_occasions || [];
@@ -151,7 +154,7 @@ const CompanyDashboard = () => {
           </Link>
         </div>
       )}
-      {isSubscribed && daysLeft <= 7 && daysLeft >= 0 && (
+      {isSubscribed && !neverExpires && daysLeft <= 7 && daysLeft >= 0 && (
         <div className="mb-5 p-4 rounded-2xl flex items-center gap-3"
           style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.2)' }}>
           <span className="text-xl">⚠️</span>
@@ -281,7 +284,7 @@ const CompanyDashboard = () => {
               { to: '/company/teams', icon: '🎉', label: 'Manage occasions', sub: 'Add birthday dates' },
               { to: '/company/members', icon: '👥', label: 'Team members', sub: 'Import & approve' },
               { to: '/company/hris', icon: '🔗', label: 'HRIS sync', sub: 'Connect SeamlessHR' },
-              { to: '/company/subscription', icon: '💳', label: 'Subscription', sub: isSubscribed ? `${daysLeft}d remaining` : 'Not active' },
+              { to: '/company/subscription', icon: '💳', label: 'Subscription', sub: isSubscribed ? (neverExpires ? 'Active · No expiry' : `${daysLeft}d remaining`) : 'Not active' },
             ].map(({ to, icon, label, sub }) => (
               <Link key={to} to={to} className="rounded-2xl p-4 border-2 hover:shadow-sm transition-all block"
                 style={{ background: '#fff', borderColor: '#EDE9FF' }}>

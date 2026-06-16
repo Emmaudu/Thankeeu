@@ -91,6 +91,8 @@ export default function OccasionsPage() {
   const [generalImporting,  setGeneralImporting]  = useState(false);
   const [typeScopes,        setTypeScopes]        = useState({});
   const [typeScopeLoading,  setTypeScopeLoading]  = useState(null);
+  const [hideAmounts,       setHideAmounts]       = useState({});
+  const [hideAmountsLoading,setHideAmountsLoading]= useState(null);
   const [tables,            setTables]            = useState({});
   const [loading,           setLoading]           = useState(true);
   const [tabImporting,      setTabImporting]      = useState(false);
@@ -118,7 +120,11 @@ export default function OccasionsPage() {
     // Load persisted scopes from backend
     fetch(`${BASE_URL}/occasions/scopes`, { headers: { Authorization: `Bearer ${tok()}` } })
       .then(r => r.ok ? r.json() : {})
-      .then(scopes => setTypeScopes(scopes || {}))
+      .then(data => {
+        const { _hide_amounts, ...scopes } = data || {};
+        setTypeScopes(scopes);
+        setHideAmounts(_hide_amounts || {});
+      })
       .catch(() => {});
   }, []);
 
@@ -203,6 +209,23 @@ export default function OccasionsPage() {
       setTypeScopes(p => ({ ...p, [typeId]: currentScope }));
       toast.error('Failed to save scope. Please try again.');
     } finally { setTypeScopeLoading(null); }
+  };
+
+  const handleToggleHideAmounts = async (occasionId, currentVal) => {
+    const newVal = !currentVal;
+    setHideAmountsLoading(occasionId);
+    setHideAmounts(p => ({ ...p, [occasionId]: newVal }));
+    try {
+      await fetch(`${BASE_URL}/occasions/scopes`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${tok()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [`${occasionId}_hide_amounts`]: newVal }),
+      });
+      toast.success(newVal ? '🙈 Gift amounts hidden from signers' : '👁️ Gift amounts visible to signers');
+    } catch {
+      setHideAmounts(p => ({ ...p, [occasionId]: currentVal }));
+      toast.error('Failed to save. Please try again.');
+    } finally { setHideAmountsLoading(null); }
   };
 
   const saveEdit = async () => {
@@ -371,16 +394,30 @@ export default function OccasionsPage() {
                     <p className="font-semibold text-sm text-warm-800">{tab.label.replace(/^[^ ]+ /, '')}</p>
                     <p className="text-xs text-warm-400">{tab.desc}</p>
                   </div>
-                  <button
-                    disabled={typeScopeLoading === tab.id}
-                    onClick={() => handleToggleTypeScope(tab.id, typeScopes[tab.id] || 'department')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                      (typeScopes[tab.id] || 'department') === 'company_wide'
-                        ? 'bg-primary-50 border-primary-200 text-primary-600'
-                        : 'bg-warm-50 border-warm-200 text-warm-600'
-                    }`}>
-                    {(typeScopes[tab.id] || 'department') === 'company_wide' ? '🌍 All Depts' : '🏢 Own Dept Only'}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={typeScopeLoading === tab.id}
+                      onClick={() => handleToggleTypeScope(tab.id, typeScopes[tab.id] || 'department')}
+                      title="Who gets notified when this occasion is upcoming"
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        (typeScopes[tab.id] || 'department') === 'company_wide'
+                          ? 'bg-primary-50 border-primary-200 text-primary-600'
+                          : 'bg-warm-50 border-warm-200 text-warm-600'
+                      }`}>
+                      {(typeScopes[tab.id] || 'department') === 'company_wide' ? '🌍 All Depts' : '🏢 Own Dept'}
+                    </button>
+                    <button
+                      disabled={hideAmountsLoading === tab.id}
+                      onClick={() => handleToggleHideAmounts(tab.id, hideAmounts[tab.id] || false)}
+                      title={hideAmounts[tab.id] ? 'Gift amounts are hidden from signers — click to show' : 'Gift amounts are visible to signers — click to hide'}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        hideAmounts[tab.id]
+                          ? 'bg-amber-50 border-amber-200 text-amber-700'
+                          : 'bg-warm-50 border-warm-200 text-warm-500'
+                      }`}>
+                      {hideAmounts[tab.id] ? '🙈 Amounts Hidden' : '👁️ Amounts Visible'}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

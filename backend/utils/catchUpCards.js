@@ -203,6 +203,9 @@ async function catchUpMemberCards(member, company) {
         ? 'company_wide'
         : (ot.default_scope || 'department');
 
+      // hide_amounts: read from companies.occasion_hide_amounts per occasion type
+      const hideAmounts = !!(company.occasion_hide_amounts?.[ot.name]);
+
       const { data: card, error: cardErr } = await supabase.from('cards').insert({
         slug,
         recipient_name:         `${member.first_name} ${member.last_name}`,
@@ -221,6 +224,7 @@ async function catchUpMemberCards(member, company) {
         company_id:             company.id,
         occasion_type_id:       ot.id || null,
         notification_scope:     effectiveScope,
+        hide_amounts:           hideAmounts,
       }).select().maybeSingle();
 
       if (cardErr || !card) {

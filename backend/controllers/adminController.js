@@ -60,9 +60,33 @@ const updateUserRole = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
-    await supabase.from('users').delete().eq('id', userId);
+
+    // Fetch user first so we have their email for related-data cleanup
+    const { data: user, error: fetchErr } = await supabase
+      .from('users').select('id, email').eq('id', userId).maybeSingle();
+    if (fetchErr) throw fetchErr;
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Explicitly clean up data not covered by ON DELETE CASCADE
+    // (messages use author_email, not a FK, so they won't cascade)
+    if (user.email) {
+      await Promise.allSettled([
+        supabase.from('messages').delete().eq('author_email', user.email),
+        supabase.from('card_signatures').delete().eq('signer_email', user.email).catch?.(() => {}),
+      ]);
+    }
+
+    // Hard-delete the user row — cards, card_credits, notifications
+    // all have ON DELETE CASCADE so they'll be removed automatically.
+    const { data: deleted, error: delErr } = await supabase
+      .from('users').delete().eq('id', userId).select('id');
+    if (delErr) throw delErr;
+    if (!deleted || deleted.length === 0)
+      return res.status(404).json({ error: 'User not found or already deleted' });
+
     res.json({ message: 'User deleted' });
   } catch (err) {
+    console.error('[admin] deleteUser error:', err.message);
     res.status(500).json({ error: 'Failed to delete user' });
   }
 };
@@ -83,9 +107,14 @@ const getAllCards = async (req, res) => {
 const deleteCard = async (req, res) => {
   try {
     const { cardId } = req.params;
-    await supabase.from('cards').delete().eq('id', cardId);
+    const { data: deleted, error } = await supabase
+      .from('cards').delete().eq('id', cardId).select('id');
+    if (error) throw error;
+    if (!deleted || deleted.length === 0)
+      return res.status(404).json({ error: 'Card not found or already deleted' });
     res.json({ message: 'Card deleted' });
   } catch (err) {
+    console.error('[admin] deleteCard error:', err.message);
     res.status(500).json({ error: 'Failed to delete card' });
   }
 };

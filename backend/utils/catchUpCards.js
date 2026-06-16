@@ -2,47 +2,109 @@
 // catchUpCards — Immediately create cards for members whose occasions fall
 // within the notification window AT IMPORT TIME.
 //
-// The daily cron only fires Step 1 when daysUntil === notifyDays (exact match).
+// The daily cron fires Step 1 only when daysUntil === notifyDays (exact match).
 // If a member is imported when their birthday is already 2–6 days away, the
 // cron will never trigger for them this year. This module catches that gap:
 // call catchUpMemberCards() right after a member is upserted into company_members.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const supabase     = require('./supabase');
+const supabase      = require('./supabase');
 const { sendEmail } = require('./email');
 const { getMemberOccasions } = require('./occasionEngine');
+
+// Default occasion config used when occasion_types rows are missing
+const OCCASION_DEFAULTS = {
+  birthday:        { label: 'Birthday',            icon: '🎂', notify_days_before: 7, default_scope: 'department' },
+  work_anniversary:{ label: 'Work Anniversary',    icon: '🏆', notify_days_before: 7, default_scope: 'department' },
+  promotion:       { label: 'Promotion',           icon: '⭐', notify_days_before: 7, default_scope: 'department' },
+  leaving:         { label: 'Leaving Company',     icon: '👋', notify_days_before: 7, default_scope: 'department' },
+  new_hire:        { label: 'New Employee Welcome',icon: '🎉', notify_days_before: 0, default_scope: 'department' },
+  womens_day:      { label: "Women's Day",         icon: '👩', notify_days_before: 7, default_scope: 'company_wide' },
+  mens_day:        { label: "Men's Day",           icon: '👨', notify_days_before: 7, default_scope: 'company_wide' },
+  mothers_day:     { label: "Mother's Day",        icon: '🌹', notify_days_before: 7, default_scope: 'company_wide' },
+  fathers_day:     { label: "Father's Day",        icon: '👔', notify_days_before: 7, default_scope: 'company_wide' },
+};
 
 /**
  * For a freshly imported member, check all their occasions and immediately
  * create a card + notify colleagues for any occasion already within the
  * notification window that hasn't been processed yet this year.
  *
- * @param {object} member   - Full company_members row (must include id, email,
- *                            first_name, last_name, department, date_of_birth,
- *                            resumption_date, gender, promotion_date,
- *                            leaving_date, occasion_tracking, company_id)
- * @param {object} company  - Full companies row (id, name, email, country, ...)
+ * @param {object} member   - Full company_members row
+ * @param {object} company  - companies row — MUST include id, name, country, email, occasion_scopes
  */
 async function catchUpMemberCards(member, company) {
   try {
+    // Guard: company.id is required for all queries
+    if (!company?.id) {
+      console.error('[catchUp] called without company.id — skipping for', member?.email);
+      return;
+    }
+    if (!member?.id) {
+      console.error('[catchUp] called without member.id — skipping');
+      return;
+    }
+
     const { nanoid } = require('nanoid');
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const year = today.getFullYear();
 
-    // Load this company's active occasion types
-    const { data: occasionTypes } = await supabase
+    // ── Load this company's active occasion types ─────────────────────────
+    const { data: occasionTypeRows, error: otErr } = await supabase
       .from('occasion_types')
       .select('*')
       .eq('company_id', company.id)
       .eq('is_active', true);
 
-    if (!occasionTypes || occasionTypes.length === 0) return;
+    if (otErr) console.error('[catchUp] occasion_types query error:', otErr.message);
 
+    // If no rows exist, seed them now then re-fetch
+    let otRows = occasionTypeRows || [];
+    if (otRows.length === 0) {
+      console.log('[catchUp] No occasion_types for company', company.id, '— seeding now');
+      try {
+        await supabase.rpc('seed_occasion_types', { p_company_id: company.id });
+        const { data: reseeded } = await supabase
+          .from('occasion_types').select('*')
+          .eq('company_id', company.id).eq('is_active', true);
+        otRows = reseeded || [];
+      } catch (seedErr) {
+        console.error('[catchUp] seed_occasion_types failed:', seedErr.message);
+        // Fall through — we'll use OCCASION_DEFAULTS below
+      }
+    }
+
+    // Build map: name → occasion_type row (merged with defaults for missing fields)
+    // Also apply saved scope overrides from companies.occasion_scopes (the reliable store)
+    const savedScopes = company.occasion_scopes || {};
     const otMap = {};
-    for (const ot of occasionTypes) otMap[ot.name] = ot;
+    for (const ot of otRows) {
+      const def = OCCASION_DEFAULTS[ot.name] || {};
+      otMap[ot.name] = {
+        ...ot,
+        notify_days_before: ot.notify_days_before || def.notify_days_before || 7,
+        // Scope: saved override wins over occasion_types row value wins over default
+        default_scope: savedScopes[ot.name] || ot.default_scope || def.default_scope || 'department',
+      };
+    }
+    // For any occasion the cron engine supports but has no DB row, use defaults
+    for (const [name, def] of Object.entries(OCCASION_DEFAULTS)) {
+      if (!otMap[name]) {
+        otMap[name] = {
+          id: null, // no DB row — card insert will have occasion_type_id: null
+          company_id: company.id,
+          name,
+          label:              def.label,
+          icon:               def.icon,
+          notify_days_before: def.notify_days_before,
+          default_scope:      savedScopes[name] || def.default_scope,
+          is_active:          true,
+        };
+      }
+    }
 
-    // Get occasions for this member
+    // ── Get this member's occasions for the current year ─────────────────
     const occasions = getMemberOccasions(member, company, year);
     const tracking  = { ...(member.occasion_tracking || {}) };
     let   trackingChanged = false;
@@ -51,7 +113,7 @@ async function catchUpMemberCards(member, company) {
       const ot = otMap[occ.occasionName];
       if (!ot) continue;
 
-      const notifyDays  = ot.notify_days_before || 7;
+      const notifyDays   = ot.notify_days_before || 7;
       const occasionDate = new Date(occ.occasionDate + 'T00:00:00');
       if (isNaN(occasionDate)) continue;
 
@@ -61,12 +123,10 @@ async function catchUpMemberCards(member, company) {
 
       // Already processed this year → skip
       if (track.year === year && track.dept_notified) continue;
-      if (!occ.isRecurring && track.dept_notified) continue;
+      if (!occ.isRecurring && track.dept_notified)    continue;
 
       // Only act if the occasion is within the notification window (0 … notifyDays days away).
-      // daysUntil < 0 means the occasion already passed this year — don't create a late card
-      // for recurring occasions (birthday, work anniversary). For one-time occasions
-      // (promotion, leaving) we allow up to 7 days late, matching the cron catch-up logic.
+      // For one-time occasions, allow up to 7 days late (matching cron catch-up logic).
       const inWindow = occ.isRecurring
         ? (daysUntil >= 0 && daysUntil <= notifyDays)
         : (daysUntil <= notifyDays && daysUntil >= -7);
@@ -74,29 +134,46 @@ async function catchUpMemberCards(member, company) {
       if (!inWindow) continue;
 
       // Skip company-wide shared occasions (valentine, workers_day) —
-      // those only need one card per company, which the cron manages.
+      // one card per company, the cron handles those.
       if (['valentines_day', 'workers_day'].includes(ot.name)) continue;
 
-      // Check whether a card already exists for this member + occasion this year
-      const { data: existingCards } = await supabase
-        .from('cards')
-        .select('id, slug')
-        .eq('occasion_type_id', ot.id)
-        .eq('recipient_email', member.email)
-        .gte('created_at', `${year}-01-01T00:00:00Z`)
-        .order('created_at', { ascending: true })
-        .limit(1);
+      console.log(`[catchUp][${ot.label}] ${member.first_name} ${member.last_name}: ${daysUntil} days away — checking for existing card`);
 
-      if (existingCards && existingCards.length > 0) {
-        // Card already exists — just sync tracking so cron doesn't re-fire
-        tracking[trackKey] = { ...(tracking[trackKey] || {}), year, dept_notified: true, card_slug: existingCards[0].slug };
+      // ── Check if card already exists this year ───────────────────────────
+      let existingCard = null;
+      if (ot.id) {
+        const { data: byType } = await supabase.from('cards')
+          .select('id, slug')
+          .eq('occasion_type_id', ot.id)
+          .eq('recipient_email', member.email)
+          .gte('created_at', `${year}-01-01T00:00:00Z`)
+          .order('created_at', { ascending: true })
+          .limit(1);
+        existingCard = byType?.[0] || null;
+      }
+      if (!existingCard) {
+        // Fallback: check by email + occasion name + year (handles rows with no occasion_type_id)
+        const { data: byEmail } = await supabase.from('cards')
+          .select('id, slug')
+          .eq('recipient_email', member.email)
+          .eq('occasion', ot.name)
+          .eq('company_id', company.id)
+          .gte('created_at', `${year}-01-01T00:00:00Z`)
+          .order('created_at', { ascending: true })
+          .limit(1);
+        existingCard = byEmail?.[0] || null;
+      }
+
+      if (existingCard) {
+        console.log(`[catchUp][${ot.label}] Card already exists for ${member.first_name} — slug: ${existingCard.slug}`);
+        tracking[trackKey] = { ...(tracking[trackKey] || {}), year, dept_notified: true, card_slug: existingCard.slug };
         trackingChanged = true;
-        console.log(`[catchUp][${ot.label}] Card already exists for ${member.first_name} — skipping`);
         continue;
       }
 
       // ── Create the card ──────────────────────────────────────────────────
-      const slug = `${member.first_name.toLowerCase()}-${ot.name.replace(/_/g, '-')}-${nanoid(6)}`;
+      const slug = `${member.first_name.toLowerCase().replace(/[^a-z0-9]/g,'-')}-${ot.name.replace(/_/g, '-')}-${nanoid(6)}`;
+
       let deadline = new Date(occasionDate.getTime() + notifyDays * 86400000);
       const minDeadline = new Date(Date.now() + 7 * 86400000);
       if (deadline < minDeadline) deadline = minDeadline;
@@ -106,22 +183,22 @@ async function catchUpMemberCards(member, company) {
 
       const { data: card, error: cardErr } = await supabase.from('cards').insert({
         slug,
-        recipient_name:  `${member.first_name} ${member.last_name}`,
-        recipient_email: member.email,
-        occasion:        ot.name,
-        title:           `Happy ${ot.label}, ${member.first_name}! ${ot.icon}`,
-        design_theme:    'rose_love',
-        background_color: '#FBEAF0',
-        status:           'active',
-        is_gift_enabled:  true,
-        gift_type:        'pot',
-        suggested_amount: 2500,
-        send_date:        occasionDate.toISOString(),
-        deadline:         deadline.toISOString(),
+        recipient_name:         `${member.first_name} ${member.last_name}`,
+        recipient_email:        member.email,
+        occasion:               ot.name,
+        title:                  `Happy ${ot.label}, ${member.first_name}! ${ot.icon}`,
+        design_theme:           'rose_love',
+        background_color:       '#FBEAF0',
+        status:                 'active',
+        is_gift_enabled:        true,
+        gift_type:              'pot',
+        suggested_amount:       2500,
+        send_date:              occasionDate.toISOString(),
+        deadline:               deadline.toISOString(),
         allow_private_messages: true,
-        company_id:       ot.company_id,
-        occasion_type_id: ot.id,
-        notification_scope: ot.default_scope || 'department',
+        company_id:             company.id,
+        occasion_type_id:       ot.id || null,
+        notification_scope:     ot.default_scope || 'department',
       }).select().maybeSingle();
 
       if (cardErr || !card) {
@@ -129,33 +206,49 @@ async function catchUpMemberCards(member, company) {
         continue;
       }
 
-      console.log(`[catchUp][${ot.label}] Card created for ${member.first_name} ${member.last_name} (${daysUntil} days away) — slug: ${slug}`);
+      console.log(`[catchUp][${ot.label}] ✅ Card created — slug: ${slug} (${daysUntil} days to ${ot.label}, scope: ${ot.default_scope})`);
 
       // ── Create contribution wallet ───────────────────────────────────────
       await supabase.from('contribution_wallets').insert({
-        card_id: card.id, company_id: ot.company_id,
-        total_contributed: 0, platform_fee: 0, net_after_fee: 0, amount_to_celebrant: 0,
+        card_id:           card.id,
+        company_id:        company.id,
+        total_contributed: 0,
+        platform_fee:      0,
+        net_after_fee:     0,
+        amount_to_celebrant: 0,
       }).catch(e => console.error('[catchUp] wallet creation failed:', e.message));
 
-      // ── Update tracking ──────────────────────────────────────────────────
+      // ── Update tracking immediately (before async notifications) ─────────
       tracking[trackKey] = { year, dept_notified: true, card_slug: slug };
       trackingChanged = true;
 
-      // ── Notify colleagues (non-blocking) ────────────────────────────────
+      // Persist tracking right now so the cron doesn't double-fire tonight
+      await supabase.from('company_members')
+        .update({ occasion_tracking: tracking, updated_at: new Date() })
+        .eq('id', member.id)
+        .catch(e => console.error('[catchUp] tracking update failed:', e.message));
+      trackingChanged = false; // already persisted
+
+      // ── Notify colleagues (async, non-blocking) ──────────────────────────
       setImmediate(async () => {
         try {
+          const scope = ot.default_scope || 'department';
           let colleagueQuery = supabase
             .from('company_members')
-            .select('email, first_name')
-            .eq('company_id', ot.company_id)
+            .select('id, email, first_name')
+            .eq('company_id', company.id)
             .eq('status', 'approved')
             .neq('id', member.id);
 
-          if (ot.default_scope === 'department' || !ot.default_scope) {
+          if (scope === 'department') {
             colleagueQuery = colleagueQuery.eq('department', member.department);
           }
+          // scope === 'company_wide' → no department filter → everyone
+
           const { data: colleagues } = await colleagueQuery;
-          const toNotify = (colleagues || []).filter(c => c.email !== member.email);
+          const toNotify = (colleagues || []).filter(c => c.email && c.email !== member.email);
+
+          console.log(`[catchUp][${ot.label}] Notifying ${toNotify.length} colleagues (scope: ${scope})`);
 
           for (const colleague of toNotify) {
             if (ot.name === 'new_hire') {
@@ -186,7 +279,7 @@ async function catchUpMemberCards(member, company) {
                 occasionLabel:   ot.label,
                 memberName:      `${member.first_name} ${member.last_name}`,
                 memberFirstName: member.first_name,
-                department:      member.department,
+                department:      member.department || 'your company',
                 companyName:     company.name,
                 cardSlug:        slug,
                 giftEnabled:     true,
@@ -196,14 +289,14 @@ async function catchUpMemberCards(member, company) {
               }}).catch(() => {});
             }
           }
-          console.log(`[catchUp][${ot.label}] Notified ${toNotify.length} colleagues for ${member.first_name}`);
+          console.log(`[catchUp][${ot.label}] Done — ${toNotify.length} notification emails sent`);
         } catch (notifyErr) {
           console.error(`[catchUp][${ot.label}] Colleague notification error:`, notifyErr.message);
         }
       });
     }
 
-    // Persist updated tracking
+    // Persist any remaining tracking changes
     if (trackingChanged) {
       await supabase.from('company_members')
         .update({ occasion_tracking: tracking, updated_at: new Date() })
@@ -211,8 +304,7 @@ async function catchUpMemberCards(member, company) {
         .catch(e => console.error('[catchUp] tracking update failed:', e.message));
     }
   } catch (err) {
-    // Non-fatal — log and move on so the import response still returns
-    console.error('[catchUpMemberCards] error:', err.message);
+    console.error('[catchUpMemberCards] unexpected error:', err.message, err.stack);
   }
 }
 

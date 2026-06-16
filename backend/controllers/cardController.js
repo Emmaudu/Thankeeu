@@ -826,44 +826,48 @@ const getCompanyDeliveredCards = async (req, res) => {
   }
 };
 
-// ── HR: get received cards — cards sent to company members + cards
-// explicitly transferred to the company via the received_cards table ────────
+// ── HR: get received cards ─────────────────────────────────────────────────
+// "Received" means cards THIS company's automation created for its own members
+// (birthday cards, work anniversary cards, etc.) that have been delivered (status=sent),
+// PLUS any cards explicitly transferred to this company via the received_cards table.
+// We deliberately exclude cards from OTHER companies even if the recipient email
+// happens to match a member here — that would be a privacy/security leak.
 const getCompanyReceivedCards = async (req, res) => {
   try {
-    // 1. Cards explicitly transferred to this company
-    const { data: transfers, error: transferErr } = await supabase.from('received_cards')
+    const companyId = req.company.id;
+
+    // 1. Cards explicitly transferred TO this company via the received_cards table
+    const { data: transfers, error: transferErr } = await supabase
+      .from('received_cards')
       .select('card_id, created_at')
-      .eq('recipient_user_id', req.company.id)
+      .eq('recipient_user_id', companyId)
       .eq('recipient_type', 'company')
       .order('created_at', { ascending: false });
     if (transferErr) console.error('[company-received] transfers error:', transferErr.message);
-    const transferIds = (transfers || []).map(t => t.card_id);
+    const transferIds = (transfers || []).map(t => t.card_id).filter(Boolean);
 
-    // 2. Cards sent to any of this company's members (by recipient_email) —
-    // this is what "received" means for HR: cards their employees received,
-    // whether created via automation, by colleagues, or by individuals.
-    const { data: members, error: membersErr } = await supabase.from('company_members')
-      .select('email').eq('company_id', req.company.id);
-    if (membersErr) console.error('[company-received] members error:', membersErr.message);
-    const memberEmails = (members || []).map(m => m.email?.toLowerCase()).filter(Boolean);
+    // 2. Cards created BY this company (company_id = this company) that were
+    // delivered to members (status = sent). These are the auto-created occasion
+    // cards (birthday, work anniversary, etc.) that the automation fired.
+    // Crucially we filter by company_id = THIS company — never show foreign cards.
+    const { data: ownDelivered, error: odErr } = await supabase
+      .from('cards')
+      .select('id')
+      .eq('company_id', companyId)
+      .eq('status', 'sent')
+      .order('created_at', { ascending: false });
+    if (odErr) console.error('[company-received] own-delivered error:', odErr.message);
+    const ownDeliveredIds = (ownDelivered || []).map(c => c.id);
 
-    let memberCardIds = [];
-    if (memberEmails.length) {
-      const { data: memberCards, error: mcErr } = await supabase.from('cards')
-        .select('id')
-        .in('recipient_email', memberEmails)
-        .neq('company_id', req.company.id); // exclude cards already counted as "My Cards"
-      if (mcErr) console.error('[company-received] member-cards error:', mcErr.message);
-      memberCardIds = (memberCards || []).map(c => c.id);
-    }
-
-    const ids = [...new Set([...transferIds, ...memberCardIds])];
+    const ids = [...new Set([...transferIds, ...ownDeliveredIds])];
     if (!ids.length) return res.json([]);
 
-    const { data, error } = await supabase.from('cards')
-      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at')
+    const { data, error } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date')
       .in('id', ids)
       .order('created_at', { ascending: false });
+
     if (error) {
       console.error('[company-received] cards error:', error.message);
       return res.status(500).json({ error: 'Failed to fetch received cards' });

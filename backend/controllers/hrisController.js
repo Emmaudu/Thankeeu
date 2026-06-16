@@ -900,6 +900,16 @@ async function syncEmployeesToOccasionTables(companyId, employees, _occasionType
         .select('*')
         .eq('company_id', companyId).eq('email', base.email).maybeSingle();
 
+      // Skip members that HR explicitly deleted — they are in the blocklist.
+      // HR must manually re-import them if they should be added back.
+      const { data: isDeleted } = await supabase.from('company_deleted_members')
+        .select('email').eq('company_id', companyId)
+        .eq('email', base.email.toLowerCase()).maybeSingle().catch(() => ({ data: null }));
+      if (isDeleted) {
+        console.log(`[HRIS sync] Skipping ${base.email} — manually deleted by HR`);
+        continue;
+      }
+
       const hrisValues = {
         first_name:      base.first_name,
         last_name:       base.last_name,

@@ -496,13 +496,31 @@ const getMemberDashboard = async (req, res) => {
       .order('created_at', { ascending: false })
       .limit(20);
 
-    // Active dept/company cards pending the member's signature
-    const activeDeptCards = (deptCards || []).filter(c => {
-      if (c.status !== 'active') return false;
-      if (c.notification_scope === 'company_wide') return true;
-      // department cards — only show if same dept (already filtered by company, dept check via creator)
-      return true;
-    });
+    // Active cards for this member's company
+    const { data: allActiveCards } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, notification_scope, background_color, deadline')
+      .eq('company_id', member.company_id)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    const activeDeptCards = (allActiveCards || []);
+
+    // pending_to_sign: cards the member has NOT yet signed and is NOT the recipient of
+    let pendingToSign = [];
+    if (activeDeptCards.length > 0) {
+      const { data: signedMessages } = await supabase
+        .from('messages')
+        .select('card_id')
+        .eq('author_email', member.email)
+        .in('card_id', activeDeptCards.map(c => c.id));
+      const signedIds = new Set((signedMessages || []).map(s => s.card_id));
+      pendingToSign = activeDeptCards.filter(c =>
+        !signedIds.has(c.id) &&
+        c.recipient_email !== member.email
+      );
+    }
 
     // Pending approvals for team leader
     let pendingApprovals = [];
@@ -520,7 +538,8 @@ const getMemberDashboard = async (req, res) => {
       member,
       dept_members: deptMembers || [],
       upcoming_occasions: withDays.slice(0, 10),
-      recent_cards: activeDeptCards,
+      recent_cards: activeDeptCards.slice(0, 10),
+      pending_to_sign: pendingToSign,
       my_created_cards: (myCards || []).map(card => ({
         ...card,
         signed_count: card.messages?.[0]?.count || 0,
@@ -530,7 +549,8 @@ const getMemberDashboard = async (req, res) => {
       stats: {
         dept_size: (deptMembers || []).length,
         upcoming_occasions: withDays.length,
-        active_cards: activeDeptCards.filter(c => c.status === 'active').length,
+        active_cards: activeDeptCards.length,
+        pending_to_sign: pendingToSign.length,
         pending_approvals: pendingApprovals.length,
       }
     });
@@ -791,30 +811,36 @@ const getMemberMyCards = async (req, res) => {
  res.status(500).json({ error: 'Failed to load cards' }); }
 };
 
-// GET /api/members/pending-to-sign — active dept/company cards not yet signed by this member
+// GET /api/members/pending-to-sign — active company cards not yet signed by this member
 const getMemberPendingToSign = async (req, res) => {
   try {
     const member = req.member;
-    // Get all active cards for this company
+
+    // All active cards for this company (include recipient_email to exclude own card)
     const { data: cards } = await supabase
       .from('cards')
-      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, background_color, deadline')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, background_color, deadline, notification_scope')
       .eq('company_id', member.company_id)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(100);
 
     if (!cards?.length) return res.json([]);
 
-    // Check which ones this member has already signed (by email)
+    // Check which ones this member has already signed
     const { data: signed } = await supabase
       .from('messages')
       .select('card_id')
       .eq('author_email', member.email)
       .in('card_id', cards.map(c => c.id));
 
-    const signedCardIds = new Set((signed || []).map(s => s.card_id));
-    const pending = cards.filter(c => !signedCardIds.has(c.id));
+    const signedIds = new Set((signed || []).map(s => s.card_id));
+
+    const pending = cards.filter(c =>
+      !signedIds.has(c.id) &&
+      c.recipient_email !== member.email   // birthday person shouldn't sign own card
+    );
+
     res.json(pending);
   } catch (err) { const { isSanitizeError } = require('../utils/sanitize');
  if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });

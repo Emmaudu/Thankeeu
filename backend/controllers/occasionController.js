@@ -689,7 +689,7 @@ const importGeneralTemplate = async (req, res) => {
 
     const { sendEmail } = require('../utils/email');
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
-    const { data: companyData } = await supabase.from('companies').select('name, contact_person, country').eq('id', companyId).maybeSingle();
+    const { data: companyData } = await supabase.from('companies').select('id, name, contact_person, country, email, occasion_scopes').eq('id', companyId).maybeSingle();
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
@@ -1111,7 +1111,7 @@ const importByOccasionName = async (req, res) => {
     let imported = 0; const errors = [];
     const { sendEmail } = require('../utils/email');
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/,''):'https://thankeeu.com'); })();
-    const { data: coData } = await supabase.from('companies').select('name,contact_person').eq('id', companyId).maybeSingle();
+    const { data: coData } = await supabase.from('companies').select('id, name, contact_person, country, email, occasion_scopes').eq('id', companyId).maybeSingle();
 
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];

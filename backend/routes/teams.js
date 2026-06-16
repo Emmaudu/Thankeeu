@@ -164,77 +164,81 @@ router.put('/members/:id', validateUUIDParam('id'), async (req, res) => {
     res.status(500).json({ error: 'Operation failed' }); }
 });
 
-// Delete member — accepts both real UUIDs (company_members / occasion_members.member_id)
-// and the synthetic 'om_<email>' IDs that all-members generates for occasion-only rows
+// Delete member — hard delete from ALL tables.
+// Accepts real UUIDs (company_members.id / occasion_members.member_id)
+// and the synthetic 'om_<email>' IDs all-members uses for occasion-only rows.
+// Also records the email in company_deleted_members so HRIS auto-sync
+// never re-creates this person (without HR explicitly re-adding them).
 router.delete('/members/:id', async (req, res) => {
   try {
     const companyId = req.company.id;
     const memberId  = req.params.id;
 
-    // Basic safety: must be a UUID or the 'om_<email>' synthetic format
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const OM_RE   = /^om_.{3,320}$/;
     if (!UUID_RE.test(memberId) && !OM_RE.test(memberId)) {
       return res.status(400).json({ error: 'Invalid member id format' });
     }
 
-    // 1. Try deleting from company_members first (covers HRIS-synced + Excel-imported members)
-    const { data: deleted, error: cmErr } = await supabase
-      .from('company_members')
-      .delete()
-      .eq('id', memberId)
-      .eq('company_id', companyId)
-      .select('email');
+    // Helper: wipe a member email from ALL member-related tables
+    const purgeByEmail = async (email) => {
+      const e = email?.toLowerCase().trim();
+      if (!e) return;
+      await Promise.allSettled([
+        supabase.from('company_members').delete().eq('company_id', companyId).eq('email', e),
+        supabase.from('occasion_members').delete().eq('company_id', companyId).eq('email', e),
+        supabase.from('team_members').delete().eq('company_id', companyId).eq('email', e),
+      ]);
+      // Record in blocklist so HRIS sync skips this email in future
+      await supabase.from('company_deleted_members')
+        .upsert({ company_id: companyId, email: e, deleted_at: new Date() },
+          { onConflict: 'company_id,email' })
+        .catch(() => {}); // non-fatal if table doesn't exist yet
+    };
 
-    if (cmErr) throw cmErr;
-
-    if (deleted && deleted.length > 0) {
-      // Also clean up any occasion_members rows for this email so they don't reappear
-      const email = deleted[0]?.email;
-      if (email) {
-        await supabase.from('occasion_members')
-          .delete()
-          .eq('company_id', companyId)
-          .eq('email', email)
-          .catch(() => {}); // non-fatal
-      }
-      return res.json({ message: 'Member removed' });
-    }
-
-    // 2. company_members row not found — this is likely an occasion_members-only row
-    //    (all-members returns these with id = member_id || 'om_<email>').
-    //    Look it up by member_id or by the 'om_<email>' synthetic ID pattern.
-    let omEmail = null;
-
-    // Check if it's a real UUID that maps to an occasion_members.member_id
-    const { data: omByMemberId } = await supabase
-      .from('occasion_members')
-      .select('email')
-      .eq('company_id', companyId)
-      .eq('member_id', memberId)
-      .maybeSingle();
-
-    if (omByMemberId?.email) {
-      omEmail = omByMemberId.email;
-    } else {
-      // Synthetic id format: 'om_<email>'
-      const match = String(memberId).match(/^om_(.+)$/);
-      if (match) omEmail = match[1];
-    }
-
-    if (omEmail) {
-      await supabase.from('occasion_members')
+    // ── 1. Real UUID → look up company_members first ──────────────────────
+    if (UUID_RE.test(memberId)) {
+      const { data: cmRows, error: cmErr } = await supabase
+        .from('company_members')
         .delete()
+        .eq('id', memberId)
         .eq('company_id', companyId)
-        .eq('email', omEmail);
-      return res.json({ message: 'Member removed' });
+        .select('email');
+      if (cmErr) throw cmErr;
+
+      if (cmRows && cmRows.length > 0) {
+        await purgeByEmail(cmRows[0].email);
+        return res.json({ message: 'Member removed' });
+      }
+
+      // Not in company_members — try occasion_members by member_id
+      const { data: omRow } = await supabase
+        .from('occasion_members')
+        .select('email')
+        .eq('company_id', companyId)
+        .eq('member_id', memberId)
+        .maybeSingle();
+
+      if (omRow?.email) {
+        await purgeByEmail(omRow.email);
+        return res.json({ message: 'Member removed' });
+      }
     }
 
-    // Nothing found to delete — still return success (idempotent)
+    // ── 2. Synthetic 'om_<email>' ID ─────────────────────────────────────
+    if (OM_RE.test(memberId)) {
+      const match = String(memberId).match(/^om_(.+)$/);
+      if (match) {
+        await purgeByEmail(match[1]);
+        return res.json({ message: 'Member removed' });
+      }
+    }
+
+    // Nothing matched — still 200 so the UI removes the row (already gone)
     res.json({ message: 'Member removed' });
   } catch (err) {
     console.error('[teams] delete member:', err.message);
-    res.status(500).json({ error: 'Operation failed' });
+    res.status(500).json({ error: 'Failed to remove member' });
   }
 });
 

@@ -7,7 +7,7 @@ import { banksAPI } from '../utils/api';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
 
-const BankAccountTab = ({ compact = false }) => {
+const BankAccountTab = ({ compact = false, onSaved = () => {} }) => {
   const [banks,    setBanks]    = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loading,  setLoading]  = useState(true);
@@ -18,7 +18,7 @@ const BankAccountTab = ({ compact = false }) => {
     bank_code: '', bank_name: '', account_number: '', account_name: '',
   });
   const [verified, setVerified] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
+  const [showAdd, setShowAdd] = useState(compact);
 
   useEffect(() => {
     banksAPI.getList().then(r => setBanks(r.data || [])).catch(() => {});
@@ -58,6 +58,7 @@ const BankAccountTab = ({ compact = false }) => {
       setShowAdd(false);
       const res = await banksAPI.getMy();
       setAccounts(res.data || []);
+      onSaved(res.data || []);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to save bank account');
     } finally { setSaving(false); }
@@ -73,12 +74,14 @@ const BankAccountTab = ({ compact = false }) => {
 
   return (
     <div className="max-w-xl space-y-4">
-      <div>
-        <h3 className="font-semibold text-warm-900 mb-1 text-sm">🏦 Bank accounts</h3>
-        <p className="text-xs text-warm-500 mb-4">
-          Save your bank account to receive gift pot withdrawals and approved deduction funds directly.
-        </p>
-      </div>
+      {!compact && (
+        <div>
+          <h3 className="font-semibold text-warm-900 mb-1 text-sm">🏦 Bank accounts</h3>
+          <p className="text-xs text-warm-500 mb-4">
+            Save your bank account to receive gift pot withdrawals and approved deduction funds directly.
+          </p>
+        </div>
+      )}
 
       {/* Saved accounts */}
       {loading ? <div className="h-16 rounded-2xl animate-pulse bg-purple-50" /> : (
@@ -142,7 +145,9 @@ const BankAccountTab = ({ compact = false }) => {
             <button onClick={handleSave} disabled={saving || !verified} className="btn-primary text-sm py-2.5 px-5 disabled:opacity-50">
               {saving ? 'Saving…' : '💾 Save account'}
             </button>
-            <button onClick={() => { setShowAdd(false); setVerified(false); }} className="btn-secondary text-sm py-2.5 px-4">Cancel</button>
+            {!compact && (
+              <button onClick={() => { setShowAdd(false); setVerified(false); }} className="btn-secondary text-sm py-2.5 px-4">Cancel</button>
+            )}
           </div>
         </div>
       ) : (
@@ -151,11 +156,13 @@ const BankAccountTab = ({ compact = false }) => {
         </button>
       )}
 
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-        <p className="text-xs text-amber-700 leading-relaxed">
-          🔒 Bank account verification is powered by Flutterwave. Your details are securely stored and never shared. Withdrawals are processed within 1–2 business days.
-        </p>
-      </div>
+      {!compact && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+          <p className="text-xs text-amber-700 leading-relaxed">
+            🔒 Bank account verification is powered by Flutterwave. Your details are securely stored and never shared. Withdrawals are processed within 1–2 business days.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

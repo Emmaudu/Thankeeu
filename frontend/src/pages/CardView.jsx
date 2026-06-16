@@ -9,6 +9,7 @@ import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns'
 import DashboardLayout from '../components/DashboardLayout';
 import MemberLayout from '../components/member/MemberLayout';
 import CompanyLayout from '../components/company/CompanyLayout';
+import BankAccountTab from '../components/BankAccountTab';
 
 
 import toast from 'react-hot-toast';
@@ -466,6 +467,37 @@ const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
   const net     = amount - fee;
   const isVerified = user ? user.is_verified !== false : true;
 
+  // The card itself can be viewed via the access_token alone, with no login
+  // required — but every action behind the withdraw flow (saving a bank
+  // account, verifying it, requesting the transfer) requires a real user or
+  // member session. Without this check, someone who opens their birthday
+  // card link from email while logged out would see the full withdraw UI,
+  // click through it, and hit a confusing generic "failed" error at the very
+  // last step with no indication that logging in was the actual problem.
+  if (!user && !member) {
+    const returnTo = `/card/${slug}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+    return (
+      <div className="text-center py-2 space-y-3">
+        <div className="text-4xl">🔒</div>
+        <p className="font-bold text-warm-900 text-base">Log in to claim your gift</p>
+        <p className="text-sm text-warm-600 px-2">
+          You're viewing this with your private link, but you'll need to sign in to add a bank account and withdraw {formatNGN(net)}.
+        </p>
+        <div className="flex flex-col gap-2 pt-1">
+          <Link to={`/login?returnTo=${encodeURIComponent(returnTo)}`}
+            className="btn-primary text-sm py-3 w-full text-center">
+            Log in as an individual user
+          </Link>
+          <Link to={`/member/login?returnTo=${encodeURIComponent(returnTo)}`}
+            className="btn-secondary text-sm py-3 w-full text-center">
+            Log in as a team member
+          </Link>
+        </div>
+        <p className="text-xs text-warm-400 pt-1">Not sure which one? Use whichever account you signed up with — your gift will still be here.</p>
+      </div>
+    );
+  }
+
   const COUNTRIES = [
     { code:'NG', label:'🇳🇬 Nigeria (NGN)', currency:'NGN' },
     { code:'GB', label:'🇬🇧 United Kingdom (GBP)', currency:'GBP' },
@@ -623,13 +655,10 @@ const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
       {!accounts?.length ? (
         <div className="space-y-3">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-            <p className="text-xs font-bold text-amber-800 mb-1">⚠️ No bank account saved</p>
-            <p className="text-xs text-amber-700">Go to Settings → Bank Accounts, add your details, then come back.</p>
+            <p className="text-xs font-bold text-amber-800 mb-1">⚠️ No bank account saved yet</p>
+            <p className="text-xs text-amber-700">Add your bank details below — only takes a moment, and you can withdraw right after.</p>
           </div>
-          <Link to={user ? '/dashboard/settings' : '/member/settings'}
-            className="btn-primary text-xs py-2.5 px-4 w-full text-center block">
-            🏦 Add bank account in Settings
-          </Link>
+          <BankAccountTab compact onSaved={(updated) => setAccounts(updated)} />
         </div>
       ) : (
         <div className="space-y-3">

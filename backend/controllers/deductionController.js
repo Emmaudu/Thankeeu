@@ -46,9 +46,9 @@ const ensureWallet = async (cardId, companyId) => {
 // Attempts FLW bank transfer immediately. Returns { ok, reason }
 const tryInstantTransfer = async (leaderId, amount, deductionId, cardTitle) => {
   const { data: bank } = await supabase.from('bank_accounts')
-    .select('*').eq('owner_id', leaderId).eq('is_default', true).maybeSingle();
+    .select('*').eq('owner_id', leaderId).eq('owner_type', 'member').eq('is_default', true).maybeSingle();
 
-  if (!bank?.flw_beneficiary_id || !bank?.account_number || !bank?.bank_code) {
+  if (!bank?.account_number || !bank?.bank_code) {
     return { ok: false, reason: 'no_bank' };
   }
 

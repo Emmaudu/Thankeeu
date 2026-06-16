@@ -134,8 +134,9 @@ const getMyAccounts = async (req, res) => {
 // DELETE /api/banks/:id
 const deleteBankAccount = async (req, res) => {
   try {
-    const ownerId = req.user?.id || req.member?.id;
-    await supabase.from('bank_accounts').delete().eq('id', req.params.id).eq('owner_id', ownerId);
+    const ownerId   = req.user?.id || req.member?.id;
+    const ownerType = req.user ? 'user' : 'member';
+    await supabase.from('bank_accounts').delete().eq('id', req.params.id).eq('owner_id', ownerId).eq('owner_type', ownerType);
     res.json({ message: 'Account removed' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete' });
@@ -161,11 +162,9 @@ const initiateWithdrawal = async (req, res) => {
       .select('*')
       .eq('id', bank_account_id)
       .eq('owner_id', requesterId)
+      .eq('owner_type', requesterType)
       .maybeSingle();
     if (baErr || !bankAccount) return res.status(404).json({ error: 'Bank account not found or not yours' });
-    if (!bankAccount.flw_beneficiary_id) {
-      return res.status(400).json({ error: 'Bank account not yet verified. Please re-save your account to link it with Flutterwave.' });
-    }
 
     // For gift_pot source — verify card belongs to requester and has sufficient balance
     if (source_type === 'gift_pot') {
@@ -208,11 +207,24 @@ const initiateWithdrawal = async (req, res) => {
       .maybeSingle();
     if (wErr) throw wErr;
 
-    // Mark deduction as withdrawal requested
+    // Atomically claim the deduction before calling FLW — only one concurrent
+    // request can flip withdrawal_requested from false to true. Without this,
+    // two near-simultaneous requests could both pass the check above (both
+    // read withdrawal_requested=false) and both trigger a transfer for the
+    // same deduction.
     if (source_type === 'deduction') {
-      await supabase.from('deduction_requests')
+      const { data: claimed, error: claimErr } = await supabase
+        .from('deduction_requests')
         .update({ withdrawal_requested: true, withdrawal_id: withdrawal.id })
-        .eq('id', source_id);
+        .eq('id', source_id).eq('withdrawal_requested', false)
+        .select('id').maybeSingle();
+
+      if (claimErr || !claimed) {
+        // Someone else claimed it first — discard the withdrawal record we
+        // just created and tell the caller it's already been requested.
+        await supabase.from('withdrawals').update({ status: 'failed', failure_reason: 'Deduction already claimed' }).eq('id', withdrawal.id);
+        return res.status(400).json({ error: 'Withdrawal already requested for this deduction' });
+      }
     }
 
     // Initiate Flutterwave bank transfer
@@ -256,6 +268,16 @@ const initiateWithdrawal = async (req, res) => {
         failure_reason: transferErr.response?.data?.message || 'FLW transfer failed',
         flw_reference: ref,
       }).eq('id', withdrawal.id);
+
+      // Release the deduction claim so the leader can retry — otherwise
+      // withdrawal_requested stays true forever with no successful transfer
+      // behind it, permanently locking this deduction from ever being
+      // withdrawn again.
+      if (source_type === 'deduction') {
+        await supabase.from('deduction_requests')
+          .update({ withdrawal_requested: false, withdrawal_id: null })
+          .eq('id', source_id);
+      }
 
       return res.status(500).json({ error: transferErr.response?.data?.message || 'Transfer failed. Please try again or contact support.' });
     }
@@ -344,6 +366,7 @@ const withdrawGift = async (req, res) => {
     const { data: bank } = await supabase.from('bank_accounts')
       .select('*')
       .eq('owner_id', callerId)
+      .eq('owner_type', userId ? 'user' : 'member')
       .eq('is_default', true)
       .maybeSingle();
 

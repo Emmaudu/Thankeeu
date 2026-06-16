@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth }               from './context/AuthContext';
 import { CompanyAuthProvider, useCompanyAuth } from './context/CompanyAuthContext';
@@ -122,15 +122,25 @@ const Spinner = () => (
   </div>
 );
 
-// CardViewGate: requires any authentication, preserves ?token= for recipient links
+// CardViewGate: requires authentication UNLESS a recipient access_token is
+// present in the URL — that token alone is enough for the backend's
+// getRecipientCard endpoint to return the full card (messages, gift pot,
+// isRecipient: true). Without this carve-out, every recipient clicking
+// their birthday/occasion email link would be redirected straight to a
+// bare login page with no card, no name, no gift amount — even though the
+// backend has always supported viewing via token alone. Login is still
+// required to actually withdraw the gift; GiftClaimPanel shows its own
+// prompt for that at the point where it actually matters.
 const CardViewGate = () => {
   const { user, loading: uLoading }     = useAuth();
   const { company, loading: cLoading }  = useCompanyAuth();
   const { member, loading: mLoading }   = useMemberAuth();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const hasRecipientToken = Boolean(searchParams.get('token'));
 
   if (uLoading || cLoading || mLoading) return <Spinner />;
-  if (!user && !company && !member) {
+  if (!user && !company && !member && !hasRecipientToken) {
     // Preserve the full path including ?token= so after login they come back here
     return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
   }

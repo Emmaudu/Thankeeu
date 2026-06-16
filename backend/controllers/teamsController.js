@@ -266,10 +266,15 @@ const getDepartments = async (req, res) => {
 const deleteTeamMember = async (req, res) => {
   try {
     const { memberId } = req.params;
-    await supabase.from('team_members')
-      .update({ is_active: false })
-      .eq('id', memberId)
-      .eq('company_id', req.company.id);
+    const companyId = req.company.id;
+
+    // Clean up all three tables so the member doesn't reappear on refresh
+    await Promise.allSettled([
+      supabase.from('team_members').delete().eq('id', memberId).eq('company_id', companyId),
+      supabase.from('company_members').delete().eq('id', memberId).eq('company_id', companyId),
+      supabase.from('occasion_members').delete().eq('member_id', memberId).eq('company_id', companyId),
+    ]);
+
     res.json({ message: 'Member removed' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to remove member' });

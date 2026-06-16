@@ -627,19 +627,29 @@ const memberResetPassword = async (req, res) => {
       return res.status(400).json({ error: 'Invalid reset link. It may have already been used. Please request a new one.' });
     }
 
-    const password_hash = await hashPassword(cleanPassword, 12);
+    const password_hash = await hashPassword(cleanPassword);
 
     if (tokenType === 'reset') {
-      const { error: upErr } = await supabase.from('company_members')
+      const { data: updated, error: upErr } = await supabase.from('company_members')
         .update({ password_hash, reset_token: null, reset_token_expires: null, status: 'approved', invite_accepted: true })
-        .eq('id', member.id);
+        .eq('id', member.id)
+        .select('id, status, invite_accepted');
       if (upErr) { console.error('memberResetPassword update error (reset):', upErr.message); throw upErr; }
+      if (!updated || updated.length === 0) {
+        console.error('memberResetPassword: update matched 0 rows for id:', member.id);
+        return res.status(500).json({ error: 'Failed to save password. Please try again or contact support.' });
+      }
     } else {
       // invite_token — clear it, mark approved, mark invite accepted
-      const { error: upErr } = await supabase.from('company_members')
+      const { data: updated, error: upErr } = await supabase.from('company_members')
         .update({ password_hash, invite_token: null, status: 'approved', invite_accepted: true })
-        .eq('id', member.id);
+        .eq('id', member.id)
+        .select('id, status, invite_accepted');
       if (upErr) { console.error('memberResetPassword update error (invite):', upErr.message); throw upErr; }
+      if (!updated || updated.length === 0) {
+        console.error('memberResetPassword: update matched 0 rows for id:', member.id);
+        return res.status(500).json({ error: 'Failed to save password. Please try again or contact support.' });
+      }
     }
 
     res.json({ message: 'Password set successfully! You can now sign in.' });

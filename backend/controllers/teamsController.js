@@ -1,6 +1,9 @@
 const { sendEmail } = require('../utils/email');
 const supabase = require('../utils/supabase');
 const { getMemberOccasions } = require('../utils/occasionEngine');
+const crypto = require('crypto');
+const argon2 = require('argon2');
+const hashPassword = (plain) => argon2.hash(plain, { type: argon2.argon2id, memoryCost: 65536, timeCost: 3, parallelism: 4 });
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();
@@ -115,29 +118,96 @@ const importTeamMembers = async (req, res) => {
     if (toInsert.length === 0)
       return res.status(400).json({ error: 'No valid rows found', row_errors: errors });
 
-    // Upsert — update existing by email per company
-    const { data, error } = await supabase
-      .from('team_members')
-      .upsert(toInsert, { onConflict: 'company_id,email', ignoreDuplicates: false })
-      .select();
+    // Upsert into company_members (the authoritative login table).
+    // For each member: if they already have a password or accepted invite, keep their
+    // existing record intact (fill-gaps only). For brand-new / password-less members,
+    // generate an invite_token so they can set their password via the email link.
+    const appUrl = FRONTEND_URL;
+    let co = null;
+    try { const { data: coData } = await supabase.from('companies').select('name, contact_person').eq('id', req.company.id).maybeSingle(); co = coData; } catch {}
 
-    if (error) throw error;
+    const results = [];
+    const inviteQueue = []; // { member, inviteToken }
 
-    // Point 21: Email every imported member
+    for (const row of toInsert) {
+      // Fetch existing company_member row (if any) to avoid clobbering passwords/tokens
+      const { data: existing } = await supabase
+        .from('company_members')
+        .select('id, password_hash, invite_token, invite_accepted, status, date_of_birth, resumption_date, gender')
+        .eq('company_id', req.company.id)
+        .eq('email', row.email)
+        .maybeSingle();
+
+      const needsInvite = !existing?.password_hash && !existing?.invite_accepted;
+      const inviteToken = needsInvite
+        ? (existing?.invite_token || crypto.randomBytes(32).toString('hex'))
+        : (existing?.invite_token || null);
+
+      // Build the upsert row — fill gaps only for optional fields
+      const fillGap = (existingVal, newVal) =>
+        (existingVal === null || existingVal === undefined || existingVal === '') ? (newVal || null) : existingVal;
+
+      const cmRow = {
+        company_id:    req.company.id,
+        first_name:    row.first_name,
+        last_name:     row.last_name,
+        email:         row.email,
+        department:    row.department,
+        date_of_birth: fillGap(existing?.date_of_birth, row.birthday),
+        status:        existing?.status === 'deactivated' ? 'deactivated' : 'approved',
+        updated_at:    new Date(),
+      };
+
+      if (needsInvite) {
+        cmRow.invite_token  = inviteToken;
+        // placeholder hash so the column is never null; will be replaced when member sets password
+        cmRow.password_hash = existing?.password_hash || await hashPassword(crypto.randomBytes(8).toString('hex'));
+      }
+
+      const { data: upserted, error: upsertErr } = await supabase
+        .from('company_members')
+        .upsert(cmRow, { onConflict: 'company_id,email' })
+        .select()
+        .maybeSingle();
+
+      if (upsertErr) {
+        console.error(`Import upsert failed for ${row.email}:`, upsertErr.message);
+        errors.push(`${row.email}: upsert failed — ${upsertErr.message}`);
+        continue;
+      }
+
+      results.push(upserted);
+      if (needsInvite && inviteToken) inviteQueue.push({ member: upserted || row, inviteToken });
+    }
+
+    // Also mirror into team_members for dashboard counts (legacy — non-blocking)
     setImmediate(async () => {
-      const appUrl = FRONTEND_URL;
-      let co = null;
-      try { const { data } = await supabase.from('companies').select('name').eq('id', req.company.id).maybeSingle(); co = data; } catch {}
-      for (const m of (data||[])) {
-        await sendEmail({ to: m.email, template:'teamMemberInvite', data:{
-          name: m.first_name,
-          companyName: co?.name || 'Your Company',
-          companyCode: req.company.id,
-          inviteLink: `${appUrl}/member/signup?company=${req.company.id}`,
-          appUrl,
-        }}).catch(()=>{});
+      await supabase
+        .from('team_members')
+        .upsert(toInsert, { onConflict: 'company_id,email', ignoreDuplicates: false })
+        .select()
+        .catch(() => {});
+    });
+
+    // Send set-password emails to members who don't have a password yet
+    setImmediate(async () => {
+      for (const { member, inviteToken } of inviteQueue) {
+        const link = `${appUrl}/member/reset-password?token=${inviteToken}&email=${encodeURIComponent(member.email)}`;
+        await sendEmail({
+          to: member.email,
+          template: 'teamMemberInvite',
+          data: {
+            name:        member.first_name,
+            companyName: co?.name || 'Your Company',
+            companyCode: req.company.id,
+            inviteLink:  link,
+            appUrl,
+          },
+        }).catch(() => {});
       }
     });
+
+    const data = results;
 
     res.json({
       message: `Successfully imported ${data.length} team members`,

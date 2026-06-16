@@ -207,20 +207,49 @@ const memberLogin = async (req, res) => {
     const cleanEmail    = validateEmail(req.body.email);
     const cleanPassword = validatePassword(req.body.password);
 
-    const { data: member } = await supabase.from('company_members')
-      .select('*').eq('email', cleanEmail).maybeSingle();
-    if (!member) return res.status(401).json({ error: 'Invalid email or password' });
-    if (member.status === 'pending') return res.status(403).json({ error: 'Your account is pending approval. You will be notified by email.' });
-    if (member.status === 'rejected') return res.status(403).json({ error: 'Your account was not approved. Contact your HR.' });
-    if (!member.password_hash) return res.status(403).json({ error: 'Please check your email for an invite link to set up your password first.' });
+    // Fetch ALL rows for this email (a person can belong to multiple companies).
+    // We try each in turn and return the first one where the password matches.
+    const { data: members } = await supabase.from('company_members')
+      .select('*').eq('email', cleanEmail);
 
-    const valid = await verifyPassword(cleanPassword, member.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
+    if (!members || members.length === 0)
+      return res.status(401).json({ error: 'Invalid email or password' });
+
+    // If the client passed a company_code hint, prefer that company's row first
+    const hintId = req.body.company_id || req.body.company_code || null;
+    const ordered = hintId
+      ? [...members.filter(m => m.company_id === hintId), ...members.filter(m => m.company_id !== hintId)]
+      : members;
+
+    let member = null;
+    for (const candidate of ordered) {
+      if (!candidate.password_hash) continue;
+      const valid = await verifyPassword(cleanPassword, candidate.password_hash);
+      if (valid) { member = candidate; break; }
+    }
+
+    if (!member) {
+      // Surface the most meaningful status error from any matching row
+      const anyPending  = ordered.find(m => m.status === 'pending');
+      const anyRejected = ordered.find(m => m.status === 'rejected');
+      const anyNoHash   = ordered.find(m => !m.password_hash);
+      if (anyNoHash)   return res.status(403).json({ error: 'Please check your email for an invite link to set up your password first.' });
+      if (anyPending)  return res.status(403).json({ error: 'Your account is pending approval. You will be notified by email.' });
+      if (anyRejected) return res.status(403).json({ error: 'Your account was not approved. Contact your HR.' });
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    if (member.status === 'pending')    return res.status(403).json({ error: 'Your account is pending approval. You will be notified by email.' });
+    if (member.status === 'rejected')   return res.status(403).json({ error: 'Your account was not approved. Contact your HR.' });
+    if (member.status === 'deactivated') return res.status(403).json({ error: 'Your account has been deactivated. Contact your HR.' });
+
+    // Upgrade bcrypt → argon2 transparently on next login
+    await rehashIfLegacy(member.id, cleanPassword, member.password_hash, 'company_members', supabase);
 
     // Get company info
     const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', member.company_id).maybeSingle();
     const token = generateToken(member.id, member.company_id);
-    const { password_hash, reset_token, ...safeMember } = member;
+    const { password_hash, reset_token, invite_token, ...safeMember } = member;
     setCookie(res, 'tk_member', token);
     res.json({token, member: { ...safeMember, company } });
   } catch (err) {

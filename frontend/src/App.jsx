@@ -112,6 +112,7 @@ import MemberPendingPage     from './pages/member/MemberPendingPage';
 import MemberFinancesPage    from './pages/member/MemberFinancesPage';
 import MemberRemindersPage   from './pages/member/MemberRemindersPage';
 import { usePageTracker } from './hooks/usePageTracker';
+import ScrollToTop from './components/ScrollToTop';
 
 const PageTracker = () => { usePageTracker(); return null; };
 
@@ -185,6 +186,7 @@ const App = () => (
             }}
           />
           <PageTracker />
+          <ScrollToTop />
           <Routes>
             {/* ── Public (no auth required) ─────────────────── */}
             <Route path="/"              element={<Home />} />

@@ -57,7 +57,7 @@ const DemoModal = ({ onClose }) => {
       await demoAPI.submit(form);
       setDone(true);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to submit. Email us at hello@thankeeu.com');
+      toast.error(err.response?.data?.error || 'Failed to submit. Email us at support@thankeeu.com');
     } finally { setLoading(false); }
   };
 
@@ -132,8 +132,8 @@ const DemoModal = ({ onClose }) => {
 
 const Home = () => {
   useSEO({
-    title:'Thankeeu — Group Cards & Gifts for Every Occasion',
-    description:"The world's favourite group card and gift platform. Birthdays, farewells, promotions and more.",
+    title:'Thankeeu — Online Group Cards & Gifts for Every Occasion',
+    description:"The world's favourite online group card and gift platform. Birthdays, farewells, promotions and more.",
     canonical:'/',
     jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp],
   });

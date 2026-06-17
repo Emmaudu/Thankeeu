@@ -1219,8 +1219,6 @@ const importByOccasionName = async (req, res) => {
       let { data: member, error: mErr } = await supabase.from('company_members')
         .upsert(upsertPayload, { onConflict:'company_id,email' }).select('id').maybeSingle();
 
-      // Some databases use an enum for `role` ('team_leader'/'team_member')
-      // instead of free text ('member'/'team_leader') — retry on that error.
       if (mErr && /role/i.test(mErr.message || '')) {
         upsertPayload.role = roleRaw === 'leader' ? 'team_leader' : 'team_member';
         ({ data: member, error: mErr } = await supabase.from('company_members')

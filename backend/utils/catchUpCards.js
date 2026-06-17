@@ -81,34 +81,21 @@ async function notifyColleagues({ member, company, ot, slug, daysUntil, occasion
 
     console.log(`[catchUp][${ot.label}] Done — ${toNotify.length} emails sent`);
 
-    // Mark emails_sent in tracking so re-imports don't resend
-    await supabase.from('company_members')
-      .update({
-        occasion_tracking: supabase.rpc ? undefined : undefined, // placeholder
-        updated_at: new Date(),
-      })
-      .eq('id', member.id)
-      .catch(() => {});
+    // tracking update (notified_at) handled below via RPC or fallback
 
     // Use a direct SQL update to merge just this key into the JSONB without overwriting others
-    await supabase.rpc('update_occasion_tracking', {
-      p_member_id:  member.id,
-      p_key:        ot.name,
-      p_notified_at: new Date().toISOString(),
-      p_emails_sent: toNotify.length,
-    }).catch(() => {
-      // RPC might not exist — do a best-effort plain update
-      supabase.from('company_members').select('occasion_tracking').eq('id', member.id).maybeSingle()
-        .then(({ data: m }) => {
-          if (!m) return;
-          const t = { ...(m.occasion_tracking || {}) };
-          if (t[ot.name]) {
-            t[ot.name] = { ...t[ot.name], notified_at: new Date().toISOString(), emails_sent: toNotify.length };
-            supabase.from('company_members').update({ occasion_tracking: t, updated_at: new Date() })
-              .eq('id', member.id).catch(() => {});
-          }
-        }).catch(() => {});
-    });
+    // Save notified_at to tracking (fresh fetch to avoid overwriting other keys)
+    try {
+      const { data: latestRow } = await supabase
+        .from('company_members').select('occasion_tracking').eq('id', member.id).maybeSingle();
+      const t = { ...(latestRow?.occasion_tracking || {}) };
+      t[ot.name] = { ...(t[ot.name] || {}), notified_at: new Date().toISOString(), emails_sent: toNotify.length };
+      await supabase.from('company_members')
+        .update({ occasion_tracking: t, updated_at: new Date() })
+        .eq('id', member.id);
+    } catch (e) {
+      console.error('[catchUp] notified_at update failed:', e.message);
+    }
 
   } catch (err) {
     console.error(`[catchUp] notifyColleagues error:`, err.message);
@@ -141,7 +128,7 @@ async function catchUpMemberCards(member, company) {
     let rows = otRows || [];
     if (rows.length === 0) {
       console.log('[catchUp] seeding occasion_types for company', company.id);
-      await supabase.rpc('seed_occasion_types', { p_company_id: company.id }).catch(() => {});
+      try { await supabase.rpc('seed_occasion_types', { p_company_id: company.id }); } catch (_) {}
       const { data: seeded } = await supabase.from('occasion_types').select('*')
         .eq('company_id', company.id).eq('is_active', true);
       rows = seeded || [];
@@ -190,9 +177,8 @@ async function catchUpMemberCards(member, company) {
       const trackKey  = occ.occasionName;
 
       // Fetch FRESH tracking for this key each iteration (avoids stale reads)
-      const { data: currentRow } = await supabase
-        .from('company_members').select('occasion_tracking')
-        .eq('id', member.id).maybeSingle().catch(() => ({ data: null }));
+      let currentRow = null;
+      try { const r = await supabase.from('company_members').select('occasion_tracking').eq('id', member.id).maybeSingle(); currentRow = r?.data || null; } catch (_) {}
       const currentTracking = currentRow?.occasion_tracking || {};
       const track = currentTracking[trackKey] || {};
 
@@ -286,7 +272,7 @@ async function catchUpMemberCards(member, company) {
         await supabase.from('contribution_wallets').insert({
           card_id: card.id, company_id: company.id,
           total_contributed: 0, platform_fee: 0, net_after_fee: 0, amount_to_celebrant: 0,
-        }).catch(e => console.error('[catchUp] wallet failed:', e.message));
+        }).then(r => { if (r?.error) console.error('[catchUp] wallet failed:', r.error.message); }).catch(e => console.error('[catchUp] wallet failed:', e.message));
       } else {
         console.log(`[catchUp][${ot.label}] Card exists — slug: ${cardSlug}`);
         // If already notified (notified_at set), skip
@@ -303,7 +289,7 @@ async function catchUpMemberCards(member, company) {
           [trackKey]: { year, dept_notified: true, card_slug: cardSlug },
         },
         updated_at: new Date(),
-      }).eq('id', member.id).catch(e => console.error('[catchUp] tracking save failed:', e.message));
+      }).eq('id', member.id).then(r => { if (r?.error) console.error('[catchUp] tracking save:', r.error.message); }).catch(e => console.error('[catchUp] tracking save failed:', e.message));
 
       const dlStr = new Date(Date.now() + 7 * 86400000).toLocaleDateString('en', { day: 'numeric', month: 'long' });
 

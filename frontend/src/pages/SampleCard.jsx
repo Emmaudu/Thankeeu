@@ -40,31 +40,32 @@ const MSG_FONT_STYLE = {
 
 // ── Avatar pools: Nigerian-presenting and American-presenting photos ─────────
 // Nigerian-presenting (warm darker tones, West African features)
+// Nigerian/African-presenting photos — verified dark-skin professional headshots
 const NGA = [
-  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=120&h=120&fit=crop&crop=face',  // 0 woman
-  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face',  // 1 man
-  'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=120&h=120&fit=crop&crop=face',  // 2 man
-  'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face',  // 3 woman
-  'https://images.unsplash.com/photo-1522556189639-b150ed9c4330?w=120&h=120&fit=crop&crop=face',  // 4 man
-  'https://images.unsplash.com/photo-1556157382-97eda2f9e2bf?w=120&h=120&fit=crop&crop=face',  // 5 woman
-  'https://images.unsplash.com/photo-1597586124394-fbd6ef244026?w=120&h=120&fit=crop&crop=face',  // 6 man
-  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=120&h=120&fit=crop&crop=face',  // 7 woman
-  'https://images.unsplash.com/photo-1624224971170-2f84fed5eb5e?w=120&h=120&fit=crop&crop=face',  // 8 man
-  'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=120&h=120&fit=crop&crop=face',  // 9 man suit (works for professional)
+  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=120&h=120&fit=crop&crop=face',  // 0 woman, dark skin
+  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face',  // 1 man, dark skin
+  'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face',  // 2 woman, dark skin
+  'https://images.unsplash.com/photo-1530268729831-4b0b9e170218?w=120&h=120&fit=crop&crop=face',  // 3 man, dark skin
+  'https://images.unsplash.com/photo-1595956553066-fe24a8c33395?w=120&h=120&fit=crop&crop=face',  // 4 woman, dark skin
+  'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=120&h=120&fit=crop&crop=face',  // 5 woman, dark skin
+  'https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?w=120&h=120&fit=crop&crop=face',  // 6 man, dark skin
+  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=120&h=120&fit=crop&crop=face',  // 7 woman, dark skin
+  'https://images.unsplash.com/photo-1489980557514-251d61e3eeb6?w=120&h=120&fit=crop&crop=face',  // 8 man, dark skin
+  'https://images.unsplash.com/photo-1623366302587-b38b1ddaefd9?w=120&h=120&fit=crop&crop=face',  // 9 woman, dark skin
 ];
 
-// American-presenting (diverse American looks)
+// American/Western-presenting photos — diverse lighter-skin professional headshots
 const USA = [
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face',  // 0 woman
-  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face',  // 1 man
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&fit=crop&crop=face',  // 2 man
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120&h=120&fit=crop&crop=face',  // 3 woman
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&h=120&fit=crop&crop=face',  // 4 woman
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face',  // 5 woman
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=face',  // 6 man
-  'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=120&h=120&fit=crop&crop=face',  // 7 man
-  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=120&h=120&fit=crop&crop=face',  // 8 woman
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&h=120&fit=crop&crop=face',  // 9 man
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face',  // 0 woman, light skin
+  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face',  // 1 man, light skin
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&fit=crop&crop=face',  // 2 man, light skin
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120&h=120&fit=crop&crop=face',  // 3 woman, medium
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&h=120&fit=crop&crop=face',  // 4 woman, light skin
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=face',  // 5 man, light skin
+  'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=120&h=120&fit=crop&crop=face',  // 6 man, medium
+  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=120&h=120&fit=crop&crop=face',  // 7 woman, light skin
+  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&h=120&fit=crop&crop=face',  // 8 man, light skin
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face',  // 9 woman, medium
 ];
 
 // Legacy AVATARS kept for hero strip

@@ -190,7 +190,104 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
       return;
     }
 
-    console.log('Webhook: unhandled type:', type);
+    // ── 7. transfer.completed — bank transfer success or failure ─────────────
+    // FLW fires this when a bank transfer reaches a terminal state.
+    // We use this to: confirm success, reverse failed withdrawals, notify recipient.
+    if (eventName === 'transfer.completed') {
+      const flwRef    = txn.reference;
+      const flwStatus = (txn.status || '').toUpperCase(); // 'SUCCESSFUL' | 'FAILED'
+      console.log('[transfer webhook]', flwRef, flwStatus);
+
+      // ── Gift pot withdrawal ─────────────────────────────────────────────────
+      if (flwRef?.startsWith('TK-GIFT-WD-')) {
+        const { data: card } = await supabase.from('cards')
+          .select('id, gift_withdrawn, total_collected, recipient_name, recipient_email, title, slug')
+          .eq('gift_payout_reference', flwRef).maybeSingle();
+
+        if (!card) { console.warn('[transfer webhook] card not found:', flwRef); return; }
+
+        if (flwStatus === 'SUCCESSFUL') {
+          // Confirm wallet disbursed (idempotent in case withdrawGift already set it)
+          const { data: wallet } = await supabase.from('contribution_wallets')
+            .select('id').eq('card_id', card.id).maybeSingle();
+          if (wallet?.id) {
+            await supabase.from('contribution_wallets').update({
+              disbursed: true, disbursed_at: new Date(),
+              disbursement_method: 'bank_transfer', updated_at: new Date(),
+            }).eq('id', wallet.id);
+          }
+          console.log('[transfer webhook] Gift withdrawal confirmed for card:', card.id);
+
+        } else if (flwStatus === 'FAILED') {
+          // Reverse withdrawal — recipient can retry
+          await supabase.from('cards').update({
+            gift_withdrawn: false, gift_withdrawn_at: null,
+            gift_payout_reference: null, gift_payout_amount: null,
+          }).eq('id', card.id);
+
+          // Restore total_collected from wallet
+          const { data: wallet } = await supabase.from('contribution_wallets')
+            .select('id, total_contributed').eq('card_id', card.id).maybeSingle();
+          if (wallet?.id) {
+            await supabase.from('contribution_wallets').update({
+              disbursed: false, disbursed_at: null,
+              disbursement_method: null, updated_at: new Date(),
+            }).eq('id', wallet.id);
+            await supabase.from('cards').update({
+              total_collected: wallet.total_contributed || 0, updated_at: new Date(),
+            }).eq('id', card.id);
+          }
+
+          // Notify recipient they can retry
+          const { sendEmail } = require('../utils/email');
+          const frontUrl = process.env.FRONTEND_URL || 'https://thankeeu.com';
+          if (card.recipient_email) {
+            await sendEmail({ to: card.recipient_email, template: 'giftWithdrawalFailed', data: {
+              recipientName: card.recipient_name,
+              cardTitle:     card.title || `${card.recipient_name}'s card`,
+              amount:        txn.amount,
+              reason:        txn.complete_message || 'Transfer could not be completed',
+              retryUrl:      `${frontUrl}/card/${card.slug}`,
+            }}).catch(() => {});
+          }
+          console.log('[transfer webhook] Gift withdrawal FAILED — reversed for card:', card.id);
+        }
+        return;
+      }
+
+      // ── Regular withdrawal (deductions etc.) ────────────────────────────────
+      if (flwRef?.startsWith('TK-WD-')) {
+        const { data: withdrawal } = await supabase.from('withdrawals')
+          .select('id, requester_id, requester_type, amount, source_type, source_id')
+          .eq('flw_reference', flwRef).maybeSingle();
+
+        if (!withdrawal) { console.warn('[transfer webhook] withdrawal not found:', flwRef); return; }
+
+        if (flwStatus === 'SUCCESSFUL') {
+          await supabase.from('withdrawals').update({
+            status: 'success', processed_at: new Date(), updated_at: new Date(),
+          }).eq('id', withdrawal.id);
+
+        } else if (flwStatus === 'FAILED') {
+          await supabase.from('withdrawals').update({
+            status: 'failed',
+            failure_reason: txn.complete_message || 'Transfer failed at Flutterwave',
+            updated_at: new Date(),
+          }).eq('id', withdrawal.id);
+
+          // Release deduction so leader can retry
+          if (withdrawal.source_type === 'deduction' && withdrawal.source_id) {
+            await supabase.from('deduction_requests').update({
+              withdrawal_requested: false, withdrawal_id: null,
+            }).eq('id', withdrawal.source_id);
+          }
+        }
+        console.log('[transfer webhook] Regular withdrawal', flwStatus, ':', withdrawal.id);
+        return;
+      }
+    }
+
+    console.log('Webhook: unhandled type:', type, 'event:', eventName);
 
   } catch (err) {
     // 200 already sent — just log

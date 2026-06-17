@@ -128,6 +128,22 @@ const emailTemplates = {
     `)
   }),
 
+  // Sent by FLW transfer webhook when a bank withdrawal fails
+  giftWithdrawalFailed: (data) => ({
+    subject: `Action needed: Your gift withdrawal for "${data.cardTitle}" failed`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Your withdrawal could not be completed ⚠️</h2>
+      <p style="color:#555;line-height:1.7;">Hi ${data.recipientName},</p>
+      <p style="color:#555;line-height:1.7;">Unfortunately, your ₦${Number(data.amount||0).toLocaleString('en-NG')} gift withdrawal for <strong>${data.cardTitle}</strong> could not be completed.</p>
+      <div style="background:#FEF3F2;border-radius:10px;padding:14px 16px;margin:16px 0;border:1px solid #FECDCA;">
+        <p style="color:#B42318;margin:0;font-size:13px;font-weight:600;">Reason: ${data.reason || 'Transfer failed'}</p>
+      </div>
+      <p style="color:#555;line-height:1.7;">The good news: your gift pot has been fully restored and you can try withdrawing again. Please check your bank account details are correct before retrying.</p>
+      ${btn('Retry withdrawal →', data.retryUrl || '#', '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">If this keeps failing, please contact us at support@thankeeu.com</p>
+    `)
+  }),
+
   cardReminder: (data) => ({
     subject: `Reminder: Sign ${data.recipientName}'s card before it closes!`,
     html: BASE(`

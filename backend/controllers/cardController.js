@@ -558,14 +558,19 @@ const getRecipientCard = async (req, res) => {
 
     const { access_token: _accessToken, ...recipientCard } = card;
 
+    // If gift already withdrawn or wallet disbursed, show 0 for total_collected
+    // (the contributions rows still exist so summing them gives the pre-withdrawal total)
+    const isAlreadyWithdrawn = card.gift_withdrawn || wallet?.disbursed;
+    const displayTotal = isAlreadyWithdrawn ? 0 : totalCollected;
+
     res.json({
       ...recipientCard,
-      isRecipient: true,
-      signed_count: card.messages?.length || 0,
-      total_collected: totalCollected,
-      claimable_amount: wallet?.amount_to_celebrant ?? totalCollected,
-      gift_claim: claim || null,
-      wallet_disbursed: wallet?.disbursed || false
+      isRecipient:      true,
+      signed_count:     card.messages?.length || 0,
+      total_collected:  displayTotal,
+      claimable_amount: isAlreadyWithdrawn ? 0 : (wallet?.amount_to_celebrant ?? totalCollected),
+      gift_claim:       claim || null,
+      wallet_disbursed: wallet?.disbursed || false,
     });
   } catch (err) {
     console.error('Recipient card error:', err);

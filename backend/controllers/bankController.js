@@ -404,9 +404,13 @@ const withdrawGift = async (req, res) => {
     }
 
     // Platform fee: 3.5%
-    const gross = card.total_collected;
+    // Use the DB value at time of withdrawal — not a value passed from frontend —
+    // so the calculation is always based on the real collected amount.
+    const gross = card.total_collected || 0;
+    if (gross <= 0) return res.status(400).json({ error: 'No gift pot to withdraw' });
     const fee   = Math.round(gross * 0.035);
     const net   = gross - fee;
+    console.log(`[withdrawGift] gross=${gross} fee=${fee} net=${net} card=${card.id}`);
 
     const transferRef = `TK-GIFT-WD-${card.id.slice(0,8).toUpperCase()}-${Date.now()}`;
 
@@ -463,7 +467,37 @@ const withdrawGift = async (req, res) => {
       throw new Error(r.data?.message || r.data?.data?.complete_message || 'Transfer failed');
     }
 
-    // Also record in gift_claims table for admin visibility
+    // ── Fix 1: Update total_collected on card to reflect the withdrawal ────────
+    // Without this the card displays the old pot total even after payout.
+    try {
+      await supabase.from('cards')
+        .update({ total_collected: 0, updated_at: new Date() })
+        .eq('id', card.id);
+    } catch (e) {
+      console.error('[withdrawGift] total_collected reset failed:', e.message);
+    }
+
+    // ── Fix 2: Update contribution_wallets to reflect disbursement ────────────
+    // Marks the wallet as disbursed with the correct fee breakdown.
+    try {
+      const { data: wallet } = await supabase.from('contribution_wallets')
+        .select('id').eq('card_id', card.id).maybeSingle();
+      if (wallet?.id) {
+        await supabase.from('contribution_wallets').update({
+          platform_fee:        fee,
+          net_after_fee:       net,
+          amount_to_celebrant: net,
+          disbursed:           true,
+          disbursed_at:        new Date(),
+          disbursement_method: 'bank_transfer',
+          updated_at:          new Date(),
+        }).eq('id', wallet.id);
+      }
+    } catch (e) {
+      console.error('[withdrawGift] wallet update failed:', e.message);
+    }
+
+    // ── Record in gift_claims table for admin visibility ──────────────────────
     try {
       await supabase.from('gift_claims').upsert({
         card_id:         card.id,

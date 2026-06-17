@@ -452,7 +452,7 @@ function MusicPlayer() {
 }
 
 // ── Gift Claim Panel — Bank Transfer (FLW) or Gift Card (Reloadly) ───────────
-const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
+const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
   const [step,        setStep]        = useState('choose');   // choose | bank | giftcard | loading | done
   const [accounts,    setAccounts]    = useState(null);
   const [products,    setProducts]    = useState(null);
@@ -539,6 +539,7 @@ const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
       const res = await banksAPI.withdrawGift({ card_slug: slug, access_token: token });
       setResult({ type: 'transfer', message: res.data.message, amount: res.data.amount, fee: res.data.fee });
       setStep('done');
+      if (onWithdrawn) onWithdrawn(); // tell parent to re-fetch card state
     } catch (err) {
       toast.error(err.response?.data?.error || 'Transfer failed. Please try again.');
       setStep('bank');
@@ -674,7 +675,8 @@ const GiftClaimPanel = ({ slug, token, amount, user, member }) => {
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs space-y-1 text-warm-600">
             <div className="flex justify-between"><span>Gift pot</span><span>{formatNGN(amount)}</span></div>
             <div className="flex justify-between"><span>Platform fee (3.5%)</span><span>-{formatNGN(fee)}</span></div>
-            <div className="flex justify-between font-bold text-warm-900 pt-1 border-t border-gray-200"><span>You receive</span><span>{formatNGN(net)}</span></div>
+            <div className="flex justify-between font-bold text-warm-900 pt-1 border-t border-gray-200"><span>You receive (est.)</span><span>{formatNGN(net)}</span></div>
+            <p className="text-warm-400 text-center pt-1">Exact amount confirmed at transfer</p>
           </div>
           <button onClick={handleBankTransfer} disabled={busy}
             className="btn-primary w-full text-sm py-3">
@@ -1294,7 +1296,7 @@ const CardView = () => {
               {/* Only show withdraw if: user is the verified recipient (email match or received via transfer) */}
               {card.isRecipient && !card.gift_withdrawn && (
                 <GiftClaimPanel
-                  slug={slug} token={token} amount={totalCollected}
+                  slug={slug} token={token} amount={totalCollected} onWithdrawn={fetchCard}
                   user={user} member={member}
                 />
               )}

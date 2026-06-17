@@ -38,24 +38,37 @@ const MSG_FONT_STYLE = {
   'font-courgette': { fontSize:'1.05rem', lineHeight:'1.8' },
 };
 
-// ── Real Unsplash people photos ───────────────────────────────────────────────
-const AVATARS = [
-  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=120&h=120&fit=crop&crop=face',
+// ── Avatar pools: Nigerian-presenting and American-presenting photos ─────────
+// Nigerian-presenting (warm darker tones, West African features)
+const NGA = [
+  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=120&h=120&fit=crop&crop=face',  // 0 woman
+  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face',  // 1 man
+  'https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=120&h=120&fit=crop&crop=face',  // 2 man
+  'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face',  // 3 woman
+  'https://images.unsplash.com/photo-1522556189639-b150ed9c4330?w=120&h=120&fit=crop&crop=face',  // 4 man
+  'https://images.unsplash.com/photo-1556157382-97eda2f9e2bf?w=120&h=120&fit=crop&crop=face',  // 5 woman
+  'https://images.unsplash.com/photo-1597586124394-fbd6ef244026?w=120&h=120&fit=crop&crop=face',  // 6 man
+  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=120&h=120&fit=crop&crop=face',  // 7 woman
+  'https://images.unsplash.com/photo-1624224971170-2f84fed5eb5e?w=120&h=120&fit=crop&crop=face',  // 8 man
+  'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=120&h=120&fit=crop&crop=face',  // 9 man suit (works for professional)
 ];
+
+// American-presenting (diverse American looks)
+const USA = [
+  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face',  // 0 woman
+  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face',  // 1 man
+  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&fit=crop&crop=face',  // 2 man
+  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120&h=120&fit=crop&crop=face',  // 3 woman
+  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&h=120&fit=crop&crop=face',  // 4 woman
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face',  // 5 woman
+  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=face',  // 6 man
+  'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=120&h=120&fit=crop&crop=face',  // 7 man
+  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=120&h=120&fit=crop&crop=face',  // 8 woman
+  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&h=120&fit=crop&crop=face',  // 9 man
+];
+
+// Legacy AVATARS kept for hero strip
+const AVATARS = [...NGA, ...USA];
 
 const GIFS = [
   'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
@@ -66,217 +79,153 @@ const GIFS = [
   'https://media.giphy.com/media/RrVzUOXldFe8M/giphy.gif',
 ];
 
-// ── 50 signers data ───────────────────────────────────────────────────────────
+// ── Signers — mixed Nigerian and American names with matching photos ──────────
+// Each signer has: nga: true (Nigerian) or nga: false (American), avatar index into NGA or USA pool
 const SIGNERS = [
-  // gift types: 'money' | 'flowers' | 'cake' | 'none'
-  // media types: 'gif' | 'voice' | 'photo' | 'none'
-  { name:'Adaeze Okonkwo', role:'Head of Marketing', font:'font-dancing',
-    gift:'money', amount:5000, media:'gif', gifIndex:0, avatar:0,
+  // ── Nigerian ──
+  { name:'Adaeze Okonkwo', nga:true, avatar:0, role:'Head of Marketing', font:'font-dancing',
+    gift:'money', amount:5000, media:'gif', gifIndex:0,
     msg:`Chisom, darling! I still remember the day you walked into that boardroom with your slides and completely owned the room. Not a single person could take their eyes off your presentation. That day I turned to Emeka and whispered "this one is special." Three years later and every single thing you do still has that same magic — that spark, that precision, that warmth that makes everyone around you feel capable. Working with you is genuinely one of the privileges of my career. On your birthday I just want you to know: you are not just talented, you are the kind of human being that makes a workplace feel like a family. Have the most spectacular day, my dear. You deserve every bit of celebration coming your way! 🎂✨` },
 
-  { name:'Kelechi Adeyemi', role:'Senior Developer', font:'font-vibes',
-    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=600&q=80', avatar:1,
-    msg:`Happy birthday to the person who has single-handedly saved my sanity more times than I can count. Remember that production incident at 2am last December? The entire team was panicking, Slack was on fire, and there you were — calm as a cucumber, methodically walking through the logs while the rest of us were stress-eating biscuits. You fixed it in 47 minutes. 47 minutes! I timed it. That composure under pressure, that brilliant mind, that unshakeable belief that every problem has a solution — those are the things that define you. But beyond the work, you're just a genuinely good person. The kind that remembers everyone's coffee order. The kind that says "how are you actually doing?" and means it. Happy birthday, Chisom. May this year bring you everything your generous heart deserves.` },
+  { name:'Jessica Morgan', nga:false, avatar:0, role:'VP of Product', font:'font-vibes',
+    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=600&q=80',
+    msg:`Chisom! Working across time zones with you has been one of the highlights of this role. You make 7am calls feel energising, which should be impossible. Your ability to cut through ambiguity and give the team clarity when everything feels murky is something I genuinely aspire to. I told my manager last month that you are the clearest strategic thinker on the extended team and I meant every word. Happy birthday — hope your day is as bright as the energy you bring to every single call. 🎉` },
 
-  { name:'Dr. Nkechi Eze', role:'Chief Medical Officer', font:'font-pacifico',
-    gift:'money', amount:10000, media:'gif', gifIndex:1, avatar:2,
-    msg:`To our shining star on her birthday — I have watched you grow from a brilliant newcomer who asked the most incisive questions in every meeting, to a leader who now shapes the direction of this entire organisation. What strikes me most about you, Chisom, is not just your intellect (though that is formidable), but your emotional intelligence. The way you read a room. The way you adapt your communication to meet people exactly where they are. The way you advocate quietly and powerfully for what is right. You have made this company better, more thoughtful, more human. And on a personal note — your laugh is genuinely contagious and has brightened more of my difficult days than you will ever know. Wishing you a birthday as brilliant and warm as you are. 🌟` },
+  { name:'Kelechi Adeyemi', nga:true, avatar:1, role:'Senior Developer', font:'font-pacifico',
+    gift:'money', amount:8000, media:'none',
+    msg:`Happy birthday to the person who has single-handedly saved my sanity more times than I can count. Remember that production incident at 2am last December? The entire team was panicking, Slack was on fire, and there you were — calm as a cucumber, methodically walking through the logs while the rest of us were stress-eating biscuits. You fixed it in 47 minutes. That composure under pressure, that brilliant mind, that unshakeable belief that every problem has a solution — those are the things that define you. Happy birthday, Chisom!` },
 
-  { name:'Emeka Nwosu', role:'Product Manager', font:'font-satisfy',
-    gift:'none', media:'none', avatar:3,
-    msg:`Chisom! My road-to-work podcast partner, my "did you watch that documentary" buddy, my "should I send this email or is it too aggressive" advisor. Working beside you is one of those rare gifts in a career that you do not fully appreciate until you imagine what it would be like without it — and then you feel actual dread. You bring something to every conversation that I can only describe as clarity. When things are muddy and complicated and everybody is talking over each other, you cut through with one sentence and suddenly everyone can see. That is a superpower. On your birthday I want you to know that you are valued far beyond what any Slack message or performance review could ever capture. Go enjoy today fully — you have earned every moment of it!` },
+  { name:'Tyler Brooks', nga:false, avatar:1, role:'Engineering Manager', font:'font-satisfy',
+    gift:'money', amount:15000, media:'gif', gifIndex:1,
+    msg:`Chisom! I've been in tech for fifteen years and I can count on one hand the people who make me genuinely rethink my assumptions in a single conversation. You're on that list. The questions you ask don't just probe the surface — they go straight to the assumption buried three layers down. I've left meetings with you having to unlearn things I thought were settled. That is a rare and valuable gift. Happy birthday to someone who makes everyone in the room smarter. 🚀` },
 
-  { name:'Fatima Al-Hassan', role:'Finance Director', font:'font-kaushan',
-    gift:'cake', media:'none', avatar:4,
-    msg:`Chisom my dear! There are people you work with, and then there are people who become part of your story. You fell into the second category almost immediately — I think it was during that interminable budget meeting in February where you passed me a note that said "I have calculated that we have collectively lost 4 hours of our lives to this discussion and gained zero insight" and I had to physically suppress laughter for 20 minutes. That is the thing about you — you find the human in every situation. You find the funny, the warm, the real. But you also find the solution, the strategy, the path forward. You are the complete package, Chisom, and on this birthday I am celebrating all of it. Happy birthday to someone who makes finance meetings survivable and Monday mornings actually pleasant! 🎂` },
+  { name:'Dr. Nkechi Eze', nga:true, avatar:2, role:'Chief Medical Officer', font:'font-kaushan',
+    gift:'money', amount:10000, media:'gif', gifIndex:2,
+    msg:`To our shining star on her birthday — I have watched you grow from a brilliant newcomer who asked the most incisive questions in every meeting, to a leader who now shapes the direction of this entire organisation. What strikes me most about you, Chisom, is not just your intellect, but your emotional intelligence. The way you read a room. The way you adapt your communication to meet people exactly where they are. The way you advocate quietly and powerfully for what is right. You have made this company better, more thoughtful, more human. Wishing you a birthday as brilliant and warm as you are. 🌟` },
 
-  { name:'Tunde Bakare', role:'Operations Lead', font:'font-alex',
-    gift:'money', amount:7500, media:'photo', photoUrl:'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&q=80', avatar:5,
-    msg:`Happy birthday Chisom! I want to tell you something I should have said ages ago: you are the reason the ops team runs as smoothly as it does. Not because of any single decision or project, but because of the culture you model. The thoroughness. The follow-through. The fact that when you say you will handle something, it is handled. Completely. Without chasing. In a world full of half-done things and forgotten promises, you are refreshingly whole. I have learned from watching you operate. I have grown from being around your discipline and your heart. On your birthday, I hope you feel the love and appreciation that you pour out so freely every single day. It comes back to you today, multiplied. Have a fantastic celebration! 🙌` },
+  { name:'Sarah Chen', nga:false, avatar:2, role:'Head of Design', font:'font-dancing',
+    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80',
+    msg:`Chisom! You have the rarest combination — impeccable taste and genuine humility about it. You'll say "I think this could be better" and then sketch out something on a napkin that is better. Completely, obviously better. And then you give credit to the whole team. I've learned so much from watching how you hold space for great work without ego. Happy birthday! Wishing you a day as beautiful as everything you touch. 🌸` },
 
-  { name:'Blessing Okafor', role:'HR Business Partner', font:'font-sacramento',
-    gift:'flowers', media:'gif', gifIndex:2, avatar:6,
-    msg:`Chisom, from one HR soul to the brightest light in this building — HAPPY BIRTHDAY! Do you know what my favourite thing about you is? Not the reports (though they are flawless). Not the presentations (though they are stunning). It is the way you treat the people on the ground. The cleaners, the security team, the new interns — every single person gets that same warm, genuine Chisom smile and that "how are you doing?" that feels completely real because IT IS completely real. That is rare. That is character. That is who you are at your core. And it makes everything else you do — every achievement, every milestone, every brilliant idea — shine even brighter. Today we celebrate you, and we mean every word of it. Happy birthday, sweetheart! 🌸💐` },
+  { name:'Emeka Nwosu', nga:true, avatar:3, role:'Product Manager', font:'font-alex',
+    gift:'none', media:'none',
+    msg:`Chisom! My road-to-work podcast partner, my "did you watch that documentary" buddy, my "should I send this email or is it too aggressive" advisor. Working beside you is one of those rare gifts in a career that you do not fully appreciate until you imagine what it would be like without it. You bring clarity to every conversation. When things are muddy and complicated and everybody is talking over each other, you cut through with one sentence and suddenly everyone can see. On your birthday I want you to know that you are valued far beyond what any Slack message could ever capture. Go enjoy today fully!` },
 
-  { name:'Victor Obi', role:'Legal Counsel', font:'font-dancing',
-    gift:'money', amount:15000, media:'none', avatar:7,
-    msg:`Happy birthday to the most diplomatically skilled human I have ever encountered. Chisom, I have watched you navigate situations that would make seasoned diplomats break into a cold sweat — with grace, precision and an almost supernatural ability to leave every party in a room feeling heard and respected. The contract negotiations last year. The restructuring communications. That town hall in March where you stood up with two minutes of preparation and delivered something that should have taken a speechwriter two weeks. I am in awe of you. Not in the way that creates distance — in the way that makes you want to work harder, be better, think bigger. Thank you for raising the standard every single day. Happy birthday Chisom. This year is going to be extraordinary.` },
+  { name:'Marcus Williams', nga:false, avatar:3, role:'Sales Director', font:'font-sacramento',
+    gift:'money', amount:20000, media:'gif', gifIndex:3,
+    msg:`Chisom! I've closed deals because of things I learned from watching you handle difficult conversations. The way you stay curious when others get defensive, the way you find the shared interest underneath the stated position — that's a skill I've been studying and trying to replicate for two years. You make everyone around you sharper. Happy birthday to the most quietly influential person on this team. 🎯` },
 
-  { name:'Ifeoma Chukwu', role:'Brand Manager', font:'font-vibes',
-    gift:'cake', media:'photo', photoUrl:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80', avatar:8,
-    msg:`HAPPY BIRTHDAY CHISOM!! 🎉🎂🎊 Okay I need everyone reading this to know — this woman is ICONIC. I am not throwing that word around. I mean it in the truest sense. The way she walks into a room and the energy shifts. The way she says your name when she's greeting you and it somehow sounds like the most important thing she's said all day. The way she takes your half-baked idea and transforms it into something so refined you almost don't recognise it (but in the best possible way). I have been in this industry long enough to spot real talent, and real character, and real warmth — and Chisom, you have all three in abundance. On your birthday I am not just celebrating the years — I am celebrating who you ARE. The world is genuinely lucky to have you. Have the most magical day! 🌟✨🎂` },
+  { name:'Fatima Al-Hassan', nga:true, avatar:4, role:'Finance Director', font:'font-courgette',
+    gift:'cake', media:'none',
+    msg:`Chisom my dear! There are people you work with, and then there are people who become part of your story. You fell into the second category almost immediately — I think it was during that interminable budget meeting in February where you passed me a note that said "I have calculated that we have collectively lost 4 hours of our lives to this discussion and gained zero insight" and I had to physically suppress laughter for 20 minutes. That is the thing about you — you find the human in every situation. Happy birthday to someone who makes finance meetings survivable! 🎂` },
 
-  { name:'Samuel Adebola', role:'Sales Director', font:'font-satisfy',
-    gift:'money', amount:20000, media:'gif', gifIndex:3, avatar:9,
-    msg:`Chisom! The person who taught me that "no" is the beginning of a conversation, not the end of one. I have closed deals because of things I learned from watching you handle difficult clients. I have kept relationships because of communication styles I absorbed from sitting in meetings with you. In this industry we talk a lot about mentorship and role models — usually pointing upward to senior figures. But some of the most formative professional influence in my career has come from sideways — from you. From watching how you think, how you problem-solve, how you lead without needing a title to do it. That is the rarest kind of impact. Happy birthday to someone who makes everyone around them better simply by being who they are. Wishing you a year that matches your energy — which means absolutely spectacular! 🚀` },
+  { name:'Amanda Foster', nga:false, avatar:4, role:'Chief People Officer', font:'font-pinyon',
+    gift:'money', amount:25000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=600&q=80',
+    msg:`Chisom. As the head of people I want to say this clearly: you are what we hire for. When we write job descriptions, when we design our culture — we are trying to find more people like you. The combination of excellence and humanity. The ability to be rigorous without being unkind. The capacity to drive results while lifting people. These are not things we can put in a competency framework because they live in character. You have them. Fully. Naturally. Generously. Happy birthday. 🌟💜` },
 
-  { name:'Amara Osei', role:'Data Analyst', font:'font-pinyon',
-    gift:'flowers', media:'none', avatar:10,
-    msg:`Dear Chisom, I joined this company as a very nervous new analyst who was certain she would be swallowed alive by the complexity of it all. You were the first senior person to stop, sit down with me, and just — talk. Not give me a checklist. Not point me to a document. Just talk. Ask questions. Share your own learning curve. That conversation gave me more confidence than any training programme could have. You invest in people. Quietly, generously, without expecting anything back. I have grown so much in this role and a significant part of that is because you made me feel like I belonged here from day one. On your birthday I want to say thank you — truly — for the gift of your time, your kindness, and your belief in people like me. Happy birthday Chisom! 🌸` },
+  { name:'Tunde Bakare', nga:true, avatar:5, role:'Operations Lead', font:'font-dancing',
+    gift:'money', amount:7500, media:'photo', photoUrl:'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&q=80',
+    msg:`Happy birthday Chisom! I want to tell you something I should have said ages ago: you are the reason the ops team runs as smoothly as it does. Not because of any single decision or project, but because of the culture you model. The thoroughness. The follow-through. The fact that when you say you will handle something, it is handled. Completely. Without chasing. In a world full of half-done things and forgotten promises, you are refreshingly whole. Have a fantastic celebration! 🙌` },
 
-  { name:'Olu Adewale', role:'IT Manager', font:'font-allura',
-    gift:'money', amount:8000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80', avatar:11,
-    msg:`Happy birthday to the person who actually reads the IT security memos I send out and — miracle of miracles — also remembers what is in them. Chisom, you have no idea how much that means to a man who spends his life watching people click on suspicious email links. But seriously — today I am not writing as the IT guy. I am writing as someone who has watched you demonstrate what it looks like to be truly excellent at something while remaining completely and utterly human. You have no ego about your accomplishments. You share credit freely. You ask for help when you need it. You admit when you are wrong. These things seem simple but they are extraordinarily rare in high-performing people. You are the exception. Happy birthday — may today be everything you deserve and more.` },
+  { name:'Rachel Kim', nga:false, avatar:5, role:'Strategy Lead', font:'font-vibes',
+    gift:'flowers', media:'gif', gifIndex:4,
+    msg:`Chisom! Strategy is my world and I want to tell you — the strategic intuition you bring to cross-functional discussions is better than most pure strategy hires I've worked with. You see the second and third-order effects. You spot the assumption everyone else is making. And you say it without making anyone feel stupid for missing it. That combination of insight and grace is extraordinarily rare. Happy birthday! 🌸` },
 
-  { name:'Ngozi Uchenna', role:'Executive Assistant', font:'font-courgette',
-    gift:'cake', media:'gif', gifIndex:4, avatar:12,
-    msg:`Chisom! I schedule your meetings, I manage your calendar, I know your coffee order, I have seen the state of your inbox at its worst — and I can tell you with absolute certainty: you are the kindest, most decent, most genuinely good-hearted person I have ever worked for. Not because you say please and thank you (though you always do). But because you MEAN it. Because you ask about my mother's health and actually remember the update from three months ago. Because you said "you handle things in a way that makes my job easier" to me once in a team meeting and I nearly cried because no one had said anything like that to me before. You see people, Chisom. You really see them. Happy birthday to someone who makes the world genuinely brighter just by being in it. 🎂💜` },
+  { name:'Blessing Okafor', nga:true, avatar:6, role:'HR Business Partner', font:'font-satisfy',
+    gift:'flowers', media:'gif', gifIndex:5,
+    msg:`Chisom, from one HR soul to the brightest light in this building — HAPPY BIRTHDAY! Do you know what my favourite thing about you is? Not the reports (though they are flawless). Not the presentations (though they are stunning). It is the way you treat the people on the ground. The cleaners, the security team, the new interns — every single person gets that same warm, genuine Chisom smile and that "how are you doing?" that feels completely real because IT IS completely real. That is rare. That is character. Happy birthday, sweetheart! 🌸💐` },
 
-  { name:'Chidi Onyekwere', role:'Strategy Consultant', font:'font-dancing',
-    gift:'money', amount:25000, media:'none', avatar:13,
-    msg:`Chisom! From one overthinker to the world's most elegant overthinker — happy birthday. I say that with deep affection because the quality of your thinking is visible in everything you produce. There is no half-measure in your work. No approximation. No "good enough." Everything that comes from you has been considered, reconsidered, refined and then reconsidered again — and it shows. The quality is unmistakable. But here is what I love even more: you do not apply that same exacting standard to people. With people you are endlessly patient, endlessly generous, endlessly willing to give the benefit of the doubt. You hold work to a high standard and people to a human one. That balance is genuinely rare and genuinely beautiful. Happy birthday. This year is yours.` },
+  { name:'David Patterson', nga:false, avatar:6, role:'CTO', font:'font-kaushan',
+    gift:'money', amount:40000, media:'none',
+    msg:`Chisom — I don't usually write long birthday messages. But today I'm making an exception. In my years as CTO I've worked with hundreds of talented people. A small number have both the talent AND the character. The kind of person whose presence makes the organisation not just more effective but more worthy. You are in that small number. You make this a place worth working. Not through grand gestures alone — but through the accumulation of a thousand daily choices to be honest, to be kind, to be excellent, to be human. Happy birthday. 💜` },
 
-  { name:'Remi Fashola', role:'Communications Manager', font:'font-vibes',
-    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&q=80', avatar:14,
-    msg:`Chisom my love! You know I am a words person — it is literally my job — and yet I find myself struggling to find words big enough for what you mean to this team and to me personally. You have been a sounding board, a co-conspirator, a voice of reason and occasionally a voice of delightful unreason when we all needed permission to dream bigger. I remember when you said "why are we limiting the scope of this?" in that planning meeting and the entire room went quiet for a moment and then everyone started talking at once with this energy that had not been in the room a minute before. You do that. You expand the possible. You shift what people think they can do. On your birthday I want to celebrate that gift — and the extraordinary human being it comes wrapped in. Happy birthday, beautiful! 🌹` },
+  { name:'Victor Obi', nga:true, avatar:7, role:'Legal Counsel', font:'font-pacifico',
+    gift:'money', amount:15000, media:'none',
+    msg:`Happy birthday to the most diplomatically skilled human I have ever encountered. Chisom, I have watched you navigate situations that would make seasoned diplomats break into a cold sweat — with grace, precision and an almost supernatural ability to leave every party in a room feeling heard and respected. The contract negotiations last year. The restructuring communications. That town hall in March where you stood up with two minutes of preparation and delivered something that should have taken a speechwriter two weeks. I am in awe of you. This year is going to be extraordinary.` },
 
-  { name:'Mike Adetokunbo', role:'Software Engineer', font:'font-satisfy',
-    gift:'money', amount:5000, media:'gif', gifIndex:5, avatar:0,
-    msg:`Chisom! Happy birthday from someone who will always remember the time you helped me debug that absolutely cursed piece of legacy code at 6pm on a Friday when you had every right to have already been halfway home. You sat there for 45 minutes, asked better questions than I was asking, spotted the issue (it was a timezone problem, obviously it was a timezone problem), and then high-fived me like I had done the work. That is just who you are. You make people feel capable. You share the credit. You show up. Happy birthday — I hope this year brings you the kind of joy you give everyone around you, which is to say: enormous, genuine, and thoroughly deserved.` },
+  { name:'Emily Rodriguez', nga:false, avatar:7, role:'Marketing Director', font:'font-alex',
+    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=120&h=120&fit=crop&crop=face',
+    msg:`Chisom! You understand brand in a way that goes beyond frameworks. You feel it. When we were repositioning last year you said something in a workshop that reframed the entire conversation — something about the difference between what a brand says about itself and what it makes customers feel about themselves. I wrote it down. I still reference it. Happy birthday to someone who thinks at a completely different level. 🎨✨` },
 
-  { name:'Zainab Musa', role:'Project Coordinator', font:'font-kaushan',
-    gift:'none', media:'none', avatar:1,
-    msg:`Happy birthday Chisom! I know we do not always get to work directly together but I want you to know that your reputation travels far and wide in this organisation. People talk about you — in the best possible way. "Chisom would know how to handle this." "Let me ask Chisom." "Chisom said something in a meeting last week that I keep thinking about." You have built something remarkable: a reputation that precedes you not because of politics or self-promotion, but purely because of the quality of your character and your work. That is the kind of reputation that lasts. The kind that follows you everywhere. Happy birthday to someone who has genuinely earned every wonderful thing being said about her.` },
+  { name:'Ifeoma Chukwu', nga:true, avatar:8, role:'Brand Manager', font:'font-allura',
+    gift:'cake', media:'photo', photoUrl:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+    msg:`HAPPY BIRTHDAY CHISOM!! 🎉🎂🎊 Okay I need everyone reading this to know — this woman is ICONIC. The way she walks into a room and the energy shifts. The way she says your name when she's greeting you and it somehow sounds like the most important thing she's said all day. The way she takes your half-baked idea and transforms it into something so refined you almost don't recognise it. I have been in this industry long enough to spot real talent, real character, real warmth — and Chisom, you have all three in abundance. The world is genuinely lucky to have you. 🌟✨🎂` },
 
-  { name:'Chukwuemeka Obiora', role:'Finance Analyst', font:'font-alex',
-    gift:'money', amount:12000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=600&q=80', avatar:2,
-    msg:`Chisom! For your birthday I would like to present you with some financial analysis of your impact on this organisation. Your net positive contribution to team morale: incalculable. Your return on investment in terms of institutional knowledge: stratospheric. The cost to this organisation if we were to try and replace you with someone of equivalent talent, skill, emotional intelligence and warmth: impossible to calculate because the combination is genuinely irreplaceable. In summary: you are priceless. Not in the vague motivational poster sense. In the actual, literal, measurable sense that what you bring cannot be bought or replicated. Happy birthday to my favourite colleague and one of my favourite humans. May this year be your most abundant yet! 📊💜` },
+  { name:'James O\'Brien', nga:false, avatar:8, role:'CFO', font:'font-courgette',
+    gift:'money', amount:50000, media:'none',
+    msg:`Chisom — from the finance team's perspective: happy birthday to someone who makes the numbers look good by making the humans feel good. There is a direct correlation and I have the data to prove it. What I really want to say is more personal. You have brought things to my attention in the way only a trusted colleague can — directly, privately, with care. You were right each time. You are brave in the quiet ways that matter. Not recklessly brave — wisely brave. That is a quality I respect enormously. Happy birthday. 🎂` },
 
-  { name:'Adunola Adeleke', role:'Training Manager', font:'font-sacramento',
-    gift:'cake', media:'none', avatar:3,
-    msg:`Chisom! As someone who literally teaches people skills for a living, let me tell you something: the things that make you exceptional cannot be taught in a classroom. They cannot be memorised from a book or practised in a workshop. They come from somewhere deeper — from genuine curiosity, from real empathy, from an authentic desire to be excellent and to lift others into excellence alongside you. I have designed countless leadership programmes and I keep coming back to this truth: the best leaders are the ones whose people would follow them anywhere not because they have to but because they genuinely want to. You are that kind of leader. Happy birthday to someone who teaches by living. 🎂✨` },
+  { name:'Samuel Adebola', nga:true, avatar:9, role:'Sales Director', font:'font-dancing',
+    gift:'money', amount:12000, media:'gif', gifIndex:0,
+    msg:`Chisom! The person who taught me that "no" is the beginning of a conversation, not the end of one. I have closed deals because of things I learned from watching you handle difficult clients. Some of the most formative professional influence in my career has come from watching how you think, how you problem-solve, how you lead without needing a title to do it. That is the rarest kind of impact. Happy birthday to someone who makes everyone around them better simply by being who they are. May this year be absolutely spectacular! 🚀` },
 
-  { name:'Taiwo Adelowo', role:'Research Lead', font:'font-dancing',
-    gift:'flowers', media:'gif', gifIndex:0, avatar:4,
-    msg:`Happy birthday to my favourite "have you considered this angle?" person. Chisom, every time I think I have fully thought through a piece of research, you ask one question that opens a completely new dimension. It is both humbling and thrilling. The quality of your intellectual curiosity is matched only by the generosity with which you share it — you do not ask those questions to show off, you ask them because you genuinely want the work to be better. You care about getting things right more than you care about being seen to be right. That distinction matters enormously and it is rarer than it should be. Thank you for making all our work deeper and truer. Happy birthday! 🌸` },
+  { name:'Chloe Thompson', nga:false, avatar:9, role:'Head of Research', font:'font-vibes',
+    gift:'flowers', media:'gif', gifIndex:1,
+    msg:`Chisom! As a researcher I'm trained to interrogate everything — to demand evidence, to resist a good narrative without data. So when I tell you the evidence for your excellence is overwhelming, you know I mean it. I've observed you across contexts. Under pressure and when things go smoothly. Receiving praise and criticism. The data is consistent across all conditions: you are remarkable. Happy birthday to the most thoroughly evidenced excellent person I know. 📊✨` },
 
-  { name:'Obiageli Nwofor', role:'Legal Associate', font:'font-vibes',
-    gift:'money', amount:6000, media:'none', avatar:5,
-    msg:`Chisom darling! Happy birthday to the person I call when I need to think through something complicated — not because you have all the answers, but because talking to you makes me find my own. That is such a gift. The Socratic approach, my law professor would call it. But you do it naturally, without pretension, just through genuine interest and thoughtful questions. You are one of those rare people who makes others smarter just by engaging with them. I hope your birthday is filled with the kind of joy that is equal parts warm and exhilarating — like you. And I hope the year ahead brings you opportunities as boundless as your talent. Which means: very boundless indeed. Much love! 💜` },
+  { name:'Amara Osei', nga:true, avatar:0, role:'Data Analyst', font:'font-satisfy',
+    gift:'flowers', media:'none',
+    msg:`Dear Chisom, I joined this company as a very nervous new analyst who was certain she would be swallowed alive by the complexity of it all. You were the first senior person to stop, sit down with me, and just — talk. Not give me a checklist. Not point me to a document. Just talk. Ask questions. Share your own learning curve. That conversation gave me more confidence than any training programme could have. Thank you — truly — for the gift of your time, your kindness, and your belief in people like me. Happy birthday Chisom! 🌸` },
 
-  { name:'Ifeanyi Okeke', role:'Marketing Executive', font:'font-pacifico',
-    gift:'none', media:'photo', photoUrl:'https://images.unsplash.com/photo-1483389127117-b6a2102724ae?w=600&q=80', avatar:6,
-    msg:`CHISOM! Happy birthday! I want to tell you about the moment I realised you were genuinely exceptional. It was during the Q3 pitch to the board. You were halfway through your presentation when someone interrupted with what was clearly a hostile question designed to derail the whole thing. And you just — paused. Smiled. Said "that is actually a really important question and I want to make sure I answer it properly." And then you did. Perfectly. Calmly. Without losing your thread or your composure. I was sitting there thinking: I want to be that. That collected, that confident, that gracious under pressure. You have elevated how I think about professionalism. Happy birthday — go have the spectacular celebration you deserve! 🎉` },
+  { name:'Noah Martinez', nga:false, avatar:0, role:'Creative Director', font:'font-pinyon',
+    gift:'money', amount:18000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80',
+    msg:`Chisom! From a creative perspective, you are one of the most aesthetically intelligent people I've encountered outside a purely creative field. The way you think about communication — the visual logic, the emotional arc, the audience psychology — you think like a designer even when you're not designing. That cross-disciplinary brilliance is what separates good professionals from great ones. Happy birthday to someone whose presence alone elevates the work around her. 🎨✨` },
 
-  { name:'Chiamaka Eze', role:'Customer Success', font:'font-satisfy',
-    gift:'money', amount:9000, media:'gif', gifIndex:1, avatar:7,
-    msg:`Happy birthday to the person who personally called me when I was going through a difficult time at work and said "I just want to check in, you do not have to talk about anything specific" — and then stayed on the phone for an hour listening to me figure out what I was feeling. You did not have to do that. You had a million other things on your plate. But that is you, Chisom. You make time. You make space. You make people feel like they matter — because to you, they genuinely do. I have never forgotten that call and I never will. Thank you for being one of the truly good ones. Happy birthday, from someone who is so grateful you exist. 🌸` },
+  { name:'Olu Adewale', nga:true, avatar:1, role:'IT Manager', font:'font-kaushan',
+    gift:'money', amount:8000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80',
+    msg:`Happy birthday to the person who actually reads the IT security memos I send out. Chisom, you have no idea how much that means to a man who spends his life watching people click on suspicious email links. But seriously — I am writing as someone who has watched you demonstrate what it looks like to be truly excellent at something while remaining completely and utterly human. You have no ego about your accomplishments. You share credit freely. You ask for help when you need it. You are the exception. Happy birthday!` },
 
-  { name:'Babatunde Olanrewaju', role:'Operations Manager', font:'font-kaushan',
-    gift:'cake', media:'none', avatar:8,
-    msg:`Chisom! Happy birthday! I will keep this short because knowing you, you will find a way to redirect the attention back to someone or something else and I want you to actually receive this: you are extraordinary. The patience you showed during the system migration last year — when everything was broken and everyone was frustrated and some of us were not our best selves — you held the team together with this quiet, steady energy that said "we will get through this and we will be better for it." And we did. And we were. That is leadership. That is you. Happy birthday. Receive the praise today — you have earned it a hundred times over.` },
+  { name:'Samantha Lee', nga:false, avatar:1, role:'UX Designer', font:'font-allura',
+    gift:'flowers', media:'gif', gifIndex:2,
+    msg:`Happy birthday Chisom! As a UX person I think about experience design constantly — how does this feel, where is the friction, where is the delight? Working with you is phenomenal UX. Zero unnecessary friction. Clear communication at every touchpoint. Generous feedback that actually makes things better. And genuine delight in the meetings where you say something that makes everyone laugh, or push back on something in a way that is both firm and kind. You are designed well, Chisom. 🎨✨` },
 
-  { name:'Olumide Fashanu', role:'Creative Director', font:'font-allura',
-    gift:'money', amount:18000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80', avatar:9,
-    msg:`Chisom! From a creative perspective, you are simply one of the most aesthetically intelligent people I have encountered outside of a purely creative field. The way you think about communication — the visual logic, the emotional arc, the audience psychology — you think like a designer even when you are not designing. That cross-disciplinary brilliance is what separates good professionals from great ones. But I also want to celebrate something that has nothing to do with work: your style. Your presence. The way you put yourself together. The confidence you carry your identity with. In a world that asks a lot of professional women in terms of how they present themselves, you have figured out exactly who you are and you wear it beautifully. Happy birthday, Chisom. Today is yours. 🎨✨` },
+  { name:'Ngozi Uchenna', nga:true, avatar:2, role:'Executive Assistant', font:'font-dancing',
+    gift:'cake', media:'gif', gifIndex:3,
+    msg:`Chisom! I schedule your meetings, I manage your calendar, I know your coffee order, I have seen the state of your inbox at its worst — and I can tell you with absolute certainty: you are the kindest, most decent, most genuinely good-hearted person I have ever worked for. Because you MEAN it. Because you ask about my mother's health and actually remember the update from three months ago. Because you said "you handle things in a way that makes my job easier" to me once in a team meeting and I nearly cried. You see people, Chisom. You really see them. Happy birthday! 🎂💜` },
 
-  { name:'Esther Nnamdi', role:'Account Manager', font:'font-dancing',
-    gift:'flowers', media:'none', avatar:10,
-    msg:`Dear Chisom, happy birthday! I want to share a small story. Last month I made a significant error on the Meridian account. I was mortified. I had a whole apology speech prepared. When I came to tell you, you listened, asked what had happened, helped me think through the correction — and then you said "these things happen, the important thing is how we fix it and what we learn." No lecture. No disappointed sighs. No making me feel small. Just immediate forward motion. I walked out of that conversation feeling competent instead of crushed. You have no idea how rare that is in a manager. You build people up even when they fall down. Happy birthday to someone who deserves all the flowers — metaphorically and literally!` },
+  { name:'Brandon Scott', nga:false, avatar:2, role:'Business Development', font:'font-satisfy',
+    gift:'money', amount:16000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80',
+    msg:`Chisom! In business development we think about competitive advantage. You are one. Not because you're aggressive or relentlessly self-promoting (you're none of those things). But because when clients interact with you, they feel something increasingly rare: they feel respected as people, not just as accounts. That feeling keeps clients. That feeling generates referrals. That feeling builds relationships that sustain a business through difficult times. You are, literally, one of our best BD assets — and you don't even work in BD. Happy birthday! 🚀` },
 
-  { name:'Damilola Afolabi', role:'Business Analyst', font:'font-vibes',
-    gift:'money', amount:7000, media:'gif', gifIndex:2, avatar:11,
-    msg:`Chisom!! Happy birthday! Okay I need to tell everyone who reads this card that this woman once covered for me in a meeting I had completely forgotten about — walked in, picked up my brief from memory alone, ran the whole thing, and then texted me afterwards saying "all good, I told them you were on another call." I still owe her approximately 47 favours and am not even close to paying them back. But beyond the legendary teamwork moments, you are just a spectacular person. Thoughtful. Sharp. Hilarious when you let yourself be (and I wish you let yourself be more often because your timing is impeccable). Happy birthday to my favourite colleague and accomplice. May this year be everything you want it to be! 🎉` },
+  { name:'Chidi Onyekwere', nga:true, avatar:3, role:'Strategy Consultant', font:'font-vibes',
+    gift:'money', amount:25000, media:'none',
+    msg:`Chisom! From one overthinker to the world's most elegant overthinker — happy birthday. I say that with deep affection because the quality of your thinking is visible in everything you produce. There is no half-measure in your work. No approximation. No "good enough." Everything that comes from you has been considered, reconsidered, refined — and it shows. But here is what I love even more: you do not apply that same exacting standard to people. With people you are endlessly patient, endlessly generous. You hold work to a high standard and people to a human one. Happy birthday. This year is yours.` },
 
-  { name:'Perpetua Okafor', role:'Supply Chain Lead', font:'font-sacramento',
-    gift:'none', media:'none', avatar:12,
-    msg:`Chisom, happy birthday to one of the steadiest people I know. In supply chain we deal with chaos as a baseline. Disruptions. Shortages. Delays. The whole world conspiring to make the simple complicated. And what I have learned from watching you is that the antidote to external chaos is internal calm. You do not just have a plan B — you have a whole alphabet of contingencies and you hold them lightly, not rigidly, ready to adapt in real time. That is operational wisdom of the highest order. But more than the professional admiration: you have been a friend. A real one. One who shows up. Happy birthday Chisom — I am so glad we ended up on the same team, in every sense of the word.` },
+  { name:'Lauren Hayes', nga:false, avatar:3, role:'Compliance Officer', font:'font-pacifico',
+    gift:'none', media:'none',
+    msg:`Chisom! In compliance, we spend a lot of time on what people cannot do. So it's always refreshing to be around someone who makes me think about what people CAN do — what they're capable of when they're trusted and supported. You operate from that place. You see the best possibility in situations and in people and you move toward it with conviction. You remind me that structure exists to enable, not to constrain. Happy birthday — you are a gift to this organisation. 🎉` },
 
-  { name:'Uzoma Nwankwo', role:'Investment Analyst', font:'font-alex',
-    gift:'money', amount:30000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=600&q=80', avatar:13,
-    msg:`Happy birthday Chisom! In investment we talk a lot about compounding. How small, consistent actions over time produce exponential results. I have watched you compound for three years now — every day showing up fully, every day giving generously, every day doing excellent work quietly and without fanfare — and the result is this person who is so deeply established, so trusted, so valued, that you have become load-bearing in the structure of this organisation. Quietly essential. Indispensably present. That kind of reputation is not built overnight and it cannot be faked. It is earned, one honest interaction at a time. You have earned it. Completely. Happy birthday — may your returns be equally compounding! 📈💜` },
+  { name:'Remi Fashola', nga:true, avatar:4, role:'Communications Manager', font:'font-dancing',
+    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&q=80',
+    msg:`Chisom my love! You know I am a words person — it is literally my job — and yet I find myself struggling to find words big enough for what you mean to this team. You have been a sounding board, a co-conspirator, a voice of reason and occasionally a voice of delightful unreason when we all needed permission to dream bigger. I remember when you said "why are we limiting the scope of this?" in that planning meeting and the entire room went quiet for a moment and then everyone started talking at once with this energy. You expand the possible. Happy birthday, beautiful! 🌹` },
 
-  { name:'Halima Salihu', role:'Content Strategist', font:'font-courgette',
-    gift:'flowers', media:'gif', gifIndex:3, avatar:14,
-    msg:`Chisom! As someone who works with words every day, I want to tell you something about the way you communicate. There is a quality to it that I have been trying to identify for months and I think I finally have it: intentionality. You never say things casually that should be said carefully. You never rush through something important. You choose your words the way a careful writer does — not for effect, but for accuracy. Not to impress, but to connect. In a world of noise you are signal. In a world of performance you are presence. On your birthday I am celebrating that — and celebrating you. Have a truly wonderful day, Chisom. You bring so much beauty to the world. 🌸✨` },
+  { name:'Christopher Evans', nga:false, avatar:4, role:'Risk Manager', font:'font-sacramento',
+    gift:'money', amount:11000, media:'gif', gifIndex:4,
+    msg:`Chisom! From a risk management perspective: knowing you're on the team significantly reduces my anxiety levels across multiple categories simultaneously. Which in this job is saying something remarkable. I trust your judgment completely — not because you're always right, but because the quality of your reasoning is always sound. When you're wrong you say so and learn. When you're uncertain you say so and seek input. When you're confident you back it up. That consistency is everything in a high-stakes environment. Happy birthday! 🎂` },
 
-  { name:'Obinna Nzekwe', role:'Tech Lead', font:'font-pinyon',
-    gift:'money', amount:10000, media:'none', avatar:0,
-    msg:`Happy birthday Chisom! I am going to be real with you — I was a bit skeptical when you first joined the tech side of things. Not of you personally, but of the cross-functional collaboration in general. We have had mixed results with that kind of arrangement. Then the first meeting happened and you asked a question so incisive it stopped the whole technical conversation in its tracks and made us rethink a fundamental assumption we had been operating on for months. I went home that evening and thought: okay. This is different. This is going to be good. And it was. And it is. Happy birthday to someone who made me eat a healthy portion of humble pie and I am genuinely grateful for it.` },
+  { name:'Tosin Balogun', nga:true, avatar:5, role:'Global Partnerships', font:'font-alex',
+    gift:'money', amount:13500, media:'photo', photoUrl:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80',
+    msg:`Chisom! In partnerships we talk about alignment — shared values, complementary strengths. The best partnerships are between people who are both excellent in ways that combine powerfully. Working with you has been the best professional partnership of my career. You are strong exactly where I need support. You see things I miss. You slow down where I rush. You push where I hold back. We make each other better. That is the definition of a true partnership. Happy birthday to my favourite collaborator! 🤝💜` },
 
-  { name:'Adaora Ugwu', role:'PR Manager', font:'font-dancing',
-    gift:'cake', media:'photo', photoUrl:'https://images.unsplash.com/photo-1467810563316-b5476525c0f9?w=600&q=80', avatar:1,
-    msg:`Chisom!! Happy birthday my absolute favourite! Do you know what makes you one of the best communicators I have ever encountered? It is not the polish — though you have that. It is not the vocabulary — though it is impeccable. It is the listening. You listen with your whole body. People feel heard when they are talking to you in a way that is genuinely unusual. Full attention, no phone, no half-thought elsewhere. Just you, present, engaged, genuinely interested in what the other person is saying. In communications we teach listening but almost no one actually does it. You just... do. Naturally. That gift makes everything else you say land so much harder because people trust that you have really heard them first. Happy birthday to the best listener I know! 💜🎉` },
+  { name:'Ashley Johnson', nga:false, avatar:5, role:'Sustainability Lead', font:'font-vibes',
+    gift:'flowers', media:'none',
+    msg:`Chisom! I work in sustainability and think constantly about long-term impact. What actions taken today will matter in ten, twenty years? The people you develop, the culture you shape, the standards you model — those have a half-life of decades. The junior analyst you mentored two years ago is now leading a team. The processes you improved are still running. Your impact is compounding. You are, in every sense, sustainable. Happy birthday to someone who is building something that will last. 🌱💜` },
 
-  { name:'Seun Adesanya', role:'UX Designer', font:'font-vibes',
-    gift:'money', amount:8500, media:'gif', gifIndex:4, avatar:2,
-    msg:`Happy birthday Chisom! As a UX person I think about experience design constantly — how does this feel, what is the emotional journey, where is the friction, where is the delight. Working with you is phenomenal UX. Zero unnecessary friction. Clear communication at every touchpoint. Generous feedback that actually makes things better. And genuine delight — the meetings where you say something that makes everyone laugh, the moments where you push back on something in a way that is both firm and kind, the times where you just GET what we are trying to do before we have fully articulated it. You are designed well, Chisom. Have a beautiful birthday. May it be as well-designed as you are. 🎨✨` },
+  { name:'Mike Adetokunbo', nga:true, avatar:6, role:'Software Engineer', font:'font-satisfy',
+    gift:'money', amount:5000, media:'gif', gifIndex:5,
+    msg:`Chisom! Happy birthday from someone who will always remember the time you helped me debug that absolutely cursed piece of legacy code at 6pm on a Friday when you had every right to have already been halfway home. You sat there for 45 minutes, asked better questions than I was asking, spotted the issue (it was a timezone problem, obviously it was a timezone problem), and then high-fived me like I had done the work. That is just who you are. You make people feel capable. Happy birthday!` },
 
-  { name:'Funmilayo Akinwande', role:'Compliance Officer', font:'font-satisfy',
-    gift:'none', media:'none', avatar:3,
-    msg:`Chisom! Happy birthday! In compliance, we spend a lot of time on rules and frameworks and what people cannot do. So it is always refreshing to be around someone who makes me think about what people CAN do — what they are capable of when they are trusted and supported and genuinely valued. You operate from that place. You see the best possibility in situations and in people and you move toward it with conviction. That is the opposite of the compliance mindset and I love you for it. You balance me out. You remind me that structure exists to enable, not to constrain. Happy birthday — you are a gift to this organisation and to everyone lucky enough to know you.` },
+  { name:'Kevin O\'Connor', nga:false, avatar:6, role:'Tech Lead', font:'font-kaushan',
+    gift:'money', amount:10000, media:'none',
+    msg:`Chisom! I was a bit skeptical when you first joined the tech side. Not of you personally, but of the cross-functional collaboration in general. Then the first meeting happened and you asked a question so incisive it stopped the whole technical conversation and made us rethink a fundamental assumption we'd been operating on for months. I went home that evening thinking: okay. This is different. This is going to be good. And it was. And it is. Happy birthday — I'm genuinely grateful I was wrong to be skeptical.` },
 
-  { name:'Emeka Chukwudi', role:'Procurement Head', font:'font-kaushan',
-    gift:'money', amount:14000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&q=80', avatar:4,
-    msg:`Chisom! In procurement we are trained to assess value. What does this actually cost? What does it actually deliver? What is the true return? By every measure of value I know how to apply, you are an exceptional investment. The return this organisation gets from having you — in work quality, in team health, in institutional knowledge, in the way clients feel when they interact with someone from this company — it is immeasurable. Genuinely. I have tried to quantify it and the model breaks because some things exceed calculation. You are one of those things. Happy birthday to a person of immeasurable and irreplaceable value. 🙌💜` },
+  { name:'Zainab Musa', nga:true, avatar:7, role:'Project Coordinator', font:'font-dancing',
+    gift:'none', media:'none',
+    msg:`Happy birthday Chisom! I know we do not always get to work directly together but I want you to know that your reputation travels far and wide in this organisation. People talk about you — in the best possible way. "Chisom would know how to handle this." "Let me ask Chisom." "Chisom said something in a meeting last week that I keep thinking about." You have built something remarkable: a reputation built purely on the quality of your character and your work. That is the kind of reputation that lasts. Happy birthday!` },
 
-  { name:'Nneka Obi', role:'Brand Strategist', font:'font-allura',
-    gift:'flowers', media:'none', avatar:5,
-    msg:`Happy birthday to my favourite brainstorming partner, my "what if we tried this completely different approach" co-conspirator, my "no that first idea was actually better, let us go back" sounding board. Chisom, the creative energy you bring to strategic sessions is genuinely electric. You hold loosely — you are not attached to your own ideas to the point where you cannot let them evolve — and that looseness creates this incredible space where the best idea can win, regardless of whose it was. That collaborative spirit is a gift to everyone who gets to think alongside you. Happy birthday! I hope today is as bright and creative and full of life as you are. 🌸🎉` },
-
-  { name:'Akin Salami', role:'Risk Manager', font:'font-dancing',
-    gift:'money', amount:11000, media:'gif', gifIndex:5, avatar:6,
-    msg:`Chisom! From a risk management perspective: knowing you are on the team significantly reduces my anxiety levels across multiple categories simultaneously. Which in this job is saying something remarkable. But seriously — happy birthday to someone whose judgment I trust completely. Not because you are always right (though you are right an unusually high percentage of the time), but because the quality of your reasoning is always sound. When you are wrong you say so and learn and adjust. When you are uncertain you say so and seek input. When you are confident you say so and you back it up. That consistency of epistemic integrity is everything in a high-stakes environment. Thank you for being you. Happy birthday! 🎂` },
-
-  { name:'Uju Okonkwo', role:'Learning & Development', font:'font-vibes',
-    gift:'none', media:'photo', photoUrl:'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80', avatar:7,
-    msg:`Chisom! I work in learning and development, which means I spend my days thinking about how people grow. And I want to tell you what I observe in you: you are a genuinely self-directed learner. You seek out things that challenge you. You are curious about domains far outside your own. You read widely and think about how ideas from unexpected places apply to your work. That kind of intellectual restlessness — kept in check by your extraordinary discipline — is the engine of real growth. You are not finished becoming yourself and that is one of the most exciting things about you. Happy birthday to a work in progress who is already magnificent. 📚✨` },
-
-  { name:'Chinedu Okafor', role:'Customer Relations', font:'font-sacramento',
-    gift:'money', amount:5500, media:'none', avatar:8,
-    msg:`Chisom, happy birthday! I want to tell you about something that happened six months ago that I never got around to mentioning. A difficult customer called in absolutely furious about a situation that was honestly not our fault at all. My supervisor asked me to loop in someone from your team. You joined the call, listened for about two minutes, acknowledged the customer's frustration (without admitting fault — you were surgical about that), and then calmly described the exact steps we were going to take, with timelines, with names attached to each action. The customer's tone changed completely by the end of the call. Turned out they became one of our strongest referrals that quarter. You saved that relationship. Happy birthday — you make things better everywhere you touch. 🌟` },
-
-  { name:'Tolu Adeyemi', role:'Head of Growth', font:'font-alex',
-    gift:'flowers', media:'gif', gifIndex:0, avatar:9,
-    msg:`Happy birthday Chisom! Growth is my world — metrics, funnels, conversion rates, acquisition channels. But the most important growth I have witnessed in this company over the past three years has not shown up in any dashboard. It is the growth in how we treat each other. How we communicate. How we resolve conflict. How we celebrate wins and handle setbacks. And so much of that culture shift has been quietly, consistently, deliberately shaped by you. Not through grand initiatives or company-wide announcements. Through how you show up every day. Through the example you set. Through the kind of environment you create around yourself wherever you go. That is culture leadership at its finest. Happy birthday. 🌸🎉` },
-
-  { name:'Ebuka Eze', role:'Technical Writer', font:'font-courgette',
-    gift:'money', amount:7800, media:'none', avatar:10,
-    msg:`Happy birthday Chisom! As someone who writes for a living I am very attuned to how people use language — and the way you write is something I genuinely admire. Your emails are clear without being terse. Your reports are thorough without being bloated. Your feedback is specific without being harsh. There is such craft in how you put words together and I notice it every single time. But what I appreciate even more is that you make space for people who communicate differently — who are more verbose, or less polished, or who need to circle around to their point. You never make anyone feel inadequate for communicating differently than you do. That grace is beautiful. Happy birthday! 💜` },
-
-  { name:'Grace Adichie', role:'Chief People Officer', font:'font-pinyon',
-    gift:'cake', media:'photo', photoUrl:'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=600&q=80', avatar:11,
-    msg:`Chisom. As the head of people, I want to say this clearly so it is on the record: you are what we hire for. When we write job descriptions, when we conduct interviews, when we design our culture — we are trying to find and build more people like you. The combination of excellence and humanity. The ability to be rigorous without being unkind. The capacity to drive results while lifting people. The wisdom to know when to push and when to hold. These are not things we can put in a competency framework because they live in character, not in skills. You have them. Fully. Naturally. Generously. Happy birthday, Chisom. We are all so deeply grateful you are here. 🌟💜` },
-
-  { name:'Rotimi Adeleke', role:'CFO', font:'font-dancing',
-    gift:'money', amount:50000, media:'none', avatar:12,
-    msg:`Chisom — from the finance team's perspective: happy birthday to someone who makes the numbers look good by making the humans feel good. There is a direct correlation and I have the data to prove it. But what I really want to say today is more personal. You have, on more than one occasion, brought something to my attention in the way only a trusted colleague can — directly, privately, with care. You were right each time. And each time I was glad that someone I trust enough to actually listen to was the one who said it. You are brave in the quiet ways that matter. Not recklessly brave — wisely brave. That is a quality I respect enormously. Happy birthday. Have a wonderful, celebrated, thoroughly deserved day. 🎂` },
-
-  { name:'Adaeze Nnoli', role:'Internal Auditor', font:'font-vibes',
-    gift:'flowers', media:'gif', gifIndex:1, avatar:13,
-    msg:`Chisom! Happy birthday! I spend my days finding what is wrong, what is missing, what does not add up. Occupational hazard. Which makes it particularly meaningful when I tell you: in three years of working alongside you, I have found nothing but good things. Genuine integrity. Real care. Actual follow-through. Honest acknowledgment when things go wrong. No performance, no politics, no gap between who you are in a meeting and who you are in the corridor. What you see is what you get, and what you get is excellent. That consistency is the most important quality I know how to assess and you have it in full. Happy birthday to someone who would pass any audit. 🌸` },
-
-  { name:'Dele Ogundimu', role:'Business Development', font:'font-satisfy',
-    gift:'money', amount:16000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80', avatar:14,
-    msg:`Chisom! Happy birthday! In business development we are always thinking about competitive advantage — what is the thing that makes us different, better, chosen over the alternative. You are a competitive advantage. Not because you are aggressive or ruthless or relentlessly self-promoting (you are none of those things). But because when clients interact with you they feel something that is increasingly rare: they feel respected and valued as people, not just as accounts. That feeling keeps clients. That feeling generates referrals. That feeling builds the kind of relationships that sustain a business through difficult times. You are, quite literally, one of our best business development assets — and you do not even work in BD. Happy birthday! 🚀` },
-
-  { name:'Yetunde Akinsanya', role:'Sustainability Lead', font:'font-kaushan',
-    gift:'none', media:'none', avatar:0,
-    msg:`Chisom! Happy birthday! I work in sustainability, which means I think constantly about long-term impact. What actions taken today will matter in ten, twenty, fifty years? Most things we do are ephemeral — they matter in the moment and fade. But the people you develop, the culture you shape, the standards you model — those have a half-life of decades. The junior analyst you mentored two years ago is leading a team. The processes you improved are still running. The way you treated people in your first year here set a standard that others calibrated against. Your impact is compounding even as we celebrate your birthday. You are, in every sense, sustainable. Happy birthday to someone who is building something that will last. 🌱💜` },
-
-  { name:'Ike Osuji', role:'Head of Research', font:'font-allura',
-    gift:'money', amount:22000, media:'gif', gifIndex:2, avatar:1,
-    msg:`Chisom! As a researcher I am trained to interrogate everything — to be skeptical, to demand evidence, to resist the seductive pull of a good narrative in the absence of data. So when I tell you that the evidence for your excellence is overwhelming, you know I mean it. I have observed you across contexts. I have seen you under pressure and when things are going smoothly. I have seen you receive praise and criticism. I have seen you deal with difficult people and easy ones. The data is consistent across all conditions: you are remarkable. Happy birthday to the most thoroughly evidenced excellent person I know. 📊✨` },
-
-  { name:'Bisola Coker', role:'Social Media Manager', font:'font-dancing',
-    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1543269664-647163b38060?w=600&q=80', avatar:2,
-    msg:`CHISOM! Happy birthday!! I spend all day making content about wonderful things and wonderful people and I want you to know — you would be the easiest person in the world to create content about. The stories practically write themselves. The Q3 turnaround. The onboarding programme redesign. The way you handled the client emergency in March. The mentorship sessions that people still talk about. Any one of those could anchor a case study. But the thing that would really go viral? A video of you just being you — warm, brilliant, impossibly competent and somehow not intimidating about any of it. That combination is content gold. Happy birthday to someone whose story I would tell forever! 🎉🌸` },
-
-  { name:'Nnamdi Obi', role:'CTO', font:'font-vibes',
-    gift:'money', amount:40000, media:'none', avatar:3,
-    msg:`Chisom — I do not usually write long birthday messages. You know that. But today I am making an exception because you deserve one. In the years I have been CTO of this company I have worked with hundreds of talented people. A small number of them have the rarer quality of being both talented and genuinely good — the kind of person whose presence makes the organisation not just more effective but more worthy. You are in that small number. You make this a place worth working. Not through grand gestures or transformative projects alone — though you have delivered those too — but through the accumulation of a thousand daily choices to be honest, to be kind, to be excellent, to be human. That is your legacy, already. Happy birthday. 💜` },
-
-  { name:'Adanna Obiechina', role:'Health & Safety', font:'font-courgette',
-    gift:'cake', media:'gif', gifIndex:3, avatar:4,
-    msg:`Chisom! Happy birthday! I work in health and safety, which means I spend a lot of time thinking about environments — what makes a space safe, what makes it hazardous, what creates conditions where people can do their best work without harm. Working around you creates an exceptionally safe environment. Psychologically safe. People say what they think. People admit mistakes. People ask questions without fear. You model that safety through how you receive information — without defensiveness, without punishing honesty, without making people regret being open. That psychological safety is the foundation of everything good this team produces. Thank you for creating it, consistently, every single day. Happy birthday! 🎂✨` },
-
-  { name:'Tosin Balogun', role:'Global Partnerships', font:'font-alex',
-    gift:'money', amount:13500, media:'photo', photoUrl:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80', avatar:5,
-    msg:`Chisom! In partnerships we talk endlessly about alignment — shared values, shared vision, complementary strengths. The best partnerships, I have found, are not between people who are the same, but between people who are both excellent in ways that combine powerfully. Working with you has been the best professional partnership of my career precisely for this reason. You are strong exactly where I need support. You see things I miss. You slow down where I rush. You push where I hold back. We make each other better. That is the definition of a true partnership. Happy birthday to my favourite collaborator and one of my most valued relationships — professional or otherwise. 🤝💜` },
-
-  { name:'Stella Okonkwo', role:'Executive Vice President', font:'font-pinyon',
-    gift:'money', amount:60000, media:'none', avatar:6,
-    msg:`Chisom. I have been at this company for eleven years. I have seen a great many people come through here — some who dazzled and burned, some who plodded and persisted, some who were good but never found their full expression here. Every so often — rarely — someone arrives who is simply in their right place. Who fits not because they accommodate themselves to the culture but because the culture expands to meet them. You are that person. You arrived fully formed in who you are and what you stand for, and this organisation has been better for bending itself toward you rather than the other way around. On your birthday I want you to know: you are exactly where you are supposed to be, doing exactly what you are supposed to do, and we would be diminished without you. Happy birthday. With deep admiration and great affection. 🌟💜` },
+  { name:'Taylor Reed', nga:false, avatar:7, role:'Content Strategist', font:'font-alex',
+    gift:'flowers', media:'gif', gifIndex:0,
+    msg:`Chisom! As someone who works with words every day, I want to tell you about the way you communicate. There's a quality to it I've been trying to identify for months and I think I finally have it: intentionality. You never say things casually that should be said carefully. You choose your words the way a careful writer does — not for effect, but for accuracy. Not to impress, but to connect. In a world of noise you are signal. In a world of performance you are presence. Happy birthday! 🌸✨` },
 ];
 
 // ── Gift summary computation ──────────────────────────────────────────────────
@@ -356,7 +305,7 @@ function SignerCard({ signer, index }) {
     <div className={`rounded-3xl border-2 ${accent} p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3`}>
       {/* Header */}
       <div className="flex items-start gap-3">
-        <img src={AVATARS[signer.avatar]} alt={signer.name}
+        <img src={(signer.nga ? NGA : USA)[signer.avatar % (signer.nga ? NGA.length : USA.length)]} alt={signer.name}
           className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 shadow-sm" />
         <div className="flex-1 min-w-0">
           <p className={`font-bold text-warm-900 text-base leading-tight ${signer.font}`}>{signer.name}</p>

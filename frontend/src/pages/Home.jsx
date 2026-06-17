@@ -57,7 +57,7 @@ const DemoModal = ({ onClose }) => {
       await demoAPI.submit(form);
       setDone(true);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to submit. Email us at support@thankeeu.com');
+      toast.error(err.response?.data?.error || 'Failed to submit. Email us at hello@thankeeu.com');
     } finally { setLoading(false); }
   };
 
@@ -70,7 +70,7 @@ const DemoModal = ({ onClose }) => {
           <div className="text-center py-8">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-50 flex items-center justify-center animate-bounce-soft"><Icon name="Party" size={32} className="text-primary-500"/></div>
             <h3 className="text-2xl font-bold text-warm-900 mb-2">Request received!</h3>
-            <p className="text-warm-500 text-sm mb-6">We'll reach out within 12 hours.</p>
+            <p className="text-warm-500 text-sm mb-6">We'll reach out within 24 hours.</p>
             <button onClick={onClose} className="btn-primary px-8">Close</button>
           </div>
         ) : (
@@ -132,8 +132,8 @@ const DemoModal = ({ onClose }) => {
 
 const Home = () => {
   useSEO({
-    title:'Thankeeu — Online Group Cards & Gifts for Every Occasion',
-    description:"The world's favourite online group card and gift platform. Birthdays, farewells, promotions and more.",
+    title:'Thankeeu — Group Cards & Gifts for Every Occasion',
+    description:"The world's favourite group card and gift platform. Birthdays, farewells, promotions and more.",
     canonical:'/',
     jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp],
   });
@@ -154,14 +154,14 @@ const Home = () => {
 
           <h1 className="font-bold text-warm-900 mb-5 px-2"
             style={{ fontSize:'clamp(2rem,7vw,3.75rem)', lineHeight:1.1 }}>
-           Create, Schedule <br/>
+            Group cards &amp; gifts<br/>
             <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
-              digital group card-box for your self &amp; others
+              that actually hit different
             </span>
           </h1>
 
           <p className="text-warm-600 mb-8 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(0.95rem,2.5vw,1.125rem)', lineHeight:1.65 }}>
-            Birthdays, anniversaries or more celebrations? Create beautiful group cards, collect heartfelt messages with GIFs, photos, videos, VNs with pool gifts via Flutterwave — works in NGN, USD, GBP, EUR and more.<br className="hidden sm:block"/>
+            Create beautiful group cards, collect heartfelt messages, pool gifts via Flutterwave — works in NGN, USD, GBP, EUR and more.<br className="hidden sm:block"/>
             <strong className="text-warm-800">Takes 2 minutes. From <RotatingPrice amountNGN={5000} />.</strong>
           </p>
 

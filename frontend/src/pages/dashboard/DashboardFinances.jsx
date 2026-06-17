@@ -31,13 +31,13 @@ export default function DashboardFinances() {
       {loading ? (
         <div className="space-y-3">{[...Array(5)].map((_,i)=><div key={i} className="rounded-2xl h-16 animate-pulse" style={{background:'#EDE9FF'}}/>)}</div>
       ) : items.length===0 ? (
-        <div className="text-center py-16 rounded-2xl" style={{background:'#fff',border:'2px dashed #EDE9FF'}}>
+        <div className="dash-empty py-16">
           <div className="text-5xl mb-3">💰</div>
           <p className="font-semibold" style={{color:'#1A1730'}}>No transactions yet</p>
           <p className="text-sm mt-1" style={{color:'#7A7898'}}>Gift contributions on your cards will appear here.</p>
         </div>
       ) : (
-        <div className="rounded-2xl border-2 overflow-hidden" style={{background:'#fff',borderColor:'#EDE9FF'}}>
+        <div className="dash-card overflow-hidden">
           <div className="px-5 py-3 border-b" style={{borderColor:'#EDE9FF',background:'#F9F8FF'}}>
             <p className="text-xs font-semibold" style={{color:'#7A7898'}}>TRANSACTION HISTORY</p>
           </div>

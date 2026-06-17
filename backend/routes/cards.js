@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../utils/supabase');
-const { auth, anyAuth } = require('../middleware/auth');
+const { auth, anyAuth, optionalAuth } = require('../middleware/auth');
 const { companyAuth } = require('../middleware/companyAuth');
 const { memberAuth } = require('../middleware/memberAuth');
 const {
@@ -54,7 +54,7 @@ const flexUserAuth = async (req, res, next) => {
 // /:slug would be captured as slug='company', hitting getCard instead.
 
 // ── Card creation ───────────────────────────────────────────────────────────
-router.post('/', anyAuth, createCard);
+router.post('/', optionalAuth, createCard);
 
 // ── User card list ──────────────────────────────────────────────────────────
 router.get('/', auth, getUserCards);
@@ -74,8 +74,8 @@ router.post('/recipient/:slug/claim', validateSlugParam('slug'), claimGift);
 
 // ── Slug-based routes (wildcard — must come after all fixed-segment routes) ─
 router.get('/:slug',                validateSlugParam('slug'), flexUserAuth, getCard);
-router.put('/:slug',                validateSlugParam('slug'), anyAuth, updateCard);
-router.post('/:slug/activate',      validateSlugParam('slug'), anyAuth, activateCard);
+router.put('/:slug',                validateSlugParam('slug'), optionalAuth, updateCard);
+router.post('/:slug/activate',      validateSlugParam('slug'), optionalAuth, activateCard);
 router.post('/:slug/send',          validateSlugParam('slug'), anyAuth, sendCard);
 router.delete('/:slug',             validateSlugParam('slug'), anyAuth, deleteCard);
 router.post('/:slug/approve-scope', validateSlugParam('slug'), companyAuth, approveCardScope);
@@ -155,6 +155,50 @@ router.post('/:slug/notify-signers', validateSlugParam('slug'), companyAuth, asy
   } catch (err) {
     console.error('[notify-signers] error:', err.message);
     res.status(500).json({ error: 'Failed to send notifications. Please try again.' });
+  }
+});
+
+// POST /:slug/claim — attach an anonymous pre-signup draft to the now-
+// authenticated user's account. Called right after signup/login when the
+// client is holding a draft's slug + edit token from localStorage.
+router.post('/:slug/claim', validateSlugParam('slug'), auth, async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { draft_edit_token } = req.body;
+    if (!draft_edit_token) return res.status(400).json({ error: 'Missing draft edit token' });
+
+    const { data: card } = await supabase.from('cards')
+      .select('id, creator_id, is_draft, draft_edit_token, claimed_at')
+      .eq('slug', slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    if (!card.is_draft || card.draft_edit_token !== draft_edit_token) {
+      return res.status(403).json({ error: 'Invalid draft token' });
+    }
+    if (card.creator_id) {
+      // Already claimed (e.g. double-submit) — only an issue if it belongs
+      // to someone else; if it's already this user's, treat as success.
+      if (card.creator_id !== req.user.id) {
+        return res.status(409).json({ error: 'This draft has already been claimed by another account' });
+      }
+      return res.json({ message: 'Draft already linked to your account', slug });
+    }
+
+    const { data: updated, error } = await supabase.from('cards')
+      .update({ creator_id: req.user.id, claimed_at: new Date(), updated_at: new Date() })
+      .eq('slug', slug).eq('draft_edit_token', draft_edit_token) // re-check token atomically
+      .select().maybeSingle();
+
+    if (error) {
+      console.error('[claim draft] update error:', error.message);
+      return res.status(500).json({ error: 'Could not link draft to your account. Please try again.' });
+    }
+    if (!updated) return res.status(403).json({ error: 'Invalid draft token' });
+
+    res.json({ message: 'Draft linked to your account', slug, card: updated });
+  } catch (err) {
+    console.error('[claim draft] unexpected error:', err.message);
+    res.status(500).json({ error: 'Could not link draft to your account. Please try again.' });
   }
 });
 

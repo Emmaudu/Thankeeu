@@ -22,6 +22,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [show, setShow]   = useState(false);
 
+  const claimSlug  = searchParams.get('claim_slug');
+  const claimToken = searchParams.get('claim_token');
+
   const handleSubmit = async e => {
     e.preventDefault();
     setLoading(true);
@@ -33,8 +36,19 @@ const Login = () => {
     localStorage.removeItem('thankeeu_company');
     try {
       await login(form.email, form.password);
+
+      if (claimSlug && claimToken) {
+        try {
+          const { cardsAPI } = await import('../utils/api');
+          await cardsAPI.claimDraft(claimSlug, claimToken);
+          localStorage.removeItem('thankeeu_anon_draft');
+        } catch (claimErr) {
+          console.error('Could not link draft card to account:', claimErr.response?.data?.error || claimErr.message);
+        }
+      }
+
       toast.success('Welcome back!');
-      navigate(returnTo || '/dashboard');
+      navigate(claimSlug ? `/card/${claimSlug}` : (returnTo || '/dashboard'));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Invalid email or password');
     } finally { setLoading(false); }

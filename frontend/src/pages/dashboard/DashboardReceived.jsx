@@ -21,7 +21,7 @@ export default function DashboardReceived() {
       {loading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(3)].map((_,i)=><div key={i} className="rounded-2xl h-40 animate-pulse" style={{background:'#EDE9FF'}}/>)}</div>
       ) : cards.length===0 ? (
-        <div className="text-center py-16 rounded-2xl" style={{background:'#fff',border:'2px dashed #EDE9FF'}}>
+        <div className="dash-empty py-16">
           <div className="text-5xl mb-3">🎁</div>
           <p className="font-semibold mb-2" style={{color:'#1A1730'}}>No received cards yet</p>
           <p className="text-sm" style={{color:'#7A7898'}}>When someone transfers a card to @{user?.username || 'you'}, it appears here.</p>
@@ -29,7 +29,7 @@ export default function DashboardReceived() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map(card=>(
-            <Link to={`/card/${card.slug}`} key={card.id} className="rounded-2xl border-2 p-4 hover:shadow-md transition-all block" style={{background:'linear-gradient(135deg,rgba(124,110,255,0.05),rgba(236,72,153,0.03))',borderColor:'rgba(124,110,255,0.2)'}}>
+            <Link to={`/card/${card.slug}`} key={card.id} className="dash-card dash-card-hover p-4 block">
               <div className="flex items-start gap-3 mb-3">
                 <span className="text-2xl">{occasionEmoji[card.occasion]||'💌'}</span>
                 <div className="flex-1 min-w-0">

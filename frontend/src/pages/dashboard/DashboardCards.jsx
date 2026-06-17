@@ -35,15 +35,15 @@ export default function DashboardCards() {
       {loading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(6)].map((_,i)=><div key={i} className="rounded-2xl h-52 animate-pulse" style={{background:'#EDE9FF'}}/>)}</div>
       ) : filtered.length===0 ? (
-        <div className="text-center py-16 rounded-2xl" style={{background:'#fff',border:'2px dashed #EDE9FF'}}>
+        <div className="dash-empty py-16">
           <div className="text-5xl mb-3">💌</div>
           <p className="font-semibold mb-4" style={{color:'#1A1730'}}>No {filter==='all'?'':''+filter+' '}cards yet</p>
-          <Link to="/create-card" className="btn-primary text-sm px-6 py-2.5">✨ Create a card</Link>
+          <Link to="/card/new" className="dash-btn-primary text-sm px-6 py-2.5 inline-flex items-center gap-1.5">✨ Create a card</Link>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map(card=>(
-            <div key={card.id} className="rounded-2xl border-2 overflow-hidden hover:shadow-lg transition-all" style={{background:'#fff',borderColor:'#EDE9FF'}}>
+            <div key={card.id} className="dash-card dash-card-hover overflow-hidden">
               {/* Theme preview strip */}
               <div className="h-2 w-full" style={{background: card.background_color||'linear-gradient(90deg,#7C6EFF,#EC4899)'}} />
               <div className="p-4">
@@ -82,7 +82,7 @@ export default function DashboardCards() {
               </div>
             </div>
           ))}
-          <Link to="/create-card" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 min-h-36 hover:border-primary-400 hover:bg-purple-50 transition-all" style={{borderColor:'#DDD8FF'}}>
+          <Link to="/card/new" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 min-h-36 hover:border-primary-400 hover:bg-purple-50 transition-all" style={{borderColor:'#DDD8FF'}}>
             <span className="text-3xl">✨</span>
             <p className="text-sm font-semibold" style={{color:'#7A7898'}}>New card</p>
           </Link>

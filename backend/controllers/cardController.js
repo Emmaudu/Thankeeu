@@ -87,6 +87,13 @@ const createCard = async (req, res) => {
     const effectiveMemberId = req.member?.id || created_by_member_id;
     const slug = generateSlug(recipient_name, occasion);
 
+    // Anonymous pre-signup draft: no authenticated owner at all. Issue a
+    // separate edit-only token (distinct from access_token, which is the
+    // recipient's view-link credential) so the client can prove "this is
+    // my draft" on later PUT/activate calls without requiring login yet.
+    const isAnonymousDraft = !req.user && !req.member && !req.company;
+    const draftEditToken = isAnonymousDraft ? require('crypto').randomBytes(24).toString('hex') : null;
+
     // Build insert object — font_style is optional (requires migration)
     const insertData = {
       slug,
@@ -104,6 +111,7 @@ const createCard = async (req, res) => {
       ...(effectiveCompanyId && { company_id: effectiveCompanyId }),
       ...(effectiveMemberId && { created_by_member_id: effectiveMemberId }),
       ...(notification_scope && { notification_scope }),
+      ...(isAnonymousDraft && { draft_edit_token: draftEditToken, is_draft: true }),
     };
 
     // Try with font_style first, fall back without if column doesn't exist
@@ -336,11 +344,19 @@ const getCard = async (req, res) => {
 const updateCard = async (req, res) => {
   try {
     const { slug } = req.params;
-    const updates = req.body;
+    const { draft_edit_token: _stripToken, ...updates } = req.body;
+    const presentedToken = req.headers['x-draft-edit-token'] || req.body.draft_edit_token;
 
-    const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).maybeSingle();
+    const { data: card } = await supabase.from('cards')
+      .select('creator_id, created_by_member_id, company_id, draft_edit_token, is_draft')
+      .eq('slug', slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
-    const isOwner = (req.user && card.creator_id === req.user.id) || (req.member && card.created_by_member_id === req.member.id) || (req.company && card.company_id === req.company.id);
+
+    const isOwner = (req.user && card.creator_id === req.user.id)
+      || (req.member && card.created_by_member_id === req.member.id)
+      || (req.company && card.company_id === req.company.id)
+      || (card.is_draft && card.draft_edit_token && presentedToken && card.draft_edit_token === presentedToken);
+
     if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     const { data: updated, error } = await supabase
@@ -362,11 +378,14 @@ const activateCard = async (req, res) => {
     const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
-    // Auth check: works for regular user, member, or HR company
+    // Auth check: works for regular user, member, HR company, or an
+    // anonymous draft presenting its edit token
+    const presentedToken = req.headers['x-draft-edit-token'] || req.body.draft_edit_token;
     const isOwner =
       (req.user   && card.creator_id            === req.user.id)   ||
       (req.member && card.created_by_member_id  === req.member.id) ||
-      (req.company && card.company_id           === req.company.id);
+      (req.company && card.company_id           === req.company.id) ||
+      (card.is_draft && card.draft_edit_token && presentedToken && card.draft_edit_token === presentedToken);
     if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
 
     if (card.status !== 'active') {

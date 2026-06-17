@@ -25,6 +25,7 @@ import DashboardGiftCards from './pages/dashboard/DashboardGiftCards';
 import MemberGiftCardsPage from './pages/member/MemberGiftCardsPage';
 import CompanyGiftCardsPage from './pages/company/CompanyGiftCardsPage';
 import CreateCard       from './pages/CreateCard';
+import CardStart        from './pages/CardStart';
 import CardView         from './pages/CardView';
 import SignCard         from './pages/SignCard';
 import Pricing          from './pages/Pricing';
@@ -270,6 +271,7 @@ const App = () => (
             <Route path="/dashboard/finances"    element={<ProtectedRoute><DashboardFinances /></ProtectedRoute>} />
             <Route path="/dashboard/reminders"   element={<ProtectedRoute><DashboardReminders /></ProtectedRoute>} />
             <Route path="/dashboard/settings"    element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
+            <Route path="/card/new" element={<CardStart />} />
             <Route path="/create-card" element={<AnyAuthRoute><CreateCard /></AnyAuthRoute>} />
             <Route path="/admin"     element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
 

@@ -86,10 +86,9 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
       {/* Create card CTA */}
       <div className="px-3 pb-3">
-        <Link to="/create-card"
+        <Link to="/card/new"
           onClick={() => setSidebarOpen(false)}
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold transition-all"
-          style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff', boxShadow: '0 2px 10px rgba(92,75,223,0.35)' }}>
+          className="dash-btn-primary flex items-center justify-center gap-2 w-full py-2.5 text-sm">
           ✨ New card
         </Link>
       </div>
@@ -141,7 +140,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
               fetchFn={() => notificationsAPI.getAll()}
               markReadFn={() => notificationsAPI.markAllRead()}
             />
-            <Link to="/create-card"
+            <Link to="/card/new"
               style={{ background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontSize:12, fontWeight:700, padding:'6px 12px', borderRadius:10, textDecoration:'none', whiteSpace:'nowrap' }}>
               + Card
             </Link>

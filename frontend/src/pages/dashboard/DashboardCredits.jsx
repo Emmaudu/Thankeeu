@@ -167,9 +167,9 @@ export default function DashboardCredits() {
         </div>
 
         {/* Purchase history */}
-        <div className="bg-white rounded-3xl border-2 border-purple-100 overflow-hidden">
-          <div className="px-5 py-4 border-b border-purple-100">
-            <h3 className="font-bold text-warm-900">Purchase history</h3>
+        <div className="dash-card overflow-hidden">
+          <div className="px-5 py-4 border-b" style={{borderColor:'#EDE9FF'}}>
+            <h3 className="font-bold" style={{color:'#1A1730'}}>Purchase history</h3>
           </div>
           {loading ? (
             <div className="p-8 text-center">
@@ -178,10 +178,10 @@ export default function DashboardCredits() {
           ) : history.length === 0 ? (
             <div className="p-10 text-center">
               <p className="text-4xl mb-3">🧾</p>
-              <p className="text-warm-500 text-sm">No purchases yet. Buy your first plan above.</p>
+              <p className="text-sm" style={{color:'#7A7898'}}>No purchases yet. Buy your first plan above.</p>
             </div>
           ) : (
-            <div className="divide-y divide-purple-50">
+            <div className="divide-y" style={{borderColor:'#EDE9FF'}}>
               {history.map(h => (
                 <div key={h.id} className="flex items-center gap-4 px-5 py-3.5">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0 ${
@@ -190,15 +190,15 @@ export default function DashboardCredits() {
                     {h.status === 'paid' ? '✅' : h.status === 'pending' ? '⏳' : '❌'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-warm-900 capitalize">
+                    <p className="text-sm font-semibold capitalize" style={{color:'#1A1730'}}>
                       {h.plan_type} plan — {h.credits_bought} credit{h.credits_bought > 1 ? 's' : ''}
                     </p>
-                    <p className="text-xs text-warm-400">
+                    <p className="text-xs" style={{color:'#9490C8'}}>
                       {h.created_at ? format(new Date(h.created_at), 'MMM d, yyyy · h:mm a') : ''}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold text-warm-900">₦{h.amount_paid?.toLocaleString('en-NG')}</p>
+                    <p className="text-sm font-bold" style={{color:'#1A1730'}}>₦{h.amount_paid?.toLocaleString('en-NG')}</p>
                     <p className={`text-xs font-semibold capitalize ${
                       h.status === 'paid' ? 'text-green-600' : h.status === 'pending' ? 'text-amber-600' : 'text-red-500'
                     }`}>{h.status}</p>

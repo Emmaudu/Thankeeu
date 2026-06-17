@@ -145,35 +145,34 @@ const Home = () => {
       <Navbar onBookDemo={() => setShowDemo(true)} />
 
       {/* ── HERO ─────────────────────────────── */}
-      <section className="relative overflow-hidden pt-12 pb-16 md:pt-20 md:pb-24 px-4">
+      <section className="relative overflow-hidden pt-12 pb-16 md:pt-20 md:pb-24 px-4 gc-font">
         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage:'radial-gradient(rgba(124,58,237,0.1) 1.5px,transparent 1.5px)', backgroundSize:'28px 28px' }} />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,transparent 70%)' }} />
 
         <div className="relative max-w-4xl mx-auto text-center">
 
-
-          <h1 className="font-bold text-warm-900 mb-5 px-2"
-            style={{ fontSize:'clamp(2rem,7vw,3.75rem)', lineHeight:1.1 }}>
-           Create, Schedule <br/>
+          <h1 className="font-extrabold text-warm-900 mb-5 px-2"
+            style={{ fontSize:'clamp(2.25rem,8vw,4.25rem)', lineHeight:1.08 }}>
+           Send a group card <br/>
             <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
-              digital group card-box for your self &amp; others
+              everyone can sign
             </span>
           </h1>
 
-          <p className="text-warm-600 mb-8 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(0.95rem,2.5vw,1.125rem)', lineHeight:1.65 }}>
-            Birthdays, anniversaries or more celebrations? Create beautiful group cards, collect heartfelt messages from friends or colleagues with GIFs, photos, videos, VNs with pool gifts via Flutterwave all in one place — works in NGN, USD, GBP, EUR and more.<br className="hidden sm:block"/>
-            <strong className="text-warm-800">Takes 2 minutes. From <RotatingPrice amountNGN={5000} />.</strong>
+          <p className="text-warm-600 mb-9 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(1.05rem,2.8vw,1.25rem)', lineHeight:1.6 }}>
+            Pick a design and start adding messages right now — no account needed.
+            Share the link, collect signatures and a gift pot, then pay only when you're ready to send.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10 px-2">
-            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
-              <Icon name="Sparkles" size={16}/> Create a card
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6 px-2">
+            <Link to="/card/new" className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+              <Icon name="Sparkles" size={18}/> Create a card — free
             </Link>
-            <button onClick={() => setShowDemo(true)} className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
-              <Icon name="Calendar" size={16}/> Book team demo
-            </button>
+            <Link to="/sign/demo-thankeeu-card" className="gc-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+              <Icon name="Eye" size={18}/> Try our demo card
+            </Link>
           </div>
-          {/* Stats removed — will be added back when live */}
+          <p className="text-sm font-medium text-warm-500">No signup needed to start · Takes under 2 minutes</p>
         </div>
       </section>
 
@@ -190,7 +189,7 @@ const Home = () => {
           </div>
           <div className="occasion-grid">
             {OCCASIONS.map(({ icon, label }) => (
-              <Link key={label} to="/signup"
+              <Link key={label} to="/card/new"
                 className="bg-white border-2 border-purple-100 rounded-2xl p-3 sm:p-4 flex flex-col items-center gap-1.5 sm:gap-2 text-center transition-all hover:border-primary-300 hover:bg-primary-50 hover:-translate-y-1 hover:shadow-md active:scale-95">
                 <Icon name={icon} size={26} className="text-primary-500"/>
                 <span className="text-xs font-semibold text-warm-600 leading-tight">{label}</span>
@@ -250,7 +249,7 @@ const Home = () => {
                   </div>
                 ))}
               </div>
-              <Link to="/signup" className="btn-primary px-7 py-3.5 text-sm w-full sm:w-auto inline-flex items-center justify-center gap-2">
+              <Link to="/card/new" className="gc-btn-primary px-7 py-3.5 text-sm w-full sm:w-auto inline-flex items-center justify-center gap-2">
                 <Icon name="Sparkles" size={15}/> Create your first card <Icon name="ArrowRight" size={15}/>
               </Link>
             </div>
@@ -402,7 +401,7 @@ const Home = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/signup" className="btn-primary px-7 py-3 w-full sm:w-auto inline-flex">Get started →</Link>
+              <Link to="/card/new" className="gc-btn-primary px-7 py-3 w-full sm:w-auto inline-flex items-center justify-center">Get started →</Link>
             </div>
 
             {/* Company */}
@@ -638,8 +637,8 @@ const Home = () => {
           </h2>
           <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={5000} /> per card · Pay only when you send · Works worldwide</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/> Get started — takes 2 min</Link>
-            <Link to="/pricing" className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Card" size={16}/> See pricing</Link>
+            <Link to="/card/new" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/> Get started — takes 2 min</Link>
+            <Link to="/pricing" className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Card" size={16}/> See pricing</Link>
           </div>
           <p className="text-xs text-warm-400 mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
             <span className="inline-flex items-center gap-1"><Icon name="Lock" size={12}/> Secure payments</span><span>·</span>

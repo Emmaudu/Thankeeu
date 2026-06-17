@@ -174,7 +174,7 @@ export default function DashboardHome() {
               { icon:'🚀', label:'Sent', value: stats.sent_cards||0 },
               { icon:'🎁', label:'Gifts collected', value: formatNGN(stats.total_collected||0), hi:true },
             ].map(s => (
-              <div key={s.label} className="rounded-2xl p-4 border-2" style={{ background: s.hi?'rgba(124,110,255,0.06)':'#fff', borderColor: s.hi?'rgba(124,110,255,0.25)':'#EDE9FF' }}>
+              <div key={s.label} className="dash-card p-4" style={s.hi ? { background:'rgba(124,110,255,0.06)', borderColor:'rgba(124,110,255,0.25)' } : undefined}>
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-xs font-medium mb-1" style={{ color:'#7A7898' }}>{s.label}</p>
@@ -196,15 +196,15 @@ export default function DashboardHome() {
       {loading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">{[...Array(3)].map((_,i) => <div key={i} className="rounded-2xl h-40 animate-pulse" style={{ background:'#EDE9FF' }} />)}</div>
       ) : cards.length === 0 ? (
-        <div className="text-center py-14 rounded-2xl" style={{ background:'#fff', border:'2px dashed #EDE9FF' }}>
+        <div className="dash-empty py-14">
           <div className="text-5xl mb-3">💌</div>
           <p className="font-semibold mb-4" style={{ color:'#1A1730' }}>No cards yet</p>
-          <Link to="/create-card" className="btn-primary text-sm px-6 py-2.5">✨ Create your first card</Link>
+          <Link to="/card/new" className="dash-btn-primary text-sm px-6 py-2.5 inline-flex items-center gap-1.5">✨ Create your first card</Link>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {cards.map(card => (
-            <div key={card.id} className="rounded-2xl border-2 overflow-hidden hover:shadow-md transition-all" style={{ background:'#fff', borderColor:'#EDE9FF' }}>
+            <div key={card.id} className="dash-card dash-card-hover overflow-hidden">
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <span className="text-2xl">{occasionEmoji[card.occasion]||'💌'}</span>
@@ -231,7 +231,7 @@ export default function DashboardHome() {
               </div>
             </div>
           ))}
-          <Link to="/create-card" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 min-h-36 transition-all hover:border-primary-400 hover:bg-purple-50" style={{ borderColor:'#DDD8FF' }}>
+          <Link to="/card/new" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 min-h-36 transition-all hover:border-primary-400 hover:bg-purple-50" style={{ borderColor:'#DDD8FF' }}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ background:'#EDE9FF' }}>✨</div>
             <p className="text-sm font-semibold" style={{ color:'#7A7898' }}>Create new card</p>
           </Link>

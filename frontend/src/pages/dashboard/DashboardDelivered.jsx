@@ -23,7 +23,7 @@ export default function DashboardDelivered() {
       {loading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">{[...Array(4)].map((_,i)=><div key={i} className="rounded-2xl h-40 animate-pulse" style={{background:'#EDE9FF'}}/>)}</div>
       ) : cards.length===0 ? (
-        <div className="text-center py-16 rounded-2xl" style={{background:'#fff',border:'2px dashed #EDE9FF'}}>
+        <div className="dash-empty py-16">
           <div className="text-5xl mb-3">🚀</div>
           <p className="font-semibold mb-2" style={{color:'#1A1730'}}>No delivered cards yet</p>
           <p className="text-sm" style={{color:'#7A7898'}}>Cards you send will appear here, saved forever.</p>
@@ -31,7 +31,7 @@ export default function DashboardDelivered() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map(card=>(
-            <Link to={`/card/${card.slug}`} key={card.id} className="rounded-2xl border-2 p-4 hover:shadow-md transition-all block" style={{background:'#fff',borderColor:'#EDE9FF'}}>
+            <Link to={`/card/${card.slug}`} key={card.id} className="dash-card dash-card-hover p-4 block">
               <div className="flex items-start gap-3 mb-3">
                 <span className="text-2xl">{occasionEmoji[card.occasion]||'💌'}</span>
                 <div className="flex-1 min-w-0">

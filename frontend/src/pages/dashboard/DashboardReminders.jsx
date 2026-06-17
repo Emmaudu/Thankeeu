@@ -69,13 +69,13 @@ export default function DashboardReminders() {
       {/* CTA */}
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm" style={{color:'#7A7898'}}>We'll email you <strong>7 days before</strong> each occasion.</p>
-        <button onClick={openNew} className="btn-primary text-sm px-5 py-2.5">+ New reminder</button>
+        <button onClick={openNew} className="dash-btn-primary text-sm px-5 py-2.5">+ New reminder</button>
       </div>
 
       {/* Form */}
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4" style={{background:'rgba(0,0,0,0.5)'}}>
-          <div className="w-full max-w-md rounded-2xl p-6" style={{background:'#fff',border:'2px solid #EDE9FF'}}>
+          <div className="dash-card w-full max-w-md p-6">
             <h3 className="font-bold text-lg mb-4" style={{fontFamily:'Space Grotesk,sans-serif',color:'#1A1730'}}>{editing?'Edit':'New'} Reminder ⏰</h3>
             <form onSubmit={handleSave} className="space-y-3">
               <div>
@@ -110,7 +110,7 @@ export default function DashboardReminders() {
               </div>
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={()=>setShowForm(false)} className="flex-1 py-3 rounded-xl border-2 text-sm font-semibold" style={{borderColor:'#DDD8FF',color:'#5B4BDF'}}>Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 btn-primary py-3 text-sm">{saving?'Saving...':'Save reminder'}</button>
+                <button type="submit" disabled={saving} className="flex-1 dash-btn-primary py-3 text-sm">{saving?'Saving...':'Save reminder'}</button>
               </div>
             </form>
           </div>
@@ -121,17 +121,17 @@ export default function DashboardReminders() {
       {loading ? (
         <div className="space-y-3">{[...Array(4)].map((_,i)=><div key={i} className="rounded-2xl h-20 animate-pulse" style={{background:'#EDE9FF'}}/>)}</div>
       ) : reminders.length===0 ? (
-        <div className="text-center py-16 rounded-2xl" style={{background:'#fff',border:'2px dashed #EDE9FF'}}>
+        <div className="dash-empty py-16">
           <div className="text-5xl mb-3">⏰</div>
           <p className="font-semibold mb-2" style={{color:'#1A1730'}}>No reminders yet</p>
           <p className="text-sm mb-4" style={{color:'#7A7898'}}>Add important people and we'll remind you 7 days before.</p>
-          <button onClick={openNew} className="btn-primary text-sm px-6 py-2.5">+ Add first reminder</button>
+          <button onClick={openNew} className="dash-btn-primary text-sm px-6 py-2.5">+ Add first reminder</button>
         </div>
       ) : (
         <div className="space-y-3">
           {reminders.map(r=>(
-            <div key={r.id} className="rounded-2xl border-2 p-4 flex items-center gap-4 transition-all"
-              style={{background:'#fff',borderColor: r.is_active?'#EDE9FF':'#f3f4f6',opacity:r.is_active?1:0.6}}>
+            <div key={r.id} className="dash-card dash-card-hover p-4 flex items-center gap-4 transition-all"
+              style={{opacity:r.is_active?1:0.6}}>
               <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0"
                 style={{background:r.is_active?'rgba(124,110,255,0.1)':'#f3f4f6'}}>
                 {r.occasion==='birthday'?'🎂':r.occasion==='anniversary'?'💍':r.occasion==='wedding'?'💒':r.occasion==='graduation'?'🎓':'⏰'}

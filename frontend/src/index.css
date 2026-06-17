@@ -580,3 +580,76 @@ aside { transition: transform .28s cubic-bezier(.4,0,.2,1), width .25s ease; }
 
 /* Prevent body scroll when mobile sidebar open */
 body.sidebar-open { overflow: hidden; }
+
+/* ── GroupCards-cloned creation flow & homepage hero ──────────────────────
+   Note: this is a visual clone of groupcards.app's layout, shadows, and
+   rounding, recolored into Thankeeu's existing purple. The exact font
+   groupcards.app uses could not be directly verified (no network access to
+   their domain); Poppins is used here as a close, well-justified match for
+   their rounded-geometric, friendly display style — not a confirmed
+   extraction of their actual font file. */
+.gc-font { font-family: 'Poppins', 'Plus Jakarta Sans', system-ui, sans-serif; }
+.gc-card {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 1px 2px rgba(124,58,237,0.04), 0 8px 24px rgba(124,58,237,0.08);
+  border: 1px solid #F1EAFE;
+}
+.gc-card-hover { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.gc-card-hover:hover { transform: translateY(-4px); box-shadow: 0 4px 8px rgba(124,58,237,0.06), 0 16px 32px rgba(124,58,237,0.14); }
+.gc-btn-primary {
+  font-family: 'Poppins', sans-serif;
+  background: #7C3AED;
+  color: #fff;
+  border-radius: 16px;
+  font-weight: 700;
+  padding: 16px 32px;
+  font-size: 17px;
+  box-shadow: 0 4px 14px rgba(124,58,237,0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.gc-btn-primary:hover { background: #6D28D9; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(124,58,237,0.32); }
+.gc-btn-secondary {
+  font-family: 'Poppins', sans-serif;
+  background: #fff;
+  color: #5B21B6;
+  border: 2px solid #EDE5FF;
+  border-radius: 16px;
+  font-weight: 700;
+  padding: 16px 32px;
+  font-size: 17px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.gc-btn-secondary:hover { border-color: #BBA8FF; background: #F5F0FF; }
+
+/* ── Dashboard visual language ─────────────────────────────────────────
+   Same gc-card soft-shadow/rounding treatment as the homepage and create
+   flow, applied in the dashboard's own established palette (#1A1730 ink,
+   #7A7898 muted, #5B4BDF/#7C6EFF accent, #EDE9FF border) rather than a
+   literal copy of the lighter homepage purple — the dashboard sidebar is
+   dark and these are the tokens already used consistently across all 9
+   dashboard pages. */
+.dash-card {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #EDE9FF;
+  box-shadow: 0 1px 2px rgba(91,75,223,0.03), 0 6px 18px rgba(91,75,223,0.06);
+}
+.dash-card-hover { transition: transform 0.18s ease, box-shadow 0.18s ease; }
+.dash-card-hover:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(91,75,223,0.06), 0 14px 28px rgba(91,75,223,0.12); }
+.dash-btn-primary {
+  font-family: 'Poppins', 'Plus Jakarta Sans', sans-serif;
+  background: linear-gradient(135deg,#7C6EFF,#5B4BDF);
+  color: #fff;
+  border-radius: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(92,75,223,0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.dash-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(92,75,223,0.38); }
+.dash-empty {
+  text-align: center;
+  background: #fff;
+  border: 2px dashed #DDD8FF;
+  border-radius: 20px;
+}

@@ -138,6 +138,15 @@ export const cardsAPI = {
   send:         (slug)         => api.post(`/cards/${slug}/send`),
   delete:       (slug)         => api.delete(`/cards/${slug}`),
   approveScope: (slug)         => companyAxios.post(`/cards/${slug}/approve-scope`),
+  // Anonymous pre-signup draft flow (GroupCards/Thankbox-style): create and
+  // edit a card with no login required. draftEditToken, once issued by the
+  // server on creation, must be presented on every subsequent write.
+  createDraft:  (data)                     => anyAxios.post('/cards', data),
+  updateDraft:  (slug, data, draftEditToken) => anyAxios.put(`/cards/${slug}`, data,
+    draftEditToken ? { headers: { 'x-draft-edit-token': draftEditToken } } : undefined),
+  activateDraft: (slug, data, draftEditToken) => anyAxios.post(`/cards/${slug}/activate`, data,
+    draftEditToken ? { headers: { 'x-draft-edit-token': draftEditToken } } : undefined),
+  claimDraft:   (slug, draftEditToken)     => api.post(`/cards/${slug}/claim`, { draft_edit_token: draftEditToken }),
 };
 
 // ─── Messages ──────────────────────────────────────────────────────────────

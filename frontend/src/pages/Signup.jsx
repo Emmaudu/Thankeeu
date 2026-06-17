@@ -54,6 +54,9 @@ const Signup = () => {
     } finally { setLoading(false); }
   };
 
+  const claimSlug  = searchParams.get('claim_slug');
+  const claimToken = searchParams.get('claim_token');
+
   // Step 2: verify code and create account
   const handleVerifyCode = async e => {
     e.preventDefault();
@@ -68,8 +71,23 @@ const Signup = () => {
       const { token, user } = res.data;
       localStorage.setItem('thankeeu_token', token);
       localStorage.setItem('thankeeu_user',  JSON.stringify(user));
+
+      // If they came from the no-login card flow, attach that draft to
+      // their new account now that they're authenticated.
+      if (claimSlug && claimToken) {
+        try {
+          const { cardsAPI } = await import('../utils/api');
+          await cardsAPI.claimDraft(claimSlug, claimToken);
+          localStorage.removeItem('thankeeu_anon_draft');
+        } catch (claimErr) {
+          // Don't block signup on a claim failure — they can still find
+          // their card via the share link even if this didn't link it.
+          console.error('Could not link draft card to new account:', claimErr.response?.data?.error || claimErr.message);
+        }
+      }
+
       toast.success('Account created! Welcome to Thankeeu!');
-      navigate(returnTo || '/dashboard');
+      navigate(claimSlug ? `/card/${claimSlug}` : (returnTo || '/dashboard'));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Incorrect or expired code. Please try again.');
     } finally { setLoading(false); }

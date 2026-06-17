@@ -79,7 +79,7 @@ export default function DashboardSettings() {
 
       <div className="max-w-lg">
         {tab==='profile' && (
-          <div className="rounded-2xl p-6 border-2" style={{background:'#fff',borderColor:'#EDE9FF'}}>
+          <div className="dash-card p-6">
             {/* Avatar */}
             <div className="flex items-center gap-4 mb-6">
               <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0" style={{background:'linear-gradient(135deg,#7C6EFF,#EC4899)'}}>
@@ -122,13 +122,13 @@ export default function DashboardSettings() {
                   onChange={e=>setProfile(p=>({...p,bio:e.target.value}))} />
               </div>
             </div>
-            <button onClick={saveProfile} disabled={saving} className="btn-primary w-full py-3 mt-5">{saving?'Saving...':'Save profile ✨'}</button>
+            <button onClick={saveProfile} disabled={saving} className="dash-btn-primary w-full py-3 mt-5">{saving?'Saving...':'Save profile ✨'}</button>
           </div>
         )}
 
         {tab==='bank'     && <BankAccountTab />}
         {tab==='password' && (
-          <div className="rounded-2xl p-6 border-2" style={{background:'#fff',borderColor:'#EDE9FF'}}>
+          <div className="dash-card p-6">
             <div className="space-y-4">
               <div>
                 <label className="text-xs font-medium block mb-1.5" style={{color:'#7A7898'}}>Current password</label>
@@ -146,7 +146,7 @@ export default function DashboardSettings() {
                 <p className="text-xs" style={{color:'#ef4444'}}>Passwords do not match</p>
               )}
             </div>
-            <button onClick={savePassword} disabled={saving||!passwords.current||!passwords.new_password} className="btn-primary w-full py-3 mt-5 disabled:opacity-50">
+            <button onClick={savePassword} disabled={saving||!passwords.current||!passwords.new_password} className="dash-btn-primary w-full py-3 mt-5 disabled:opacity-50">
               {saving?'Changing...':'Change password 🔒'}
             </button>
           </div>

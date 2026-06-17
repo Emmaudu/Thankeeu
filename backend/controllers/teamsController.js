@@ -228,21 +228,21 @@ const importTeamMembers = async (req, res) => {
     });
 
     // ── Catch-up notifications: run AFTER all members are in DB ──────────────
-    // Running per-member inside the loop means colleagues aren't imported yet
-    // when the first member's catchUp fires. Running here ensures the full team
-    // is in company_members before any notification query executes.
+    const _teamsCompanyId = req.company.id;
     setImmediate(async () => {
       try {
+        console.log('[teams import catchUp] starting for company', _teamsCompanyId, '— members:', results.filter(Boolean).length);
         const { data: companyRow } = await supabase
-          .from('companies').select('*').eq('id', req.company.id).maybeSingle();
-        if (!companyRow) return;
+          .from('companies').select('*').eq('id', _teamsCompanyId).maybeSingle();
+        if (!companyRow) { console.error('[teams import catchUp] company not found'); return; }
         for (const upserted of results.filter(Boolean)) {
           await catchUpMemberCards(upserted, companyRow).catch(e =>
-            console.error(`[import catchUp] ${upserted.email}:`, e.message)
+            console.error(`[teams import catchUp] ${upserted.email}:`, e.message)
           );
         }
+        console.log('[teams import catchUp] done');
       } catch (e) {
-        console.error('[import catchUp batch] error:', e.message);
+        console.error('[teams import catchUp batch] error:', e.message);
       }
     });
   } catch (err) {

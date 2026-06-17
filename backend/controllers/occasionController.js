@@ -336,7 +336,7 @@ const importOccasionMembers = async (req, res) => {
     };
     const memberDateField = occasionToMemberField[ot.name] || null;
 
-    const { data: companyData } = await supabase.from('companies').select('name, contact_person').eq('id', req.company.id).maybeSingle();
+    const { data: companyData } = await supabase.from('companies').select('id, name, email, contact_person, country, occasion_scopes, occasion_hide_amounts').eq('id', req.company.id).maybeSingle();
     const frontendUrl = (() => { const r=process.env.FRONTEND_URL||process.env.FRONTEND_URLS||''; let s=r.trim(); if(!s.startsWith('http')&&s.includes('='))s=s.slice(s.lastIndexOf('=')+1).trim(); return (s.replace(/['"\/]$/g,'').startsWith('http')?s.replace(/\/$/, ''):'https://thankeeu.com'); })();
     let invitesSent = 0;
 
@@ -445,24 +445,24 @@ const importOccasionMembers = async (req, res) => {
     });
 
     // ── Catch-up notifications: AFTER all members are in DB ──────────────────
-    // Running per-member inside the loop fires before other members are imported,
-    // so colleague queries return 0 results and no emails go out.
-    // Running here after the full loop ensures everyone is in company_members first.
+    const _catchUpCompanyId = req.company.id;
     setImmediate(async () => {
       try {
+        console.log('[importOccasion catchUp] starting for company', _catchUpCompanyId, 'members:', toInsert.length);
         const { data: companyFull } = await supabase
-          .from('companies').select('*').eq('id', req.company.id).maybeSingle();
-        if (!companyFull) return;
-        // Fetch fresh member rows (have all fields including date_of_birth)
+          .from('companies').select('*').eq('id', _catchUpCompanyId).maybeSingle();
+        if (!companyFull) { console.error('[importOccasion catchUp] company not found'); return; }
         const importedEmails = toInsert.map(r => r.email);
         const { data: importedMembers } = await supabase
           .from('company_members').select('*')
-          .eq('company_id', req.company.id).in('email', importedEmails);
+          .eq('company_id', _catchUpCompanyId).in('email', importedEmails);
+        console.log('[importOccasion catchUp] processing', (importedMembers||[]).length, 'members');
         for (const m of (importedMembers || [])) {
           await catchUpMemberCards(m, companyFull).catch(e =>
             console.error(`[importOccasion catchUp] ${m.email}:`, e.message)
           );
         }
+        console.log('[importOccasion catchUp] done');
       } catch (e) {
         console.error('[importOccasion catchUp batch] error:', e.message);
       }
@@ -940,26 +940,29 @@ const importGeneralTemplate = async (req, res) => {
     });
 
     // ── Catch-up notifications AFTER all members are in DB ───────────────────
+    const _genCompanyId = companyId;
     setImmediate(async () => {
       try {
-        if (!companyData?.id) return;
+        console.log('[importGeneral catchUp] starting for company', _genCompanyId);
         const { data: companyFull } = await supabase
-          .from('companies').select('*').eq('id', companyData.id).maybeSingle();
-        if (!companyFull) return;
+          .from('companies').select('*').eq('id', _genCompanyId).maybeSingle();
+        if (!companyFull) { console.error('[importGeneral catchUp] company not found'); return; }
         const importedEmails = [];
         for (let i = 1; i < rows.length; i++) {
           const em = String(rows[i][emI] || '').trim().toLowerCase();
           if (em) importedEmails.push(em);
         }
-        if (!importedEmails.length) return;
+        if (!importedEmails.length) { console.log('[importGeneral catchUp] no emails to process'); return; }
         const { data: importedMembers } = await supabase
           .from('company_members').select('*')
-          .eq('company_id', companyData.id).in('email', importedEmails);
+          .eq('company_id', _genCompanyId).in('email', importedEmails);
+        console.log('[importGeneral catchUp] processing', (importedMembers||[]).length, 'members');
         for (const m of (importedMembers || [])) {
           await catchUpMemberCards(m, companyFull).catch(e =>
             console.error(`[importGeneral catchUp] ${m.email}:`, e.message)
           );
         }
+        console.log('[importGeneral catchUp] done');
       } catch (e) {
         console.error('[importGeneral catchUp batch] error:', e.message);
       }

@@ -161,7 +161,7 @@ const Home = () => {
           </h1>
 
           <p className="text-warm-600 mb-8 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(0.95rem,2.5vw,1.125rem)', lineHeight:1.65 }}>
-            Birthdays, Anniversaries, Leave? Create beautiful group cards, collect heartfelt messages with GIFs, photos, videos, VNs with pool gifts via Flutterwave — works in NGN, USD, GBP, EUR and more.<br className="hidden sm:block"/>
+            Birthdays, anniversaries or more celebrations? Create beautiful group cards, collect heartfelt messages with GIFs, photos, videos, VNs with pool gifts via Flutterwave — works in NGN, USD, GBP, EUR and more.<br className="hidden sm:block"/>
             <strong className="text-warm-800">Takes 2 minutes. From <RotatingPrice amountNGN={5000} />.</strong>
           </p>
 

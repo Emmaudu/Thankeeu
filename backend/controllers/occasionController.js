@@ -444,6 +444,30 @@ const importOccasionMembers = async (req, res) => {
       row_errors: errors,
     });
 
+    // ── Catch-up notifications: AFTER all members are in DB ──────────────────
+    // Running per-member inside the loop fires before other members are imported,
+    // so colleague queries return 0 results and no emails go out.
+    // Running here after the full loop ensures everyone is in company_members first.
+    setImmediate(async () => {
+      try {
+        const { data: companyFull } = await supabase
+          .from('companies').select('*').eq('id', req.company.id).maybeSingle();
+        if (!companyFull) return;
+        // Fetch fresh member rows (have all fields including date_of_birth)
+        const importedEmails = toInsert.map(r => r.email);
+        const { data: importedMembers } = await supabase
+          .from('company_members').select('*')
+          .eq('company_id', req.company.id).in('email', importedEmails);
+        for (const m of (importedMembers || [])) {
+          await catchUpMemberCards(m, companyFull).catch(e =>
+            console.error(`[importOccasion catchUp] ${m.email}:`, e.message)
+          );
+        }
+      } catch (e) {
+        console.error('[importOccasion catchUp batch] error:', e.message);
+      }
+    });
+
     logActivity({
       company_id:  req.company.id,
       actor_id:    req.coreTeamMember?.id || req.company.id,
@@ -895,16 +919,6 @@ const importGeneralTemplate = async (req, res) => {
       // rows needed.
       totalImported++; // Valentine's + Workers' Day applied to everyone automatically
 
-      // ── Catch-up: if any occasion is ALREADY within the notify window,
-      // create the card immediately rather than waiting for tonight's cron.
-      // e.g. birthday in 3 days and member was just imported → card now.
-      if (memberId) {
-        const { data: freshMember } = await supabase.from('company_members')
-          .select('*').eq('id', memberId).maybeSingle().then(r => r).catch(() => ({ data: null }));
-        if (freshMember) {
-          setImmediate(() => catchUpMemberCards(freshMember, companyData).catch(() => {}));
-        }
-      }
     }
 
     // Count active company_members for per-head subscription pricing
@@ -923,6 +937,32 @@ const importGeneralTemplate = async (req, res) => {
       yearly_price:             hc * 20000,
       redirect_to_subscription: true,
       errors,
+    });
+
+    // ── Catch-up notifications AFTER all members are in DB ───────────────────
+    setImmediate(async () => {
+      try {
+        if (!companyData?.id) return;
+        const { data: companyFull } = await supabase
+          .from('companies').select('*').eq('id', companyData.id).maybeSingle();
+        if (!companyFull) return;
+        const importedEmails = [];
+        for (let i = 1; i < rows.length; i++) {
+          const em = String(rows[i][emI] || '').trim().toLowerCase();
+          if (em) importedEmails.push(em);
+        }
+        if (!importedEmails.length) return;
+        const { data: importedMembers } = await supabase
+          .from('company_members').select('*')
+          .eq('company_id', companyData.id).in('email', importedEmails);
+        for (const m of (importedMembers || [])) {
+          await catchUpMemberCards(m, companyFull).catch(e =>
+            console.error(`[importGeneral catchUp] ${m.email}:`, e.message)
+          );
+        }
+      } catch (e) {
+        console.error('[importGeneral catchUp batch] error:', e.message);
+      }
     });
   } catch (err) {
     console.error('importGeneralTemplate error:', err);
@@ -1278,15 +1318,6 @@ const importByOccasionName = async (req, res) => {
         }
         imported++;
 
-        // ── Catch-up: create card immediately if occasion is already within
-        // the notification window (member was imported late / mid-period).
-        if (memberId) {
-          const { data: freshMember } = await supabase.from('company_members')
-            .select('*').eq('id', memberId).maybeSingle().then(r => r).catch(() => ({ data: null }));
-          if (freshMember) {
-            setImmediate(() => catchUpMemberCards(freshMember, coData).catch(() => {}));
-          }
-        }
       } catch(rowErr) {
         errors.push(`Row ${i+1}: ${rowErr.message}`);
       }
@@ -1295,6 +1326,29 @@ const importByOccasionName = async (req, res) => {
     res.json({
       message: `✅ ${imported} records imported into ${occasionName.replace('_',' ')} table.`,
       imported, errors,
+    });
+
+    // ── Catch-up notifications AFTER all members are in DB ───────────────────
+    setImmediate(async () => {
+      try {
+        if (!coData?.id) return;
+        const { data: companyFull } = await supabase
+          .from('companies').select('*').eq('id', coData.id).maybeSingle();
+        if (!companyFull) return;
+        const importedEmails = rows.slice(1)
+          .map(r => String(r[emI]||'').trim().toLowerCase()).filter(Boolean);
+        if (!importedEmails.length) return;
+        const { data: importedMembers } = await supabase
+          .from('company_members').select('*')
+          .eq('company_id', coData.id).in('email', importedEmails);
+        for (const m of (importedMembers || [])) {
+          await catchUpMemberCards(m, companyFull).catch(e =>
+            console.error(`[importByName catchUp] ${m.email}:`, e.message)
+          );
+        }
+      } catch (e) {
+        console.error('[importByName catchUp batch] error:', e.message);
+      }
     });
 
     logActivity({

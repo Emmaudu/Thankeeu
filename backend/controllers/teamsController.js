@@ -189,15 +189,6 @@ const importTeamMembers = async (req, res) => {
       results.push(upserted);
       if (needsInvite && inviteToken) inviteQueue.push({ member: upserted || row, inviteToken });
 
-      // ── Catch-up: create card immediately if birthday (or other occasion)
-      // is already within the notification window for this newly imported member.
-      if (upserted) {
-        const freshMember = upserted;
-        supabase.from('companies').select('*').eq('id', req.company.id).maybeSingle()
-          .then(({ data: companyRow }) => {
-            if (companyRow) catchUpMemberCards(freshMember, companyRow).catch(() => {});
-          }).catch(() => {});
-      }
     }
 
     // Also mirror into team_members for dashboard counts (legacy — non-blocking)
@@ -234,6 +225,25 @@ const importTeamMembers = async (req, res) => {
       imported: data.length,
       skipped: rows.length - 1 - toInsert.length,
       row_errors: errors,
+    });
+
+    // ── Catch-up notifications: run AFTER all members are in DB ──────────────
+    // Running per-member inside the loop means colleagues aren't imported yet
+    // when the first member's catchUp fires. Running here ensures the full team
+    // is in company_members before any notification query executes.
+    setImmediate(async () => {
+      try {
+        const { data: companyRow } = await supabase
+          .from('companies').select('*').eq('id', req.company.id).maybeSingle();
+        if (!companyRow) return;
+        for (const upserted of results.filter(Boolean)) {
+          await catchUpMemberCards(upserted, companyRow).catch(e =>
+            console.error(`[import catchUp] ${upserted.email}:`, e.message)
+          );
+        }
+      } catch (e) {
+        console.error('[import catchUp batch] error:', e.message);
+      }
     });
   } catch (err) {
     console.error('Import error:', err);

@@ -154,14 +154,14 @@ const Home = () => {
 
           <h1 className="font-bold text-warm-900 mb-5 px-2"
             style={{ fontSize:'clamp(2rem,7vw,3.75rem)', lineHeight:1.1 }}>
-           Create &amp; Schedule <br/>
+           Create, Schedule <br/>
             <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
               digital group card-box for your self &amp; others
             </span>
           </h1>
 
           <p className="text-warm-600 mb-8 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(0.95rem,2.5vw,1.125rem)', lineHeight:1.65 }}>
-            Create beautiful group cards, collect heartfelt messages with GIFs, photos, videos, VNs with pool gifts via Flutterwave — works in NGN, USD, GBP, EUR and more.<br className="hidden sm:block"/>
+            Birthdays, Anniversaries, Leave? Create beautiful group cards, collect heartfelt messages with GIFs, photos, videos, VNs with pool gifts via Flutterwave — works in NGN, USD, GBP, EUR and more.<br className="hidden sm:block"/>
             <strong className="text-warm-800">Takes 2 minutes. From <RotatingPrice amountNGN={5000} />.</strong>
           </p>
 

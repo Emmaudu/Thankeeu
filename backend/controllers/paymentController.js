@@ -147,6 +147,16 @@ const initCardFee = async (req, res) => {
   try {
     const { card_slug, currency: reqCurrency } = req.body;
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
+
+    // Guard against double-charging: if the card is already active (previous payment
+    // succeeded but CardFeeVerify failed to navigate), return a synthetic success so
+    // the frontend can redirect to the card view without generating a new FLW charge.
+    const { data: existingCard } = await supabase.from('cards')
+      .select('slug, status').eq('slug', card_slug).maybeSingle();
+    if (existingCard?.status === 'active' || existingCard?.status === 'sent') {
+      console.log('initCardFee: card already active, skipping charge. card:', card_slug);
+      return res.json({ already_active: true, card_slug });
+    }
     // Currency: default NGN, support USD/GBP/EUR etc. for international users
     const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
     const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
@@ -234,7 +244,7 @@ const verifyCardFee = async (req, res) => {
     }
 
     // Verify amount paid matches what was expected (prevents ₦1 payment activating card)
-    const CARD_FEE = 500; // ₦500 card creation fee
+    const CARD_FEE = 5000; // ₦5,000 card creation fee
     const paidAmount = txn.amount;
     if (paidAmount < CARD_FEE * 0.90) {
       console.error(`[verifyCardFee] UNDERPAYMENT: expected ₦${CARD_FEE}, got ₦${paidAmount}. card: ${cardSlug}, ref: ${txRef}`);

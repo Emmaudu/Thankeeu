@@ -117,9 +117,26 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     setStage('verifying');
     paymentsAPI.verifyContribution(returnTxRef)
       .then(() => { toast.success('Message and gift confirmed! 🎉'); setSubmitted(true); })
-      .catch(() => { toast.success('Gift received! 🎉'); setSubmitted(true); })
+      .catch((e) => {
+        const httpStatus = e?.response?.status;
+        const msg = e?.response?.data?.error || e?.message || '';
+        // 400 = payment genuinely not completed (declined, cancelled on FLW side)
+        // Tell the user so they can retry rather than faking success
+        if (httpStatus === 400 || msg.toLowerCase().includes('not completed') || msg.toLowerCase().includes('cancelled')) {
+          toast.error('Payment was not completed. Please try again.');
+          // Do NOT setSubmitted — keep the card open so they can retry
+        } else {
+          // Server/network error during verify. Payment likely went through on FLW's side.
+          // Show optimistic success to avoid double-charging on retry.
+          console.error('[AlbumSign] verifyContribution server error:', msg);
+          toast.success('Gift received! 🎉');
+          setSubmitted(true);
+        }
+      })
       .finally(() => setStage('idle'));
-  }, []);
+  // [slug] not [] — ensures the effect re-evaluates searchParams after React Router
+  // navigation (e.g. FLW redirects back to /sign/slug?tx_ref=... on the same SPA session)
+  }, [slug]);
 
   // ── Derived ──
   const messages     = card?.messages || [];

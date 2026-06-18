@@ -327,7 +327,19 @@ const CreateCard = () => {
       // Flutterwave direct
       setPaymentStage('redirecting');
       const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency);
-      const { payment_link } = payRes.data;
+      const { payment_link, already_active, card_slug: activatedSlug } = payRes.data;
+
+      // Card was already activated by a previous payment (e.g. user's JWT expired during
+      // FLW checkout so CardFeeVerify couldn't verify, but the payment actually went through).
+      // Skip charging again — just navigate to the live card.
+      if (already_active) {
+        localStorage.removeItem('thankeeu_pending_card');
+        toast.success('Your card is already live! 🎉');
+        setLiveSlug(activatedSlug || slug);
+        setLoading(false); setPaymentStage('idle');
+        return;
+      }
+
       if (!payment_link) throw new Error('No payment link returned');
       window.location.assign(payment_link);
 

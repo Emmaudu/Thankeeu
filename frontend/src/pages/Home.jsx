@@ -384,7 +384,7 @@ const Home = () => {
 
       {/* ══ HERO ══ */}
       <section className="relative overflow-visible pt-12 pb-16 md:pt-16 md:pb-20 px-4 gc-font">
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage:'radial-gradient(rgba(124,58,237,0.1) 1.5px,transparent 1.5px)', backgroundSize:'28px 28px' }}/>
+
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,transparent 70%)' }}/>
 
         <div className="relative max-w-6xl mx-auto">
@@ -449,7 +449,7 @@ const Home = () => {
                           <p style={{ fontSize:'0.7rem', color:'#9CA3AF', margin:0 }}>{m.role}</p>
                         </div>
                       </div>
-                      <p className={m.font} style={{ fontSize:'0.85rem', color:'#374151', lineHeight:1.55, margin:0 }}>{m.text}</p>
+                      <p className={m.font} style={{ fontSize:'1.05rem', color:'#374151', lineHeight:1.6, margin:0 }}>{m.text}</p>
                     </div>
                   </div>
                 ))}
@@ -471,7 +471,7 @@ const Home = () => {
                         <img src={m.avatar} alt={m.name} style={{ width:28, height:28, borderRadius:8, objectFit:'cover', flexShrink:0 }}/>
                         <p className={m.font} style={{ fontWeight:700, fontSize:'0.78rem', color:'#1A1035', margin:0 }}>{m.name}</p>
                       </div>
-                      <p style={{ fontSize:'0.72rem', color:'#52525B', lineHeight:1.5, margin:0 }}>{m.text}</p>
+                      <p style={{ fontSize:'0.9rem', color:'#52525B', lineHeight:1.6, margin:0 }}>{m.text}</p>
                     </div>
                   </div>
                 ))}
@@ -826,20 +826,6 @@ const Home = () => {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
-
-      {/* ══ TRUSTED BY ══ */}
-      <section className="py-10 px-4 gc-font">
-        <div className="max-w-4xl mx-auto text-center">
-          <p className="text-xs font-bold uppercase tracking-wide mb-5" style={{ color:'#A1A1AA' }}>Used by teams and groups across Nigeria and beyond</p>
-          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-60">
-            {['Lagos Fintech Co','Naija Logistics','BlueWave Studios','Heritage Bank Group','Coral Health','Sunrise Media'].map(name => (
-              <span key={name} className="text-sm font-bold" style={{ color:'#52525B' }}>{name}</span>
             ))}
           </div>
         </div>

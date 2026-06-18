@@ -231,10 +231,10 @@
   /* Alias for legacy code */
   .text-gradient-cyan { @apply text-gradient; }
 
-  /* Confetti dot pattern */
+  /* Confetti dot pattern — used on cards/dashboards */
   .dot-grid {
-    background-image: radial-gradient(rgba(124,58,237,0.1) 1.5px, transparent 1.5px);
-    background-size: 28px 28px;
+    background-image: radial-gradient(rgba(124,58,237,0.14) 2.5px, transparent 2.5px);
+    background-size: 40px 40px;
   }
 
   /* Celebration confetti bg */
@@ -1825,3 +1825,10 @@ body.sidebar-open { overflow: hidden; }
   display: flex; align-items: center; justify-content: center;
 }
 
+
+/* Global dot grid */
+body {
+  background-image: radial-gradient(rgba(124,58,237,0.10) 2.5px, transparent 2.5px);
+  background-size: 40px 40px;
+  background-attachment: fixed;
+}

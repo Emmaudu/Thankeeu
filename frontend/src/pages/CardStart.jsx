@@ -201,17 +201,32 @@ const CardStart = () => {
               <input readOnly value={shareUrl} className="flex-1 bg-transparent text-sm font-medium truncate" style={{ color: '#3B0D7A' }} />
               <button onClick={copyLink} className="gc-btn-secondary px-4 py-2 text-sm flex-shrink-0">Copy link</button>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
               <Link to={`/sign/${card.slug}`} className="gc-btn-primary inline-flex items-center justify-center gap-2">
                 <Icon name="Eye" size={18} /> View your card
               </Link>
-              <button onClick={() => navigate(`/signup?claim_slug=${card.slug}&claim_token=${card.draft_edit_token}`)} className="gc-btn-secondary inline-flex items-center justify-center gap-2">
-                Create account to schedule sending
+              <Link
+                to={`/login?claim_slug=${card.slug}&claim_token=${card.draft_edit_token}`}
+                className="gc-btn-secondary inline-flex items-center justify-center gap-2">
+                <Icon name="LogIn" size={16} /> Sign in to save it
+              </Link>
+            </div>
+
+            {/* Create account option */}
+            <div style={{ marginBottom: 24, padding: '14px 20px', borderRadius: 18, background: 'rgba(124,58,237,0.05)', border: '1.5px solid rgba(124,58,237,0.12)' }}>
+              <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize: 14, color: '#7A6CA8', margin: '0 0 10px', textAlign: 'center' }}>
+                Don't have an account yet?
+              </p>
+              <button
+                onClick={() => navigate(`/signup?claim_slug=${card.slug}&claim_token=${card.draft_edit_token}`)}
+                style={{ width:'100%', padding:'11px', borderRadius:14, border:'1.5px solid #DDD6FE', background:'#fff', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#7C3AED', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                <Icon name="UserPlus" size={16}/> Create account &amp; save card
               </button>
             </div>
+
             <p className="text-sm" style={{ color: '#A1A1AA' }}>
               You don't need an account yet — your card stays exactly as it is.
-              When you're ready to deliver it, sign up and it'll already be there as a draft.
+              When you're ready to deliver it, sign in or sign up and it'll already be there as a draft.
             </p>
           </div>
         )}

@@ -7,6 +7,7 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import Navbar from '../components/Navbar';
 import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
+import { cardsAPI } from '../utils/api';
 
 const Login = () => {
   useSEO({ title: 'Sign In — Thankeeu', noIndex: true });
@@ -17,6 +18,8 @@ const Login = () => {
   const [searchParams] = useSearchParams();
   const returnTo       = searchParams.get('returnTo') || searchParams.get('redirect');
   const sessionExpired = searchParams.get('reason') === 'session_expired';
+  const claimSlug      = searchParams.get('claim_slug');
+  const claimToken     = searchParams.get('claim_token');
 
   const [form,    setForm]    = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
@@ -32,6 +35,22 @@ const Login = () => {
     localStorage.removeItem('thankeeu_company');
     try {
       await login(form.email, form.password);
+
+      // Claim a guest-created draft card if claim params are present
+      if (claimSlug && claimToken) {
+        try {
+          await cardsAPI.claimDraft(claimSlug, claimToken);
+          toast.success('Welcome back! Your card has been added to your account. 🎉');
+          navigate(`/card/${claimSlug}`);
+          return;
+        } catch {
+          // Claim failed — still navigate to dashboard, card may already be claimed
+          toast.success('Welcome back!');
+          navigate(returnTo || '/dashboard');
+          return;
+        }
+      }
+
       toast.success('Welcome back!');
       navigate(returnTo || '/dashboard');
     } catch (err) {
@@ -62,6 +81,19 @@ const Login = () => {
             <div className="mb-5 px-4 py-3 rounded-2xl text-sm font-semibold text-center"
               style={{ background:'#FFFBEB', border:'1.5px solid #FDE68A', color:'#92400E' }}>
               <Icon name="Clock" size={14} className="inline mr-1.5" /> Your session expired. Please sign in again.
+            </div>
+          )}
+
+          {claimSlug && claimToken && (
+            <div className="mb-5 p-4 rounded-2xl text-center"
+              style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', border:'1.5px solid #C4B5FD' }}>
+              <div className="text-2xl mb-2">🎉</div>
+              <p className="text-sm font-bold text-primary-700 mb-1">
+                Sign in to save your card to your account
+              </p>
+              <p className="text-xs text-warm-500">
+                Your card draft will be linked to your account so you can manage it from your dashboard, schedule delivery, and track signatures.
+              </p>
             </div>
           )}
 
@@ -129,7 +161,7 @@ const Login = () => {
                 </div>
               </div>
 
-              <Link to={`/signup${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+              <Link to={`/signup${claimSlug ? `?claim_slug=${claimSlug}&claim_token=${claimToken}` : (returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : '')}`}
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-bold text-sm transition-colors"
                 style={{ border:'2px solid #DDD6FE', color:'#6D28D9', fontFamily:'Plus Jakarta Sans,sans-serif' }}
                 onMouseEnter={e => { e.currentTarget.style.background='#F5F0FF'; e.currentTarget.style.borderColor='#A78BFA'; }}

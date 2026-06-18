@@ -82,10 +82,14 @@ router.get('/dashboard', adminAuth, async (req, res) => {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
     // Daily unique visitors and page views
+    // limit(50000): Supabase default cap is 1000 rows. For a 30-day window
+    // with active traffic, 1000 rows covers only ~33 views/day which is too low.
+    // 50k rows = ~1,600 views/day over 30 days — enough headroom for now.
     const { data: raw } = await supabase.from('page_views')
       .select('path, session_id, created_at, country, city')
       .gte('created_at', since)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .limit(50000);
 
     const views = raw || [];
 

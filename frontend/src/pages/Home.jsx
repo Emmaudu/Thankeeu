@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
+import VoiceRecorder from '../components/VoiceRecorder';
 import { demoAPI } from '../utils/api';
 import { CARD_DESIGNS } from '../utils/cardDesigns';
 import toast from 'react-hot-toast';
@@ -198,7 +199,10 @@ const LiveCardPreview = () => {
   const [messages,    setMessages]    = useState(DEMO_MESSAGES);
   const [signed,      setSigned]      = useState(false);
   const [flipping,    setFlipping]    = useState(false);
-  const [showGifPick, setShowGifPick] = useState(false);
+  const [showGifPick,  setShowGifPick]  = useState(false);
+  const [showEmoji,    setShowEmoji]    = useState(false);
+  const [signerPhoto,  setSignerPhoto]  = useState(null);  // { url, file }
+  const photoInputRef = useRef();
 
   const handleSign = () => {
     if (!signerName.trim() || !signerMsg.trim()) return;
@@ -210,6 +214,7 @@ const LiveCardPreview = () => {
       name: signerName.trim(), color: colors[idx], bg: bgs[idx],
       text: signerMsg.trim(),
       gif:  signerGif || undefined,
+      photo: signerPhoto?.url || undefined,
     }]);
     setSigned(true);
     setActiveIdx(messages.length);
@@ -227,10 +232,10 @@ const LiveCardPreview = () => {
   const msg = messages[activeIdx];
 
   return (
-    <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingLeft: 28, paddingRight: 28, boxSizing: 'border-box' }}>
 
       {/* ── Album card ── */}
-      <div style={{ position: 'relative', width: '100%' }}>
+      <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
         {/* Stack shadows */}
         <div style={{ position:'absolute', left:'50%', transform:'translateX(calc(-50% - 16px)) rotate(-3deg)', width:'calc(100% - 28px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
         <div style={{ position:'absolute', left:'50%', transform:'translateX(calc(-50% + 16px)) rotate(3deg)',  width:'calc(100% - 14px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
@@ -261,10 +266,10 @@ const LiveCardPreview = () => {
             </div>
           </div>
 
-          {/* GIF */}
-          {msg.gif && (
+          {/* Photo or GIF */}
+          {(msg.gif || msg.photo) && (
             <div style={{ borderRadius:12, overflow:'hidden', marginBottom:'0.75rem', flexShrink:0, lineHeight:0 }}>
-              <img src={msg.gif} alt="" style={{ width:'100%', height:140, objectFit:'cover', display:'block' }} loading="lazy"/>
+              <img src={msg.photo || msg.gif} alt="" style={{ width:'100%', height:140, objectFit:'cover', display:'block' }} loading="lazy"/>
             </div>
           )}
 
@@ -283,11 +288,11 @@ const LiveCardPreview = () => {
 
           {/* Nav arrows — positioned outside the content flow, fully visible */}
           <button onClick={()=>goTo(-1)} disabled={activeIdx===0}
-            style={{ position:'absolute', left:-18, top:'50%', transform:'translateY(-50%)', width:36, height:36, borderRadius:'50%', background:'#fff', border:'1.5px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===0 ? 0.3 : 1, zIndex:10, boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
+            style={{ position:'absolute', left:-22, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'#fff', border:'2px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===0 ? 0.3 : 1, zIndex:20, boxShadow:'0 2px 12px rgba(124,58,237,0.15)' }}>
             <Icon name="ChevronLeft" size={18}/>
           </button>
           <button onClick={()=>goTo(1)} disabled={activeIdx===messages.length-1}
-            style={{ position:'absolute', right:-18, top:'50%', transform:'translateY(-50%)', width:36, height:36, borderRadius:'50%', background:'#fff', border:'1.5px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===messages.length-1 ? 0.3 : 1, zIndex:10, boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
+            style={{ position:'absolute', right:-22, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'#fff', border:'2px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===messages.length-1 ? 0.3 : 1, zIndex:20, boxShadow:'0 2px 12px rgba(124,58,237,0.15)' }}>
             <Icon name="ChevronRight" size={18}/>
           </button>
         </div>
@@ -300,26 +305,75 @@ const LiveCardPreview = () => {
 
       {/* ── Sign panel ── */}
       {!signed ? (
-        <div style={{ background:'#fff', border:'2px solid #EDE5FF', borderRadius:20, padding:'1.25rem', display:'flex', flexDirection:'column', gap:'0.625rem' }}>
+        <div style={{ background:'#fff', border:'2px solid #EDE5FF', borderRadius:20, padding:'1.25rem', display:'flex', flexDirection:'column', gap:'0.75rem' }}>
           <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.875rem', fontWeight:700, color:'#4A3A7A', margin:0, display:'flex', alignItems:'center', gap:6 }}>
             <Icon name="PenLine" size={14}/> <strong>Sign this demo card</strong> — no account needed
           </p>
-          <input className="lcp-input" placeholder="Your name" value={signerName} onChange={e=>setSignerName(e.target.value)} maxLength={60}/>
-          <textarea className="lcp-textarea" placeholder="Write your message here…" rows={3} value={signerMsg} onChange={e=>setSignerMsg(e.target.value)} maxLength={500} style={{ resize:'none' }}/>
 
-          {/* GIF picker row */}
-          <div>
-            <button type="button"
-              onClick={()=>setShowGifPick(s=>!s)}
-              style={{ background: signerGif ? '#EDE9FE' : '#F5F0FF', border:`1.5px solid ${signerGif?'#A78BFA':'#DDD6FE'}`, borderRadius:12, padding:'6px 12px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.8125rem', color:'#7C3AED', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
-              🎞️ {signerGif ? 'Change GIF' : 'Add a GIF'} {showGifPick ? '▲' : '▼'}
+          {/* Name */}
+          <input className="lcp-input" placeholder="Your name" value={signerName} onChange={e=>setSignerName(e.target.value)} maxLength={60}/>
+
+          {/* Message textarea + emoji button */}
+          <div style={{ position:'relative' }}>
+            <textarea className="lcp-textarea" placeholder="Write your message here…" rows={3}
+              value={signerMsg} onChange={e=>setSignerMsg(e.target.value)} maxLength={500}
+              style={{ resize:'none', paddingRight:'2.5rem' }}/>
+            {/* Emoji toggle */}
+            <button type="button" onClick={()=>{ setShowEmoji(s=>!s); setShowGifPick(false); }}
+              style={{ position:'absolute', bottom:8, right:8, width:32, height:32, borderRadius:'50%', background:'#F5F0FF', border:'1.5px solid #DDD6FE', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>
+              😊
             </button>
-            {signerGif && (
-              <button type="button" onClick={()=>{setSignerGif('');}} style={{ marginLeft:8, background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#DC2626', fontWeight:700 }}>✕ Remove</button>
+            {/* Emoji picker */}
+            {showEmoji && (
+              <div style={{ position:'absolute', bottom:'calc(100% + 4px)', right:0, zIndex:50, background:'#fff', border:'1.5px solid #EDE9FE', borderRadius:16, padding:12, boxShadow:'0 8px 32px rgba(0,0,0,0.12)', display:'flex', flexWrap:'wrap', gap:6, maxWidth:220 }}>
+                {['🎉','🎂','❤️','🙌','✨','😊','🥳','💜','🎁','👏','😂','🌟','🔥','💐','🫶','🎊','💝','🌸','😍','🤗'].map(emoji => (
+                  <button key={emoji} type="button" onClick={()=>{ setSignerMsg(m=>m+emoji); setShowEmoji(false); }}
+                    style={{ width:34, height:34, borderRadius:8, border:'none', background:'#F5F0FF', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Media buttons row */}
+          <div style={{ display:'flex', flexWrap:'wrap', gap:6, position:'relative' }}>
+            {/* Photos */}
+            <button type="button" onClick={()=>photoInputRef.current?.click()}
+              style={{ background: signerPhoto ? '#EDE9FE' : '#F5F0FF', border:`1.5px solid ${signerPhoto?'#A78BFA':'#DDD6FE'}`, borderRadius:12, padding:'6px 12px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.8125rem', color:'#7C3AED', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+              📷 {signerPhoto ? 'Change photo' : 'Add photo'}
+            </button>
+            <input ref={photoInputRef} type="file" accept="image/*" className="hidden"
+              onChange={e => {
+                const f = e.target.files?.[0];
+                if (f) setSignerPhoto({ url: URL.createObjectURL(f), file: f });
+              }}/>
+            {signerPhoto && (
+              <button type="button" onClick={()=>setSignerPhoto(null)}
+                style={{ background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#DC2626', fontWeight:700, alignSelf:'center' }}>✕</button>
             )}
 
+            {/* GIF */}
+            <button type="button" onClick={()=>{ setShowGifPick(s=>!s); setShowEmoji(false); }}
+              style={{ background: signerGif ? '#EDE9FE' : '#F5F0FF', border:`1.5px solid ${signerGif?'#A78BFA':'#DDD6FE'}`, borderRadius:12, padding:'6px 12px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.8125rem', color:'#7C3AED', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+              🎞️ {signerGif ? 'Change GIF' : 'Add a GIF'}
+            </button>
+            {signerGif && (
+              <button type="button" onClick={()=>setSignerGif('')}
+                style={{ background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#DC2626', fontWeight:700, alignSelf:'center' }}>✕</button>
+            )}
+
+            {/* Voice note */}
+            <VoiceRecorder onRecorded={f => {
+              // Store voice as a local URL for demo purposes
+              const url = URL.createObjectURL(f);
+              setSignerMsg(m => m + (m ? ' ' : '') + '🎙️');
+              // show a brief toast-like indicator
+            }}/>
+
+            {/* GIF grid */}
             {showGifPick && (
-              <div style={{ marginTop:8, display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+              <div style={{ width:'100%', marginTop:4, display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
                 {GIPHY_OPTIONS.map(g => (
                   <button key={g.url} type="button"
                     onClick={()=>{ setSignerGif(g.url); setShowGifPick(false); }}
@@ -330,20 +384,25 @@ const LiveCardPreview = () => {
                 ))}
               </div>
             )}
-
-            {signerGif && (
-              <div style={{ marginTop:6, borderRadius:10, overflow:'hidden', lineHeight:0 }}>
-                <img src={signerGif} alt="Selected GIF" style={{ width:'100%', height:70, objectFit:'cover', display:'block', borderRadius:10 }}/>
-              </div>
-            )}
           </div>
+
+          {/* Photo preview */}
+          {signerPhoto && (
+            <div style={{ borderRadius:12, overflow:'hidden', lineHeight:0 }}>
+              <img src={signerPhoto.url} alt="Your photo" style={{ width:'100%', height:90, objectFit:'cover', display:'block', borderRadius:12 }}/>
+            </div>
+          )}
+
+          {/* GIF preview */}
+          {signerGif && !showGifPick && (
+            <div style={{ borderRadius:10, overflow:'hidden', lineHeight:0 }}>
+              <img src={signerGif} alt="Selected GIF" style={{ width:'100%', height:80, objectFit:'cover', display:'block', borderRadius:10 }}/>
+            </div>
+          )}
 
           <button className="lcp-sign-btn" onClick={handleSign} disabled={!signerName.trim()||!signerMsg.trim()}>
             <Icon name="Heart" size={15}/> Add my message
           </button>
-          <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.75rem', color:'#9C8BB8', margin:0, textAlign:'center', lineHeight:1.5 }}>
-            On the real card you can also add photos, voice notes & chip in to the gift pot.
-          </p>
         </div>
       ) : (
         <div style={{ background:'#F0FDF4', border:'2px solid #BBF7D0', borderRadius:20, padding:'1.25rem', textAlign:'center' }}>
@@ -392,11 +451,12 @@ const Home = () => {
 
             {/* Left: headline + CTAs + sample card grid */}
             <div className="text-center lg:text-left">
-              <h1 className="font-extrabold text-warm-900 mb-5" style={{ fontSize:'clamp(2.5rem,7vw,4.5rem)', lineHeight:1.08 }}>
+              <h1 className="font-extrabold text-warm-900 mb-5" style={{ fontSize:'clamp(2.2rem,6vw,4rem)', lineHeight:1.1 }}>
                 Send a Group<br/>
                 <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', display:'inline-block', minWidth:'1px' }}>
                   {ROTATING_WORDS[wordIndex]}
-                </span>{' '}Card Online
+                </span><br/>
+                <span style={{ color:'#1A1035' }}>Card Online</span>
               </h1>
 
               <p className="text-warm-600 mb-9 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.2rem,2.8vw,1.45rem)', lineHeight:1.6 }}>
@@ -415,10 +475,10 @@ const Home = () => {
               <p className="text-sm font-medium text-warm-500 text-center lg:text-left">No signup needed to start · Takes under 2 minutes</p>
 
               {/* Sample card grid — large, rich tiles matching GroupCards style */}
-              <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: 560 }}>
+              <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: 660 }}>
                 {SAMPLE_MESSAGES.map((m, i) => (
                   <div key={m.name} className="bg-white rounded-3xl border-2 border-purple-100 overflow-hidden shadow-md hover:shadow-lg transition-shadow"
-                    style={{ marginTop: i % 2 === 1 ? 36 : 0, minHeight: 320 }}>
+                    style={{ marginTop: i % 2 === 1 ? 44 : 0, minHeight: 400 }}>
                     {/* Media — large, fills top of card */}
                     {m.media === 'photo' && (
                       <div style={{ height: 160, overflow:'hidden' }}>
@@ -441,15 +501,15 @@ const Home = () => {
                       </div>
                     )}
                     {/* Card body */}
-                    <div style={{ padding:'14px 16px 16px' }}>
+                    <div style={{ padding:'18px 20px 22px' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
                         <img src={m.avatar} alt={m.name} style={{ width:36, height:36, borderRadius:10, objectFit:'cover', flexShrink:0 }}/>
                         <div>
-                          <p className={m.font} style={{ fontWeight:700, fontSize:'0.9rem', color:'#1A1035', margin:0, lineHeight:1.2 }}>{m.name}</p>
+                          <p className={m.font} style={{ fontWeight:700, fontSize:'1.05rem', color:'#1A1035', margin:0, lineHeight:1.2 }}>{m.name}</p>
                           <p style={{ fontSize:'0.7rem', color:'#9CA3AF', margin:0 }}>{m.role}</p>
                         </div>
                       </div>
-                      <p className={m.font} style={{ fontSize:'1.05rem', color:'#374151', lineHeight:1.6, margin:0 }}>{m.text}</p>
+                      <p className={m.font} style={{ fontSize:'1.2rem', color:'#374151', lineHeight:1.65, margin:0 }}>{m.text}</p>
                     </div>
                   </div>
                 ))}
@@ -466,12 +526,12 @@ const Home = () => {
                         {Array.from({length:14},(_,i)=><div key={i} style={{ width:3, borderRadius:2, background:'#7C3AED', height:8+Math.sin(i*0.8)*10, opacity:0.7 }}/>)}
                       </div>
                     )}
-                    <div style={{ padding:'10px 12px' }}>
+                    <div style={{ padding:'13px 14px' }}>
                       <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:6 }}>
                         <img src={m.avatar} alt={m.name} style={{ width:28, height:28, borderRadius:8, objectFit:'cover', flexShrink:0 }}/>
-                        <p className={m.font} style={{ fontWeight:700, fontSize:'0.78rem', color:'#1A1035', margin:0 }}>{m.name}</p>
+                        <p className={m.font} style={{ fontWeight:700, fontSize:'0.92rem', color:'#1A1035', margin:0 }}>{m.name}</p>
                       </div>
-                      <p style={{ fontSize:'0.9rem', color:'#52525B', lineHeight:1.6, margin:0 }}>{m.text}</p>
+                      <p style={{ fontSize:'1rem', color:'#52525B', lineHeight:1.65, margin:0 }}>{m.text}</p>
                     </div>
                   </div>
                 ))}

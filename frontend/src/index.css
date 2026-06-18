@@ -233,8 +233,8 @@
 
   /* Confetti dot pattern — used on cards/dashboards */
   .dot-grid {
-    background-image: radial-gradient(rgba(124,58,237,0.14) 2.5px, transparent 2.5px);
-    background-size: 40px 40px;
+    background-image: radial-gradient(rgba(124,58,237,0.18) 3px, transparent 3px);
+    background-size: 44px 44px;
   }
 
   /* Celebration confetti bg */
@@ -1826,9 +1826,46 @@ body.sidebar-open { overflow: hidden; }
 }
 
 
-/* Global dot grid */
-body {
-  background-image: radial-gradient(rgba(124,58,237,0.10) 2.5px, transparent 2.5px);
-  background-size: 40px 40px;
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   GLOBAL DOT GRID — on html element, visible on ALL pages
+   The html element is never painted over by child divs, so the dots
+   are always present underneath everything. We use a higher opacity
+   (0.18) and bigger dots (3.5px at 44px grid) so they're clearly
+   visible even when sections have solid backgrounds.
+   ═══════════════════════════════════════════════════════════════════ */
+html {
+  background-image: radial-gradient(rgba(124,58,237,0.18) 3.5px, transparent 3.5px);
+  background-size: 44px 44px;
   background-attachment: fixed;
+  background-color: #fdfcff;
+}
+
+/* Make all main section backgrounds semi-transparent so dots bleed through */
+body {
+  background: transparent;
+}
+
+/* Sections with solid white — make them semi-transparent */
+section,
+.gc-section,
+.bg-white,
+[class*="bg-white"],
+[style*="background: #fff"],
+[style*="background:#fff"],
+[style*="background: white"] {
+  /* Don't override — instead rely on the dot overlay approach below */
+}
+
+/* DOT OVERLAY — a fixed div injected via the global styles
+   Every page automatically gets dots via App.jsx injection */
+.dot-overlay-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(124,58,237,0.12) 3.5px, transparent 3.5px);
+  background-size: 44px 44px;
+  mix-blend-mode: multiply;
 }

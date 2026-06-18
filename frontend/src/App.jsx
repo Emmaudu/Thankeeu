@@ -188,6 +188,8 @@ const App = () => (
     <CompanyAuthProvider>
       <MemberAuthProvider>
         <BrowserRouter>
+          {/* Global dot grid overlay — sits fixed behind all content, all pages */}
+          <div className="dot-overlay-fixed" aria-hidden="true" />
           <Toaster
             position="top-center"
             toastOptions={{

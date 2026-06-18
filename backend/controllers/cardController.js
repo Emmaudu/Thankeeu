@@ -55,7 +55,7 @@ const createCard = async (req, res) => {
   try {
     const {
       recipient_name, recipient_email, occasion, title, design_theme,
-      background_color, font_style, is_gift_enabled, gift_type, suggested_amount,
+      background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
       send_date, deadline, allow_private_messages, send_reminders, hide_amounts,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus
@@ -94,6 +94,9 @@ const createCard = async (req, res) => {
     const isAnonymousDraft = !req.user && !req.member && !req.company;
     const draftEditToken = isAnonymousDraft ? require('crypto').randomBytes(24).toString('hex') : null;
 
+    // Validate card_layout
+    const cleanCardLayout = (card_layout === 'album') ? 'album' : 'form';
+
     // Build insert object — font_style is optional (requires migration)
     const insertData = {
       slug,
@@ -114,21 +117,27 @@ const createCard = async (req, res) => {
       ...(isAnonymousDraft && { draft_edit_token: draftEditToken, is_draft: true }),
     };
 
-    // Try with font_style first, fall back without if column doesn't exist
+    // Try inserting with all optional columns, falling back gracefully
+    const isMissingCol = (e) => !!e && (e.code === '42703' || /column .* does not exist/i.test(e.message || ''));
     let card, error;
-    ({ data: card, error } = await supabase
-      .from('cards')
-      .insert({ ...insertData, font_style: font_style || 'elegant' })
-      .select()
-      .maybeSingle());
 
-    // If font_style column doesn't exist, retry without it
-    if (error && error.message && error.message.includes('font_style')) {
-      ({ data: card, error } = await supabase
-        .from('cards')
+    // Attempt 1: font_style + card_layout
+    ({ data: card, error } = await supabase.from('cards')
+      .insert({ ...insertData, font_style: font_style || 'elegant', card_layout: cleanCardLayout })
+      .select().maybeSingle());
+
+    // Attempt 2: font_style only (card_layout column not yet added)
+    if (error && isMissingCol(error) && error.message?.includes('card_layout')) {
+      ({ data: card, error } = await supabase.from('cards')
+        .insert({ ...insertData, font_style: font_style || 'elegant' })
+        .select().maybeSingle());
+    }
+
+    // Attempt 3: neither (font_style column not yet added)
+    if (error && isMissingCol(error) && error.message?.includes('font_style')) {
+      ({ data: card, error } = await supabase.from('cards')
         .insert(insertData)
-        .select()
-        .maybeSingle());
+        .select().maybeSingle());
     }
 
     if (error) throw error;

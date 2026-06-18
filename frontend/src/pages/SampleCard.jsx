@@ -1,558 +1,523 @@
-import { useState, useEffect, useRef } from 'react';
+/**
+ * SampleCard.jsx — /sample
+ *
+ * Full editable demo — no backend calls needed.
+ * Board view (masonry) + Card/Flipbook view toggle.
+ * Inline sign modal: name, message, GIFs, photos, videos, voice notes.
+ * Gift area: demo accepts any amount and shows success (no FLW redirect).
+ * Thankeeu purple theme background — no Thankbox sky-blue.
+ */
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Icon from '../components/ui/Icon';
+import VoiceRecorder from '../components/VoiceRecorder';
+import EmojiPicker from '../components/EmojiPicker';
+import GifPicker from '../components/GifPicker';
+import { FONT_STYLES, getFontStyle } from '../utils/cardDesigns';
+import toast from 'react-hot-toast';
 
-// ── Calligraphic font styles injected in-page ────────────────────────────────
+/* ─── Google fonts ──────────────────────────────────────────────────── */
 const FONT_INJECT = `
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Great+Vibes&family=Pacifico&family=Satisfy&family=Pinyon+Script&family=Sacramento&family=Kaushan+Script&family=Alex+Brush&family=Allura&family=Courgette&display=swap');
-.font-dancing   { font-family:'Dancing Script', cursive; }
-.font-vibes     { font-family:'Great Vibes', cursive; }
-.font-pacifico  { font-family:'Pacifico', cursive; }
-.font-satisfy   { font-family:'Satisfy', cursive; }
-.font-pinyon    { font-family:'Pinyon Script', cursive; }
-.font-sacramento{ font-family:'Sacramento', cursive; }
-.font-kaushan   { font-family:'Kaushan Script', cursive; }
-.font-alex      { font-family:'Alex Brush', cursive; }
-.font-allura    { font-family:'Allura', cursive; }
-.font-courgette { font-family:'Courgette', cursive; }
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Patrick+Hand&family=Architects+Daughter&family=Indie+Flower&family=Kalam:wght@400;700&family=Permanent+Marker&family=Dancing+Script:wght@400;700&family=Shadows+Into+Light&display=swap');
 `;
 
-const CALLI_FONTS = [
-  'font-dancing','font-vibes','font-pacifico','font-satisfy',
-  'font-pinyon','font-sacramento','font-kaushan','font-alex',
-  'font-allura','font-courgette',
+const HANDWRITTEN = [
+  { id:'caveat',       family:"'Caveat',cursive",               size:'1.3rem',  lh:'1.6' },
+  { id:'patrick',      family:"'Patrick Hand',cursive",          size:'1.1rem',  lh:'1.65'},
+  { id:'architects',   family:"'Architects Daughter',cursive",   size:'0.98rem', lh:'1.65'},
+  { id:'indie',        family:"'Indie Flower',cursive",          size:'1.1rem',  lh:'1.65'},
+  { id:'kalam',        family:"'Kalam',cursive",                 size:'1.15rem', lh:'1.6' },
+  { id:'marker',       family:"'Permanent Marker',cursive",      size:'0.92rem', lh:'1.7' },
+  { id:'dancing',      family:"'Dancing Script',cursive",        size:'1.2rem',  lh:'1.65'},
+  { id:'shadows',      family:"'Shadows Into Light',cursive",    size:'1.1rem',  lh:'1.7' },
+];
+const getFont = id => HANDWRITTEN.find(f=>f.id===id) || HANDWRITTEN[0];
+
+const AMOUNTS = [2500,5000,10000,20000,50000];
+const formatNGN = n => `₦${Number(n).toLocaleString('en-NG')}`;
+
+const GIPHY_PRESETS = [
+  { url:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',  label:'🎉 Party' },
+  { url:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif',  label:'🌟 Star'  },
+  { url:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif',   label:'🎂 Cake'  },
+  { url:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif',  label:'👏 Clap'  },
+  { url:'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif',        label:'💜 Love'  },
+  { url:'https://media.giphy.com/media/RrVzUOXldFe8M/giphy.gif',        label:'🎊 Confetti'},
 ];
 
-// Ornate scripts need more size + line-height to stay readable in a full
-// paragraph; rounder/simpler scripts work fine closer to body size.
-const MSG_FONT_STYLE = {
-  'font-dancing':   { fontSize:'1.15rem', lineHeight:'1.8' },
-  'font-vibes':     { fontSize:'1.35rem', lineHeight:'1.9' },
-  'font-pacifico':  { fontSize:'1.05rem', lineHeight:'1.85' },
-  'font-satisfy':   { fontSize:'1.1rem',  lineHeight:'1.8' },
-  'font-pinyon':    { fontSize:'1.4rem',  lineHeight:'1.9' },
-  'font-sacramento':{ fontSize:'1.3rem',  lineHeight:'1.9' },
-  'font-kaushan':   { fontSize:'1.05rem', lineHeight:'1.85' },
-  'font-alex':      { fontSize:'1.35rem', lineHeight:'1.9' },
-  'font-allura':    { fontSize:'1.35rem', lineHeight:'1.9' },
-  'font-courgette': { fontSize:'1.05rem', lineHeight:'1.8' },
-};
-
-// ── Avatar pools: Nigerian-presenting and American-presenting photos ─────────
-// Nigerian-presenting (warm darker tones, West African features)
-// Nigerian/African-presenting photos — verified dark-skin professional headshots
-const NGA = [
-  'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=120&h=120&fit=crop&crop=face',  // 0 woman, dark skin
-  'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face',  // 1 man, dark skin
-  'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face',  // 2 woman, dark skin
-  'https://images.unsplash.com/photo-1530268729831-4b0b9e170218?w=120&h=120&fit=crop&crop=face',  // 3 man, dark skin
-  'https://images.unsplash.com/photo-1595956553066-fe24a8c33395?w=120&h=120&fit=crop&crop=face',  // 4 woman, dark skin
-  'https://images.unsplash.com/photo-1567532939604-b6b5b0db2604?w=120&h=120&fit=crop&crop=face',  // 5 woman, dark skin
-  'https://images.unsplash.com/photo-1522529599102-193c0d76b5b6?w=120&h=120&fit=crop&crop=face',  // 6 man, dark skin
-  'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=120&h=120&fit=crop&crop=face',  // 7 woman, dark skin
-  'https://images.unsplash.com/photo-1489980557514-251d61e3eeb6?w=120&h=120&fit=crop&crop=face',  // 8 man, dark skin
-  'https://images.unsplash.com/photo-1623366302587-b38b1ddaefd9?w=120&h=120&fit=crop&crop=face',  // 9 woman, dark skin
+/* ─── Seed messages ─────────────────────────────────────────────────── */
+const SEED = [
+  { id:1,  name:'Adaeze O.',   font:'caveat',      color:'#1e3a5f', bg:'#f0f4ff',
+    text:'Chisom! 3 years of working with you has been a highlight. Your energy in the open office — this place will feel different without you. Wishing you everything! 🎉',
+    media:{ type:'gif', url:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' } },
+  { id:2,  name:'Emeka T.',    font:'patrick',     color:'#1a1035', bg:'#fff8f0',
+    text:'I still remember the day you walked in with those slides and owned the entire room. Go show the world what we already know. Good luck Chisom! You\'ll be a star.',
+    media:{ type:'photo', url:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80' } },
+  { id:3,  name:'Kemi B.',     font:'architects',  color:'#1e3a5f', bg:'#f0fff8',
+    text:'Enjoy your travels and new job. I hope you see many beautiful places. All the best 🔥',
+    media:{ type:'photo', url:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80' } },
+  { id:4,  name:'Jimmy P.',    font:'kalam',       color:'#3d1a6e', bg:'#1e1e3e', dark:true,
+    text:'My favourite coffee bud! What am I gonna do without you 😭! All the very best at the new place!',
+    media:{ type:'photo', url:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80' } },
+  { id:5,  name:'Tunde A.',    font:'indie',       color:'#1e3a5f', bg:'#fff0f5',
+    text:'Dear Chisom, can\'t believe you\'re going, but I know adventure calls you! Enjoy every moment of the new chapter.',
+    media:{ type:'gif', url:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' } },
+  { id:6,  name:'Fatima M.',   font:'shadows',     color:'#1e3a5f', bg:'#f5f0ff',
+    text:'YOU\'RE SIMPLY THE BEST! Three years, a hundred presentations, one unforgettable farewell party.',
+    media:{ type:'gif', url:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' }, bigText:true },
+  { id:7,  name:'Dr. Nkechi E.',font:'dancing',    color:'#1a3d1a', bg:'#f0fff4',
+    text:'Watching you grow from a brilliant newcomer to a leader who shapes this organisation has been a privilege. You are not just talented — you make every space more human. 🌟',
+    media:null },
+  { id:8,  name:'Victor O.',   font:'caveat',      color:'#3d1a00', bg:'#fffbf0',
+    text:'Happy farewell to the most diplomatically skilled human I have ever encountered. This is going to be extraordinary for you.',
+    media:{ type:'gif', url:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' } },
+  { id:9,  name:'Blessing O.', font:'kalam',       color:'#1e3a5f', bg:'#f0f8ff',
+    text:'THANK YOU FOR BEING AWESOME CHISOM. I LEARNED A LOT FROM YOU. PLEASE KEEP IN TOUCH! 🐱',
+    media:{ type:'photo', url:'https://images.unsplash.com/photo-1516571748831-5d81767b788d?w=600&q=80' }, allCaps:true },
+  { id:10, name:'Remi F.',     font:'patrick',     color:'#1e1a3e', bg:'#fdf0ff',
+    text:'You expand the possible. Every room you enter leaves thinking bigger. Go show the world.',
+    media:{ type:'photo', url:'https://images.unsplash.com/photo-1536936459024-2cded18fce68?w=600&q=80' } },
+  { id:11, name:'Olu A.',      font:'architects',  color:'#1e3a5f', bg:'#fff8f0',
+    text:'Happy farewell to the person who actually reads the IT security memos! Working with you has been a masterclass in excellence. Good luck! 😄',
+    media:null },
+  { id:12, name:'Amara O.',    font:'indie',       color:'#1a3d1a', bg:'#f0fff4',
+    text:'You were the first senior person to sit with me and just talk. That conversation gave me more confidence than any training ever could. Thank you Chisom. 🌸',
+    media:null },
 ];
 
-// American/Western-presenting photos — diverse lighter-skin professional headshots
-const USA = [
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face',  // 0 woman, light skin
-  'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face',  // 1 man, light skin
-  'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&h=120&fit=crop&crop=face',  // 2 man, light skin
-  'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120&h=120&fit=crop&crop=face',  // 3 woman, medium
-  'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&h=120&fit=crop&crop=face',  // 4 woman, light skin
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=face',  // 5 man, light skin
-  'https://images.unsplash.com/photo-1552058544-f2b08422138a?w=120&h=120&fit=crop&crop=face',  // 6 man, medium
-  'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=120&h=120&fit=crop&crop=face',  // 7 woman, light skin
-  'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&h=120&fit=crop&crop=face',  // 8 man, light skin
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=face',  // 9 woman, medium
-];
-
-// Legacy AVATARS kept for hero strip
-const AVATARS = [...NGA, ...USA];
-
-const GIFS = [
-  'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
-  'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif',
-  'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif',
-  'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif',
-  'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif',
-  'https://media.giphy.com/media/RrVzUOXldFe8M/giphy.gif',
-];
-
-// ── Signers — mixed Nigerian and American names with matching photos ──────────
-// Each signer has: nga: true (Nigerian) or nga: false (American), avatar index into NGA or USA pool
-const SIGNERS = [
-  // ── Nigerian ──
-  { name:'Adaeze Okonkwo', nga:true, avatar:0, role:'Head of Marketing', font:'font-dancing',
-    gift:'money', amount:5000, media:'gif', gifIndex:0,
-    msg:`Chisom, darling! I still remember the day you walked into that boardroom with your slides and completely owned the room. Not a single person could take their eyes off your presentation. That day I turned to Emeka and whispered "this one is special." Three years later and every single thing you do still has that same magic — that spark, that precision, that warmth that makes everyone around you feel capable. Working with you is genuinely one of the privileges of my career. On your birthday I just want you to know: you are not just talented, you are the kind of human being that makes a workplace feel like a family. Have the most spectacular day, my dear. You deserve every bit of celebration coming your way! 🎂✨` },
-
-  { name:'Jessica Morgan', nga:false, avatar:0, role:'VP of Product', font:'font-vibes',
-    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=600&q=80',
-    msg:`Chisom! Working across time zones with you has been one of the highlights of this role. You make 7am calls feel energising, which should be impossible. Your ability to cut through ambiguity and give the team clarity when everything feels murky is something I genuinely aspire to. I told my manager last month that you are the clearest strategic thinker on the extended team and I meant every word. Happy birthday — hope your day is as bright as the energy you bring to every single call. 🎉` },
-
-  { name:'Kelechi Adeyemi', nga:true, avatar:1, role:'Senior Developer', font:'font-pacifico',
-    gift:'money', amount:8000, media:'none',
-    msg:`Happy birthday to the person who has single-handedly saved my sanity more times than I can count. Remember that production incident at 2am last December? The entire team was panicking, Slack was on fire, and there you were — calm as a cucumber, methodically walking through the logs while the rest of us were stress-eating biscuits. You fixed it in 47 minutes. That composure under pressure, that brilliant mind, that unshakeable belief that every problem has a solution — those are the things that define you. Happy birthday, Chisom!` },
-
-  { name:'Tyler Brooks', nga:false, avatar:1, role:'Engineering Manager', font:'font-satisfy',
-    gift:'money', amount:15000, media:'gif', gifIndex:1,
-    msg:`Chisom! I've been in tech for fifteen years and I can count on one hand the people who make me genuinely rethink my assumptions in a single conversation. You're on that list. The questions you ask don't just probe the surface — they go straight to the assumption buried three layers down. I've left meetings with you having to unlearn things I thought were settled. That is a rare and valuable gift. Happy birthday to someone who makes everyone in the room smarter. 🚀` },
-
-  { name:'Dr. Nkechi Eze', nga:true, avatar:2, role:'Chief Medical Officer', font:'font-kaushan',
-    gift:'money', amount:10000, media:'gif', gifIndex:2,
-    msg:`To our shining star on her birthday — I have watched you grow from a brilliant newcomer who asked the most incisive questions in every meeting, to a leader who now shapes the direction of this entire organisation. What strikes me most about you, Chisom, is not just your intellect, but your emotional intelligence. The way you read a room. The way you adapt your communication to meet people exactly where they are. The way you advocate quietly and powerfully for what is right. You have made this company better, more thoughtful, more human. Wishing you a birthday as brilliant and warm as you are. 🌟` },
-
-  { name:'Sarah Chen', nga:false, avatar:2, role:'Head of Design', font:'font-dancing',
-    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80',
-    msg:`Chisom! You have the rarest combination — impeccable taste and genuine humility about it. You'll say "I think this could be better" and then sketch out something on a napkin that is better. Completely, obviously better. And then you give credit to the whole team. I've learned so much from watching how you hold space for great work without ego. Happy birthday! Wishing you a day as beautiful as everything you touch. 🌸` },
-
-  { name:'Emeka Nwosu', nga:true, avatar:3, role:'Product Manager', font:'font-alex',
-    gift:'none', media:'none',
-    msg:`Chisom! My road-to-work podcast partner, my "did you watch that documentary" buddy, my "should I send this email or is it too aggressive" advisor. Working beside you is one of those rare gifts in a career that you do not fully appreciate until you imagine what it would be like without it. You bring clarity to every conversation. When things are muddy and complicated and everybody is talking over each other, you cut through with one sentence and suddenly everyone can see. On your birthday I want you to know that you are valued far beyond what any Slack message could ever capture. Go enjoy today fully!` },
-
-  { name:'Marcus Williams', nga:false, avatar:3, role:'Sales Director', font:'font-sacramento',
-    gift:'money', amount:20000, media:'gif', gifIndex:3,
-    msg:`Chisom! I've closed deals because of things I learned from watching you handle difficult conversations. The way you stay curious when others get defensive, the way you find the shared interest underneath the stated position — that's a skill I've been studying and trying to replicate for two years. You make everyone around you sharper. Happy birthday to the most quietly influential person on this team. 🎯` },
-
-  { name:'Fatima Al-Hassan', nga:true, avatar:4, role:'Finance Director', font:'font-courgette',
-    gift:'cake', media:'none',
-    msg:`Chisom my dear! There are people you work with, and then there are people who become part of your story. You fell into the second category almost immediately — I think it was during that interminable budget meeting in February where you passed me a note that said "I have calculated that we have collectively lost 4 hours of our lives to this discussion and gained zero insight" and I had to physically suppress laughter for 20 minutes. That is the thing about you — you find the human in every situation. Happy birthday to someone who makes finance meetings survivable! 🎂` },
-
-  { name:'Amanda Foster', nga:false, avatar:4, role:'Chief People Officer', font:'font-pinyon',
-    gift:'money', amount:25000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=600&q=80',
-    msg:`Chisom. As the head of people I want to say this clearly: you are what we hire for. When we write job descriptions, when we design our culture — we are trying to find more people like you. The combination of excellence and humanity. The ability to be rigorous without being unkind. The capacity to drive results while lifting people. These are not things we can put in a competency framework because they live in character. You have them. Fully. Naturally. Generously. Happy birthday. 🌟💜` },
-
-  { name:'Tunde Bakare', nga:true, avatar:5, role:'Operations Lead', font:'font-dancing',
-    gift:'money', amount:7500, media:'photo', photoUrl:'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&q=80',
-    msg:`Happy birthday Chisom! I want to tell you something I should have said ages ago: you are the reason the ops team runs as smoothly as it does. Not because of any single decision or project, but because of the culture you model. The thoroughness. The follow-through. The fact that when you say you will handle something, it is handled. Completely. Without chasing. In a world full of half-done things and forgotten promises, you are refreshingly whole. Have a fantastic celebration! 🙌` },
-
-  { name:'Rachel Kim', nga:false, avatar:5, role:'Strategy Lead', font:'font-vibes',
-    gift:'flowers', media:'gif', gifIndex:4,
-    msg:`Chisom! Strategy is my world and I want to tell you — the strategic intuition you bring to cross-functional discussions is better than most pure strategy hires I've worked with. You see the second and third-order effects. You spot the assumption everyone else is making. And you say it without making anyone feel stupid for missing it. That combination of insight and grace is extraordinarily rare. Happy birthday! 🌸` },
-
-  { name:'Blessing Okafor', nga:true, avatar:6, role:'HR Business Partner', font:'font-satisfy',
-    gift:'flowers', media:'gif', gifIndex:5,
-    msg:`Chisom, from one HR soul to the brightest light in this building — HAPPY BIRTHDAY! Do you know what my favourite thing about you is? Not the reports (though they are flawless). Not the presentations (though they are stunning). It is the way you treat the people on the ground. The cleaners, the security team, the new interns — every single person gets that same warm, genuine Chisom smile and that "how are you doing?" that feels completely real because IT IS completely real. That is rare. That is character. Happy birthday, sweetheart! 🌸💐` },
-
-  { name:'David Patterson', nga:false, avatar:6, role:'CTO', font:'font-kaushan',
-    gift:'money', amount:40000, media:'none',
-    msg:`Chisom — I don't usually write long birthday messages. But today I'm making an exception. In my years as CTO I've worked with hundreds of talented people. A small number have both the talent AND the character. The kind of person whose presence makes the organisation not just more effective but more worthy. You are in that small number. You make this a place worth working. Not through grand gestures alone — but through the accumulation of a thousand daily choices to be honest, to be kind, to be excellent, to be human. Happy birthday. 💜` },
-
-  { name:'Victor Obi', nga:true, avatar:7, role:'Legal Counsel', font:'font-pacifico',
-    gift:'money', amount:15000, media:'none',
-    msg:`Happy birthday to the most diplomatically skilled human I have ever encountered. Chisom, I have watched you navigate situations that would make seasoned diplomats break into a cold sweat — with grace, precision and an almost supernatural ability to leave every party in a room feeling heard and respected. The contract negotiations last year. The restructuring communications. That town hall in March where you stood up with two minutes of preparation and delivered something that should have taken a speechwriter two weeks. I am in awe of you. This year is going to be extraordinary.` },
-
-  { name:'Emily Rodriguez', nga:false, avatar:7, role:'Marketing Director', font:'font-alex',
-    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=120&h=120&fit=crop&crop=face',
-    msg:`Chisom! You understand brand in a way that goes beyond frameworks. You feel it. When we were repositioning last year you said something in a workshop that reframed the entire conversation — something about the difference between what a brand says about itself and what it makes customers feel about themselves. I wrote it down. I still reference it. Happy birthday to someone who thinks at a completely different level. 🎨✨` },
-
-  { name:'Ifeoma Chukwu', nga:true, avatar:8, role:'Brand Manager', font:'font-allura',
-    gift:'cake', media:'photo', photoUrl:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
-    msg:`HAPPY BIRTHDAY CHISOM!! 🎉🎂🎊 Okay I need everyone reading this to know — this woman is ICONIC. The way she walks into a room and the energy shifts. The way she says your name when she's greeting you and it somehow sounds like the most important thing she's said all day. The way she takes your half-baked idea and transforms it into something so refined you almost don't recognise it. I have been in this industry long enough to spot real talent, real character, real warmth — and Chisom, you have all three in abundance. The world is genuinely lucky to have you. 🌟✨🎂` },
-
-  { name:'James O\'Brien', nga:false, avatar:8, role:'CFO', font:'font-courgette',
-    gift:'money', amount:50000, media:'none',
-    msg:`Chisom — from the finance team's perspective: happy birthday to someone who makes the numbers look good by making the humans feel good. There is a direct correlation and I have the data to prove it. What I really want to say is more personal. You have brought things to my attention in the way only a trusted colleague can — directly, privately, with care. You were right each time. You are brave in the quiet ways that matter. Not recklessly brave — wisely brave. That is a quality I respect enormously. Happy birthday. 🎂` },
-
-  { name:'Samuel Adebola', nga:true, avatar:9, role:'Sales Director', font:'font-dancing',
-    gift:'money', amount:12000, media:'gif', gifIndex:0,
-    msg:`Chisom! The person who taught me that "no" is the beginning of a conversation, not the end of one. I have closed deals because of things I learned from watching you handle difficult clients. Some of the most formative professional influence in my career has come from watching how you think, how you problem-solve, how you lead without needing a title to do it. That is the rarest kind of impact. Happy birthday to someone who makes everyone around them better simply by being who they are. May this year be absolutely spectacular! 🚀` },
-
-  { name:'Chloe Thompson', nga:false, avatar:9, role:'Head of Research', font:'font-vibes',
-    gift:'flowers', media:'gif', gifIndex:1,
-    msg:`Chisom! As a researcher I'm trained to interrogate everything — to demand evidence, to resist a good narrative without data. So when I tell you the evidence for your excellence is overwhelming, you know I mean it. I've observed you across contexts. Under pressure and when things go smoothly. Receiving praise and criticism. The data is consistent across all conditions: you are remarkable. Happy birthday to the most thoroughly evidenced excellent person I know. 📊✨` },
-
-  { name:'Amara Osei', nga:true, avatar:0, role:'Data Analyst', font:'font-satisfy',
-    gift:'flowers', media:'none',
-    msg:`Dear Chisom, I joined this company as a very nervous new analyst who was certain she would be swallowed alive by the complexity of it all. You were the first senior person to stop, sit down with me, and just — talk. Not give me a checklist. Not point me to a document. Just talk. Ask questions. Share your own learning curve. That conversation gave me more confidence than any training programme could have. Thank you — truly — for the gift of your time, your kindness, and your belief in people like me. Happy birthday Chisom! 🌸` },
-
-  { name:'Noah Martinez', nga:false, avatar:0, role:'Creative Director', font:'font-pinyon',
-    gift:'money', amount:18000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=600&q=80',
-    msg:`Chisom! From a creative perspective, you are one of the most aesthetically intelligent people I've encountered outside a purely creative field. The way you think about communication — the visual logic, the emotional arc, the audience psychology — you think like a designer even when you're not designing. That cross-disciplinary brilliance is what separates good professionals from great ones. Happy birthday to someone whose presence alone elevates the work around her. 🎨✨` },
-
-  { name:'Olu Adewale', nga:true, avatar:1, role:'IT Manager', font:'font-kaushan',
-    gift:'money', amount:8000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=600&q=80',
-    msg:`Happy birthday to the person who actually reads the IT security memos I send out. Chisom, you have no idea how much that means to a man who spends his life watching people click on suspicious email links. But seriously — I am writing as someone who has watched you demonstrate what it looks like to be truly excellent at something while remaining completely and utterly human. You have no ego about your accomplishments. You share credit freely. You ask for help when you need it. You are the exception. Happy birthday!` },
-
-  { name:'Samantha Lee', nga:false, avatar:1, role:'UX Designer', font:'font-allura',
-    gift:'flowers', media:'gif', gifIndex:2,
-    msg:`Happy birthday Chisom! As a UX person I think about experience design constantly — how does this feel, where is the friction, where is the delight? Working with you is phenomenal UX. Zero unnecessary friction. Clear communication at every touchpoint. Generous feedback that actually makes things better. And genuine delight in the meetings where you say something that makes everyone laugh, or push back on something in a way that is both firm and kind. You are designed well, Chisom. 🎨✨` },
-
-  { name:'Ngozi Uchenna', nga:true, avatar:2, role:'Executive Assistant', font:'font-dancing',
-    gift:'cake', media:'gif', gifIndex:3,
-    msg:`Chisom! I schedule your meetings, I manage your calendar, I know your coffee order, I have seen the state of your inbox at its worst — and I can tell you with absolute certainty: you are the kindest, most decent, most genuinely good-hearted person I have ever worked for. Because you MEAN it. Because you ask about my mother's health and actually remember the update from three months ago. Because you said "you handle things in a way that makes my job easier" to me once in a team meeting and I nearly cried. You see people, Chisom. You really see them. Happy birthday! 🎂💜` },
-
-  { name:'Brandon Scott', nga:false, avatar:2, role:'Business Development', font:'font-satisfy',
-    gift:'money', amount:16000, media:'photo', photoUrl:'https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&q=80',
-    msg:`Chisom! In business development we think about competitive advantage. You are one. Not because you're aggressive or relentlessly self-promoting (you're none of those things). But because when clients interact with you, they feel something increasingly rare: they feel respected as people, not just as accounts. That feeling keeps clients. That feeling generates referrals. That feeling builds relationships that sustain a business through difficult times. You are, literally, one of our best BD assets — and you don't even work in BD. Happy birthday! 🚀` },
-
-  { name:'Chidi Onyekwere', nga:true, avatar:3, role:'Strategy Consultant', font:'font-vibes',
-    gift:'money', amount:25000, media:'none',
-    msg:`Chisom! From one overthinker to the world's most elegant overthinker — happy birthday. I say that with deep affection because the quality of your thinking is visible in everything you produce. There is no half-measure in your work. No approximation. No "good enough." Everything that comes from you has been considered, reconsidered, refined — and it shows. But here is what I love even more: you do not apply that same exacting standard to people. With people you are endlessly patient, endlessly generous. You hold work to a high standard and people to a human one. Happy birthday. This year is yours.` },
-
-  { name:'Lauren Hayes', nga:false, avatar:3, role:'Compliance Officer', font:'font-pacifico',
-    gift:'none', media:'none',
-    msg:`Chisom! In compliance, we spend a lot of time on what people cannot do. So it's always refreshing to be around someone who makes me think about what people CAN do — what they're capable of when they're trusted and supported. You operate from that place. You see the best possibility in situations and in people and you move toward it with conviction. You remind me that structure exists to enable, not to constrain. Happy birthday — you are a gift to this organisation. 🎉` },
-
-  { name:'Remi Fashola', nga:true, avatar:4, role:'Communications Manager', font:'font-dancing',
-    gift:'flowers', media:'photo', photoUrl:'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=600&q=80',
-    msg:`Chisom my love! You know I am a words person — it is literally my job — and yet I find myself struggling to find words big enough for what you mean to this team. You have been a sounding board, a co-conspirator, a voice of reason and occasionally a voice of delightful unreason when we all needed permission to dream bigger. I remember when you said "why are we limiting the scope of this?" in that planning meeting and the entire room went quiet for a moment and then everyone started talking at once with this energy. You expand the possible. Happy birthday, beautiful! 🌹` },
-
-  { name:'Christopher Evans', nga:false, avatar:4, role:'Risk Manager', font:'font-sacramento',
-    gift:'money', amount:11000, media:'gif', gifIndex:4,
-    msg:`Chisom! From a risk management perspective: knowing you're on the team significantly reduces my anxiety levels across multiple categories simultaneously. Which in this job is saying something remarkable. I trust your judgment completely — not because you're always right, but because the quality of your reasoning is always sound. When you're wrong you say so and learn. When you're uncertain you say so and seek input. When you're confident you back it up. That consistency is everything in a high-stakes environment. Happy birthday! 🎂` },
-
-  { name:'Tosin Balogun', nga:true, avatar:5, role:'Global Partnerships', font:'font-alex',
-    gift:'money', amount:13500, media:'photo', photoUrl:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80',
-    msg:`Chisom! In partnerships we talk about alignment — shared values, complementary strengths. The best partnerships are between people who are both excellent in ways that combine powerfully. Working with you has been the best professional partnership of my career. You are strong exactly where I need support. You see things I miss. You slow down where I rush. You push where I hold back. We make each other better. That is the definition of a true partnership. Happy birthday to my favourite collaborator! 🤝💜` },
-
-  { name:'Ashley Johnson', nga:false, avatar:5, role:'Sustainability Lead', font:'font-vibes',
-    gift:'flowers', media:'none',
-    msg:`Chisom! I work in sustainability and think constantly about long-term impact. What actions taken today will matter in ten, twenty years? The people you develop, the culture you shape, the standards you model — those have a half-life of decades. The junior analyst you mentored two years ago is now leading a team. The processes you improved are still running. Your impact is compounding. You are, in every sense, sustainable. Happy birthday to someone who is building something that will last. 🌱💜` },
-
-  { name:'Mike Adetokunbo', nga:true, avatar:6, role:'Software Engineer', font:'font-satisfy',
-    gift:'money', amount:5000, media:'gif', gifIndex:5,
-    msg:`Chisom! Happy birthday from someone who will always remember the time you helped me debug that absolutely cursed piece of legacy code at 6pm on a Friday when you had every right to have already been halfway home. You sat there for 45 minutes, asked better questions than I was asking, spotted the issue (it was a timezone problem, obviously it was a timezone problem), and then high-fived me like I had done the work. That is just who you are. You make people feel capable. Happy birthday!` },
-
-  { name:'Kevin O\'Connor', nga:false, avatar:6, role:'Tech Lead', font:'font-kaushan',
-    gift:'money', amount:10000, media:'none',
-    msg:`Chisom! I was a bit skeptical when you first joined the tech side. Not of you personally, but of the cross-functional collaboration in general. Then the first meeting happened and you asked a question so incisive it stopped the whole technical conversation and made us rethink a fundamental assumption we'd been operating on for months. I went home that evening thinking: okay. This is different. This is going to be good. And it was. And it is. Happy birthday — I'm genuinely grateful I was wrong to be skeptical.` },
-
-  { name:'Zainab Musa', nga:true, avatar:7, role:'Project Coordinator', font:'font-dancing',
-    gift:'none', media:'none',
-    msg:`Happy birthday Chisom! I know we do not always get to work directly together but I want you to know that your reputation travels far and wide in this organisation. People talk about you — in the best possible way. "Chisom would know how to handle this." "Let me ask Chisom." "Chisom said something in a meeting last week that I keep thinking about." You have built something remarkable: a reputation built purely on the quality of your character and your work. That is the kind of reputation that lasts. Happy birthday!` },
-
-  { name:'Taylor Reed', nga:false, avatar:7, role:'Content Strategist', font:'font-alex',
-    gift:'flowers', media:'gif', gifIndex:0,
-    msg:`Chisom! As someone who works with words every day, I want to tell you about the way you communicate. There's a quality to it I've been trying to identify for months and I think I finally have it: intentionality. You never say things casually that should be said carefully. You choose your words the way a careful writer does — not for effect, but for accuracy. Not to impress, but to connect. In a world of noise you are signal. In a world of performance you are presence. Happy birthday! 🌸✨` },
-];
-
-// ── Gift summary computation ──────────────────────────────────────────────────
-function computeSummary(signers) {
-  let totalMoney = 0, totalFlowers = 0, totalCakes = 0;
-  signers.forEach(s => {
-    if (s.gift === 'money')   totalMoney   += (s.amount || 0);
-    if (s.gift === 'flowers') totalFlowers += 1;
-    if (s.gift === 'cake')    totalCakes   += 1;
-  });
-  return { totalMoney, totalFlowers, totalCakes };
-}
-
-// ── Petal confetti component ──────────────────────────────────────────────────
-function Confetti() {
-  const pieces = Array.from({ length: 40 }, (_, i) => ({
-    id: i, left: Math.random() * 100, delay: Math.random() * 6,
-    duration: 4 + Math.random() * 5, size: 8 + Math.random() * 10,
-    color: ['#A855F7','#EC4899','#F59E0B','#10B981','#3B82F6','#EF4444','#F97316'][i % 7],
-    rotate: Math.random() * 360,
-  }));
+/* ─── Board tile ─────────────────────────────────────────────────────── */
+function BoardTile({ msg }) {
+  const f = getFont(msg.font);
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-      {pieces.map(p => (
-        <div key={p.id} style={{
-          position:'absolute', left:`${p.left}%`, top:'-20px',
-          width:p.size, height:p.size, background:p.color,
-          borderRadius: p.id % 3 === 0 ? '50%' : p.id % 3 === 1 ? '2px' : '50% 0 50% 0',
-          transform:`rotate(${p.rotate}deg)`,
-          animation:`fall ${p.duration}s ${p.delay}s infinite linear`,
-          opacity:0.8,
-        }} />
-      ))}
-      <style>{`
-        @keyframes fall {
-          0%   { transform: translateY(-20px) rotate(0deg); opacity:1; }
-          100% { transform: translateY(110vh) rotate(720deg); opacity:0; }
+    <div style={{ background:msg.bg||'#fff', borderRadius:16, overflow:'hidden', marginBottom:14, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', breakInside:'avoid' }}>
+      {msg.media?.type==='gif'   && <img src={msg.media.url}   alt="" style={{ width:'100%', display:'block', maxHeight:200, objectFit:'cover' }} loading="lazy"/>}
+      {msg.media?.type==='photo' && <img src={msg.media.url}   alt="" style={{ width:'100%', display:'block', maxHeight:200, objectFit:'cover' }} loading="lazy"/>}
+      {msg.media?.type==='video' && <video src={msg.media.url} style={{ width:'100%', display:'block', maxHeight:200 }} controls/>}
+      {msg.media?.type==='voice' && (
+        <div style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', padding:'14px 16px', display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:24 }}>🎙️</span>
+          <audio src={msg.media.url} controls style={{ flex:1, height:32 }}/>
+        </div>
+      )}
+      {msg.media?.type==='localImg' && <img src={msg.media.url} alt="" style={{ width:'100%', display:'block', maxHeight:200, objectFit:'cover' }}/>}
+      <div style={{ padding:'14px 16px 12px' }}>
+        {msg.bigText
+          ? <p style={{ fontFamily:f.family, fontSize:f.size, lineHeight:f.lh, color:msg.dark?'#e0d8ff':msg.color||'#1e3a5f', margin:'0 0 8px', fontWeight:700 }}>{msg.text.split('!').slice(1).join('!').trim()}</p>
+          : <p style={{ fontFamily:f.family, fontSize:f.size, lineHeight:f.lh, color:msg.dark?'#e0d8ff':msg.color||'#1e3a5f', margin:'0 0 8px', textTransform:msg.allCaps?'uppercase':'none', fontWeight:msg.allCaps?700:400, letterSpacing:msg.allCaps?'0.04em':'normal' }}>{msg.text}</p>
         }
-      `}</style>
+        <p style={{ fontFamily:f.family, fontSize:'1rem', fontWeight:700, color:msg.dark?'#a89cff':'#374151', margin:0, textAlign:'right' }}>{msg.name}</p>
+      </div>
     </div>
   );
 }
 
-// ── Single card component ─────────────────────────────────────────────────────
-function SignerCard({ signer, index }) {
-  const [expanded, setExpanded] = useState(false);
-  const isLong = signer.msg.length > 280;
-  const preview = isLong ? signer.msg.slice(0, 280) + '…' : signer.msg;
+/* ─── Flipbook card view ─────────────────────────────────────────────── */
+function FlipCard({ messages, onAddMessage }) {
+  const [idx,      setIdx]      = useState(0);
+  const [flipping, setFlipping] = useState(false);
+  const total = messages.length;
+  if (!total) return null;
 
-  const giftBadge = () => {
-    if (signer.gift === 'money')   return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">💰 ₦{signer.amount?.toLocaleString()}</span>;
-    if (signer.gift === 'flowers') return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-pink-50 text-pink-700 border border-pink-200">🌸 Flowers</span>;
-    if (signer.gift === 'cake')    return <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">🎂 Cake</span>;
-    return null;
+  const goTo = dir => {
+    if (flipping) return;
+    setFlipping(true);
+    setTimeout(() => { setIdx(i => Math.max(0,Math.min(total-1,i+dir))); setFlipping(false); }, 220);
   };
 
-  const mediaBadge = () => {
-    if (signer.media === 'gif')   return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-600 border border-purple-200">GIF</span>;
-    if (signer.media === 'voice') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200">🎙 Voice</span>;
-    if (signer.media === 'photo') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-600 border border-rose-200">📸 Photo</span>;
-    return null;
-  };
-
-  // Card accent colors cycling
-  const accents = [
-    'border-purple-200 bg-gradient-to-br from-purple-50 to-white',
-    'border-pink-200 bg-gradient-to-br from-pink-50 to-white',
-    'border-amber-200 bg-gradient-to-br from-amber-50 to-white',
-    'border-emerald-200 bg-gradient-to-br from-emerald-50 to-white',
-    'border-rose-200 bg-gradient-to-br from-rose-50 to-white',
-    'border-blue-200 bg-gradient-to-br from-blue-50 to-white',
-    'border-violet-200 bg-gradient-to-br from-violet-50 to-white',
-  ];
-  const accent = accents[index % accents.length];
+  const msg = messages[idx];
+  const f   = getFont(msg.font);
 
   return (
-    <div className={`rounded-3xl border-2 ${accent} p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col gap-3`}>
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <img src={(signer.nga ? NGA : USA)[signer.avatar % (signer.nga ? NGA.length : USA.length)]} alt={signer.name}
-          className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 shadow-sm" />
-        <div className="flex-1 min-w-0">
-          <p className={`font-bold text-warm-900 text-base leading-tight ${signer.font}`}>{signer.name}</p>
-          <p className="text-xs text-warm-400 mt-0.5">{signer.role}</p>
-          <div className="flex flex-wrap gap-1.5 mt-1.5">
-            {giftBadge()}
-            {mediaBadge()}
-          </div>
-        </div>
-        <div className="text-xl opacity-50 flex-shrink-0">
-          {['✨','🌸','💜','🎉','🌟','💫','🎂'][index % 7]}
-        </div>
-      </div>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
+      {/* Stack */}
+      <div style={{ position:'relative', width:'100%', maxWidth:540 }}>
+        <div style={{ position:'absolute', left:'50%', transform:'translate(calc(-50% - 20px), 8px) rotate(-3deg)', width:'calc(100% - 28px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
+        <div style={{ position:'absolute', left:'50%', transform:'translate(calc(-50% + 20px), 5px) rotate(2.5deg)', width:'calc(100% - 14px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
 
-      {/* Media */}
-      {signer.media === 'gif' && (
-        <div className="rounded-2xl overflow-hidden max-h-44 bg-warm-100">
-          <img src={GIFS[signer.gifIndex % GIFS.length]} alt="GIF reaction"
-            className="w-full h-44 object-cover" loading="lazy" />
-        </div>
-      )}
-      {signer.media === 'photo' && signer.photoUrl && (
-        <div className="rounded-2xl overflow-hidden max-h-44">
-          <img src={signer.photoUrl} alt="Shared photo"
-            className="w-full h-44 object-cover" loading="lazy" />
-        </div>
-      )}
-      {signer.media === 'voice' && (
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-3 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs">▶</span>
-          </div>
-          <div className="flex-1">
-            <div className="flex gap-0.5 items-end h-6">
-              {Array.from({length:24}, (_,i) => (
-                <div key={i} className="bg-primary-400 rounded-full w-1"
-                  style={{ height: `${20 + Math.sin(i*0.8)*14}px`, opacity:0.6+Math.sin(i)*0.4 }} />
-              ))}
+        {/* Active page */}
+        <div style={{ position:'relative', zIndex:1, background:msg.bg||'#F5F0FF', borderRadius:20, border:'2px solid #DDD6FE', padding:'1.5rem 1.75rem 3.5rem', boxShadow:'0 8px 40px rgba(124,58,237,0.12)', minHeight:420, display:'flex', flexDirection:'column', overflow:'hidden', transform:flipping?'rotateY(90deg)':'rotateY(0)', opacity:flipping?0:1, transition:'transform 0.22s,opacity 0.22s' }}>
+
+          {/* Signer header */}
+          <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, flexShrink:0 }}>
+            <div style={{ width:40, height:40, borderRadius:'50%', background:'#7C3AED', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:'0.875rem', flexShrink:0 }}>
+              {msg.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
             </div>
-            <p className="text-[10px] text-warm-400 mt-1">Voice message · 0:42</p>
+            <div>
+              <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.9375rem', color:'#1A1035', margin:0, lineHeight:1.3 }}>{msg.name}</p>
+              <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.75rem', color:'#7C5CBF', margin:0 }}>signed this card</p>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Message */}
-      <div className="relative">
-        <p className={`text-warm-700 ${signer.font}`} style={MSG_FONT_STYLE[signer.font]}>
-          {expanded ? signer.msg : preview}
-        </p>
-        {isLong && (
-          <button onClick={() => setExpanded(!expanded)}
-            className="text-xs font-bold text-primary-600 hover:text-primary-800 mt-1 transition-colors">
-            {expanded ? 'Show less ↑' : 'Read more →'}
+          {/* Media */}
+          {msg.media?.type==='gif'      && <div style={{ borderRadius:12, overflow:'hidden', marginBottom:12, flexShrink:0, lineHeight:0 }}><img src={msg.media.url} alt="" style={{ width:'100%', height:180, objectFit:'cover', display:'block' }} loading="lazy"/></div>}
+          {msg.media?.type==='photo'    && <div style={{ borderRadius:12, overflow:'hidden', marginBottom:12, flexShrink:0, lineHeight:0 }}><img src={msg.media.url} alt="" style={{ width:'100%', height:180, objectFit:'cover', display:'block' }} loading="lazy"/></div>}
+          {msg.media?.type==='localImg' && <div style={{ borderRadius:12, overflow:'hidden', marginBottom:12, flexShrink:0, lineHeight:0 }}><img src={msg.media.url} alt="" style={{ width:'100%', height:180, objectFit:'cover', display:'block' }}/></div>}
+          {msg.media?.type==='video'    && <div style={{ borderRadius:12, overflow:'hidden', marginBottom:12, flexShrink:0 }}><video src={msg.media.url} style={{ width:'100%', height:180, objectFit:'cover', display:'block' }} controls/></div>}
+          {msg.media?.type==='voice'    && (
+            <div style={{ borderRadius:12, background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', marginBottom:12, padding:'12px 16px', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:28 }}>🎙️</span>
+              <audio src={msg.media.url} controls style={{ flex:1 }}/>
+            </div>
+          )}
+
+          {/* Message */}
+          <p style={{ fontFamily:f.family, fontSize:f.size, lineHeight:f.lh, color:msg.dark?'#c4b5fd':(msg.color||'#1e3a5f'), margin:'0 0 auto', flex:1, textTransform:msg.allCaps?'uppercase':'none' }}>
+            {msg.bigText ? msg.text.split('!').slice(1).join('!').trim() : msg.text}
+          </p>
+
+          {/* Dots */}
+          <div style={{ display:'flex', gap:6, justifyContent:'center', marginTop:12, flexShrink:0 }}>
+            {messages.map((_,i) => (
+              <button key={i} onClick={()=>setIdx(i)} style={{ width:i===idx?22:8, height:8, borderRadius:i===idx?4:'50%', background:i===idx?'#7C3AED':'#DDD6FE', border:'none', cursor:'pointer', padding:0, transition:'all 0.2s' }}/>
+            ))}
+          </div>
+
+          {/* Arrows */}
+          <button onClick={()=>goTo(-1)} disabled={idx===0} style={{ position:'absolute', left:-20, top:'50%', transform:'translateY(-50%)', width:38, height:38, borderRadius:'50%', background:'#fff', border:'1.5px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity:idx===0?0.3:1, zIndex:10, boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
+            <Icon name="ChevronLeft" size={18}/>
           </button>
-        )}
+          <button onClick={()=>goTo(1)} disabled={idx===total-1} style={{ position:'absolute', right:-20, top:'50%', transform:'translateY(-50%)', width:38, height:38, borderRadius:'50%', background:'#fff', border:'1.5px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity:idx===total-1?0.3:1, zIndex:10, boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
+            <Icon name="ChevronRight" size={18}/>
+          </button>
+        </div>
+
+        {/* Counter */}
+        <div style={{ position:'absolute', top:-14, right:16, background:'#fff', border:'1.5px solid #DDD6FE', borderRadius:20, padding:'3px 12px', fontSize:'0.75rem', fontWeight:700, color:'#7C3AED', zIndex:2, display:'flex', alignItems:'center', gap:5 }}>
+          <Icon name="FileText" size={12}/> {idx+1} / {total}
+        </div>
       </div>
 
-      {/* Decorative quote mark */}
-      <div className="absolute -top-2 -left-1 text-5xl text-primary-200 leading-none pointer-events-none select-none font-serif">"</div>
+      {/* Bottom bar */}
+      <div style={{ background:'rgba(26,16,53,0.88)', backdropFilter:'blur(12px)', borderRadius:40, width:'100%', maxWidth:540, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 18px', gap:8 }}>
+        <button onClick={onAddMessage} style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', border:'none', borderRadius:24, padding:'10px 18px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
+          ✍️ Add my message
+        </button>
+        <button onClick={()=>{navigator.clipboard.writeText(window.location.href); toast.success('Link copied!');}} style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.12)', border:'none', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <Icon name="Share" size={16} style={{color:'#fff'}}/>
+        </button>
+        <div style={{ display:'flex', alignItems:'center', gap:6, flex:1, justifyContent:'flex-end', minWidth:0 }}>
+          <Icon name="ChevronLeft" size={18} style={{ color:'#fff', cursor:'pointer', flexShrink:0 }} onClick={()=>goTo(-1)}/>
+          <input type="range" min={0} max={total-1} value={idx} onChange={e=>setIdx(Number(e.target.value))} style={{ flex:1, accentColor:'#7C3AED', maxWidth:120 }}/>
+          <Icon name="ChevronRight" size={18} style={{ color:'#fff', cursor:'pointer', flexShrink:0 }} onClick={()=>goTo(1)}/>
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+/* ─── Main SampleCard ────────────────────────────────────────────────── */
 export default function SampleCard() {
-  const { totalMoney, totalFlowers, totalCakes } = computeSummary(SIGNERS);
-  const [showAll, setShowAll] = useState(false);
-  const [confetti, setConfetti] = useState(true);
-  const visible = showAll ? SIGNERS : SIGNERS.slice(0, 12);
+  const [view,         setView]        = useState('board');
+  const [messages,     setMessages]    = useState(SEED);
+  const [showModal,    setShowModal]   = useState(false);
+  const [signDone,     setSignDone]    = useState(false);
+  const [giftDone,     setGiftDone]    = useState(false);
+  const [giftAmount,   setGiftAmount]  = useState(null);
+  const [customGift,   setCustomGift]  = useState('');
+  const [showGiftArea, setShowGiftArea]= useState(false);
 
-  useEffect(() => {
-    const t = setTimeout(() => setConfetti(false), 10000);
-    return () => clearTimeout(t);
+  // Sign form state
+  const [name,        setName]        = useState('');
+  const [fontId,      setFontId]      = useState('caveat');
+  const [msgText,     setMsgText]     = useState('');
+  const [mediaFiles,  setMediaFiles]  = useState([]);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [showEmoji,   setShowEmoji]   = useState(false);
+  const [showGifPick, setShowGifPick] = useState(false);
+  const [showGifFull, setShowGifFull] = useState(false);
+  const [isPrivate,   setIsPrivate]   = useState(false);
+
+  const fileRef     = useRef();
+  const textareaRef = useRef();
+
+  const openModal = () => { setShowModal(true); setSignDone(false); setGiftDone(false); setShowGiftArea(false); setName(''); setMsgText(''); setMediaFiles([]); setGiftAmount(null); setCustomGift(''); };
+
+  const addMedia = useCallback(files => {
+    const items = [];
+    for (const f of Array.from(files)) {
+      if (f.size > 50*1024*1024) { toast.error(`${f.name} too large`); continue; }
+      const type = f.type.startsWith('video/')?'video':f.type.startsWith('audio/')?'voice':f.type==='image/gif'?'gif':'localImg';
+      items.push({ file:f, url:URL.createObjectURL(f), type });
+    }
+    setMediaFiles(p => [...p,...items].slice(0,5));
   }, []);
+
+  const removeMedia = i => {
+    setMediaFiles(p => { const n=[...p]; URL.revokeObjectURL(n[i].url); n.splice(i,1); setCarouselIdx(idx=>Math.min(idx,Math.max(0,n.length-1))); return n; });
+  };
+
+  const insertEmoji = useCallback(emoji => {
+    const el = textareaRef.current;
+    if (el && typeof el.selectionStart==='number') {
+      const s=el.selectionStart, e=el.selectionEnd;
+      setMsgText(t => t.slice(0,s)+emoji+t.slice(e));
+      requestAnimationFrame(()=>{ el.focus(); const p=s+emoji.length; el.setSelectionRange(p,p); });
+    } else setMsgText(t=>t+emoji);
+    setShowEmoji(false);
+  },[]);
+
+  const handleSign = () => {
+    if (!name.trim()) return toast.error('Please enter your name');
+    if (!msgText.trim() && mediaFiles.length===0) return toast.error('Add a message or media');
+    const media = mediaFiles[0] ? { type:mediaFiles[0].type, url:mediaFiles[0].url } : null;
+    setMessages(p => [...p, {
+      id: Date.now(), name:name.trim(), font:fontId,
+      color:'#1e3a5f', bg:'#F5F0FF', text:msgText.trim(), media,
+    }]);
+    setSignDone(true);
+  };
+
+  const handleGift = () => {
+    const amt = Number(customGift||giftAmount||0);
+    if (amt < 100) return toast.error('Minimum gift is ₦100');
+    toast.success(`Demo gift of ${formatNGN(amt)} accepted! 🎉 (No real payment on demo)`);
+    setGiftDone(true);
+  };
 
   return (
     <>
       <style>{FONT_INJECT}</style>
-      {confetti && <Confetti />}
+      <Navbar/>
 
-      {/* ── Hero banner ── */}
-      <div className="relative overflow-hidden"
-        style={{ background:'linear-gradient(135deg,#7C3AED 0%,#A855F7 40%,#EC4899 100%)' }}>
-        {/* Decorative circles */}
-        <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full opacity-10 bg-white" />
-        <div className="absolute -bottom-10 -left-16 w-64 h-64 rounded-full opacity-10 bg-white" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full opacity-5 bg-white" />
-
-        <div className="relative max-w-3xl mx-auto px-4 py-16 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-4 py-2 rounded-full mb-6 border border-white/30">
-            🎂 Group Birthday Card · Sample
-          </div>
-
-          {/* Recipient */}
-          <div className="flex justify-center mb-4">
-            <div className="relative">
-              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&h=160&fit=crop&crop=face"
-                alt="Chisom" className="w-24 h-24 rounded-full border-4 border-white shadow-xl object-cover" />
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-base shadow-lg">🎂</div>
-            </div>
-          </div>
-
-          <h1 className="font-vibes text-6xl text-white mb-2" style={{ fontFamily:"'Great Vibes', cursive" }}>
-            Happy Birthday,
-          </h1>
-          <h2 className="font-dancing text-7xl text-yellow-300 font-bold mb-3" style={{ fontFamily:"'Dancing Script', cursive", textShadow:'0 2px 20px rgba(0,0,0,0.2)' }}>
-            Chisom! 🎉
-          </h2>
-          <p className="text-white/80 text-lg mb-8 font-light">
-            From your entire team at <strong className="text-white font-bold">Nexus Technologies</strong>
-          </p>
-
-          {/* Stats row */}
-          <div className="flex flex-wrap justify-center gap-4">
-            {[
-              { icon:'✍️', val:SIGNERS.length, label:'Signed' },
-              { icon:'💰', val:`₦${totalMoney.toLocaleString()}`, label:'Gift pot' },
-              { icon:'🌸', val:totalFlowers, label:'Flowers sent' },
-              { icon:'🎂', val:totalCakes, label:'Cakes ordered' },
-            ].map(s => (
-              <div key={s.label} className="bg-white/20 backdrop-blur-sm rounded-2xl px-5 py-3 text-center border border-white/30 min-w-24">
-                <p className="text-2xl font-extrabold text-white">{s.val}</p>
-                <p className="text-xs text-white/70 mt-0.5">{s.icon} {s.label}</p>
-              </div>
-            ))}
-          </div>
+      {/* ── Top action bar ── */}
+      <div style={{ background:'#fff', borderBottom:'1.5px solid #EDE9FE', position:'sticky', top:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', padding:'10px 20px', gap:8, flexWrap:'wrap' }}>
+        <button onClick={openModal} style={{ display:'inline-flex', alignItems:'center', gap:7, border:'2px solid #7C3AED', background:'#fff', color:'#7C3AED', borderRadius:24, padding:'9px 20px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, cursor:'pointer', whiteSpace:'nowrap' }}>
+          <span style={{ fontSize:16, fontWeight:900 }}>+</span> Add a message
+        </button>
+        <div style={{ display:'flex', background:'#f0f0f8', borderRadius:24, padding:4, gap:2 }}>
+          {[{id:'board',icon:<><rect x="0" y="0" width="7" height="7" rx="1.5"/><rect x="9" y="0" width="7" height="7" rx="1.5"/><rect x="0" y="9" width="7" height="7" rx="1.5"/><rect x="9" y="9" width="7" height="7" rx="1.5"/></>,label:'Board'},
+            {id:'card', icon:<><rect x="0" y="0" width="7" height="16" rx="1.5"/><rect x="9" y="0" width="7" height="16" rx="1.5"/></>,label:'Card'}
+          ].map(b => (
+            <button key={b.id} onClick={()=>setView(b.id)} style={{ padding:'8px 20px', borderRadius:20, border:'none', cursor:'pointer', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, background:view===b.id?'linear-gradient(135deg,#7C3AED,#5B21B6)':'transparent', color:view===b.id?'#fff':'#6B7280', display:'inline-flex', alignItems:'center', gap:6, transition:'all 0.15s' }}>
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">{b.icon}</svg>
+              {b.label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* ── Gift summary bar ── */}
-      <div className="bg-white border-b border-purple-100 sticky top-0 z-20 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">💰</span>
-              <div>
-                <p className="text-xs text-warm-400 leading-none">Total Gift Pot</p>
-                <p className="font-extrabold text-emerald-600 text-base">₦{totalMoney.toLocaleString()}</p>
-              </div>
-            </div>
-            <div className="w-px bg-purple-100 hidden sm:block" />
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🌸</span>
-              <div>
-                <p className="text-xs text-warm-400 leading-none">Flower gifts</p>
-                <p className="font-extrabold text-pink-600 text-base">{totalFlowers} bouquets</p>
-              </div>
-            </div>
-            <div className="w-px bg-purple-100 hidden sm:block" />
-            <div className="flex items-center gap-2">
-              <span className="text-xl">🎂</span>
-              <div>
-                <p className="text-xs text-warm-400 leading-none">Cake gifts</p>
-                <p className="font-extrabold text-amber-600 text-base">{totalCakes} cakes</p>
-              </div>
+      {/* ── Main background — Thankeeu purple theme ── */}
+      <div style={{ minHeight:'100vh', background:'linear-gradient(160deg,#F5F0FF 0%,#EDE5FF 35%,#F8F0FF 65%,#FFF0F8 100%)', position:'relative', overflow:'hidden' }}>
+        {/* Dot grid */}
+        <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(124,58,237,0.10) 1.5px,transparent 1.5px)', backgroundSize:'30px 30px', pointerEvents:'none', zIndex:0 }}/>
+        {/* Glow */}
+        <div style={{ position:'absolute', top:-100, left:'50%', transform:'translateX(-50%)', width:700, height:400, background:'radial-gradient(ellipse,rgba(139,92,246,0.20) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none', zIndex:0 }}/>
+        {/* Floating emojis */}
+        {['🎂','💜','🎉','✨','🎁','🌟','🎊','💐'].map((e,i) => (
+          <div key={i} style={{ position:'absolute', left:`${5+i*12}%`, top:`${3+(i%3)*6}%`, fontSize:24+(i%3)*6, opacity:0.14, pointerEvents:'none', userSelect:'none', animation:`float ${5+i}s ${i*0.4}s ease-in-out infinite` }}>{e}</div>
+        ))}
+
+        {/* Hero header */}
+        <div style={{ position:'relative', zIndex:2, paddingTop:36, paddingBottom:20, paddingLeft:40 }}>
+          <div style={{ display:'inline-flex', alignItems:'center', gap:14, background:'rgba(255,255,255,0.75)', backdropFilter:'blur(8px)', border:'1.5px solid rgba(124,58,237,0.15)', borderRadius:20, padding:'12px 22px' }}>
+            <div style={{ width:52, height:52, borderRadius:'50%', background:'linear-gradient(135deg,#7C3AED,#EC4899)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}>👋</div>
+            <div>
+              <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:18, color:'#1A1035', margin:0, lineHeight:1.2 }}>Chisom Obi,</p>
+              <p style={{ fontFamily:"'Caveat',cursive", fontSize:26, fontWeight:700, color:'#7C3AED', margin:0, lineHeight:1.1 }}>Farewell, We'll Miss You 🎉</p>
             </div>
           </div>
-          <Link to="/card/new"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white transition-all hover:opacity-90"
-            style={{ background:'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
-            Create your own card →
-          </Link>
-        </div>
-      </div>
-
-      {/* ── Main content ── */}
-      <div className="max-w-5xl mx-auto px-4 py-10">
-
-        {/* Section header */}
-        <div className="text-center mb-10">
-          <p className="font-kaushan text-3xl text-primary-700 mb-2" style={{ fontFamily:"'Kaushan Script', cursive" }}>
-            Messages from your team
-          </p>
-          <p className="text-warm-400 text-sm">{SIGNERS.length} colleagues signed this card with love 💜</p>
-          {/* Signer avatar strip */}
-          <div className="flex justify-center mt-4 -space-x-2">
-            {AVATARS.slice(0, 12).map((src, i) => (
-              <img key={i} src={src} alt="" className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm"
-                style={{ zIndex:12-i }} />
-            ))}
-            <div className="w-8 h-8 rounded-full border-2 border-white bg-primary-100 flex items-center justify-center text-[10px] font-bold text-primary-700 shadow-sm" style={{ zIndex:0 }}>
-              +{SIGNERS.length - 12}
-            </div>
+          <div style={{ marginTop:8, paddingLeft:8 }}>
+            <span style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, color:'#4A3A7A', fontWeight:600 }}>
+              From The Nexus Technologies Team 💚 · <span style={{ color:'#7C3AED', fontWeight:700 }}>{messages.length} messages</span>
+            </span>
           </div>
         </div>
 
-        {/* Cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 relative">
-          {visible.map((s, i) => (
-            <div key={i} className="relative">
-              <SignerCard signer={s} index={i} />
-            </div>
+        {/* Action bar */}
+        <div style={{ display:'flex', justifyContent:'center', gap:10, marginBottom:24, position:'relative', zIndex:3 }}>
+          <button onClick={()=>setShowGiftArea(s=>!s)} style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', border:'none', borderRadius:28, padding:'11px 24px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:15, cursor:'pointer', boxShadow:'0 4px 20px rgba(124,58,237,0.4)', display:'inline-flex', alignItems:'center', gap:8 }}>
+            🎁 Gift pot · {formatNGN(487500)}
+          </button>
+          {[{icon:'Share',action:()=>{navigator.clipboard.writeText(window.location.href);toast.success('Link copied!');}},{icon:'Download',action:()=>toast.success('Download feature on real cards!')},{icon:'Reply',action:()=>openModal()}].map(b => (
+            <button key={b.icon} onClick={b.action} style={{ width:44, height:44, borderRadius:'50%', border:'none', background:'rgba(255,255,255,0.85)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(0,0,0,0.10)' }}>
+              <Icon name={b.icon} size={18} style={{ color:'#374151' }}/>
+            </button>
           ))}
         </div>
 
-        {/* Load more */}
-        {!showAll && SIGNERS.length > 12 && (
-          <div className="text-center mt-8">
-            <button onClick={() => setShowAll(true)}
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl text-sm font-bold text-white shadow-lg hover:opacity-90 transition-all"
-              style={{ background:'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
-              Show all {SIGNERS.length} messages ↓
-            </button>
-          </div>
-        )}
-        {showAll && (
-          <div className="text-center mt-8">
-            <button onClick={() => { setShowAll(false); window.scrollTo({top:0,behavior:'smooth'}); }}
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl text-sm font-bold bg-purple-50 text-primary-700 border border-purple-200 hover:bg-purple-100 transition-all">
-              ↑ Back to top
-            </button>
+        {/* Gift area (expandable demo) */}
+        {showGiftArea && (
+          <div style={{ maxWidth:480, margin:'0 auto 24px', background:'rgba(255,255,255,0.92)', borderRadius:20, border:'1.5px solid #DDD6FE', padding:'20px 24px', position:'relative', zIndex:3 }}>
+            {!giftDone ? (
+              <>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:17, color:'#1A1035', marginBottom:4 }}>🎁 Contribute to Chisom's gift</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, color:'#7A6CA8', marginBottom:14 }}>34 contributors · {formatNGN(487500)} raised · Demo mode — no real payment</p>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:10 }}>
+                  {AMOUNTS.map(a => (
+                    <button key={a} onClick={()=>{setGiftAmount(a);setCustomGift('');}} style={{ padding:'10px 4px', borderRadius:12, border:`2px solid ${giftAmount===a&&!customGift?'#7C3AED':'#DDD6FE'}`, background:giftAmount===a&&!customGift?'#7C3AED':'#fff', color:giftAmount===a&&!customGift?'#fff':'#374151', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, cursor:'pointer' }}>
+                      {formatNGN(a)}
+                    </button>
+                  ))}
+                </div>
+                <input className="input" type="number" placeholder="Custom amount" value={customGift} onChange={e=>{setCustomGift(e.target.value);setGiftAmount(null);}} style={{ marginBottom:10 }}/>
+                <button onClick={handleGift} style={{ width:'100%', padding:'13px', borderRadius:16, border:'none', background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:15, cursor:'pointer' }}>
+                  🎁 Contribute (Demo)
+                </button>
+              </>
+            ) : (
+              <div style={{ textAlign:'center', padding:'12px 0' }}>
+                <div style={{ fontSize:44, marginBottom:8 }}>🎉</div>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:18, color:'#1A1035', marginBottom:6 }}>Gift accepted! (Demo)</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:14, color:'#7A6CA8' }}>On a real card, this would process via Flutterwave.</p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* ── CTA section ── */}
-        <div className="mt-16 rounded-3xl overflow-hidden relative"
-          style={{ background:'linear-gradient(135deg,#7C3AED 0%,#A855F7 60%,#EC4899 100%)' }}>
-          <div className="absolute inset-0 opacity-10">
-            {Array.from({length:6}, (_,i) => (
-              <div key={i} className="absolute rounded-full bg-white"
-                style={{ width:80+i*40, height:80+i*40, top:`${10+i*12}%`, left:`${5+i*15}%`, opacity:0.3 }} />
-            ))}
-          </div>
-          <div className="relative px-6 py-12 text-center">
-            <h2 className="font-dancing text-4xl text-white font-bold mb-3" style={{ fontFamily:"'Dancing Script', cursive" }}>
-              Create a card like this for your team
-            </h2>
-            <p className="text-white/80 mb-8 max-w-md mx-auto text-sm leading-relaxed">
-              Automated birthday, farewell and anniversary cards for your entire team. Gift pots, flower & cake orders, all in one beautiful card.
-            </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              <Link to="/company/signup"
-                className="px-8 py-3.5 rounded-2xl font-bold text-primary-700 bg-white hover:bg-purple-50 transition-all shadow-lg text-sm">
-                🏢 Set up for my team →
-              </Link>
-              <Link to="/create-card"
-                className="px-8 py-3.5 rounded-2xl font-bold text-white border-2 border-white/50 hover:bg-white/10 transition-all text-sm">
-                Create a card now
-              </Link>
+        {/* Board / Card content */}
+        <div style={{ position:'relative', zIndex:2, padding:'0 24px 80px', maxWidth:1500, margin:'0 auto' }}>
+          {view==='board' ? (
+            <div style={{ columns:'var(--bc,5) 200px', columnGap:14 }}>
+              <style>{`
+                @media(max-width:1400px){:root{--bc:4}}
+                @media(max-width:1100px){:root{--bc:3}}
+                @media(max-width:720px){:root{--bc:2}}
+                @media(max-width:480px){:root{--bc:1}}
+              `}</style>
+              {/* Info tile */}
+              <div style={{ background:'#fffde7', borderRadius:16, padding:'18px 20px', marginBottom:14, boxShadow:'0 2px 8px rgba(0,0,0,0.05)', breakInside:'avoid', fontSize:14, color:'#374151', lineHeight:1.6 }}>
+                <p style={{ margin:'0 0 6px', display:'flex', alignItems:'flex-start', gap:6 }}><span style={{ color:'#3B82F6', fontWeight:700, flexShrink:0 }}>ℹ</span> Your group can attach photos, GIFs, videos and voice notes to their messages.</p>
+                <p style={{ margin:'0 0 6px' }}>To be even more personalised you can choose a Premium Thankeeu card that unlocks extra custom fonts!</p>
+                <p style={{ margin:0, fontWeight:700, color:'#7C3AED', fontFamily:"'Caveat',cursive", fontSize:16 }}>Thankeeu Sample</p>
+              </div>
+              {messages.map(msg => <BoardTile key={msg.id} msg={msg}/>)}
             </div>
-          </div>
+          ) : (
+            <div style={{ maxWidth:600, margin:'0 auto', paddingLeft:24, paddingRight:24 }}>
+              <FlipCard messages={messages} onAddMessage={openModal}/>
+            </div>
+          )}
         </div>
       </div>
 
-      <Footer />
+      {/* ── CTA ── */}
+      <div style={{ background:'#fff', padding:'60px 24px', textAlign:'center' }}>
+        <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:28, color:'#1A1035', marginBottom:8 }}>Create a card like this for someone special</h2>
+        <p style={{ color:'#6B7280', marginBottom:32, fontSize:16 }}>Beautiful group cards with gift pots. From ₦5,000. Pay only when you send.</p>
+        <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
+          <Link to="/card/new" style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:8 }}>✨ Create a card — it's free</Link>
+          <Link to="/signup" style={{ background:'#F5F0FF', color:'#7C3AED', border:'2px solid #DDD6FE', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none' }}>Get started free →</Link>
+        </div>
+      </div>
+
+      <Footer/>
+
+      {/* ── Sign modal ── */}
+      {showModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:80, background:'rgba(26,16,53,0.65)', backdropFilter:'blur(8px)', display:'flex', alignItems:'flex-end', justifyContent:'center' }}
+          onClick={()=>setShowModal(false)}>
+          <div style={{ background:'#fff', borderRadius:'28px 28px 0 0', width:'100%', maxWidth:560, padding:'28px 24px 40px', maxHeight:'94vh', overflowY:'auto' }}
+            onClick={e=>e.stopPropagation()}>
+            {!signDone ? (
+              <>
+                <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
+                  <h3 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:20, color:'#1A1035', margin:0 }}>Sign this demo card ✍️</h3>
+                  <button onClick={()=>setShowModal(false)} style={{ background:'#F5F0FF', border:'none', width:34, height:34, borderRadius:10, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <Icon name="X" size={16} className="text-warm-400"/>
+                  </button>
+                </div>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, color:'#7A6CA8', marginBottom:16 }}>
+                  This is a demo — your message appears here locally, no account needed.
+                </p>
+
+                {/* Name */}
+                <label style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, fontWeight:700, color:'#5B4B8A', display:'block', marginBottom:6 }}>Your name *</label>
+                <input className="input" placeholder="e.g. Kemi Adeyemi" value={name} onChange={e=>setName(e.target.value)} style={{ marginBottom:14 }} maxLength={60}/>
+
+                {/* Font style */}
+                <label style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, fontWeight:700, color:'#5B4B8A', display:'block', marginBottom:8 }}>Writing style</label>
+                <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginBottom:14 }}>
+                  {FONT_STYLES.map(f => (
+                    <button key={f.id} onClick={()=>setFontId(f.id)} style={{ padding:'6px 12px', borderRadius:20, border:`2px solid ${fontId===f.id?'#7C3AED':'#DDD6FE'}`, background:fontId===f.id?'#EDE9FE':'#fff', fontFamily:f.family, fontSize:13, fontWeight:600, cursor:'pointer', color:fontId===f.id?'#5B21B6':'#6B7280' }}>
+                      {f.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Message */}
+                <label style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, fontWeight:700, color:'#5B4B8A', display:'block', marginBottom:6 }}>Message</label>
+                <div style={{ position:'relative', marginBottom:4 }}>
+                  <textarea ref={textareaRef} className="input" rows={5} style={{ resize:'none', fontFamily:getFont(fontId).family, fontSize:getFont(fontId).size }} placeholder="Write something heartfelt for Chisom…" maxLength={1200} value={msgText} onChange={e=>setMsgText(e.target.value)}/>
+                  <button type="button" onClick={()=>{setShowEmoji(s=>!s);setShowGifPick(false);setShowGifFull(false);}} style={{ position:'absolute', bottom:8, right:8, width:34, height:34, border:'1.5px solid #EDE9FE', background:'#fff', borderRadius:'50%', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>😊</button>
+                  {showEmoji && <EmojiPicker onSelect={insertEmoji} onClose={()=>setShowEmoji(false)}/>}
+                </div>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:11, color:'#9CA3AF', textAlign:'right', marginBottom:14 }}>{msgText.length}/1200</p>
+
+                {/* Media buttons */}
+                <div style={{ position:'relative', display:'flex', flexWrap:'wrap', gap:8, marginBottom:14 }}>
+                  <button type="button" onClick={()=>fileRef.current?.click()} className="voice-record-button">📷 Photos/video</button>
+                  <button type="button" onClick={()=>{setShowGifPick(s=>!s);setShowGifFull(false);setShowEmoji(false);}} className="voice-record-button">🎞️ Quick GIF</button>
+                  <button type="button" onClick={()=>{setShowGifFull(s=>!s);setShowGifPick(false);setShowEmoji(false);}} className="voice-record-button">🔍 Search GIFs</button>
+                  <VoiceRecorder onRecorded={f=>addMedia([f])}/>
+                  <input ref={fileRef} type="file" accept="image/*,video/*,audio/*" multiple className="hidden" onChange={e=>addMedia(e.target.files)}/>
+
+                  {/* Quick GIF picker */}
+                  {showGifPick && (
+                    <div style={{ position:'absolute', top:'100%', left:0, zIndex:20, background:'#fff', borderRadius:16, border:'1.5px solid #EDE9FE', padding:12, boxShadow:'0 8px 32px rgba(0,0,0,0.12)', display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, width:280, marginTop:6 }}>
+                      {GIPHY_PRESETS.map(g => (
+                        <button key={g.url} onClick={()=>{ setMediaFiles(p=>[...p,{file:null,url:g.url,type:'gif'}].slice(0,5)); setShowGifPick(false); }} style={{ borderRadius:10, overflow:'hidden', border:'none', cursor:'pointer', padding:0, lineHeight:0 }}>
+                          <img src={g.url} alt={g.label} style={{ width:'100%', height:56, objectFit:'cover', display:'block' }} loading="lazy"/>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {showGifFull && <div style={{ width:'100%', marginTop:6 }}><GifPicker onSelect={f=>{ addMedia([f]); setShowGifFull(false); }} onClose={()=>setShowGifFull(false)}/></div>}
+                </div>
+
+                {/* Media carousel */}
+                {mediaFiles.length > 0 && (
+                  <div style={{ borderRadius:16, overflow:'hidden', border:'1.5px solid #EDE9FE', marginBottom:14 }}>
+                    <div style={{ position:'relative', aspectRatio:'16/9', background:'#1A1035' }}>
+                      {mediaFiles[carouselIdx].type==='video'  ? <video src={mediaFiles[carouselIdx].url} className="w-full h-full object-contain" controls/> :
+                       mediaFiles[carouselIdx].type==='voice'  ? <div className="w-full h-full flex flex-col items-center justify-center gap-3"><span style={{fontSize:40}}>🎙️</span><audio src={mediaFiles[carouselIdx].url} controls style={{width:'80%'}}/></div> :
+                       <img src={mediaFiles[carouselIdx].url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain' }}/>}
+                      <button onClick={()=>removeMedia(carouselIdx)} style={{ position:'absolute', top:6, right:6, width:26, height:26, borderRadius:'50%', background:'rgba(0,0,0,0.6)', color:'#fff', border:'none', cursor:'pointer', fontSize:14 }}>✕</button>
+                      {mediaFiles.length>1 && <>
+                        <button onClick={()=>setCarouselIdx(i=>(i-1+mediaFiles.length)%mediaFiles.length)} style={{ position:'absolute', left:4, top:'50%', transform:'translateY(-50%)', width:28, height:28, borderRadius:'50%', background:'rgba(0,0,0,0.5)', color:'#fff', border:'none', cursor:'pointer', fontSize:16 }}>‹</button>
+                        <button onClick={()=>setCarouselIdx(i=>(i+1)%mediaFiles.length)} style={{ position:'absolute', right:4, top:'50%', transform:'translateY(-50%)', width:28, height:28, borderRadius:'50%', background:'rgba(0,0,0,0.5)', color:'#fff', border:'none', cursor:'pointer', fontSize:16 }}>›</button>
+                      </>}
+                    </div>
+                    <p style={{ textAlign:'center', fontSize:11, color:'#9CA3AF', padding:'6px 0' }}>{carouselIdx+1} of {mediaFiles.length}</p>
+                  </div>
+                )}
+
+                {/* Private toggle */}
+                <label style={{ display:'flex', alignItems:'center', gap:10, marginBottom:18, cursor:'pointer' }}>
+                  <input type="checkbox" checked={isPrivate} onChange={e=>setIsPrivate(e.target.checked)} style={{ width:18, height:18, accentColor:'#7C3AED' }}/>
+                  <span style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:14, color:'#374151', fontWeight:600 }}>Private message (only recipient sees this)</span>
+                </label>
+
+                <button onClick={handleSign} disabled={!name.trim()||(!msgText.trim()&&mediaFiles.length===0)}
+                  style={{ width:'100%', padding:'14px', borderRadius:20, border:'none', background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:16, cursor:'pointer', opacity:(!name.trim()||(!msgText.trim()&&mediaFiles.length===0))?0.5:1 }}>
+                  ✍️ Add my message to the card
+                </button>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:12, color:'#9CA3AF', textAlign:'center', marginTop:10 }}>
+                  On a real card you can also add a gift contribution via Flutterwave.
+                </p>
+              </>
+            ) : (
+              <div style={{ textAlign:'center', padding:'20px 0' }}>
+                <div style={{ fontSize:56, marginBottom:12 }}>🎉</div>
+                <h3 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:22, color:'#1A1035', marginBottom:8 }}>You signed it!</h3>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:15, color:'#7A6CA8', marginBottom:20 }}>
+                  Your message is on the {view==='card'?'flipbook card':'board'} now.
+                </p>
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  <Link to="/card/new" style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', padding:'14px 28px', borderRadius:20, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:15, textDecoration:'none', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+                    ✨ Create a card — it's free
+                  </Link>
+                  <button onClick={()=>setShowModal(false)} style={{ background:'#F5F0FF', border:'2px solid #DDD6FE', padding:'12px 28px', borderRadius:20, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:15, color:'#7C3AED', cursor:'pointer' }}>
+                    Back to card
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      <style>{`@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}`}</style>
     </>
   );
 }

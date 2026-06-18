@@ -1,64 +1,55 @@
 import { useSEO } from '../hooks/useSEO';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
-import { cardsAPI, paymentsAPI, creditsAPI } from '../utils/api';
+import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
+import VoiceRecorder from '../components/VoiceRecorder';
+import EmojiPicker from '../components/EmojiPicker';
+import GifPicker from '../components/GifPicker';
+import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { formatNGN, CURRENCIES, formatCurrency } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 
 const OCCASIONS = [
-  { id: 'birthday', icon: '🎂', label: 'Birthday' },
-  { id: 'valentine', icon: '💝', label: "Valentine's" },
-  { id: 'leaving', icon: '💼', label: 'Leaving job' },
-  { id: 'anniversary', icon: '💍', label: 'Anniversary' },
-  { id: 'wedding', icon: '💒', label: 'Wedding' },
-  { id: 'baby_shower', icon: '👶', label: 'Baby shower' },
-  { id: 'retirement', icon: '🏖️', label: 'Retirement' },
-  { id: 'congratulations', icon: '🎉', label: 'Congrats' },
-  { id: 'graduation', icon: '🎓', label: 'Graduation' },
-  { id: 'promotion', icon: '🌟', label: 'Promotion' },
-  { id: 'christmas', icon: '🎄', label: 'Christmas' },
-  { id: 'get_well', icon: '🌷', label: 'Get well' },
-  { id: 'new_year', icon: '✨', label: 'New Year' },
-  { id: 'other', icon: '💌', label: 'Other' },
+  { id: 'birthday',      icon: '🎂', label: 'Birthday' },
+  { id: 'valentine',     icon: '💝', label: "Valentine's" },
+  { id: 'leaving',       icon: '💼', label: 'Leaving job' },
+  { id: 'anniversary',   icon: '💍', label: 'Anniversary' },
+  { id: 'wedding',       icon: '💒', label: 'Wedding' },
+  { id: 'baby_shower',   icon: '👶', label: 'Baby shower' },
+  { id: 'retirement',    icon: '🏖️', label: 'Retirement' },
+  { id: 'congratulations',icon: '🎉', label: 'Congrats' },
+  { id: 'graduation',    icon: '🎓', label: 'Graduation' },
+  { id: 'promotion',     icon: '🌟', label: 'Promotion' },
+  { id: 'christmas',     icon: '🎄', label: 'Christmas' },
+  { id: 'get_well',      icon: '🌷', label: 'Get well' },
+  { id: 'new_year',      icon: '✨', label: 'New Year' },
+  { id: 'other',         icon: '💌', label: 'Other' },
 ];
 
-const DESIGNS = [
-  { id: 'rose_love', name: 'Rose Love', bg: '#FBEAF0', accent: '#D4537E', emoji: '🌹' },
-  { id: 'starry_night', name: 'Starry Night', bg: '#EEEDFE', accent: '#7F77DD', emoji: '🌟' },
-  { id: 'garden_bloom', name: 'Garden Bloom', bg: '#E1F5EE', accent: '#1D9E75', emoji: '🌸' },
-  { id: 'golden_glow', name: 'Golden Glow', bg: '#FAEEDA', accent: '#BA7517', emoji: '✨' },
-  { id: 'warm_ember', name: 'Warm Ember', bg: '#FAECE7', accent: '#D85A30', emoji: '🔥' },
-  { id: 'midnight_blue', name: 'Midnight Blue', bg: '#E6F1FB', accent: '#378ADD', emoji: '🌙' },
-  { id: 'fresh_garden', name: 'Fresh Garden', bg: '#EAF3DE', accent: '#3B6D11', emoji: '🌿' },
-  { id: 'minimal_chic', name: 'Minimal Chic', bg: '#F5F5F0', accent: '#4A4A4A', emoji: '🤍' },
-];
-
-const STEPS = ['Occasion', 'Design', 'Details', 'Gift & Send'];
+const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000];
+const STEPS = ['Occasion', 'Design', 'Details', 'Your Message', 'Gift & Pay'];
 
 const StepIndicator = ({ current }) => (
-  <div className="flex items-center mb-10">
+  <div className="flex items-center mb-8">
     {STEPS.map((s, i) => (
       <div key={s} className="flex items-center flex-1 last:flex-none">
-        <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-            i < current ? 'bg-primary-400 text-white' :
-            i === current ? 'bg-primary-400 text-white ring-4 ring-primary-100' :
-            'bg-purple-50 text-warm-400'
-          }`}>
+        <div className="flex items-center gap-1.5">
+          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+            i < current  ? 'bg-primary-500 text-white' :
+            i === current? 'bg-primary-500 text-white ring-4 ring-primary-100' :
+            'bg-purple-50 text-warm-400'}`}>
             {i < current ? '✓' : i + 1}
           </div>
-          <span className={`text-sm font-medium hidden sm:block ${i <= current ? 'text-warm-900' : 'text-warm-400'}`}>{s}</span>
+          <span className={`text-xs font-medium hidden sm:block ${i <= current ? 'text-warm-900' : 'text-warm-400'}`}>{s}</span>
         </div>
-        {i < STEPS.length - 1 && (
-          <div className={`flex-1 h-0.5 mx-3 transition-all ${i < current ? 'bg-primary-400' : 'bg-gray-200'}`} />
-        )}
+        {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 mx-2 transition-all ${i < current ? 'bg-primary-400' : 'bg-gray-200'}`}/>}
       </div>
     ))}
   </div>
@@ -70,508 +61,622 @@ const CreateCard = () => {
   const { user }    = useAuth();
   const { member }  = useMemberAuth();
   const { company } = useCompanyAuth();
-  const isCompanyUser  = !!(member || company); // free card creation
-  const isTeamLeader   = member?.role === 'team_leader';
-  const navigate = useNavigate();
-  // Derive a display name for whoever is creating the card
-  const creatorName = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'Someone';
-  const [step, setStep] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [paymentStage,   setPaymentStage]   = useState('opening');
-  const [signingDeadline, setSigningDeadline] = useState('');
-  const [deliveryDate,    setDeliveryDate]    = useState('');
-  const [selectedCurrency, setSelectedCurrency] = useState('NGN');
-  const [creditBalance, setCreditBalance] = useState(null);
-  const [payMode, setPayMode] = useState('direct'); // 'direct' | 'credit'
-  const [inviteEmails, setInviteEmails] = useState('');
+  const isCompanyUser = !!(member || company);
+  const isTeamLeader  = member?.role === 'team_leader';
+  const navigate      = useNavigate();
+  const creatorName   = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'Someone';
+
+  const [step,            setStep]           = useState(0);
+  const [loading,         setLoading]        = useState(false);
+  const [paymentStage,    setPaymentStage]   = useState('idle');
+  const [selectedCurrency,setSelectedCurrency] = useState('NGN');
+  const [creditBalance,   setCreditBalance]  = useState(null);
+  const [payMode,         setPayMode]        = useState('direct');
+  const [inviteEmails,    setInviteEmails]   = useState('');
+  const [liveSlug,        setLiveSlug]       = useState(null); // set when card is live
+  const [signingDeadline, setSigningDeadline]= useState('');
+  const [deliveryDate,    setDeliveryDate]   = useState('');
+
+  // Card form
   const [form, setForm] = useState({
-    occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
+    occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0',
+    font_style: 'elegant', card_layout: 'form',
     title: `${creatorName.split(' ')[0]}'s Birthday Card`,
     recipient_name: '', recipient_email: '', send_date: '',
-    send_time: '09:00', deadline: '', deadline_time: '23:59', is_gift_enabled: true, notification_scope: 'department', gift_type: 'pot', suggested_amount: 2500,
-    allow_private_messages: true, send_reminders: true, hide_amounts: false
+    send_time: '09:00', deadline: '', deadline_time: '23:59',
+    is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
+    allow_private_messages: true, send_reminders: true, hide_amounts: false,
+    notification_scope: 'department',
   });
 
+  // Creator's own first message (Step 3)
+  const [msgForm, setMsgForm]     = useState({ content: '', font_style: 'handwritten', is_private: false });
+  const [mediaFiles,  setMediaFiles]  = useState([]);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [showEmoji,   setShowEmoji]   = useState(false);
+  const [showGif,     setShowGif]     = useState(false);
+  const [giftAmount,  setGiftAmount]  = useState(null);
+  const [customGift,  setCustomGift]  = useState('');
+  const fileRef    = useRef();
+  const textareaRef = useRef();
+
   useEffect(() => {
-    const resetCheckoutState = () => {
-      setLoading(false);
-      setPaymentStage('opening');
-    };
-    window.addEventListener('pageshow', resetCheckoutState);
-    return () => window.removeEventListener('pageshow', resetCheckoutState);
+    const reset = () => { setLoading(false); setPaymentStage('idle'); };
+    window.addEventListener('pageshow', reset);
+    return () => window.removeEventListener('pageshow', reset);
   }, []);
 
-  // Load credit balance for regular users
   useEffect(() => {
-    if (!isCompanyUser && user) {
+    if (!isCompanyUser && user)
       creditsAPI.getBalance().then(r => setCreditBalance(r.data?.credits ?? 0)).catch(() => {});
-    }
   }, [user]);
 
-  // Clear any stale pending card from a previous payment attempt
-  useEffect(() => {
-    // Only clear if we're not in the middle of creating a card
-    // (i.e., no active payment in progress)
-    const pending = localStorage.getItem('thankeeu_pending_card');
-    if (pending) {
-      try {
-        const p = JSON.parse(pending);
-        // If stored more than 1 hour ago, clear it
-        if (!p.timestamp || Date.now() - p.timestamp > 3600000) {
-          localStorage.removeItem('thankeeu_pending_card');
-        }
-      } catch {
-        localStorage.removeItem('thankeeu_pending_card');
-      }
-    }
-  }, []);
-
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const setMsg = (k, v) => setMsgForm(p => ({ ...p, [k]: v }));
+
+  const selectedDesign = CARD_DESIGNS.find(d => d.id === form.design_theme);
 
   const handleOccasionSelect = (occ) => {
     set('occasion', occ.id);
-    if (!form.title) set('title', `${creatorName.split(' ')[0]}'s ${occ.label} Card`);
+    if (!form.title || form.title.endsWith('Card')) set('title', `${creatorName.split(' ')[0]}'s ${occ.label} Card`);
   };
+  const handleDesignSelect = (d) => { set('design_theme', d.id); set('background_color', d.background || d.bg || '#F5F0FF'); };
 
-  const handleDesignSelect = (d) => {
-    set('design_theme', d.id);
-    set('background_color', d.background || d.bg);
-  };
+  // Media helpers
+  const addMedia = useCallback((files) => {
+    const items = [];
+    for (const f of Array.from(files)) {
+      if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} too large (max 50MB)`); continue; }
+      const mime = f.type;
+      const type = mime.startsWith('video/') ? 'video' : mime.startsWith('audio/') ? 'voice' : mime === 'image/gif' ? 'gif' : 'image';
+      items.push({ file: f, preview: URL.createObjectURL(f), type, name: f.name });
+    }
+    setMediaFiles(prev => [...prev, ...items].slice(0, 5));
+  }, []);
+  const removeMedia = useCallback((idx) => {
+    setMediaFiles(prev => { const n = [...prev]; URL.revokeObjectURL(n[idx].preview); n.splice(idx, 1); setCarouselIdx(i => Math.min(i, Math.max(0, n.length - 1))); return n; });
+  }, []);
+  const insertEmoji = useCallback((emoji) => {
+    const el = textareaRef.current;
+    if (el && typeof el.selectionStart === 'number') {
+      const s = el.selectionStart, e = el.selectionEnd;
+      setMsg('content', msgForm.content.slice(0, s) + emoji + msgForm.content.slice(e));
+      requestAnimationFrame(() => { el.focus(); const p = s + emoji.length; el.setSelectionRange(p, p); });
+    } else setMsg('content', msgForm.content + emoji);
+    setShowEmoji(false);
+  }, [msgForm.content]);
 
-  const handleSubmit = async () => {
-    if (!form.recipient_name) return toast.error('Add recipient name');
+  // Step 3: create card draft (no payment yet) then allow creator to add first message
+  const handleCreateDraft = async () => {
+    if (!form.recipient_name) return toast.error('Recipient name is required');
     setLoading(true);
     setPaymentStage('creating');
     try {
-      const occasionLabel = OCCASIONS.find(o => o.id === form.occasion)?.label || 'Celebration';
-      const cardData = {
-        ...form,
-        title: form.title.trim() || `${form.recipient_name}'s ${occasionLabel} Card`,
-      };
-
-      const pendingCard = {
-        cardData,
-        inviteEmails: inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean)
-      };
-      let savedPending = null;
-      try {
-        savedPending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || 'null');
-      } catch {
-        localStorage.removeItem('thankeeu_pending_card');
-      }
-      const canReuseDraft = savedPending?.slug
-        && JSON.stringify(savedPending.cardData) === JSON.stringify(cardData);
-
+      const cardData = { ...form, title: form.title.trim() || `${form.recipient_name}'s Card` };
       let slug;
-      if (canReuseDraft) {
-        slug = savedPending.slug;
-      } else if (company) {
-        slug = (await cardsAPI.createAsCompany(cardData)).data.slug;
-      } else if (member) {
-        const { memberCardsAPI } = await import('../utils/api');
-        slug = (await memberCardsAPI.create(cardData)).data.slug;
-      } else {
-        slug = (await cardsAPI.create(cardData)).data.slug;
+      if (company)      slug = (await cardsAPI.createAsCompany(cardData)).data.slug;
+      else if (member)  { const { memberCardsAPI } = await import('../utils/api'); slug = (await memberCardsAPI.create(cardData)).data.slug; }
+      else              slug = (await cardsAPI.create(cardData)).data.slug;
+      localStorage.setItem('thankeeu_pending_card', JSON.stringify({ cardData, slug, timestamp: Date.now() }));
+      setPaymentStage('idle');
+      setStep(3);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not create card draft. Please try again.');
+    } finally { setLoading(false); }
+  };
+
+  // Step 4: post creator's message then pay / activate
+  const handlePayAndLaunch = async () => {
+    setLoading(true);
+    setPaymentStage('sending');
+    try {
+      const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+      const slug = pending?.slug;
+      if (!slug) { toast.error('Card draft not found. Please go back and try again.'); setLoading(false); setPaymentStage('idle'); return; }
+
+      // Post creator's first message if they wrote one
+      if (msgForm.content.trim() && user) {
+        const fd = new FormData();
+        fd.append('author_name', user.full_name || creatorName);
+        fd.append('author_email', user.email || '');
+        fd.append('content', msgForm.content);
+        fd.append('font_style', msgForm.font_style);
+        fd.append('is_private', msgForm.is_private);
+        mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
+        await messagesAPI.add(slug, fd).catch(() => {}); // non-blocking
       }
 
-      localStorage.setItem('thankeeu_pending_card', JSON.stringify({ ...pendingCard, slug }));
-      setPaymentStage('opening');
-
-      // Step 1: Get payment link from backend (same as old Paystack approach)
-      // ── Company/member/leader: free card creation ───────────────────
+      // Company/member: activate free
       if (isCompanyUser) {
-        // Activate card directly — no payment needed
-        await cardsAPI.activate(slug, {
-          inviteEmails: pendingCard.inviteEmails || [],
-          signing_deadline: signingDeadline || null,
-          delivery_scheduled: deliveryDate || null,
-        });
+        await cardsAPI.activate(slug, { inviteEmails: inviteEmails.split(/[,\n]/).map(e=>e.trim()).filter(Boolean), signing_deadline: signingDeadline || null, delivery_scheduled: deliveryDate || null });
         localStorage.removeItem('thankeeu_pending_card');
-        toast.success('Card created! Share the invite link. 🎉');
-        navigate(`/card/${slug}`, { replace: true });
+        toast.success('Card is live! 🎉');
+        setLiveSlug(slug);
+        setLoading(false); setPaymentStage('idle');
         return;
       }
 
-      // ── Individual user: credit balance or direct payment ────────────
+      // Credit payment
       if (payMode === 'credit') {
         setPaymentStage('verifying');
-        const spendRes = await creditsAPI.spend(slug);
-        if (spendRes.data?.ok) {
-          if (pendingCard.inviteEmails?.length) {
-            cardsAPI.activate(slug, { inviteEmails: pendingCard.inviteEmails }).catch(() => {});
-          }
-          setCreditBalance(spendRes.data.credits_remaining);
+        const res = await creditsAPI.spend(slug);
+        if (res.data?.ok) {
           localStorage.removeItem('thankeeu_pending_card');
-          toast.success('1 credit used. Card is now active! 🎉');
-          navigate(`/card/${slug}`, { replace: true });
+          setCreditBalance(res.data.credits_remaining);
+          toast.success('Card is live! 🎉');
+          setLiveSlug(slug);
+          setLoading(false); setPaymentStage('idle');
           return;
         }
       }
 
-      // ── Direct payment via FLW ───────────────────────────────────────
+      // Flutterwave direct
+      setPaymentStage('redirecting');
       const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency);
       const { payment_link } = payRes.data;
-      if (!payment_link) throw new Error('No payment link returned from server');
-
-      setPaymentStage('redirecting');
+      if (!payment_link) throw new Error('No payment link returned');
       window.location.assign(payment_link);
 
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Could not open payment. Please try again.');
-      setLoading(false);
-      setPaymentStage('opening');
+      toast.error(err.response?.data?.error || 'Could not activate card. Please try again.');
+      setLoading(false); setPaymentStage('idle');
     }
   };
 
-  const selectedDesign = CARD_DESIGNS.find(d => d.id === form.design_theme);
+  const handleReset = () => {
+    localStorage.removeItem('thankeeu_pending_card');
+    setStep(0); setLiveSlug(null); setLoading(false); setPaymentStage('idle');
+    setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
+    setMediaFiles([]); setGiftAmount(null); setCustomGift(''); setInviteEmails('');
+    setForm({ occasion:'birthday', design_theme:'rose_love', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
+      title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
+      send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
+      allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department' });
+  };
+
+  // ── LIVE screen ──────────────────────────────────────────────────────────
+  if (liveSlug) return (
+    <div className="min-h-screen" style={{ background:'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
+      <Navbar/>
+      <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 py-16 text-center">
+        <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-6 animate-pop" style={{ background:'linear-gradient(135deg,#7C3AED,#EC4899)' }}>🎉</div>
+        <h1 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:'clamp(1.75rem,5vw,2.75rem)', color:'#1A1035', marginBottom:12 }}>
+          Your card is live!
+        </h1>
+        <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', color:'#7A6CA8', fontSize:18, marginBottom:32 }}>
+          Share the link below so people can sign it.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 mb-6 w-full max-w-lg">
+          <input readOnly value={`${window.location.origin}/sign/${liveSlug}`}
+            className="input flex-1 text-sm" style={{ background:'#fff' }}/>
+          <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${liveSlug}`); toast.success('Link copied!'); }}
+            className="btn-primary px-6 whitespace-nowrap">
+            📋 Copy link
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-3 justify-center">
+          <Link to={`/card/${liveSlug}`} className="btn-primary px-8 py-3 inline-flex items-center gap-2">
+            <Icon name="Eye" size={16}/> View card
+          </Link>
+          <button onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent(`Sign this card: ${window.location.origin}/sign/${liveSlug}`)}`, '_blank')}
+            className="px-8 py-3 rounded-2xl font-bold text-white inline-flex items-center gap-2" style={{ background:'#25D366' }}>
+            📣 Share on WhatsApp
+          </button>
+          <button onClick={handleReset}
+            className="btn-secondary px-8 py-3 inline-flex items-center gap-2">
+            🔄 Create another card
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   const inner = (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
       {!company && !member && (
         <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-warm-900 mb-1">Create a Thankeeu card</h1>
+          <h1 className="text-3xl font-bold text-warm-900 mb-1">Create a Thankeeu card</h1>
           <p className="text-warm-500 text-sm">Takes less than 3 minutes to set up</p>
         </div>
       )}
 
       <StepIndicator current={step} />
 
-        {/* Step 0: Occasion */}
-        {step === 0 && (
-          <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="text-xl font-semibold text-warm-900 mb-1">What's the occasion?</h2>
-            <p className="text-warm-500 text-sm mb-6">Pick the type of card you're creating</p>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-8">
-              {OCCASIONS.map(o => (
-                <button key={o.id} onClick={() => handleOccasionSelect(o)}
-                  className={`rounded-3xl p-4 text-center transition-all border-2 ${
-                    form.occasion === o.id
-                      ? 'border-primary-400 bg-primary-50 shadow-sm'
-                      : 'border-transparent bg-warm-100 hover:bg-purple-50'
-                  }`}>
-                  <div className="text-2xl mb-1">{o.icon}</div>
-                  <div className="text-xs font-medium text-warm-700">{o.label}</div>
+      {/* ── Step 0: Occasion ── */}
+      {step === 0 && (
+        <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+          <h2 className="text-xl font-bold text-warm-900 mb-1">What's the occasion?</h2>
+          <p className="text-warm-500 text-sm mb-6">Pick the type of card you're creating</p>
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-8">
+            {OCCASIONS.map(o => (
+              <button key={o.id} onClick={() => handleOccasionSelect(o)}
+                className={`rounded-2xl p-4 text-center transition-all border-2 ${form.occasion === o.id ? 'border-primary-400 bg-primary-50 shadow-sm' : 'border-transparent bg-warm-100 hover:bg-purple-50'}`}>
+                <div className="text-2xl mb-1">{o.icon}</div>
+                <div className="text-xs font-semibold text-warm-700">{o.label}</div>
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-end">
+            <button onClick={() => setStep(1)} className="btn-primary">Choose design →</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 1: Design ── */}
+      {step === 1 && (
+        <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+          <h2 className="text-xl font-bold text-warm-900 mb-1">Pick a design</h2>
+          <p className="text-warm-500 text-sm mb-5">Choose from our templates</p>
+
+          <style>{`
+            .ccg { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
+            @media(max-width:640px){.ccg{grid-template-columns:repeat(3,1fr);}}
+            @media(max-width:380px){.ccg{grid-template-columns:repeat(2,1fr);}}
+            .ccg-item{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;aspect-ratio:3/4;}
+            .ccg-item:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.14);}
+            .ccg-item.sel{outline:3px solid #7C3AED;outline-offset:2px;}
+            .ccg-badge{position:absolute;top:7px;left:7px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;z-index:2;}
+            .ccg-new{background:#FCD34D;color:#92400E;}
+            .ccg-more{background:#F43F5E;color:#fff;}
+            .ccg-upload{background:#60A5FA;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;}
+            .ccg-upload p{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#fff;margin:0;text-align:center;line-height:1.2;}
+          `}</style>
+
+          <div className="ccg">
+            <button type="button" className="ccg-item ccg-upload" onClick={() => document.getElementById('cc-bg-upload')?.click()}>
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <p>Upload<br/>your own</p>
+              <input id="cc-bg-upload" type="file" accept="image/*" className="hidden"
+                onChange={e => { const f=e.target.files?.[0]; if(!f) return; set('background_color',URL.createObjectURL(f)); set('design_theme','custom_upload'); }}/>
+            </button>
+            {CARD_DESIGNS.map((d, idx) => (
+              <button key={d.id} type="button" className={`ccg-item ${form.design_theme===d.id?'sel':''}`} onClick={() => handleDesignSelect(d)}>
+                <div className={`card-art ${cardArtClass(d)} w-full h-full flex flex-col items-center justify-center`} style={{ background:d.background }}>
+                  <span style={{ fontSize:30 }}>{d.icon}</span>
+                  <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:700, fontSize:10, color:d.ink, marginTop:4, textAlign:'center', padding:'0 4px', textShadow:d.dark?'0 1px 4px rgba(0,0,0,0.5)':'none' }}>{d.name}</p>
+                </div>
+                {idx < 3  && <span className="ccg-badge ccg-new">★ New</span>}
+                {idx >= 3 && idx < 7 && <span className="ccg-badge ccg-more">More</span>}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-sm font-bold text-warm-700 mb-2">Card lettering</p>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
+            {FONT_STYLES.map(font => (
+              <button key={font.id} type="button" onClick={() => set('font_style', font.id)}
+                className={`rounded-xl border-2 px-2 py-2.5 text-sm transition-all ${form.font_style===font.id?'border-primary-500 bg-primary-50 text-primary-700':'border-purple-100 text-warm-600'}`}
+                style={{ fontFamily:font.family }}>
+                {font.id === 'calligraphy' ? 'With love' : font.name}
+              </button>
+            ))}
+          </div>
+
+          {selectedDesign && (
+            <div className={`card-art ${cardArtClass(selectedDesign)} celebration-shell rounded-2xl p-5 mb-5 text-center min-h-[160px] flex flex-col justify-center`}
+              style={{ background:selectedDesign.background, color:selectedDesign.ink }}>
+              <span className="text-3xl mb-2">{selectedDesign.icon}</span>
+              <h3 className="text-xl" style={{ color:selectedDesign.ink, fontFamily:getFontStyle(form.font_style).family }}>
+                {form.title || `A beautiful card for ${form.recipient_name || 'someone special'}`}
+              </h3>
+            </div>
+          )}
+
+          <div className="mb-5">
+            <p className="text-sm font-bold text-warm-700 mb-2">How should people sign?</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[{id:'form',icon:'📝',title:'Classic form',desc:'Messages in a tidy list'},{id:'album',icon:'📖',title:'Photo album',desc:'Flipbook pages with free placement'}].map(opt => (
+                <button key={opt.id} type="button" onClick={() => set('card_layout', opt.id)}
+                  className={`rounded-2xl border-2 p-3 text-left transition-all ${form.card_layout===opt.id?'border-primary-500 bg-primary-50':'border-purple-100 bg-white hover:border-primary-200'}`}>
+                  <div className="text-xl mb-1">{opt.icon}</div>
+                  <p className="font-bold text-sm text-warm-900">{opt.title}</p>
+                  <p className="text-xs text-warm-500">{opt.desc}</p>
                 </button>
               ))}
-            </div>
-            <div className="flex justify-end">
-              <button onClick={() => setStep(1)} className="btn-primary">Choose design →</button>
             </div>
           </div>
-        )}
 
-        {/* Step 1: Design */}
-        {step === 1 && (
-          <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="text-xl font-semibold text-warm-900 mb-1">Pick a design</h2>
-            <p className="text-warm-500 text-sm mb-6">Choose from our beautiful templates</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-              {CARD_DESIGNS.map(d => (
-                <button key={d.id} onClick={() => handleDesignSelect(d)}
-                  className={`rounded-3xl overflow-hidden border-2 transition-all bg-white ${
-                    form.design_theme === d.id ? 'border-primary-400 shadow-md' : 'border-transparent'
-                  }`}>
-                  <div className={`card-art ${cardArtClass(d)} h-24 flex items-center justify-center text-4xl`} style={{ background: d.background }}>{d.icon}</div>
-                  <div className="py-2 px-1 text-center">
-                    <span className="text-xs font-medium text-warm-700">{d.name}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-            <p className="text-sm font-semibold text-warm-700 mb-3">Choose the card lettering</p>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-6">
-              {FONT_STYLES.map(font => (
-                <button key={font.id} type="button" onClick={() => set('font_style', font.id)}
-                  className={`rounded-2xl border-2 px-2 py-3 transition-all ${
-                    form.font_style === font.id ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-purple-100 text-warm-600'
-                  }`}
-                  style={{ fontFamily: font.family }}>
-                  {font.id === 'calligraphy' ? 'With love' : font.name}
-                </button>
-              ))}
-            </div>
-            {selectedDesign && (
-              <div className={`card-art ${cardArtClass(selectedDesign)} celebration-shell rounded-3xl p-7 mb-6 text-center min-h-[210px] flex flex-col justify-center`} style={{ background: selectedDesign.background, color: selectedDesign.ink }}>
-                <span className="text-4xl mb-3">{selectedDesign.icon}</span>
-                <p className="text-xs font-bold uppercase tracking-[.2em] mb-2" style={{ color: selectedDesign.accent }}>{selectedDesign.name}</p>
-                <h3 className="text-2xl" style={{ color: selectedDesign.ink, fontFamily: getFontStyle(form.font_style).family }}>
-                  {form.title || `A beautiful card for ${form.recipient_name || 'someone special'}`}
-                </h3>
-                <p className="text-xs opacity-70 mt-2" style={{ color: selectedDesign.ink }}>This artwork and lettering follows the card everywhere.</p>
-              </div>
-            )}
-            <div className="flex justify-between">
-              <button onClick={() => setStep(0)} className="btn-secondary">← Back</button>
-              <button onClick={() => setStep(2)} className="btn-primary">Add details →</button>
-            </div>
+          <div className="flex justify-between">
+            <button onClick={() => setStep(0)} className="btn-secondary">← Back</button>
+            <button onClick={() => setStep(2)} className="btn-primary">Add details →</button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Step 2: Details */}
-        {step === 2 && (
-          <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="text-xl font-semibold text-warm-900 mb-1">Card details</h2>
-            <p className="text-warm-500 text-sm mb-6">Tell us who this is for</p>
-            <div className="space-y-4 mb-6">
+      {/* ── Step 2: Details ── */}
+      {step === 2 && (
+        <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+          <h2 className="text-xl font-bold text-warm-900 mb-1">Card details</h2>
+          <p className="text-warm-500 text-sm mb-5">Tell us who this is for</p>
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="block text-sm font-semibold text-warm-700 mb-1.5">Card title</label>
+              <input className="input" placeholder="e.g. Amaka's Birthday Card 🎂" value={form.title} onChange={e => set('title', e.target.value)}/>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-warm-700 mb-1.5">Card title</label>
-                <input className="input" placeholder="e.g. Amaka's Birthday Card 🎂" value={form.title}
-                  onChange={e => set('title', e.target.value)} />
+                <label className="block text-sm font-semibold text-warm-700 mb-1.5">Recipient's name *</label>
+                <input className="input" placeholder="e.g. Amaka" value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)} required/>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Recipient's name <span className="text-red-400">*</span></label>
-                  <input className="input" placeholder="e.g. Amaka" value={form.recipient_name}
-                    onChange={e => set('recipient_name', e.target.value)} required />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Recipient's email <span className="text-warm-400 font-normal text-xs">(to deliver card)</span></label>
-                  <input type="email" className="input" placeholder="amaka@email.com" value={form.recipient_email}
-                    onChange={e => set('recipient_email', e.target.value)} />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Delivery date</label>
-                  <input type="date" className="input" value={form.send_date}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={e => set('send_date', e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Delivery time</label>
-                  <input type="time" className="input" value={form.send_time || '09:00'}
-                    onChange={e => set('send_time', e.target.value)} />
-                  <p className="text-xs text-warm-400 mt-1">Time card is delivered to recipient</p>
-                </div>
-                <div>
-                  {/* Scope selector — only for HR and team leaders */}
-              {(company || member) && (
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Who should sign this card?</label>
-                  <div className="flex gap-3">
-                    {[
-                      { value: 'department', label: 'My Department', desc: 'Only members in the same department' },
-                      { value: 'company_wide', label: 'Entire Company', desc: 'All team members across all departments' },
-                    ].map(opt => (
-                      <button key={opt.value} type="button"
-                        onClick={() => set('notification_scope', opt.value)}
-                        className={`flex-1 px-4 py-3 rounded-xl border-2 text-left transition-all ${
-                          form.notification_scope === opt.value
-                            ? 'border-primary-500 bg-primary-50'
-                            : 'border-purple-100 bg-white hover:border-primary-200'
-                        }`}>
-                        <p className="text-sm font-semibold text-warm-900">{opt.label}</p>
-                        <p className="text-xs text-warm-400 mt-0.5">{opt.desc}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <label className="block text-sm font-medium text-warm-700 mb-1.5">Signing deadline</label>
-                  <input type="date" className="input" value={form.deadline}
-                    min={new Date().toISOString().split('T')[0]}
-                    onChange={e => set('deadline', e.target.value)} />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-warm-700 mb-1.5">Deadline time</label>
-                  <input type="time" className="input" value={form.deadline_time || '23:59'}
-                    onChange={e => set('deadline_time', e.target.value)} />
-                  <p className="text-xs text-warm-400 mt-1">Time reminder is sent to unsigned invitees</p>
-                </div>
-              </div>
-              {/* Toggles */}
-              <div className="rounded-3xl border border-purple-100 divide-y divide-gray-100">
-                {[
-                  { key: 'allow_private_messages', label: 'Allow private messages', desc: 'Contributors can mark messages visible only to recipient' },
-                  { key: 'send_reminders', label: 'Auto-send reminders', desc: "Nudge people who haven't signed 2 days before deadline" },
-                  { key: 'hide_amounts', label: 'Hide gift amounts', desc: "Contributors won't see how much others gave" },
-                ].map(({ key, label, desc }) => (
-                  <div key={key} className="flex items-center justify-between p-4">
-                    <div>
-                      <p className="text-sm font-medium text-warm-800">{label}</p>
-                      <p className="text-xs text-warm-500 mt-0.5">{desc}</p>
-                    </div>
-                    <button onClick={() => set(key, !form[key])}
-                      className={`w-11 h-6 rounded-full transition-colors relative flex items-center ${form[key] ? 'bg-primary-400' : 'bg-gray-200'}`}>
-                      <span className={`absolute w-5 h-5 bg-white rounded-full shadow transition-transform ${form[key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
-                    </button>
-                  </div>
-                ))}
+              <div>
+                <label className="block text-sm font-semibold text-warm-700 mb-1.5">Recipient's email</label>
+                <input type="email" className="input" placeholder="amaka@email.com" value={form.recipient_email} onChange={e => set('recipient_email', e.target.value)}/>
               </div>
             </div>
-            <div className="flex justify-between">
-              <button onClick={() => setStep(1)} className="btn-secondary">← Back</button>
-              <button onClick={() => { if (!form.recipient_name) return toast.error('Recipient name is required'); setStep(3); }} className="btn-primary">Gift options →</button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery date</label>
+                <input type="date" className="input" value={form.send_date} min={new Date().toISOString().split('T')[0]} onChange={e => set('send_date', e.target.value)}/>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery time</label>
+                <input type="time" className="input" value={form.send_time||'09:00'} onChange={e => set('send_time', e.target.value)}/>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-warm-700 mb-1.5">Signing deadline</label>
+                <input type="date" className="input" value={form.deadline} min={new Date().toISOString().split('T')[0]} onChange={e => set('deadline', e.target.value)}/>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-warm-700 mb-1.5">Deadline time</label>
+                <input type="time" className="input" value={form.deadline_time||'23:59'} onChange={e => set('deadline_time', e.target.value)}/>
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Step 3: Gift & Send */}
-        {step === 3 && (
-          <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-            <h2 className="text-xl font-semibold text-warm-900 mb-1">Gift & send</h2>
-            <p className="text-warm-500 text-sm mb-6">Add a gift collection and invite people to sign</p>
-
-            {/* Gift options */}
-            <p className="text-sm font-semibold text-warm-700 mb-3">Gift collection</p>
-            <div className="grid grid-cols-2 gap-3 mb-5">
-              {[
-                { id: true, icon: '🐷', title: 'Enable gift pot', desc: 'Everyone chips in, recipient redeems' },
-                { id: false, icon: '✉️', title: 'Card only', desc: 'Messages only, no gift collection' },
-              ].map(o => (
-                <button key={String(o.id)} onClick={() => set('is_gift_enabled', o.id)}
-                  className={`rounded-3xl p-4 text-left border-2 transition-all ${
-                    form.is_gift_enabled === o.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'
-                  }`}>
-                  <div className="text-2xl mb-2">{o.icon}</div>
-                  <div className="text-sm font-semibold text-warm-800">{o.title}</div>
-                  <div className="text-xs text-warm-500 mt-0.5">{o.desc}</div>
-                </button>
-              ))}
-            </div>
-
-            {form.is_gift_enabled && (
-              <div className="mb-5">
-                <p className="text-sm font-medium text-warm-700 mb-3">Suggested contribution</p>
-                <div className="flex flex-wrap gap-2">
-                  {[2500, 5000, 10000, 25000, 50000].map(amt => (
-                    <button key={amt} onClick={() => set('suggested_amount', amt)}
-                      className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                        form.suggested_amount === amt
-                          ? 'bg-primary-400 text-white border-primary-400'
-                          : 'border-purple-100 text-warm-700 hover:border-primary-300'
-                      }`}>
-                      {formatNGN(amt)}
+            {(company || member) && (
+              <div>
+                <label className="block text-sm font-semibold text-warm-700 mb-2">Who should sign?</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[{value:'department',label:'My Department'},{value:'company_wide',label:'Entire Company'}].map(opt => (
+                    <button key={opt.value} type="button" onClick={() => set('notification_scope', opt.value)}
+                      className={`px-4 py-3 rounded-xl border-2 text-sm font-semibold transition-all ${form.notification_scope===opt.value?'border-primary-500 bg-primary-50 text-primary-700':'border-purple-100 text-warm-600'}`}>
+                      {opt.label}
                     </button>
                   ))}
                 </div>
               </div>
             )}
-
-            {/* Team leader: signing deadline and delivery date */}
-            {isTeamLeader && (
-              <div className="mb-5 space-y-4">
-                <p className="text-sm font-bold text-warm-800">⏰ Schedule (Team Leader)</p>
-                <div>
-                  <label className="block text-xs font-semibold text-warm-600 mb-1.5">Signing deadline</label>
-                  <input type="datetime-local" value={signingDeadline}
-                    onChange={e => setSigningDeadline(e.target.value)}
-                    className="input text-sm py-2.5 w-full"
-                    min={new Date().toISOString().slice(0,16)} />
-                  <p className="text-xs text-warm-400 mt-1">Signers cannot add messages after this date/time</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-warm-600 mb-1.5">Delivery date & time</label>
-                  <input type="datetime-local" value={deliveryDate}
-                    onChange={e => setDeliveryDate(e.target.value)}
-                    className="input text-sm py-2.5 w-full"
-                    min={signingDeadline || new Date().toISOString().slice(0,16)} />
-                  <p className="text-xs text-warm-400 mt-1">Card will be sent to the recipient on this date</p>
-                </div>
-              </div>
-            )}
-
-            {/* Invite emails */}
-            <div className="mb-5">
-              <label className="block text-sm font-semibold text-warm-700 mb-1.5">Invite people to sign</label>
-              <p className="text-xs text-warm-500 mb-2">Enter email addresses separated by commas or new lines</p>
-              <textarea className="input h-24 resize-none" placeholder="kemi@email.com, emeka@email.com&#10;tunde@email.com"
-                value={inviteEmails} onChange={e => setInviteEmails(e.target.value)} />
-              <p className="text-xs text-warm-400 mt-1">You can also share a link after creating the card</p>
-            </div>
-
-            {/* Summary */}
-            <div className="rounded-3xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-6">
+            <div className="rounded-2xl border border-purple-100 divide-y divide-gray-100">
               {[
-                ['Occasion', OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion],
-                ['Design', CARD_DESIGNS.find(d => d.id === form.design_theme)?.name || form.design_theme],
-                ['Recipient', form.recipient_name],
-                ['Gift enabled', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount)} suggested` : 'No'],
-                ...(isCompanyUser ? [['Card fee', '🆓 Free (company account)']] : [['Card fee', '₦5,000 one-time']]),
-              ].map(([k, v]) => (
-                <div key={k} className="flex justify-between items-center px-4 py-3">
-                  <span className="text-sm text-warm-500">{k}</span>
-                  <span className="text-sm font-medium text-warm-900">{v}</span>
+                { key:'allow_private_messages', label:'Allow private messages', desc:'Contributors can mark messages visible only to recipient' },
+                { key:'send_reminders', label:'Auto-send reminders', desc:"Nudge people who haven't signed 2 days before deadline" },
+                { key:'hide_amounts', label:'Hide gift amounts', desc:"Contributors won't see how much others gave" },
+              ].map(({ key, label, desc }) => (
+                <div key={key} className="flex items-center justify-between p-4">
+                  <div><p className="text-sm font-semibold text-warm-800">{label}</p><p className="text-xs text-warm-500 mt-0.5">{desc}</p></div>
+                  <button onClick={() => set(key, !form[key])}
+                    className={`w-11 h-6 rounded-full transition-colors relative flex items-center ${form[key]?'bg-primary-400':'bg-gray-200'}`}>
+                    <span className={`absolute w-5 h-5 bg-white rounded-full shadow transition-transform ${form[key]?'translate-x-5':'translate-x-0.5'}`}/>
+                  </button>
                 </div>
               ))}
             </div>
+          </div>
+          <div className="flex justify-between">
+            <button onClick={() => setStep(1)} className="btn-secondary">← Back</button>
+            <button onClick={handleCreateDraft} disabled={loading}
+              className="btn-primary inline-flex items-center gap-2">
+              {loading
+                ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Creating…</span>
+                : 'Add your message →'}
+            </button>
+          </div>
+        </div>
+      )}
 
-            {/* Payment mode selector — only for individual users */}
-            {!isCompanyUser && (
-              <div className="mb-4">
-                {(creditBalance !== null && creditBalance > 0) && (
-                  <div className="space-y-2 mb-3">
-                    <p className="text-xs font-semibold text-warm-600">How to pay:</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button type="button" onClick={() => setPayMode('credit')}
-                        className={`p-3 rounded-2xl border-2 text-left transition-all ${payMode === 'credit' ? 'border-primary-400 bg-primary-50' : 'border-purple-100 bg-white hover:border-primary-200'}`}>
-                        <p className="text-xs font-bold text-warm-900">💳 Use credit</p>
-                        <p className="text-xs text-primary-600 font-semibold">{creditBalance} left</p>
-                        <p className="text-xs text-green-600 font-bold">Instant · No redirect</p>
-                      </button>
-                      <button type="button" onClick={() => setPayMode('direct')}
-                        className={`p-3 rounded-2xl border-2 text-left transition-all ${payMode === 'direct' ? 'border-primary-400 bg-primary-50' : 'border-purple-100 bg-white hover:border-primary-200'}`}>
-                        <p className="text-xs font-bold text-warm-900">🏦 Pay now</p>
-                        <p className="text-xs text-warm-500">Direct payment</p>
-                        <p className="text-xs text-warm-400">via Flutterwave</p>
-                      </button>
-                    </div>
+      {/* ── Step 3: Creator's First Message ── */}
+      {step === 3 && (
+        <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+          <h2 className="text-xl font-bold text-warm-900 mb-1">Add your message 💜</h2>
+          <p className="text-warm-500 text-sm mb-6">
+            You're the card creator — add your own message first. Others will sign too once you share the link.
+          </p>
+
+          {/* Writing style */}
+          <label className="block text-sm font-bold text-warm-700 mb-2">Writing style</label>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+            {FONT_STYLES.map(font => (
+              <button key={font.id} type="button" onClick={() => setMsg('font_style', font.id)}
+                className={`rounded-xl border-2 px-2 py-2.5 text-sm transition-all ${msgForm.font_style===font.id?'border-primary-500 bg-primary-50 text-primary-700':'border-purple-100 text-warm-600'}`}
+                style={{ fontFamily:font.family }}>
+                {font.id==='calligraphy'?'With love':font.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Message textarea */}
+          <label className="block text-sm font-bold text-warm-700 mb-2">Your message to {form.recipient_name||'them'}</label>
+          <div className="relative mb-1">
+            <textarea ref={textareaRef} className="input h-36 resize-none"
+              style={{ fontFamily:getFontStyle(msgForm.font_style).family, fontSize: msgForm.font_style==='calligraphy'?'1.5rem':'1rem' }}
+              placeholder={`Write something heartfelt for ${form.recipient_name||'them'}…`}
+              maxLength={1200} value={msgForm.content} onChange={e => setMsg('content', e.target.value)}/>
+            <button type="button" onClick={() => { setShowEmoji(s=>!s); setShowGif(false); }}
+              className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-white border border-purple-100 shadow-sm flex items-center justify-center text-lg hover:bg-purple-50 transition-colors">
+              😊
+            </button>
+            {showEmoji && <EmojiPicker onSelect={insertEmoji} onClose={() => setShowEmoji(false)}/>}
+          </div>
+          <div className="flex justify-end mb-4">
+            <span className="text-xs text-warm-400">{msgForm.content.length}/1200</span>
+          </div>
+
+          {/* Media buttons */}
+          <div className="relative flex flex-wrap gap-2 mb-4">
+            <button type="button" onClick={() => fileRef.current?.click()}
+              className="voice-record-button"><span>📷</span><span>Photos/video {mediaFiles.length>0?`(${mediaFiles.length}/5)`:''}</span></button>
+            <button type="button" onClick={() => { setShowGif(s=>!s); setShowEmoji(false); }} disabled={mediaFiles.length>=5}
+              className="voice-record-button disabled:opacity-50"><span>🎞️</span><span>Add GIF</span></button>
+            <VoiceRecorder onRecorded={f => addMedia([f])} disabled={loading}/>
+            <input ref={fileRef} type="file" accept="image/*,video/*,audio/*,.m4a,.ogg,.webm" multiple className="hidden"
+              onChange={e => addMedia(e.target.files)}/>
+            {showGif && <GifPicker onSelect={f => { addMedia([f]); setShowGif(false); }} onClose={() => setShowGif(false)}/>}
+          </div>
+
+          {/* Media carousel */}
+          {mediaFiles.length > 0 && (
+            <div className="mb-4 rounded-2xl overflow-hidden border-2 border-purple-100 bg-white">
+              <div className="relative" style={{ aspectRatio:'16/9', background:'#1A1035' }}>
+                {mediaFiles[carouselIdx].type==='video' ? (
+                  <video src={mediaFiles[carouselIdx].preview} className="w-full h-full object-contain" controls/>
+                ) : mediaFiles[carouselIdx].type==='voice' ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-3">
+                    <span className="text-5xl">🎙️</span>
+                    <audio src={mediaFiles[carouselIdx].preview} controls className="w-4/5"/>
                   </div>
+                ) : (
+                  <img src={mediaFiles[carouselIdx].preview} alt="" className="w-full h-full object-contain"/>
                 )}
-                {creditBalance === 0 && (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
-                    <p className="text-xs font-semibold text-amber-800">💳 No credits — will pay directly</p>
-                    <p className="text-xs text-amber-600 mt-0.5">
-                      <Link to="/dashboard/credits" className="underline font-bold">Buy credits</Link> for faster future card creation
-                    </p>
-                  </div>
-                )}
-                {payMode === 'direct' && (
-                  <div>
-                    <p className="text-xs font-semibold text-warm-500 mb-1.5">Pay in:</p>
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {CURRENCIES.map(c => (
-                        <button key={c.code} type="button" onClick={() => setSelectedCurrency(c.code)}
-                          className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${selectedCurrency === c.code ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-600 border border-primary-200 hover:bg-primary-100'}`}>
-                          {c.flag} {c.code}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <button type="button" onClick={() => removeMedia(carouselIdx)}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-sm flex items-center justify-center hover:bg-red-500 transition-colors">✕</button>
+                {mediaFiles.length > 1 && (
+                  <>
+                    <button type="button" onClick={() => setCarouselIdx(i=>(i-1+mediaFiles.length)%mediaFiles.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-lg">‹</button>
+                    <button type="button" onClick={() => setCarouselIdx(i=>(i+1)%mediaFiles.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-lg">›</button>
+                  </>
                 )}
               </div>
-            )}
-
-            <div className="flex gap-3">
-              <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
-              <button onClick={handleSubmit} disabled={loading} className="btn-primary flex-1">
-                {loading
-                  ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    {paymentStage === 'verifying' ? 'Using credit...' : isCompanyUser ? 'Creating card...' : 'Opening payment...'}
-                    </span>
-                  : isCompanyUser
-                    ? '✨ Create Card (Free)'
-                    : payMode === 'credit'
-                      ? '💳 Use 1 Credit & Create Card'
-                      : `🔒 Pay ${formatCurrency(5000, selectedCurrency)} & Create Card`}
-              </button>
+              <p className="text-center text-xs text-warm-400 py-2">{carouselIdx+1} of {mediaFiles.length} — Add up to {5-mediaFiles.length} more</p>
             </div>
-            <p className="text-xs text-center text-warm-400 mt-3">
-              {isCompanyUser ? 'Company account · Card creation is free' : 'Secured by Flutterwave · Card link will be ready immediately'}
-            </p>
+          )}
+
+          {/* Private toggle */}
+          {form.allow_private_messages && (
+            <label className="flex items-center justify-between gap-4 border-t border-purple-100 pt-4 mb-4 cursor-pointer">
+              <span>
+                <span className="block text-sm font-bold text-warm-800">Private message</span>
+                <span className="block text-xs text-warm-400">Only the recipient and card creator can read it</span>
+              </span>
+              <input type="checkbox" checked={msgForm.is_private} onChange={e => setMsg('is_private', e.target.checked)} className="w-5 h-5 accent-violet-600"/>
+            </label>
+          )}
+
+          {/* Invite emails */}
+          <div className="mb-5">
+            <label className="block text-sm font-bold text-warm-700 mb-1.5">Invite people to sign <span className="text-warm-400 font-normal text-xs">(optional)</span></label>
+            <textarea className="input h-20 resize-none" placeholder="kemi@email.com, emeka@email.com"
+              value={inviteEmails} onChange={e => setInviteEmails(e.target.value)}/>
+            <p className="text-xs text-warm-400 mt-1">You can also share a link after creating the card</p>
           </div>
-        )}
-      </div>
+
+          <div className="flex justify-between">
+            <button onClick={() => setStep(2)} className="btn-secondary">← Back</button>
+            <button onClick={() => setStep(4)} className="btn-primary">
+              {msgForm.content.trim() ? 'Save message & pay →' : 'Skip & continue →'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 4: Gift & Pay ── */}
+      {step === 4 && (
+        <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+          <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & activate</h2>
+          <p className="text-warm-500 text-sm mb-5">Enable a gift collection and launch your card</p>
+
+          {/* Gift toggle */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            {[{id:true,icon:'🐷',title:'Enable gift pot',desc:'Everyone chips in, recipient redeems'},{id:false,icon:'✉️',title:'Card only',desc:'Messages only, no gift'}].map(o => (
+              <button key={String(o.id)} onClick={() => set('is_gift_enabled', o.id)}
+                className={`rounded-2xl p-4 text-left border-2 transition-all ${form.is_gift_enabled===o.id?'border-primary-400 bg-primary-50':'border-purple-100 hover:border-purple-200'}`}>
+                <div className="text-2xl mb-1">{o.icon}</div>
+                <div className="text-sm font-bold text-warm-800">{o.title}</div>
+                <div className="text-xs text-warm-500 mt-0.5">{o.desc}</div>
+              </button>
+            ))}
+          </div>
+
+          {form.is_gift_enabled && (
+            <div className="mb-5">
+              <p className="text-sm font-semibold text-warm-700 mb-2">Suggested contribution</p>
+              <div className="flex flex-wrap gap-2">
+                {[2500,5000,10000,25000,50000].map(amt => (
+                  <button key={amt} onClick={() => set('suggested_amount', amt)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${form.suggested_amount===amt?'bg-primary-400 text-white border-primary-400':'border-purple-100 text-warm-700 hover:border-primary-300'}`}>
+                    {formatNGN(amt)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Summary */}
+          <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
+            {[
+              ['Occasion', OCCASIONS.find(o=>o.id===form.occasion)?.label||form.occasion],
+              ['Recipient', form.recipient_name],
+              ['Gift', form.is_gift_enabled?`Yes — ${formatNGN(form.suggested_amount)} suggested`:'No'],
+              ...(isCompanyUser?[['Card fee','🆓 Free (company)']]:
+                payMode==='credit'&&creditBalance>0?[['Card fee',`1 credit (${creditBalance} remaining)`]]:
+                [['Card fee',`${formatCurrency(5000,selectedCurrency)} one-time`]]),
+            ].map(([k,v]) => (
+              <div key={k} className="flex justify-between items-center px-4 py-3">
+                <span className="text-sm text-warm-500">{k}</span>
+                <span className="text-sm font-semibold text-warm-900">{v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Payment mode for individuals */}
+          {!isCompanyUser && (
+            <div className="mb-4">
+              {creditBalance > 0 && (
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <button type="button" onClick={() => setPayMode('credit')}
+                    className={`p-3 rounded-xl border-2 text-left text-xs transition-all ${payMode==='credit'?'border-primary-400 bg-primary-50':'border-purple-100'}`}>
+                    <p className="font-bold text-warm-900">💳 Use credit</p>
+                    <p className="text-primary-600 font-semibold">{creditBalance} left</p>
+                    <p className="text-green-600 font-bold">Instant</p>
+                  </button>
+                  <button type="button" onClick={() => setPayMode('direct')}
+                    className={`p-3 rounded-xl border-2 text-left text-xs transition-all ${payMode==='direct'?'border-primary-400 bg-primary-50':'border-purple-100'}`}>
+                    <p className="font-bold text-warm-900">🏦 Pay now</p>
+                    <p className="text-warm-500">via Flutterwave</p>
+                  </button>
+                </div>
+              )}
+              {payMode==='direct' && (
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-warm-500 mb-1.5">Pay in:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {CURRENCIES.map(c => (
+                      <button key={c.code} type="button" onClick={() => setSelectedCurrency(c.code)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all ${selectedCurrency===c.code?'bg-primary-500 text-white':'bg-primary-50 text-primary-600 border border-primary-200'}`}>
+                        {c.flag} {c.code}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button onClick={() => setStep(3)} className="btn-secondary px-4">← Back</button>
+            <button onClick={handlePayAndLaunch} disabled={loading} className="btn-primary flex-1">
+              {loading
+                ? <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                    {paymentStage==='sending'?'Saving message…':paymentStage==='verifying'?'Using credit…':paymentStage==='redirecting'?'Opening payment…':'Creating card…'}
+                  </span>
+                : isCompanyUser ? '✨ Create Card (Free)'
+                : payMode==='credit' ? '💳 Use 1 Credit & Launch'
+                : `🔒 Pay ${formatCurrency(5000, selectedCurrency)} & Launch Card`}
+            </button>
+          </div>
+          <p className="text-xs text-center text-warm-400 mt-3">
+            {isCompanyUser ? 'Company account · Card creation is free' : 'Secured by Flutterwave · Card link will be ready immediately'}
+          </p>
+        </div>
+      )}
+    </div>
   );
 
   if (company) return <CompanyLayout title="Create a Card" subtitle="Takes less than 3 minutes">{inner}</CompanyLayout>;
   if (member)  return <MemberLayout  title="Create a Card" subtitle="Takes less than 3 minutes">{inner}</MemberLayout>;
-  return (
-    <div className="min-h-screen">
-      <Navbar />
-      {inner}
-    </div>
-  );
+  return <div className="min-h-screen"><Navbar/>{inner}</div>;
 };
 
 export default CreateCard;

@@ -1184,7 +1184,7 @@ const CardView = () => {
   const layoutType = member ? 'member' : company ? 'company' : 'user';
 
   const content = (
-    <div className="min-h-0 flex flex-col bg-[#faf8ff]">
+    <div className="min-h-0 flex flex-col" style={{ background: design?.soft || design?.background?.includes?.("gradient") ? "#F5F0FF" : (design?.soft || "#F5F0FF") }}>
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}
       <Confetti />

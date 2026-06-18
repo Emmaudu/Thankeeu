@@ -1,6 +1,6 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
-import { useState, useEffect } from 'react';
-import {RotatingPrice, CurrencyToggle} from '../utils/currencyUI';
+import { useState, useEffect, useRef } from 'react';
+import { RotatingPrice, CurrencyToggle } from '../utils/currencyUI';
 import { formatCurrency } from '../utils/currency';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -23,63 +23,88 @@ const ROTATING_WORDS = [
   'Promotion', 'Retirement', 'Christmas', 'Get Well',
 ];
 
-// Pulled directly from the real signer data used on /sample (SampleCard.jsx) —
-// same names, same actual photo URLs, same calligraphy fonts and media types,
-// just shortened to an excerpt that fits a small hero card instead of the
-// full-length message shown on the sample page.
 const SAMPLE_MESSAGES = [
   { name: 'Jessica Morgan', role: 'VP of Product', font: 'font-vibes',
     media: 'photo', photoUrl: 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=600&q=80',
     text: 'Working across time zones with you has been one of the highlights of this role. Happy birthday — hope your day is as bright as the energy you bring! 🎉',
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face' },
   { name: 'Tunde Bakare', role: 'Operations Lead', font: 'font-dancing',
-    media: 'photo', photoUrl: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&q=80',
+    media: 'gif', gifUrl: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
     text: 'You are the reason the ops team runs as smoothly as it does. Have a fantastic celebration! 🙌',
     avatar: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face' },
   { name: 'Sarah Chen', role: 'Head of Design', font: 'font-dancing',
-    media: 'photo', photoUrl: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80',
-    text: "You have the rarest combination — impeccable taste and genuine humility about it. Happy birthday! 🌸",
+    media: 'voice',
+    text: "You have the rarest combination — impeccable taste and genuine humility. Happy birthday! 🌸",
     avatar: 'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face' },
   { name: 'Marcus Williams', role: 'Sales Director', font: 'font-sacramento',
     media: 'gif', gifUrl: 'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif',
-    text: 'You make everyone around you sharper. Happy birthday to the most quietly influential person on this team. 🎯',
+    text: 'You make everyone around you sharper. Happy birthday to the most quietly influential person! 🎯',
     avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face' },
 ];
 
 const OCCASIONS = [
   { icon: 'Cake', label: 'Birthday' },      { icon: 'Heart', label: "Valentine's" },
-  { icon: 'Briefcase', label: 'Farewell' },       { icon: 'Gift', label: 'Anniversary' },
-  { icon: 'HandHeart', label: 'Wedding' },        { icon: 'Baby', label: 'Baby Shower' },
-  { icon: 'GraduationCap', label: 'Graduation' },     { icon: 'TrendingUp', label: 'Promotion' },
-  { icon: 'Sun', label: 'Retirement' },    { icon: 'Snowflake', label: 'Christmas' },
-  { icon: 'HeartPulse', label: 'Get Well' },       { icon: 'Party', label: 'More…' },
+  { icon: 'Briefcase', label: 'Farewell' },  { icon: 'Gift', label: 'Anniversary' },
+  { icon: 'HandHeart', label: 'Wedding' },   { icon: 'Baby', label: 'Baby Shower' },
+  { icon: 'GraduationCap', label: 'Graduation' }, { icon: 'TrendingUp', label: 'Promotion' },
+  { icon: 'Sun', label: 'Retirement' },      { icon: 'Snowflake', label: 'Christmas' },
+  { icon: 'HeartPulse', label: 'Get Well' }, { icon: 'Party', label: 'More…' },
 ];
 
 const STEPS = [
-  { num:'01', icon:'Wand', label:'Create', title:'Pick occasion & design', desc:'14 occasions, beautiful designs, set delivery date. Done in 2 minutes.' },
-  { num:'02', icon:'Share', label:'Invite', title:'Share signing link', desc:'WhatsApp, email, Slack. Anyone can sign — no account needed.' },
-  { num:'03', icon:'Heart', label:'Collect', title:'Pool a gift together', desc:'Chip in from ₦500. Flutterwave handles everything — no cash chasing.' },
-  { num:'04', icon:'Rocket', label:'Deliver', title:'Deliver the surprise', desc:'Schedule or send instantly. Your recipient opens a full card with messages, media & gift.' },
+  { num:'01', icon:'Wand',   label:'Create',  title:'Pick occasion & design', desc:'14 occasions, beautiful designs, set delivery date. Done in 2 minutes.' },
+  { num:'02', icon:'Share',  label:'Invite',  title:'Share signing link',     desc:'WhatsApp, email, Slack. Anyone can sign — no account needed.' },
+  { num:'03', icon:'Heart',  label:'Collect', title:'Pool a gift together',   desc:'Chip in from ₦500. Flutterwave handles everything — no cash chasing.' },
+  { num:'04', icon:'Rocket', label:'Deliver', title:'Deliver the surprise',   desc:'Schedule or send instantly. Your recipient opens a full card with messages, media & gift.' },
 ];
 
 const FEATURES = [
-  { icon:'Zap', title:'Instant signing links', desc:'Copy a WhatsApp link in one click. No account needed to sign.' },
-  { icon:'Gift', title:'Built-in gift pots', desc:'Everyone chips in via Flutterwave. Pooled automatically.' },
-  { icon:'Smartphone', title:'Any media type', desc:'Text, photo, video, voice note, GIF — all in one card.' },
-  { icon:'Clock', title:'Scheduled delivery', desc:'Set the date. Card arrives exactly when it should.' },
-  { icon:'Lock', title:'Private messages', desc:'Contributors can mark personal notes visible only to the recipient.' },
-  { icon:'BarChart', title:'Real-time tracking', desc:"See who's signed, how much is collected, in your dashboard." },
+  { icon:'Zap',         title:'Instant signing links', desc:'Copy a WhatsApp link in one click. No account needed to sign.' },
+  { icon:'Gift',        title:'Built-in gift pots',    desc:'Everyone chips in via Flutterwave. Pooled automatically.' },
+  { icon:'Smartphone',  title:'Any media type',        desc:'Text, photo, video, voice note, GIF — all in one card.' },
+  { icon:'Clock',       title:'Scheduled delivery',    desc:'Set the date. Card arrives exactly when it should.' },
+  { icon:'Lock',        title:'Private messages',      desc:'Contributors can mark personal notes visible only to the recipient.' },
+  { icon:'BarChart',    title:'Real-time tracking',    desc:"See who's signed, how much is collected, in your dashboard." },
 ];
 
 const TESTIMONIALS = [
-  { name:'Adaeze O.', role:'HR Manager', location:'Lagos, Nigeria', text:"Our colleague's farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy.", stars:5 },
-  { name:'Emeka T.',  role:'Engineer',   location:'Abuja, Nigeria', text:"Organised my girlfriend's birthday from London. 22 people signed, raised ₦500k. She was genuinely shocked. 10/10.", stars:5 },
-  { name:'Kemi B.',   role:'People Ops', location:'Port Harcourt, Nigeria', text:"No more Google Forms and chasing receipts. Everything just works. The HRIS sync alone saved us hours per week.", stars:5 },
+  { name:'Adaeze O.', role:'HR Manager',   location:'Lagos, Nigeria',        text:"Our colleague's farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy.", stars:5 },
+  { name:'Emeka T.',  role:'Engineer',     location:'Abuja, Nigeria',        text:"Organised my girlfriend's birthday from London. 22 people signed, raised ₦500k. She was genuinely shocked. 10/10.", stars:5 },
+  { name:'Kemi B.',   role:'People Ops',   location:'Port Harcourt, Nigeria', text:"No more Google Forms and chasing receipts. Everything just works. The HRIS sync alone saved us hours per week.", stars:5 },
 ];
-
 
 const TEAM_SIZE_OPTIONS = ['1–10','11–50','51–200','201–500','500+'];
 
+/* ─── Demo messages for the hero flipbook ───────────────────────────── */
+const DEMO_MESSAGES = [
+  { initials: 'AO', name: 'Adaeze O.',  color: '#7C3AED', bg: '#EDE9FE',
+    text: "Happy birthday!! You're the reason our whole team smiles every day 🎉",
+    gif: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
+  { initials: 'EK', name: 'Emeka K.',   color: '#0D9488', bg: '#CCFBF1',
+    text: 'Wishing you all the joy this year, boss! You deserve every bit of it 🙌',
+    gif: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
+  { initials: 'KI', name: 'Kemi I.',    color: '#DB2777', bg: '#FCE7F3',
+    text: 'Another year wiser and still the coolest person in the office 😂❤️',
+    gif: 'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
+  { initials: 'BD', name: 'Bolu D.',    color: '#92400E', bg: '#FEF3C7',
+    text: 'From the whole team — we are so lucky to have you. Keep shining! ✨',
+    gif: 'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
+  { initials: 'TN', name: 'Tunde N.',   color: '#1D4ED8', bg: '#DBEAFE',
+    text: 'You have no idea how much we appreciate everything you do. 🫶',
+    gif: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
+];
+
+/* Giphy URLs available in the sign form GIF picker */
+const GIPHY_OPTIONS = [
+  { url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',   label: '🎉 Celebrate' },
+  { url: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif',   label: '🌟 Star' },
+  { url: 'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif',    label: '🎂 Birthday' },
+  { url: 'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif',   label: '👏 Clap' },
+  { url: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif',         label: '💜 Love' },
+  { url: 'https://media.giphy.com/media/RrVzUOXldFe8M/giphy.gif',         label: '🎊 Party' },
+];
+
+/* ─── B2B demo modal ─────────────────────────────────────────────────── */
 const DemoModal = ({ onClose }) => {
   const [form, setForm] = useState({ contact_name:'', email:'', company_name:'', phone:'', team_size:'', message:'' });
   const [loading, setLoading] = useState(false);
@@ -90,12 +115,9 @@ const DemoModal = ({ onClose }) => {
     if (!form.contact_name.trim() || !form.email.trim() || !form.company_name.trim())
       return toast.error('Please fill in your name, email and company name');
     setLoading(true);
-    try {
-      await demoAPI.submit(form);
-      setDone(true);
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to submit. Email us at support@thankeeu.com');
-    } finally { setLoading(false); }
+    try { await demoAPI.submit(form); setDone(true); }
+    catch (err) { toast.error(err.response?.data?.error || 'Failed. Email us at support@thankeeu.com'); }
+    finally { setLoading(false); }
   };
 
   return (
@@ -118,46 +140,46 @@ const DemoModal = ({ onClose }) => {
                 <h3 className="text-xl font-bold text-warm-900">See Thankeeu for Teams live</h3>
                 <p className="text-warm-500 text-sm mt-1">Free · 30 min · Usually within 24hrs</p>
               </div>
-              <button onClick={onClose} className="text-warm-400 hover:text-warm-700 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-warm-100 flex-shrink-0"><Icon name="X" size={18}/></button>
+              <button onClick={onClose} className="text-warm-400 hover:text-warm-700 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-warm-100">
+                <Icon name="X" size={18}/>
+              </button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-warm-700 mb-1.5">Full name *</label>
-                  <input className="input" placeholder="Your name" value={form.contact_name} onChange={e => setForm(p=>({...p,contact_name:e.target.value}))} required />
+                  <input className="input" placeholder="Your name" value={form.contact_name} onChange={e=>setForm(p=>({...p,contact_name:e.target.value}))} required/>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-warm-700 mb-1.5">Work email *</label>
-                  <input type="email" className="input" placeholder="you@company.com" value={form.email} onChange={e => setForm(p=>({...p,email:e.target.value}))} required />
+                  <input type="email" className="input" placeholder="you@company.com" value={form.email} onChange={e=>setForm(p=>({...p,email:e.target.value}))} required/>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-warm-700 mb-1.5">Company name *</label>
-                  <input className="input" placeholder="Acme Corp" value={form.company_name} onChange={e => setForm(p=>({...p,company_name:e.target.value}))} required />
+                  <input className="input" placeholder="Acme Corp" value={form.company_name} onChange={e=>setForm(p=>({...p,company_name:e.target.value}))} required/>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-warm-700 mb-1.5">Phone number</label>
-                  <input className="input" placeholder="+234..." value={form.phone} onChange={e => setForm(p=>({...p,phone:e.target.value}))} />
+                  <label className="block text-xs font-bold text-warm-700 mb-1.5">Phone</label>
+                  <input className="input" placeholder="+234…" value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))}/>
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-warm-700 mb-1.5">Team size</label>
                 <div className="flex flex-wrap gap-2">
                   {TEAM_SIZE_OPTIONS.map(s => (
-                    <button type="button" key={s} onClick={() => setForm(p=>({...p,team_size:s}))}
-                      className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${form.team_size===s ? 'border-primary-400 bg-primary-50 text-primary-600' : 'border-purple-100 text-warm-600 hover:border-primary-300'}`}>
-                      {s}
-                    </button>
+                    <button type="button" key={s} onClick={()=>setForm(p=>({...p,team_size:s}))}
+                      className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${form.team_size===s?'border-primary-400 bg-primary-50 text-primary-600':'border-purple-100 text-warm-600 hover:border-primary-300'}`}>{s}</button>
                   ))}
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-bold text-warm-700 mb-1.5">What would you like to see?</label>
-                <textarea className="input resize-none" rows={3} placeholder="Birthday automations, HRIS sync..." value={form.message} onChange={e => setForm(p=>({...p,message:e.target.value}))} />
+                <textarea className="input resize-none" rows={3} placeholder="Birthday automations, HRIS sync..." value={form.message} onChange={e=>setForm(p=>({...p,message:e.target.value}))}/>
               </div>
               <button type="submit" disabled={loading} className="btn-primary w-full py-4 text-base">
-                {loading ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Booking…</span> : <span className="inline-flex items-center justify-center gap-2"><Icon name="Calendar" size={16}/> Book my demo <Icon name="ArrowRight" size={16}/></span>}
+                {loading?<span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Booking…</span>:<span className="inline-flex items-center justify-center gap-2"><Icon name="Calendar" size={16}/> Book my demo <Icon name="ArrowRight" size={16}/></span>}
               </button>
             </form>
           </>
@@ -167,6 +189,177 @@ const DemoModal = ({ onClose }) => {
   );
 };
 
+/* ─── Live flipbook card preview (hero) ─────────────────────────────── */
+const LiveCardPreview = () => {
+  const [activeIdx,   setActiveIdx]   = useState(0);
+  const [signerName,  setSignerName]  = useState('');
+  const [signerMsg,   setSignerMsg]   = useState('');
+  const [signerGif,   setSignerGif]   = useState('');
+  const [messages,    setMessages]    = useState(DEMO_MESSAGES);
+  const [signed,      setSigned]      = useState(false);
+  const [flipping,    setFlipping]    = useState(false);
+  const [showGifPick, setShowGifPick] = useState(false);
+
+  const handleSign = () => {
+    if (!signerName.trim() || !signerMsg.trim()) return;
+    const colors = ['#7C3AED','#0D9488','#DB2777','#92400E','#1D4ED8'];
+    const bgs    = ['#EDE9FE','#CCFBF1','#FCE7F3','#FEF3C7','#DBEAFE'];
+    const idx    = messages.length % colors.length;
+    setMessages(prev => [...prev, {
+      initials: signerName.trim().split(' ').map(w=>w[0].toUpperCase()).join('').slice(0,2),
+      name: signerName.trim(), color: colors[idx], bg: bgs[idx],
+      text: signerMsg.trim(),
+      gif:  signerGif || undefined,
+    }]);
+    setSigned(true);
+    setActiveIdx(messages.length);
+  };
+
+  const goTo = (dir) => {
+    if (flipping) return;
+    setFlipping(true);
+    setTimeout(() => {
+      setActiveIdx(i => Math.max(0, Math.min(messages.length - 1, i + dir)));
+      setFlipping(false);
+    }, 220);
+  };
+
+  const msg = messages[activeIdx];
+
+  return (
+    <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+      {/* ── Album card ── */}
+      <div style={{ position: 'relative', width: '100%' }}>
+        {/* Stack shadows */}
+        <div style={{ position:'absolute', left:'50%', transform:'translateX(calc(-50% - 16px)) rotate(-3deg)', width:'calc(100% - 28px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
+        <div style={{ position:'absolute', left:'50%', transform:'translateX(calc(-50% + 16px)) rotate(3deg)',  width:'calc(100% - 14px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
+
+        {/* Main card */}
+        <div style={{
+          position: 'relative', zIndex: 1,
+          borderRadius: 20, border: '2px solid #DDD6FE',
+          padding: '1.25rem 1.5rem 3rem',
+          background: msg.bg,
+          boxShadow: '0 8px 40px rgba(124,58,237,0.12)',
+          transition: 'all 0.22s ease',
+          overflow: 'hidden',
+          transform: flipping ? 'rotateY(90deg)' : 'rotateY(0deg)',
+          opacity: flipping ? 0 : 1,
+          minHeight: 340,
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          {/* Header */}
+          <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'0.875rem', flexShrink:0 }}>
+            <div style={{ width:40, height:40, borderRadius:'50%', background:msg.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:'0.875rem', flexShrink:0 }}>
+              {msg.initials}
+            </div>
+            <div>
+              <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.9375rem', color:'#1A1035', margin:0, lineHeight:1.3 }}>{msg.name}</p>
+              <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.75rem', color:'#7C5CBF', margin:0 }}>signed this card</p>
+            </div>
+          </div>
+
+          {/* GIF */}
+          {msg.gif && (
+            <div style={{ borderRadius:12, overflow:'hidden', marginBottom:'0.75rem', flexShrink:0, lineHeight:0 }}>
+              <img src={msg.gif} alt="" style={{ width:'100%', height:140, objectFit:'cover', display:'block' }} loading="lazy"/>
+            </div>
+          )}
+
+          {/* Message */}
+          <p style={{ fontFamily:"'Caveat', cursive", fontSize:'1.25rem', lineHeight:1.6, color:'#1A1035', margin:'0 0 auto', flex:1 }}>
+            {msg.text}
+          </p>
+
+          {/* Dots */}
+          <div style={{ display:'flex', gap:6, justifyContent:'center', marginTop:'0.75rem', flexShrink:0 }}>
+            {messages.map((_,i) => (
+              <button key={i} onClick={()=>setActiveIdx(i)} aria-label={`Page ${i+1}`}
+                style={{ width: i===activeIdx ? 22 : 8, height:8, borderRadius: i===activeIdx ? 4 : '50%', background: i===activeIdx ? msg.color : '#DDD6FE', border:'none', cursor:'pointer', padding:0, transition:'all 0.2s' }}/>
+            ))}
+          </div>
+
+          {/* Nav arrows — positioned outside the content flow, fully visible */}
+          <button onClick={()=>goTo(-1)} disabled={activeIdx===0}
+            style={{ position:'absolute', left:-18, top:'50%', transform:'translateY(-50%)', width:36, height:36, borderRadius:'50%', background:'#fff', border:'1.5px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===0 ? 0.3 : 1, zIndex:10, boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
+            <Icon name="ChevronLeft" size={18}/>
+          </button>
+          <button onClick={()=>goTo(1)} disabled={activeIdx===messages.length-1}
+            style={{ position:'absolute', right:-18, top:'50%', transform:'translateY(-50%)', width:36, height:36, borderRadius:'50%', background:'#fff', border:'1.5px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===messages.length-1 ? 0.3 : 1, zIndex:10, boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
+            <Icon name="ChevronRight" size={18}/>
+          </button>
+        </div>
+
+        {/* Count badge */}
+        <div style={{ position:'absolute', top:-12, right:16, background:'#fff', border:'1.5px solid #DDD6FE', borderRadius:20, padding:'3px 10px', fontSize:'0.75rem', fontWeight:700, color:'#7C3AED', display:'flex', alignItems:'center', gap:5, zIndex:2 }}>
+          <Icon name="FileText" size={12}/> {activeIdx+1} / {messages.length}
+        </div>
+      </div>
+
+      {/* ── Sign panel ── */}
+      {!signed ? (
+        <div style={{ background:'#fff', border:'2px solid #EDE5FF', borderRadius:20, padding:'1.25rem', display:'flex', flexDirection:'column', gap:'0.625rem' }}>
+          <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.875rem', fontWeight:700, color:'#4A3A7A', margin:0, display:'flex', alignItems:'center', gap:6 }}>
+            <Icon name="PenLine" size={14}/> <strong>Sign this demo card</strong> — no account needed
+          </p>
+          <input className="lcp-input" placeholder="Your name" value={signerName} onChange={e=>setSignerName(e.target.value)} maxLength={60}/>
+          <textarea className="lcp-textarea" placeholder="Write your message here…" rows={3} value={signerMsg} onChange={e=>setSignerMsg(e.target.value)} maxLength={500} style={{ resize:'none' }}/>
+
+          {/* GIF picker row */}
+          <div>
+            <button type="button"
+              onClick={()=>setShowGifPick(s=>!s)}
+              style={{ background: signerGif ? '#EDE9FE' : '#F5F0FF', border:`1.5px solid ${signerGif?'#A78BFA':'#DDD6FE'}`, borderRadius:12, padding:'6px 12px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.8125rem', color:'#7C3AED', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+              🎞️ {signerGif ? 'Change GIF' : 'Add a GIF'} {showGifPick ? '▲' : '▼'}
+            </button>
+            {signerGif && (
+              <button type="button" onClick={()=>{setSignerGif('');}} style={{ marginLeft:8, background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#DC2626', fontWeight:700 }}>✕ Remove</button>
+            )}
+
+            {showGifPick && (
+              <div style={{ marginTop:8, display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+                {GIPHY_OPTIONS.map(g => (
+                  <button key={g.url} type="button"
+                    onClick={()=>{ setSignerGif(g.url); setShowGifPick(false); }}
+                    style={{ position:'relative', borderRadius:10, overflow:'hidden', border:`2.5px solid ${signerGif===g.url?'#7C3AED':'transparent'}`, cursor:'pointer', padding:0, lineHeight:0 }}>
+                    <img src={g.url} alt={g.label} style={{ width:'100%', height:60, objectFit:'cover', display:'block' }} loading="lazy"/>
+                    <span style={{ position:'absolute', bottom:3, left:0, right:0, textAlign:'center', fontSize:10, fontWeight:700, color:'#fff', textShadow:'0 1px 3px rgba(0,0,0,0.6)' }}>{g.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {signerGif && (
+              <div style={{ marginTop:6, borderRadius:10, overflow:'hidden', lineHeight:0 }}>
+                <img src={signerGif} alt="Selected GIF" style={{ width:'100%', height:70, objectFit:'cover', display:'block', borderRadius:10 }}/>
+              </div>
+            )}
+          </div>
+
+          <button className="lcp-sign-btn" onClick={handleSign} disabled={!signerName.trim()||!signerMsg.trim()}>
+            <Icon name="Heart" size={15}/> Add my message
+          </button>
+          <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.75rem', color:'#9C8BB8', margin:0, textAlign:'center', lineHeight:1.5 }}>
+            On the real card you can also add photos, voice notes & chip in to the gift pot.
+          </p>
+        </div>
+      ) : (
+        <div style={{ background:'#F0FDF4', border:'2px solid #BBF7D0', borderRadius:20, padding:'1.25rem', textAlign:'center' }}>
+          <div style={{ fontSize:'2rem', marginBottom:'0.5rem' }}>🎉</div>
+          <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:'1.125rem', color:'#14532D', margin:'0 0 0.25rem' }}>You signed it!</p>
+          <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.875rem', color:'#166534', margin:'0 0 0.75rem' }}>Your message is on page {activeIdx + 1}. Ready to create your own?</p>
+          <Link to="/card/new" className="btn-primary w-full text-center py-3 inline-flex items-center justify-center gap-2">
+            <Icon name="Sparkles" size={15}/> Create a card — it's free
+          </Link>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ─── Main Home ──────────────────────────────────────────────────────── */
 const Home = () => {
   useSEO({
     title:'Thankeeu — Online Group Cards & Gifts for Every Occasion',
@@ -174,9 +367,10 @@ const Home = () => {
     canonical:'/',
     jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp],
   });
-  const [showDemo,    setShowDemo]    = useState(false);
-  const [homeCurrency,setHomeCurrency] = useState('NGN');
-  const [wordIndex,   setWordIndex]   = useState(0);
+
+  const [showDemo,     setShowDemo]     = useState(false);
+  const [homeCurrency, setHomeCurrency] = useState('NGN');
+  const [wordIndex,    setWordIndex]    = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => setWordIndex(i => (i + 1) % ROTATING_WORDS.length), 2200);
@@ -188,18 +382,17 @@ const Home = () => {
       <style>{HERO_FONT_INJECT}</style>
       <Navbar onBookDemo={() => setShowDemo(true)} />
 
-      {/* ── HERO ─────────────────────────────── */}
-      <section className="relative overflow-hidden pt-12 pb-16 md:pt-16 md:pb-20 px-4 gc-font">
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage:'radial-gradient(rgba(124,58,237,0.1) 1.5px,transparent 1.5px)', backgroundSize:'28px 28px' }} />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,transparent 70%)' }} />
+      {/* ══ HERO ══ */}
+      <section className="relative overflow-visible pt-12 pb-16 md:pt-16 md:pb-20 px-4 gc-font">
+        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage:'radial-gradient(rgba(124,58,237,0.1) 1.5px,transparent 1.5px)', backgroundSize:'28px 28px' }}/>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,transparent 70%)' }}/>
 
         <div className="relative max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-10 lg:gap-6 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-start">
 
-            {/* Left: headline + CTAs */}
+            {/* Left: headline + CTAs + sample card grid */}
             <div className="text-center lg:text-left">
-              <h1 className="font-extrabold text-warm-900 mb-5"
-                style={{ fontSize:'clamp(2.5rem,7vw,4.5rem)', lineHeight:1.08 }}>
+              <h1 className="font-extrabold text-warm-900 mb-5" style={{ fontSize:'clamp(2.5rem,7vw,4.5rem)', lineHeight:1.08 }}>
                 Send a Group<br/>
                 <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', display:'inline-block', minWidth:'1px' }}>
                   {ROTATING_WORDS[wordIndex]}
@@ -215,108 +408,205 @@ const Home = () => {
                 <Link to="/card/new" className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
                   <Icon name="Sparkles" size={18}/> Create a card
                 </Link>
-                <Link to="/sign/demo-thankeeu-card" className="gc-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+                <Link to="/sample" className="gc-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2">
                   <Icon name="Eye" size={18}/> Try our demo card
                 </Link>
               </div>
               <p className="text-sm font-medium text-warm-500 text-center lg:text-left">No signup needed to start · Takes under 2 minutes</p>
-            </div>
 
-            {/* Right: real signed-card samples, pulled straight from /sample's actual signer data */}
-            <div className="hidden lg:grid grid-cols-2 gap-3" style={{ width: 400 }}>
-              {SAMPLE_MESSAGES.map((m, i) => (
-                <div key={m.name} className="bg-white rounded-2xl border-2 border-purple-100 p-3 shadow-sm" style={{ marginTop: i % 2 === 1 ? 28 : 0 }}>
-                  <div className="flex items-start gap-2 mb-2">
-                    <img src={m.avatar} alt={m.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0 shadow-sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-bold text-sm leading-tight ${m.font}`} style={{ color: '#1A1035' }}>{m.name}</p>
-                      <p className="text-[10px] text-warm-400">{m.role}</p>
+              {/* Sample card grid — large, rich tiles matching GroupCards style */}
+              <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: 560 }}>
+                {SAMPLE_MESSAGES.map((m, i) => (
+                  <div key={m.name} className="bg-white rounded-3xl border-2 border-purple-100 overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                    style={{ marginTop: i % 2 === 1 ? 36 : 0, minHeight: 320 }}>
+                    {/* Media — large, fills top of card */}
+                    {m.media === 'photo' && (
+                      <div style={{ height: 160, overflow:'hidden' }}>
+                        <img src={m.photoUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} loading="lazy"/>
+                      </div>
+                    )}
+                    {m.media === 'gif' && (
+                      <div style={{ height: 160, overflow:'hidden', background:'#1A1035' }}>
+                        <img src={m.gifUrl} alt="GIF" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} loading="lazy"/>
+                      </div>
+                    )}
+                    {m.media === 'voice' && (
+                      <div style={{ height: 100, background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, padding:'0 16px' }}>
+                        <div style={{ display:'flex', gap:3, alignItems:'flex-end', height:36 }}>
+                          {Array.from({length:20},(_,i)=>(
+                            <div key={i} style={{ width:3, borderRadius:2, background:'#7C3AED', height: 10+Math.sin(i*0.7)*16, opacity:0.6+Math.sin(i)*0.4 }}/>
+                          ))}
+                        </div>
+                        <span style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:11, fontWeight:700, color:'#7C3AED' }}>🎙️ Voice note · 0:34</span>
+                      </div>
+                    )}
+                    {/* Card body */}
+                    <div style={{ padding:'14px 16px 16px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                        <img src={m.avatar} alt={m.name} style={{ width:36, height:36, borderRadius:10, objectFit:'cover', flexShrink:0 }}/>
+                        <div>
+                          <p className={m.font} style={{ fontWeight:700, fontSize:'0.9rem', color:'#1A1035', margin:0, lineHeight:1.2 }}>{m.name}</p>
+                          <p style={{ fontSize:'0.7rem', color:'#9CA3AF', margin:0 }}>{m.role}</p>
+                        </div>
+                      </div>
+                      <p className={m.font} style={{ fontSize:'0.85rem', color:'#374151', lineHeight:1.55, margin:0 }}>{m.text}</p>
                     </div>
                   </div>
-                  {m.media === 'photo' && (
-                    <div className="rounded-xl overflow-hidden mb-2" style={{ height: 70 }}>
-                      <img src={m.photoUrl} alt="Shared photo" className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  )}
-                  {m.media === 'gif' && (
-                    <div className="rounded-xl overflow-hidden mb-2 bg-warm-100" style={{ height: 70 }}>
-                      <img src={m.gifUrl} alt="GIF reaction" className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  )}
-                  <p className="text-xs leading-snug" style={{ color: '#52525B' }}>{m.text}</p>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
 
-            {/* Mobile: stacked sample messages below CTAs */}
-            <div className="lg:hidden grid grid-cols-2 gap-3 mt-2 max-w-sm mx-auto">
-              {SAMPLE_MESSAGES.map(m => (
-                <div key={m.name} className="bg-white rounded-2xl border-2 border-purple-100 p-2.5 shadow-sm">
-                  <div className="flex items-start gap-1.5 mb-1.5">
-                    <img src={m.avatar} alt={m.name} className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className={`font-bold text-xs leading-tight ${m.font}`} style={{ color: '#1A1035' }}>{m.name}</p>
+              {/* Mobile sample cards — also bigger */}
+              <div className="lg:hidden grid grid-cols-2 gap-3 mt-4 max-w-sm mx-auto">
+                {SAMPLE_MESSAGES.map(m => (
+                  <div key={m.name} className="bg-white rounded-2xl border-2 border-purple-100 overflow-hidden shadow-sm">
+                    {m.media === 'photo' && <div style={{ height:90, overflow:'hidden' }}><img src={m.photoUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} loading="lazy"/></div>}
+                    {m.media === 'gif'   && <div style={{ height:90, overflow:'hidden', background:'#1A1035' }}><img src={m.gifUrl} alt="GIF" style={{ width:'100%', height:'100%', objectFit:'cover' }} loading="lazy"/></div>}
+                    {m.media === 'voice' && (
+                      <div style={{ height:60, background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', display:'flex', alignItems:'center', justifyContent:'center', gap:2 }}>
+                        {Array.from({length:14},(_,i)=><div key={i} style={{ width:3, borderRadius:2, background:'#7C3AED', height:8+Math.sin(i*0.8)*10, opacity:0.7 }}/>)}
+                      </div>
+                    )}
+                    <div style={{ padding:'10px 12px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:6 }}>
+                        <img src={m.avatar} alt={m.name} style={{ width:28, height:28, borderRadius:8, objectFit:'cover', flexShrink:0 }}/>
+                        <p className={m.font} style={{ fontWeight:700, fontSize:'0.78rem', color:'#1A1035', margin:0 }}>{m.name}</p>
+                      </div>
+                      <p style={{ fontSize:'0.72rem', color:'#52525B', lineHeight:1.5, margin:0 }}>{m.text}</p>
                     </div>
                   </div>
-                  {m.media === 'photo' && (
-                    <div className="rounded-lg overflow-hidden mb-1.5" style={{ height: 50 }}>
-                      <img src={m.photoUrl} alt="Shared photo" className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  )}
-                  {m.media === 'gif' && (
-                    <div className="rounded-lg overflow-hidden mb-1.5 bg-warm-100" style={{ height: 50 }}>
-                      <img src={m.gifUrl} alt="GIF reaction" className="w-full h-full object-cover" loading="lazy" />
-                    </div>
-                  )}
-                  <p className="leading-snug" style={{ fontSize: '11px', color: '#52525B' }}>{m.text}</p>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+
+            {/* Right: live flipbook demo */}
+            <div style={{ paddingTop: '0.5rem', paddingLeft: '2.5rem', paddingRight: '1.5rem' }}>
+              <LiveCardPreview />
             </div>
           </div>
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── CARD DESIGN GALLERY (GroupCards-style real template tiles) ─ */}
+      {/* ══ CARD DESIGN GALLERY — exact GroupCards tiles from screenshot ══ */}
       <section className="py-12 md:py-16 px-4 gc-font">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>Find the perfect card design</h2>
             <p className="text-warm-500 text-sm sm:text-base">All cards come with unlimited messages and pages. Change your design any time before sending.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[
-              { kind:'upload' },
-              { title:'HAPPY\nBIRTH\nDAY!', sub:'FROM ALL THE TEAM', bg:'linear-gradient(180deg,#C4B5FD,#A78BFA)', ink:'#fff', accent:'#FB7185' },
-              { title:'Birthday Vibes', sub:'CHILLED AND FABULOUS', bg:'linear-gradient(160deg,#FDE68A,#FCA5A5)', ink:'#7C2D12', badge:'New' },
-              { title:'Happy\nBirthday', sub:'FROM ALL OF US', bg:'linear-gradient(160deg,#1E3A8A,#0EA5E9)', ink:'#fff', badge:'More options' },
-              { title:'Happy Birthday', sub:'TIME TO RELAX', bg:'linear-gradient(160deg,#FDF2F8,#FBCFE8)', ink:'#831843', badge:'New' },
-              { title:"yay! it's\nyour\nbirthday!", bg:'linear-gradient(160deg,#312E81,#5B21B6)', ink:'#fff', badge:'More options' },
-              { title:'CHEERS TO THE\nJUNE\nBIRTHDAY GIRL', bg:'linear-gradient(160deg,#FBCFE8,#F472B6)', ink:'#831843' },
-              { title:'Happy\nBirthday', sub:'WITH LOVE', bg:'linear-gradient(160deg,#5EEAD4,#0D9488)', ink:'#fff', badge:'New' },
-              { title:'HOPE YOUR\nBIRTHDAY IS', sub:'SWEET', bg:'linear-gradient(160deg,#FEF3C7,#FCD34D)', ink:'#78350F' },
-              { title:'wishing you a\nvery happy\nbirthday', bg:'linear-gradient(160deg,#FAFAFA,#F5F3FF)', ink:'#27272a', badge:'New' },
-            ].map((d, i) => (
-              <Link key={i} to="/card/new" className="gc-card-hover block overflow-hidden rounded-2xl relative" style={{ aspectRatio: '4/5' }}>
-                {d.kind === 'upload' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-3" style={{ background:'#7DD3FC' }}>
-                    <Icon name="Image" size={36} className="text-white" />
-                    <p className="font-extrabold text-white text-center text-sm leading-tight px-2">Upload<br/>your own</p>
-                  </div>
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-center px-3 relative" style={{ background:d.bg }}>
-                    {d.badge && (
-                      <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: d.badge==='New' ? '#FBBF24' : '#F472B6', color:'#fff' }}>
-                        {d.badge === 'New' && '★ '}{d.badge}
-                      </span>
-                    )}
-                    <p className="font-extrabold whitespace-pre-line leading-tight" style={{ color:d.ink, fontSize: d.title.length > 16 ? '0.95rem' : '1.3rem' }}>{d.title}</p>
-                    {d.sub && <p className="font-bold mt-1.5 text-xs tracking-wide" style={{ color:d.ink, opacity:0.85 }}>{d.sub}</p>}
-                  </div>
-                )}
-              </Link>
-            ))}
+          <style>{`
+            .hg-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; }
+            @media(max-width:900px){.hg-grid{grid-template-columns:repeat(3,1fr);}}
+            @media(max-width:540px){.hg-grid{grid-template-columns:repeat(2,1fr);}}
+            .hg-tile { position:relative; border-radius:18px; overflow:hidden; cursor:pointer; aspect-ratio:3/4; box-shadow:0 2px 12px rgba(0,0,0,0.09); transition:transform 0.15s,box-shadow 0.15s; text-decoration:none; display:block; }
+            .hg-tile:hover { transform:translateY(-3px); box-shadow:0 10px 32px rgba(0,0,0,0.16); }
+            .hg-badge { position:absolute; top:10px; left:10px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:800; z-index:2; display:inline-flex; align-items:center; gap:4px; }
+            .hg-badge-new { background:#FCD34D; color:#78350F; }
+            .hg-badge-more { background:#F43F5E; color:#fff; }
+          `}</style>
+          <div className="hg-grid">
+
+            {/* 1: Upload your own — sky blue */}
+            <Link to="/card/new" className="hg-tile" style={{ background:'#60A5FA' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12 }}>
+                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:18, color:'#fff', textAlign:'center', lineHeight:1.25, margin:0 }}>Upload<br/>your own</p>
+              </div>
+            </Link>
+
+            {/* 2: Happy Birthday illustrated cake — lavender */}
+            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(180deg,#C4B5FD 0%,#A78BFA 100%)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:48, marginBottom:8 }}>🎂</div>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:22, color:'#fff', lineHeight:1.1, margin:'0 0 8px', whiteSpace:'pre-line' }}>{'HAPPY
+BIRTH
+DAY!'}</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:10, color:'rgba(255,255,255,0.85)', letterSpacing:'0.12em' }}>FROM ALL THE TEAM</p>
+              </div>
+            </Link>
+
+            {/* 3: Birthday Vibes — cat spa photo — badge New */}
+            <Link to="/card/new" className="hg-tile">
+              <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&q=80" alt="" style={{ width:'100%', height:'55%', objectFit:'cover', display:'block' }}/>
+              <div style={{ background:'#fff', padding:'12px 14px', height:'45%', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:20, color:'#7C2D12', margin:'0 0 2px' }}>Birthday Vibes</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:9, color:'#A16207', letterSpacing:'0.1em', margin:0 }}>CHILLED AND FABULOUS</p>
+              </div>
+              <span className="hg-badge hg-badge-new">★ New</span>
+            </Link>
+
+            {/* 4: Happy Birthday FROM ALL OF US — teal — badge More options */}
+            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(160deg,#0F4C75,#1B6CA8)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:30, color:'#5EEAD4', lineHeight:1.1, margin:'0 0 10px' }}>Happy<br/>Birthday</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:11, color:'#67E8F9', letterSpacing:'0.1em', margin:0 }}>FROM ALL OF US</p>
+              </div>
+              <span className="hg-badge hg-badge-more">More options</span>
+            </Link>
+
+            {/* 5: Happy Birthday pug photo — badge New */}
+            <Link to="/card/new" className="hg-tile">
+              <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&q=80" alt="" style={{ width:'100%', height:'60%', objectFit:'cover', display:'block' }}/>
+              <div style={{ background:'#FAFAFA', padding:'10px 14px', height:'40%', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:14, color:'#1A1035', margin:'0 0 2px' }}>Happy Birthday</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:600, fontSize:9, color:'#6B7280', letterSpacing:'0.08em', margin:0 }}>TIME TO PAWS, PAMPER, AND RELAX</p>
+              </div>
+              <span className="hg-badge hg-badge-new">★ New</span>
+            </Link>
+
+            {/* 6: yay it's your birthday — purple party characters — badge More options */}
+            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(160deg,#4338CA,#7C3AED)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center', position:'relative' }}>
+                <div style={{ fontSize:40, marginBottom:6 }}>🎉🎂🍒</div>
+                <p style={{ fontFamily:"'Caveat',cursive", fontWeight:700, fontSize:22, color:'#FCD34D', lineHeight:1.2, margin:0 }}>yay!<br/>it's your<br/>birthday!</p>
+              </div>
+              <span className="hg-badge hg-badge-more">More options</span>
+            </Link>
+
+            {/* 7: CHEERS TO THE JUNE BIRTHDAY GIRL — pink martini */}
+            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(180deg,#FDF2F8,#FBCFE8)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:40, marginBottom:8 }}>🍸</div>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:16, color:'#BE185D', lineHeight:1.3, margin:0 }}>Cheers to the<br/><span style={{ fontSize:22, color:'#9D174D', fontWeight:800 }}>JUNE</span><br/>Birthday Girl</p>
+              </div>
+              <span className="hg-badge hg-badge-more">More options</span>
+            </Link>
+
+            {/* 8: Happy Birthday — teal cake candles — badge New */}
+            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(160deg,#5EEAD4,#0D9488)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:44, marginBottom:8 }}>🎊</div>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:32, color:'#fff', lineHeight:1.1, margin:0 }}>Happy<br/>Birthday</p>
+              </div>
+              <span className="hg-badge hg-badge-new">★ New</span>
+            </Link>
+
+            {/* 9: Hope your birthday is SWEET — Fanta can — cream */}
+            <Link to="/card/new" className="hg-tile" style={{ background:'#FEF9C3' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:52, marginBottom:6 }}>🥤</div>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:14, color:'#B45309', lineHeight:1.3, margin:'0 0 4px', textTransform:'uppercase', letterSpacing:'0.05em' }}>Hope your<br/>birthday is</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:22, color:'#D97706', margin:0 }}>SWEET!</p>
+              </div>
+            </Link>
+
+            {/* 10: wishing you a very happy birthday — multicolor text */}
+            <Link to="/card/new" className="hg-tile" style={{ background:'#FAFAFA' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 10px', textAlign:'center' }}>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, lineHeight:1.3, margin:0 }}>
+                  <span style={{ fontSize:18, color:'#6D28D9' }}>wishing</span><br/>
+                  <span style={{ fontSize:18, color:'#0D9488' }}>you a</span><br/>
+                  <span style={{ fontSize:26, color:'#7C3AED' }}>very</span><br/>
+                  <span style={{ fontSize:20, color:'#DB2777' }}>happy</span><br/>
+                  <span style={{ fontSize:20, color:'#D97706' }}>birthday</span>
+                </p>
+              </div>
+              <span className="hg-badge hg-badge-new">★ New</span>
+            </Link>
+
           </div>
           <div className="text-center mt-8">
             <Link to="/card/new" className="gc-btn-secondary inline-flex items-center gap-2 px-6 py-3 text-sm">View all designs <Icon name="ArrowRight" size={15}/></Link>
@@ -324,42 +614,76 @@ const Home = () => {
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── GET INSPIRATION FROM SAMPLE CARDS (GroupCards-style real template tiles) ─ */}
+      {/* ══ INSPIRATION SAMPLE CARDS — exact GroupCards style ══ */}
       <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>Get inspiration from some of our sample cards</h2>
-            <p className="text-warm-500 text-sm sm:text-base">See a real, finished card before you start your own — no signup needed to look.</p>
+            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>Get inspiration from our sample cards</h2>
+            <p className="text-warm-500 text-sm sm:text-base">See a real, finished card before you start — no signup needed.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {[
-              { title:'Good Luck\nSarah!', bg:'linear-gradient(160deg,#FDE68A,#FB923C)', ink:'#7C2D12' },
-              { title:'CONGRATS\nTUNDE', bg:'linear-gradient(160deg,#A7F3D0,#10B981)', ink:'#064E3B', badge:'New' },
-              { title:'thank\nyou!', bg:'linear-gradient(160deg,#FBCFE8,#EC4899)', ink:'#fff' },
-              { title:"We'll Miss\nYou Chidi", bg:'linear-gradient(160deg,#312E81,#6D28D9)', ink:'#fff', badge:'More options' },
-              { title:'Happy\nRetirement', bg:'linear-gradient(160deg,#FEF3C7,#FCD34D)', ink:'#78350F' },
-            ].map((d, i) => (
-              <Link key={i} to="/sign/demo-thankeeu-card" className="gc-card-hover block overflow-hidden rounded-2xl relative" style={{ aspectRatio: '4/5' }}>
-                <div className="w-full h-full flex flex-col items-center justify-center text-center px-3 relative" style={{ background:d.bg }}>
-                  {d.badge && (
-                    <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: d.badge==='New' ? '#FBBF24' : '#F472B6', color:'#fff' }}>
-                      {d.badge === 'New' && '★ '}{d.badge}
-                    </span>
-                  )}
-                  <p className="font-extrabold whitespace-pre-line leading-tight text-xl" style={{ color:d.ink }}>{d.title}</p>
-                  <span className="absolute bottom-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/80" style={{ color:'#3B0D7A' }}>4 messages</span>
-                </div>
-              </Link>
-            ))}
+          <div className="hg-grid">
+
+            {/* 1: Good Luck — amber/orange */}
+            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#FDE68A,#FB923C)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:44, marginBottom:8 }}>🌟</div>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:26, color:'#7C2D12', lineHeight:1.2, margin:'0 0 6px' }}>Good Luck<br/>Sarah!</p>
+                <span style={{ background:'rgba(255,255,255,0.7)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#7C2D12' }}>12 messages</span>
+              </div>
+            </Link>
+
+            {/* 2: Congrats — emerald — badge New */}
+            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#A7F3D0,#059669)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:44, marginBottom:8 }}>🎊</div>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:20, color:'#064E3B', lineHeight:1.1, margin:'0 0 6px', letterSpacing:'0.02em' }}>CONGRATS<br/>TUNDE</p>
+                <span style={{ background:'rgba(255,255,255,0.7)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#064E3B' }}>8 messages</span>
+              </div>
+              <span className="hg-badge hg-badge-new">★ New</span>
+            </Link>
+
+            {/* 3: Thank you — pink */}
+            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#FBCFE8,#EC4899)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:44, marginBottom:8 }}>💗</div>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:32, color:'#fff', lineHeight:1.1, margin:'0 0 6px' }}>thank<br/>you!</p>
+                <span style={{ background:'rgba(255,255,255,0.3)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#fff' }}>22 messages</span>
+              </div>
+            </Link>
+
+            {/* 4: We'll miss you — purple — More options */}
+            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#312E81,#6D28D9)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:44, marginBottom:8 }}>👋</div>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:22, color:'#E9D5FF', lineHeight:1.2, margin:'0 0 6px' }}>We'll Miss<br/>You Chidi</p>
+                <span style={{ background:'rgba(255,255,255,0.2)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#E9D5FF' }}>34 messages</span>
+              </div>
+              <span className="hg-badge hg-badge-more">More options</span>
+            </Link>
+
+            {/* 5: Happy Retirement — warm yellow */}
+            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#FEF3C7,#FCD34D)' }}>
+              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
+                <div style={{ fontSize:44, marginBottom:8 }}>🏖️</div>
+                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:26, color:'#78350F', lineHeight:1.2, margin:'0 0 6px' }}>Happy<br/>Retirement</p>
+                <span style={{ background:'rgba(255,255,255,0.7)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#78350F' }}>18 messages</span>
+              </div>
+            </Link>
+
+          </div>
+          <div className="text-center mt-8">
+            <Link to="/sample" className="gc-btn-secondary inline-flex items-center gap-2 px-6 py-3 text-sm">
+              <Icon name="Eye" size={15}/> See a live sample card
+            </Link>
           </div>
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── OCCASIONS ───────────────────────── */}
+      {/* ══ OCCASIONS ══ */}
       <section className="py-12 md:py-16 px-4" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
@@ -380,9 +704,9 @@ const Home = () => {
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── HOW IT WORKS ──────────────────── */}
+      {/* ══ HOW IT WORKS ══ */}
       <section className="py-12 md:py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
@@ -392,7 +716,7 @@ const Home = () => {
             </h2>
           </div>
           <div className="steps-grid">
-            {STEPS.map((s, i) => (
+            {STEPS.map(s => (
               <div key={s.num} className="bg-white border-2 border-purple-100 rounded-3xl p-5 transition-all hover:border-primary-300 hover:shadow-md">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-8 h-8 rounded-xl bg-primary-50 border-2 border-primary-200 flex items-center justify-center font-display text-sm font-bold text-primary-600 flex-shrink-0">{s.num}</span>
@@ -407,9 +731,9 @@ const Home = () => {
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── FEATURES + MOCK CARD ──────────── */}
+      {/* ══ FEATURES + MOCK CARD ══ */}
       <section className="py-12 md:py-16 px-4" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
@@ -434,7 +758,6 @@ const Home = () => {
                 <Icon name="Sparkles" size={15}/> Create your first card <Icon name="ArrowRight" size={15}/>
               </Link>
             </div>
-
             {/* Mock card */}
             <div className="relative">
               <div className="bg-gradient-to-br from-purple-50 to-rose-50 border-2 border-purple-200 rounded-3xl p-5 shadow-lg">
@@ -449,9 +772,9 @@ const Home = () => {
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {[
                     { av:'AO', name:'Adaeze O.', msg:"Happy birthday!! You're such an inspiration" },
-                    { av:'EK', name:'Emeka K.', msg:'Wishing you all the joy this year!' },
-                    { av:'KI', name:'Kemi I.', msg:'Another year wiser! Enjoy every moment' },
-                    { av:'BD', name:'Bolu D.', msg:'You deserve all the good things, boss!' },
+                    { av:'EK', name:'Emeka K.',  msg:'Wishing you all the joy this year!' },
+                    { av:'KI', name:'Kemi I.',   msg:'Another year wiser! Enjoy every moment' },
+                    { av:'BD', name:'Bolu D.',   msg:'You deserve all the good things, boss!' },
                   ].map(m => (
                     <div key={m.av} className="bg-white rounded-2xl p-3 border border-purple-100">
                       <div className="flex items-center gap-2 mb-1.5">
@@ -469,7 +792,7 @@ const Home = () => {
                     <span className="font-display text-base font-bold text-green-700">₦85,000</span>
                   </div>
                   <div className="w-full h-2 bg-green-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width:'85%', background:'linear-gradient(90deg,#10B981,#34D399)' }} />
+                    <div className="h-full rounded-full" style={{ width:'85%', background:'linear-gradient(90deg,#10B981,#34D399)' }}/>
                   </div>
                   <p className="text-xs text-green-600 mt-1.5 flex items-center gap-1">₦85,000 raised · Goal: ₦100,000 <Icon name="Target" size={11}/></p>
                 </div>
@@ -481,9 +804,9 @@ const Home = () => {
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── TESTIMONIALS ─────────────────── */}
+      {/* ══ TESTIMONIALS ══ */}
       <section className="py-12 md:py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
@@ -498,9 +821,7 @@ const Home = () => {
                 <div className="flex gap-0.5">{Array(t.stars).fill(0).map((_,i)=><Icon key={i} name="Star" size={14} className="text-amber-400 fill-amber-400"/>)}</div>
                 <p className="text-sm text-warm-600 leading-relaxed italic flex-1">"{t.text}"</p>
                 <div className="flex items-center gap-3 pt-3 border-t border-purple-50">
-                  <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                    {t.name.split(' ').map(n=>n[0]).join('')}
-                  </div>
+                  <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold flex-shrink-0">{t.name.split(' ').map(n=>n[0]).join('')}</div>
                   <div>
                     <p className="text-sm font-bold text-warm-900">{t.name}</p>
                     <p className="text-xs text-warm-400">{t.role} · {t.location}</p>
@@ -512,9 +833,9 @@ const Home = () => {
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── TRUSTED BY STRIP ─────────────────── */}
+      {/* ══ TRUSTED BY ══ */}
       <section className="py-10 px-4 gc-font">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-xs font-bold uppercase tracking-wide mb-5" style={{ color:'#A1A1AA' }}>Used by teams and groups across Nigeria and beyond</p>
@@ -526,9 +847,9 @@ const Home = () => {
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── FOR TEAMS ────────────────────── */}
+      {/* ══ FOR TEAMS ══ */}
       <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
@@ -542,12 +863,12 @@ const Home = () => {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
             {[
-              { icon:'Link', title:'HRIS Integration', desc:'SeamlessHR, BambooHR, Zoho People, WorkPay — one sync and your whole org is in.' },
-              { icon:'Party', title:'12 Occasions Automated', desc:"Birthdays, farewells, promotions, new hires, Women's Day — zero manual effort." },
-              { icon:'Mail', title:'Whole-dept Notifications', desc:'Every department member gets an email to sign. No one left out.' },
-              { icon:'Card', title:'Gift pot per employee', desc:'Flutterwave handles multi-currency collections. HR never chases money again.' },
-              { icon:'File', title:'HR Analytics Dashboard', desc:'Full visibility into automations, upcoming occasions, and spending.' },
-              { icon:'Shield', title:'Approval Workflows', desc:'Team leaders sign off on card creation. Full control maintained.' },
+              { icon:'Link',    title:'HRIS Integration',         desc:'SeamlessHR, BambooHR, Zoho People, WorkPay — one sync and your whole org is in.' },
+              { icon:'Party',   title:'12 Occasions Automated',   desc:"Birthdays, farewells, promotions, new hires, Women's Day — zero manual effort." },
+              { icon:'Mail',    title:'Whole-dept Notifications', desc:'Every department member gets an email to sign. No one left out.' },
+              { icon:'Card',    title:'Gift pot per employee',     desc:'Flutterwave handles multi-currency collections. HR never chases money again.' },
+              { icon:'File',    title:'HR Analytics Dashboard',   desc:'Full visibility into automations, upcoming occasions, and spending.' },
+              { icon:'Shield',  title:'Approval Workflows',       desc:'Team leaders sign off on card creation. Full control maintained.' },
             ].map(f => (
               <div key={f.title} className="gc-card gc-card-hover p-4 flex gap-3">
                 <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0"><Icon name={f.icon} size={18} className="text-primary-500"/></div>
@@ -565,41 +886,32 @@ const Home = () => {
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── PRICING CALLOUT ──────────────── */}
+      {/* ══ PRICING ══ */}
       <section className="py-12 md:py-16 px-4 gc-font">
         <div className="max-w-4xl mx-auto">
-          {/* Currency toggle */}
           <div className="text-center mb-6">
             <p className="text-xs font-semibold text-warm-500 mb-2 uppercase tracking-wide">See prices in your currency</p>
-            <CurrencyToggle selected={homeCurrency} onChange={setHomeCurrency} />
+            <CurrencyToggle selected={homeCurrency} onChange={setHomeCurrency}/>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Individual */}
             <div className="bg-gradient-to-br from-purple-50 to-rose-50 border-2 border-purple-200 rounded-3xl p-7">
               <div className="w-12 h-12 rounded-2xl bg-white border-2 border-purple-200 flex items-center justify-center mb-4"><Icon name="Heart" size={22} className="text-primary-500"/></div>
               <h3 className="text-2xl font-bold text-warm-900 mb-1">For individuals</h3>
               <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-primary-600 font-extrabold text-2xl">
-                  {formatCurrency(5000, homeCurrency)}
-                </span>
+                <span className="text-primary-600 font-extrabold text-2xl">{formatCurrency(5000, homeCurrency)}</span>
                 <span className="text-warm-400 text-sm">one-time</span>
               </div>
               {homeCurrency !== 'NGN' && <p className="text-xs text-warm-400 mb-3">≈ ₦5,000 · charged at live rate</p>}
               <p className="text-warm-600 mb-5 text-sm leading-relaxed">Create a card for anyone — friend, colleague, family. No account needed to sign.</p>
               <ul className="space-y-2 mb-6">
                 {['✓ Quick card creation','✓ Unlimited signers','✓ Global gift pot','✓ Photo & video messages'].map(f => (
-                  <li key={f} className="text-sm text-warm-700 flex gap-2">
-                    <span className="text-primary-500 font-bold">{f.slice(0,1)}</span>{f.slice(1)}
-                  </li>
+                  <li key={f} className="text-sm text-warm-700 flex gap-2"><span className="text-primary-500 font-bold">{f.slice(0,1)}</span>{f.slice(1)}</li>
                 ))}
               </ul>
               <Link to="/card/new" className="gc-btn-primary px-7 py-3 w-full sm:w-auto inline-flex items-center justify-center">Get started →</Link>
             </div>
-
-            {/* Company */}
             <div className="rounded-3xl p-7 border-2 border-primary-800" style={{ background:'linear-gradient(135deg,#1A1035,#2E1F6B)' }}>
               <div className="w-12 h-12 rounded-2xl bg-purple-900/40 border-2 border-purple-700 flex items-center justify-center mb-4"><Icon name="Building" size={22} className="text-purple-200"/></div>
               <h3 className="font-display text-2xl font-bold text-purple-100 mb-1">For companies</h3>
@@ -608,9 +920,7 @@ const Home = () => {
               <p className="text-purple-300 mb-5 text-sm leading-relaxed">Automate all team celebrations. Connect your HRIS. Never forget a birthday again.</p>
               <ul className="space-y-2 mb-6">
                 {['✓ Unlimited employees','✓ HRIS integration','✓ 12 automated occasions','✓ HR analytics dashboard'].map(f => (
-                  <li key={f} className="text-sm text-purple-200 flex gap-2">
-                    <span className="text-purple-400 font-bold">{f.slice(0,1)}</span>{f.slice(1)}
-                  </li>
+                  <li key={f} className="text-sm text-purple-200 flex gap-2"><span className="text-purple-400 font-bold">{f.slice(0,1)}</span>{f.slice(1)}</li>
                 ))}
               </ul>
               <div className="flex flex-wrap gap-2">
@@ -619,12 +929,13 @@ const Home = () => {
               </div>
             </div>
           </div>
-
           <p className="text-center text-xs text-warm-400 mt-4 flex items-center justify-center gap-1.5"><Icon name="Globe" size={13}/> Works in Nigeria, UK, US, Canada, Ghana, Kenya, South Africa and beyond · Pay in your local currency</p>
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ─────────────────────── */}
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
+
+      {/* ══ HOW IT WORKS DETAIL ══ */}
       <section id="how-it-works" className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -635,10 +946,10 @@ const Home = () => {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {[
-              { num:'1', icon:'Wand', title:'Create your card', desc:'Pick an occasion, choose a design, set the recipient and delivery date. Takes 2 minutes flat.' },
-              { num:'2', icon:'Share', title:'Share the signing link', desc:'Copy a WhatsApp link or email it. No login needed — anyone can sign from their phone.' },
-              { num:'3', icon:'Heart', title:'Watch messages roll in', desc:'Your signers add messages, photos, voice notes, GIFs and chip in to the gift pot via Flutterwave.' },
-              { num:'4', icon:'Gift', title:'Deliver the surprise', desc:'Card and gift arrive by email on the exact day. The recipient opens a beautiful card, reads every message and claims the gift.' },
+              { num:'1', icon:'Wand',   title:'Create your card',         desc:'Pick an occasion, choose a design, set the recipient and delivery date. Takes 2 minutes flat.' },
+              { num:'2', icon:'Share',  title:'Share the signing link',   desc:'Copy a WhatsApp link or email it. No login needed — anyone can sign from their phone.' },
+              { num:'3', icon:'Heart',  title:'Watch messages roll in',   desc:'Your signers add messages, photos, voice notes, GIFs and chip in to the gift pot via Flutterwave.' },
+              { num:'4', icon:'Gift',   title:'Deliver the surprise',     desc:'Card and gift arrive by email on the exact day. The recipient opens a beautiful card, reads every message and claims the gift.' },
             ].map(s => (
               <div key={s.num} className="gc-card gc-card-hover p-6 flex gap-4">
                 <div className="w-10 h-10 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-extrabold flex-shrink-0">{s.num}</div>
@@ -650,15 +961,13 @@ const Home = () => {
               </div>
             ))}
           </div>
-          <p className="text-center text-xs text-warm-400 mt-8">
-            Need a walkthrough? <a href="/how-it-works" className="text-primary-500 font-semibold hover:underline">See the full guide →</a>
-          </p>
+          <p className="text-center text-xs text-warm-400 mt-8">Need a walkthrough? <a href="/how-it-works" className="text-primary-500 font-semibold hover:underline">See the full guide →</a></p>
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── FAQ ───────────────────────────────── */}
+      {/* ══ FAQ ══ */}
       <section id="faq" className="py-14 md:py-20 px-4 gc-font">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
@@ -668,13 +977,13 @@ const Home = () => {
             </h2>
           </div>
           {[
-            { q:'Is it really free to create a card?', a:'Yes — creating a card and collecting messages is 100% free. You only pay ₦5,000 when you\'re ready to activate and send the card to the recipient.' },
-            { q:'Does the recipient need to create an account?', a:'No. The recipient simply opens a link, reads all the messages and can claim the gift — no sign-up required.' },
+            { q:'Is it really free to create a card?', a:"Yes — creating a card and collecting messages is 100% free. You only pay ₦5,000 when you're ready to activate and send the card to the recipient." },
+            { q:'Does the recipient need to create an account?', a:"No. The recipient simply opens a link, reads all the messages and can claim the gift — no sign-up required." },
             { q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Flutterwave.' },
             { q:'Can people outside Nigeria contribute to the gift pot?', a:'Yes. Flutterwave supports international Visa and Mastercard cards. Your signers can contribute from anywhere in the world.' },
             { q:'What types of media can contributors add?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs — all in one beautiful card.' },
-            { q:'How does the gift pot work for companies?', a:'Each celebration card has its own Flutterwave gift pot. Department members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account.' },
-            { q:'Can I schedule the card to send on a specific date?', a:'Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget.' },
+            { q:'How does the gift pot work for companies?', a:"Each celebration card has its own Flutterwave gift pot. Department members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account." },
+            { q:'Can I schedule the card to send on a specific date?', a:"Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget." },
             { q:'Is there a limit on how many people can sign?', a:'No limit. Invite your entire company if you want. The more signatures, the more meaningful the card.' },
           ].map((item, i) => {
             const [open, setOpen] = useState(false);
@@ -683,137 +992,76 @@ const Home = () => {
                 <button onClick={() => setOpen(!open)}
                   className="w-full text-left flex items-center justify-between py-4 gap-4 hover:text-primary-600 transition-colors">
                   <span className="font-bold" style={{ fontSize:'0.9rem', color:'#1A1035' }}>{item.q}</span>
-                  <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${open ? 'rotate-45' : ''}`}>+</span>
+                  <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${open?'rotate-45':''}`}>+</span>
                 </button>
                 {open && <p className="text-sm text-warm-600 leading-relaxed pb-4">{item.a}</p>}
               </div>
             );
           })}
-          <p className="text-center text-xs text-warm-400 mt-8">
-            More questions? <a href="/faq" className="text-primary-500 font-semibold hover:underline">See all FAQs →</a>
-          </p>
+          <p className="text-center text-xs text-warm-400 mt-8">More questions? <a href="/faq" className="text-primary-500 font-semibold hover:underline">See all FAQs →</a></p>
         </div>
       </section>
 
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── ECOSYSTEM: Pals + Vendor Marketplace ─────────────────────────── */}
+      {/* ══ ECOSYSTEM: Pals + Vendor ══ */}
       <section className="py-14 md:py-20 px-4" style={{ background:'#fff' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5">
-              <Icon name="Layers" size={13}/> More ways to celebrate
-            </div>
-            <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(2rem,5.5vw,2.9rem)' }}>
-              Beyond the card
-            </h2>
+            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Layers" size={13}/> More ways to celebrate</div>
+            <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(2rem,5.5vw,2.9rem)' }}>Beyond the card</h2>
             <p className="text-warm-500 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
-              Thankeeu is a full celebration platform — not just a card tool. 
-              Send real gifts. Celebrate with your inner circle. Do it all in one place.
+              Thankeeu is a full celebration platform — not just a card tool. Send real gifts. Celebrate with your inner circle. Do it all in one place.
             </p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* ── Thankeeu Pals ────────────────────────────── */}
-            <div className="relative rounded-3xl overflow-hidden border-2 border-purple-100 p-7 flex flex-col"
-              style={{ background:'linear-gradient(135deg,#F5F0FF 0%,#FFF0F8 100%)' }}>
+            <div className="relative rounded-3xl overflow-hidden border-2 border-purple-100 p-7 flex flex-col" style={{ background:'linear-gradient(135deg,#F5F0FF 0%,#FFF0F8 100%)' }}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
-                  style={{ background:'linear-gradient(135deg,#8B5CF6,#EC4899)' }}>
-                  🤝
-                </div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background:'linear-gradient(135deg,#8B5CF6,#EC4899)' }}>🤝</div>
                 <div>
                   <p className="text-xs font-bold text-primary-500 uppercase tracking-wider mb-0.5">New</p>
                   <h3 className="text-xl font-extrabold text-warm-900">Thankeeu Pals</h3>
                 </div>
               </div>
-
-              <p className="text-warm-600 text-sm leading-relaxed mb-4">
-                A private celebration circle for your closest people — best friends, family, 
-                a tight-knit crew. Everyone joins, adds their dates, and Thankeeu automatically 
-                creates a group card when someone's birthday or special day arrives.
-              </p>
-
+              <p className="text-warm-600 text-sm leading-relaxed mb-4">A private celebration circle for your closest people — best friends, family, a tight-knit crew. Everyone joins, adds their dates, and Thankeeu automatically creates a group card when someone's special day arrives.</p>
               <ul className="space-y-2 mb-6">
-                {[
-                  'Up to 15 people in a private group',
-                  'Auto-created cards for every occasion',
-                  'Gift pot collected and paid out at 6 pm on the day',
-                  'No HR. No company. Just your people.',
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-warm-700">
-                    <span className="text-primary-500 mt-0.5 flex-shrink-0">✓</span>
-                    {item}
-                  </li>
+                {['Up to 15 people in a private group','Auto-created cards for every occasion','Gift pot collected and paid out at 6 pm on the day','No HR. No company. Just your people.'].map((item,i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-warm-700"><span className="text-primary-500 mt-0.5 flex-shrink-0">✓</span>{item}</li>
                 ))}
               </ul>
-
               <div className="mt-auto flex flex-wrap gap-3">
-                <Link to="/pals"
-                  className="gc-btn-primary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">
-                  <Icon name="Users" size={14}/> Learn about Pals
-                </Link>
-                <Link to="/pals/signup"
-                  className="gc-btn-secondary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">
-                  Start a group →
-                </Link>
+                <Link to="/pals" className="gc-btn-primary px-5 py-2.5 text-sm inline-flex items-center gap-1.5"><Icon name="Users" size={14}/> Learn about Pals</Link>
+                <Link to="/pals/signup" className="gc-btn-secondary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">Start a group →</Link>
               </div>
             </div>
-
-            {/* ── Vendor Marketplace ───────────────────────── */}
-            <div className="relative rounded-3xl overflow-hidden border-2 border-amber-100 p-7 flex flex-col"
-              style={{ background:'linear-gradient(135deg,#FFFBEB 0%,#FFF5F0 100%)' }}>
+            <div className="relative rounded-3xl overflow-hidden border-2 border-amber-100 p-7 flex flex-col" style={{ background:'linear-gradient(135deg,#FFFBEB 0%,#FFF5F0 100%)' }}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
-                  style={{ background:'linear-gradient(135deg,#F59E0B,#EF4444)' }}>
-                  🛍️
-                </div>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0" style={{ background:'linear-gradient(135deg,#F59E0B,#EF4444)' }}>🛍️</div>
                 <div>
                   <p className="text-xs font-bold text-amber-600 uppercase tracking-wider mb-0.5">Marketplace</p>
                   <h3 className="text-xl font-extrabold text-warm-900">Gift Marketplace</h3>
                 </div>
               </div>
-
-              <p className="text-warm-600 text-sm leading-relaxed mb-4">
-                Attach a real, physical gift to any card — straight from local vendors. 
-                Pick from cakes, flowers, chocolates, jewellery, hampers and more. 
-                The vendor is notified with the delivery deadline so your gift arrives on time.
-              </p>
-
+              <p className="text-warm-600 text-sm leading-relaxed mb-4">Attach a real, physical gift to any card — straight from local vendors. Pick from cakes, flowers, chocolates, jewellery, hampers and more. The vendor is notified with the delivery deadline so your gift arrives on time.</p>
               <ul className="space-y-2 mb-6">
-                {[
-                  'Browse verified local gift vendors',
-                  'Order cakes, flowers, chocolates & more',
-                  'Vendor notified with your celebration date',
-                  'Sell on Thankeeu? Apply to become a vendor',
-                ].map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-warm-700">
-                    <span className="text-amber-500 mt-0.5 flex-shrink-0">✓</span>
-                    {item}
-                  </li>
+                {['Browse verified local gift vendors','Order cakes, flowers, chocolates & more','Vendor notified with your celebration date','Sell on Thankeeu? Apply to become a vendor'].map((item,i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-warm-700"><span className="text-amber-500 mt-0.5 flex-shrink-0">✓</span>{item}</li>
                 ))}
               </ul>
-
               <div className="mt-auto flex flex-wrap gap-3">
-                <Link to="/vendors"
-                  className="px-5 py-2.5 text-sm font-bold rounded-2xl inline-flex items-center gap-1.5 transition-all"
-                  style={{ background:'linear-gradient(135deg,#F59E0B,#EF4444)', color:'#fff' }}>
+                <Link to="/vendors" className="px-5 py-2.5 text-sm font-bold rounded-2xl inline-flex items-center gap-1.5 transition-all" style={{ background:'linear-gradient(135deg,#F59E0B,#EF4444)', color:'#fff' }}>
                   <Icon name="Store" size={14}/> Browse gift vendors
                 </Link>
-                <Link to="/vendors"
-                  className="px-5 py-2.5 text-sm font-bold rounded-2xl border-2 border-amber-200 text-amber-700 hover:bg-amber-50 transition-all inline-flex items-center gap-1.5">
-                  Sell on Thankeeu →
-                </Link>
+                <Link to="/vendors" className="px-5 py-2.5 text-sm font-bold rounded-2xl border-2 border-amber-200 text-amber-700 hover:bg-amber-50 transition-all inline-flex items-center gap-1.5">Sell on Thankeeu →</Link>
               </div>
             </div>
-
           </div>
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ── BOTTOM CTA ───────────────────── */}
+      {/* ══ BOTTOM CTA ══ */}
       <section className="py-16 md:py-24 px-4 text-center gc-font" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
           <div className="flex justify-center gap-2 sm:gap-3 mb-6">
@@ -825,11 +1073,9 @@ const Home = () => {
           </div>
           <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(2.1rem,6.5vw,3.6rem)' }}>
             Make someone feel<br/>
-            <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
-              genuinely loved
-            </span>
+            <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>genuinely loved</span>
           </h2>
-          <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={5000} /> per card · Pay only when you send · Works worldwide</p>
+          <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={5000}/> per card · Pay only when you send · Works worldwide</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link to="/card/new" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/> Get started — takes 2 min</Link>
             <Link to="/pricing" className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Card" size={16}/> See pricing</Link>
@@ -840,16 +1086,14 @@ const Home = () => {
             <span className="inline-flex items-center gap-1"><Icon name="Globe" size={12}/> Used worldwide</span>
           </p>
           <p className="text-xs text-warm-300 mt-4">
-            Got a tight group of friends or family?{' '}
-            <Link to="/pals" className="text-primary-400 hover:text-primary-600 hover:underline">Start a free Thankeeu Pals group</Link>
-            {' '}· Sell cakes, flowers & gifts?{' '}
-            <Link to="/vendors" className="text-primary-400 hover:text-primary-600 hover:underline">Become a vendor</Link>
+            Got a tight group of friends or family?{' '}<Link to="/pals" className="text-primary-400 hover:text-primary-600 hover:underline">Start a free Thankeeu Pals group</Link>
+            {' '}· Sell cakes, flowers &amp; gifts?{' '}<Link to="/vendors" className="text-primary-400 hover:text-primary-600 hover:underline">Become a vendor</Link>
           </p>
         </div>
       </section>
 
-      <Footer />
-      {showDemo && <DemoModal onClose={() => setShowDemo(false)} />}
+      <Footer/>
+      {showDemo && <DemoModal onClose={() => setShowDemo(false)}/>}
     </div>
   );
 };

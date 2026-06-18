@@ -1,4 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
+import AlbumSign from './AlbumSign';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -427,6 +428,11 @@ const SignCard = () => {
     </div>
   );
 
+  // Branch to album layout
+  if (card.card_layout === 'album') {
+    return <AlbumSign card={card} slug={slug} />;
+  }
+
   const design   = getCardDesign(card.design_theme);
   const cardFont = getFontStyle(card.font_style);
   const msgFont  = getFontStyle(form.font_style);
@@ -568,7 +574,7 @@ const SignCard = () => {
 
   // ── Main signing form ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: `linear-gradient(160deg, #F8F6FF 0%, ${design.background.includes("gradient") ? "#F0EDFF" : design.soft || "#F0EDFF"} 100%)` }}>
+    <div className="min-h-screen flex flex-col" style={{ background: design.soft || "#F5F0FF" }}>
       <Navbar />
       <main className="flex-1">
 

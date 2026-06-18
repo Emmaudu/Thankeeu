@@ -15,6 +15,7 @@ const addMessage = async (req, res) => {
   try {
     const { card_slug } = req.params;
     const { author_email, content, is_private, font_style,
+             position_x, position_y, rotation, font_color, font_size, page_number,
              gift_type, product_vendor_id, product_vendor_name,
              product_id, product_name } = req.body;
     const author_name    = req.body.author_name;
@@ -101,6 +102,13 @@ const addMessage = async (req, res) => {
       media_url,
       media_type,
       ...(media_gallery && { media_gallery }),
+      // Album placement fields (set when signer uses album layout)
+      ...(position_x != null && { position_x: parseFloat(position_x) || null }),
+      ...(position_y != null && { position_y: parseFloat(position_y) || null }),
+      ...(rotation   != null && { rotation:   parseFloat(rotation)   || 0 }),
+      ...(font_color            && { font_color }),
+      ...(font_size  != null    && { font_size:   parseInt(font_size) || 16 }),
+      ...(page_number != null   && { page_number: parseInt(page_number) || 1 }),
       // Product gift fields (set when signer chooses vendor gift in SignCard)
       ...(gift_type === 'product' && {
         gift_type:           'product',
@@ -122,17 +130,35 @@ const addMessage = async (req, res) => {
     // migration adding them to `messages` hasn't been run on this database yet.
     const { gift_type: g_giftType, product_vendor_id: g_vendorId, product_vendor_name: g_vendorName,
             product_id: g_productId, product_name: g_productName, product_price: g_productPrice,
-            media_gallery: m_gallery, font_style: f_style, ...coreData } = msgData;
+            media_gallery: m_gallery, font_style: f_style,
+            position_x: p_x, position_y: p_y, rotation: p_rot, font_color: p_fc,
+            font_size: p_fs, page_number: p_pg,
+            ...coreData } = msgData;
+
+    const placementFields = {
+      ...(p_x   != null && { position_x: p_x }),
+      ...(p_y   != null && { position_y: p_y }),
+      ...(p_rot != null && { rotation:   p_rot }),
+      ...(p_fc  != null && { font_color: p_fc }),
+      ...(p_fs  != null && { font_size:  p_fs }),
+      ...(p_pg  != null && { page_number: p_pg }),
+    };
+    const giftFields = g_giftType ? { gift_type: g_giftType, product_vendor_id: g_vendorId,
+      product_vendor_name: g_vendorName, product_id: g_productId,
+      product_name: g_productName, product_price: g_productPrice } : {};
+    const galleryField = m_gallery ? { media_gallery: m_gallery } : {};
 
     const attempts = [
-      { ...coreData, ...(m_gallery && { media_gallery: m_gallery }), font_style: font_style || 'handwritten',
-        ...(g_giftType && { gift_type: g_giftType, product_vendor_id: g_vendorId, product_vendor_name: g_vendorName,
-                              product_id: g_productId, product_name: g_productName, product_price: g_productPrice }) },
-      { ...coreData, ...(m_gallery && { media_gallery: m_gallery }),
-        ...(g_giftType && { gift_type: g_giftType, product_vendor_id: g_vendorId, product_vendor_name: g_vendorName,
-                              product_id: g_productId, product_name: g_productName, product_price: g_productPrice }) },
-      { ...coreData, ...(m_gallery && { media_gallery: m_gallery }), font_style: font_style || 'handwritten' },
-      { ...coreData, ...(m_gallery && { media_gallery: m_gallery }) },
+      // Full: font_style + placement + gift + gallery
+      { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...placementFields, ...giftFields },
+      // Without placement (migration not run yet)
+      { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...giftFields },
+      // Without gift columns
+      { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...placementFields },
+      // Without font_style
+      { ...coreData, ...galleryField, ...placementFields, ...giftFields },
+      // Core only
+      { ...coreData, ...galleryField },
       coreData,
     ];
 
@@ -347,4 +373,52 @@ const sendReply = async (req, res) => {
   }
 };
 
-module.exports = { addMessage, reactToMessage, deleteMessage, sendReply, upload };
+const updatePosition = async (req, res) => {
+  try {
+    const { message_id } = req.params;
+    const { position_x, position_y, rotation, font_color, font_size, page_number, author_email } = req.body;
+
+    // Authorization: original author (email match) OR authenticated card creator
+    const { data: msg } = await supabase
+      .from('messages').select('id, card_id, author_email').eq('id', message_id).maybeSingle();
+    if (!msg) return res.status(404).json({ error: 'Message not found' });
+
+    let authorized = false;
+    // 1. Authenticated card creator
+    if (req.user) {
+      const { data: card } = await supabase.from('cards').select('creator_id').eq('id', msg.card_id).maybeSingle();
+      if (card?.creator_id === req.user.id) authorized = true;
+    }
+    // 2. Original author email match (guest signers prove identity this way)
+    if (!authorized && author_email && msg.author_email &&
+        author_email.toLowerCase().trim() === msg.author_email.toLowerCase().trim()) {
+      authorized = true;
+    }
+    if (!authorized) return res.status(403).json({ error: 'Not authorized to move this signature' });
+
+    const updateData = {};
+    if (position_x  != null) updateData.position_x  = parseFloat(position_x);
+    if (position_y  != null) updateData.position_y  = parseFloat(position_y);
+    if (rotation    != null) updateData.rotation    = parseFloat(rotation);
+    if (font_color  != null) updateData.font_color  = font_color;
+    if (font_size   != null) updateData.font_size   = parseInt(font_size);
+    if (page_number != null) updateData.page_number = parseInt(page_number);
+
+    if (Object.keys(updateData).length === 0)
+      return res.status(400).json({ error: 'No fields to update' });
+
+    // Gracefully handle migration-not-run case
+    const { error } = await supabase.from('messages').update(updateData).eq('id', message_id);
+    if (error && (error.code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
+      return res.status(422).json({ error: 'Placement columns not yet available — run migration first' });
+    }
+    if (error) throw error;
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[updatePosition]', err.message);
+    res.status(500).json({ error: 'Failed to update position' });
+  }
+};
+
+module.exports = { addMessage, reactToMessage, deleteMessage, sendReply, updatePosition, upload };

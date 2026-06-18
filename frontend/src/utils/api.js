@@ -155,7 +155,8 @@ export const messagesAPI = {
   add:    (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data, {
     headers: { 'Content-Type': undefined },
   }),
-  react:  (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
+  react:          (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
+  updatePosition: (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data),
   delete: (messageId)       => api.delete(`/messages/${messageId}`),
   // reply is authenticated — uses smart axios so both users and members can reply
   reply:  (cardSlug, data)  => smartAxios.post(`/messages/${cardSlug}/reply`, data),

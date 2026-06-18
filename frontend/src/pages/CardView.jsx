@@ -1330,12 +1330,16 @@ const CardView = () => {
 
         {/* ── Share your card ──────────────────────────────────────────── */}
         <div className="no-print mb-9 space-y-3">
-          {/* Box 1 — Public signing link (only while the card is still open for signing) */}
-          {card.status === 'active' && (
+          {/* Box 1 — Public signing link — open while active AND after delivery (sent) */}
+          {(card.status === 'active' || card.status === 'sent') && (
             <div className="rounded-2xl border-2 p-4 sm:p-5" style={{ borderColor: '#A855F740', background: 'linear-gradient(135deg,#F5F3FF,#FCE7F3)' }}>
-              <p className="text-xs font-extrabold tracking-[.15em] uppercase text-primary-600 mb-1">✍️ Signing link — for everyone</p>
+              <p className="text-xs font-extrabold tracking-[.15em] uppercase text-primary-600 mb-1">
+                {card.status === 'sent' ? '🎁 Still open — messages & gifts welcome' : '✍️ Signing link — for everyone'}
+              </p>
               <p className="text-sm text-warm-600 mb-3">
-                This link lets anyone write a message on the card. Share it with colleagues, friends or family so they can add their wishes before delivery.
+                {card.status === 'sent'
+                  ? `The card was delivered to ${card.recipient_name} but the signing link is still open — colleagues can still add a message or contribute a late gift.`
+                  : 'This link lets anyone write a message on the card. Share it with colleagues, friends or family so they can add their wishes before delivery.'}
               </p>
               <div className="flex flex-wrap gap-2">
                 <button

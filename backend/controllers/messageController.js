@@ -29,6 +29,8 @@ const addMessage = async (req, res) => {
 
     if (!card) return res.status(404).json({ error: 'Card not found' });
     if (card.status === 'draft') return res.status(403).json({ error: 'Card is not yet active' });
+    // 'active' and 'sent' (delivered) cards are both open for signing.
+    // Only 'draft' is blocked above — no other status check needed.
 
     // Thankeeu Pals: only the group's own members (incl. the celebrant's
     // group owner) may sign — this enforces "signers can't exceed group size"
@@ -151,14 +153,17 @@ const addMessage = async (req, res) => {
     const attempts = [
       // Full: font_style + placement + gift + gallery
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...placementFields, ...giftFields },
-      // Without placement (migration not run yet)
+      // Without placement columns (migration not run yet)
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...giftFields },
       // Without gift columns
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...placementFields },
       // Without font_style
       { ...coreData, ...galleryField, ...placementFields, ...giftFields },
-      // Core only
-      { ...coreData, ...galleryField },
+      // Without gallery (media_gallery column may not exist)
+      { ...coreData, font_style: font_style || 'handwritten' },
+      // Without gallery and without font_style
+      { ...coreData },
+      // Core data only — absolute minimum fallback
       coreData,
     ];
 
@@ -227,8 +232,10 @@ const addMessage = async (req, res) => {
 
     res.status(201).json(message);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to add message' });
+    console.error('[addMessage] error:', err?.message || err, '| code:', err?.code, '| detail:', err?.details || err?.hint);
+    // Return the actual DB/validation error so the frontend can show something useful
+    const errMsg = err?.message || err?.details || 'Failed to add message';
+    res.status(500).json({ error: errMsg });
   }
 };
 

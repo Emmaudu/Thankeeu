@@ -402,7 +402,15 @@ const SignCard = () => {
       window.location.assign(payment_link);
 
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Could not sign card. Please try again.');
+      console.error('[SignCard handleSubmit]', err?.response?.status, err?.response?.data, err?.message);
+      const serverMsg = err?.response?.data?.error;
+      const isTimeout = err?.code === 'ECONNABORTED' || err?.message?.includes('timeout');
+      const isNetwork = !err?.response;
+      const displayMsg = serverMsg
+        || (isTimeout ? 'Request timed out — please check your connection and try again.' : null)
+        || (isNetwork ? 'Could not reach the server — please check your connection.' : null)
+        || 'Could not sign card. Please try again.';
+      toast.error(displayMsg);
       setSubmitting(false);
       setStage('idle');
     }
@@ -578,10 +586,20 @@ const SignCard = () => {
       <Navbar />
       <main className="flex-1">
 
+        {/* Delivered-but-still-open banner */}
+        {card.status === 'sent' && (
+          <div style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', borderBottom:'1.5px solid #C4B5FD', padding:'12px 20px', textAlign:'center', display:'flex', alignItems:'center', justifyContent:'center', gap:8, flexWrap:'wrap' }}>
+            <span style={{ fontSize:20 }}>🎁</span>
+            <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#5B21B6', margin:0 }}>
+              This card was already delivered to {card.recipient_name} — but you can still add your message and contribute a gift!
+            </p>
+          </div>
+        )}
+
         {/* Hero banner */}
         <section className={`card-art ${cardArtClass(design)} px-4 py-10 sm:py-14`} style={{ background: design.background, color: design.ink }}>
           <div className="max-w-4xl mx-auto text-center relative z-10">
-            {hoursLeft !== null && hoursLeft < 48 && (
+            {hoursLeft !== null && hoursLeft < 48 && card.status !== 'sent' && (
               <span className="inline-flex bg-white/80 text-amber-800 rounded-full px-4 py-2 text-sm font-extrabold mb-5 shadow-sm">
                 ⏰ Signing closes in {hoursLeft < 24 ? `${hoursLeft}h` : `${Math.round(hoursLeft/24)}d`}
               </span>

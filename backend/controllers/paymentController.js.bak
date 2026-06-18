@@ -274,11 +274,7 @@ const initContribution = async (req, res) => {
 
     if (!card)                  return res.status(404).json({ error: 'Card not found' });
     if (!card.is_gift_enabled)  return res.status(400).json({ error: 'Gifts not enabled for this card' });
-    // NOTE: We intentionally allow gift contributions even after the card
-    // has been delivered (status === 'sent'). For HR/company auto-sent cards,
-    // colleagues may still want to contribute a late gift or send well-wishes.
-    // The only truly blocked status is 'draft' (card not yet active).
-    if (card.status === 'draft') return res.status(400).json({ error: 'Card is not yet active' });
+    if (card.status === 'sent') return res.status(400).json({ error: 'Card already delivered — contributions closed' });
 
     const txRef       = `TK-GIFT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
     const amountNaira = Number(amount);

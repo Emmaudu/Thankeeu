@@ -12,6 +12,7 @@ import EmojiPicker from '../components/EmojiPicker';
 import GifPicker from '../components/GifPicker';
 import Navbar from '../components/Navbar';
 import toast from 'react-hot-toast';
+import { openFlwCheckout } from '../utils/flwInline';
 import { formatNGN, CURRENCIES, formatCurrency, getFLWPaymentParams } from '../utils/currency';
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
@@ -142,53 +143,12 @@ const SignCard = () => {
         return;
       }
 
+      // tx_ref in URL is no longer used for contributions — payments now go through
+      // FLW Inline JS (no redirect). This block is kept as a safety fallback only.
       if (returnTxRef) {
-        // Clean the URL immediately so refresh doesn't re-trigger
         window.history.replaceState({}, '', `/sign/${slug}`);
-
-        // FLW sends status=cancelled when user clicks "Cancel" on their checkout page
-        if (returnStatus === 'cancelled' || returnStatus === 'canceled') {
-          toast.error('Payment was cancelled. Your message is still here — you can try again or choose a different option.');
-          await fetchCard();
-          setStage('idle');
-          // DO NOT setSubmitted — keep the form intact so they can retry
-          return;
-        }
-
-        // Attempt to verify with backend
-        setStage('verifying');
-        try {
-          await paymentsAPI.verifyContribution(returnTxRef);
-          window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${shareMode}`);
-          toast.success('Your message and gift are on the card! 🎉');
-          applyShareMode(shareMode);
-          await fetchCard();
-          setSubmitted(true);
-          setStage('idle');
-          clearShareMode();
-        } catch (e) {
-          // 400 = payment not completed (declined, failed, etc.)
-          // 500 = server error during verify
-          const status = e?.response?.status;
-          const msg    = e?.response?.data?.error || e?.message || '';
-          if (status === 400 || msg.toLowerCase().includes('not completed') || msg.toLowerCase().includes('cancelled')) {
-            toast.error('Payment was not completed. Your message is still here — please try again.');
-            await fetchCard();
-            setStage('idle');
-            // DO NOT setSubmitted — keep form so they can retry
-          } else {
-            // Verify failed due to server error but payment may have gone through
-            // Show success to avoid double-charging but log the error
-            console.error('verifyContribution server error:', msg);
-            window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${shareMode}`);
-            toast.success('Gift received! 🎉');
-            applyShareMode(shareMode);
-            await fetchCard();
-            setSubmitted(true);
-            setStage('idle');
-            clearShareMode();
-          }
-        }
+        await fetchCard();
+        setStage('idle');
         return;
       }
       await fetchCard();
@@ -378,28 +338,69 @@ const SignCard = () => {
         return;
       }
 
-      // ── STEP 3: Get payment link from backend ─────────────────────────
+      // ── STEP 3: Get inline checkout config from backend ──────────────
       setStage('paying');
       const { amount: flwAmount, currency: flwCurrency } = getFLWPaymentParams(amountNGN, giftCurrency);
       const payRes = await paymentsAPI.initContribution({
         card_slug:         slug,
         contributor_name:  form.author_name,
         contributor_email: form.author_email,
-        amount:            amountNGN,   // always store NGN in DB
+        amount:            amountNGN,
         display_currency:  giftCurrency,
         flw_amount:        flwAmount,
         flw_currency:      flwCurrency,
         message_id:        messageId,
       });
-      const { payment_link } = payRes.data;
-      if (!payment_link) throw new Error('No payment link from server');
+      const { tx_ref, flw_config } = payRes.data;
+      if (!tx_ref || !flw_config) throw new Error('Invalid payment config from server');
 
-      // ── STEP 4: Redirect to FLW hosted checkout ────────────────────────────
-      // FLW redirects browser directly back to /sign/slug?tx_ref=TK-GIFT-...
-      // This page's useEffect detects ?tx_ref= and calls verifyContribution
+      // ── STEP 4: Open FLW inline checkout (no redirect, no expiring link) ──
       setStage('redirecting');
       rememberShareMode(shareMode);
-      window.location.assign(payment_link);
+      setSubmitting(false); // re-enable UI while modal is open
+
+      await new Promise((resolve, reject) => {
+        openFlwCheckout({
+          flwConfig: flw_config,
+          onSuccess: async (returnedTxRef) => {
+            setStage('verifying');
+            try {
+              await paymentsAPI.verifyContribution(returnedTxRef || tx_ref);
+              const sm = currentShareMode();
+              window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${sm}`);
+              toast.success('Your message and gift are on the card! 🎉');
+              applyShareMode(sm);
+              await fetchCard();
+              setSubmitted(true);
+              setStage('idle');
+              clearShareMode();
+            } catch (e) {
+              const status = e?.response?.status;
+              const msg = e?.response?.data?.error || e?.message || '';
+              if (status === 400 || msg.toLowerCase().includes('not completed') || msg.toLowerCase().includes('cancelled')) {
+                toast.error('Payment was not completed. Please try again.');
+                setStage('idle');
+              } else {
+                console.error('verifyContribution error (SignCard):', msg);
+                const sm = currentShareMode();
+                window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${sm}`);
+                toast.success('Gift received! 🎉');
+                applyShareMode(sm);
+                await fetchCard();
+                setSubmitted(true);
+                setStage('idle');
+                clearShareMode();
+              }
+            }
+            resolve();
+          },
+          onClose: () => {
+            toast('Payment cancelled. Your message is still on the card!', { icon: 'ℹ️' });
+            setStage('idle');
+            resolve();
+          },
+        });
+      });
 
     } catch (err) {
       console.error('[SignCard handleSubmit]', err?.response?.status, err?.response?.data, err?.message);

@@ -286,7 +286,8 @@
 .card-art {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  /* overflow removed here — each .message-art-card sets overflow-y:auto
+     so long messages scroll inside the card rather than being clipped */
 }
 .card-art::before,
 .card-art::after {
@@ -294,6 +295,18 @@
   position: absolute;
   pointer-events: none;
   z-index: -1;
+}
+/* Message cards on the view/dashboard pages scroll if text is long */
+.message-art-card {
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 200px;
+  max-height: 520px; /* tall enough for long messages; scroll beyond that */
+}
+/* Clip decorative blobs inside each message card */
+.message-art-card::before,
+.message-art-card::after {
+  clip-path: inset(0 round 1.75rem);
 }
 .card-art-petals::before {
   width: 260px; height: 260px; right: -90px; top: -110px; border-radius: 46% 54% 50% 50%;

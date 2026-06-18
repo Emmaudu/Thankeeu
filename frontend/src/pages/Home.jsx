@@ -521,9 +521,7 @@ const Home = () => {
             <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(180deg,#C4B5FD 0%,#A78BFA 100%)' }}>
               <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
                 <div style={{ fontSize:48, marginBottom:8 }}>🎂</div>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:22, color:'#fff', lineHeight:1.1, margin:'0 0 8px', whiteSpace:'pre-line' }}>{'HAPPY
-BIRTH
-DAY!'}</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:22, color:'#fff', lineHeight:1.1, margin:'0 0 8px', whiteSpace:'pre-line' }}>{'HAPPY' + String.fromCharCode(10) + 'BIRTH' + String.fromCharCode(10) + 'DAY!'}</p>
                 <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:10, color:'rgba(255,255,255,0.85)', letterSpacing:'0.12em' }}>FROM ALL THE TEAM</p>
               </div>
             </Link>

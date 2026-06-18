@@ -675,10 +675,26 @@ const CreateCard = () => {
           </div>
           <div className="flex justify-between">
             <button onClick={() => setStep(1)} className="btn-secondary">← Back</button>
-            <button onClick={handleCreateDraft} disabled={loading}
+            <button
+              onClick={async () => {
+                if (!form.recipient_name?.trim()) { toast.error('Recipient name is required'); return; }
+                if (!user && !isCompanyUser) {
+                  // Guest: just save to localStorage and advance — no API call yet
+                  // The draft is created at Step 4 when they click "Save draft & continue"
+                  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                    ...existing, formSnapshot: form, msgSnapshot: msgForm, timestamp: Date.now(),
+                  }));
+                  setStep(3);
+                  return;
+                }
+                // Authenticated users: create/update draft in backend as before
+                await handleCreateDraft();
+              }}
+              disabled={loading}
               className="btn-primary inline-flex items-center gap-2">
               {loading
-                ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Creating…</span>
+                ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving…</span>
                 : 'Add your message →'}
             </button>
           </div>
@@ -841,50 +857,18 @@ const CreateCard = () => {
 
           <div className="flex justify-between">
             <button onClick={() => setStep(2)} className="btn-secondary">← Back</button>
-            <button onClick={async () => {
-              if (!user && !isCompanyUser) {
-                // Guest: create an anonymous draft so the card is saved before they log in
-                setLoading(true);
-                try {
-                  const { status: _s, ...safeForm } = form;
-                  const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card` };
-                  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
-                  let slug = draftSlug || existing.slug;
-                  let editToken = existing.draft_edit_token;
-
-                  if (slug && editToken) {
-                    // Draft already exists from a previous visit — update it
-                    await cardsAPI.updateDraft(slug, cardData, editToken);
-                  } else {
-                    // Create a fresh anonymous draft
-                    const res = await cardsAPI.createDraft(cardData);
-                    slug = res.data.slug;
-                    editToken = res.data.draft_edit_token;
-                    setDraftSlug(slug);
-                  }
-
-                  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
-                    slug,
-                    draft_edit_token: editToken,
-                    formSnapshot: form,
-                    msgSnapshot: msgForm,
-                    resumeStep: 4,
-                    timestamp: Date.now(),
-                  }));
-                } catch (err) {
-                  toast.error('Could not save your draft. Please try again.');
-                  setLoading(false);
-                  return;
-                } finally {
-                  setLoading(false);
-                }
-              }
-              setGuestPhase('configure');
-              setStep(4);
-            }} disabled={loading} className="btn-primary inline-flex items-center gap-2">
-              {loading
-                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving…</>
-                : msgForm.content.trim() ? 'Save message & pay →' : 'Skip & continue →'}
+            <button
+              onClick={() => {
+                // Save current state to localStorage in case of page refresh
+                const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                  ...existing, formSnapshot: form, msgSnapshot: msgForm, timestamp: Date.now(),
+                }));
+                setGuestPhase('configure');
+                setStep(4);
+              }}
+              className="btn-primary inline-flex items-center gap-2">
+              {msgForm.content.trim() ? 'Save message & pay →' : 'Skip & continue →'}
             </button>
           </div>
         </div>
@@ -957,30 +941,41 @@ const CreateCard = () => {
               <button onClick={() => setStep(3)} className="btn-secondary px-4">← Back</button>
               <button
                 onClick={async () => {
-                  // Save the draft anonymously before showing the auth wall
+                  if (!form.recipient_name?.trim()) {
+                    toast.error('Please go back to Details and enter the recipient name.');
+                    return;
+                  }
                   setLoading(true);
                   try {
                     const { status: _s, ...safeForm } = form;
-                    const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card` };
+                    const cardData = {
+                      ...safeForm,
+                      title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card`,
+                    };
                     const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
                     let slug = draftSlug || existing.slug;
                     let editToken = existing.draft_edit_token;
                     if (slug && editToken) {
+                      // Update existing anonymous draft with latest form data
                       await cardsAPI.updateDraft(slug, cardData, editToken);
                     } else {
+                      // First time: create an anonymous draft
                       const res = await cardsAPI.createDraft(cardData);
                       slug = res.data.slug;
                       editToken = res.data.draft_edit_token;
                       setDraftSlug(slug);
                     }
                     localStorage.setItem('thankeeu_pending_card', JSON.stringify({
-                      slug, draft_edit_token: editToken,
-                      formSnapshot: form, msgSnapshot: msgForm,
-                      resumeStep: 4, timestamp: Date.now(),
+                      slug,
+                      draft_edit_token: editToken,
+                      formSnapshot: form,
+                      msgSnapshot: msgForm,
+                      resumeStep: 4,
+                      timestamp: Date.now(),
                     }));
                     setGuestPhase('auth');
                   } catch (err) {
-                    toast.error('Could not save your draft. Please try again.');
+                    toast.error(err.response?.data?.error || 'Could not save your draft. Please try again.');
                   } finally {
                     setLoading(false);
                   }
@@ -988,7 +983,7 @@ const CreateCard = () => {
                 disabled={loading}
                 className="btn-primary flex-1 inline-flex items-center justify-center gap-2">
                 {loading
-                  ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving draft…</>
+                  ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving your draft…</>
                   : '💾 Save draft & continue →'}
               </button>
             </div>
@@ -996,6 +991,19 @@ const CreateCard = () => {
             <p className="text-xs text-center text-warm-400 mt-3">
               Your card is saved as a draft. You'll need to sign in to pay and make it live.
             </p>
+
+            <div className="border-t border-purple-100 mt-4 pt-4 flex gap-2">
+              <button
+                onClick={() => { setGuestPhase('configure'); setStep(0); }}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border-2 border-purple-200 text-warm-700 text-xs font-semibold hover:bg-purple-50 transition-colors">
+                ✏️ Edit from start
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border-2 border-red-100 text-red-500 text-xs font-semibold hover:bg-red-50 transition-colors">
+                🗑️ Start over
+              </button>
+            </div>
           </div>
 
         /* ── Phase 2: Draft saved — auth wall ── */

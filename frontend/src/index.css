@@ -286,7 +286,8 @@
 .card-art {
   position: relative;
   isolation: isolate;
-  overflow: hidden;
+  /* overflow removed here — each .message-art-card sets overflow-y:auto
+     so long messages scroll inside the card rather than being clipped */
 }
 .card-art::before,
 .card-art::after {
@@ -294,6 +295,54 @@
   position: absolute;
   pointer-events: none;
   z-index: -1;
+}
+/* Message cards: scrollable with beautiful themed scrollbar */
+.message-art-card {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 220px;
+  max-height: 540px;
+  transition: transform .25s ease, box-shadow .25s ease;
+  box-shadow: 0 14px 34px rgba(76,29,149,.1);
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 58, 237, 0.35) transparent;
+}
+.message-art-card::-webkit-scrollbar {
+  width: 4px;
+}
+.message-art-card::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 999px;
+}
+.message-art-card::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(167,139,250,0.7) 0%, rgba(236,72,153,0.5) 100%);
+  border-radius: 999px;
+  border: none;
+}
+.message-art-card::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(139,92,246,0.9) 0%, rgba(219,39,119,0.75) 100%);
+}
+/* Fade hint at bottom so user knows there's more to scroll */
+.message-art-card::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  display: block;
+  background: linear-gradient(to bottom, transparent, var(--card-bg, rgba(255,255,255,0.92)));
+  pointer-events: none;
+  z-index: 2;
+  border-radius: 0 0 1.5rem 1.5rem;
+  flex-shrink: 0;
+}
+/* Clip decorative blobs inside each message card */
+.message-art-card .card-art-blob {
+  clip-path: inset(0 round 1.75rem);
 }
 .card-art-petals::before {
   width: 260px; height: 260px; right: -90px; top: -110px; border-radius: 46% 54% 50% 50%;
@@ -356,14 +405,6 @@
 
 .celebration-shell {
   box-shadow: 0 30px 90px rgba(76,29,149,.18), inset 0 1px 0 rgba(255,255,255,.75);
-}
-.message-art-card {
-  height: 470px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  transition: transform .25s ease, box-shadow .25s ease;
-  box-shadow: 0 14px 34px rgba(76,29,149,.1);
 }
 .message-art-card:hover {
   transform: translateY(-4px) rotate(0deg) !important;

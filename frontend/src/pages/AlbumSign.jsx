@@ -25,6 +25,7 @@ import EmojiPicker from '../components/EmojiPicker';
 import GifPicker from '../components/GifPicker';
 import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
+import { openFlwCheckout } from '../utils/flwInline';
 import { formatNGN, getFLWPaymentParams } from '../utils/currency';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -103,23 +104,10 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const dragging = useRef(null);
   const pageRef  = useRef();
 
-  // ── Payment return handling ──
-  useEffect(() => {
-    const returnTxRef  = searchParams.get('tx_ref') || searchParams.get('reference');
-    const returnStatus = (searchParams.get('status') || '').toLowerCase();
-    if (!returnTxRef) return;
+  // Payment is now handled via FLW Inline JS (openFlwCheckout in handleSubmit).
+  // No redirect happens, so no URL-based tx_ref return handling needed here.
 
-    window.history.replaceState({}, '', `/sign/${slug}`);
-    if (returnStatus === 'cancelled' || returnStatus === 'canceled') {
-      toast.error('Payment cancelled. Your message is still on the card!');
-      return;
-    }
-    setStage('verifying');
-    paymentsAPI.verifyContribution(returnTxRef)
-      .then(() => { toast.success('Message and gift confirmed! 🎉'); setSubmitted(true); })
-      .catch(() => { toast.success('Gift received! 🎉'); setSubmitted(true); })
-      .finally(() => setStage('idle'));
-  }, []);
+
 
   // ── Derived ──
   const messages     = card?.messages || [];
@@ -267,7 +255,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
         return;
       }
 
-      // Gift payment
+      // Gift payment — inline checkout (no redirect, no expiring flwlnk- link)
       setStage('paying');
       const { amount: flwAmount, currency: flwCurrency } = getFLWPaymentParams(amountNGN, giftCurrency);
       const payRes = await paymentsAPI.initContribution({
@@ -276,11 +264,42 @@ const AlbumSign = ({ card: initialCard, slug }) => {
         display_currency: giftCurrency, flw_amount: flwAmount,
         flw_currency: flwCurrency, message_id: messageId,
       });
-      const { payment_link } = payRes.data;
-      if (!payment_link) throw new Error('No payment link from server');
+      const { tx_ref, flw_config } = payRes.data;
+      if (!tx_ref || !flw_config) throw new Error('Invalid payment config from server');
 
       setStage('redirecting');
-      window.location.assign(payment_link);
+      setSubmitting(false); // re-enable UI while modal is open
+
+      await new Promise((resolve) => {
+        openFlwCheckout({
+          flwConfig: flw_config,
+          // Modal is auto-closed before this runs — page is already visible
+          onSuccess: async (returnedTxRef) => {
+            setStage('verifying');
+            try {
+              await paymentsAPI.verifyContribution(returnedTxRef || tx_ref);
+              toast.success('Message and gift confirmed! 🎉');
+              setSubmitted(true);
+            } catch (e) {
+              const httpStatus = e?.response?.status;
+              const msg = e?.response?.data?.error || e?.message || '';
+              if (httpStatus === 400 || msg.toLowerCase().includes('not completed')) {
+                toast.error('Payment was not completed. Please try again.');
+              } else {
+                toast.success('Gift received! 🎉');
+                setSubmitted(true);
+              }
+            }
+            setStage('idle');
+            resolve();
+          },
+          onClose: () => {
+            toast('Payment cancelled. Your message is still on the card!', { icon: 'ℹ️' });
+            setStage('idle');
+            resolve();
+          },
+        });
+      });
 
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not sign card. Please try again.');

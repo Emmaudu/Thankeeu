@@ -1100,6 +1100,22 @@ const CardView = () => {
       setCard(response.data);
       // Track card opened — notifies creator via dashboard + email
       dashboardAPI.trackCardOpened(slug).catch(() => {});
+
+      // If this is a recipient view with an access_token in session,
+      // ensure the card is linked to their account (idempotent)
+      const sessionTok = sessionStorage.getItem(`card_token_${slug}`);
+      if (sessionTok && response.data?.isRecipient) {
+        const authTok = localStorage.getItem('thankeeu_token') || localStorage.getItem('thankeeu_member_token');
+        const base = import.meta.env.VITE_API_URL || '/api';
+        fetch(`${base}/cards/${slug}/mark-claimed`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authTok ? { Authorization: `Bearer ${authTok}` } : {}),
+          },
+          body: JSON.stringify({ access_token: sessionTok }),
+        }).catch(() => {});
+      }
     } catch (err) {
       if (!silent) toast.error(err.response?.data?.error || 'Card not found or not available');
     } finally {

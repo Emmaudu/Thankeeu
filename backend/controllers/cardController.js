@@ -312,12 +312,26 @@ const getCard = async (req, res) => {
       || (req.user?.email && card.recipient_email &&
           req.user.email.toLowerCase() === card.recipient_email.toLowerCase());
 
-    // Check received_cards table for transfers (different email case)
+    // Check received_cards table for individual user transfers
     if (!isRecipient && req.user?.id) {
       const { data: received } = await supabase
         .from('received_cards').select('id')
         .eq('card_id', card.id).eq('recipient_user_id', req.user.id).maybeSingle();
       if (received) isRecipient = true;
+    }
+    // Check member_received_cards for HR team member recipients
+    if (!isRecipient && req.member?.id) {
+      // Also check by email match
+      if (card.recipient_email && req.member.email &&
+          card.recipient_email.toLowerCase() === req.member.email.toLowerCase()) {
+        isRecipient = true;
+      }
+      if (!isRecipient) {
+        const { data: mReceived } = await supabase
+          .from('member_received_cards').select('id')
+          .eq('card_id', card.id).eq('recipient_member_id', req.member.id).maybeSingle();
+        if (mReceived) isRecipient = true;
+      }
     }
     const isContributor = true;
 
@@ -464,8 +478,16 @@ const sendCard = async (req, res) => {
     const { data: messages } = await supabase
       .from('messages').select('count').eq('card_id', card.id);
 
+    // Generate a claim_token if not already set — this goes in the email URL
+    // instead of the access_token, so the internal access_token stays private
+    const { data: freshCard } = await supabase.from('cards')
+      .select('claim_token').eq('slug', slug).maybeSingle();
+    const claimToken = freshCard?.claim_token ||
+      require('crypto').randomBytes(24).toString('hex');
+
     await supabase.from('cards').update({
-      status: 'sent', recipient_notified: true, delivered_at: new Date(), updated_at: new Date()
+      status: 'sent', recipient_notified: true, delivered_at: new Date(), updated_at: new Date(),
+      claim_token: claimToken,
     }).eq('slug', slug);
 
     // Auto-link card to recipient's account if they already have one
@@ -489,6 +511,7 @@ const sendCard = async (req, res) => {
         occasion: card.occasion.replace(/_/g, ' '),
         occasionEmoji: OCCASION_EMOJI[card.occasion] || '🎉',
         cardSlug: card.slug,
+        claimToken: claimToken,
         accessToken: card.access_token,
         senderCount: messages?.[0]?.count || 0,
         giftAmount: card.total_collected > 0 ? card.total_collected : null,
@@ -973,9 +996,192 @@ const transferCardToMember = async (req, res) => {
   } catch (err) { res.status(500).json({ error: 'Transfer failed' }); }
 };
 
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/cards/:slug/claim-gate?claim=TOKEN
+// Public — determines which auth gate to show when recipient opens email link.
+// Returns: { gate, recipient_name, recipient_email, card_slug, access_token }
+// gate values: 'login' | 'signup' | 'member_login' | 'member_claim'
+// ═══════════════════════════════════════════════════════════════════════════
+const getClaimGate = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const claimToken = req.query.claim;
+    if (!claimToken) return res.status(400).json({ error: 'claim token required' });
+
+    const { data: card } = await supabase.from('cards')
+      .select('id, slug, recipient_name, recipient_email, status, access_token, claim_token')
+      .eq('slug', slug)
+      .eq('claim_token', claimToken)
+      .maybeSingle();
+
+    if (!card) return res.status(404).json({ error: 'Invalid or expired link' });
+    if (!card.recipient_email) return res.status(400).json({ error: 'No recipient email on this card' });
+
+    const email = card.recipient_email.toLowerCase();
+
+    // Check for HR team member first
+    const { data: member } = await supabase.from('company_members')
+      .select('id, email, status, invite_accepted, password_hash')
+      .ilike('email', email)
+      .eq('status', 'approved')
+      .maybeSingle();
+
+    if (member) {
+      const hasPassword = !!member.password_hash;
+      const acceptedInvite = member.invite_accepted === true;
+      return res.json({
+        gate: (hasPassword && acceptedInvite) ? 'member_login' : 'member_claim',
+        recipient_name: card.recipient_name,
+        recipient_email: email,
+        card_slug: slug,
+        access_token: card.access_token,
+      });
+    }
+
+    // Check for individual Thankeeu user
+    const { data: user } = await supabase.from('users')
+      .select('id, email')
+      .ilike('email', email)
+      .maybeSingle();
+
+    if (user) {
+      return res.json({
+        gate: 'login',
+        recipient_name: card.recipient_name,
+        recipient_email: email,
+        card_slug: slug,
+        access_token: card.access_token,
+      });
+    }
+
+    // No account — needs signup
+    return res.json({
+      gate: 'signup',
+      recipient_name: card.recipient_name,
+      recipient_email: email,
+      card_slug: slug,
+      access_token: card.access_token,
+    });
+
+  } catch (err) {
+    console.error('getClaimGate error:', err.message);
+    res.status(500).json({ error: 'Failed to check claim gate' });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/cards/:slug/mark-claimed  (optionalAuth — user/member may be logged in)
+// Links the card to the authenticated recipient account and marks it claimed.
+// ═══════════════════════════════════════════════════════════════════════════
+const markClaimed = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { access_token: token } = req.body;
+    if (!token) return res.status(400).json({ error: 'access_token required' });
+
+    const { data: card } = await supabase.from('cards')
+      .select('id, slug, recipient_email, access_token, creator_id')
+      .eq('slug', slug)
+      .eq('access_token', token)
+      .maybeSingle();
+
+    if (!card) return res.status(403).json({ error: 'Invalid token' });
+
+    await supabase.from('cards')
+      .update({ recipient_claimed: true, recipient_claimed_at: new Date() })
+      .eq('id', card.id);
+
+    if (req.user) {
+      await supabase.from('received_cards').upsert({
+        card_id: card.id,
+        recipient_user_id: req.user.id,
+        transferred_by: card.creator_id,
+        transferred_at: new Date(),
+      }, { onConflict: 'card_id,recipient_user_id' });
+    }
+
+    if (req.member) {
+      await supabase.from('member_received_cards').upsert({
+        card_id: card.id,
+        recipient_member_id: req.member.id,
+        transferred_by: card.creator_id,
+        transferred_at: new Date(),
+      }, { onConflict: 'card_id,recipient_member_id' });
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('markClaimed error:', err.message);
+    res.status(500).json({ error: 'Failed to mark claimed' });
+  }
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/cards/:slug/claim-member-password
+// Called by MemberClaimGate when a team member sets their password for the
+// first time via the card claim flow. Uses claim_token as proof of identity.
+// ═══════════════════════════════════════════════════════════════════════════
+const claimMemberPassword = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { claim_token_value, email, password } = req.body;
+
+    if (!claim_token_value || !email || !password)
+      return res.status(400).json({ error: 'claim_token_value, email and password are required' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    // Verify claim token matches this card
+    const { data: card } = await supabase.from('cards')
+      .select('id, recipient_email, claim_token, access_token')
+      .eq('slug', slug)
+      .eq('claim_token', claim_token_value)
+      .maybeSingle();
+
+    if (!card) return res.status(403).json({ error: 'Invalid claim link' });
+    if (!card.recipient_email || card.recipient_email.toLowerCase() !== email.toLowerCase())
+      return res.status(403).json({ error: 'Email does not match card recipient' });
+
+    // Find the team member (include invite_accepted in select)
+    const { data: member } = await supabase.from('company_members')
+      .select('id, email, company_id, status, password_hash, invite_accepted')
+      .ilike('email', email)
+      .maybeSingle();
+
+    if (!member) return res.status(404).json({ error: 'No team member account found with this email' });
+    if (member.status === 'rejected') return res.status(403).json({ error: 'Your account was not approved. Contact your HR admin.' });
+    // If they already have a password AND already accepted invite, direct them to login
+    if (member.password_hash && member.invite_accepted)
+      return res.status(400).json({ error: 'Password already set. Please use the team login page.' });
+
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash(password, 12);
+
+    await supabase.from('company_members')
+      .update({ password_hash: hash, invite_accepted: true, status: 'approved' })
+      .eq('id', member.id);
+
+    // Issue a JWT for this member using the same structure as memberLogin
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { memberId: member.id, companyId: member.company_id, type: 'company_member' },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    res.json({ token, member: { id: member.id, email: member.email } });
+  } catch (err) {
+    console.error('claimMemberPassword error:', err.message);
+    res.status(500).json({ error: 'Failed to set password' });
+  }
+};
+
+
 module.exports = {
   getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember,
   createCard, getUserCards, getCard, updateCard, activateCard, sendCard,
   deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards,
+  getClaimGate, markClaimed, claimMemberPassword,
   approveCardScope, notifyAllCompany,
 };

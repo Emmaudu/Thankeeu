@@ -1163,13 +1163,32 @@ body.sidebar-open { overflow: hidden; }
   position: relative;
   border-radius: 20px;
   border: 2px solid #DDD6FE;
-  padding: 2rem 1.75rem 3.5rem;
-  min-height: 260px;
+  padding: 1.25rem 1.5rem 3.5rem;
+  min-height: 380px;
   box-shadow: 0 8px 40px rgba(124,58,237,0.12);
   transition: all 0.22s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .lcp-flip { transform: rotateY(90deg); opacity: 0; }
+
+/* GIF inside demo card */
+.lcp-gif-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  flex-shrink: 0;
+  line-height: 0;
+}
+.lcp-gif {
+  width: 100%;
+  height: 130px;
+  object-fit: cover;
+  display: block;
+  border-radius: 12px;
+}
 
 .lcp-card-header {
   display: flex;

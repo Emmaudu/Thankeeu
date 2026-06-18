@@ -29,15 +29,20 @@ const OCCASIONS = [
 /* Photo-album card signing mock — messages shown in the hero live preview */
 const DEMO_MESSAGES = [
   { initials: 'AO', name: 'Adaeze O.',  color: '#7C3AED', bg: '#EDE9FE',
-    text: "Happy birthday!! You're the reason our whole team smiles every day 🎉" },
+    text: "Happy birthday!! You're the reason our whole team smiles every day 🎉",
+    gif: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
   { initials: 'EK', name: 'Emeka K.',   color: '#0D9488', bg: '#CCFBF1',
-    text: 'Wishing you all the joy this year, boss! You deserve every bit of it 🙌' },
+    text: 'Wishing you all the joy this year, boss! You deserve every bit of it 🙌',
+    gif: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
   { initials: 'KI', name: 'Kemi I.',    color: '#DB2777', bg: '#FCE7F3',
-    text: 'Another year wiser and still the coolest person in the office 😂❤️' },
+    text: 'Another year wiser and still the coolest person in the office 😂❤️',
+    gif: 'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
   { initials: 'BD', name: 'Bolu D.',    color: '#92400E', bg: '#FEF3C7',
-    text: 'From the whole team — we are so lucky to have you. Keep shining! ✨' },
+    text: 'From the whole team — we are so lucky to have you. Keep shining! ✨',
+    gif: 'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
   { initials: 'TN', name: 'Tunde N.',   color: '#1D4ED8', bg: '#DBEAFE',
-    text: 'You have no idea how much we appreciate everything you do. 🫶' },
+    text: 'You have no idea how much we appreciate everything you do. 🫶',
+    gif: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
 ];
 
 const TESTIMONIALS = [
@@ -200,6 +205,13 @@ const LiveCardPreview = () => {
               <p className="lcp-msg-label">signed this card</p>
             </div>
           </div>
+
+          {/* GIF */}
+          {msg.gif && (
+            <div className="lcp-gif-wrap">
+              <img src={msg.gif} alt="" className="lcp-gif" loading="lazy" />
+            </div>
+          )}
 
           {/* Message text */}
           <p className="lcp-msg-text">{msg.text}</p>

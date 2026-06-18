@@ -29,10 +29,17 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize flex-shrink-0 ${statusColor[card.status] || statusColor.draft}`}>
               {card.status}
             </span>
-            {card.is_gift_enabled && card.hide_amounts && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 bg-warm-100 text-warm-500" title="Signers cannot see the gift total on this card">
-                🙈 Total hidden
-              </span>
+            {card.is_gift_enabled && onToggleHideAmounts && (
+              <button
+                disabled={toggling}
+                onClick={() => onToggleHideAmounts(card)}
+                title={card.hide_amounts ? "Signers can't see the gift total — click to make it visible to them" : 'Signers can see the gift total — click to hide it from them'}
+                className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 transition-colors disabled:opacity-50 ${
+                  card.hide_amounts ? 'bg-warm-100 text-warm-600 hover:bg-warm-200' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                }`}
+              >
+                {toggling ? '…' : card.hide_amounts ? '🙈 Total hidden' : '👁️ Total visible'}
+              </button>
             )}
           </div>
           <p className="text-xs text-warm-400">
@@ -79,16 +86,6 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
           <button onClick={() => onTransfer(card)}
             className="text-xs border border-green-200 text-green-700 hover:bg-green-50 px-3 py-2 rounded-xl transition-colors">
             ➡️ Transfer
-          </button>
-        )}
-        {card.is_gift_enabled && onToggleHideAmounts && (
-          <button
-            disabled={toggling}
-            onClick={() => onToggleHideAmounts(card)}
-            title={card.hide_amounts ? "Signers can't see the gift total — click to make it visible to them" : 'Signers can see the gift total — click to hide it from them'}
-            className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
-          >
-            {toggling ? '…' : card.hide_amounts ? '👁️ Show gift total' : '🙈 Hide gift total'}
           </button>
         )}
       </div>

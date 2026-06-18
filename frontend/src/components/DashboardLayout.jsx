@@ -29,7 +29,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
   const Sidebar = ({ mobile }) => (
     <aside className={`${mobile ? 'flex' : 'hidden md:flex'} flex-col h-full`}
-      style={{ width: mobile ? '100%' : '220px', background: 'linear-gradient(180deg, #1E1438 0%, #14102E 100%)', borderRight: '1px solid rgba(124,110,255,0.15)', minHeight: '100vh' }}>
+      style={{ width: mobile ? '100%' : '252px', background: 'linear-gradient(180deg, #1E1438 0%, #14102E 100%)', borderRight: '1px solid rgba(124,110,255,0.15)', minHeight: '100vh' }}>
 
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5" style={{ borderBottom: '1px solid rgba(124,110,255,0.12)' }}>
@@ -103,8 +103,8 @@ const DashboardLayout = ({ children, title, subtitle }) => {
     <div className="flex" style={{ minHeight: '100vh', background: '#0F0D24' }}>
 
       {/* Desktop sidebar */}
-      <div className="hidden md:block flex-shrink-0" style={{ width: 220 }}>
-        <div className="fixed top-0 left-0 h-screen" style={{ width: 220 }}>
+      <div className="hidden md:block flex-shrink-0" style={{ width: 252 }}>
+        <div className="fixed top-0 left-0 h-screen" style={{ width: 252 }}>
           <Sidebar />
         </div>
       </div>
@@ -151,7 +151,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
         <div className="px-4 md:px-8 py-6 md:py-8">
           {(title || subtitle) && (
             <div className="mb-6">
-              {title && <h1 style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, fontSize: '1.6rem', color: '#1A1730', lineHeight: 1.2 }}>{title}</h1>}
+              {title && <h1 style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, fontSize: '1.95rem', color: '#1A1730', lineHeight: 1.2 }}>{title}</h1>}
               {subtitle && <p className="text-sm mt-1" style={{ color: '#7A7898' }}>{subtitle}</p>}
             </div>
           )}

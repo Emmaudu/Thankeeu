@@ -653,3 +653,13 @@ body.sidebar-open { overflow: hidden; }
   border: 2px dashed #DDD8FF;
   border-radius: 20px;
 }
+
+/* ── Sitewide width fix ────────────────────────────────────────────────
+   The site's wide section containers (max-w-4xl/5xl/6xl) were too narrow
+   on large screens, leaving excessive empty space at the left/right edges.
+   Widening them here, once, cascades to every page using these classes
+   instead of requiring per-page edits. Narrow containers (max-w-md/lg/xl,
+   used intentionally for forms and modals) are untouched. */
+.max-w-4xl { max-width: 64rem !important; }
+.max-w-5xl { max-width: 76rem !important; }
+.max-w-6xl { max-width: 84rem !important; }

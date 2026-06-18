@@ -137,7 +137,7 @@ const Pricing = () => {
       <section className="py-12 md:py-16 px-4 text-center" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
           <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Globe" size={13}/> For everyone, everywhere</div>
-          <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.75rem,6vw,3rem)' }}>
+          <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(2.1rem,6.5vw,3.6rem)' }}>
             Simple, fair pricing
           </h1>
           <p className="text-warm-600 mb-2">Pay only when you send. No subscriptions for individual cards.</p>
@@ -281,7 +281,7 @@ const Pricing = () => {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
               <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> Thankeeu for Teams</div>
-              <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.5rem,5vw,2rem)' }}>
+              <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.85rem,5.5vw,2.5rem)' }}>
                 Automate team celebrations
               </h2>
               <p className="text-warm-500 max-w-lg mx-auto text-sm leading-relaxed">

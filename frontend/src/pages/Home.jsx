@@ -17,10 +17,10 @@ const ROTATING_WORDS = [
 ];
 
 const SAMPLE_MESSAGES = [
-  { name: 'Tunde', text: 'Adaeze, it has genuinely not been the same energy in the office these past few weeks 😂 Go be amazing out there!', color: '#7C3AED' },
-  { name: 'Folake', text: 'Working with you taught me so much. We will miss you loads — stay in touch!', color: '#F43F5E' },
-  { name: 'Chidi', text: 'Remember the Lagos traffic stories we used to swap every Monday? Going to miss those way more than expected 🚀', color: '#059669' },
-  { name: 'Ngozi', text: 'You made every deadline feel less terrifying somehow. Congrats on the new role!! 🎉', color: '#D97706' },
+  { name: 'Tunde', text: 'It has genuinely not been the same energy in the office these past few weeks 😂 Go be amazing out there!', color: '#7C3AED', font: "'Caveat', cursive", media: null },
+  { name: 'Folake', text: 'Working with you taught me so much. We will miss you loads — stay in touch!', color: '#F43F5E', font: "'Plus Jakarta Sans', sans-serif", media: 'voice' },
+  { name: 'Chidi', text: 'Remember the Lagos traffic stories we used to swap every Monday? Going to miss those way more than expected 🚀', color: '#059669', font: "'Fraunces', serif", media: 'gif' },
+  { name: 'Ngozi', text: 'You made every deadline feel less terrifying somehow. Congrats on the new role!! 🎉', color: '#D97706', font: "'Cormorant Garamond', serif", media: 'video' },
 ];
 
 const OCCASIONS = [
@@ -175,14 +175,14 @@ const Home = () => {
             {/* Left: headline + CTAs */}
             <div className="text-center lg:text-left">
               <h1 className="font-extrabold text-warm-900 mb-5"
-                style={{ fontSize:'clamp(2.1rem,6vw,3.75rem)', lineHeight:1.08 }}>
+                style={{ fontSize:'clamp(2.5rem,7vw,4.5rem)', lineHeight:1.08 }}>
                 Send a Group<br/>
                 <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', display:'inline-block', minWidth:'1px' }}>
                   {ROTATING_WORDS[wordIndex]}
                 </span>{' '}Card Online
               </h1>
 
-              <p className="text-warm-600 mb-9 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.05rem,2.5vw,1.2rem)', lineHeight:1.6 }}>
+              <p className="text-warm-600 mb-9 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.2rem,2.8vw,1.45rem)', lineHeight:1.6 }}>
                 Pick a design and start adding messages right now — no account needed.
                 Share the link, collect signatures and a gift pot, then pay only when you're ready to send.
               </p>
@@ -199,16 +199,19 @@ const Home = () => {
             </div>
 
             {/* Right: sample signed-card messages, Thankbox-style */}
-            <div className="hidden lg:grid grid-cols-2 gap-3" style={{ width: 360 }}>
+            <div className="hidden lg:grid grid-cols-2 gap-3" style={{ width: 380 }}>
               {SAMPLE_MESSAGES.map((m, i) => (
-                <div key={m.name} className="gc-card p-3.5" style={{ marginTop: i % 2 === 1 ? 24 : 0 }}>
+                <div key={m.name} className="gc-card p-4" style={{ marginTop: i % 2 === 1 ? 26 : 0 }}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: m.color }}>
+                    <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: m.color }}>
                       {m.name[0]}
                     </span>
-                    <span className="text-xs font-bold" style={{ color: '#3B0D7A' }}>{m.name}</span>
+                    <span className="text-sm font-bold flex-1" style={{ color: '#3B0D7A' }}>{m.name}</span>
+                    {m.media === 'voice' && <span className="text-base flex-shrink-0" title="Voice note">🎧</span>}
+                    {m.media === 'video' && <span className="text-base flex-shrink-0" title="Video message">🎥</span>}
+                    {m.media === 'gif' && <span className="text-base flex-shrink-0" title="GIF attached">GIF</span>}
                   </div>
-                  <p className="text-xs leading-relaxed" style={{ color: '#52525B' }}>{m.text}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: '#52525B', fontFamily: m.font }}>{m.text}</p>
                 </div>
               ))}
             </div>
@@ -216,14 +219,17 @@ const Home = () => {
             {/* Mobile: stacked sample messages below CTAs */}
             <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
               {SAMPLE_MESSAGES.map(m => (
-                <div key={m.name} className="gc-card p-3.5">
+                <div key={m.name} className="gc-card p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: m.color }}>
+                    <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style={{ background: m.color }}>
                       {m.name[0]}
                     </span>
-                    <span className="text-xs font-bold" style={{ color: '#3B0D7A' }}>{m.name}</span>
+                    <span className="text-sm font-bold flex-1" style={{ color: '#3B0D7A' }}>{m.name}</span>
+                    {m.media === 'voice' && <span className="text-base flex-shrink-0" title="Voice note">🎧</span>}
+                    {m.media === 'video' && <span className="text-base flex-shrink-0" title="Video message">🎥</span>}
+                    {m.media === 'gif' && <span className="text-base flex-shrink-0" title="GIF attached">GIF</span>}
                   </div>
-                  <p className="text-xs leading-relaxed" style={{ color: '#52525B' }}>{m.text}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: '#52525B', fontFamily: m.font }}>{m.text}</p>
                 </div>
               ))}
             </div>
@@ -233,25 +239,70 @@ const Home = () => {
 
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 
-      {/* ── DESIGN GALLERY ───────────────────── */}
+      {/* ── DISCOVER MORE (Thankbox-style category grid) ─ */}
       <section className="py-12 md:py-16 px-4 gc-font">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>Find the perfect card design</h2>
-            <p className="text-warm-500 text-sm sm:text-base">All cards come with unlimited messages and pages. Change your design any time before sending.</p>
+            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>Discover more</h2>
+            <p className="text-warm-500 text-sm sm:text-base">A design and category for every occasion — change yours any time before sending.</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {CARD_DESIGNS.slice(0, 10).map(d => (
-              <Link key={d.id} to="/card/new" className="gc-card gc-card-hover block overflow-hidden">
-                <div className="h-20 flex items-center justify-center text-2xl" style={{ background: d.background }}>{d.icon}</div>
-                <div className="px-2.5 py-2">
-                  <p className="text-xs font-semibold truncate" style={{ color:'#3B0D7A' }}>{d.name}</p>
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+            {[
+              { label:'Thank You',       icon:'💐', bg:'#FFF3E0' },
+              { label:'Good Luck',       icon:'🍀', bg:'#ECFDF5' },
+              { label:'Gift Collection', icon:'🎁', bg:'#FFF1F5' },
+              { label:'Work Anniversary',icon:'🍾', bg:'#FFFBEB' },
+              { label:'Retirement',      icon:'🏖️', bg:'#E0F7FA' },
+              { label:'Weddings',        icon:'💍', bg:'#FDF2F8' },
+              { label:'Engagement',      icon:'💎', bg:'#EFF6FF' },
+              { label:'Anniversary',     icon:'🌹', bg:'#FFF1F5' },
+              { label:'Teacher Thanks',  icon:'🎒', bg:'#F5F3FF' },
+              { label:'Christmas',       icon:'🎄', bg:'#ECFDF5' },
+              { label:'Get Well Soon',   icon:'🌷', bg:'#FFF7ED' },
+              { label:'Sympathy',        icon:'🕊️', bg:'#F3F4F6' },
+            ].map(c => (
+              <Link key={c.label} to="/card/new" className="flex flex-col items-center gap-2.5 group">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-2xl sm:text-3xl transition-transform group-hover:scale-105" style={{ background:c.bg }}>
+                  {c.icon}
                 </div>
+                <p className="text-xs sm:text-sm font-semibold text-center leading-tight" style={{ color:'#3B0D7A' }}>{c.label}</p>
               </Link>
             ))}
           </div>
-          <div className="text-center mt-7">
+          <div className="text-center mt-8">
             <Link to="/card/new" className="gc-btn-secondary inline-flex items-center gap-2 px-6 py-3 text-sm">View all designs <Icon name="ArrowRight" size={15}/></Link>
+          </div>
+        </div>
+      </section>
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+
+      {/* ── GET INSPIRATION FROM SAMPLE CARDS (Thankbox-style image grid) ─ */}
+      <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>Get inspiration from some of our sample cards</h2>
+            <p className="text-warm-500 text-sm sm:text-base">See a real, finished card before you start your own — no signup needed to look.</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[
+              { occ:'Birthday',  icon:'🎂', bg:'linear-gradient(145deg,#fffbeb,#fed7aa)', ink:'#78350f' },
+              { occ:'Farewell',  icon:'👋', bg:'linear-gradient(145deg,#fff1f5,#ede9fe)', ink:'#831843' },
+              { occ:'Congrats',  icon:'🎉', bg:'linear-gradient(145deg,#fafafa,#fdf2f8)', ink:'#27272a' },
+              { occ:'Thank You', icon:'💌', bg:'linear-gradient(145deg,#ecfdf5,#fef3c7)', ink:'#14532d' },
+            ].map(s => (
+              <Link key={s.occ} to="/sign/demo-thankeeu-card" className="gc-card gc-card-hover block overflow-hidden">
+                <div className="h-32 sm:h-40 flex items-center justify-center text-4xl relative" style={{ background:s.bg }}>
+                  <span>{s.icon}</span>
+                  <div className="absolute bottom-2 left-2 right-2 flex gap-1">
+                    <span className="text-xs px-1.5 py-0.5 rounded-full font-bold bg-white/70" style={{ color:s.ink }}>3 messages</span>
+                  </div>
+                </div>
+                <div className="px-3 py-3 text-center">
+                  <p className="text-sm font-semibold" style={{ color:'#3B0D7A' }}>See a {s.occ.toLowerCase()} sample</p>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
@@ -263,7 +314,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Party" size={13}/> 14 occasions</div>
-            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
+            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               Whatever the moment,<br/><span className="text-primary-500">there's a card for it</span>
             </h2>
           </div>
@@ -286,7 +337,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Zap" size={13}/> Beautifully simple</div>
-            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
+            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               From zero to delivered<br/><span className="text-primary-500">in under 5 minutes</span>
             </h2>
           </div>
@@ -314,7 +365,7 @@ const Home = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             <div>
               <div className="pill mb-4 inline-flex items-center gap-1.5"><Icon name="Heart" size={13}/> For individuals</div>
-              <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.5rem,5vw,2.1rem)' }}>
+              <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.85rem,5.5vw,2.6rem)' }}>
                 Everything a group card<br/><span className="text-primary-500">should actually have</span>
               </h2>
               <p className="text-warm-500 mb-6 leading-relaxed">No generic e-cards. One link, everyone signs, gift collected — and it looks stunning.</p>
@@ -387,7 +438,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Star" size={13}/> Real stories</div>
-            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
+            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               People who actually<br/><span className="text-primary-500">made someone's day</span>
             </h2>
           </div>
@@ -427,39 +478,12 @@ const Home = () => {
 
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 
-      {/* ── SAMPLE CARDS INSPIRATION ──────────── */}
-      <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>Get inspiration from sample cards</h2>
-            <p className="text-warm-500 text-sm sm:text-base">See real examples before you start your own.</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { occ:'Birthday', icon:'🎂', bg:'linear-gradient(145deg,#fffbeb,#fed7aa)' },
-              { occ:'Farewell', icon:'👋', bg:'linear-gradient(145deg,#fff1f5,#ede9fe)' },
-              { occ:'Congrats', icon:'🎉', bg:'linear-gradient(145deg,#fafafa,#fdf2f8)' },
-              { occ:'Thank You', icon:'💌', bg:'linear-gradient(145deg,#ecfdf5,#fef3c7)' },
-            ].map(s => (
-              <Link key={s.occ} to="/sign/demo-thankeeu-card" className="gc-card gc-card-hover block overflow-hidden">
-                <div className="h-24 flex items-center justify-center text-3xl" style={{ background:s.bg }}>{s.icon}</div>
-                <div className="px-2.5 py-2.5 text-center">
-                  <p className="text-xs font-semibold" style={{ color:'#3B0D7A' }}>See a {s.occ.toLowerCase()} sample</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
-
       {/* ── FOR TEAMS ────────────────────── */}
       <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> For HR &amp; People teams</div>
-            <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>
+            <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               Automate every celebration.<br/><span className="text-primary-500">Zero manual effort.</span>
             </h2>
             <p className="text-warm-500 max-w-xl mx-auto text-sm leading-relaxed">
@@ -555,7 +579,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
-            <h2 style={{ fontWeight:800, fontSize:'clamp(1.6rem,5vw,2.5rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
+            <h2 style={{ fontWeight:800, fontSize:'clamp(2rem,5.5vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
               From zero to celebration<br/><span className="text-primary-500">in under 3 minutes</span>
             </h2>
           </div>
@@ -589,7 +613,7 @@ const Home = () => {
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
-            <h2 className="font-extrabold" style={{ fontSize:'clamp(1.6rem,5vw,2.3rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
+            <h2 className="font-extrabold" style={{ fontSize:'clamp(2rem,5.5vw,2.8rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
               Questions we get all the time
             </h2>
           </div>
@@ -629,7 +653,7 @@ const Home = () => {
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5">
               <Icon name="Layers" size={13}/> More ways to celebrate
             </div>
-            <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(1.6rem,5vw,2.4rem)' }}>
+            <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(2rem,5.5vw,2.9rem)' }}>
               Beyond the card
             </h2>
             <p className="text-warm-500 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
@@ -749,7 +773,7 @@ const Home = () => {
               </span>
             ))}
           </div>
-          <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.75rem,6vw,3rem)' }}>
+          <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(2.1rem,6.5vw,3.6rem)' }}>
             Make someone feel<br/>
             <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
               genuinely loved

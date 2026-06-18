@@ -232,7 +232,7 @@ const LiveCardPreview = () => {
   const msg = messages[activeIdx];
 
   return (
-    <div style={{ width: '100%', maxWidth: 420, display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingLeft: 28, paddingRight: 28, boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingLeft: 36, paddingRight: 36, boxSizing: 'border-box' }}>
 
       {/* ── Album card ── */}
       <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
@@ -286,16 +286,17 @@ const LiveCardPreview = () => {
             ))}
           </div>
 
-          {/* Nav arrows — positioned outside the content flow, fully visible */}
-          <button onClick={()=>goTo(-1)} disabled={activeIdx===0}
-            style={{ position:'absolute', left:-22, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'#fff', border:'2px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===0 ? 0.3 : 1, zIndex:20, boxShadow:'0 2px 12px rgba(124,58,237,0.15)' }}>
-            <Icon name="ChevronLeft" size={18}/>
-          </button>
-          <button onClick={()=>goTo(1)} disabled={activeIdx===messages.length-1}
-            style={{ position:'absolute', right:-22, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'#fff', border:'2px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===messages.length-1 ? 0.3 : 1, zIndex:20, boxShadow:'0 2px 12px rgba(124,58,237,0.15)' }}>
-            <Icon name="ChevronRight" size={18}/>
-          </button>
         </div>
+
+        {/* Nav arrows — on the WRAPPER (overflow:visible), NOT inside the card (overflow:hidden) */}
+        <button onClick={()=>goTo(-1)} disabled={activeIdx===0}
+          style={{ position:'absolute', left:-24, top:'50%', transform:'translateY(-50%)', width:44, height:44, borderRadius:'50%', background:'#fff', border:'2px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===0 ? 0.3 : 1, zIndex:20, boxShadow:'0 4px 16px rgba(124,58,237,0.18)' }}>
+          <Icon name="ChevronLeft" size={20}/>
+        </button>
+        <button onClick={()=>goTo(1)} disabled={activeIdx===messages.length-1}
+          style={{ position:'absolute', right:-24, top:'50%', transform:'translateY(-50%)', width:44, height:44, borderRadius:'50%', background:'#fff', border:'2px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===messages.length-1 ? 0.3 : 1, zIndex:20, boxShadow:'0 4px 16px rgba(124,58,237,0.18)' }}>
+          <Icon name="ChevronRight" size={20}/>
+        </button>
 
         {/* Count badge */}
         <div style={{ position:'absolute', top:-12, right:16, background:'#fff', border:'1.5px solid #DDD6FE', borderRadius:20, padding:'3px 10px', fontSize:'0.75rem', fontWeight:700, color:'#7C3AED', display:'flex', alignItems:'center', gap:5, zIndex:2 }}>
@@ -451,7 +452,7 @@ const Home = () => {
 
             {/* Left: headline + CTAs + sample card grid */}
             <div className="text-center lg:text-left">
-              <h1 className="font-extrabold text-warm-900 mb-5" style={{ fontSize:'clamp(2.2rem,6vw,4rem)', lineHeight:1.1 }}>
+              <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(3rem,8vw,5.5rem)', lineHeight:1.05, letterSpacing:'-0.02em' }}>
                 Send a Group<br/>
                 <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', display:'inline-block', minWidth:'1px' }}>
                   {ROTATING_WORDS[wordIndex]}

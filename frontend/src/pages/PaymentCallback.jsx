@@ -73,7 +73,7 @@ export default function PaymentCallback() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F0FF' }}>
+    <div className="section-dots" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F5F0FF' }}>
       <div style={{ textAlign: 'center', padding: '2rem' }}>
         {!failed ? (
           <>

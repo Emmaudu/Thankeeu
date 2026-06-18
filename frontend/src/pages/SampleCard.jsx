@@ -299,7 +299,7 @@ export default function SampleCard() {
       </div>
 
       {/* ── Main background — Thankeeu purple theme ── */}
-      <div style={{ minHeight:'100vh', background:'linear-gradient(160deg,#F5F0FF 0%,#EDE5FF 35%,#F8F0FF 65%,#FFF0F8 100%)', position:'relative', overflow:'hidden' }}>
+      <div className="section-dots" style={{ minHeight:'100vh', background:'linear-gradient(160deg,#F5F0FF 0%,#EDE5FF 35%,#F8F0FF 65%,#FFF0F8 100%)', position:'relative', overflow:'hidden' }}>
         {/* Dot grid */}
         <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(124,58,237,0.10) 1.5px,transparent 1.5px)', backgroundSize:'30px 30px', pointerEvents:'none', zIndex:0 }}/>
         {/* Glow */}

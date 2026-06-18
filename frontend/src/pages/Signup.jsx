@@ -96,7 +96,7 @@ const Signup = () => {
   const inputCls = 'w-full px-4 py-3 rounded-xl border-2 border-purple-100 focus:border-primary-400 focus:outline-none bg-white text-warm-900 text-sm transition-colors';
 
   return (
-    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#F5F0FF 0%,#FDFCFF 50%,#FFF1F3 100%)' }}>
+    <div className="min-h-screen section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF 0%,#FDFCFF 50%,#FFF1F3 100%)' }}>
       <Navbar />
 
       <div className="relative flex items-center justify-center px-4 py-14">

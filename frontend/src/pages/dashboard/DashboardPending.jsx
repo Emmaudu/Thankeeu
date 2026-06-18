@@ -25,7 +25,7 @@ export default function DashboardPending() {
         <div className="space-y-3">
           {items.map(item=>(
             <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl border-2 transition-all hover:shadow-sm" style={{background:'#fff',borderColor:'#EDE9FE'}}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{background:'#F5F0FF'}}>
+              <div className="section-dots w-12 h-12 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{background:'#F5F0FF'}}>
                 {EMOJI[item.cards?.occasion]||'💌'}
               </div>
               <div className="flex-1 min-w-0">

@@ -60,7 +60,7 @@ export default function CardFeeVerify() {
   }, []);
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F5F0FF' }}>
+    <div className="section-dots" style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#F5F0FF' }}>
       <div style={{ textAlign:'center', padding:'2rem' }}>
         <div style={{ width:56, height:56, border:'4px solid #E9D5FF', borderTopColor:'#7C3AED',
           borderRadius:'50%', animation:'spin 0.8s linear infinite', margin:'0 auto 1.5rem' }} />

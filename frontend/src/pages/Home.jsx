@@ -232,10 +232,11 @@ const LiveCardPreview = () => {
   const msg = messages[activeIdx];
 
   return (
-    <div style={{ width: '100%', maxWidth: 480, display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingLeft: 36, paddingRight: 36, boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: '1.25rem', boxSizing: 'border-box' }}>
 
       {/* ── Album card ── */}
-      <div style={{ position: 'relative', width: '100%', overflow: 'visible' }}>
+      {/* margin:0 52px creates the space the arrows (left:-26, right:-26) sit in */}
+      <div style={{ position: 'relative', width: 'calc(100% - 104px)', margin: '0 auto', overflow: 'visible' }}>
         {/* Stack shadows */}
         <div style={{ position:'absolute', left:'50%', transform:'translateX(calc(-50% - 16px)) rotate(-3deg)', width:'calc(100% - 28px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
         <div style={{ position:'absolute', left:'50%', transform:'translateX(calc(-50% + 16px)) rotate(3deg)',  width:'calc(100% - 14px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
@@ -248,7 +249,6 @@ const LiveCardPreview = () => {
           background: msg.bg,
           boxShadow: '0 8px 40px rgba(124,58,237,0.12)',
           transition: 'all 0.22s ease',
-          overflow: 'hidden',
           transform: flipping ? 'rotateY(90deg)' : 'rotateY(0deg)',
           opacity: flipping ? 0 : 1,
           minHeight: 340,
@@ -290,12 +290,12 @@ const LiveCardPreview = () => {
 
         {/* Nav arrows — on the WRAPPER (overflow:visible), NOT inside the card (overflow:hidden) */}
         <button onClick={()=>goTo(-1)} disabled={activeIdx===0}
-          style={{ position:'absolute', left:-24, top:'50%', transform:'translateY(-50%)', width:44, height:44, borderRadius:'50%', background:'#fff', border:'2px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===0 ? 0.3 : 1, zIndex:20, boxShadow:'0 4px 16px rgba(124,58,237,0.18)' }}>
-          <Icon name="ChevronLeft" size={20}/>
+          style={{ position:'absolute', left:-26, top:'50%', transform:'translateY(-50%)', width:48, height:48, borderRadius:'50%', background:'#fff', border:'2.5px solid #C4B5FD', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===0 ? 0.25 : 1, zIndex:20, boxShadow:'0 4px 20px rgba(124,58,237,0.22)', flexShrink:0 }}>
+          <Icon name="ChevronLeft" size={22}/>
         </button>
         <button onClick={()=>goTo(1)} disabled={activeIdx===messages.length-1}
-          style={{ position:'absolute', right:-24, top:'50%', transform:'translateY(-50%)', width:44, height:44, borderRadius:'50%', background:'#fff', border:'2px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===messages.length-1 ? 0.3 : 1, zIndex:20, boxShadow:'0 4px 16px rgba(124,58,237,0.18)' }}>
-          <Icon name="ChevronRight" size={20}/>
+          style={{ position:'absolute', right:-26, top:'50%', transform:'translateY(-50%)', width:48, height:48, borderRadius:'50%', background:'#fff', border:'2.5px solid #C4B5FD', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===messages.length-1 ? 0.25 : 1, zIndex:20, boxShadow:'0 4px 20px rgba(124,58,237,0.22)', flexShrink:0 }}>
+          <Icon name="ChevronRight" size={22}/>
         </button>
 
         {/* Count badge */}
@@ -443,21 +443,21 @@ const Home = () => {
       <Navbar onBookDemo={() => setShowDemo(true)} />
 
       {/* ══ HERO ══ */}
-      <section className="relative overflow-visible pt-12 pb-16 md:pt-16 md:pb-20 px-4 gc-font">
+      <section className="relative overflow-visible pt-12 pb-16 md:pt-16 md:pb-20 px-2 sm:px-4 gc-font section-dots">
 
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,transparent 70%)' }}/>
 
         <div className="relative max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
 
             {/* Left: headline + CTAs + sample card grid */}
             <div className="text-center lg:text-left">
-              <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(3rem,8vw,5.5rem)', lineHeight:1.05, letterSpacing:'-0.02em' }}>
-                Send a Group<br/>
-                <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', display:'inline-block', minWidth:'1px' }}>
+              <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(3.5rem,9vw,7rem)', lineHeight:1.0, letterSpacing:'-0.03em' }}>
+                <span style={{ display:'block', fontSize:'clamp(2.8rem,7vw,5.5rem)', color:'#1A1035' }}>Send a Group</span>
+                <span style={{ display:'block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px', fontSize:'clamp(3.5rem,9vw,7rem)' }}>
                   {ROTATING_WORDS[wordIndex]}
-                </span><br/>
-                <span style={{ color:'#1A1035' }}>Card Online</span>
+                </span>
+                <span style={{ display:'block', fontSize:'clamp(2.8rem,7vw,5.5rem)', color:'#1A1035' }}>Card Online</span>
               </h1>
 
               <p className="text-warm-600 mb-9 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.2rem,2.8vw,1.45rem)', lineHeight:1.6 }}>
@@ -540,7 +540,7 @@ const Home = () => {
             </div>
 
             {/* Right: live flipbook demo */}
-            <div style={{ paddingTop: '0.5rem', paddingLeft: '2.5rem', paddingRight: '1.5rem' }}>
+            <div className="lcp-outer-wrap" style={{ paddingTop: '0.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
               <LiveCardPreview />
             </div>
           </div>
@@ -676,7 +676,7 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ INSPIRATION SAMPLE CARDS — exact GroupCards style ══ */}
-      <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+      <section className="py-12 md:py-16 px-4 gc-font section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>Get inspiration from our sample cards</h2>
@@ -743,7 +743,7 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ OCCASIONS ══ */}
-      <section className="py-12 md:py-16 px-4" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+      <section className="py-12 md:py-16 px-4 section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Party" size={13}/> 14 occasions</div>
@@ -793,7 +793,7 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ FEATURES + MOCK CARD ══ */}
-      <section className="py-12 md:py-16 px-4" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+      <section className="py-12 md:py-16 px-4 section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             <div>
@@ -895,7 +895,7 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ FOR TEAMS ══ */}
-      <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+      <section className="py-12 md:py-16 px-4 gc-font section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> For HR &amp; People teams</div>
@@ -981,7 +981,7 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ HOW IT WORKS DETAIL ══ */}
-      <section id="how-it-works" className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+      <section id="how-it-works" className="py-14 md:py-20 px-4 gc-font section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
@@ -1107,7 +1107,7 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ BOTTOM CTA ══ */}
-      <section className="py-16 md:py-24 px-4 text-center gc-font" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
+      <section className="py-16 md:py-24 px-4 text-center gc-font section-dots" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
           <div className="flex justify-center gap-2 sm:gap-3 mb-6">
             {['Cake','Gift','Party','Heart','Sparkles'].map((name,i) => (

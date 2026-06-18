@@ -120,7 +120,7 @@ const CardStart = () => {
   const copyLink = () => { navigator.clipboard.writeText(shareUrl); toast.success('Link copied!'); };
 
   return (
-    <div className="min-h-screen gc-font" style={{ background: '#FAF8FF' }}>
+    <div className="min-h-screen gc-font section-dots" style={{ background: '#FAF8FF' }}>
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-24">
         {step !== 3 && (

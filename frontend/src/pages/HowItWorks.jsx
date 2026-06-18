@@ -25,7 +25,7 @@ export default function HowItWorks() {
       <Navbar />
 
       {/* Hero */}
-      <section className="py-14 md:py-20 px-4 text-center" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
+      <section className="py-14 md:py-20 px-4 text-center section-dots" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
           <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
           <h1 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(2rem,6vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'1rem' }}>
@@ -66,7 +66,7 @@ export default function HowItWorks() {
       </section>
 
       {/* CTA */}
-      <section className="py-14 px-4 text-center" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
+      <section className="py-14 px-4 text-center section-dots" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-lg mx-auto">
           <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(1.6rem,5vw,2.2rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'0.75rem' }}>
             Ready to make someone's day?

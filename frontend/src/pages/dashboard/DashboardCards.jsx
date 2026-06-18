@@ -49,7 +49,7 @@ export default function DashboardCards() {
               <div className="h-1.5 w-full" style={{background:card.background_color||'linear-gradient(90deg,#7C3AED,#EC4899)'}}/>
               <div className="db-card-item-body">
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{background:'#F5F0FF'}}>
+                  <div className="section-dots w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{background:'#F5F0FF'}}>
                     {EMOJI[card.occasion]||'💌'}
                   </div>
                   <span className={`db-badge db-badge-${card.status||'draft'}`}>

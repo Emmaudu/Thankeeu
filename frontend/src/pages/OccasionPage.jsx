@@ -125,7 +125,7 @@ export default function OccasionPage() {
 
   if (!data) {
     return (
-      <div className="min-h-screen" style={{ background:'#F5F3FF' }}>
+      <div className="min-h-screen section-dots" style={{ background:'#F5F3FF' }}>
         <Navbar />
         <div className="flex items-center justify-center min-h-[60vh] px-4 text-center">
           <div>
@@ -145,7 +145,7 @@ export default function OccasionPage() {
   const giftFmt = (n) => n > 0 ? `₦${n.toLocaleString()}` : null;
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#F8F6FF' }}>
+    <div className="min-h-screen flex flex-col section-dots" style={{ background: '#F8F6FF' }}>
       <Navbar />
 
       {/* Hero */}

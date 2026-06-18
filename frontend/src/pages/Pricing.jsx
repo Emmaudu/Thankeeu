@@ -134,7 +134,7 @@ const Pricing = () => {
       <Navbar />
 
       {/* Hero */}
-      <section className="py-12 md:py-16 px-4 text-center" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
+      <section className="py-12 md:py-16 px-4 text-center section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
           <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Globe" size={13}/> For everyone, everywhere</div>
           <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(2.1rem,6.5vw,3.6rem)' }}>
@@ -362,7 +362,7 @@ const Pricing = () => {
       )}
 
       {/* FAQ */}
-      <section className="py-12 md:py-16 px-4" style={{ background: '#F5F0FF' }}>
+      <section className="py-12 md:py-16 px-4 section-dots" style={{ background: '#F5F0FF' }}>
         <div className="max-w-2xl mx-auto">
           <h3 className="text-2xl sm:text-3xl font-bold text-warm-900 text-center mb-7">Frequently asked</h3>
           <div className="space-y-3">

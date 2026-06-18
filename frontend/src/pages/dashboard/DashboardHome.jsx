@@ -180,7 +180,7 @@ export default function DashboardHome() {
             <div key={card.id} className="db-card-item">
               <div className="db-card-item-body">
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{background:'#F5F0FF'}}>
+                  <div className="section-dots w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{background:'#F5F0FF'}}>
                     {OCCASION_EMOJI[card.occasion]||'💌'}
                   </div>
                   <span className={`db-badge db-badge-${card.status||'draft'}`}>

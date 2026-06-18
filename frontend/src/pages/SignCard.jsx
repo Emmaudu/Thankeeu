@@ -410,7 +410,7 @@ const SignCard = () => {
 
   // ── Loading / not-found states ─────────────────────────────────────────────
   if (loading) return (
-    <div className="min-h-screen grid place-items-center" style={{ background:'#F5F3FF' }}>
+    <div className="min-h-screen grid place-items-center section-dots" style={{ background:'#F5F3FF' }}>
       <div className="text-center">
         <div className="w-14 h-14 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
         <p className="text-warm-500 text-lg">Opening the celebration...</p>

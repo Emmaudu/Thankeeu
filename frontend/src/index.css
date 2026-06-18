@@ -704,6 +704,24 @@ body.sidebar-open { overflow: hidden; }
 .auth-root {
   min-height: 100vh;
   background: linear-gradient(160deg, #F0EBFF 0%, #FDFCFF 55%, #FFF0F5 100%);
+  position: relative;
+}
+.auth-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(rgba(124,58,237,0.12) 2px, transparent 2px),
+    radial-gradient(rgba(139,92,246,0.07) 1.2px, transparent 1.2px);
+  background-size: 52px 52px, 28px 28px;
+  background-position: 0 0, 14px 14px;
+  border-radius: inherit;
+}
+.auth-root > * {
+  position: relative;
+  z-index: 1;
 }
 
 .auth-bg-dots {
@@ -1828,44 +1846,55 @@ body.sidebar-open { overflow: hidden; }
 
 
 
-/* ═══════════════════════════════════════════════════════════════════
-   GLOBAL DOT GRID — on html element, visible on ALL pages
-   The html element is never painted over by child divs, so the dots
-   are always present underneath everything. We use a higher opacity
-   (0.18) and bigger dots (3.5px at 44px grid) so they're clearly
-   visible even when sections have solid backgrounds.
-   ═══════════════════════════════════════════════════════════════════ */
-html {
-  background-image: radial-gradient(rgba(124,58,237,0.18) 3.5px, transparent 3.5px);
-  background-size: 44px 44px;
-  background-attachment: fixed;
-  background-color: #fdfcff;
-}
 
-/* Make all main section backgrounds semi-transparent so dots bleed through */
-body {
-  background: transparent;
-}
 
-/* Sections with solid white — make them semi-transparent */
-section,
-.gc-section,
-.bg-white,
-[class*="bg-white"],
-[style*="background: #fff"],
-[style*="background:#fff"],
-[style*="background: white"] {
-  /* Don't override — instead rely on the dot overlay approach below */
+/* ══════════════════════════════════════════════════════
+   STRATEGIC DOT TEXTURE — subtle, only on purple-tinted
+   hero and section backgrounds. NOT on navbar, NOT global.
+   Apply class "section-dots" to any section that should
+   have the texture. The dots are organic-feeling: varied
+   sizes via two stacked radial-gradients, offset from each
+   other so they don't form a rigid grid pattern.
+   ══════════════════════════════════════════════════════ */
+.section-dots {
+  position: relative;
 }
-
-/* DOT OVERLAY — a fixed div injected via the global styles
-   Every page automatically gets dots via App.jsx injection */
-.dot-overlay-fixed {
-  position: fixed;
+.section-dots::before {
+  content: '';
+  position: absolute;
   inset: 0;
-  z-index: 9998;
   pointer-events: none;
-  background-image: radial-gradient(rgba(124,58,237,0.12) 3.5px, transparent 3.5px);
-  background-size: 44px 44px;
-  mix-blend-mode: multiply;
+  z-index: 0;
+  background-image:
+    radial-gradient(rgba(124,58,237,0.13) 2px, transparent 2px),
+    radial-gradient(rgba(139,92,246,0.08) 1.2px, transparent 1.2px);
+  background-size: 52px 52px, 28px 28px;
+  background-position: 0 0, 14px 14px;
+  border-radius: inherit;
+}
+.section-dots > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Hero flipbook mobile spacing ──────────────────────────────────────
+   On small screens the right-column wrapper must have at least 30px
+   of horizontal padding so the -26px nav arrows are never clipped.
+   Also make the sign form use full width on mobile.
+   ─────────────────────────────────────────────────────────────────── */
+@media (max-width: 1023px) {
+  /* The right-column LiveCardPreview wrapper */
+  .lcp-outer-wrap {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 480px) {
+  .lcp-outer-wrap {
+    padding-left: 1.75rem !important;
+    padding-right: 1.75rem !important;
+  }
 }

@@ -6,7 +6,7 @@ import Icon from '../components/ui/Icon';
 const NotFound = () => {
   useSEO({ title: 'Page Not Found — Thankeeu', noIndex: true });
   return (
-    <div style={{ minHeight:'100vh', background:'linear-gradient(160deg,#F0EBFF 0%,#FDFCFF 60%,#FFF0F5 100%)' }}>
+    <div className="section-dots" style={{ minHeight:'100vh', background:'linear-gradient(160deg,#F0EBFF 0%,#FDFCFF 60%,#FFF0F5 100%)' }}>
       <Navbar />
       <div className="flex flex-col items-center justify-center min-h-[82vh] px-4 text-center">
         <div className="w-28 h-28 rounded-3xl flex items-center justify-center mb-8 animate-float"

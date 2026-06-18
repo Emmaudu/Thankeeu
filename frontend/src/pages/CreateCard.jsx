@@ -1,6 +1,6 @@
 import { useSEO } from '../hooks/useSEO';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
@@ -64,6 +64,7 @@ const CreateCard = () => {
   const isCompanyUser = !!(member || company);
   const isTeamLeader  = member?.role === 'team_leader';
   const navigate      = useNavigate();
+  const [searchParams] = useSearchParams();
   const creatorName   = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'Someone';
 
   const [step,            setStep]           = useState(0);
@@ -111,6 +112,37 @@ const CreateCard = () => {
       creditsAPI.getBalance().then(r => setCreditBalance(r.data?.credits ?? 0)).catch(() => {});
   }, [user]);
 
+  // ── Resume pending card after login redirect ──────────────────────
+  // When a guest clicks "Sign in to continue", we save their form state
+  // and slug (if draft already created) to localStorage, then redirect
+  // to /login?returnTo=/card/new?resumed=1. On return, this effect
+  // restores everything and jumps to the right step.
+  useEffect(() => {
+    const isResumed = searchParams.get('resumed') === '1';
+    if (!isResumed) return;
+    try {
+      const raw = localStorage.getItem('thankeeu_pending_card');
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      // Restore form state if it was saved
+      if (saved.formSnapshot) setForm(saved.formSnapshot);
+      if (saved.msgSnapshot)  setMsgForm(saved.msgSnapshot);
+      if (saved.slug) {
+        // Draft already created before login — go straight to message step
+        toast.success('Welcome back! Continuing your card…');
+        setStep(3);
+      } else if (saved.formSnapshot) {
+        // Form filled but draft not created yet — go to details step
+        toast.success('Welcome back! Pick up where you left off.');
+        setStep(2);
+      }
+    } catch {}
+    // Clean the ?resumed=1 param from the URL without a page reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('resumed');
+    window.history.replaceState({}, '', url.toString());
+  }, [searchParams]);
+
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setMsg = (k, v) => setMsgForm(p => ({ ...p, [k]: v }));
 
@@ -157,7 +189,11 @@ const CreateCard = () => {
       if (company)      slug = (await cardsAPI.createAsCompany(cardData)).data.slug;
       else if (member)  { const { memberCardsAPI } = await import('../utils/api'); slug = (await memberCardsAPI.create(cardData)).data.slug; }
       else              slug = (await cardsAPI.create(cardData)).data.slug;
-      localStorage.setItem('thankeeu_pending_card', JSON.stringify({ cardData, slug, timestamp: Date.now() }));
+      localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+        cardData, slug, timestamp: Date.now(),
+        formSnapshot: form,
+        msgSnapshot: msgForm,
+      }));
       setPaymentStage('idle');
       setStep(3);
     } catch (err) {
@@ -236,7 +272,7 @@ const CreateCard = () => {
 
   // ── LIVE screen ──────────────────────────────────────────────────────────
   if (liveSlug) return (
-    <div className="min-h-screen" style={{ background:'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
+    <div className="min-h-screen section-dots" style={{ background:'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
       <Navbar/>
       <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 py-16 text-center">
         <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-6 animate-pop" style={{ background:'linear-gradient(135deg,#7C3AED,#EC4899)' }}>🎉</div>
@@ -380,7 +416,12 @@ const CreateCard = () => {
 
           <div className="flex justify-between">
             <button onClick={() => setStep(0)} className="btn-secondary">← Back</button>
-            <button onClick={() => setStep(2)} className="btn-primary">Add details →</button>
+            <button onClick={() => {
+              // Save form snapshot so login-redirect can restore it
+              const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+              localStorage.setItem('thankeeu_pending_card', JSON.stringify({ ...existing, formSnapshot: form, timestamp: Date.now() }));
+              setStep(2);
+            }} className="btn-primary">Add details →</button>
           </div>
         </div>
       )}
@@ -390,6 +431,62 @@ const CreateCard = () => {
         <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
           <h2 className="text-xl font-bold text-warm-900 mb-1">Card details</h2>
           <p className="text-warm-500 text-sm mb-5">Tell us who this is for</p>
+
+          {/* ── Sign-in banner — shown to guests who may already have an account ── */}
+          {!user && !isCompanyUser && (
+            <div style={{
+              background: 'linear-gradient(135deg,#EDE9FE,#F5F0FF)',
+              border: '1.5px solid #C4B5FD',
+              borderRadius: 16,
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginBottom: 20,
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:22 }}>👋</span>
+                <div>
+                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#1A1035', margin:0, lineHeight:1.3 }}>
+                    Already have an account?
+                  </p>
+                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:12, color:'#7A6CA8', margin:0 }}>
+                    Sign in to save this card to your dashboard — your progress won't be lost.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+                onClick={() => {
+                  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                    ...existing,
+                    formSnapshot: form,
+                    msgSnapshot: msgForm,
+                    timestamp: Date.now(),
+                  }));
+                }}
+                style={{
+                  background: '#7C3AED',
+                  color: '#fff',
+                  borderRadius: 12,
+                  padding: '8px 18px',
+                  fontFamily: 'Plus Jakarta Sans,sans-serif',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}>
+                <Icon name="LogIn" size={14}/> Sign in
+              </Link>
+            </div>
+          )}
           <div className="space-y-4 mb-6">
             <div>
               <label className="block text-sm font-semibold text-warm-700 mb-1.5">Card title</label>
@@ -468,9 +565,66 @@ const CreateCard = () => {
       {step === 3 && (
         <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
           <h2 className="text-xl font-bold text-warm-900 mb-1">Add your message 💜</h2>
-          <p className="text-warm-500 text-sm mb-6">
+          <p className="text-warm-500 text-sm mb-4">
             You're the card creator — add your own message first. Others will sign too once you share the link.
           </p>
+
+          {/* ── Sign-in banner — shown to guests who may already have an account ── */}
+          {!user && !isCompanyUser && (
+            <div style={{
+              background: 'linear-gradient(135deg,#EDE9FE,#F5F0FF)',
+              border: '1.5px solid #C4B5FD',
+              borderRadius: 16,
+              padding: '12px 16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              marginBottom: 20,
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:22 }}>👋</span>
+                <div>
+                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#1A1035', margin:0, lineHeight:1.3 }}>
+                    Already have an account?
+                  </p>
+                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:12, color:'#7A6CA8', margin:0 }}>
+                    Sign in to save this card to your dashboard — your progress won't be lost.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+                onClick={() => {
+                  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                    ...existing,
+                    formSnapshot: form,
+                    msgSnapshot: msgForm,
+                    timestamp: Date.now(),
+                  }));
+                }}
+                style={{
+                  background: '#7C3AED',
+                  color: '#fff',
+                  borderRadius: 12,
+                  padding: '8px 18px',
+                  fontFamily: 'Plus Jakarta Sans,sans-serif',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: 'none',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}>
+                <Icon name="LogIn" size={14}/> Sign in
+              </Link>
+            </div>
+          )}
+
 
           {/* Writing style */}
           <label className="block text-sm font-bold text-warm-700 mb-2">Writing style</label>

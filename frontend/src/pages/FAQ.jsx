@@ -42,7 +42,7 @@ export default function FAQ() {
     <div className="min-h-screen flex flex-col gc-font" style={{ background:'#FDFCFF' }}>
       <Navbar />
 
-      <section className="py-12 md:py-16 px-4 text-center" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
+      <section className="py-12 md:py-16 px-4 text-center section-dots" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
         <h1 className="font-extrabold" style={{ fontSize:'clamp(2.1rem,6.5vw,3.6rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'0.75rem' }}>
           Frequently asked questions
@@ -85,7 +85,7 @@ export default function FAQ() {
         </div>
       </section>
 
-      <section className="py-12 px-4 text-center" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
+      <section className="py-12 px-4 text-center section-dots" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-lg mx-auto">
           <h2 className="font-extrabold" style={{ fontSize:'1.5rem', letterSpacing:'-0.01em', color:'#1A1035', marginBottom:'0.5rem' }}>Still have questions?</h2>
           <p className="text-warm-600 text-sm mb-6">Our team responds within 24 hours.</p>

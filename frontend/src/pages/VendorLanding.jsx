@@ -31,7 +31,7 @@ export default function VendorLanding() {
       <Navbar />
 
       {/* Hero */}
-      <section className="px-4 pt-14 pb-12 sm:pt-20 sm:pb-16" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF1F3)' }}>
+      <section className="px-4 pt-14 pb-12 sm:pt-20 sm:pb-16 section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF1F3)' }}>
         <div className="max-w-3xl mx-auto text-center">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-purple-100 text-xs font-semibold text-primary-600 mb-5">
             <Icon name="Store" size={14} /> Thankeeu Marketplace

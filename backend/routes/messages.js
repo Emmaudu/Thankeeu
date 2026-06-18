@@ -59,8 +59,23 @@ router.patch('/position/:message_id', validateUUIDParam('message_id'), flexAuth,
 router.post('/react/:message_id', validateUUIDParam('message_id'), reactToMessage);
 router.delete('/:message_id',     validateUUIDParam('message_id'), auth, deleteMessage);
 
+// upload.any() reports failures (Cloudinary errors, oversized files, etc.) via
+// next(err), which would otherwise skip addMessage's own try/catch entirely
+// and fall through to the generic global error handler. Catch it here so the
+// signer gets a clear, specific reason instead of a vague timeout/500.
+const handleUpload = (req, res, next) => {
+  upload.any()(req, res, (err) => {
+    if (!err) return next();
+    console.error('[messages upload] error:', err.message);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'That file is too large (50MB max). Please use a smaller photo or video.' });
+    }
+    return res.status(502).json({ error: 'Could not upload your photo/video right now. Please try again, or remove the attachment and send your message without it.' });
+  });
+};
+
 // Wildcard routes — must be after all fixed-segment routes
-router.post('/:card_slug',        validateSlugParam('card_slug'), upload.any(), addMessage);
+router.post('/:card_slug',        validateSlugParam('card_slug'), handleUpload, addMessage);
 // Access-token recipients can reply without a login session
 router.post('/:card_slug/reply',  validateSlugParam('card_slug'), flexAuth, requireAuth, sendReply);
 

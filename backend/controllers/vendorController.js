@@ -499,7 +499,7 @@ const checkoutOrder = async (req, res) => {
 
     const flwRes = await axios.post(`${FLW_BASE}/payments`, payload, {
       headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' },
-      timeout: 15000,
+      timeout: 12000,
     });
 
     if (flwRes.data.status !== 'success') {
@@ -536,7 +536,7 @@ const verifyVendorOrder = async (req, res) => {
       .eq('flw_reference', tx_ref).maybeSingle();
 
     if (orderLookupErr) {
-      console.error('verifyVendorOrder lookup error for ref:', txRef);
+      console.error('verifyVendorOrder lookup error for ref:', tx_ref, orderLookupErr.message);
       return res.status(500).json({ error: 'Could not look up order. Please contact support.' });
     }
 
@@ -550,7 +550,7 @@ const verifyVendorOrder = async (req, res) => {
     const FLW_BASE = 'https://api.flutterwave.com/v3';
     const verifyRes = await axios.get(`${FLW_BASE}/transactions/verify_by_reference?tx_ref=${tx_ref}`, {
       headers: { Authorization: `Bearer ${process.env.FLW_SECRET_KEY}` },
-      timeout: 15000,
+      timeout: 12000,
     });
 
     const txData     = verifyRes.data?.data;

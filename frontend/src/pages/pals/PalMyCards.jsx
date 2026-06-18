@@ -11,10 +11,25 @@ const STATUS_COLOR = s => ({ active:'bg-green-100 text-green-700', sent:'bg-blue
 export default function PalMyCards() {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState(null);
 
   useEffect(() => {
     palAPI.getMyCards().then(r => setCards(r.data||[])).catch(()=>toast.error('Failed to load cards')).finally(()=>setLoading(false));
   }, []);
+
+  const handleToggleHideAmounts = async (card) => {
+    setTogglingId(card.id);
+    try {
+      const next = !card.hide_amounts;
+      await palAPI.updateCard(card.slug, { hide_amounts: next });
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, hide_amounts: next } : c));
+      toast.success(next ? 'Gift total hidden from signers' : 'Gift total now visible to signers');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update this setting');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   return (
     <PalLayout title="My Cards" subtitle="Automatically created for your group's celebrations">
@@ -36,20 +51,32 @@ export default function PalMyCards() {
             </div>
           : <div className="space-y-3">
               {cards.map(c => (
-                <Link key={c.id} to={`/sign/${c.slug}`} target="_blank" rel="noopener noreferrer"
-                  className="bg-white rounded-2xl border border-purple-100 p-4 flex items-center gap-4 hover:shadow-md transition-shadow">
-                  <div className="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center text-2xl flex-shrink-0">
-                    {OCCASION_ICON[c.occasion] || '🎁'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-warm-900 text-sm">{c.recipient_name}'s {c.occasion}</p>
-                    <p className="text-xs text-warm-400">
-                      {c.send_date ? new Date(c.send_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—'}
-                    </p>
-                  </div>
-                  <span className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize ${STATUS_COLOR(c.status)}`}>{c.status}</span>
-                  <Icon name="ExternalLink" size={14} className="text-warm-300 flex-shrink-0" />
-                </Link>
+                <div key={c.id} className="bg-white rounded-2xl border border-purple-100 flex items-center gap-4 p-4 hover:shadow-md transition-shadow">
+                  <Link to={`/sign/${c.slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 flex-1 min-w-0">
+                    <div className="w-12 h-12 rounded-xl bg-pink-50 flex items-center justify-center text-2xl flex-shrink-0">
+                      {OCCASION_ICON[c.occasion] || '🎁'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-warm-900 text-sm">{c.recipient_name}'s {c.occasion}</p>
+                      <p className="text-xs text-warm-400">
+                        {c.send_date ? new Date(c.send_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—'}
+                        {c.total_collected > 0 && <span className="ml-2 font-semibold text-emerald-600">🎁 ₦{c.total_collected.toLocaleString()}</span>}
+                      </p>
+                    </div>
+                    <span className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize ${STATUS_COLOR(c.status)}`}>{c.status}</span>
+                    <Icon name="ExternalLink" size={14} className="text-warm-300 flex-shrink-0" />
+                  </Link>
+                  {c.is_gift_enabled && (
+                    <button
+                      disabled={togglingId === c.id}
+                      onClick={() => handleToggleHideAmounts(c)}
+                      title={c.hide_amounts ? "Signers can't see the gift total — click to make it visible" : 'Signers can see the gift total — click to hide it'}
+                      className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors disabled:opacity-50 flex-shrink-0"
+                    >
+                      {togglingId === c.id ? '…' : c.hide_amounts ? '👁️ Show total' : '🙈 Hide total'}
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
       }

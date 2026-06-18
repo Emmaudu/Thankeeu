@@ -152,8 +152,12 @@ export const cardsAPI = {
 // ─── Messages ──────────────────────────────────────────────────────────────
 export const messagesAPI = {
   // RC3 fix: delete Content-Type so axios sets multipart/form-data+boundary automatically for FormData
+  // Longer timeout than the global 15s default: this request may carry a photo/video/voice
+  // attachment that the backend re-uploads to Cloudinary, which can legitimately take longer
+  // than plain JSON calls — especially video/voice on a slower connection.
   add:    (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data, {
     headers: { 'Content-Type': undefined },
+    timeout: 60000,
   }),
   react:          (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
   updatePosition: (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data),
@@ -161,7 +165,7 @@ export const messagesAPI = {
   // reply is authenticated — uses smart axios so both users and members can reply
   reply:  (cardSlug, data)  => smartAxios.post(`/messages/${cardSlug}/reply`, data),
   // sign = alias for add (used in vendor product gift flow)
-  sign:   (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data, { headers: { 'Content-Type': undefined } }),
+  sign:   (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data, { headers: { 'Content-Type': undefined }, timeout: 60000 }),
 };
 
 // ─── Payments ──────────────────────────────────────────────────────────────
@@ -171,8 +175,8 @@ export const paymentsAPI = {
   verifyCardFee:       (txRef)     => anyAxios.get(`/payments/verify-card-fee?tx_ref=${encodeURIComponent(txRef)}`),
 
   // Gift contribution — returns { payment_link }
-  initContribution:    (data)      => publicAxios.post('/payments/initialize/contribution', data),
-  verifyContribution:  (txRef)     => publicAxios.post('/payments/verify-contribution', { tx_ref: txRef }),
+  initContribution:    (data)      => publicAxios.post('/payments/initialize/contribution', data, { timeout: 30000 }),
+  verifyContribution:  (txRef)     => publicAxios.post('/payments/verify-contribution', { tx_ref: txRef }, { timeout: 30000 }),
 
   // Generic verify by tx_ref — used by PaymentCallback as fallback
   verify:              (txRef)     => anyAxios.get(`/payments/verify/${encodeURIComponent(txRef)}`),
@@ -206,6 +210,7 @@ export const adminAPI = {
   updateRole: (userId, role)  => api.put(`/admin/users/${userId}/role`, { role }),
   deleteUser: (userId)        => api.delete(`/admin/users/${userId}`),
   getCards:   ()              => api.get('/admin/cards'),
+  redeliverCard: (cardId)     => api.post(`/admin/cards/${cardId}/redeliver`),
   deleteCard: (cardId)        => api.delete(`/admin/cards/${cardId}`),
 };
 
@@ -315,6 +320,7 @@ export const memberCardsAPI = {
   getHistory: () => memberAxios.get('/cards/member-history'),
   create:     (data) => memberAxios.post('/cards', data),
   getOne:     (slug) => memberAxios.get(`/cards/${slug}`),
+  update:     (slug, data) => memberAxios.put(`/cards/${slug}`, data),
 };
 
 // Member support tickets
@@ -433,8 +439,8 @@ export const vendorAPI = {
   },
   getPublicStore: (slug) => publicAxios.get(`/vendor/store/${slug}`),
   placeOrder:     (slug,d) => publicAxios.post(`/vendor/store/${slug}/order`, d),
-  checkout:       (slug,d) => publicAxios.post(`/vendor/store/${slug}/checkout`, d),
-  verifyOrder:    (txRef)  => publicAxios.get(`/vendor/order-verify?tx_ref=${txRef}`),
+  checkout:       (slug,d) => publicAxios.post(`/vendor/store/${slug}/checkout`, d, { timeout: 30000 }),
+  verifyOrder:    (txRef)  => publicAxios.get(`/vendor/order-verify?tx_ref=${txRef}`, { timeout: 30000 }),
   uploadBanner:   (file)   => {
     const fd = new FormData(); fd.append('image', file);
     return vendorAxios.post('/vendor/me/upload-banner', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
@@ -479,6 +485,7 @@ export const palAPI = {
   inviteCSV:         (file)   => { const fd = new FormData(); fd.append('file', file); return palAxios.post('/pals/invite/csv', fd, { headers: { 'Content-Type': undefined } }); },
 
   getMyCards:    ()  => palAxios.get('/pals/cards'),
+  updateCard:    (slug, data) => palAxios.put(`/cards/${slug}`, data),
   getAnalytics:  ()  => palAxios.get('/pals/analytics'),
 
   getTickets:    ()      => palAxios.get('/pals/support'),

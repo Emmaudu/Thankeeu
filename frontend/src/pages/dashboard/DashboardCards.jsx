@@ -14,10 +14,25 @@ export default function DashboardCards() {
   const [cards,   setCards]   = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState('all');
+  const [togglingId, setTogglingId] = useState(null);
 
   useEffect(() => {
     cardsAPI.getAll().then(r=>setCards(r.data||[])).catch(()=>toast.error('Failed to load')).finally(()=>setLoading(false));
   }, []);
+
+  const handleToggleHideAmounts = async (card) => {
+    setTogglingId(card.id);
+    try {
+      const next = !card.hide_amounts;
+      await cardsAPI.update(card.slug, { hide_amounts: next });
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, hide_amounts: next } : c));
+      toast.success(next ? 'Gift total hidden from signers' : 'Gift total now visible to signers');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update this setting');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const filtered = filter==='all' ? cards : cards.filter(c=>c.status===filter);
 
@@ -73,6 +88,17 @@ export default function DashboardCards() {
                 <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
                 {card.status==='draft' && (
                   <Link to={`/create-card?edit=${card.slug}`} className="db-card-item-action"><Icon name="Edit" size={13}/>Edit</Link>
+                )}
+                {card.is_gift_enabled && (
+                  <button
+                    className="db-card-item-action"
+                    disabled={togglingId === card.id}
+                    title={card.hide_amounts ? "Signers can't see the gift total — click to make it visible" : 'Signers can see the gift total — click to hide it'}
+                    onClick={() => handleToggleHideAmounts(card)}
+                  >
+                    <Icon name={card.hide_amounts ? 'EyeOff' : 'Eye'} size={13}/>
+                    {togglingId === card.id ? 'Updating…' : card.hide_amounts ? 'Total hidden' : 'Total visible'}
+                  </button>
                 )}
               </div>
             </div>

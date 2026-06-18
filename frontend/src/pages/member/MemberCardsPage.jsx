@@ -4,6 +4,7 @@ import { memberCardsAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import toast from 'react-hot-toast';
+import { formatNGN } from '../../utils/currency';
 
 const occasionEmoji = { birthday:'🎂',leaving:'👋',promotion:'🌟',anniversary:'💍',graduation:'🎓',wedding:'💒',other:'🎉' };
 
@@ -11,6 +12,7 @@ export default function MemberCardsPage() {
   const { member } = useMemberAuth();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [togglingId, setTogglingId] = useState(null);
 
   useEffect(() => {
     memberCardsAPI.getHistory()
@@ -18,6 +20,20 @@ export default function MemberCardsPage() {
       .catch(() => toast.error('Failed to load cards'))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleToggleHideAmounts = async (card) => {
+    setTogglingId(card.id);
+    try {
+      const next = !card.hide_amounts;
+      await memberCardsAPI.update(card.slug, { hide_amounts: next });
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, hide_amounts: next } : c));
+      toast.success(next ? 'Gift total hidden from signers' : 'Gift total now visible to signers');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update this setting');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   return (
     <MemberLayout title="My Cards 💌" subtitle="Cards you've created for colleagues">
@@ -45,6 +61,9 @@ export default function MemberCardsPage() {
                 </div>
                 <p className="font-bold text-sm mb-1" style={{color:'#1A1730'}}>{card.title || `${card.recipient_name}'s card`}</p>
                 <p className="text-xs" style={{color:'#7A7898'}}>For {card.recipient_name}</p>
+                {card.total_collected > 0 && (
+                  <p className="text-xs font-bold mt-1" style={{color:'#059669'}}>🎁 {formatNGN(card.total_collected)}</p>
+                )}
               </div>
               <div className="border-t flex" style={{borderColor:'#EDE9FF'}}>
                 <Link to={`/card/${card.slug}`} className="flex-1 py-2.5 text-center text-sm font-bold hover:bg-purple-50" style={{color:'#5B4BDF'}}>👁 View</Link>
@@ -52,6 +71,17 @@ export default function MemberCardsPage() {
                   <button className="flex-1 py-2.5 text-sm font-bold hover:bg-purple-50 border-l" style={{color:'#5B4BDF',borderColor:'#EDE9FF'}}
                     onClick={()=>{navigator.clipboard.writeText(`${location.origin}/sign/${card.slug}`);toast.success('Link copied!');}}>
                     📲 Copy link
+                  </button>
+                )}
+                {card.is_gift_enabled && (
+                  <button
+                    disabled={togglingId === card.id}
+                    className="flex-1 py-2.5 text-sm font-bold hover:bg-purple-50 border-l disabled:opacity-50"
+                    style={{color:'#5B4BDF',borderColor:'#EDE9FF'}}
+                    title={card.hide_amounts ? "Signers can't see the gift total — click to make it visible" : 'Signers can see the gift total — click to hide it'}
+                    onClick={() => handleToggleHideAmounts(card)}
+                  >
+                    {togglingId === card.id ? '…' : card.hide_amounts ? '🙈 Hidden' : '👁️ Visible'}
                   </button>
                 )}
               </div>

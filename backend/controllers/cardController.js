@@ -357,13 +357,14 @@ const updateCard = async (req, res) => {
     const presentedToken = req.headers['x-draft-edit-token'] || req.body.draft_edit_token;
 
     const { data: card } = await supabase.from('cards')
-      .select('creator_id, created_by_member_id, company_id, draft_edit_token, is_draft')
+      .select('creator_id, created_by_member_id, company_id, pal_group_id, draft_edit_token, is_draft')
       .eq('slug', slug).maybeSingle();
     if (!card) return res.status(404).json({ error: 'Card not found' });
 
     const isOwner = (req.user && card.creator_id === req.user.id)
       || (req.member && card.created_by_member_id === req.member.id)
       || (req.company && card.company_id === req.company.id)
+      || (req.palGroup && card.pal_group_id === req.palGroup.id)
       || (card.is_draft && card.draft_edit_token && presentedToken && card.draft_edit_token === presentedToken);
 
     if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
@@ -464,7 +465,7 @@ const sendCard = async (req, res) => {
       .from('messages').select('count').eq('card_id', card.id);
 
     await supabase.from('cards').update({
-      status: 'sent', recipient_notified: true, updated_at: new Date()
+      status: 'sent', recipient_notified: true, delivered_at: new Date(), updated_at: new Date()
     }).eq('slug', slug);
 
     // Auto-link card to recipient's account if they already have one
@@ -778,7 +779,7 @@ const getMemberCards = async (req, res) => {
     const memberId = req.member.id;
     const { data: cards, error } = await supabase
       .from('cards')
-      .select('id, slug, title, recipient_name, occasion, status, total_collected, created_at, send_date, is_gift_enabled, messages(count)')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, messages(count)')
       .eq('created_by_member_id', memberId)
       .order('created_at', { ascending: false });
 
@@ -847,7 +848,7 @@ const approveCardScope = async (req, res) => {
 const getCompanyCards = async (req, res) => {
   try {
     const { data, error } = await supabase.from('cards')
-      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, design_theme, notification_scope, scope_approved_at')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, design_theme, notification_scope, scope_approved_at')
       .eq('company_id', req.company.id)
       .order('created_at', { ascending: false });
     if (error) {
@@ -866,7 +867,7 @@ const getCompanyCards = async (req, res) => {
 const getCompanyDeliveredCards = async (req, res) => {
   try {
     const { data, error } = await supabase.from('cards')
-      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date')
       .eq('company_id', req.company.id).eq('status', 'sent')
       .order('send_date', { ascending: false });
     if (error) {

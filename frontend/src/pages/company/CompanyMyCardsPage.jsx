@@ -18,7 +18,7 @@ const statusColor = {
   sent: 'bg-green-50 text-green-700',
 };
 
-const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify }) => (
+const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify, onToggleHideAmounts, toggling }) => (
   <div className="bg-white rounded-2xl border border-purple-100 p-4 hover:shadow-sm transition-shadow">
     <div className="flex flex-col gap-3">
       {/* Card info */}
@@ -29,6 +29,11 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize flex-shrink-0 ${statusColor[card.status] || statusColor.draft}`}>
               {card.status}
             </span>
+            {card.is_gift_enabled && card.hide_amounts && (
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 bg-warm-100 text-warm-500" title="Signers cannot see the gift total on this card">
+                🙈 Total hidden
+              </span>
+            )}
           </div>
           <p className="text-xs text-warm-400">
             Recipient: <strong className="text-warm-600">{card.recipient_name}</strong>
@@ -76,6 +81,16 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
             ➡️ Transfer
           </button>
         )}
+        {card.is_gift_enabled && onToggleHideAmounts && (
+          <button
+            disabled={toggling}
+            onClick={() => onToggleHideAmounts(card)}
+            title={card.hide_amounts ? "Signers can't see the gift total — click to make it visible to them" : 'Signers can see the gift total — click to hide it from them'}
+            className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors disabled:opacity-50"
+          >
+            {toggling ? '…' : card.hide_amounts ? '👁️ Show gift total' : '🙈 Hide gift total'}
+          </button>
+        )}
       </div>
     </div>
   </div>
@@ -95,6 +110,7 @@ export default function CompanyMyCardsPage() {
   const [notifying, setNotifying]           = useState(false);
   const [resyncing, setResyncing]           = useState(false);
   const [departments, setDepartments]       = useState([]);
+  const [togglingId, setTogglingId]         = useState(null);
 
   useEffect(() => { fetchCards(); }, [tab]);
 
@@ -120,6 +136,20 @@ export default function CompanyMyCardsPage() {
     const link = `${window.location.origin}/card/${card.slug}`;
     navigator.clipboard.writeText(link);
     toast.success('✓ Private link copied — send this to the recipient only!');
+  };
+
+  const handleToggleHideAmounts = async (card) => {
+    setTogglingId(card.id);
+    try {
+      const next = !card.hide_amounts;
+      await companyAxios.put(`/cards/${card.slug}`, { hide_amounts: next });
+      setCards(prev => prev.map(c => c.id === card.id ? { ...c, hide_amounts: next } : c));
+      toast.success(next ? 'Gift total hidden from signers' : 'Gift total now visible to signers');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not update this setting');
+    } finally {
+      setTogglingId(null);
+    }
   };
 
   const loadDepts = async () => {
@@ -223,7 +253,9 @@ export default function CompanyMyCardsPage() {
           {cards.map(card => (
             <CardRow key={card.id} card={card} onCopySigningLink={copySigningLink} onCopyViewLink={copyViewLink}
               onTransfer={tab === 'my' ? (c) => { setTransferCard(c); loadMembers(); } : null}
-              onNotify={tab === 'my' ? (c) => { setNotifyCard(c); loadDepts(); } : null} />
+              onNotify={tab === 'my' ? (c) => { setNotifyCard(c); loadDepts(); } : null}
+              onToggleHideAmounts={(tab === 'my' || tab === 'delivered') ? handleToggleHideAmounts : null}
+              toggling={togglingId === card.id} />
           ))}
         </div>
       )}

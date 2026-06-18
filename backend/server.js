@@ -287,7 +287,7 @@ cron.schedule('0 8 * * *', async () => {
         giftAmount: card.total_collected > 0 ? card.total_collected : null
       }
     });
-    await supabase.from('cards').update({ status: 'sent', recipient_notified: true }).eq('id', card.id);
+    await supabase.from('cards').update({ status: 'sent', recipient_notified: true, delivered_at: now }).eq('id', card.id);
     console.log(`Auto-sent card: ${card.slug}`);
   }
 
@@ -859,7 +859,7 @@ async function deliverCard({ m, ot, occ, company, year, tracking, trackKey }) {
   // tracking reaches this step. Every other member just records tracking.
   if (['valentines_day', 'workers_day'].includes(ot.name)) {
     if (card.status !== 'sent') {
-      await supabase.from('cards').update({ status: 'sent', recipient_notified: true }).eq('slug', cardSlug);
+      await supabase.from('cards').update({ status: 'sent', recipient_notified: true, delivered_at: new Date() }).eq('slug', cardSlug);
       console.log(`[${ot.label}] Shared company card closed for ${company.name}`);
     }
     tracking[trackKey] = { ...track, year, celebrant_notified: true };
@@ -885,7 +885,7 @@ async function deliverCard({ m, ot, occ, company, year, tracking, trackKey }) {
   }
 
   await sendEmail({ to: m.email, template: deliveryTemplate, data: deliveryData });
-  await supabase.from('cards').update({ status: 'sent', recipient_notified: true }).eq('slug', cardSlug);
+  await supabase.from('cards').update({ status: 'sent', recipient_notified: true, delivered_at: new Date() }).eq('slug', cardSlug);
 
   tracking[trackKey] = { ...track, year, celebrant_notified: true };
   console.log(`[${ot.label}] Card delivered to ${m.first_name} ${m.last_name}`);

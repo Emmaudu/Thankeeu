@@ -215,7 +215,7 @@ async function inviteOne(group, data) {
 const getMyCards = async (req, res) => {
   try {
     const { data, error } = await supabase.from('cards')
-      .select('id, slug, recipient_name, occasion, status, send_date, deadline, created_at, pal_member_id, pal_members:pal_member_id(name)')
+      .select('id, slug, recipient_name, occasion, status, send_date, deadline, created_at, total_collected, is_gift_enabled, hide_amounts, pal_member_id, pal_members:pal_member_id(name)')
       .eq('pal_group_id', req.palGroup.id)
       .order('created_at', { ascending: false });
     if (error) throw error;

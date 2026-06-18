@@ -3,7 +3,7 @@ const router  = express.Router();
 const { adminAuth } = require('../middleware/auth');
 const {
   getStats, getAllUsers, updateUserRole, deleteUser,
-  getAllCards, deleteCard,
+  getAllCards, deleteCard, redeliverCard,
   getAllCompanies, deleteCompany, getCompanyTeamMembers,
   getVisitors, setCompanyMultiplier, grantPilot,
   listPalApplications, approvePalGroup, rejectPalGroup,
@@ -23,6 +23,7 @@ router.delete('/users/:userId',     validateUUIDParam('userId'),    deleteUser);
 
 // Cards
 router.get('/cards',                                    getAllCards);
+router.post('/cards/:cardId/redeliver', validateUUIDParam('cardId'), redeliverCard);
 router.delete('/cards/:cardId',     validateUUIDParam('cardId'),    deleteCard);
 
 // Companies — fixed routes before /:companyId wildcard

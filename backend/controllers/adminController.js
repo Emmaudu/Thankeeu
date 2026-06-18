@@ -1,5 +1,21 @@
 const supabase = require('../utils/supabase');
 const { safeError } = require('../utils/paramGuard');
+const { sendEmail } = require('../utils/email');
+
+const FRONTEND_URL = (() => {
+  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = raw.trim();
+  if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+  return (s.startsWith('http') ? s : 'https://thankeeu.com');
+})();
+
+const OCCASION_EMOJI = {
+  birthday: '🎂', anniversary: '💍', leaving: '👋', promotion: '🌟',
+  wedding: '💒', baby_shower: '👶', retirement: '🏖️', graduation: '🎓',
+  valentine: '💝', christmas: '🎄', get_well: '🌷', other: '🎉',
+};
+
 
 const getStats = async (req, res) => {
   try {
@@ -116,6 +132,83 @@ const deleteCard = async (req, res) => {
   } catch (err) {
     console.error('[admin] deleteCard error:', err.message);
     res.status(500).json({ error: 'Failed to delete card' });
+  }
+};
+
+// Re-deliver a card that has already been sent once. Sends a fresh email to
+// the recipient, calling out anything new (messages + gift money) that has
+// come in since the last time they were emailed, then bumps the card's
+// redelivery tracking. Does NOT touch card.status — it's already 'sent'.
+const redeliverCard = async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    const { data: card, error: cardErr } = await supabase
+      .from('cards').select('*').eq('id', cardId).maybeSingle();
+    if (cardErr) throw cardErr;
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    if (card.status !== 'sent')
+      return res.status(400).json({ error: 'This card has not been delivered yet — it must be sent at least once before it can be re-delivered' });
+    if (!card.recipient_email)
+      return res.status(400).json({ error: 'This card has no recipient email on file, so it cannot be re-delivered' });
+
+    // "Since" cutoff = the last time the recipient actually received an
+    // email for this card — either the most recent re-delivery, or the
+    // original delivery if it's never been re-delivered before.
+    const sinceTs = new Date(card.last_redelivered_at || card.delivered_at || card.created_at).toISOString();
+
+    const [totalMsgRes, newMsgRes, newGiftRes] = await Promise.all([
+      supabase.from('messages').select('id', { count: 'exact', head: true }).eq('card_id', card.id),
+      supabase.from('messages').select('id', { count: 'exact', head: true }).eq('card_id', card.id).gt('created_at', sinceTs),
+      supabase.from('contributions').select('amount').eq('card_id', card.id).eq('status', 'success').gt('created_at', sinceTs),
+    ]);
+    if (totalMsgRes.error) throw totalMsgRes.error;
+    if (newMsgRes.error) throw newMsgRes.error;
+    if (newGiftRes.error) throw newGiftRes.error;
+
+    const totalSenderCount = totalMsgRes.count || 0;
+    const newMessageCount  = newMsgRes.count || 0;
+    const newGiftAmount    = (newGiftRes.data || []).reduce((sum, c) => sum + (c.amount || 0), 0);
+
+    await sendEmail({
+      to: card.recipient_email,
+      template: 'cardRedelivery',
+      data: {
+        recipientName:  card.recipient_name,
+        recipientEmail: card.recipient_email,
+        occasion:       (card.occasion || '').replace(/_/g, ' '),
+        occasionEmoji:  OCCASION_EMOJI[card.occasion] || '🎉',
+        cardSlug:       card.slug,
+        accessToken:    card.access_token,
+        senderCount:    totalSenderCount,
+        newMessageCount,
+        giftAmount:     card.total_collected > 0 ? card.total_collected : null,
+        newGiftAmount:  newGiftAmount > 0 ? newGiftAmount : null,
+        appUrl:         FRONTEND_URL,
+      },
+    });
+
+    const now = new Date();
+    const { data: updated, error: updErr } = await supabase
+      .from('cards')
+      .update({ last_redelivered_at: now, redelivery_count: (card.redelivery_count || 0) + 1, updated_at: now })
+      .eq('id', card.id)
+      .select('redelivery_count, last_redelivered_at')
+      .maybeSingle();
+    if (updErr) throw updErr;
+
+    res.json({
+      message:           'Card re-delivered to recipient!',
+      new_messages:       newMessageCount,
+      new_gift_amount:    newGiftAmount,
+      total_messages:     totalSenderCount,
+      total_gift_amount:  card.total_collected || 0,
+      redelivery_count:   updated?.redelivery_count ?? ((card.redelivery_count || 0) + 1),
+      last_redelivered_at: updated?.last_redelivered_at ?? now,
+    });
+  } catch (err) {
+    console.error('[admin] redeliverCard error:', err.message);
+    res.status(500).json({ error: 'Failed to re-deliver card' });
   }
 };
 
@@ -558,4 +651,4 @@ const rejectPalGroup = async (req, res) => {
   } catch (err) { safeError(res, err, 'Admin operation failed'); }
 };
 
-module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, getAllCards, deleteCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot, listPalApplications, approvePalGroup, rejectPalGroup };
+module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, getAllCards, deleteCard, redeliverCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot, listPalApplications, approvePalGroup, rejectPalGroup };

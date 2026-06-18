@@ -93,6 +93,13 @@ const optionalAuth = async (req, res, next) => {
         .eq('id', decoded.memberId)
         .maybeSingle();
       if (member && member.status === 'approved') req.member = member;
+    } else if (decoded.type === 'pal') {
+      const { data: palGroup } = await supabase
+        .from('pal_groups')
+        .select('id, group_name, email, status')
+        .eq('id', decoded.palGroupId)
+        .maybeSingle();
+      if (palGroup && palGroup.status === 'approved') req.palGroup = palGroup;
     } else {
       const { data: user } = await supabase
         .from('users')

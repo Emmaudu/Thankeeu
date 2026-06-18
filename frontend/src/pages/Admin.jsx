@@ -88,6 +88,7 @@ const Admin = () => {
   const [stats, setStats]               = useState({});
   const [users, setUsers]               = useState([]);
   const [cards, setCards]               = useState([]);
+  const [redeliveringId, setRedeliveringId] = useState(null);
 
   // Lazy-loaded tabs
   const [companies, setCompanies]       = useState([]);
@@ -668,10 +669,43 @@ const Admin = () => {
                       <td className="px-4 py-3 text-sm font-semibold text-warm-800 max-w-[180px] truncate">{c.title || `For ${c.recipient_name}`}</td>
                       <td className="px-4 py-3 text-xs text-warm-500">{c.creator_name}</td>
                       <td className="px-4 py-3 text-xs text-warm-500 capitalize">{c.occasion?.replace('_',' ')}</td>
-                      <td className="px-4 py-3"><Badge color={c.status==='sent'?'green':c.status==='active'?'blue':'gray'}>{c.status}</Badge></td>
+                      <td className="px-4 py-3">
+                        <Badge color={c.status==='sent'?'green':c.status==='active'?'blue':'gray'}>{c.status}</Badge>
+                        {c.redelivery_count > 0 && (
+                          <span className="ml-1.5 text-[10px] font-semibold text-warm-400" title={c.last_redelivered_at ? `Last re-delivered ${format(new Date(c.last_redelivered_at), 'MMM d, h:mma')}` : undefined}>
+                            ↻{c.redelivery_count}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-xs font-semibold text-green-700">{c.total_collected ? formatNGN(c.total_collected) : '—'}</td>
                       <td className="px-4 py-3 text-xs text-warm-400">{c.created_at ? format(new Date(c.created_at),'MMM d') : '—'}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {c.status === 'sent' && (
+                          <button
+                            disabled={redeliveringId === c.id}
+                            title="Re-deliver to recipient with any new signatures & gifts"
+                            onClick={async () => {
+                              if (!confirm(`Re-deliver "${c.title || `For ${c.recipient_name}`}" to ${c.recipient_email || 'the recipient'}?\n\nThis sends a fresh email including any new signatures and gift money that came in since the last delivery.`)) return;
+                              setRedeliveringId(c.id);
+                              try {
+                                const res = await adminAPI.redeliverCard(c.id);
+                                const { new_messages = 0, new_gift_amount = 0, redelivery_count, last_redelivered_at } = res.data || {};
+                                setCards(prev => prev.map(x => x.id === c.id ? { ...x, redelivery_count, last_redelivered_at } : x));
+                                const extras = [];
+                                if (new_messages) extras.push(`${new_messages} new message${new_messages===1?'':'s'}`);
+                                if (new_gift_amount) extras.push(`${formatNGN(new_gift_amount)} in new gifts`);
+                                toast.success(extras.length ? `Re-delivered — included ${extras.join(' & ')}` : 'Re-delivered to recipient');
+                              } catch (err) {
+                                toast.error(err.response?.data?.error || 'Could not re-deliver this card');
+                              } finally {
+                                setRedeliveringId(null);
+                              }
+                            }}
+                            className="text-xs text-primary-600 hover:bg-primary-50 px-2 py-1 rounded-lg disabled:opacity-40 mr-1"
+                          >
+                            {redeliveringId === c.id ? '…' : '🔁'}
+                          </button>
+                        )}
                         <button onClick={async()=>{
                           if(!confirm('Delete this card?')) return;
                           await adminAPI.deleteCard(c.id);

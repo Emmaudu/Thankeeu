@@ -128,6 +128,48 @@ const emailTemplates = {
     `)
   }),
 
+  // Sent by an admin's "re-deliver" action — for a card that was already
+  // delivered once, but has picked up new signatures and/or new gift money
+  // since then. Calls out what's NEW rather than re-presenting it as if
+  // the recipient is seeing the card for the first time.
+  cardRedelivery: (data) => ({
+    subject: `💌 Even more love for your ${data.occasion}, ${data.recipientName}!`,
+    html: BASE(`
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:8px;">${data.occasionEmoji || '🎉'}</div>
+        <h1 style="color:#1a1a1a;font-size:26px;margin:0 0 6px;font-weight:700;">Your card just got even better, ${data.recipientName}!</h1>
+        <p style="color:#7C6EFF;font-size:15px;font-weight:600;margin:0;">More people have joined in since you last checked</p>
+      </div>
+
+      ${data.newMessageCount ? `
+      <div style="background:#F5F0FF;border-radius:12px;padding:16px 18px;margin:0 0 16px;text-align:center;">
+        <p style="color:#5B21B6;font-weight:700;font-size:16px;margin:0;">✍️ ${data.newMessageCount} new message${data.newMessageCount === 1 ? '' : 's'} added since your last update</p>
+      </div>` : ''}
+
+      <p style="color:#555;line-height:1.8;font-size:15px;"><strong>${data.senderCount} people</strong> in total have now come together to create this group card for you — with heartfelt messages and warm wishes.</p>
+
+      ${data.giftAmount ? `
+      <div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #4CAF50;border-radius:12px;padding:18px 20px;margin:20px 0;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🎁</div>
+        <p style="color:#2E7D32;font-weight:700;font-size:18px;margin:0 0 4px;">Gift pot total: <span style="color:#1B5E20;">${fmtNGN(data.giftAmount)}</span></p>
+        ${data.newGiftAmount ? `<p style="color:#388E3C;font-size:13px;margin:0;">Including <strong>${fmtNGN(data.newGiftAmount)}</strong> added since your card was last delivered!</p>` : `<p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>`}
+      </div>` : ''}
+
+      ${btn('🎉 Open my updated card', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
+
+      <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
+        <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>
+        <ol style="color:#555;line-height:2;margin:0;padding-left:20px;font-size:14px;">
+          <li><strong>Sign up or sign in</strong> at <a href="${FRONTEND_URL}/signup" style="color:#7C6EFF;">thankeeu.com</a> using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
+          <li>Your card will appear in your <strong>Received tab</strong> in your dashboard automatically</li>
+          ${data.giftAmount ? '<li>Add your <strong>bank account</strong> in settings to withdraw your gift pot 💰</li>' : ''}
+        </ol>
+      </div>
+
+      <p style="color:#555;line-height:1.7;margin-top:16px;">If you already have a Thankeeu account, simply <a href="${FRONTEND_URL}/login" style="color:#7C6EFF;">sign in here</a> and check your Received tab.</p>
+    `)
+  }),
+
   // Sent by FLW transfer webhook when a bank withdrawal fails
   giftWithdrawalFailed: (data) => ({
     subject: `Action needed: Your gift withdrawal for "${data.cardTitle}" failed`,

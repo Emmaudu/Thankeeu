@@ -78,6 +78,7 @@ const CreateCard = () => {
   const [draftSlug,       setDraftSlug]      = useState(null); // slug of the draft currently being created/edited
   const [loadingDraft,    setLoadingDraft]   = useState(false);
   const [isActiveEdit,    setIsActiveEdit]   = useState(false); // true when editing an already-active card
+  const [guestPhase,      setGuestPhase]     = useState('configure'); // 'configure' | 'auth' — guest step 4 sub-phase
   const [signingDeadline, setSigningDeadline]= useState('');
   const [deliveryDate,    setDeliveryDate]   = useState('');
 
@@ -367,7 +368,7 @@ const CreateCard = () => {
 
   const handleReset = () => {
     localStorage.removeItem('thankeeu_pending_card');
-    setStep(0); setLiveSlug(null); setDraftSlug(null); setIsActiveEdit(false);
+    setStep(0); setLiveSlug(null); setDraftSlug(null); setIsActiveEdit(false); setGuestPhase('configure');
     setLoading(false); setPaymentStage('idle');
     setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
     setMediaFiles([]); setGiftAmount(null); setCustomGift(''); setInviteEmails('');
@@ -878,6 +879,7 @@ const CreateCard = () => {
                   setLoading(false);
                 }
               }
+              setGuestPhase('configure');
               setStep(4);
             }} disabled={loading} className="btn-primary inline-flex items-center gap-2">
               {loading
@@ -888,102 +890,206 @@ const CreateCard = () => {
         </div>
       )}
 
-      {/* ── Step 4: Gift & Pay ── */}
+      {/* ── Step 4: Gift & Pay — GUEST ── */}
       {step === 4 && !user && !isCompanyUser && (
-        /* ── Guest auth wall — card saved as draft, prompt to log in / sign up ── */
-        <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
 
-          {/* Header */}
-          <div className="text-center mb-6">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"
-              style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)' }}>
-              💾
+        /* ── Phase 1: Configure gift pot ── */
+        guestPhase === 'configure' ? (
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+            <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & Pay 🎁</h2>
+            <p className="text-warm-500 text-sm mb-5">
+              Choose whether to include a gift pot, then we'll save your card as a draft.
+            </p>
+
+            {/* Gift toggle */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {[
+                {id:true, icon:'🐷', title:'Enable gift pot', desc:'Everyone chips in, recipient redeems'},
+                {id:false,icon:'✉️', title:'Card only',       desc:'Messages only, no gift'},
+              ].map(o => (
+                <button key={String(o.id)} onClick={() => set('is_gift_enabled', o.id)}
+                  className={`rounded-2xl p-4 text-left border-2 transition-all ${form.is_gift_enabled===o.id?'border-primary-400 bg-primary-50':'border-purple-100 hover:border-purple-200'}`}>
+                  <div className="text-2xl mb-1">{o.icon}</div>
+                  <div className="text-sm font-bold text-warm-800">{o.title}</div>
+                  <div className="text-xs text-warm-500 mt-0.5">{o.desc}</div>
+                </button>
+              ))}
             </div>
-            <h2 className="text-2xl font-bold text-warm-900 mb-2">Card saved as draft!</h2>
-            <p className="text-warm-500 text-sm leading-relaxed max-w-sm mx-auto">
-              Sign in or create a free account to complete payment, make it live, and share the signing link.
+
+            {/* Suggested contribution amounts */}
+            {form.is_gift_enabled && (
+              <div className="mb-5">
+                <p className="text-sm font-semibold text-warm-700 mb-2">Suggested contribution per person</p>
+                <div className="flex flex-wrap gap-2">
+                  {[2500,5000,10000,25000,50000].map(amt => (
+                    <button key={amt} onClick={() => set('suggested_amount', amt)}
+                      className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${form.suggested_amount===amt?'bg-primary-400 text-white border-primary-400':'border-purple-100 text-warm-700 hover:border-primary-300'}`}>
+                      {formatNGN(amt)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Full card summary */}
+            <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
+              {[
+                ['Occasion',         OCCASIONS.find(o=>o.id===form.occasion)?.label || form.occasion],
+                ['Design',           form.design_theme?.replace(/_/g,' ')],
+                ['Card title',       form.title || '—'],
+                ['Recipient',        form.recipient_name || '—'],
+                ['Recipient email',  form.recipient_email || 'Not set'],
+                ['Delivery date',    form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
+                ['Signing deadline', form.deadline  ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
+                ['Your message',     msgForm.content?.trim() ? `✓ Written (${msgForm.content.length} chars)` : 'None added'],
+                ['Gift pot',         form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount||2500)} suggested` : 'No'],
+                ['Card fee',         `${formatCurrency(5000,'NGN')} one-time`],
+              ].map(([k,v]) => (
+                <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
+                  <span className="text-sm text-warm-500 shrink-0">{k}</span>
+                  <span className="text-sm font-semibold text-warm-800 text-right">{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button onClick={() => setStep(3)} className="btn-secondary px-4">← Back</button>
+              <button
+                onClick={async () => {
+                  // Save the draft anonymously before showing the auth wall
+                  setLoading(true);
+                  try {
+                    const { status: _s, ...safeForm } = form;
+                    const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card` };
+                    const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                    let slug = draftSlug || existing.slug;
+                    let editToken = existing.draft_edit_token;
+                    if (slug && editToken) {
+                      await cardsAPI.updateDraft(slug, cardData, editToken);
+                    } else {
+                      const res = await cardsAPI.createDraft(cardData);
+                      slug = res.data.slug;
+                      editToken = res.data.draft_edit_token;
+                      setDraftSlug(slug);
+                    }
+                    localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                      slug, draft_edit_token: editToken,
+                      formSnapshot: form, msgSnapshot: msgForm,
+                      resumeStep: 4, timestamp: Date.now(),
+                    }));
+                    setGuestPhase('auth');
+                  } catch (err) {
+                    toast.error('Could not save your draft. Please try again.');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="btn-primary flex-1 inline-flex items-center justify-center gap-2">
+                {loading
+                  ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving draft…</>
+                  : '💾 Save draft & continue →'}
+              </button>
+            </div>
+
+            <p className="text-xs text-center text-warm-400 mt-3">
+              Your card is saved as a draft. You'll need to sign in to pay and make it live.
             </p>
           </div>
 
-          {/* Draft summary */}
-          <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
-            {[
-              ['Occasion', OCCASIONS.find(o=>o.id===form.occasion)?.label||form.occasion],
-              ['Design', form.design_theme?.replace(/_/g,' ')],
-              ['Recipient', form.recipient_name || '—'],
-              ['Message', msgForm.content?.trim() ? `✓ Written (${msgForm.content.length} chars)` : 'None yet'],
-              ['Gift pot', form.is_gift_enabled?`Yes — ${formatNGN(form.suggested_amount||2500)} suggested`:'No'],
-              ['Card fee', `${formatCurrency(5000,'NGN')} one-time`],
-              ['Status', '💾 Saved as draft — payment pending'],
-            ].map(([k,v]) => (
-              <div key={k} className="flex justify-between items-center px-4 py-2.5">
-                <span className="text-sm text-warm-500">{k}</span>
-                <span className="text-sm font-semibold text-warm-800 text-right max-w-[55%] truncate">{v}</span>
+        /* ── Phase 2: Draft saved — auth wall ── */
+        ) : (
+          <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+
+            {/* Header */}
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"
+                style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)' }}>
+                💾
               </div>
-            ))}
+              <h2 className="text-2xl font-bold text-warm-900 mb-2">Card saved as draft!</h2>
+              <p className="text-warm-500 text-sm leading-relaxed max-w-sm mx-auto">
+                Sign in or create a free account to pay the one-time card fee, make it live, and get your sharing link.
+              </p>
+            </div>
+
+            {/* Full draft summary */}
+            <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
+              {[
+                ['Occasion',         OCCASIONS.find(o=>o.id===form.occasion)?.label || form.occasion],
+                ['Design',           form.design_theme?.replace(/_/g,' ')],
+                ['Card title',       form.title || '—'],
+                ['Recipient',        form.recipient_name || '—'],
+                ['Recipient email',  form.recipient_email || 'Not set'],
+                ['Delivery date',    form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
+                ['Signing deadline', form.deadline  ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
+                ['Your message',     msgForm.content?.trim() ? `✓ Written (${msgForm.content.length} chars)` : 'None added'],
+                ['Gift pot',         form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount||2500)} suggested` : 'No'],
+                ['Card fee',         `${formatCurrency(5000,'NGN')} one-time`],
+                ['Status',           '💾 Draft — sign in to pay & launch'],
+              ].map(([k,v]) => (
+                <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
+                  <span className="text-sm text-warm-500 shrink-0">{k}</span>
+                  <span className="text-sm font-semibold text-warm-800 text-right">{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Primary CTAs */}
+            <div className="flex flex-col gap-3 mb-4">
+              <Link
+                to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+                onClick={() => {
+                  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                    ...existing, formSnapshot: form, msgSnapshot: msgForm,
+                    resumeStep: 4, timestamp: Date.now(),
+                  }));
+                }}
+                className="btn-primary w-full py-3.5 text-base font-bold text-center block">
+                🔐 Sign in & complete payment
+              </Link>
+              <Link
+                to={`/signup?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+                onClick={() => {
+                  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                    ...existing, formSnapshot: form, msgSnapshot: msgForm,
+                    resumeStep: 4, timestamp: Date.now(),
+                  }));
+                }}
+                className="btn-secondary w-full py-3.5 text-base font-bold text-center block">
+                ✨ Create free account & continue
+              </Link>
+            </div>
+
+            <p className="text-center text-xs text-warm-400 mb-5">
+              Draft is saved. After signing in you'll land straight on the payment step — no re-entry needed.
+            </p>
+
+            {/* Edit or Reset */}
+            <div className="border-t border-purple-100 pt-4 flex flex-col sm:flex-row gap-2">
+              <button
+                onClick={() => { setGuestPhase('configure'); setStep(0); }}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-purple-200 text-warm-700 text-sm font-semibold hover:bg-purple-50 transition-colors">
+                ✏️ Edit card
+              </button>
+              <button
+                onClick={handleReset}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-red-100 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors">
+                🗑️ Start over
+              </button>
+            </div>
+
+            <p className="text-center text-xs text-warm-400 mt-3">
+              "Edit card" takes you back to step 1 to change anything. "Start over" wipes everything.
+            </p>
           </div>
-
-          {/* Primary CTAs */}
-          <div className="flex flex-col gap-3 mb-5">
-            <Link
-              to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
-              onClick={() => {
-                const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
-                localStorage.setItem('thankeeu_pending_card', JSON.stringify({
-                  ...existing,
-                  formSnapshot: form,
-                  msgSnapshot: msgForm,
-                  resumeStep: 4,
-                  timestamp: Date.now(),
-                }));
-              }}
-              className="btn-primary w-full py-3.5 text-base font-bold text-center block">
-              🔐 Sign in & complete payment
-            </Link>
-            <Link
-              to={`/signup?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
-              onClick={() => {
-                const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
-                localStorage.setItem('thankeeu_pending_card', JSON.stringify({
-                  ...existing,
-                  formSnapshot: form,
-                  msgSnapshot: msgForm,
-                  resumeStep: 4,
-                  timestamp: Date.now(),
-                }));
-              }}
-              className="btn-secondary w-full py-3.5 text-base font-bold text-center block">
-              ✨ Create free account & continue
-            </Link>
-          </div>
-
-          <p className="text-center text-xs text-warm-400 mb-5">
-            Your draft is safe. After signing in you'll land straight on the payment step.
-          </p>
-
-          {/* Secondary actions: Edit or Reset */}
-          <div className="border-t border-purple-100 pt-4 flex flex-col sm:flex-row gap-2">
-            <button
-              onClick={() => setStep(0)}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-purple-200 text-warm-700 text-sm font-semibold hover:bg-purple-50 transition-colors">
-              ✏️ Edit card
-            </button>
-            <button
-              onClick={() => {
-                handleReset();
-              }}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-red-100 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors">
-              🗑️ Start over
-            </button>
-          </div>
-
-          <p className="text-center text-xs text-warm-400 mt-3">
-            "Edit card" takes you back to change any detail. "Start over" clears everything.
-          </p>
-        </div>
+        )
       )}
 
-      {step === 4 && (user || isCompanyUser) && (
+            {step === 4 && (user || isCompanyUser) && (
         <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
           <h2 className="text-xl font-bold text-warm-900 mb-1">{isActiveEdit ? '✏️ Save your changes' : 'Gift & activate'}</h2>
           <p className="text-warm-500 text-sm mb-5">{isActiveEdit ? 'Your card is already live — updates apply immediately' : 'Enable a gift collection and launch your card'}</p>

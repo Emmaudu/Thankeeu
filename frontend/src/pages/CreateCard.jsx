@@ -367,7 +367,8 @@ const CreateCard = () => {
 
   const handleReset = () => {
     localStorage.removeItem('thankeeu_pending_card');
-    setStep(0); setLiveSlug(null); setDraftSlug(null); setLoading(false); setPaymentStage('idle');
+    setStep(0); setLiveSlug(null); setDraftSlug(null); setIsActiveEdit(false);
+    setLoading(false); setPaymentStage('idle');
     setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
     setMediaFiles([]); setGiftAmount(null); setCustomGift(''); setInviteEmails('');
     setForm({ occasion:'birthday', design_theme:'rose_love', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
@@ -404,8 +405,12 @@ const CreateCard = () => {
             className="px-8 py-3 rounded-2xl font-bold text-white inline-flex items-center gap-2" style={{ background:'#25D366' }}>
             📣 Share on WhatsApp
           </button>
-          <button onClick={handleReset}
+          <Link to={`/create-card?edit=${liveSlug}`}
             className="btn-secondary px-8 py-3 inline-flex items-center gap-2">
+            ✏️ Edit card
+          </Link>
+          <button onClick={handleReset}
+            className="px-8 py-3 rounded-2xl font-bold border-2 border-red-200 text-red-500 hover:bg-red-50 inline-flex items-center gap-2 transition-colors">
             🔄 Create another card
           </button>
         </div>
@@ -887,34 +892,39 @@ const CreateCard = () => {
       {step === 4 && !user && !isCompanyUser && (
         /* ── Guest auth wall — card saved as draft, prompt to log in / sign up ── */
         <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+
+          {/* Header */}
           <div className="text-center mb-6">
             <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"
               style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)' }}>
               💾
             </div>
-            <h2 className="text-2xl font-bold text-warm-900 mb-2">Your card is saved as a draft!</h2>
+            <h2 className="text-2xl font-bold text-warm-900 mb-2">Card saved as draft!</h2>
             <p className="text-warm-500 text-sm leading-relaxed max-w-sm mx-auto">
-              Sign in or create a free account to complete payment, make it live, and share the signing link with everyone.
+              Sign in or create a free account to complete payment, make it live, and share the signing link.
             </p>
           </div>
 
           {/* Draft summary */}
-          <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-6">
+          <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
             {[
               ['Occasion', OCCASIONS.find(o=>o.id===form.occasion)?.label||form.occasion],
+              ['Design', form.design_theme?.replace(/_/g,' ')],
               ['Recipient', form.recipient_name || '—'],
-              ['Gift pot', form.is_gift_enabled?'Yes — enabled':'No'],
+              ['Message', msgForm.content?.trim() ? `✓ Written (${msgForm.content.length} chars)` : 'None yet'],
+              ['Gift pot', form.is_gift_enabled?`Yes — ${formatNGN(form.suggested_amount||2500)} suggested`:'No'],
               ['Card fee', `${formatCurrency(5000,'NGN')} one-time`],
-              ['Status', '💾 Saved as draft'],
+              ['Status', '💾 Saved as draft — payment pending'],
             ].map(([k,v]) => (
-              <div key={k} className="flex justify-between items-center px-4 py-3">
+              <div key={k} className="flex justify-between items-center px-4 py-2.5">
                 <span className="text-sm text-warm-500">{k}</span>
-                <span className="text-sm font-semibold text-warm-900">{v}</span>
+                <span className="text-sm font-semibold text-warm-800 text-right max-w-[55%] truncate">{v}</span>
               </div>
             ))}
           </div>
 
-          <div className="flex flex-col gap-3">
+          {/* Primary CTAs */}
+          <div className="flex flex-col gap-3 mb-5">
             <Link
               to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
               onClick={() => {
@@ -927,7 +937,7 @@ const CreateCard = () => {
                   timestamp: Date.now(),
                 }));
               }}
-              className="btn-primary w-full py-3 text-base font-bold text-center block">
+              className="btn-primary w-full py-3.5 text-base font-bold text-center block">
               🔐 Sign in & complete payment
             </Link>
             <Link
@@ -942,18 +952,34 @@ const CreateCard = () => {
                   timestamp: Date.now(),
                 }));
               }}
-              className="btn-secondary w-full py-3 text-base font-bold text-center block">
+              className="btn-secondary w-full py-3.5 text-base font-bold text-center block">
               ✨ Create free account & continue
             </Link>
           </div>
 
-          <p className="text-center text-xs text-warm-400 mt-4">
-            Your card draft is safe. After signing in, you'll be taken straight to payment.
+          <p className="text-center text-xs text-warm-400 mb-5">
+            Your draft is safe. After signing in you'll land straight on the payment step.
           </p>
 
-          <div className="flex justify-start mt-4">
-            <button onClick={() => setStep(3)} className="btn-secondary px-4 text-sm">← Back</button>
+          {/* Secondary actions: Edit or Reset */}
+          <div className="border-t border-purple-100 pt-4 flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={() => setStep(0)}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-purple-200 text-warm-700 text-sm font-semibold hover:bg-purple-50 transition-colors">
+              ✏️ Edit card
+            </button>
+            <button
+              onClick={() => {
+                handleReset();
+              }}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl border-2 border-red-100 text-red-500 text-sm font-semibold hover:bg-red-50 transition-colors">
+              🗑️ Start over
+            </button>
           </div>
+
+          <p className="text-center text-xs text-warm-400 mt-3">
+            "Edit card" takes you back to change any detail. "Start over" clears everything.
+          </p>
         </div>
       )}
 

@@ -229,14 +229,40 @@ const CardStart = () => {
       const { status: _s, ...safeForm } = form;
       const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card` };
       let slug;
+
       if (draftSlug) {
-        if (company)     await cardsAPI.updateAsCompany(draftSlug, cardData);
-        else if (member) { const { memberCardsAPI } = await import('../utils/api'); await memberCardsAPI.update(draftSlug, cardData); }
-        else             await cardsAPI.update(draftSlug, cardData);
+        // Check if this card still has an anonymous draft_edit_token in localStorage
+        // (i.e. guest who just logged in and claimDraft may not have run yet)
+        const pending = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
+        const editToken = pending.draft_edit_token;
+
+        if (!company && !member && editToken && pending.slug === draftSlug) {
+          // Still anonymous or just claimed — use the token path which works either way
+          try {
+            await cardsAPI.updateDraft(draftSlug, cardData, editToken);
+          } catch {
+            // Token path failed (card already claimed) — fall back to JWT update
+            await cardsAPI.update(draftSlug, cardData);
+          }
+        } else if (company) {
+          await cardsAPI.updateAsCompany(draftSlug, cardData);
+        } else if (member) {
+          const { memberCardsAPI } = await import('../utils/api');
+          await memberCardsAPI.update(draftSlug, cardData);
+        } else {
+          await cardsAPI.update(draftSlug, cardData);
+        }
         slug = draftSlug;
-      } else if (company)     slug = (await cardsAPI.createAsCompany(cardData)).data.slug;
-        else if (member) { const { memberCardsAPI } = await import('../utils/api'); slug = (await memberCardsAPI.create(cardData)).data.slug; }
-        else             slug = (await cardsAPI.create(cardData)).data.slug;
+
+      } else if (company) {
+        slug = (await cardsAPI.createAsCompany(cardData)).data.slug;
+      } else if (member) {
+        const { memberCardsAPI } = await import('../utils/api');
+        slug = (await memberCardsAPI.create(cardData)).data.slug;
+      } else {
+        slug = (await cardsAPI.create(cardData)).data.slug;
+      }
+
       setDraftSlug(slug);
       saveSnapshot({ slug });
       setStep(3);

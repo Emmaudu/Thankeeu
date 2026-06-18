@@ -367,7 +367,7 @@ const getCard = async (req, res) => {
 const updateCard = async (req, res) => {
   try {
     const { slug } = req.params;
-    const { draft_edit_token: _stripToken, ...updates } = req.body;
+    const { draft_edit_token: _stripToken, status: _stripStatus, ...updates } = req.body;
     const presentedToken = req.headers['x-draft-edit-token'] || req.body.draft_edit_token;
 
     const { data: card } = await supabase.from('cards')
@@ -383,13 +383,36 @@ const updateCard = async (req, res) => {
 
     if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
 
-    const { data: updated, error } = await supabase
-      .from('cards').update({ ...updates, updated_at: new Date() })
-      .eq('slug', slug).select().maybeSingle();
+    // Sanitize empty strings to null for date/time columns to avoid Postgres type errors
+    const safeUpdates = { ...updates };
+    for (const field of ['send_date', 'deadline', 'send_time', 'deadline_time']) {
+      if (safeUpdates[field] === '' || safeUpdates[field] === undefined) {
+        safeUpdates[field] = null;
+      }
+    }
 
-    if (error) throw error;
+    // Attempt update with all columns first; fall back gracefully if optional
+    // columns (card_layout, font_style) don't exist yet in this schema version.
+    let updated, error;
+    ({ data: updated, error } = await supabase
+      .from('cards').update({ ...safeUpdates, updated_at: new Date() })
+      .eq('slug', slug).select().maybeSingle());
+
+    if (error && (error.code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
+      // Unknown column — retry without it
+      const { card_layout: _cl, font_style: _fs, ...saferUpdates } = safeUpdates;
+      ({ data: updated, error } = await supabase
+        .from('cards').update({ ...saferUpdates, updated_at: new Date() })
+        .eq('slug', slug).select().maybeSingle());
+    }
+
+    if (error) {
+      console.error('[updateCard] Supabase error:', error.message, '| slug:', slug, '| user:', req.user?.id);
+      throw error;
+    }
     res.json(updated);
   } catch (err) {
+    console.error('[updateCard] error:', err.message);
     res.status(500).json({ error: 'Failed to update card' });
   }
 };

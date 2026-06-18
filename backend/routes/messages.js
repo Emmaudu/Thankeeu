@@ -3,7 +3,7 @@ const router  = express.Router();
 const jwt     = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
 const { auth } = require('../middleware/auth');
-const { addMessage, reactToMessage, deleteMessage, sendReply, updatePosition, upload } = require('../controllers/messageController');
+const { addMessage, reactToMessage, deleteMessage, sendReply, upload } = require('../controllers/messageController');
 const { validateSlugParam, validateUUIDParam } = require('../utils/paramGuard');
 
 // Flexible auth: accepts user OR member token (no forced redirect on failure)
@@ -49,9 +49,6 @@ const requireAuth = async (req, res, next) => {
 
   return res.status(401).json({ error: 'You must be signed in to send a reply' });
 };
-
-// Position update for album layout — must be BEFORE wildcard /:card_slug
-router.patch('/position/:message_id', validateUUIDParam('message_id'), flexAuth, updatePosition);
 
 // IMPORTANT: /react/:message_id and /:message_id (delete) are fixed-segment
 // routes that MUST be registered before the /:card_slug wildcard — otherwise

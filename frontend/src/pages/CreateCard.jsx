@@ -75,6 +75,8 @@ const CreateCard = () => {
   const [payMode,         setPayMode]        = useState('direct');
   const [inviteEmails,    setInviteEmails]   = useState('');
   const [liveSlug,        setLiveSlug]       = useState(null); // set when card is live
+  const [draftSlug,       setDraftSlug]      = useState(null); // slug of the draft currently being created/edited
+  const [loadingDraft,    setLoadingDraft]   = useState(false);
   const [signingDeadline, setSigningDeadline]= useState('');
   const [deliveryDate,    setDeliveryDate]   = useState('');
 
@@ -129,6 +131,7 @@ const CreateCard = () => {
       if (saved.msgSnapshot)  setMsgForm(saved.msgSnapshot);
       if (saved.slug) {
         // Draft already created before login — go straight to message step
+        setDraftSlug(saved.slug);
         toast.success('Welcome back! Continuing your card…');
         setStep(3);
       } else if (saved.formSnapshot) {
@@ -142,6 +145,73 @@ const CreateCard = () => {
     url.searchParams.delete('resumed');
     window.history.replaceState({}, '', url.toString());
   }, [searchParams]);
+
+  // ── Resume editing an existing draft ──────────────────────────────
+  // "Edit" links from the dashboards point here with ?edit=<slug>.
+  // Fetch the draft's saved data and repopulate the wizard instead of
+  // starting blank, then track its slug in real state (draftSlug) so
+  // every later step updates this same card instead of creating a new one.
+  useEffect(() => {
+    const editSlug = searchParams.get('edit');
+    if (!editSlug) return;
+
+    (async () => {
+      setLoadingDraft(true);
+      try {
+        let res;
+        if (company)      res = await cardsAPI.getOneAsCompany(editSlug);
+        else if (member)  { const { memberCardsAPI } = await import('../utils/api'); res = await memberCardsAPI.getOne(editSlug); }
+        else              res = await cardsAPI.getOne(editSlug);
+
+        const card = res.data;
+        if (!card || card.error) throw new Error('Draft not found');
+        if (card.status !== 'draft') {
+          toast.error('This card is no longer a draft and can\'t be edited here.');
+          return;
+        }
+
+        setDraftSlug(editSlug);
+        setForm(prev => ({
+          ...prev,
+          occasion:               card.occasion || prev.occasion,
+          design_theme:           card.design_theme || prev.design_theme,
+          background_color:       card.background_color || prev.background_color,
+          font_style:             card.font_style || prev.font_style,
+          card_layout:            card.card_layout || prev.card_layout,
+          title:                  card.title || prev.title,
+          recipient_name:         card.recipient_name || '',
+          recipient_email:        card.recipient_email || '',
+          send_date:              card.send_date ? String(card.send_date).slice(0, 10) : '',
+          send_time:              card.send_time ? String(card.send_time).slice(0, 5) : prev.send_time,
+          deadline:               card.deadline ? String(card.deadline).slice(0, 10) : '',
+          deadline_time:          card.deadline_time ? String(card.deadline_time).slice(0, 5) : prev.deadline_time,
+          is_gift_enabled:        card.is_gift_enabled ?? prev.is_gift_enabled,
+          gift_type:              card.gift_type || prev.gift_type,
+          suggested_amount:       card.suggested_amount ?? prev.suggested_amount,
+          allow_private_messages: card.allow_private_messages ?? prev.allow_private_messages,
+          send_reminders:         card.send_reminders ?? prev.send_reminders,
+          hide_amounts:           card.hide_amounts ?? prev.hide_amounts,
+          notification_scope:     card.notification_scope || prev.notification_scope,
+        }));
+
+        // If the creator already wrote their own message on a previous visit, prefill it too
+        const myEmail = (user?.email || member?.email || company?.email || '').toLowerCase();
+        const myMsg = (card.messages || []).find(m => myEmail && m.author_email?.toLowerCase() === myEmail);
+        if (myMsg) {
+          setMsgForm({ content: myMsg.content || '', font_style: myMsg.font_style || 'handwritten', is_private: !!myMsg.is_private });
+        }
+
+        toast.success('Continuing your draft — your progress is right where you left it.');
+        setStep(myMsg ? 3 : 2);
+      } catch (err) {
+        toast.error(err.response?.data?.error || 'Could not load this draft. Starting fresh instead.');
+      } finally {
+        setLoadingDraft(false);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
 
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setMsg = (k, v) => setMsgForm(p => ({ ...p, [k]: v }));
@@ -186,9 +256,17 @@ const CreateCard = () => {
     try {
       const cardData = { ...form, title: form.title.trim() || `${form.recipient_name}'s Card` };
       let slug;
-      if (company)      slug = (await cardsAPI.createAsCompany(cardData)).data.slug;
+      if (draftSlug) {
+        // Already editing an existing draft — update it in place instead of
+        // creating a duplicate card row.
+        if (company)      await cardsAPI.updateAsCompany(draftSlug, cardData);
+        else if (member)  { const { memberCardsAPI } = await import('../utils/api'); await memberCardsAPI.update(draftSlug, cardData); }
+        else              await cardsAPI.update(draftSlug, cardData);
+        slug = draftSlug;
+      } else if (company)      slug = (await cardsAPI.createAsCompany(cardData)).data.slug;
       else if (member)  { const { memberCardsAPI } = await import('../utils/api'); slug = (await memberCardsAPI.create(cardData)).data.slug; }
       else              slug = (await cardsAPI.create(cardData)).data.slug;
+      setDraftSlug(slug);
       localStorage.setItem('thankeeu_pending_card', JSON.stringify({
         cardData, slug, timestamp: Date.now(),
         formSnapshot: form,
@@ -197,7 +275,7 @@ const CreateCard = () => {
       setPaymentStage('idle');
       setStep(3);
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Could not create card draft. Please try again.');
+      toast.error(err.response?.data?.error || 'Could not save your card. Please try again.');
     } finally { setLoading(false); }
   };
 
@@ -207,7 +285,7 @@ const CreateCard = () => {
     setPaymentStage('sending');
     try {
       const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
-      const slug = pending?.slug;
+      const slug = draftSlug || pending?.slug;
       if (!slug) { toast.error('Card draft not found. Please go back and try again.'); setLoading(false); setPaymentStage('idle'); return; }
 
       // Post creator's first message if they wrote one
@@ -261,7 +339,7 @@ const CreateCard = () => {
 
   const handleReset = () => {
     localStorage.removeItem('thankeeu_pending_card');
-    setStep(0); setLiveSlug(null); setLoading(false); setPaymentStage('idle');
+    setStep(0); setLiveSlug(null); setDraftSlug(null); setLoading(false); setPaymentStage('idle');
     setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
     setMediaFiles([]); setGiftAmount(null); setCustomGift(''); setInviteEmails('');
     setForm({ occasion:'birthday', design_theme:'rose_love', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
@@ -306,6 +384,18 @@ const CreateCard = () => {
       </div>
     </div>
   );
+
+  if (loadingDraft) {
+    const loadingScreen = (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
+        <div className="w-12 h-12 rounded-full border-4 border-primary-200 border-t-primary-500 animate-spin mb-4"/>
+        <p className="text-warm-500 text-sm">Loading your draft…</p>
+      </div>
+    );
+    if (company) return <CompanyLayout title="Create a Card" subtitle="Takes less than 3 minutes">{loadingScreen}</CompanyLayout>;
+    if (member)  return <MemberLayout  title="Create a Card" subtitle="Takes less than 3 minutes">{loadingScreen}</MemberLayout>;
+    return <div className="min-h-screen"><Navbar/>{loadingScreen}</div>;
+  }
 
   const inner = (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">

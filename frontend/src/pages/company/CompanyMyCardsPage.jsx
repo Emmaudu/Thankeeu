@@ -60,6 +60,12 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
           className="text-xs bg-primary-50 text-primary-600 hover:bg-primary-100 px-3 py-2 rounded-xl font-semibold transition-colors">
           👁 View
         </Link>
+        {card.status === 'draft' && (
+          <Link to={`/create-card?edit=${card.slug}`}
+            className="text-xs bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 px-3 py-2 rounded-xl transition-colors font-semibold">
+            ✏️ Edit draft
+          </Link>
+        )}
         {card.status === 'active' && (
           <Link to={`/sign/${card.slug}`}
             className="text-xs border border-purple-200 text-warm-600 hover:bg-warm-100 px-3 py-2 rounded-xl transition-colors">

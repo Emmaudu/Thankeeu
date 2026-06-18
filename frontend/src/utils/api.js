@@ -134,6 +134,7 @@ export const cardsAPI = {
   getRecipient: (slug, token)  => publicAxios.get(`/cards/recipient/${slug}`, { params: { token } }),
   claimGift:    (slug, data)   => publicAxios.post(`/cards/recipient/${slug}/claim`, data),
   update:       (slug, data)   => api.put(`/cards/${slug}`, data),
+  updateAsCompany: (slug, data) => companyAxios.put(`/cards/${slug}`, data),
   activate:     (slug, data)   => anyAxios.post(`/cards/${slug}/activate`, data),
   send:         (slug)         => api.post(`/cards/${slug}/send`),
   delete:       (slug)         => api.delete(`/cards/${slug}`),

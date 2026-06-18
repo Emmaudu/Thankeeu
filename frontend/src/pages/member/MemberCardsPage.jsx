@@ -67,6 +67,9 @@ export default function MemberCardsPage() {
               </div>
               <div className="border-t flex" style={{borderColor:'#EDE9FF'}}>
                 <Link to={`/card/${card.slug}`} className="flex-1 py-2.5 text-center text-sm font-bold hover:bg-purple-50" style={{color:'#5B4BDF'}}>👁 View</Link>
+                {(card.status==='draft' || card.status==='active') && (
+                  <Link to={`/create-card?edit=${card.slug}`} className="flex-1 py-2.5 text-center text-sm font-bold hover:bg-purple-50 border-l" style={{color:'#D97706',borderColor:'#EDE9FF'}}>✏️ Edit</Link>
+                )}
                 {card.status==='active' && (
                   <button className="flex-1 py-2.5 text-sm font-bold hover:bg-purple-50 border-l" style={{color:'#5B4BDF',borderColor:'#EDE9FF'}}
                     onClick={()=>{navigator.clipboard.writeText(`${location.origin}/sign/${card.slug}`);toast.success('Link copied!');}}>

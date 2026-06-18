@@ -77,6 +77,7 @@ const CreateCard = () => {
   const [liveSlug,        setLiveSlug]       = useState(null); // set when card is live
   const [draftSlug,       setDraftSlug]      = useState(null); // slug of the draft currently being created/edited
   const [loadingDraft,    setLoadingDraft]   = useState(false);
+  const [isActiveEdit,    setIsActiveEdit]   = useState(false); // true when editing an already-active card
   const [signingDeadline, setSigningDeadline]= useState('');
   const [deliveryDate,    setDeliveryDate]   = useState('');
 
@@ -130,10 +131,15 @@ const CreateCard = () => {
       if (saved.formSnapshot) setForm(saved.formSnapshot);
       if (saved.msgSnapshot)  setMsgForm(saved.msgSnapshot);
       if (saved.slug) {
-        // Draft already created before login — go straight to message step
         setDraftSlug(saved.slug);
+        // Claim anonymous draft if we have a draft_edit_token
+        if (saved.draft_edit_token && user) {
+          cardsAPI.claimDraft(saved.slug, saved.draft_edit_token).catch(() => {});
+        }
+        // If they were at the payment step when they went to log in, return there
+        const targetStep = saved.resumeStep === 4 ? 4 : 3;
         toast.success('Welcome back! Continuing your card…');
-        setStep(3);
+        setStep(targetStep);
       } else if (saved.formSnapshot) {
         // Form filled but draft not created yet — go to details step
         toast.success('Welcome back! Pick up where you left off.');
@@ -165,10 +171,8 @@ const CreateCard = () => {
 
         const card = res.data;
         if (!card || card.error) throw new Error('Draft not found');
-        if (card.status !== 'draft') {
-          toast.error('This card is no longer a draft and can\'t be edited here.');
-          return;
-        }
+        // Both draft and active cards can be edited
+        // (active cards keep their status — we don't downgrade them back to draft)
 
         setDraftSlug(editSlug);
         setForm(prev => ({
@@ -201,7 +205,9 @@ const CreateCard = () => {
           setMsgForm({ content: myMsg.content || '', font_style: myMsg.font_style || 'handwritten', is_private: !!myMsg.is_private });
         }
 
-        toast.success('Continuing your draft — your progress is right where you left it.');
+        const wasActive = card.status === 'active';
+        setIsActiveEdit(wasActive);
+        toast.success(wasActive ? 'Editing your live card — changes save immediately.' : 'Continuing your draft — your progress is right where you left it.');
         setStep(myMsg ? 3 : 2);
       } catch (err) {
         toast.error(err.response?.data?.error || 'Could not load this draft. Starting fresh instead.');
@@ -254,11 +260,12 @@ const CreateCard = () => {
     setLoading(true);
     setPaymentStage('creating');
     try {
-      const cardData = { ...form, title: form.title.trim() || `${form.recipient_name}'s Card` };
+      // Strip status from updates so we never downgrade an active card back to draft
+      const { status: _s, ...safeForm } = form;
+      const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card` };
       let slug;
       if (draftSlug) {
-        // Already editing an existing draft — update it in place instead of
-        // creating a duplicate card row.
+        // Updating an existing card (draft or active) — never change its status
         if (company)      await cardsAPI.updateAsCompany(draftSlug, cardData);
         else if (member)  { const { memberCardsAPI } = await import('../utils/api'); await memberCardsAPI.update(draftSlug, cardData); }
         else              await cardsAPI.update(draftSlug, cardData);
@@ -287,6 +294,15 @@ const CreateCard = () => {
       const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
       const slug = draftSlug || pending?.slug;
       if (!slug) { toast.error('Card draft not found. Please go back and try again.'); setLoading(false); setPaymentStage('idle'); return; }
+
+      // ── Active card edit: just save changes & redirect back to card ──────
+      if (isActiveEdit) {
+        localStorage.removeItem('thankeeu_pending_card');
+        toast.success('Card updated! ✅');
+        navigate(`/card/${slug}`);
+        setLoading(false); setPaymentStage('idle');
+        return;
+      }
 
       // Post creator's first message if they wrote one
       if (msgForm.content.trim() && user) {
@@ -819,18 +835,132 @@ const CreateCard = () => {
 
           <div className="flex justify-between">
             <button onClick={() => setStep(2)} className="btn-secondary">← Back</button>
-            <button onClick={() => setStep(4)} className="btn-primary">
-              {msgForm.content.trim() ? 'Save message & pay →' : 'Skip & continue →'}
+            <button onClick={async () => {
+              if (!user && !isCompanyUser) {
+                // Guest: create an anonymous draft so the card is saved before they log in
+                setLoading(true);
+                try {
+                  const { status: _s, ...safeForm } = form;
+                  const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card` };
+                  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                  let slug = draftSlug || existing.slug;
+                  let editToken = existing.draft_edit_token;
+
+                  if (slug && editToken) {
+                    // Draft already exists from a previous visit — update it
+                    await cardsAPI.updateDraft(slug, cardData, editToken);
+                  } else {
+                    // Create a fresh anonymous draft
+                    const res = await cardsAPI.createDraft(cardData);
+                    slug = res.data.slug;
+                    editToken = res.data.draft_edit_token;
+                    setDraftSlug(slug);
+                  }
+
+                  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                    slug,
+                    draft_edit_token: editToken,
+                    formSnapshot: form,
+                    msgSnapshot: msgForm,
+                    resumeStep: 4,
+                    timestamp: Date.now(),
+                  }));
+                } catch (err) {
+                  toast.error('Could not save your draft. Please try again.');
+                  setLoading(false);
+                  return;
+                } finally {
+                  setLoading(false);
+                }
+              }
+              setStep(4);
+            }} disabled={loading} className="btn-primary inline-flex items-center gap-2">
+              {loading
+                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving…</>
+                : msgForm.content.trim() ? 'Save message & pay →' : 'Skip & continue →'}
             </button>
           </div>
         </div>
       )}
 
       {/* ── Step 4: Gift & Pay ── */}
-      {step === 4 && (
+      {step === 4 && !user && !isCompanyUser && (
+        /* ── Guest auth wall — card saved as draft, prompt to log in / sign up ── */
         <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
-          <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & activate</h2>
-          <p className="text-warm-500 text-sm mb-5">Enable a gift collection and launch your card</p>
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4"
+              style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)' }}>
+              💾
+            </div>
+            <h2 className="text-2xl font-bold text-warm-900 mb-2">Your card is saved as a draft!</h2>
+            <p className="text-warm-500 text-sm leading-relaxed max-w-sm mx-auto">
+              Sign in or create a free account to complete payment, make it live, and share the signing link with everyone.
+            </p>
+          </div>
+
+          {/* Draft summary */}
+          <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-6">
+            {[
+              ['Occasion', OCCASIONS.find(o=>o.id===form.occasion)?.label||form.occasion],
+              ['Recipient', form.recipient_name || '—'],
+              ['Gift pot', form.is_gift_enabled?'Yes — enabled':'No'],
+              ['Card fee', `${formatCurrency(5000,'NGN')} one-time`],
+              ['Status', '💾 Saved as draft'],
+            ].map(([k,v]) => (
+              <div key={k} className="flex justify-between items-center px-4 py-3">
+                <span className="text-sm text-warm-500">{k}</span>
+                <span className="text-sm font-semibold text-warm-900">{v}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <Link
+              to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+              onClick={() => {
+                const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                  ...existing,
+                  formSnapshot: form,
+                  msgSnapshot: msgForm,
+                  resumeStep: 4,
+                  timestamp: Date.now(),
+                }));
+              }}
+              className="btn-primary w-full py-3 text-base font-bold text-center block">
+              🔐 Sign in & complete payment
+            </Link>
+            <Link
+              to={`/signup?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+              onClick={() => {
+                const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+                localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+                  ...existing,
+                  formSnapshot: form,
+                  msgSnapshot: msgForm,
+                  resumeStep: 4,
+                  timestamp: Date.now(),
+                }));
+              }}
+              className="btn-secondary w-full py-3 text-base font-bold text-center block">
+              ✨ Create free account & continue
+            </Link>
+          </div>
+
+          <p className="text-center text-xs text-warm-400 mt-4">
+            Your card draft is safe. After signing in, you'll be taken straight to payment.
+          </p>
+
+          <div className="flex justify-start mt-4">
+            <button onClick={() => setStep(3)} className="btn-secondary px-4 text-sm">← Back</button>
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (user || isCompanyUser) && (
+        <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+          <h2 className="text-xl font-bold text-warm-900 mb-1">{isActiveEdit ? '✏️ Save your changes' : 'Gift & activate'}</h2>
+          <p className="text-warm-500 text-sm mb-5">{isActiveEdit ? 'Your card is already live — updates apply immediately' : 'Enable a gift collection and launch your card'}</p>
 
           {/* Gift toggle */}
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -915,15 +1045,16 @@ const CreateCard = () => {
               {loading
                 ? <span className="flex items-center justify-center gap-2">
                     <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                    {paymentStage==='sending'?'Saving message…':paymentStage==='verifying'?'Using credit…':paymentStage==='redirecting'?'Opening payment…':'Creating card…'}
+                    {paymentStage==='sending'?'Saving…':paymentStage==='verifying'?'Using credit…':paymentStage==='redirecting'?'Opening payment…':'Creating card…'}
                   </span>
+                : isActiveEdit ? '✅ Save changes'
                 : isCompanyUser ? '✨ Create Card (Free)'
                 : payMode==='credit' ? '💳 Use 1 Credit & Launch'
                 : `🔒 Pay ${formatCurrency(5000, selectedCurrency)} & Launch Card`}
             </button>
           </div>
           <p className="text-xs text-center text-warm-400 mt-3">
-            {isCompanyUser ? 'Company account · Card creation is free' : 'Secured by Flutterwave · Card link will be ready immediately'}
+            {isActiveEdit ? 'Changes apply to your live card immediately' : isCompanyUser ? 'Company account · Card creation is free' : 'Secured by Flutterwave · Card link will be ready immediately'}
           </p>
         </div>
       )}

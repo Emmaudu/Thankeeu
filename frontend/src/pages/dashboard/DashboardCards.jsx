@@ -86,7 +86,7 @@ export default function DashboardCards() {
                   </button>
                 )}
                 <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
-                {card.status==='draft' && (
+                {(card.status==='draft' || card.status==='active') && (
                   <Link to={`/create-card?edit=${card.slug}`} className="db-card-item-action"><Icon name="Edit" size={13}/>Edit</Link>
                 )}
                 {card.is_gift_enabled && (

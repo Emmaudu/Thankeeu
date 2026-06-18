@@ -34,7 +34,7 @@ export default function HowItWorks() {
           <p className="text-warm-600 text-base sm:text-lg mb-8 max-w-xl mx-auto leading-relaxed">
             No design skills needed. No spreadsheets. No chasing people for contributions. Just a beautiful card and a gift — delivered.
           </p>
-          <Link to="/signup" className="btn-primary px-8 py-4 text-base inline-flex items-center gap-2"><Icon name="Sparkles" size={17}/> Create your first card free</Link>
+          <Link to="/card/new" className="btn-primary px-8 py-4 text-base inline-flex items-center gap-2"><Icon name="Sparkles" size={17}/> Create your first card</Link>
         </div>
       </section>
 
@@ -73,7 +73,7 @@ export default function HowItWorks() {
           </h2>
           <p className="text-warm-600 mb-7">Free to start. ₦5,000 to send. No subscriptions.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="btn-primary px-8 py-4 text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={17}/> Start free</Link>
+            <Link to="/card/new" className="btn-primary px-8 py-4 text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={17}/> Get started</Link>
             <Link to="/pricing" className="btn-secondary px-8 py-4 text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Card" size={17}/> See pricing</Link>
           </div>
         </div>

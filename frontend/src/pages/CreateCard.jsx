@@ -85,7 +85,7 @@ const CreateCard = () => {
   const [payMode, setPayMode] = useState('direct'); // 'direct' | 'credit'
   const [inviteEmails, setInviteEmails] = useState('');
   const [form, setForm] = useState({
-    occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant',
+    occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0', font_style: 'elegant', card_layout: 'form',
     title: `${creatorName.split(' ')[0]}'s Birthday Card`,
     recipient_name: '', recipient_email: '', send_date: '',
     send_time: '09:00', deadline: '', deadline_time: '23:59', is_gift_enabled: true, notification_scope: 'department', gift_type: 'pot', suggested_amount: 2500,
@@ -265,16 +265,64 @@ const CreateCard = () => {
           <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
             <h2 className="text-xl font-semibold text-warm-900 mb-1">Pick a design</h2>
             <p className="text-warm-500 text-sm mb-6">Choose from our beautiful templates</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-              {CARD_DESIGNS.map(d => (
-                <button key={d.id} onClick={() => handleDesignSelect(d)}
-                  className={`rounded-3xl overflow-hidden border-2 transition-all bg-white ${
-                    form.design_theme === d.id ? 'border-primary-400 shadow-md' : 'border-transparent'
-                  }`}>
-                  <div className={`card-art ${cardArtClass(d)} h-24 flex items-center justify-center text-4xl`} style={{ background: d.background }}>{d.icon}</div>
-                  <div className="py-2 px-1 text-center">
-                    <span className="text-xs font-medium text-warm-700">{d.name}</span>
+            {/* GroupCards-style gallery grid */}
+            <style>{`
+              .card-gallery-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+              @media (max-width: 700px) { .card-gallery-grid { grid-template-columns: repeat(3, 1fr); } }
+              @media (max-width: 420px) { .card-gallery-grid { grid-template-columns: repeat(2, 1fr); } }
+              .card-gallery-item { position: relative; border-radius: 16px; overflow: hidden; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; aspect-ratio: 3/4; }
+              .card-gallery-item:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.15); }
+              .card-gallery-item.selected { outline: 3px solid #7C3AED; outline-offset: 2px; }
+              .card-gallery-item .card-badge { position: absolute; top: 8px; left: 8px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 800; z-index: 2; }
+              .card-badge-new { background: #FCD34D; color: #92400E; }
+              .card-badge-more { background: #F43F5E; color: #fff; }
+              .card-gallery-upload { background: #60A5FA; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+              .card-gallery-upload svg { opacity: 0.9; }
+              .card-gallery-upload p { font-family: 'Plus Jakarta Sans',sans-serif; font-weight: 800; font-size: 16px; color: #fff; margin: 0; text-align: center; line-height: 1.25; }
+            `}</style>
+            <div className="card-gallery-grid">
+              {/* Upload your own — always first */}
+              <button type="button" className="card-gallery-item card-gallery-upload"
+                onClick={() => document.getElementById('card-bg-upload')?.click()}>
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                </svg>
+                <p>Upload<br/>your own</p>
+                <input id="card-bg-upload" type="file" accept="image/*" className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    const url = URL.createObjectURL(f);
+                    set('background_color', url);
+                    set('design_theme', 'custom_upload');
+                  }} />
+              </button>
+
+              {/* Card designs mapped to gallery tiles */}
+              {CARD_DESIGNS.map((d, idx) => (
+                <button key={d.id} type="button"
+                  className={`card-gallery-item ${form.design_theme === d.id ? 'selected' : ''}`}
+                  onClick={() => handleDesignSelect(d)}>
+                  <div className={`card-art ${cardArtClass(d)} w-full h-full flex flex-col items-center justify-center`}
+                    style={{ background: d.background }}>
+                    <span style={{ fontSize: 36 }}>{d.icon}</span>
+                    <p style={{
+                      fontFamily: "'Plus Jakarta Sans',sans-serif",
+                      fontWeight: 700, fontSize: 11, color: d.ink,
+                      marginTop: 6, textAlign: 'center', padding: '0 6px',
+                      textShadow: d.dark ? '0 1px 4px rgba(0,0,0,0.5)' : 'none',
+                    }}>
+                      {d.name}
+                    </p>
                   </div>
+                  {/* New badge for first 3 */}
+                  {idx < 3 && (
+                    <span className="card-badge card-badge-new">★ New</span>
+                  )}
+                  {/* More options for middle designs */}
+                  {idx >= 3 && idx < 7 && (
+                    <span className="card-badge card-badge-more">More options</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -300,6 +348,37 @@ const CreateCard = () => {
                 <p className="text-xs opacity-70 mt-2" style={{ color: selectedDesign.ink }}>This artwork and lettering follows the card everywhere.</p>
               </div>
             )}
+            {/* Card layout picker */}
+            <div className="mb-6">
+              <p className="text-sm font-bold text-warm-700 mb-3">How should people sign this card?</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  {
+                    id: 'form', icon: '📝',
+                    title: 'Classic form',
+                    desc: 'Signers write a message in a form. Clean and simple.',
+                  },
+                  {
+                    id: 'album', icon: '📖',
+                    title: 'Photo album',
+                    desc: 'Flipbook pages — messages placed freely with photos, like GroupCards.',
+                  },
+                ].map(opt => (
+                  <button key={opt.id} type="button"
+                    onClick={() => set('card_layout', opt.id)}
+                    className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                      form.card_layout === opt.id
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-purple-100 bg-white hover:border-primary-200'
+                    }`}>
+                    <div className="text-2xl mb-2">{opt.icon}</div>
+                    <p className="font-bold text-sm text-warm-900">{opt.title}</p>
+                    <p className="text-xs text-warm-500 mt-0.5">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="flex justify-between">
               <button onClick={() => setStep(0)} className="btn-secondary">← Back</button>
               <button onClick={() => setStep(2)} className="btn-primary">Add details →</button>

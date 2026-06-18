@@ -160,7 +160,7 @@ export default function OccasionPage() {
           </h1>
           <p className="text-base sm:text-lg text-warm-600 mb-8 max-w-lg mx-auto">{data.desc}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="btn-primary px-8 py-4 text-base">✨ Create a {data.icon} card free</Link>
+            <Link to="/card/new" className="btn-primary px-8 py-4 text-base">✨ Create a {data.icon} card</Link>
             <Link to="/pricing" className="btn-secondary px-8 py-4 text-base">💳 See pricing</Link>
           </div>
         </div>
@@ -266,8 +266,8 @@ export default function OccasionPage() {
               </div>
             ))}
           </div>
-          <Link to="/signup" className="btn-primary inline-block mt-8 px-8 py-4 text-base">
-            ✨ Start for free — ₦5,000 to send
+          <Link to="/card/new" className="btn-primary inline-block mt-8 px-8 py-4 text-base">
+            ✨ Get started — ₦5,000 to send
           </Link>
         </div>
       </section>

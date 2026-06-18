@@ -291,13 +291,13 @@ const BlogPost = () => {
               {/* CTA card */}
               <div className="bg-primary-400 rounded-3xl p-5 text-white sticky top-20">
                 <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-2"><Icon name="Heart" size={22} className="text-white"/></div>
-                <p className="font-semibold text-lg mb-2">Try Thankeeu free</p>
+                <p className="font-semibold text-lg mb-2">Try Thankeeu</p>
                 <p className="text-primary-100 text-sm mb-4 leading-relaxed">
                   Create a beautiful group card and Flutterwave gift pot for your next team occasion.
                 </p>
-                <Link to="/signup"
+                <Link to="/card/new"
                   className="block bg-white text-primary-600 font-semibold text-sm px-4 py-3 rounded-xl text-center hover:bg-primary-50 transition-colors mb-2">
-                  Create a free card →
+                  Create a card →
                 </Link>
                 <Link to="/company/signup"
                   className="block border border-white/40 text-white font-medium text-sm px-4 py-3 rounded-xl text-center hover:bg-white/10 transition-colors">

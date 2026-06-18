@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="400" height="280">
+  <defs><linearGradient id="bg17" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#EFF6FF"/><stop offset="100%" style="stop-color:#E0E7FF"/></linearGradient></defs>
+  <rect width="400" height="280" rx="18" fill="url(#bg17)"/>
+  <!-- Big star burst right -->
+  <polygon points="340,100 347,82 362,90 354,74 372,68 355,63 360,45 345,56 340,38 335,56 320,45 325,63 308,68 326,74 318,90 333,82" fill="#FCD34D" opacity="0.9"/>
+  <circle cx="340" cy="72" r="12" fill="#F59E0B" opacity="0.7"/>
+  <!-- Medium star -->
+  <polygon points="70,90 75,76 87,83 80,69 93,64 79,60 83,45 71,55 67,40 63,55 51,45 55,60 41,64 54,69 47,83 59,76" fill="#F9A8D4" opacity="0.8"/>
+  <!-- Small stars scattered -->
+  <polygon points="180,40 182,34 187,37 184,31 190,29 184,27 186,21 181,25 179,19 177,25 172,21 174,27 168,29 174,31 171,37 176,34" fill="#FCD34D" opacity="0.7"/>
+  <text x="210" y="60" font-size="20" fill="#6366F1" opacity="0.6">★</text>
+  <text x="25" y="170" font-size="16" fill="#C084FC" opacity="0.5">★</text>
+  <text x="375" y="200" font-size="14" fill="#6366F1" opacity="0.4">★</text>
+  <!-- Title -->
+  <text x="200" y="130" font-family="Georgia, serif" font-size="42" font-weight="bold" font-style="italic" fill="#3730A3" text-anchor="middle">Happy</text>
+  <text x="200" y="173" font-family="Georgia, serif" font-size="42" font-weight="bold" font-style="italic" fill="#3730A3" text-anchor="middle">Birthday!</text>
+  <text x="200" y="208" font-family="Georgia, serif" font-size="13" fill="#312E81" text-anchor="middle">You're a true star — today</text>
+  <text x="200" y="226" font-family="Georgia, serif" font-size="13" fill="#312E81" text-anchor="middle">and every day!</text>
+  <text x="200" y="255" font-size="14" fill="#6366F1" text-anchor="middle">♥</text>
+</svg>

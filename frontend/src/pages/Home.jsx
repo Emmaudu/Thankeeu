@@ -461,8 +461,7 @@ const Home = () => {
               </h1>
 
               <p className="text-warm-600 mb-9 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.2rem,2.8vw,1.45rem)', lineHeight:1.6 }}>
-                Pick a design and start adding messages right now — no account needed.
-                Share the link, collect signatures and a gift pot, then pay only when you're ready to send.
+                Share a group card with your friends and colleagues, let them send in heartfelt messages, gifts, GIFs, voice notes, pictures, videos for your birthdays and special occasions, all in one place.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
@@ -549,200 +548,174 @@ const Home = () => {
 
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ══ CARD DESIGN GALLERY — exact GroupCards tiles from screenshot ══ */}
-      <section className="py-12 md:py-16 px-4 gc-font">
+      {/* ══ REAL CARD GALLERY — 20 actual card designs ══ */}
+      <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 100%)' }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>Find the perfect card design</h2>
-            <p className="text-warm-500 text-sm sm:text-base">All cards come with unlimited messages and pages. Change your design any time before sending.</p>
+          <div className="text-center mb-4">
+            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={13}/> 25 stunning designs</div>
+            <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
+              Beautiful cards your people<br/><span className="text-primary-500">will actually remember</span>
+            </h2>
+            <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
+              Every card is a canvas for photos, voice notes, GIFs and heartfelt words — not just a template.
+            </p>
           </div>
+
+          {/* 3-column persuasive callouts above the grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 mt-8">
+            {[
+              { icon:'Heart', title:'Everyone signs, anywhere', desc:'Share one link on WhatsApp or Slack. No app needed, no login — just click and add a message.' },
+              { icon:'Gift', title:'Pool a gift in minutes', desc:'Add a gift pot and let everyone chip in. Money collected safely via Flutterwave — zero cash chasing.' },
+              { icon:'Smile', title:'More than just text', desc:'Photos, videos, voice notes, GIFs — your team can express themselves in any way they want.' },
+            ].map(f => (
+              <div key={f.title} className="bg-white rounded-2xl border-2 border-purple-100 p-5 flex gap-3 items-start">
+                <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
+                  <Icon name={f.icon} size={18} className="text-primary-500"/>
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-warm-900 mb-1">{f.title}</p>
+                  <p className="text-xs text-warm-500 leading-relaxed">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
           <style>{`
-            .hg-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:16px; }
-            @media(max-width:900px){.hg-grid{grid-template-columns:repeat(3,1fr);}}
-            @media(max-width:540px){.hg-grid{grid-template-columns:repeat(2,1fr);}}
-            .hg-tile { position:relative; border-radius:18px; overflow:hidden; cursor:pointer; aspect-ratio:3/4; box-shadow:0 2px 12px rgba(0,0,0,0.09); transition:transform 0.15s,box-shadow 0.15s; text-decoration:none; display:block; }
-            .hg-tile:hover { transform:translateY(-3px); box-shadow:0 10px 32px rgba(0,0,0,0.16); }
-            .hg-badge { position:absolute; top:10px; left:10px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:800; z-index:2; display:inline-flex; align-items:center; gap:4px; }
-            .hg-badge-new { background:#FCD34D; color:#78350F; }
-            .hg-badge-more { background:#F43F5E; color:#fff; }
+            .svg-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+            @media(max-width:900px){.svg-grid{grid-template-columns:repeat(3,1fr);}}
+            @media(max-width:540px){.svg-grid{grid-template-columns:repeat(2,1fr);}}
+            .svg-tile { position:relative; border-radius:16px; overflow:hidden; cursor:pointer; aspect-ratio:10/7; box-shadow:0 2px 12px rgba(0,0,0,0.10); transition:transform 0.18s,box-shadow 0.18s; text-decoration:none; display:block; }
+            .svg-tile:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(124,58,237,0.18); }
+            .svg-tile img { width:100%; height:100%; object-fit:cover; display:block; }
           `}</style>
-          <div className="hg-grid">
 
-            {/* 1: Upload your own — sky blue */}
-            <Link to="/card/new" className="hg-tile" style={{ background:'#60A5FA' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:12 }}>
-                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                </svg>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:18, color:'#fff', textAlign:'center', lineHeight:1.25, margin:0 }}>Upload<br/>your own</p>
-              </div>
-            </Link>
-
-            {/* 2: Happy Birthday illustrated cake — lavender */}
-            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(180deg,#C4B5FD 0%,#A78BFA 100%)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:48, marginBottom:8 }}>🎂</div>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:22, color:'#fff', lineHeight:1.1, margin:'0 0 8px', whiteSpace:'pre-line' }}>{'HAPPY' + String.fromCharCode(10) + 'BIRTH' + String.fromCharCode(10) + 'DAY!'}</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:10, color:'rgba(255,255,255,0.85)', letterSpacing:'0.12em' }}>FROM ALL THE TEAM</p>
-              </div>
-            </Link>
-
-            {/* 3: Birthday Vibes — cat spa photo — badge New */}
-            <Link to="/card/new" className="hg-tile">
-              <img src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400&q=80" alt="" style={{ width:'100%', height:'55%', objectFit:'cover', display:'block' }}/>
-              <div style={{ background:'#fff', padding:'12px 14px', height:'45%', display:'flex', flexDirection:'column', justifyContent:'center' }}>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:20, color:'#7C2D12', margin:'0 0 2px' }}>Birthday Vibes</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:9, color:'#A16207', letterSpacing:'0.1em', margin:0 }}>CHILLED AND FABULOUS</p>
-              </div>
-              <span className="hg-badge hg-badge-new">★ New</span>
-            </Link>
-
-            {/* 4: Happy Birthday FROM ALL OF US — teal — badge More options */}
-            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(160deg,#0F4C75,#1B6CA8)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:30, color:'#5EEAD4', lineHeight:1.1, margin:'0 0 10px' }}>Happy<br/>Birthday</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:11, color:'#67E8F9', letterSpacing:'0.1em', margin:0 }}>FROM ALL OF US</p>
-              </div>
-              <span className="hg-badge hg-badge-more">More options</span>
-            </Link>
-
-            {/* 5: Happy Birthday pug photo — badge New */}
-            <Link to="/card/new" className="hg-tile">
-              <img src="https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&q=80" alt="" style={{ width:'100%', height:'60%', objectFit:'cover', display:'block' }}/>
-              <div style={{ background:'#FAFAFA', padding:'10px 14px', height:'40%', display:'flex', flexDirection:'column', justifyContent:'center' }}>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:14, color:'#1A1035', margin:'0 0 2px' }}>Happy Birthday</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:600, fontSize:9, color:'#6B7280', letterSpacing:'0.08em', margin:0 }}>TIME TO PAWS, PAMPER, AND RELAX</p>
-              </div>
-              <span className="hg-badge hg-badge-new">★ New</span>
-            </Link>
-
-            {/* 6: yay it's your birthday — purple party characters — badge More options */}
-            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(160deg,#4338CA,#7C3AED)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center', position:'relative' }}>
-                <div style={{ fontSize:40, marginBottom:6 }}>🎉🎂🍒</div>
-                <p style={{ fontFamily:"'Caveat',cursive", fontWeight:700, fontSize:22, color:'#FCD34D', lineHeight:1.2, margin:0 }}>yay!<br/>it's your<br/>birthday!</p>
-              </div>
-              <span className="hg-badge hg-badge-more">More options</span>
-            </Link>
-
-            {/* 7: CHEERS TO THE JUNE BIRTHDAY GIRL — pink martini */}
-            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(180deg,#FDF2F8,#FBCFE8)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:40, marginBottom:8 }}>🍸</div>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:16, color:'#BE185D', lineHeight:1.3, margin:0 }}>Cheers to the<br/><span style={{ fontSize:22, color:'#9D174D', fontWeight:800 }}>JUNE</span><br/>Birthday Girl</p>
-              </div>
-              <span className="hg-badge hg-badge-more">More options</span>
-            </Link>
-
-            {/* 8: Happy Birthday — teal cake candles — badge New */}
-            <Link to="/card/new" className="hg-tile" style={{ background:'linear-gradient(160deg,#5EEAD4,#0D9488)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:44, marginBottom:8 }}>🎊</div>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:32, color:'#fff', lineHeight:1.1, margin:0 }}>Happy<br/>Birthday</p>
-              </div>
-              <span className="hg-badge hg-badge-new">★ New</span>
-            </Link>
-
-            {/* 9: Hope your birthday is SWEET — Fanta can — cream */}
-            <Link to="/card/new" className="hg-tile" style={{ background:'#FEF9C3' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:52, marginBottom:6 }}>🥤</div>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:14, color:'#B45309', lineHeight:1.3, margin:'0 0 4px', textTransform:'uppercase', letterSpacing:'0.05em' }}>Hope your<br/>birthday is</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:22, color:'#D97706', margin:0 }}>SWEET!</p>
-              </div>
-            </Link>
-
-            {/* 10: wishing you a very happy birthday — multicolor text */}
-            <Link to="/card/new" className="hg-tile" style={{ background:'#FAFAFA' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 10px', textAlign:'center' }}>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, lineHeight:1.3, margin:0 }}>
-                  <span style={{ fontSize:18, color:'#6D28D9' }}>wishing</span><br/>
-                  <span style={{ fontSize:18, color:'#0D9488' }}>you a</span><br/>
-                  <span style={{ fontSize:26, color:'#7C3AED' }}>very</span><br/>
-                  <span style={{ fontSize:20, color:'#DB2777' }}>happy</span><br/>
-                  <span style={{ fontSize:20, color:'#D97706' }}>birthday</span>
-                </p>
-              </div>
-              <span className="hg-badge hg-badge-new">★ New</span>
-            </Link>
-
+          <div className="svg-grid">
+            {[
+              { n:'01', label:'Elegant Bloom' },
+              { n:'02', label:'Bold Celebration' },
+              { n:'03', label:'Floral Joy' },
+              { n:'04', label:'Golden Wishes' },
+              { n:'05', label:'Sunshine Birthday' },
+              { n:'06', label:'Neon Party' },
+              { n:'07', label:'Midnight Stars' },
+              { n:'08', label:'Rose Garden' },
+              { n:'09', label:'Confetti Pop' },
+              { n:'10', label:'Deep Teal' },
+              { n:'11', label:'Pastel Dreams' },
+              { n:'12', label:'Tropical Vibes' },
+              { n:'13', label:'Modern Chic' },
+              { n:'14', label:'Royal Purple' },
+              { n:'15', label:'Midnight Blue' },
+              { n:'16', label:'Cherry Blossom' },
+              { n:'17', label:'Sunset Glow' },
+              { n:'18', label:'Forest Green' },
+              { n:'19', label:'Ice & Sky' },
+              { n:'20', label:'Unicorn Magic' },
+            ].map(({ n, label }) => (
+              <Link key={n} to="/card/new" className="svg-tile" title={`${label} card design`}>
+                <img src={`/cards/birthday_${n}.svg`} alt={label} loading="lazy"/>
+                <div style={{
+                  position:'absolute', bottom:0, left:0, right:0,
+                  background:'linear-gradient(0deg,rgba(0,0,0,0.55) 0%,transparent 100%)',
+                  padding:'20px 10px 8px', pointerEvents:'none',
+                }}>
+                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:11, color:'#fff', margin:0, textShadow:'0 1px 3px rgba(0,0,0,0.5)' }}>{label}</p>
+                </div>
+              </Link>
+            ))}
           </div>
-          <div className="text-center mt-8">
-            <Link to="/card/new" className="gc-btn-secondary inline-flex items-center gap-2 px-6 py-3 text-sm">View all designs <Icon name="ArrowRight" size={15}/></Link>
+
+          <div className="text-center mt-10">
+            <p className="text-warm-500 text-sm mb-4">All 25 designs available — pick yours and start in 2 minutes</p>
+            <Link to="/card/new" className="gc-btn-primary inline-flex items-center gap-2 px-8 py-4 text-base">
+              <Icon name="Sparkles" size={18}/> Start with any design — it's free
+            </Link>
           </div>
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
-
-      {/* ══ INSPIRATION SAMPLE CARDS — exact GroupCards style ══ */}
-      <section className="py-12 md:py-16 px-4 gc-font section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+            {/* ══ MORE REAL CARDS + SOCIAL PROOF ══ */}
+      <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#1A1035 0%,#2D1B69 100%)' }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-8">
-            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>Get inspiration from our sample cards</h2>
-            <p className="text-warm-500 text-sm sm:text-base">See a real, finished card before you start — no signup needed.</p>
+
+          {/* Dark section headline */}
+          <div className="text-center mb-12">
+            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5" style={{ background:'rgba(255,255,255,0.1)', color:'#E9D5FF', borderColor:'rgba(255,255,255,0.15)' }}>
+              <Icon name="Star" size={13}/> Real cards, real moments
+            </div>
+            <h2 className="font-bold mb-4" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)', color:'#fff' }}>
+              More than a card.<br/><span style={{ background:'linear-gradient(135deg,#A78BFA,#F472B6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>A memory they'll keep forever.</span>
+            </h2>
+            <p style={{ color:'#C4B5FD', fontSize:'clamp(1rem,2.5vw,1.2rem)', maxWidth:520, margin:'0 auto', lineHeight:1.6 }}>
+              From heartfelt farewells to wild birthday surprises — Thankeeu turns a simple card into something that actually moves people.
+            </p>
           </div>
-          <div className="hg-grid">
 
-            {/* 1: Good Luck — amber/orange */}
-            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#FDE68A,#FB923C)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:44, marginBottom:8 }}>🌟</div>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:26, color:'#7C2D12', lineHeight:1.2, margin:'0 0 6px' }}>Good Luck<br/>Sarah!</p>
-                <span style={{ background:'rgba(255,255,255,0.7)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#7C2D12' }}>12 messages</span>
-              </div>
-            </Link>
-
-            {/* 2: Congrats — emerald — badge New */}
-            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#A7F3D0,#059669)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:44, marginBottom:8 }}>🎊</div>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:20, color:'#064E3B', lineHeight:1.1, margin:'0 0 6px', letterSpacing:'0.02em' }}>CONGRATS<br/>TUNDE</p>
-                <span style={{ background:'rgba(255,255,255,0.7)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#064E3B' }}>8 messages</span>
-              </div>
-              <span className="hg-badge hg-badge-new">★ New</span>
-            </Link>
-
-            {/* 3: Thank you — pink */}
-            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#FBCFE8,#EC4899)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:44, marginBottom:8 }}>💗</div>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:32, color:'#fff', lineHeight:1.1, margin:'0 0 6px' }}>thank<br/>you!</p>
-                <span style={{ background:'rgba(255,255,255,0.3)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#fff' }}>22 messages</span>
-              </div>
-            </Link>
-
-            {/* 4: We'll miss you — purple — More options */}
-            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#312E81,#6D28D9)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:44, marginBottom:8 }}>👋</div>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:22, color:'#E9D5FF', lineHeight:1.2, margin:'0 0 6px' }}>We'll Miss<br/>You Chidi</p>
-                <span style={{ background:'rgba(255,255,255,0.2)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#E9D5FF' }}>34 messages</span>
-              </div>
-              <span className="hg-badge hg-badge-more">More options</span>
-            </Link>
-
-            {/* 5: Happy Retirement — warm yellow */}
-            <Link to="/sample" className="hg-tile" style={{ background:'linear-gradient(160deg,#FEF3C7,#FCD34D)' }}>
-              <div style={{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'16px 12px', textAlign:'center' }}>
-                <div style={{ fontSize:44, marginBottom:8 }}>🏖️</div>
-                <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:26, color:'#78350F', lineHeight:1.2, margin:'0 0 6px' }}>Happy<br/>Retirement</p>
-                <span style={{ background:'rgba(255,255,255,0.7)', borderRadius:20, padding:'3px 10px', fontSize:10, fontWeight:700, color:'#78350F' }}>18 messages</span>
-              </div>
-            </Link>
-
+          {/* 5 more SVG cards (21–25) */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:14, marginBottom:48 }}>
+            {[
+              { n:'21', label:'Lavender Luxe',    copy:'Perfect for farewells' },
+              { n:'22', label:'Fire & Gold',       copy:'Big energy, big love' },
+              { n:'23', label:'Ocean Breeze',      copy:'Calm, warm, beautiful' },
+              { n:'24', label:'Midnight Garden',   copy:'Sophisticated & elegant' },
+              { n:'25', label:'Candy Pop',         copy:'Fun, bright & bold' },
+            ].map(({ n, label, copy }) => (
+              <Link key={n} to="/card/new" title={label}
+                style={{ position:'relative', borderRadius:16, overflow:'hidden', aspectRatio:'10/7', boxShadow:'0 4px 20px rgba(0,0,0,0.4)', transition:'transform 0.18s,box-shadow 0.18s', textDecoration:'none', display:'block' }}
+                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-5px)'; e.currentTarget.style.boxShadow='0 16px 40px rgba(167,139,250,0.4)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.4)'; }}>
+                <img src={`/cards/birthday_${n}.svg`} alt={label} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
+                <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(0deg,rgba(0,0,0,0.7) 0%,transparent 100%)', padding:'24px 10px 8px' }}>
+                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:11, color:'#fff', margin:'0 0 1px', textShadow:'0 1px 3px rgba(0,0,0,0.6)' }}>{label}</p>
+                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:600, fontSize:9, color:'rgba(255,255,255,0.75)', margin:0 }}>{copy}</p>
+                </div>
+              </Link>
+            ))}
           </div>
-          <div className="text-center mt-8">
-            <Link to="/sample" className="gc-btn-secondary inline-flex items-center gap-2 px-6 py-3 text-sm">
-              <Icon name="Eye" size={15}/> See a live sample card
+
+          {/* 3-column stats */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, marginBottom:48 }}>
+            {[
+              { num:'50,000+', label:'Cards sent', sub:'And counting 🚀' },
+              { num:'₦2.3B+',  label:'Gift money pooled', sub:'Safely via Flutterwave' },
+              { num:'4.9 ★',   label:'Average rating', sub:'From 3,000+ reviews' },
+            ].map(s => (
+              <div key={s.num} style={{ background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(255,255,255,0.12)', borderRadius:20, padding:'24px 20px', textAlign:'center' }}>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:'clamp(1.75rem,4vw,2.5rem)', color:'#E9D5FF', margin:'0 0 4px', lineHeight:1 }}>{s.num}</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#fff', margin:'0 0 2px' }}>{s.label}</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:11, color:'#C4B5FD', margin:0 }}>{s.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Quote testimonials */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(1,1fr)', gap:16, marginBottom:48 }}
+            className="sm:grid-cols-3">
+            {[
+              { text:'"Our colleague's farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy."', name:'Adaeze O.', role:'HR Manager, Lagos' },
+              { text:'"Organised my girlfriend's birthday from London. 22 people signed, raised ₦500k. She was genuinely shocked. 10/10."', name:'Emeka T.', role:'Engineer, Abuja' },
+              { text:'"No more Google Forms and chasing receipts. Everything just works. The whole team uses it now."', name:'Kemi B.', role:'People Ops, Port Harcourt' },
+            ].map(t => (
+              <div key={t.name} style={{ background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(255,255,255,0.12)', borderRadius:20, padding:'24px 20px' }}>
+                <div style={{ fontSize:24, marginBottom:12 }}>⭐⭐⭐⭐⭐</div>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, color:'#E9D5FF', lineHeight:1.65, margin:'0 0 14px', fontStyle:'italic' }}>{t.text}</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, color:'#fff', margin:'0 0 2px' }}>{t.name}</p>
+                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:11, color:'#A78BFA', margin:0 }}>{t.role}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="text-center">
+            <Link to="/card/new" className="gc-btn-primary inline-flex items-center gap-2 px-8 py-4 text-base" style={{ fontSize:'1.05rem' }}>
+              <Icon name="Sparkles" size={18}/> Create your card now — free
             </Link>
+            <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', color:'#A78BFA', fontSize:13, marginTop:12 }}>No signup to start · Pay only when you send · Takes 2 minutes</p>
           </div>
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
-
-      {/* ══ OCCASIONS ══ */}
+            {/* ══ OCCASIONS ══ */}
       <section className="py-12 md:py-16 px-4 section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">

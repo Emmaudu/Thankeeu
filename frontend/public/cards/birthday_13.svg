@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="400" height="280">
+  <defs>
+    <linearGradient id="bg13" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#FEF9C3"/>
+      <stop offset="100%" style="stop-color:#FEF08A"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="280" rx="18" fill="url(#bg13)"/>
+  <!-- Rainbow arc -->
+  <path d="M30,260 Q200,30 370,260" fill="none" stroke="#F87171" stroke-width="8" opacity="0.4"/>
+  <path d="M45,260 Q200,55 355,260" fill="none" stroke="#FB923C" stroke-width="8" opacity="0.4"/>
+  <path d="M60,260 Q200,80 340,260" fill="none" stroke="#FCD34D" stroke-width="8" opacity="0.4"/>
+  <path d="M75,260 Q200,105 325,260" fill="none" stroke="#4ADE80" stroke-width="8" opacity="0.35"/>
+  <path d="M90,260 Q200,128 310,260" fill="none" stroke="#60A5FA" stroke-width="8" opacity="0.35"/>
+  <path d="M105,260 Q200,148 295,260" fill="none" stroke="#A78BFA" stroke-width="8" opacity="0.35"/>
+  <!-- Clouds at ends -->
+  <ellipse cx="55" cy="245" rx="28" ry="17" fill="white" opacity="0.85"/>
+  <ellipse cx="40" cy="250" rx="20" ry="14" fill="white" opacity="0.85"/>
+  <ellipse cx="70" cy="250" rx="22" ry="14" fill="white" opacity="0.85"/>
+  <ellipse cx="345" cy="245" rx="28" ry="17" fill="white" opacity="0.85"/>
+  <ellipse cx="330" cy="250" rx="20" ry="14" fill="white" opacity="0.85"/>
+  <ellipse cx="360" cy="250" rx="22" ry="14" fill="white" opacity="0.85"/>
+  <!-- Title over rainbow -->
+  <text x="200" y="110" font-family="Georgia, serif" font-size="42" font-weight="bold" font-style="italic" fill="#92400E" text-anchor="middle">Happy</text>
+  <text x="200" y="155" font-family="Georgia, serif" font-size="42" font-weight="bold" font-style="italic" fill="#92400E" text-anchor="middle">Birthday!</text>
+  <text x="200" y="192" font-family="Georgia, serif" font-size="13" fill="#78350F" text-anchor="middle">Wishing you a rainbow of</text>
+  <text x="200" y="210" font-family="Georgia, serif" font-size="13" fill="#78350F" text-anchor="middle">happiness and colour today!</text>
+  <text x="200" y="238" font-size="14" fill="#F59E0B" text-anchor="middle">♥</text>
+</svg>

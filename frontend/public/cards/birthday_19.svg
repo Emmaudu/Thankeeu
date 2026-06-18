@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="400" height="280">
+  <defs><linearGradient id="bg19" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ECFEFF"/><stop offset="100%" style="stop-color:#CFFAFE"/></linearGradient></defs>
+  <rect width="400" height="280" rx="18" fill="url(#bg19)"/>
+  <!-- Wave bottom -->
+  <path d="M0,220 Q50,200 100,220 Q150,240 200,220 Q250,200 300,220 Q350,240 400,220 L400,280 L0,280Z" fill="#A5F3FC" opacity="0.5"/>
+  <!-- Balloons cluster -->
+  <ellipse cx="55" cy="120" rx="22" ry="28" fill="#67E8F9" opacity="0.9"/>
+  <ellipse cx="85" cy="100" rx="20" ry="26" fill="#22D3EE" opacity="0.9"/>
+  <ellipse cx="115" cy="115" rx="21" ry="27" fill="#06B6D4" opacity="0.85"/>
+  <line x1="55" y1="148" x2="57" y2="180" stroke="#67E8F9" stroke-width="1.5"/>
+  <line x1="85" y1="126" x2="83" y2="180" stroke="#22D3EE" stroke-width="1.5"/>
+  <line x1="115" y1="142" x2="113" y2="180" stroke="#06B6D4" stroke-width="1.5"/>
+  <ellipse cx="50" cy="112" rx="7" ry="9" fill="white" opacity="0.25"/>
+  <ellipse cx="80" cy="92" rx="6" ry="8" fill="white" opacity="0.25"/>
+  <ellipse cx="110" cy="107" rx="6" ry="8" fill="white" opacity="0.25"/>
+  <!-- Sparkles -->
+  <text x="320" y="55" font-size="18" fill="#0891B2" opacity="0.6">✦</text>
+  <text x="350" y="100" font-size="14" fill="#06B6D4" opacity="0.5">✦</text>
+  <text x="20" y="60" font-size="12" fill="#0891B2" opacity="0.5">✦</text>
+  <!-- Title -->
+  <text x="255" y="125" font-family="Georgia, serif" font-size="38" font-weight="bold" font-style="italic" fill="#0E7490" text-anchor="middle">Happy</text>
+  <text x="255" y="167" font-family="Georgia, serif" font-size="38" font-weight="bold" font-style="italic" fill="#0E7490" text-anchor="middle">Birthday!</text>
+  <text x="200" y="202" font-family="Georgia, serif" font-size="13" fill="#0891B2" text-anchor="middle">Stay cool, stay wonderful,</text>
+  <text x="200" y="220" font-family="Georgia, serif" font-size="13" fill="#0891B2" text-anchor="middle">and have an amazing day!</text>
+  <text x="200" y="245" font-size="14" fill="#06B6D4" text-anchor="middle">♥</text>
+</svg>

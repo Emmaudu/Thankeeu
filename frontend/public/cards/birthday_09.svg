@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="400" height="280">
+  <defs>
+    <linearGradient id="bg9" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFF1F2"/>
+      <stop offset="100%" style="stop-color:#FFE4E6"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="280" rx="18" fill="url(#bg9)"/>
+  <!-- Flower left -->
+  <circle cx="55" cy="130" r="12" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="55" cy="107" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="55" cy="153" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="34" cy="119" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="76" cy="119" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="34" cy="141" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="76" cy="141" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="55" cy="130" r="9" fill="#F87171"/>
+  <circle cx="55" cy="130" r="5" fill="#FDE68A"/>
+  <!-- Stem left -->
+  <path d="M55,165 Q50,195 45,220" fill="none" stroke="#4ADE80" stroke-width="3" stroke-linecap="round"/>
+  <path d="M50,185 Q35,175 30,162" fill="none" stroke="#4ADE80" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Leaves left -->
+  <ellipse cx="37" cy="172" rx="12" ry="6" fill="#4ADE80" transform="rotate(-30 37 172)"/>
+  <!-- Flower right -->
+  <circle cx="345" cy="130" r="12" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="345" cy="107" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="345" cy="153" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="324" cy="119" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="366" cy="119" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="324" cy="141" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="366" cy="141" r="11" fill="#FCA5A5" opacity="0.8"/>
+  <circle cx="345" cy="130" r="9" fill="#F87171"/>
+  <circle cx="345" cy="130" r="5" fill="#FDE68A"/>
+  <!-- Stem right -->
+  <path d="M345,165 Q350,195 355,220" fill="none" stroke="#4ADE80" stroke-width="3" stroke-linecap="round"/>
+  <path d="M350,185 Q365,175 370,162" fill="none" stroke="#4ADE80" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="363" cy="172" rx="12" ry="6" fill="#4ADE80" transform="rotate(30 363 172)"/>
+  <!-- Floating hearts -->
+  <text x="140" y="55" font-size="16" fill="#F43F5E" opacity="0.5">♥</text>
+  <text x="240" y="45" font-size="12" fill="#FB7185" opacity="0.6">♥</text>
+  <text x="100" y="240" font-size="14" fill="#F43F5E" opacity="0.4">♥</text>
+  <text x="290" y="250" font-size="10" fill="#FB7185" opacity="0.4">♥</text>
+  <!-- Title -->
+  <text x="200" y="120" font-family="Georgia, serif" font-size="40" font-weight="bold" font-style="italic" fill="#BE123C" text-anchor="middle">Happy</text>
+  <text x="200" y="163" font-family="Georgia, serif" font-size="40" font-weight="bold" font-style="italic" fill="#BE123C" text-anchor="middle">Birthday!</text>
+  <!-- Subtitle -->
+  <text x="200" y="198" font-family="Georgia, serif" font-size="13" fill="#9F1239" text-anchor="middle">Sending you love and</text>
+  <text x="200" y="216" font-family="Georgia, serif" font-size="13" fill="#9F1239" text-anchor="middle">all the beautiful things in life.</text>
+  <text x="200" y="245" font-size="16" fill="#F43F5E" text-anchor="middle">♥</text>
+</svg>

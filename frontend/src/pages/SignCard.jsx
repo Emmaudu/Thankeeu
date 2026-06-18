@@ -198,11 +198,7 @@ const SignCard = () => {
     window.location.assign(`/sign/${slug}?share=1&mode=${mode}`);
   };
 
-  // Auto-open WhatsApp share after payment confirmation
-  const autoShareWhatsApp = () => {
-    const text = `I just signed ${card?.recipient_name}'s card on Thankeeu! 🎉 Add your message here: ${window.location.origin}/sign/${slug}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  };
+
 
   const validateSignupFields = () => {
     const { full_name, username, email, password, confirm_password } = signupForm;
@@ -381,7 +377,6 @@ const SignCard = () => {
               setStage('idle');
               clearShareMode();
               // Auto-open WhatsApp so they can invite others immediately
-              autoShareWhatsApp();
             } catch (e) {
               const status = e?.response?.status;
               const msg = e?.response?.data?.error || e?.message || '';
@@ -399,7 +394,6 @@ const SignCard = () => {
                 setStage('idle');
                 clearShareMode();
                 // Auto-open WhatsApp even on server-error path
-                autoShareWhatsApp();
               }
             }
             resolve();

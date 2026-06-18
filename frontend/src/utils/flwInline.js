@@ -58,17 +58,13 @@ export async function openFlwCheckout({ flwConfig, onSuccess, onClose }) {
   window.FlutterwaveCheckout({
     ...flwConfig,
     callback: (response) => {
-      // FLW calls this when payment is attempted (success or failed)
-      // response.status: 'successful' | 'cancelled' | 'failed'
       if (response.status === 'successful' || response.status === 'completed') {
         onSuccess(response.tx_ref || flwConfig.tx_ref);
       } else {
-        // Payment failed or cancelled inside modal
         onClose && onClose();
       }
     },
     onclose: () => {
-      // User closed the modal without completing
       onClose && onClose();
     },
   });

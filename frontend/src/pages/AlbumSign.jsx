@@ -107,11 +107,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   // Payment is now handled via FLW Inline JS (openFlwCheckout in handleSubmit).
   // No redirect happens, so no URL-based tx_ref return handling needed here.
 
-  // Auto-open WhatsApp share after payment confirmation
-  const autoShareWhatsApp = () => {
-    const text = `I just signed ${card?.recipient_name}'s card on Thankeeu! 🎉 Add your message here: ${window.location.origin}/sign/${slug}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  };
+
 
   // ── Derived ──
   const messages     = card?.messages || [];
@@ -286,7 +282,6 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               setStage('idle');
               resolve();
               // Auto-open WhatsApp so they can invite others immediately
-              autoShareWhatsApp();
             } catch (e) {
               const httpStatus = e?.response?.status;
               const msg = e?.response?.data?.error || e?.message || '';
@@ -297,7 +292,6 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                 toast.success('Gift received! 🎉');
                 setSubmitted(true);
                 // Auto-open WhatsApp even on server-error path
-                autoShareWhatsApp();
               }
               setStage('idle');
               resolve();

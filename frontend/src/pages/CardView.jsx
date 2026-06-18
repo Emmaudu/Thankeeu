@@ -830,8 +830,8 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
   const [expanded, setExpanded] = useState(false);
   const font = getFontStyle(message.font_style);
   const hasMedia = !!(message.media_url || message.media_gallery);
-  const isLong = (message.content?.length || 0) > 320;
-  const preview = isLong ? message.content.slice(0, 320).trimEnd() + '…' : message.content;
+  const isLong = (message.content?.length || 0) > 140;
+  const preview = isLong ? message.content.slice(0, 140).trimEnd() + '…' : message.content;
   const rotation = index % 3 === 0 ? '-.45deg' : index % 3 === 1 ? '.35deg' : '-.15deg';
   const calliFont = CALLI_FONTS[index % CALLI_FONTS.length];
 
@@ -857,15 +857,13 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
 
   return (
     <article
-      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] border-2 flex flex-col relative`}
+      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border-2 flex flex-col relative`}
       style={{
         background: design.background, color: design.ink,
         borderColor: highlighted ? design.accent : `${design.accent}40`,
         boxShadow: highlighted ? `0 0 0 3px ${design.accent}, 0 6px 28px ${design.accent}44` : undefined,
         transition: 'box-shadow .35s ease, border-color .35s ease, transform .35s ease',
         transform: highlighted ? 'scale(1.01)' : undefined,
-        overflowY: 'auto',
-        minHeight: '200px',
       }}
     >
       {/* Decorative quote mark */}
@@ -891,7 +889,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
       )}
 
       {/* ── 3. Text message below media ── */}
-      <div className="px-5 pt-4 pb-2 relative z-10">
+      <div className="px-4 pt-3 pb-1 flex-shrink-0 relative z-10">
         {hasMedia ? (
           // Media present: keep the compact clamp + open the modal for the full view
           <button type="button" onClick={() => onOpen(message)} className="text-left w-full">
@@ -899,10 +897,10 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
               style={{
                 color: design.ink,
                 fontFamily: font.family,
-                fontSize: message.font_style === 'calligraphy' ? '1.6rem' : message.font_style === 'handwritten' ? '1.3rem' : '1.1rem',
-                lineHeight: message.font_style === 'calligraphy' ? 1.5 : 1.65,
+                fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
+                lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
                 display: '-webkit-box',
-                WebkitLineClamp: 3,
+                WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
                 wordBreak: 'break-word',
@@ -924,8 +922,8 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
               style={{
                 color: design.ink,
                 fontFamily: font.family,
-                fontSize: message.font_style === 'calligraphy' ? '1.6rem' : message.font_style === 'handwritten' ? '1.3rem' : '1.1rem',
-                lineHeight: message.font_style === 'calligraphy' ? 1.5 : 1.65,
+                fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
+                lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
               }}
             >
               {expanded ? message.content : preview}
@@ -1102,6 +1100,22 @@ const CardView = () => {
       setCard(response.data);
       // Track card opened — notifies creator via dashboard + email
       dashboardAPI.trackCardOpened(slug).catch(() => {});
+
+      // If this is a recipient view with an access_token in session,
+      // ensure the card is linked to their account (idempotent)
+      const sessionTok = sessionStorage.getItem(`card_token_${slug}`);
+      if (sessionTok && response.data?.isRecipient) {
+        const authTok = localStorage.getItem('thankeeu_token') || localStorage.getItem('thankeeu_member_token');
+        const base = import.meta.env.VITE_API_URL || '/api';
+        fetch(`${base}/cards/${slug}/mark-claimed`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(authTok ? { Authorization: `Bearer ${authTok}` } : {}),
+          },
+          body: JSON.stringify({ access_token: sessionTok }),
+        }).catch(() => {});
+      }
     } catch (err) {
       if (!silent) toast.error(err.response?.data?.error || 'Card not found or not available');
     } finally {

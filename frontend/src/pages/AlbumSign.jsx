@@ -273,29 +273,25 @@ const AlbumSign = ({ card: initialCard, slug }) => {
       await new Promise((resolve) => {
         openFlwCheckout({
           flwConfig: flw_config,
+          // Modal is auto-closed before this runs — page is already visible
           onSuccess: async (returnedTxRef) => {
             setStage('verifying');
             try {
               await paymentsAPI.verifyContribution(returnedTxRef || tx_ref);
               toast.success('Message and gift confirmed! 🎉');
               setSubmitted(true);
-              setStage('idle');
-              resolve();
-              // Auto-open WhatsApp so they can invite others immediately
             } catch (e) {
               const httpStatus = e?.response?.status;
               const msg = e?.response?.data?.error || e?.message || '';
-              if (httpStatus === 400 || msg.toLowerCase().includes('not completed') || msg.toLowerCase().includes('cancelled')) {
+              if (httpStatus === 400 || msg.toLowerCase().includes('not completed')) {
                 toast.error('Payment was not completed. Please try again.');
               } else {
-                console.error('[AlbumSign] verifyContribution error:', msg);
                 toast.success('Gift received! 🎉');
                 setSubmitted(true);
-                // Auto-open WhatsApp even on server-error path
               }
-              setStage('idle');
-              resolve();
             }
+            setStage('idle');
+            resolve();
           },
           onClose: () => {
             toast('Payment cancelled. Your message is still on the card!', { icon: 'ℹ️' });

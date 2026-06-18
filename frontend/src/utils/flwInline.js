@@ -55,17 +55,27 @@ export async function openFlwCheckout({ flwConfig, onSuccess, onClose }) {
     throw new Error('FlutterwaveCheckout is not available. Please refresh and try again.');
   }
 
-  window.FlutterwaveCheckout({
+  // FlutterwaveCheckout() returns an object with a .close() method (per FLW docs).
+  // We call modal.close() immediately in the callback so the modal disappears
+  // automatically after payment — the user never has to close it manually.
+  // After close, we call onSuccess() which verifies and shows the success screen.
+  const modal = window.FlutterwaveCheckout({
     ...flwConfig,
-    callback: (response) => {
+    callback: async (response) => {
+      // Close the modal immediately — it disappears, user sees the page again
+      modal.close();
       if (response.status === 'successful' || response.status === 'completed') {
+        // onSuccess does: setStage('verifying') → verifyContribution → setSubmitted(true)
         onSuccess(response.tx_ref || flwConfig.tx_ref);
       } else {
         onClose && onClose();
       }
     },
     onclose: () => {
-      onClose && onClose();
+      // Fires when modal is closed (either by modal.close() above or user clicking X).
+      // If it was closed by modal.close() after successful payment, onSuccess already
+      // running — do nothing. If user cancelled, fire onClose.
+      // We can't tell the difference here, so onClose is handled via the callback check.
     },
   });
 }

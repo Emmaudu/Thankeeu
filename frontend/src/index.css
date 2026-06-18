@@ -298,11 +298,15 @@
 }
 /* Message cards: scrollable with beautiful themed scrollbar */
 .message-art-card {
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 220px;
   max-height: 540px;
-  /* Webkit: thin gradient scrollbar matching Thankeeu purple theme */
+  transition: transform .25s ease, box-shadow .25s ease;
+  box-shadow: 0 14px 34px rgba(76,29,149,.1);
+  /* Firefox */
   scrollbar-width: thin;
   scrollbar-color: rgba(124, 58, 237, 0.35) transparent;
 }
@@ -401,12 +405,6 @@
 
 .celebration-shell {
   box-shadow: 0 30px 90px rgba(76,29,149,.18), inset 0 1px 0 rgba(255,255,255,.75);
-}
-.message-art-card {
-  display: flex;
-  flex-direction: column;
-  transition: transform .25s ease, box-shadow .25s ease;
-  box-shadow: 0 14px 34px rgba(76,29,149,.1);
 }
 .message-art-card:hover {
   transform: translateY(-4px) rotate(0deg) !important;

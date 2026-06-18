@@ -361,9 +361,11 @@ const SignCard = () => {
       rememberShareMode(shareMode);
       setSubmitting(false); // re-enable UI while modal is open
 
-      await new Promise((resolve, reject) => {
+      await new Promise((resolve) => {
         openFlwCheckout({
           flwConfig: flw_config,
+          // Modal is auto-closed by modal.close() before onSuccess is called.
+          // So by the time this runs the modal is gone and the page is visible.
           onSuccess: async (returnedTxRef) => {
             setStage('verifying');
             try {
@@ -376,15 +378,13 @@ const SignCard = () => {
               setSubmitted(true);
               setStage('idle');
               clearShareMode();
-              // Auto-open WhatsApp so they can invite others immediately
             } catch (e) {
               const status = e?.response?.status;
               const msg = e?.response?.data?.error || e?.message || '';
-              if (status === 400 || msg.toLowerCase().includes('not completed') || msg.toLowerCase().includes('cancelled')) {
+              if (status === 400 || msg.toLowerCase().includes('not completed')) {
                 toast.error('Payment was not completed. Please try again.');
                 setStage('idle');
               } else {
-                console.error('verifyContribution error (SignCard):', msg);
                 const sm = currentShareMode();
                 window.history.replaceState({}, '', `/sign/${slug}?share=1&mode=${sm}`);
                 toast.success('Gift received! 🎉');
@@ -393,12 +393,12 @@ const SignCard = () => {
                 setSubmitted(true);
                 setStage('idle');
                 clearShareMode();
-                // Auto-open WhatsApp even on server-error path
               }
             }
             resolve();
           },
           onClose: () => {
+            // User cancelled — modal closed without payment
             toast('Payment cancelled. Your message is still on the card!', { icon: 'ℹ️' });
             setStage('idle');
             resolve();

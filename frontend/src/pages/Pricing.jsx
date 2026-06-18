@@ -130,7 +130,7 @@ const Pricing = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen gc-font">
       <Navbar />
 
       {/* Hero */}
@@ -200,9 +200,9 @@ const Pricing = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
               {INDIVIDUAL_PLANS.map(plan => (
-                <div key={plan.id} className={`relative rounded-3xl border-2 p-6 flex flex-col ${
-                  plan.popular ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-purple-100'
-                }`}>
+                <div key={plan.id} className={`gc-card relative p-6 flex flex-col ${
+                  plan.popular ? '' : ''
+                }`} style={plan.popular ? { border: '2px solid #7C3AED' } : undefined}>
                   {plan.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap inline-flex items-center gap-1.5">
                       <Icon name="Star" size={12}/> Most popular
@@ -254,7 +254,7 @@ const Pricing = () => {
             </div>
 
             {/* Gift pot fees */}
-            <div className="bg-green-50 border border-green-200 rounded-3xl p-5 sm:p-8 max-w-2xl mx-auto">
+            <div className="gc-card p-5 sm:p-8 max-w-2xl mx-auto" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
               <h3 className="text-xl font-bold text-warm-900 mb-1 text-center flex items-center justify-center gap-2"><Icon name="Wallet" size={18} className="text-green-600"/> Gift pot fees</h3>
               <p className="text-warm-500 text-center text-sm mb-6">A small platform cut keeps Thankeeu running</p>
               <div className="grid grid-cols-3 gap-4">
@@ -317,9 +317,7 @@ const Pricing = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto mb-10">
               {COMPANY_PLANS.map(plan => (
-                <div key={plan.id} className={`relative rounded-3xl border-2 p-6 ${
-                  plan.popular ? 'border-primary-500 shadow-xl shadow-primary-100' : 'border-purple-100'
-                }`}>
+                <div key={plan.id} className="gc-card relative p-6" style={plan.popular ? { border: '2px solid #7C3AED' } : undefined}>
                   {plan.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap inline-flex items-center gap-1.5">
                       <Icon name="Star" size={12}/> Best value
@@ -351,7 +349,7 @@ const Pricing = () => {
 
             {!company && (
               <div className="text-center">
-                <Link to="/company/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base inline-flex items-center gap-2">
+                <Link to="/company/signup" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base inline-flex items-center gap-2">
                   <Icon name="Building" size={16}/> Create free company account
                 </Link>
                 <p className="text-xs text-warm-400 mt-3">
@@ -369,7 +367,7 @@ const Pricing = () => {
           <h3 className="text-2xl sm:text-3xl font-bold text-warm-900 text-center mb-7">Frequently asked</h3>
           <div className="space-y-3">
             {FAQ.map((f, i) => (
-              <div key={i} className="bg-white border-2 border-purple-100 rounded-2xl overflow-hidden">
+              <div key={i} className="gc-card overflow-hidden">
                 <button onClick={() => setOpenFAQ(openFAQ === i ? null : i)}
                   className="w-full flex items-center justify-between p-4 sm:p-5 text-left gap-3 min-h-[56px]">
                   <span className="font-semibold text-warm-900 text-sm">{f.q}</span>
@@ -393,10 +391,10 @@ const Pricing = () => {
           <p className="text-warm-500 mb-2">Works for Nigeria, UK, US, Canada, Ghana, Kenya, South Africa and beyond.</p>
           <p className="text-warm-400 text-sm mb-7">Pay in your local currency. Celebrate anyone, anywhere.</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
+            <Link to="/card/new" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
               <Icon name="Heart" size={16}/> Create personal card
             </Link>
-            <Link to="/company/signup" className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
+            <Link to="/company/signup" className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
               <Icon name="Building" size={16}/> Set up for my team
             </Link>
           </div>

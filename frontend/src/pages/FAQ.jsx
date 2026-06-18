@@ -39,12 +39,12 @@ export default function FAQ() {
   const filtered = activeCat === 'All' ? FAQS : FAQS.filter(f => f.cat === activeCat);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background:'#FDFCFF' }}>
+    <div className="min-h-screen flex flex-col gc-font" style={{ background:'#FDFCFF' }}>
       <Navbar />
 
       <section className="py-12 md:py-16 px-4 text-center" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
-        <h1 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(1.75rem,6vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'0.75rem' }}>
+        <h1 className="font-extrabold" style={{ fontSize:'clamp(1.75rem,6vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'0.75rem' }}>
           Frequently asked questions
         </h1>
         <p className="text-warm-600 max-w-xl mx-auto">Everything you need to know about Thankeeu.</p>
@@ -65,12 +65,12 @@ export default function FAQ() {
           {/* FAQs */}
           <div className="space-y-2">
             {filtered.map((faq, i) => (
-              <div key={i} className="bg-white rounded-2xl border-2 border-purple-100 overflow-hidden">
+              <div key={i} className="gc-card overflow-hidden">
                 <button onClick={() => setOpen(open === i ? null : i)}
                   className="w-full flex items-center justify-between p-4 sm:p-5 text-left gap-4 hover:bg-purple-50 transition-colors">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-primary-50 text-primary-600 flex-shrink-0 mt-0.5">{faq.cat}</span>
-                    <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:'0.875rem', color:'#1A1035' }}>{faq.q}</span>
+                    <span className="font-bold" style={{ fontSize:'0.875rem', color:'#1A1035' }}>{faq.q}</span>
                   </div>
                   <span className={`text-primary-400 flex-shrink-0 text-xl font-bold transition-transform ${open === i ? 'rotate-45' : ''}`}>+</span>
                 </button>
@@ -87,9 +87,9 @@ export default function FAQ() {
 
       <section className="py-12 px-4 text-center" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-lg mx-auto">
-          <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'1.5rem', letterSpacing:'-0.01em', color:'#1A1035', marginBottom:'0.5rem' }}>Still have questions?</h2>
+          <h2 className="font-extrabold" style={{ fontSize:'1.5rem', letterSpacing:'-0.01em', color:'#1A1035', marginBottom:'0.5rem' }}>Still have questions?</h2>
           <p className="text-warm-600 text-sm mb-6">Our team responds within 24 hours.</p>
-          <a href="mailto:support@thankeeu.com" className="btn-primary px-8 py-3.5 inline-flex items-center gap-2"><Icon name="Mail" size={16}/> Email support</a>
+          <a href="mailto:support@thankeeu.com" className="gc-btn-primary px-8 py-3.5 inline-flex items-center gap-2"><Icon name="Mail" size={16}/> Email support</a>
         </div>
       </section>
       <Footer />

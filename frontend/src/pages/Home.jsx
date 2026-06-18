@@ -7,7 +7,21 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import { demoAPI } from '../utils/api';
+import { CARD_DESIGNS } from '../utils/cardDesigns';
 import toast from 'react-hot-toast';
+
+const ROTATING_WORDS = [
+  'Birthday', 'Leaving', 'Thank You', 'Appreciation', 'Recognition', 'Farewell',
+  'Shout-Out', "Valentine's", 'Anniversary', 'Wedding', 'Baby Shower', 'Graduation',
+  'Promotion', 'Retirement', 'Christmas', 'Get Well',
+];
+
+const SAMPLE_MESSAGES = [
+  { name: 'Tunde', text: 'Adaeze, it has genuinely not been the same energy in the office these past few weeks 😂 Go be amazing out there!', color: '#7C3AED' },
+  { name: 'Folake', text: 'Working with you taught me so much. We will miss you loads — stay in touch!', color: '#F43F5E' },
+  { name: 'Chidi', text: 'Remember the Lagos traffic stories we used to swap every Monday? Going to miss those way more than expected 🚀', color: '#059669' },
+  { name: 'Ngozi', text: 'You made every deadline feel less terrifying somehow. Congrats on the new role!! 🎉', color: '#D97706' },
+];
 
 const OCCASIONS = [
   { icon: 'Cake', label: 'Birthday' },      { icon: 'Heart', label: "Valentine's" },
@@ -139,40 +153,106 @@ const Home = () => {
   });
   const [showDemo,    setShowDemo]    = useState(false);
   const [homeCurrency,setHomeCurrency] = useState('NGN');
+  const [wordIndex,   setWordIndex]   = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setWordIndex(i => (i + 1) % ROTATING_WORDS.length), 2200);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="min-h-screen" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 20%)' }}>
       <Navbar onBookDemo={() => setShowDemo(true)} />
 
       {/* ── HERO ─────────────────────────────── */}
-      <section className="relative overflow-hidden pt-12 pb-16 md:pt-20 md:pb-24 px-4 gc-font">
+      <section className="relative overflow-hidden pt-12 pb-16 md:pt-16 md:pb-20 px-4 gc-font">
         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage:'radial-gradient(rgba(124,58,237,0.1) 1.5px,transparent 1.5px)', backgroundSize:'28px 28px' }} />
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-64 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,transparent 70%)' }} />
 
-        <div className="relative max-w-4xl mx-auto text-center">
+        <div className="relative max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-10 lg:gap-6 items-center">
 
-          <h1 className="font-extrabold text-warm-900 mb-5 px-2"
-            style={{ fontSize:'clamp(2.25rem,8vw,4.25rem)', lineHeight:1.08 }}>
-           Send a group card <br/>
-            <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
-              everyone can sign
-            </span>
-          </h1>
+            {/* Left: headline + CTAs */}
+            <div className="text-center lg:text-left">
+              <h1 className="font-extrabold text-warm-900 mb-5"
+                style={{ fontSize:'clamp(2.1rem,6vw,3.75rem)', lineHeight:1.08 }}>
+                Send a Group<br/>
+                <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', display:'inline-block', minWidth:'1px' }}>
+                  {ROTATING_WORDS[wordIndex]}
+                </span>{' '}Card Online
+              </h1>
 
-          <p className="text-warm-600 mb-9 max-w-xl mx-auto px-2" style={{ fontSize:'clamp(1.05rem,2.8vw,1.25rem)', lineHeight:1.6 }}>
-            Pick a design and start adding messages right now — no account needed.
-            Share the link, collect signatures and a gift pot, then pay only when you're ready to send.
-          </p>
+              <p className="text-warm-600 mb-9 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.05rem,2.5vw,1.2rem)', lineHeight:1.6 }}>
+                Pick a design and start adding messages right now — no account needed.
+                Share the link, collect signatures and a gift pot, then pay only when you're ready to send.
+              </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6 px-2">
-            <Link to="/card/new" className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
-              <Icon name="Sparkles" size={18}/> Create a card — free
-            </Link>
-            <Link to="/sign/demo-thankeeu-card" className="gc-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2">
-              <Icon name="Eye" size={18}/> Try our demo card
-            </Link>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
+                <Link to="/card/new" className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+                  <Icon name="Sparkles" size={18}/> Create a card — free
+                </Link>
+                <Link to="/sign/demo-thankeeu-card" className="gc-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+                  <Icon name="Eye" size={18}/> Try our demo card
+                </Link>
+              </div>
+              <p className="text-sm font-medium text-warm-500 text-center lg:text-left">No signup needed to start · Takes under 2 minutes</p>
+            </div>
+
+            {/* Right: sample signed-card messages, Thankbox-style */}
+            <div className="hidden lg:grid grid-cols-2 gap-3" style={{ width: 360 }}>
+              {SAMPLE_MESSAGES.map((m, i) => (
+                <div key={m.name} className="gc-card p-3.5" style={{ marginTop: i % 2 === 1 ? 24 : 0 }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: m.color }}>
+                      {m.name[0]}
+                    </span>
+                    <span className="text-xs font-bold" style={{ color: '#3B0D7A' }}>{m.name}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed" style={{ color: '#52525B' }}>{m.text}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Mobile: stacked sample messages below CTAs */}
+            <div className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+              {SAMPLE_MESSAGES.map(m => (
+                <div key={m.name} className="gc-card p-3.5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0" style={{ background: m.color }}>
+                      {m.name[0]}
+                    </span>
+                    <span className="text-xs font-bold" style={{ color: '#3B0D7A' }}>{m.name}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed" style={{ color: '#52525B' }}>{m.text}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-sm font-medium text-warm-500">No signup needed to start · Takes under 2 minutes</p>
+        </div>
+      </section>
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+
+      {/* ── DESIGN GALLERY ───────────────────── */}
+      <section className="py-12 md:py-16 px-4 gc-font">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>Find the perfect card design</h2>
+            <p className="text-warm-500 text-sm sm:text-base">All cards come with unlimited messages and pages. Change your design any time before sending.</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {CARD_DESIGNS.slice(0, 10).map(d => (
+              <Link key={d.id} to="/card/new" className="gc-card gc-card-hover block overflow-hidden">
+                <div className="h-20 flex items-center justify-center text-2xl" style={{ background: d.background }}>{d.icon}</div>
+                <div className="px-2.5 py-2">
+                  <p className="text-xs font-semibold truncate" style={{ color:'#3B0D7A' }}>{d.name}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+          <div className="text-center mt-7">
+            <Link to="/card/new" className="gc-btn-secondary inline-flex items-center gap-2 px-6 py-3 text-sm">View all designs <Icon name="ArrowRight" size={15}/></Link>
+          </div>
         </div>
       </section>
 
@@ -333,8 +413,49 @@ const Home = () => {
 
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 
+      {/* ── TRUSTED BY STRIP ─────────────────── */}
+      <section className="py-10 px-4 gc-font">
+        <div className="max-w-4xl mx-auto text-center">
+          <p className="text-xs font-bold uppercase tracking-wide mb-5" style={{ color:'#A1A1AA' }}>Used by teams and groups across Nigeria and beyond</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-4 opacity-60">
+            {['Lagos Fintech Co','Naija Logistics','BlueWave Studios','Heritage Bank Group','Coral Health','Sunrise Media'].map(name => (
+              <span key={name} className="text-sm font-bold" style={{ color:'#52525B' }}>{name}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+
+      {/* ── SAMPLE CARDS INSPIRATION ──────────── */}
+      <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-8">
+            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize:'clamp(1.5rem,5vw,2.25rem)' }}>Get inspiration from sample cards</h2>
+            <p className="text-warm-500 text-sm sm:text-base">See real examples before you start your own.</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { occ:'Birthday', icon:'🎂', bg:'linear-gradient(145deg,#fffbeb,#fed7aa)' },
+              { occ:'Farewell', icon:'👋', bg:'linear-gradient(145deg,#fff1f5,#ede9fe)' },
+              { occ:'Congrats', icon:'🎉', bg:'linear-gradient(145deg,#fafafa,#fdf2f8)' },
+              { occ:'Thank You', icon:'💌', bg:'linear-gradient(145deg,#ecfdf5,#fef3c7)' },
+            ].map(s => (
+              <Link key={s.occ} to="/sign/demo-thankeeu-card" className="gc-card gc-card-hover block overflow-hidden">
+                <div className="h-24 flex items-center justify-center text-3xl" style={{ background:s.bg }}>{s.icon}</div>
+                <div className="px-2.5 py-2.5 text-center">
+                  <p className="text-xs font-semibold" style={{ color:'#3B0D7A' }}>See a {s.occ.toLowerCase()} sample</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
+
       {/* ── FOR TEAMS ────────────────────── */}
-      <section className="py-12 md:py-16 px-4" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+      <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> For HR &amp; People teams</div>
@@ -354,7 +475,7 @@ const Home = () => {
               { icon:'File', title:'HR Analytics Dashboard', desc:'Full visibility into automations, upcoming occasions, and spending.' },
               { icon:'Shield', title:'Approval Workflows', desc:'Team leaders sign off on card creation. Full control maintained.' },
             ].map(f => (
-              <div key={f.title} className="bg-white border-2 border-purple-100 rounded-3xl p-4 flex gap-3 hover:border-primary-300 transition-all">
+              <div key={f.title} className="gc-card gc-card-hover p-4 flex gap-3">
                 <div className="w-10 h-10 bg-primary-50 rounded-xl flex items-center justify-center flex-shrink-0"><Icon name={f.icon} size={18} className="text-primary-500"/></div>
                 <div>
                   <p className="font-bold text-warm-900 text-sm mb-1">{f.title}</p>
@@ -364,8 +485,8 @@ const Home = () => {
             ))}
           </div>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/company/signup" className="btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Building" size={16}/> Start for your team <Icon name="ArrowRight" size={15}/></Link>
-            <button onClick={() => setShowDemo(true)} className="btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Calendar" size={16}/> Book a 30-min demo</button>
+            <Link to="/company/signup" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Building" size={16}/> Start for your team <Icon name="ArrowRight" size={15}/></Link>
+            <button onClick={() => setShowDemo(true)} className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Calendar" size={16}/> Book a 30-min demo</button>
           </div>
         </div>
       </section>
@@ -373,7 +494,7 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 
       {/* ── PRICING CALLOUT ──────────────── */}
-      <section className="py-12 md:py-16 px-4">
+      <section className="py-12 md:py-16 px-4 gc-font">
         <div className="max-w-4xl mx-auto">
           {/* Currency toggle */}
           <div className="text-center mb-6">
@@ -419,7 +540,7 @@ const Home = () => {
                 ))}
               </ul>
               <div className="flex flex-wrap gap-2">
-                <button onClick={() => setShowDemo(true)} className="btn-primary px-6 py-3 text-sm">Get a quote →</button>
+                <button onClick={() => setShowDemo(true)} className="gc-btn-primary px-6 py-3 text-sm">Get a quote →</button>
                 <Link to="/company/signup" className="px-6 py-3 text-sm font-bold rounded-2xl border-2 border-purple-500 text-purple-200 hover:bg-purple-800 transition-colors">Create account</Link>
               </div>
             </div>
@@ -430,11 +551,11 @@ const Home = () => {
       </section>
 
       {/* ── HOW IT WORKS ─────────────────────── */}
-      <section id="how-it-works" className="py-14 md:py-20 px-4" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
+      <section id="how-it-works" className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
-            <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(1.6rem,5vw,2.5rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
+            <h2 style={{ fontWeight:800, fontSize:'clamp(1.6rem,5vw,2.5rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
               From zero to celebration<br/><span className="text-primary-500">in under 3 minutes</span>
             </h2>
           </div>
@@ -445,12 +566,11 @@ const Home = () => {
               { num:'3', icon:'Heart', title:'Watch messages roll in', desc:'Your signers add messages, photos, voice notes, GIFs and chip in to the gift pot via Flutterwave.' },
               { num:'4', icon:'Gift', title:'Deliver the surprise', desc:'Card and gift arrive by email on the exact day. The recipient opens a beautiful card, reads every message and claims the gift.' },
             ].map(s => (
-              <div key={s.num} className="bg-white rounded-3xl border-2 border-purple-100 p-6 flex gap-4 hover:border-primary-300 hover:shadow-md transition-all">
-                <div className="w-10 h-10 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-sm flex-shrink-0"
-                  style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900 }}>{s.num}</div>
+              <div key={s.num} className="gc-card gc-card-hover p-6 flex gap-4">
+                <div className="w-10 h-10 rounded-2xl bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-extrabold flex-shrink-0">{s.num}</div>
                 <div>
                   <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center mb-2"><Icon name={s.icon} size={16} className="text-primary-500"/></div>
-                  <h3 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:800, fontSize:'1rem', color:'#1A1035', marginBottom:'0.3rem' }}>{s.title}</h3>
+                  <h3 className="font-extrabold" style={{ fontSize:'1rem', color:'#1A1035', marginBottom:'0.3rem' }}>{s.title}</h3>
                   <p className="text-sm text-warm-500 leading-relaxed">{s.desc}</p>
                 </div>
               </div>
@@ -465,11 +585,11 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 
       {/* ── FAQ ───────────────────────────────── */}
-      <section id="faq" className="py-14 md:py-20 px-4">
+      <section id="faq" className="py-14 md:py-20 px-4 gc-font">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
             <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
-            <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(1.6rem,5vw,2.3rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
+            <h2 className="font-extrabold" style={{ fontSize:'clamp(1.6rem,5vw,2.3rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
               Questions we get all the time
             </h2>
           </div>
@@ -488,7 +608,7 @@ const Home = () => {
               <div key={i} className="border-b border-purple-100">
                 <button onClick={() => setOpen(!open)}
                   className="w-full text-left flex items-center justify-between py-4 gap-4 hover:text-primary-600 transition-colors">
-                  <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:700, fontSize:'0.9rem', color:'#1A1035' }}>{item.q}</span>
+                  <span className="font-bold" style={{ fontSize:'0.9rem', color:'#1A1035' }}>{item.q}</span>
                   <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${open ? 'rotate-45' : ''}`}>+</span>
                 </button>
                 {open && <p className="text-sm text-warm-600 leading-relaxed pb-4">{item.a}</p>}
@@ -556,11 +676,11 @@ const Home = () => {
 
               <div className="mt-auto flex flex-wrap gap-3">
                 <Link to="/pals"
-                  className="btn-primary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">
+                  className="gc-btn-primary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">
                   <Icon name="Users" size={14}/> Learn about Pals
                 </Link>
                 <Link to="/pals/signup"
-                  className="btn-secondary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">
+                  className="gc-btn-secondary px-5 py-2.5 text-sm inline-flex items-center gap-1.5">
                   Start a group →
                 </Link>
               </div>
@@ -620,7 +740,7 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 
       {/* ── BOTTOM CTA ───────────────────── */}
-      <section className="py-16 md:py-24 px-4 text-center" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
+      <section className="py-16 md:py-24 px-4 text-center gc-font" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
           <div className="flex justify-center gap-2 sm:gap-3 mb-6">
             {['Cake','Gift','Party','Heart','Sparkles'].map((name,i) => (

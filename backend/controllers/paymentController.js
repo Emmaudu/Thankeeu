@@ -14,16 +14,9 @@
 * paymentController.js — Flutterwave payments
  *
  * FLOW:
- *  CONTRIBUTION (gift) flow — FLW Inline JS (no redirect):
- *  1. Frontend calls /initialize/contribution → gets { tx_ref, flw_config }
- *  2. Frontend loads checkout.flutterwave.com/v3.js and calls FlutterwaveCheckout(flw_config)
- *  3. FLW popup opens inline — user pays without leaving the page
- *  4. FLW fires callback(response) → frontend calls /verify-contribution
- *
- *  CARD FEE flow — redirect (unchanged):
- *  1. Frontend calls /initialize/purchase → gets { payment_link, tx_ref }
+ *  1. Frontend calls init endpoint → gets { payment_link, tx_ref }
  *  2. Frontend: window.location.assign(payment_link) → user pays on flutterwave.com
- *  3. FLW redirects browser directly to FRONTEND /create-card/verify?tx_ref=...
+ *  3. FLW redirects browser directly to FRONTEND redirect_url with ?tx_ref=...&status=...
  *  4. Frontend page reads ?tx_ref, calls backend verify endpoint
  *  5. Backend verifies with FLW, updates DB, returns JSON { ok: true, ... }
  *  6. Frontend shows success screen
@@ -154,16 +147,6 @@ const initCardFee = async (req, res) => {
   try {
     const { card_slug, currency: reqCurrency } = req.body;
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
-
-    // Guard against double-charging: if the card is already active (previous payment
-    // succeeded but CardFeeVerify failed to navigate), return a synthetic success so
-    // the frontend can redirect to the card view without generating a new FLW charge.
-    const { data: existingCard } = await supabase.from('cards')
-      .select('slug, status').eq('slug', card_slug).maybeSingle();
-    if (existingCard?.status === 'active' || existingCard?.status === 'sent') {
-      console.log('initCardFee: card already active, skipping charge. card:', card_slug);
-      return res.json({ already_active: true, card_slug });
-    }
     // Currency: default NGN, support USD/GBP/EUR etc. for international users
     const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
     const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
@@ -251,7 +234,7 @@ const verifyCardFee = async (req, res) => {
     }
 
     // Verify amount paid matches what was expected (prevents ₦1 payment activating card)
-    const CARD_FEE = 5000; // ₦5,000 card creation fee
+    const CARD_FEE = 500; // ₦500 card creation fee
     const paidAmount = txn.amount;
     if (paidAmount < CARD_FEE * 0.90) {
       console.error(`[verifyCardFee] UNDERPAYMENT: expected ₦${CARD_FEE}, got ₦${paidAmount}. card: ${cardSlug}, ref: ${txRef}`);
@@ -272,7 +255,8 @@ const verifyCardFee = async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // POST /api/payments/initialize/contribution  — gift contribution
 // Public — signers not necessarily logged in
-// Returns { tx_ref, flw_config } — frontend uses FLW Inline JS (no redirect, no expiring link)
+// Returns { payment_link, tx_ref }
+// redirect_url → frontend /sign/slug?tx_ref=...
 // ═══════════════════════════════════════════════════════════════════════════════
 const initContribution = async (req, res) => {
   try {
@@ -290,18 +274,41 @@ const initContribution = async (req, res) => {
 
     if (!card)                  return res.status(404).json({ error: 'Card not found' });
     if (!card.is_gift_enabled)  return res.status(400).json({ error: 'Gifts not enabled for this card' });
-    // Only 'draft' is blocked — 'active' and 'sent' cards are both open for contributions.
+    // NOTE: We intentionally allow gift contributions even after the card
+    // has been delivered (status === 'sent'). For HR/company auto-sent cards,
+    // colleagues may still want to contribute a late gift or send well-wishes.
+    // The only truly blocked status is 'draft' (card not yet active).
     if (card.status === 'draft') return res.status(400).json({ error: 'Card is not yet active' });
 
     const txRef       = `TK-GIFT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
     const amountNaira = Number(amount);
 
+    // Use flw_amount/flw_currency if provided (international user selected different currency)
     const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
     const payAmount   = (flw_amount && flw_currency && SUPPORTED.includes(flw_currency)) ? flw_amount : amountNaira;
     const payCurrency = (flw_currency && SUPPORTED.includes(flw_currency)) ? flw_currency : 'NGN';
 
-    // Save pending contribution row immediately — so verifyContribution can find the
-    // NGN amount even before the popup opens (important for multi-currency payments).
+    const payload = {
+      tx_ref:    txRef,
+      amount:    payAmount,
+      currency:  payCurrency,
+      // FLW redirects browser directly to the sign page on the frontend
+      // Frontend reads ?tx_ref= and calls /api/payments/verify-contribution
+      redirect_url: `${FRONTEND_URL}/sign/${card_slug}?tx_ref=${txRef}`,
+      customer:  { email: contributor_email, name: contributor_name || contributor_email },
+      customizations: {
+        title:       `Gift for ${card.recipient_name}`,
+        description: `Contribute to ${card.title || card.recipient_name + "'s card"}`,
+        logo:        `${FRONTEND_URL}/logo.png`,
+      },
+      meta: { type: 'gift_contribution', card_id: card.id, card_slug, message_id: message_id || null },
+    };
+
+    const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
+    if (r.data.status !== 'success') {
+      return res.status(400).json({ error: r.data.message || 'Gateway rejected the request' });
+    }
+
     await upsertContribution({
       cardId:           card.id,
       txRef,
@@ -312,29 +319,8 @@ const initContribution = async (req, res) => {
       messageId:        message_id || null,
     });
 
-    // Return inline checkout config — NO FLW API call needed here.
-    // The frontend loads checkout.flutterwave.com/v3.js and calls
-    // window.FlutterwaveCheckout(flw_config) directly. This eliminates the
-    // flwlnk- redirect link entirely (those expire after 30 minutes).
-    const flwConfig = {
-      public_key:  process.env.FLW_PUBLIC_KEY,
-      tx_ref:      txRef,
-      amount:      payAmount,
-      currency:    payCurrency,
-      customer: {
-        email: contributor_email,
-        name:  contributor_name || contributor_email,
-      },
-      customizations: {
-        title:       `Gift for ${card.recipient_name}`,
-        description: `Contribute to ${card.title || (card.recipient_name + "'s card")}`,
-        logo:        `${FRONTEND_URL}/logo.png`,
-      },
-      meta: { type: 'gift_contribution', card_id: card.id, card_slug, message_id: message_id || null },
-    };
-
     console.log('initContribution OK tx_ref:', txRef, 'card:', card_slug, 'amount:', amountNaira);
-    return res.json({ tx_ref: txRef, flw_config: flwConfig });
+    return res.json({ payment_link: r.data.data.link, tx_ref: txRef });
 
   } catch (err) {
     console.error('initContribution error:', err.response?.data?.message || err.message);

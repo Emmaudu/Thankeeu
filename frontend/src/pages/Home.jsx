@@ -443,7 +443,7 @@ const Home = () => {
       <Navbar onBookDemo={() => setShowDemo(true)} />
 
       {/* ══ HERO ══ */}
-      <section className="relative overflow-visible pt-0 pb-10 md:pt-0 md:pb-14 px-2 sm:px-4 gc-font section-dots">
+      <section className="relative overflow-visible pt-3 pb-10 md:pt-4 md:pb-14 px-2 sm:px-4 gc-font section-dots">
 
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-32 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
 

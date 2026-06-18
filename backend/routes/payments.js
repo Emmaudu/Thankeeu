@@ -1,6 +1,6 @@
 const express = require('express');
 const router  = express.Router();
-const { anyAuth, optionalAuth } = require('../middleware/auth');
+const { anyAuth } = require('../middleware/auth');
 const {
   initCardFee,
   verifyCardFee,
@@ -9,15 +9,10 @@ const {
   verifyPayment,
 } = require('../controllers/paymentController');
 
-// Card creation fee (auth required to init, but NOT to verify)
+// Card creation fee (auth required)
 router.post('/initialize/purchase',    anyAuth, initCardFee);
 router.post('/initialize/card-fee',    anyAuth, initCardFee);
-
-// optionalAuth (not anyAuth) — FLW redirect lands here after a full-page reload.
-// The user's JWT may have expired during checkout; requiring auth would silently
-// leave the card as 'draft' even though the payment succeeded. verifyCardFee
-// does not use req.user — it only needs the tx_ref to confirm with FLW.
-router.get('/verify-card-fee',         optionalAuth, verifyCardFee);
+router.get('/verify-card-fee',         anyAuth, verifyCardFee);
 
 // Gift contributions (public)
 router.post('/initialize/contribution', initContribution);

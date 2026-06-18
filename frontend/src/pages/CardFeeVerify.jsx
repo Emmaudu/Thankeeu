@@ -44,12 +44,8 @@ export default function CardFeeVerify() {
           // ── Card fee payment ─────────────────────────────────────────────
           setMsg('Activating your card…');
           const res = await paymentsAPI.verifyCardFee(txRef);
-          const { card_slug, already_active } = res.data;
-          if (already_active) {
-            toast('Your card was already active ✓');
-          } else {
-            toast.success('Card is now active! 🎉');
-          }
+          const { card_slug } = res.data;
+          toast.success('Card is now active! 🎉');
           navigate(`/card/${card_slug}`, { replace: true });
         }
 

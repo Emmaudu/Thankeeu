@@ -19,62 +19,40 @@ const OCCASION_EMOJI = {
 
 const getStats = async (req, res) => {
   try {
-    // Use count-only queries for totals — avoids Supabase's 1000-row default cap
-    // and doesn't waste bandwidth fetching full rows just to count them.
-    const [
-      { count: totalUsers },
-      { count: totalCards },
-      { count: activeCards },
-      { count: sentCards },
-      { count: totalMessages },
-      recentUsersRes,
-      recentCardsRes,
-      contributionsRes,
-    ] = await Promise.all([
-      supabase.from('users').select('*', { count: 'exact', head: true }),
-      supabase.from('cards').select('*', { count: 'exact', head: true }),
-      supabase.from('cards').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      supabase.from('cards').select('*', { count: 'exact', head: true }).eq('status', 'sent'),
-      supabase.from('messages').select('*', { count: 'exact', head: true }),
-      supabase.from('users').select('id, full_name, email, role, created_at').order('created_at', { ascending: false }).limit(10),
-      supabase.from('cards').select('id, slug, title, status, occasion, total_collected, created_at').order('created_at', { ascending: false }).limit(10),
-      // Fetch all successful contribution amounts for revenue total.
-      // Use pagination if this grows large — for now select only amount column.
-      supabase.from('contributions').select('id, amount, contributor_name, created_at').eq('status', 'success').order('created_at', { ascending: false }),
+    const [users, cards, contributions, messages] = await Promise.all([
+      supabase.from('users').select('id, full_name, email, role, created_at').order('created_at', { ascending: false }),
+      supabase.from('cards').select('id, slug, title, status, occasion, total_collected, created_at').order('created_at', { ascending: false }),
+      supabase.from('contributions').select('id, amount, status, contributor_name, created_at').eq('status', 'success'),
+      supabase.from('messages').select('count')
     ]);
 
-    const totalRevenue = contributionsRes.data?.reduce((s, c) => s + (c.amount || 0), 0) || 0;
-    const platformCut  = Math.round(totalRevenue * 0.04);
+    const totalRevenue = contributions.data?.reduce((s, c) => s + (c.amount || 0), 0) || 0;
+    const platformCut = Math.round(totalRevenue * 0.04);
 
     res.json({
       stats: {
-        total_users:         totalUsers   || 0,
-        total_cards:         totalCards   || 0,
-        active_cards:        activeCards  || 0,
-        sent_cards:          sentCards    || 0,
-        total_messages:      totalMessages || 0,
-        total_contributions: contributionsRes.data?.length || 0,
-        total_gift_volume:   totalRevenue,
-        platform_revenue:    platformCut,
+        total_users: users.data?.length || 0,
+        total_cards: cards.data?.length || 0,
+        active_cards: cards.data?.filter(c => c.status === 'active').length || 0,
+        sent_cards: cards.data?.filter(c => c.status === 'sent').length || 0,
+        total_contributions: contributions.data?.length || 0,
+        total_gift_volume: totalRevenue,
+        platform_revenue: platformCut
       },
-      recent_users:         recentUsersRes.data  || [],
-      recent_cards:         recentCardsRes.data  || [],
-      recent_contributions: contributionsRes.data?.slice(0, 10) || [],
+      recent_users: users.data?.slice(0, 10) || [],
+      recent_cards: cards.data?.slice(0, 10) || [],
+      recent_contributions: contributions.data?.slice(0, 10) || []
     });
   } catch (err) {
-    console.error('[admin] getStats error:', err.message);
     res.status(500).json({ error: 'Failed to fetch admin stats' });
   }
 };
 
 const getAllUsers = async (req, res) => {
   try {
-    // limit(2000): Supabase default cap is 1000; raise it so the admin
-    // sees all users. Add pagination if the platform grows beyond 2000.
     const { data, error } = await supabase
       .from('users').select('id, full_name, email, role, is_verified, created_at')
-      .order('created_at', { ascending: false })
-      .limit(2000);
+      .order('created_at', { ascending: false });
     if (error) throw error;
     res.json(data);
   } catch (err) {
@@ -134,8 +112,7 @@ const getAllCards = async (req, res) => {
     const { data, error } = await supabase
       .from('cards')
       .select('*, users(full_name, email)')
-      .order('created_at', { ascending: false })
-      .limit(2000);
+      .order('created_at', { ascending: false });
     if (error) throw error;
     res.json(data);
   } catch (err) {

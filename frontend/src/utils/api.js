@@ -131,9 +131,6 @@ export const cardsAPI = {
   getOneAsCompany:  (slug)         => companyAxios.get(`/cards/${slug}`),
   getCompanyMine:   ()             => companyAxios.get('/cards/company/mine'),
   getPublic:    (slug)         => publicAxios.get(`/cards/public/${slug}`),
-  // Recipient claim flow
-  getClaimGate: (slug, claim)   => publicAxios.get(`/cards/${slug}/claim-gate?claim=${encodeURIComponent(claim)}`),
-  markClaimed:  (slug, token)   => publicAxios.post(`/cards/${slug}/mark-claimed`, { access_token: token }),
   getRecipient: (slug, token)  => publicAxios.get(`/cards/recipient/${slug}`, { params: { token } }),
   claimGift:    (slug, data)   => publicAxios.post(`/cards/recipient/${slug}/claim`, data),
   update:       (slug, data)   => api.put(`/cards/${slug}`, data),

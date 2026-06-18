@@ -8,8 +8,7 @@ const {
   createCard, getUserCards, getCard, updateCard,
   activateCard, sendCard, deleteCard, getPublicCard,
   getRecipientCard, claimGift, getMemberCards, approveCardScope,
-  getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember,
-  getClaimGate, markClaimed, claimMemberPassword
+  getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember
 } = require('../controllers/cardController');
 const { validateSlugParam } = require('../utils/paramGuard');
 
@@ -69,11 +68,6 @@ router.get('/company/received',   companyAuth, getCompanyReceivedCards);
 router.get('/member-history', memberAuth, getMemberCards);
 
 // ── Public card routes (must be before /:slug) ─────────────────────────────
-// Recipient claim gate — public, no auth needed
-router.get('/:slug/claim-gate',  validateSlugParam('slug'), getClaimGate);
-router.post('/:slug/mark-claimed', validateSlugParam('slug'), optionalAuth, markClaimed);
-router.post('/:slug/claim-member-password', validateSlugParam('slug'), claimMemberPassword);
-
 router.get('/public/:slug',           validateSlugParam('slug'), getPublicCard);
 router.get('/recipient/:slug',        validateSlugParam('slug'), getRecipientCard);
 router.post('/recipient/:slug/claim', validateSlugParam('slug'), claimGift);

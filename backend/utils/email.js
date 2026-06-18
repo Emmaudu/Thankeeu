@@ -110,12 +110,12 @@ const emailTemplates = {
         <p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>
       </div>` : ''}
 
-      ${btn('🎉 Open my card now', `${FRONTEND_URL}/card/${data.cardSlug}?claim=${data.claimToken || data.accessToken}`, '#7C6EFF')}
+      ${btn('🎉 Open my card now', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
 
       <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
         <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>
         <ol style="color:#555;line-height:2;margin:0;padding-left:20px;font-size:14px;">
-          <li>The link above will <strong>automatically guide you</strong> — sign in or create a free account using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
+          <li><strong>Sign up or sign in</strong> at <a href="${FRONTEND_URL}/signup" style="color:#7C6EFF;">thankeeu.com</a> using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
           <li><strong>Set your username</strong> in your dashboard settings — your friends can transfer cards to you by username</li>
           <li>Your card will appear in your <strong>Received tab</strong> in your dashboard automatically</li>
           ${data.giftAmount ? '<li>Add your <strong>bank account</strong> in settings to withdraw your gift pot 💰</li>' : ''}

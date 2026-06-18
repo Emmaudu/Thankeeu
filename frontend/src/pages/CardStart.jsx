@@ -228,29 +228,6 @@ const CardStart = () => {
               You don't need an account yet — your card stays exactly as it is.
               When you're ready to deliver it, sign in or sign up and it'll already be there as a draft.
             </p>
-
-            {/* ── Edit & Reset ─────────────────────────────────────── */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6 pt-6" style={{ borderTop: '1.5px solid rgba(124,58,237,0.10)' }}>
-              <button
-                onClick={() => { setStep(2); setResuming(false); }}
-                style={{ flex:1, padding:'11px 20px', borderRadius:14, border:'1.5px solid #DDD6FE', background:'#fff', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#7C3AED', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-                <Icon name="Edit" size={16}/> Edit card details
-              </button>
-              <button
-                onClick={() => {
-                  localStorage.removeItem('thankeeu_anon_draft');
-                  setCard(null);
-                  setStep(1);
-                  setSelectedDesign(null);
-                  setOccasion(null);
-                  setRecipientName('');
-                  setRecipientEmail('');
-                  setResuming(false);
-                }}
-                style={{ flex:1, padding:'11px 20px', borderRadius:14, border:'1.5px solid #FEE2E2', background:'#FFF5F5', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#DC2626', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-                <Icon name="RotateCcw" size={16}/> Start over
-              </button>
-            </div>
           </div>
         )}
       </div>

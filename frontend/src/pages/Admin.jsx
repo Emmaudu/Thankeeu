@@ -153,8 +153,7 @@ const Admin = () => {
       const [statsRes, usersRes, cardsRes] = await Promise.all([
         adminAPI.getStats(), adminAPI.getUsers(), adminAPI.getCards(),
       ]);
-      const statsData = statsRes.data || {};
-      setStats(statsData.stats || statsData); // support both {stats:{...}} and flat shape
+      setStats(statsRes.data || {});
       setUsers(usersRes.data || []);
       setCards(cardsRes.data || []);
     } catch { toast.error('Failed to load admin data'); }
@@ -517,11 +516,10 @@ const Admin = () => {
         {/* Stats strip */}
         <div style={{ padding:'10px 16px', background:'white', borderBottom:'1px solid #F3EEFF', display:'flex', gap:10, overflowX:'auto' }} className='md:flex-wrap md:px-28'>
           {[
-            { icon:'👥', val:(stats.total_users||0).toLocaleString(),        label:'Users',       color:'#7C3AED' },
-            { icon:'🃏', val:(stats.total_cards||0).toLocaleString(),        label:'Cards',       color:'#2563EB' },
-            { icon:'✅', val:(stats.sent_cards||0).toLocaleString(),         label:'Sent',        color:'#059669' },
-            { icon:'✍️', val:(stats.total_messages||0).toLocaleString(),     label:'Messages',    color:'#0891B2' },
-            { icon:'💰', val:formatNGN(stats.total_gift_volume||0),          label:'Gift volume', color:'#D97706' },
+            { icon:'👥', val:(stats.total_users||0).toLocaleString(),  label:'Users',       color:'#7C3AED' },
+            { icon:'🃏', val:(stats.total_cards||0).toLocaleString(),  label:'Cards',       color:'#2563EB' },
+            { icon:'✅', val:(stats.sent_cards||0).toLocaleString(),   label:'Sent',        color:'#059669' },
+            { icon:'💰', val:formatNGN(stats.total_gift_volume||0),    label:'Gift volume', color:'#D97706' },
           ].map(s => (
             <div key={s.label} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', borderRadius:12, background:'#FAFAFF', border:'1px solid #EDE9FF', flex:'1 1 140px' }}>
               <span style={{ fontSize:20 }}>{s.icon}</span>

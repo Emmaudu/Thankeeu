@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth }               from './context/AuthContext';
 import { CompanyAuthProvider, useCompanyAuth } from './context/CompanyAuthContext';
@@ -26,8 +26,7 @@ import MemberGiftCardsPage from './pages/member/MemberGiftCardsPage';
 import CompanyGiftCardsPage from './pages/company/CompanyGiftCardsPage';
 import CreateCard       from './pages/CreateCard';
 import CardStart        from './pages/CardStart';
-import CardView              from './pages/CardView';
-import RecipientClaimGate   from './pages/RecipientClaimGate';
+import CardView         from './pages/CardView';
 import SignCard         from './pages/SignCard';
 import Pricing          from './pages/Pricing';
 import Policy           from './pages/Policy';
@@ -124,39 +123,29 @@ const Spinner = () => (
   </div>
 );
 
-// CardViewGate — requires authentication.
-// Recipient email links now go to RecipientClaimGate (/card/:slug?claim=TOKEN)
-// which handles the login/signup/member-claim flow before landing here.
-// The only exception is when an access_token is in sessionStorage (already claimed).
+// CardViewGate: requires authentication UNLESS a recipient access_token is
+// present in the URL — that token alone is enough for the backend's
+// getRecipientCard endpoint to return the full card (messages, gift pot,
+// isRecipient: true). Without this carve-out, every recipient clicking
+// their birthday/occasion email link would be redirected straight to a
+// bare login page with no card, no name, no gift amount — even though the
+// backend has always supported viewing via token alone. Login is still
+// required to actually withdraw the gift; GiftClaimPanel shows its own
+// prompt for that at the point where it actually matters.
 const CardViewGate = () => {
   const { user, loading: uLoading }     = useAuth();
   const { company, loading: cLoading }  = useCompanyAuth();
   const { member, loading: mLoading }   = useMemberAuth();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { slug } = useParams();
-
-  // ?claim= means this is a fresh recipient link — send to RecipientClaimGate
-  if (searchParams.get('claim')) {
-    return <RecipientClaimGate />;
-  }
-
-  // Access token in URL or sessionStorage = already-claimed recipient view
-  const hasSessionToken = Boolean(
-    searchParams.get('token') ||
-    sessionStorage.getItem(`card_token_${slug}`)
-  );
+  const hasRecipientToken = Boolean(searchParams.get('token'));
 
   if (uLoading || cLoading || mLoading) return <Spinner />;
-
-  // Authenticated OR has session token → show the card
-  if (user || company || member || hasSessionToken) return <CardView />;
-
-  // Not authenticated and no token → send to login preserving return URL
-  return <Navigate
-    to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
-    replace
-  />;
+  if (!user && !company && !member && !hasRecipientToken) {
+    // Preserve the full path including ?token= so after login they come back here
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />;
+  }
+  return <CardView />;
 };
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {

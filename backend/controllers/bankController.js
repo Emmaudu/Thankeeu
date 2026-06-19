@@ -6,6 +6,21 @@ const { sendEmail } = require('../utils/email');
 const FLW = 'https://api.flutterwave.com/v3';
 const flwH = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
 
+// Route FLW transfer calls through a static-IP proxy so Flutterwave's
+// IP whitelist check passes. Set QUOTAGUARDSTATIC_URL in Railway env vars.
+// Falls back to direct if not set (dev / already-whitelisted environments).
+const flwTransferAxios = () => {
+  const proxyUrl = process.env.QUOTAGUARDSTATIC_URL || process.env.PROXY_URL;
+  if (!proxyUrl) return axios;
+  try {
+    const { HttpsProxyAgent } = require('https-proxy-agent');
+    return axios.create({ httpsAgent: new HttpsProxyAgent(proxyUrl) });
+  } catch (e) {
+    console.warn('[bankController] https-proxy-agent not available:', e.message);
+    return axios;
+  }
+};
+
 // GET /api/banks/list — Nigerian bank list from Flutterwave
 const getBankList = async (req, res) => {
   try {
@@ -436,35 +451,63 @@ const withdrawGift = async (req, res) => {
     }
 
     // Initiate Flutterwave bank transfer
+    const transferPayload = {
+      account_bank:     String(bank.bank_code || '').trim(),
+      account_number:   String(bank.account_number || '').trim(),
+      amount:           Math.round(net),
+      narration:        'Thankeeu gift withdrawal',
+      currency:         'NGN',
+      reference:        transferRef,
+      beneficiary_name: (bank.account_name || 'Recipient').slice(0, 100),
+      debit_currency:   'NGN',
+    };
+
+    // Log payload (mask account number for security)
+    console.log('[withdrawGift] FLW transfer payload:', JSON.stringify({
+      ...transferPayload,
+      account_number: transferPayload.account_number.slice(0, 3) + '****',
+    }));
+
     let r;
     try {
-      r = await axios.post(`${FLW}/transfers`, {
-        account_bank:     bank.bank_code,
-        account_number:   bank.account_number,
-        amount:           net, // FLW uses Naira directly (not kobo)
-        narration:        `Gift from "${card.title || card.recipient_name + "'s card"}"`,
-        currency:         'NGN',
-        reference:        transferRef,
-        beneficiary_name: bank.account_name || 'Recipient',
-        debit_currency:   'NGN',
-      }, { headers: flwH() });
+      r = await flwTransferAxios().post(`${FLW}/transfers`, transferPayload, { headers: flwH() });
+      console.log('[withdrawGift] FLW raw response:', JSON.stringify(r.data));
     } catch (transferErr) {
-      // Transfer call failed outright — release the claim so the user can retry
+      const flwErrData = transferErr.response?.data;
+      const flwErrMsg  = flwErrData?.message || transferErr.message;
+      console.error('[withdrawGift] FLW HTTP error:', transferErr.response?.status, JSON.stringify(flwErrData));
+
+      // Release claim so user can retry
       await supabase.from('cards').update({
         gift_withdrawn: false, gift_withdrawn_at: null,
         gift_payout_reference: null, gift_payout_amount: null,
       }).eq('id', card.id);
-      throw transferErr;
+
+      return res.status(502).json({
+        error: flwErrMsg || 'Transfer failed. Please try again.',
+        flw_message: flwErrData?.message || null,
+        flw_status:  flwErrData?.status  || null,
+      });
     }
 
-    if (!['NEW', 'success', 'PENDING'].includes(r.data?.data?.status || '') &&
+    // Check FLW response status
+    const flwStatus = r.data?.data?.status || r.data?.status || '';
+    const flwMsg    = r.data?.message || r.data?.data?.complete_message || '';
+    console.log('[withdrawGift] FLW status:', flwStatus, '| message:', flwMsg);
+
+    if (!['NEW', 'success', 'PENDING', 'processing'].includes(flwStatus.toLowerCase()) &&
         r.data?.status !== 'success') {
-      // FLW rejected the transfer — release the claim so the user can retry
+      console.error('[withdrawGift] FLW rejected transfer:', JSON.stringify(r.data));
+      // Release claim so user can retry
       await supabase.from('cards').update({
         gift_withdrawn: false, gift_withdrawn_at: null,
         gift_payout_reference: null, gift_payout_amount: null,
       }).eq('id', card.id);
-      throw new Error(r.data?.message || r.data?.data?.complete_message || 'Transfer failed');
+      return res.status(422).json({
+        error: flwMsg || 'Flutterwave rejected the transfer. Please check your FLW account settings.',
+        flw_status:  flwStatus,
+        flw_message: flwMsg,
+      });
     }
 
     // ── Fix 1: Update total_collected on card to reflect the withdrawal ────────
@@ -530,11 +573,61 @@ const withdrawGift = async (req, res) => {
     });
 
   } catch (err) {
-    const msg = err.response?.data?.message || err.message;
-    console.error('withdrawGift error:', msg, err.response?.data);
-    return res.status(500).json({ error: msg || 'Withdrawal failed. Please try again or contact support.' });
+    const flwData = err.response?.data;
+    const msg = flwData?.message || err.message || 'Withdrawal failed';
+    console.error('[withdrawGift] unhandled error:', msg, JSON.stringify(flwData || {}));
+    return res.status(500).json({
+      error: msg,
+      flw_message: flwData?.message || null,
+      hint: 'Check Railway logs for the full Flutterwave error response.',
+    });
   }
 };
 
 
-module.exports = { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal, withdrawGift};
+// GET /api/banks/flw-test — admin diagnostic: checks FLW key + transfer capability
+const flwDiagnostic = async (req, res) => {
+  try {
+    const keyPrefix = (process.env.FLW_SECRET_KEY || '').slice(0, 20);
+    const isTest = (process.env.FLW_SECRET_KEY || '').includes('TEST');
+    const proxyUrl = process.env.QUOTAGUARDSTATIC_URL || process.env.PROXY_URL || null;
+
+    // 1. Check FLW balance (proves key works + account approved for API)
+    let balance = null, balanceErr = null;
+    try {
+      const br = await flwTransferAxios().get(`${FLW}/balances/NGN`, { headers: flwH() });
+      balance = br.data?.data;
+    } catch (e) {
+      balanceErr = e.response?.data?.message || e.message;
+    }
+
+    // 2. Get transfer limits
+    let limits = null, limitsErr = null;
+    try {
+      const lr = await flwTransferAxios().get(`${FLW}/transfers/rates?amount=100&destination_currency=NGN&source_currency=NGN&type=transfer`, { headers: flwH() });
+      limits = lr.data?.data;
+    } catch (e) {
+      limitsErr = e.response?.data?.message || e.message;
+    }
+
+    res.json({
+      key_prefix:    keyPrefix,
+      is_test_mode:  isTest,
+      proxy_set:     !!proxyUrl,
+      proxy_url:     proxyUrl ? proxyUrl.replace(/:([^@]+)@/, ':****@') : null,
+      flw_balance:   balance,
+      balance_error: balanceErr,
+      limits,
+      limits_error:  limitsErr,
+      verdict: isTest
+        ? '⚠️  TEST MODE — real bank transfers will always fail in test mode. Switch to LIVE keys.'
+        : balanceErr
+          ? '❌ FLW API error — check your secret key and account approval status.'
+          : `✅ FLW connected. NGN balance: ₦${(balance?.available_balance || 0).toLocaleString()}`,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal, withdrawGift, flwDiagnostic };

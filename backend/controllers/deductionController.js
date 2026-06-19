@@ -13,6 +13,15 @@ const axios = require('axios');
 const FLW   = 'https://api.flutterwave.com/v3';
 const flwH  = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
 
+const flwTransferAxios = () => {
+  const proxyUrl = process.env.QUOTAGUARDSTATIC_URL || process.env.PROXY_URL;
+  if (!proxyUrl) return axios;
+  try {
+    const { HttpsProxyAgent } = require('https-proxy-agent');
+    return axios.create({ httpsAgent: new HttpsProxyAgent(proxyUrl) });
+  } catch { return axios; }
+};
+
 // ── ensureWallet ──────────────────────────────────────────────────────────────
 const ensureWallet = async (cardId, companyId) => {
   try {
@@ -54,7 +63,7 @@ const tryInstantTransfer = async (leaderId, amount, deductionId, cardTitle) => {
 
   const transferRef = `TK-DED-${deductionId.slice(0,8)}-${Date.now()}`;
   try {
-    const r = await axios.post(`${FLW}/transfers`, {
+    const r = await flwTransferAxios().post(`${FLW}/transfers`, {
       account_bank:     bank.bank_code,
       account_number:   bank.account_number,
       amount,

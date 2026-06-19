@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const jwt     = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
-const { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal, withdrawGift } = require('../controllers/bankController');
+const { getBankList, verifyAccount, saveBankAccount, getMyAccounts, deleteBankAccount, initiateWithdrawal, withdrawGift, flwDiagnostic } = require('../controllers/bankController');
 
 // Auth — user or member (used for endpoints that read/write owner-specific
 // rows in the shared bank_accounts table: save, my, delete, withdraw)
@@ -54,5 +54,8 @@ router.get('/my',        userOrMemberAuth, getMyAccounts);
 router.delete('/:id',    validateUUIDParam('id'), userOrMemberAuth, deleteBankAccount);
 router.post('/withdraw', userOrMemberAuth, initiateWithdrawal);
 router.post('/withdraw-gift', userOrMemberAuth, withdrawGift);
+
+// Admin diagnostic — check FLW key mode and balance
+router.get('/flw-test', flwDiagnostic);
 
 module.exports = router;

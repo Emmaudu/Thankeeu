@@ -692,8 +692,8 @@ const Home = () => {
           <div style={{ display:'grid', gridTemplateColumns:'repeat(1,1fr)', gap:16, marginBottom:48 }}
             className="sm:grid-cols-3">
             {[
-              { text:'"Our colleague's farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy."', name:'Adaeze O.', role:'HR Manager, Lagos' },
-              { text:'"Organised my girlfriend's birthday from London. 22 people signed, raised ₦500k. She was genuinely shocked. 10/10."', name:'Emeka T.', role:'Engineer, Abuja' },
+              { text:`"Our colleague's farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy."`, name:'Adaeze O.', role:'HR Manager, Lagos' },
+              { text:`"Organised my girlfriend's birthday from London. 22 people signed, raised ₦500k. She was genuinely shocked. 10/10."`, name:'Emeka T.', role:'Engineer, Abuja' },
               { text:'"No more Google Forms and chasing receipts. Everything just works. The whole team uses it now."', name:'Kemi B.', role:'People Ops, Port Harcourt' },
             ].map(t => (
               <div key={t.name} style={{ background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(255,255,255,0.12)', borderRadius:20, padding:'24px 20px' }}>

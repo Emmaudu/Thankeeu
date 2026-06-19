@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { dashboardAPI } from '../../utils/api';
+import { dashboardAPI, cardsAPI } from '../../utils/api';
+import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import { format } from 'date-fns';
@@ -9,9 +10,21 @@ import { formatNGN } from '../../utils/currency';
 const EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
 
 export default function DashboardDelivered() {
-  const [cards,   setCards]   = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [cards,     setCards]     = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [resending, setResending] = useState(null); // slug of card being resent
   useEffect(() => { dashboardAPI.getDeliveredCards().then(r=>setCards(r.data||[])).finally(()=>setLoading(false)); }, []);
+
+  const handleResend = async (e, slug) => {
+    e.preventDefault(); e.stopPropagation();
+    setResending(slug);
+    try {
+      await cardsAPI.send(slug);
+      toast.success('Card resent! A fresh link has been emailed to the recipient. 📬');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to resend. Please try again.');
+    } finally { setResending(null); }
+  };
 
   return (
     <DashboardLayout title="Delivered Cards" subtitle="Cards you've successfully sent — saved forever">
@@ -31,8 +44,8 @@ export default function DashboardDelivered() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map(card=>(
-            <Link to={`/card/${card.slug}`} key={card.id} className="db-card-item" style={{textDecoration:'none'}}>
-              <div className="db-card-item-body">
+            <div key={card.id} className="db-card-item" style={{textDecoration:'none'}}>
+              <Link to={`/card/${card.slug}`} className="db-card-item-body block" style={{textDecoration:'none'}}>
                 <div className="flex items-start gap-3 mb-3">
                   <span className="text-2xl">{EMOJI[card.occasion]||'💌'}</span>
                   <div className="flex-1 min-w-0">
@@ -46,8 +59,20 @@ export default function DashboardDelivered() {
                   {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}>{formatNGN(card.total_collected)}</span>}
                   {card.updated_at && <span>{format(new Date(card.updated_at),'MMM d, yyyy')}</span>}
                 </div>
+              </Link>
+              <div className="db-card-item-actions">
+                <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
+                {card.recipient_email && (
+                  <button
+                    className="db-card-item-action"
+                    disabled={resending === card.slug}
+                    onClick={e => handleResend(e, card.slug)}>
+                    <Icon name="Send" size={13}/>
+                    {resending === card.slug ? 'Sending…' : 'Resend'}
+                  </button>
+                )}
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

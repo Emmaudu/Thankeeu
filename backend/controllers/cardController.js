@@ -1040,13 +1040,34 @@ const getClaimGate = async (req, res) => {
     const claimToken = req.query.claim;
     if (!claimToken) return res.status(400).json({ error: 'claim token required' });
 
-    const { data: card } = await supabase.from('cards')
+    // First try exact claim_token match
+    let { data: card } = await supabase.from('cards')
       .select('id, slug, recipient_name, recipient_email, status, access_token, claim_token')
       .eq('slug', slug)
       .eq('claim_token', claimToken)
       .maybeSingle();
 
-    if (!card) return res.status(404).json({ error: 'Invalid or expired link' });
+    // Fallback: the token might be the access_token (old email format) or
+    // the card was sent before the claim_token migration ran.
+    if (!card) {
+      const { data: cardByAccess } = await supabase.from('cards')
+        .select('id, slug, recipient_name, recipient_email, status, access_token, claim_token')
+        .eq('slug', slug)
+        .eq('access_token', claimToken)
+        .maybeSingle();
+
+      if (cardByAccess) {
+        // Old format — generate and save a claim_token now so future links work
+        const newClaimToken = require('crypto').randomBytes(24).toString('hex');
+        await supabase.from('cards')
+          .update({ claim_token: newClaimToken })
+          .eq('id', cardByAccess.id)
+          .is('claim_token', null); // only update if not already set
+        card = cardByAccess;
+      }
+    }
+
+    if (!card) return res.status(404).json({ error: 'Invalid or expired link. The card may have been sent with an older link format — please ask the card creator to resend it.' });
     if (!card.recipient_email) return res.status(400).json({ error: 'No recipient email on this card' });
 
     const email = card.recipient_email.toLowerCase();

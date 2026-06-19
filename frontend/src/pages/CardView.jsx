@@ -878,7 +878,13 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
           <p className={`font-bold truncate text-base ${calliFont}`} style={{ color: design.ink }}>{message.author_name}</p>
           <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{message.created_at ? format(new Date(message.created_at), 'MMM d, yyyy') : ''}</p>
         </div>
-        {message.is_private && canViewPrivate && <span title="Private message" className="text-base flex-shrink-0">🔒</span>}
+        {message.is_private && canViewPrivate && (
+          <span title="Private message — only visible to you and the recipient"
+            className="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold tracking-wide"
+            style={{ background:'rgba(0,0,0,0.12)', color: design?.ink || '#1A1035', backdropFilter:'blur(4px)' }}>
+            🔒 Private
+          </span>
+        )}
       </div>
 
       {/* ── 2. Media full-width below author, above text (Instagram style) ── */}

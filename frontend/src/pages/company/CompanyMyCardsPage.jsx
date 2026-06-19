@@ -18,7 +18,7 @@ const statusColor = {
   sent: 'bg-green-50 text-green-700',
 };
 
-const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify, onToggleHideAmounts, toggling }) => (
+const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify, onToggleHideAmounts, toggling, onResend }) => (
   <div className="bg-white rounded-2xl border border-purple-100 p-4 hover:shadow-sm transition-shadow">
     <div className="flex flex-col gap-3">
       {/* Card info */}
@@ -95,6 +95,12 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
             ➡️ Transfer
           </button>
         )}
+        {card.status === 'sent' && card.recipient_email && onResend && (
+          <button onClick={() => onResend(card)}
+            className="text-xs bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 px-3 py-2 rounded-xl transition-colors font-semibold">
+            📬 Resend
+          </button>
+        )}
       </div>
     </div>
   </div>
@@ -113,6 +119,7 @@ export default function CompanyMyCardsPage() {
   const [notifyDept, setNotifyDept]         = useState('');
   const [notifying, setNotifying]           = useState(false);
   const [resyncing, setResyncing]           = useState(false);
+  const [resending, setResending]           = useState(null);
   const [departments, setDepartments]       = useState([]);
   const [togglingId, setTogglingId]         = useState(null);
 
@@ -140,6 +147,16 @@ export default function CompanyMyCardsPage() {
     const link = `${window.location.origin}/card/${card.slug}`;
     navigator.clipboard.writeText(link);
     toast.success('✓ Private link copied — send this to the recipient only!');
+  };
+
+  const handleResend = async (card) => {
+    setResending(card.slug);
+    try {
+      await companyAxios.post(`/cards/${card.slug}/send`);
+      toast.success('Card resent! A fresh link has been emailed to the recipient. 📬');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to resend. Please try again.');
+    } finally { setResending(null); }
   };
 
   const handleToggleHideAmounts = async (card) => {
@@ -258,6 +275,7 @@ export default function CompanyMyCardsPage() {
             <CardRow key={card.id} card={card} onCopySigningLink={copySigningLink} onCopyViewLink={copyViewLink}
               onTransfer={tab === 'my' ? (c) => { setTransferCard(c); loadMembers(); } : null}
               onNotify={tab === 'my' ? (c) => { setNotifyCard(c); loadDepts(); } : null}
+              onResend={handleResend}
               onToggleHideAmounts={(tab === 'my' || tab === 'delivered') ? handleToggleHideAmounts : null}
               toggling={togglingId === card.id} />
           ))}

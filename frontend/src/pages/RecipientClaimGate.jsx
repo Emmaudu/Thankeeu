@@ -309,18 +309,41 @@ export default function RecipientClaimGate() {
   const [error,    setError]      = useState(null);
   const navigate = useNavigate();
 
+  // Also handle old-format ?token= links (sent before claim_token system was added)
+  const legacyToken = searchParams.get('token');
+
   useEffect(() => {
     if (!claimToken) {
-      // No claim token — just try to open the card normally (may require login)
+      // No claim token — check for legacy ?token= access_token format
+      if (legacyToken) {
+        // Old email format: store it and go straight to CardView as recipient
+        sessionStorage.setItem(`card_token_${slug}`, legacyToken);
+        navigate(`/card/${slug}?token=${encodeURIComponent(legacyToken)}`, { replace: true });
+        return;
+      }
+      // Nothing at all — just open card normally
       navigate(`/card/${slug}`, { replace: true });
       return;
     }
 
     api.get(`/cards/${slug}/claim-gate?claim=${encodeURIComponent(claimToken)}`)
       .then(res => setGateData(res.data))
-      .catch(err => setError(err.response?.data?.error || 'This link is invalid or has expired.'))
+      .catch(err => {
+        const status = err.response?.status;
+        const msg    = err.response?.data?.error || '';
+
+        // 404 = claim_token not found in DB (card sent before migration ran,
+        // or claim_token column doesn't exist yet).
+        // In this case fall back to the old ?token= flow if we can find the card.
+        if (status === 404 || msg.toLowerCase().includes('not found')) {
+          // Try to load card publicly so the user at least sees the card
+          navigate(`/card/${slug}`, { replace: true });
+          return;
+        }
+        setError(msg || 'This link is invalid or has expired.');
+      })
       .finally(() => setLoading(false));
-  }, [slug, claimToken]);
+  }, [slug, claimToken, legacyToken]);
 
   // After auth: call mark-claimed with the bearer token so the card is linked
   const markClaimed = async (userToken, memberToken) => {

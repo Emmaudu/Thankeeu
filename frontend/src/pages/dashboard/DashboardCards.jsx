@@ -15,6 +15,7 @@ export default function DashboardCards() {
   const [loading, setLoading] = useState(true);
   const [filter,  setFilter]  = useState('all');
   const [togglingId, setTogglingId] = useState(null);
+  const [resending,  setResending]  = useState(null);
 
   useEffect(() => {
     cardsAPI.getAll().then(r=>setCards(r.data||[])).catch(()=>toast.error('Failed to load')).finally(()=>setLoading(false));
@@ -88,6 +89,23 @@ export default function DashboardCards() {
                 <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
                 {(card.status==='draft' || card.status==='active') && (
                   <Link to={`/create-card?edit=${card.slug}`} className="db-card-item-action"><Icon name="Edit" size={13}/>Edit</Link>
+                )}
+                {card.status==='sent' && card.recipient_email && (
+                  <button
+                    className="db-card-item-action"
+                    disabled={resending===card.slug}
+                    onClick={async e => {
+                      e.preventDefault(); e.stopPropagation();
+                      setResending(card.slug);
+                      try {
+                        await cardsAPI.send(card.slug);
+                        toast.success('Card resent! Fresh link emailed to recipient. 📬');
+                      } catch(err) {
+                        toast.error(err.response?.data?.error||'Failed to resend.');
+                      } finally { setResending(null); }
+                    }}>
+                    <Icon name="Send" size={13}/>{resending===card.slug?'Sending…':'Resend'}
+                  </button>
                 )}
                 {card.is_gift_enabled && (
                   <button

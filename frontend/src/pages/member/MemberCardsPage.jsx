@@ -61,6 +61,12 @@ export default function MemberCardsPage() {
                 </div>
                 <p className="font-bold text-sm mb-1" style={{color:'#1A1730'}}>{card.title || `${card.recipient_name}'s card`}</p>
                 <p className="text-xs" style={{color:'#7A7898'}}>For {card.recipient_name}</p>
+                {card.send_date && (
+                  <p className="text-xs mt-0.5" style={{color:'#9D97C2'}}>
+                    📅 {new Date(card.send_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
+                    {card.send_time && ` at ${card.send_time.slice(0,5)}`}
+                  </p>
+                )}
                 {card.total_collected > 0 && (
                   <p className="text-xs font-bold mt-1" style={{color:'#059669'}}>🎁 {formatNGN(card.total_collected)}</p>
                 )}

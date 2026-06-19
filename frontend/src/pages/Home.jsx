@@ -611,6 +611,11 @@ const Home = () => {
               { n:'18', label:'Forest Green' },
               { n:'19', label:'Ice & Sky' },
               { n:'20', label:'Unicorn Magic' },
+              { n:'21', label:'Lavender Luxe' },
+              { n:'22', label:'Fire & Gold' },
+              { n:'23', label:'Ocean Breeze' },
+              { n:'24', label:'Midnight Garden' },
+              { n:'25', label:'Candy Pop' },
             ].map(({ n, label }) => (
               <Link key={n} to="/card/new" className="svg-tile" title={`${label} card design`}>
                 <img src={`/cards/birthday_${n}.svg`} alt={label} loading="lazy"/>
@@ -630,87 +635,6 @@ const Home = () => {
             <Link to="/card/new" className="gc-btn-primary inline-flex items-center gap-2 px-8 py-4 text-base">
               <Icon name="Sparkles" size={18}/> Start with any design — it's free
             </Link>
-          </div>
-        </div>
-      </section>
-
-            {/* ══ MORE REAL CARDS + SOCIAL PROOF ══ */}
-      <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#1A1035 0%,#2D1B69 100%)' }}>
-        <div className="max-w-6xl mx-auto">
-
-          {/* Dark section headline */}
-          <div className="text-center mb-12">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5" style={{ background:'rgba(255,255,255,0.1)', color:'#E9D5FF', borderColor:'rgba(255,255,255,0.15)' }}>
-              <Icon name="Star" size={13}/> Real cards, real moments
-            </div>
-            <h2 className="font-bold mb-4" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)', color:'#fff' }}>
-              More than a card.<br/><span style={{ background:'linear-gradient(135deg,#A78BFA,#F472B6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>A memory they'll keep forever.</span>
-            </h2>
-            <p style={{ color:'#C4B5FD', fontSize:'clamp(1rem,2.5vw,1.2rem)', maxWidth:520, margin:'0 auto', lineHeight:1.6 }}>
-              From heartfelt farewells to wild birthday surprises — Thankeeu turns a simple card into something that actually moves people.
-            </p>
-          </div>
-
-          {/* 5 more SVG cards (21–25) */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:14, marginBottom:48 }}>
-            {[
-              { n:'21', label:'Lavender Luxe',    copy:'Perfect for farewells' },
-              { n:'22', label:'Fire & Gold',       copy:'Big energy, big love' },
-              { n:'23', label:'Ocean Breeze',      copy:'Calm, warm, beautiful' },
-              { n:'24', label:'Midnight Garden',   copy:'Sophisticated & elegant' },
-              { n:'25', label:'Candy Pop',         copy:'Fun, bright & bold' },
-            ].map(({ n, label, copy }) => (
-              <Link key={n} to="/card/new" title={label}
-                style={{ position:'relative', borderRadius:16, overflow:'hidden', aspectRatio:'10/7', boxShadow:'0 4px 20px rgba(0,0,0,0.4)', transition:'transform 0.18s,box-shadow 0.18s', textDecoration:'none', display:'block' }}
-                onMouseEnter={e => { e.currentTarget.style.transform='translateY(-5px)'; e.currentTarget.style.boxShadow='0 16px 40px rgba(167,139,250,0.4)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,0.4)'; }}>
-                <img src={`/cards/birthday_${n}.svg`} alt={label} loading="lazy" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}/>
-                <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'linear-gradient(0deg,rgba(0,0,0,0.7) 0%,transparent 100%)', padding:'24px 10px 8px' }}>
-                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:11, color:'#fff', margin:'0 0 1px', textShadow:'0 1px 3px rgba(0,0,0,0.6)' }}>{label}</p>
-                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:600, fontSize:9, color:'rgba(255,255,255,0.75)', margin:0 }}>{copy}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* 3-column stats */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, marginBottom:48 }}>
-            {[
-              { num:'50,000+', label:'Cards sent', sub:'And counting 🚀' },
-              { num:'₦2.3B+',  label:'Gift money pooled', sub:'Safely via Flutterwave' },
-              { num:'4.9 ★',   label:'Average rating', sub:'From 3,000+ reviews' },
-            ].map(s => (
-              <div key={s.num} style={{ background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(255,255,255,0.12)', borderRadius:20, padding:'24px 20px', textAlign:'center' }}>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:900, fontSize:'clamp(1.75rem,4vw,2.5rem)', color:'#E9D5FF', margin:'0 0 4px', lineHeight:1 }}>{s.num}</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#fff', margin:'0 0 2px' }}>{s.label}</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:11, color:'#C4B5FD', margin:0 }}>{s.sub}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Quote testimonials */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(1,1fr)', gap:16, marginBottom:48 }}
-            className="sm:grid-cols-3">
-            {[
-              { text:`"Our colleague's farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy."`, name:'Adaeze O.', role:'HR Manager, Lagos' },
-              { text:`"Organised my girlfriend's birthday from London. 22 people signed, raised ₦500k. She was genuinely shocked. 10/10."`, name:'Emeka T.', role:'Engineer, Abuja' },
-              { text:'"No more Google Forms and chasing receipts. Everything just works. The whole team uses it now."', name:'Kemi B.', role:'People Ops, Port Harcourt' },
-            ].map(t => (
-              <div key={t.name} style={{ background:'rgba(255,255,255,0.06)', border:'1.5px solid rgba(255,255,255,0.12)', borderRadius:20, padding:'24px 20px' }}>
-                <div style={{ fontSize:24, marginBottom:12 }}>⭐⭐⭐⭐⭐</div>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, color:'#E9D5FF', lineHeight:1.65, margin:'0 0 14px', fontStyle:'italic' }}>{t.text}</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, color:'#fff', margin:'0 0 2px' }}>{t.name}</p>
-                <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:11, color:'#A78BFA', margin:0 }}>{t.role}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA */}
-          <div className="text-center">
-            <Link to="/card/new" className="gc-btn-primary inline-flex items-center gap-2 px-8 py-4 text-base" style={{ fontSize:'1.05rem' }}>
-              <Icon name="Sparkles" size={18}/> Create your card now — free
-            </Link>
-            <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', color:'#A78BFA', fontSize:13, marginTop:12 }}>No signup to start · Pay only when you send · Takes 2 minutes</p>
           </div>
         </div>
       </section>

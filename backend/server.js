@@ -210,6 +210,25 @@ app.use('/api/pals', require('./routes/pals'));
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', app: 'Thankeeu API', time: new Date() }));
 
+// Manual trigger for debugging/testing — protected by ADMIN_SECRET.
+// Lets you verify the delivery pipeline works without waiting for 8AM,
+// and surfaces exactly which cards were found and whether each succeeded.
+// NOTE: placed here (before the 404 catch-all, and on a path that does not
+// collide with the existing /api/admin router + its adminAuth middleware).
+app.post('/api/internal/run-auto-send', async (req, res) => {
+  const providedSecret = req.headers['x-admin-secret'];
+  if (!process.env.ADMIN_SECRET || providedSecret !== process.env.ADMIN_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    const result = await autoSendDueCards();
+    res.json(result);
+  } catch (err) {
+    console.error('[auto-send] Manual trigger error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Serve local uploads when Cloudinary is not configured
 const path = require('path');
 const uploadsDir = path.join(__dirname, '../uploads');
@@ -313,23 +332,6 @@ async function autoSendDueCards() {
 
   return { error: null, delivered, failed };
 }
-
-// Manual trigger for debugging/testing — protected by ADMIN_SECRET.
-// Lets you verify the delivery pipeline works without waiting for 8AM,
-// and surfaces exactly which cards were found and whether each succeeded.
-app.post('/api/admin/run-auto-send', async (req, res) => {
-  const providedSecret = req.headers['x-admin-secret'];
-  if (!process.env.ADMIN_SECRET || providedSecret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  try {
-    const result = await autoSendDueCards();
-    res.json(result);
-  } catch (err) {
-    console.error('[auto-send] Manual trigger error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
 
 cron.schedule('0 8 * * *', async () => {
   console.log('Running daily cron jobs...');

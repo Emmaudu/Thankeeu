@@ -113,7 +113,7 @@ app.use(express.urlencoded({ extended: true }));
 // req.body.email (POST bodies aren't available to middleware mounted
 // before express.json()/express.urlencoded()).
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 200,
+  windowMs: 15 * 60 * 1000, max: 500,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' },
 });
@@ -259,13 +259,11 @@ app.use((err, req, res, next) => {
 // Visitor nurture emails — weekly Mondays
 cron.schedule('0 9 * * 1', () => sendNudgeEmails().catch(console.error));
 
-cron.schedule('0 8 * * *', async () => {
-  console.log('Running daily cron jobs...');
+// Extracted so it can be triggered manually via /api/admin/run-auto-send
+// for testing/debugging, instead of only running blind at 8AM via cron.
+async function autoSendDueCards() {
   const now = new Date();
-  const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-
-  // Auto-send scheduled cards
-  const { data: cardsToSend } = await supabase
+  const { data: cardsToSend, error: cardsToSendErr } = await supabase
     .from('cards')
     .select('*, users!creator_id(email, full_name)')
     .eq('status', 'active')
@@ -273,23 +271,74 @@ cron.schedule('0 8 * * *', async () => {
     .lte('send_date', now.toISOString())
     .not('recipient_email', 'is', null);
 
-  for (const card of (cardsToSend || [])) {
-    const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('card_id', card.id);
-    await sendEmail({
-      to: card.recipient_email,
-      template: 'cardDelivery',
-      data: {
-        recipientName: card.recipient_name,
-        occasion: card.occasion,
-        cardSlug: card.slug,
-        accessToken: card.access_token,
-        senderCount: count || 0,
-        giftAmount: card.total_collected > 0 ? card.total_collected : null
-      }
-    });
-    await supabase.from('cards').update({ status: 'sent', recipient_notified: true, delivered_at: now }).eq('id', card.id);
-    console.log(`Auto-sent card: ${card.slug}`);
+  if (cardsToSendErr) {
+    console.error('[auto-send] Failed to query cards due for delivery:', cardsToSendErr.message);
+    return { error: cardsToSendErr.message, delivered: [], failed: [] };
   }
+
+  console.log(`[auto-send] Found ${(cardsToSend || []).length} card(s) due for delivery`);
+  const delivered = [];
+  const failed = [];
+
+  for (const card of (cardsToSend || [])) {
+    try {
+      const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('card_id', card.id);
+      await sendEmail({
+        to: card.recipient_email,
+        template: 'cardDelivery',
+        data: {
+          recipientName: card.recipient_name,
+          occasion: card.occasion,
+          cardSlug: card.slug,
+          accessToken: card.access_token,
+          senderCount: count || 0,
+          giftAmount: card.total_collected > 0 ? card.total_collected : null
+        }
+      });
+      const { error: updateErr } = await supabase.from('cards')
+        .update({ status: 'sent', recipient_notified: true, delivered_at: now })
+        .eq('id', card.id);
+      if (updateErr) {
+        console.error(`[auto-send] Email sent for ${card.slug} but failed to update status:`, updateErr.message);
+        failed.push({ slug: card.slug, reason: `status update failed: ${updateErr.message}` });
+      } else {
+        console.log(`[auto-send] Delivered card: ${card.slug} -> ${card.recipient_email}`);
+        delivered.push(card.slug);
+      }
+    } catch (sendErr) {
+      console.error(`[auto-send] Failed to deliver card ${card.slug}:`, sendErr.message);
+      failed.push({ slug: card.slug, reason: sendErr.message });
+    }
+  }
+
+  return { error: null, delivered, failed };
+}
+
+// Manual trigger for debugging/testing — protected by ADMIN_SECRET.
+// Lets you verify the delivery pipeline works without waiting for 8AM,
+// and surfaces exactly which cards were found and whether each succeeded.
+app.post('/api/admin/run-auto-send', async (req, res) => {
+  const providedSecret = req.headers['x-admin-secret'];
+  if (!process.env.ADMIN_SECRET || providedSecret !== process.env.ADMIN_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    const result = await autoSendDueCards();
+    res.json(result);
+  } catch (err) {
+    console.error('[auto-send] Manual trigger error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+cron.schedule('0 8 * * *', async () => {
+  console.log('Running daily cron jobs...');
+  try {
+  const now = new Date();
+  const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+  // Auto-send scheduled cards
+  await autoSendDueCards();
 
   // ── Deadline reminders (48hrs before deadline) — only for company cards ──
   // with a defined audience (company_id set). Targets colleagues who were
@@ -342,6 +391,9 @@ cron.schedule('0 8 * * *', async () => {
       await supabase.from('cards').update({ deadline_reminded: true }).eq('id', card.id);
       console.log(`[deadline-reminder] ${card.slug}: ${unsigned.length} unsigned colleagues notified`);
     }
+  }
+  } catch (cronErr) {
+    console.error('[daily-cron] Unhandled error — job stopped early:', cronErr.message, cronErr.stack);
   }
 });
 

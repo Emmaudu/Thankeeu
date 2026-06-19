@@ -539,6 +539,10 @@ const sendCard = async (req, res) => {
         senderCount: messages?.[0]?.count || 0,
         giftAmount: card.total_collected > 0 ? card.total_collected : null,
         appUrl: FRONTEND_URL,
+        // See note in server.js's autoSendDueCards — company-card recipients
+        // are company_members rows, so they should be routed to the team
+        // member login (/member/login), not the regular user login (/login).
+        isCompanyCard: !!card.company_id,
       }
     });
 
@@ -1093,6 +1097,40 @@ const getClaimGate = async (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
+// GET /api/cards/:slug/login-type
+// Public, no token required — used only to decide WHICH login page to send
+// an unauthenticated visitor to when they land on /card/:slug with no claim
+// token and no session (e.g. an old bookmark, or the "sign in here" link).
+// Deliberately returns the bare minimum: just enough to route correctly,
+// no recipient name/email/access_token like getClaimGate exposes.
+// ═══════════════════════════════════════════════════════════════════════════
+const getCardLoginType = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { data: card } = await supabase.from('cards')
+      .select('recipient_email, company_id')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    if (!card.company_id) return res.json({ loginType: 'individual' });
+
+    // Company card — confirm the recipient is actually a company_members row
+    // (company-wide cards like Valentine's Day are addressed to the company
+    // itself, so this can't be assumed purely from company_id being set).
+    if (card.recipient_email) {
+      const { data: member } = await supabase.from('company_members')
+        .select('id').ilike('email', card.recipient_email).maybeSingle();
+      if (member) return res.json({ loginType: 'member' });
+    }
+    return res.json({ loginType: 'individual' });
+  } catch (err) {
+    console.error('getCardLoginType error:', err.message);
+    res.status(500).json({ error: 'Failed to check login type' });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
 // POST /api/cards/:slug/mark-claimed  (optionalAuth — user/member may be logged in)
 // Links the card to the authenticated recipient account and marks it claimed.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1205,6 +1243,6 @@ module.exports = {
   getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember,
   createCard, getUserCards, getCard, updateCard, activateCard, sendCard,
   deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards,
-  getClaimGate, markClaimed, claimMemberPassword,
+  getClaimGate, getCardLoginType, markClaimed, claimMemberPassword,
   approveCardScope, notifyAllCompany,
 };

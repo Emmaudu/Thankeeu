@@ -9,17 +9,29 @@ const {
   activateCard, sendCard, deleteCard, getPublicCard,
   getRecipientCard, claimGift, getMemberCards, approveCardScope,
   getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember,
-  getClaimGate, markClaimed, claimMemberPassword
+  getClaimGate, getCardLoginType, markClaimed, claimMemberPassword
 } = require('../controllers/cardController');
 const { validateSlugParam } = require('../utils/paramGuard');
 
-// Flexible auth — accepts individual user, team member, OR HR company token
+// Flexible auth — accepts individual user, team member, OR HR company token.
+// OPTIONAL: unlike most auth middleware, this never blocks the request when
+// no token is present. GET /:slug (getCard) needs to support truly public,
+// unauthenticated viewing of a card (e.g. a recipient sharing the plain
+// /card/:slug link with family/friends) while still gating sensitive actions
+// like gift withdrawal separately, deeper in the app. getCard's own logic
+// already correctly treats req.user/req.company/req.member as optional and
+// falls back to isCreator=false / isRecipient=false for anonymous visitors —
+// filtering private messages, hiding amounts if hide_amounts is set, and
+// stripping the access_token from the response. A missing/invalid token
+// here is therefore NOT an error condition; only on a malformed token do we
+// continue as anonymous rather than fail outright, since a bad token should
+// never be able to block a legitimate public view.
 const flexUserAuth = async (req, res, next) => {
   const token = req.cookies?.tk_user
               || req.cookies?.tk_company
               || req.cookies?.tk_member
               || req.headers.authorization?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+  if (!token) return next(); // anonymous — proceed, getCard treats this as a public viewer
   try {
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -28,26 +40,24 @@ const flexUserAuth = async (req, res, next) => {
       const { data: company } = await supabase
         .from('companies').select('id, name, email, contact_person')
         .eq('id', decoded.companyId).maybeSingle();
-      if (!company) return res.status(401).json({ error: 'Invalid token' });
-      req.company = company;
+      if (company) req.company = company;
     } else if (decoded.type === 'company_member') {
       const { data: member } = await supabase
         .from('company_members')
         .select('id, first_name, last_name, email, role, department, status, company_id')
         .eq('id', decoded.memberId).maybeSingle();
-      if (!member || member.status !== 'approved') return res.status(403).json({ error: 'Not authorized' });
-      req.member = member;
+      if (member && member.status === 'approved') req.member = member;
     } else {
       const { data: user } = await supabase
         .from('users').select('id, email, full_name, role, avatar_url')
         .eq('id', decoded.userId).maybeSingle();
-      if (!user) return res.status(401).json({ error: 'Invalid token' });
-      req.user = user;
+      if (user) req.user = user;
     }
-    next();
   } catch {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    // Invalid/expired token — fall through as anonymous rather than blocking.
+    // A stale cookie should never prevent someone from viewing a public card.
   }
+  next();
 };
 
 // ── IMPORTANT: specific fixed-segment routes MUST come before /:slug wildcard ──
@@ -71,6 +81,7 @@ router.get('/member-history', memberAuth, getMemberCards);
 // ── Public card routes (must be before /:slug) ─────────────────────────────
 // Recipient claim gate — public, no auth needed
 router.get('/:slug/claim-gate',  validateSlugParam('slug'), getClaimGate);
+router.get('/:slug/login-type',  validateSlugParam('slug'), getCardLoginType);
 router.post('/:slug/mark-claimed', validateSlugParam('slug'), optionalAuth, markClaimed);
 router.post('/:slug/claim-member-password', validateSlugParam('slug'), claimMemberPassword);
 

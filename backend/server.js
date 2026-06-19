@@ -307,11 +307,18 @@ async function autoSendDueCards() {
         template: 'cardDelivery',
         data: {
           recipientName: card.recipient_name,
+          recipientEmail: card.recipient_email,
           occasion: card.occasion,
           cardSlug: card.slug,
           accessToken: card.access_token,
           senderCount: count || 0,
-          giftAmount: card.total_collected > 0 ? card.total_collected : null
+          giftAmount: card.total_collected > 0 ? card.total_collected : null,
+          // Cards created from the HR/company dashboard (and member-created
+          // cards, which always carry company_id) should send recipients to
+          // the team member login, not the regular individual user login —
+          // the recipient is expected to be a company_members row, accessed
+          // via /member/login, not a `users` row accessed via /login.
+          isCompanyCard: !!card.company_id
         }
       });
       const { error: updateErr } = await supabase.from('cards')

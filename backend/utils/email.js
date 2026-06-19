@@ -92,7 +92,10 @@ const emailTemplates = {
     `)
   }),
 
-  cardDelivery: (data) => ({
+  cardDelivery: (data) => {
+    const loginPath = data.isCompanyCard ? '/member/login' : '/login';
+    const dashboardNoun = data.isCompanyCard ? 'team' : 'account';
+    return {
     subject: `🎉 Happy ${data.occasion}, ${data.recipientName}! ${data.senderCount} people made something special for you`,
     html: BASE(`
       <div style="text-align:center;margin-bottom:24px;">
@@ -117,16 +120,17 @@ const emailTemplates = {
         <ol style="color:#555;line-height:2;margin:0;padding-left:20px;font-size:14px;">
           <li>The link above will <strong>automatically guide you</strong> — sign in or create a free account using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
           <li><strong>Set your username</strong> in your dashboard settings — your friends can transfer cards to you by username</li>
-          <li>Your card will appear in your <strong>Received tab</strong> in your dashboard automatically</li>
+          <li>Your card will appear in your <strong>Received tab</strong> in your ${dashboardNoun} dashboard automatically</li>
           ${data.giftAmount ? '<li>Add your <strong>bank account</strong> in settings to withdraw your gift pot 💰</li>' : ''}
         </ol>
       </div>
 
       <p style="color:#888;font-size:13px;line-height:1.7;"><strong>⚠️ Important:</strong> Please sign up with <strong>${data.recipientEmail || 'this email address'}</strong> to automatically access your card and gift pot. If you use a different email, ask the card creator to transfer the card to your username.</p>
 
-      <p style="color:#555;line-height:1.7;margin-top:16px;">If you already have a Thankeeu account, simply <a href="${FRONTEND_URL}/login" style="color:#7C6EFF;">sign in here</a> and check your Received tab.</p>
+      <p style="color:#555;line-height:1.7;margin-top:16px;">If you already have a Thankeeu account, simply <a href="${FRONTEND_URL}${loginPath}" style="color:#7C6EFF;">sign in here</a> and check your Received tab.</p>
     `)
-  }),
+  };
+  },
 
   // Sent by an admin's "re-deliver" action — for a card that was already
   // delivered once, but has picked up new signatures and/or new gift money

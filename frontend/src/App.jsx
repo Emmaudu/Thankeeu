@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth }               from './context/AuthContext';
 import { CompanyAuthProvider, useCompanyAuth } from './context/CompanyAuthContext';
@@ -124,39 +124,29 @@ const Spinner = () => (
   </div>
 );
 
-// CardViewGate — requires authentication.
-// Recipient email links now go to RecipientClaimGate (/card/:slug?claim=TOKEN)
-// which handles the login/signup/member-claim flow before landing here.
-// The only exception is when an access_token is in sessionStorage (already claimed).
+// CardViewGate — routes a /card/:slug visit to the right experience:
+//   - ?claim=TOKEN   → fresh recipient email link → RecipientClaimGate
+//                       (handles login/signup/member-claim before showing the card)
+//   - anything else  → CardView directly, with NO login required.
+// The card itself is meant to be shareable as a plain public link (e.g. the
+// recipient forwarding /card/:slug to family/friends to see their messages).
+// Sensitive actions — withdrawing the gift pot, seeing the private
+// access-token link, transferring the card — are gated separately, deeper
+// inside CardView/GiftClaimPanel, not at this top-level route. The backend
+// (getCard) already filters private messages and hides amounts for
+// non-owners, so it's safe to render CardView for anonymous visitors here.
 const CardViewGate = () => {
-  const { user, loading: uLoading }     = useAuth();
-  const { company, loading: cLoading }  = useCompanyAuth();
-  const { member, loading: mLoading }   = useMemberAuth();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { slug } = useParams();
 
   // ?claim= means this is a fresh recipient link — send to RecipientClaimGate
   if (searchParams.get('claim')) {
     return <RecipientClaimGate />;
   }
 
-  // Access token in URL or sessionStorage = already-claimed recipient view
-  const hasSessionToken = Boolean(
-    searchParams.get('token') ||
-    sessionStorage.getItem(`card_token_${slug}`)
-  );
-
-  if (uLoading || cLoading || mLoading) return <Spinner />;
-
-  // Authenticated OR has session token → show the card
-  if (user || company || member || hasSessionToken) return <CardView />;
-
-  // Not authenticated and no token → send to login preserving return URL
-  return <Navigate
-    to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
-    replace
-  />;
+  // Everyone else — logged in or not, with or without ?token= — goes
+  // straight to the card. CardView/GiftClaimPanel handle auth state
+  // themselves for anything beyond viewing (e.g. withdrawing a gift).
+  return <CardView />;
 };
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {

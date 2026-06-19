@@ -580,27 +580,32 @@ const getPublicCard = async (req, res) => {
 
     if (error || !card) return res.status(404).json({ error: 'Card not found or not active' });
 
-    const signedCount = card.messages?.length || 0;
+    // Real signer count = ALL messages (including private ones the viewer can't read)
+    const realSignedCount = card.messages?.length || 0;
+
     const verifiedContribs = card.contributions?.filter(c => c.status === 'success') || [];
     const totalCollected = verifiedContribs.reduce((s, c) => s + (c.amount || 0), 0);
 
+    // Public messages: filter out private ones from display, but keep real count
     const publicMessages = (card.messages || [])
       .filter(message => !message.is_private)
       .map(message => card.hide_amounts ? { ...message, contributed_amount: null } : message);
 
-    const { access_token: _accessToken, ...safeCard } = card;
+    const { access_token: _accessToken, draft_edit_token: _det, ...safeCard } = card;
 
-    // When hide_amounts is true, strip total_collected from the public response
-    // so signers cannot see the running gift pot total (avoids social pressure).
-    // The creator and recipient still see the real total via the private card view.
+    // When hide_amounts is true, strip total_collected and individual amounts
     const publicTotal = card.hide_amounts ? null : totalCollected;
 
+    // Strip contributions array from public response (not needed by frontend)
+    const { contributions: _contribs, ...cardWithoutContribs } = safeCard;
+
     res.json({
-      ...safeCard,
+      ...cardWithoutContribs,
       messages:        publicMessages,
-      signed_count:    signedCount,
+      signed_count:    realSignedCount,   // real count including private messages
       total_collected: publicTotal,
       contributors:    card.hide_amounts ? [] : verifiedContribs.map(c => c.contributor_name),
+      contributor_count: verifiedContribs.length,
     });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch card' });

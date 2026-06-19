@@ -1239,14 +1239,14 @@ const CardView = () => {
           <p className="text-base sm:text-lg max-w-xl mx-auto mb-7" style={{
             color: design.dark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.52)',
           }}>
-            {messages.length} {messages.length === 1 ? 'person has' : 'people have'} filled this card with love, laughter and warmth just for you.
+            {(card.signed_count || messages.length)} {(card.signed_count || messages.length) === 1 ? 'person has' : 'people have'} filled this card with love, laughter and warmth just for you.
           </p>
 
           {/* Stat badges */}
           <div className="flex flex-wrap justify-center gap-3">
             <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm"
               style={{ background:'rgba(255,255,255,0.82)', color: design.accent }}>
-              💌 {messages.length} messages
+              💌 {card.signed_count || messages.length} messages
             </span>
             {totalCollected > 0 && (
               <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm bg-emerald-600 text-white">
@@ -1278,7 +1278,7 @@ const CardView = () => {
                     {msg.author_name?.slice(0,2).toUpperCase()||'??'}
                   </div>
                 ))}
-                {messages.length > 10 && (
+                {(card.signed_count || messages.length) > 10 && (
                   <div style={{
                     width:36, height:36, borderRadius:'50%',
                     background:'rgba(255,255,255,0.25)', color: design.dark?'#fff':design.accent,
@@ -1287,7 +1287,7 @@ const CardView = () => {
                     fontSize:10, fontWeight:800, marginLeft:-10,
                     boxShadow:'0 2px 8px rgba(0,0,0,0.1)',
                   }}>
-                    +{messages.length - 10}
+                    +{(card.signed_count || messages.length) - 10}
                   </div>
                 )}
               </div>

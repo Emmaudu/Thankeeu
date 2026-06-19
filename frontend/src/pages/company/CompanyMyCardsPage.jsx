@@ -50,6 +50,7 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
             {card.occasion?.replace(/_/g,' ')} · {card.send_date
               ? format(new Date(card.send_date), 'MMM d, yyyy')
               : card.created_at ? format(new Date(card.created_at), 'MMM d, yyyy') : ''}
+            {card.send_date && card.send_time && ` at ${card.send_time.slice(0,5)}`}
             {card.total_collected > 0 && ` · 🎁 ${formatNGN(card.total_collected)}`}
           </p>
         </div>

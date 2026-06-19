@@ -825,7 +825,7 @@ const getMemberCards = async (req, res) => {
     const memberId = req.member.id;
     const { data: cards, error } = await supabase
       .from('cards')
-      .select('id, slug, title, recipient_name, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, messages(count)')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, send_time, messages(count)')
       .eq('created_by_member_id', memberId)
       .order('created_at', { ascending: false });
 
@@ -894,7 +894,7 @@ const approveCardScope = async (req, res) => {
 const getCompanyCards = async (req, res) => {
   try {
     const { data, error } = await supabase.from('cards')
-      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, design_theme, notification_scope, scope_approved_at')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, send_time, design_theme, notification_scope, scope_approved_at')
       .eq('company_id', req.company.id)
       .order('created_at', { ascending: false });
     if (error) {
@@ -913,7 +913,7 @@ const getCompanyCards = async (req, res) => {
 const getCompanyDeliveredCards = async (req, res) => {
   try {
     const { data, error } = await supabase.from('cards')
-      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, send_time')
       .eq('company_id', req.company.id).eq('status', 'sent')
       .order('send_date', { ascending: false });
     if (error) {
@@ -965,7 +965,7 @@ const getCompanyReceivedCards = async (req, res) => {
 
     const { data, error } = await supabase
       .from('cards')
-      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, send_time')
       .in('id', ids)
       .order('created_at', { ascending: false });
 

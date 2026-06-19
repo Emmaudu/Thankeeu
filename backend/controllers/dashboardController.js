@@ -18,7 +18,7 @@ const getDashboard = async (req, res) => {
         .select(`
           id, slug, title, recipient_name, occasion, design_theme,
           background_color, status, is_gift_enabled, total_collected,
-          send_date, deadline, created_at, updated_at,
+          send_date, send_time, deadline, created_at, updated_at,
           messages(count)
         `)
         .eq('creator_id', userId)

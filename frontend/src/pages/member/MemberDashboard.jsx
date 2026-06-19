@@ -430,7 +430,7 @@ const TabFinances = () => {
                   <span className="text-xl flex-shrink-0">{occasionEmoji[c.occasion] || '💌'}</span>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-warm-900 truncate">{c.title || `${c.recipient_name}'s Card`}</p>
-                    <p className="text-xs text-warm-400 capitalize">{c.status} · {(c.send_date || c.created_at) ? format(parseISO(c.send_date || c.created_at), 'MMM d, yyyy') : ''}</p>
+                    <p className="text-xs text-warm-400 capitalize">{c.status} · {(c.send_date || c.created_at) ? format(parseISO(c.send_date || c.created_at), 'MMM d, yyyy') : ''}{c.send_time ? ` at ${c.send_time.slice(0,5)}` : ''}</p>
                   </div>
                 </div>
                 <span className="font-bold text-green-600 text-sm flex-shrink-0">{formatNGN(c.total_collected)}</span>

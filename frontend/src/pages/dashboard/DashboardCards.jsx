@@ -76,7 +76,7 @@ export default function DashboardCards() {
                 <div className="flex flex-wrap gap-3" style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:'0.8rem',color:'#A898CC'}}>
                   <span><Icon name="Edit" size={12} className="inline mr-1"/>{card.signed_count||0} signed</span>
                   {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}>{formatNGN(card.total_collected)}</span>}
-                  {(card.send_date||card.created_at) && <span>{format(new Date(card.send_date||card.created_at),'MMM d, yy')}</span>}
+                  {(card.send_date||card.created_at) && <span>{format(new Date(card.send_date||card.created_at),'MMM d, yy')}{card.send_date && card.send_time ? ` ${card.send_time.slice(0,5)}` : ''}</span>}
                 </div>
               </div>
               <div className="db-card-item-footer">

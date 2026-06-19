@@ -60,6 +60,7 @@ export default function PalMyCards() {
                       <p className="font-semibold text-warm-900 text-sm">{c.recipient_name}'s {c.occasion}</p>
                       <p className="text-xs text-warm-400">
                         {c.send_date ? new Date(c.send_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—'}
+                        {c.send_date && c.send_time && ` at ${c.send_time.slice(0,5)}`}
                         {c.total_collected > 0 && <span className="ml-2 font-semibold text-emerald-600">🎁 ₦{c.total_collected.toLocaleString()}</span>}
                       </p>
                     </div>

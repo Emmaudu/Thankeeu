@@ -1256,7 +1256,7 @@ const CardView = () => {
             {card.send_date && (
               <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm"
                 style={{ background:'rgba(255,255,255,0.82)', color: design.ink }}>
-                📅 {format(new Date(card.send_date), 'MMMM d, yyyy')}
+                📅 {format(new Date(card.send_date), 'MMMM d, yyyy')}{card.send_time ? ` · ${card.send_time.slice(0,5)}` : ''}
               </span>
             )}
           </div>

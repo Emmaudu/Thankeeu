@@ -548,36 +548,17 @@ const Home = () => {
 
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
-      {/* ══ REAL CARD GALLERY — 20 actual card designs ══ */}
+      {/* ══ SAMPLE CARDS — 5 finished examples ══ */}
       <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 100%)' }}>
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-4">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={13}/> 25 stunning designs</div>
+          <div className="text-center mb-10">
+            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Eye" size={13}/> Live examples</div>
             <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
-              Beautiful cards your people<br/><span className="text-primary-500">will actually remember</span>
+              Get inspiration from our<br/><span className="text-primary-500">sample cards</span>
             </h2>
             <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
-              Every card is a canvas for photos, voice notes, GIFs and heartfelt words — not just a template.
+              See a real, finished card before you start — no signup needed.
             </p>
-          </div>
-
-          {/* 3-column persuasive callouts above the grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 mt-8">
-            {[
-              { icon:'Heart', title:'Everyone signs, anywhere', desc:'Share one link on WhatsApp or Slack. No app needed, no login — just click and add a message.' },
-              { icon:'Gift', title:'Pool a gift in minutes', desc:'Add a gift pot and let everyone chip in. Money collected safely via Flutterwave — zero cash chasing.' },
-              { icon:'Smile', title:'More than just text', desc:'Photos, videos, voice notes, GIFs — your team can express themselves in any way they want.' },
-            ].map(f => (
-              <div key={f.title} className="bg-white rounded-2xl border-2 border-purple-100 p-5 flex gap-3 items-start">
-                <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0">
-                  <Icon name={f.icon} size={18} className="text-primary-500"/>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-warm-900 mb-1">{f.title}</p>
-                  <p className="text-xs text-warm-500 leading-relaxed">{f.desc}</p>
-                </div>
-              </div>
-            ))}
           </div>
 
           <style>{`
@@ -596,6 +577,39 @@ const Home = () => {
               { n:'03', label:'Floral Joy' },
               { n:'04', label:'Golden Wishes' },
               { n:'05', label:'Sunshine Birthday' },
+            ].map(({ n, label }) => (
+              <Link key={n} to="/card/new" className="svg-tile" title={`${label} card design`}>
+                <img src={`/cards/birthday_${n}.svg`} alt={label} loading="lazy"/>
+                <div style={{
+                  position:'absolute', bottom:0, left:0, right:0,
+                  background:'linear-gradient(0deg,rgba(0,0,0,0.55) 0%,transparent 100%)',
+                  padding:'20px 10px 8px', pointerEvents:'none',
+                }}>
+                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:11, color:'#fff', margin:0, textShadow:'0 1px 3px rgba(0,0,0,0.5)' }}>{label}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)'}}/>
+
+      {/* ══ CARD DESIGNS — 10 designs ══ */}
+      <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#FDFCFF 0%,#F5F0FF 100%)' }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={13}/> Beautiful designs</div>
+            <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
+              Find the perfect<br/><span className="text-primary-500">card design</span>
+            </h2>
+            <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
+              All cards come with unlimited messages and pages. Change your design any time before sending.
+            </p>
+          </div>
+
+          <div className="svg-grid">
+            {[
               { n:'06', label:'Neon Party' },
               { n:'07', label:'Midnight Stars' },
               { n:'08', label:'Rose Garden' },
@@ -606,16 +620,6 @@ const Home = () => {
               { n:'13', label:'Modern Chic' },
               { n:'14', label:'Royal Purple' },
               { n:'15', label:'Midnight Blue' },
-              { n:'16', label:'Cherry Blossom' },
-              { n:'17', label:'Sunset Glow' },
-              { n:'18', label:'Forest Green' },
-              { n:'19', label:'Ice & Sky' },
-              { n:'20', label:'Unicorn Magic' },
-              { n:'21', label:'Lavender Luxe' },
-              { n:'22', label:'Fire & Gold' },
-              { n:'23', label:'Ocean Breeze' },
-              { n:'24', label:'Midnight Garden' },
-              { n:'25', label:'Candy Pop' },
             ].map(({ n, label }) => (
               <Link key={n} to="/card/new" className="svg-tile" title={`${label} card design`}>
                 <img src={`/cards/birthday_${n}.svg`} alt={label} loading="lazy"/>
@@ -631,7 +635,7 @@ const Home = () => {
           </div>
 
           <div className="text-center mt-10">
-            <p className="text-warm-500 text-sm mb-4">All 25 designs available — pick yours and start in 2 minutes</p>
+            <p className="text-warm-500 text-sm mb-4">25 designs available in total — pick yours and start in 2 minutes</p>
             <Link to="/card/new" className="gc-btn-primary inline-flex items-center gap-2 px-8 py-4 text-base">
               <Icon name="Sparkles" size={18}/> Start with any design — it's free
             </Link>

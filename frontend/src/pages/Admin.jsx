@@ -74,6 +74,127 @@ const PalTicketRow = ({ ticket, onReply }) => {
 const ticketColor = { open:'amber', in_progress:'blue', resolved:'green', closed:'gray' };
 const demoColor  = { new:'amber', contacted:'blue', scheduled:'purple', converted:'green', declined:'gray' };
 
+// ── Users Tab (extracted as a proper component to satisfy Rules of Hooks) ─────
+const UsersTab = ({ users, setUsers }) => {
+  const [giftTarget, setGiftTarget] = React.useState(null);
+  const [giftAmount, setGiftAmount] = React.useState('');
+  const [giftReason, setGiftReason] = React.useState('');
+  const [gifting,    setGifting]    = React.useState(false);
+
+  const openGift  = (u) => { setGiftTarget(u); setGiftAmount(''); setGiftReason(''); };
+  const closeGift = ()  => { setGiftTarget(null); };
+  const submitGift = async () => {
+    const n = parseInt(giftAmount, 10);
+    if (!n || n < 1) return toast.error('Enter a valid number of credits');
+    setGifting(true);
+    try {
+      const res = await adminAPI.giftCredits(giftTarget.id, n, giftReason || undefined);
+      toast.success(`✅ Gifted ${n} credit${n > 1 ? 's' : ''} to ${giftTarget.full_name}. New balance: ${res.data.new_balance}`);
+      setUsers(prev => prev.map(u => u.id === giftTarget.id
+        ? { ...u, credits_remaining: res.data.new_balance }
+        : u
+      ));
+      closeGift();
+    } catch (e) {
+      toast.error(e?.response?.data?.error || 'Failed to gift credits');
+    } finally { setGifting(false); }
+  };
+
+  return (
+    <>
+      {/* Gift Credits Modal */}
+      {giftTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
+          <div className="bg-white rounded-3xl shadow-2xl border border-purple-100 w-full max-w-sm p-6">
+            <h3 className="font-bold text-warm-900 text-lg mb-1">Gift Credits</h3>
+            <p className="text-sm text-warm-500 mb-4">
+              To <strong>{giftTarget.full_name}</strong> ({giftTarget.email})<br/>
+              Current balance: <strong className="text-primary-600">{giftTarget.credits_remaining} credit{giftTarget.credits_remaining !== 1 ? 's' : ''}</strong>
+            </p>
+            <label className="block text-xs font-bold text-warm-600 mb-1">Number of credits to gift</label>
+            <input
+              type="number" min="1" max="1000"
+              value={giftAmount}
+              onChange={e => setGiftAmount(e.target.value)}
+              placeholder="e.g. 5"
+              className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary-300"
+            />
+            <label className="block text-xs font-bold text-warm-600 mb-1">Reason (optional)</label>
+            <input
+              type="text"
+              value={giftReason}
+              onChange={e => setGiftReason(e.target.value)}
+              placeholder="e.g. Promo, refund, goodwill..."
+              className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-sm mb-5 focus:outline-none focus:ring-2 focus:ring-primary-300"
+            />
+            <div className="flex gap-2">
+              <button onClick={closeGift} className="flex-1 py-2.5 rounded-xl border border-purple-200 text-sm font-semibold text-warm-600 hover:bg-purple-50">Cancel</button>
+              <button onClick={submitGift} disabled={gifting}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
+                style={{ background: gifting ? '#C4B5FD' : 'linear-gradient(135deg,#7C3AED,#A855F7)' }}>
+                {gifting ? 'Gifting…' : `Gift ${giftAmount || '—'} credit${parseInt(giftAmount) === 1 ? '' : 's'}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead style={{ background:'#F8F6FF' }}>
+              <tr>{['Name','Email','Role','Credits','Signed up','Actions'].map(h=>(
+                <th key={h} className="text-left px-4 py-3 text-xs font-bold text-warm-500 uppercase tracking-wide">{h}</th>
+              ))}</tr>
+            </thead>
+            <tbody className="divide-y divide-purple-50">
+              {users.map(u => (
+                <tr key={u.id} className="hover:bg-purple-50/30 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-xl bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">{u.full_name?.[0]||'?'}</div>
+                      <span className="text-sm font-semibold text-warm-800">{u.full_name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-warm-500">{u.email}</td>
+                  <td className="px-4 py-3"><Badge color={u.role==='admin'?'purple':'gray'}>{u.role}</Badge></td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-bold px-2 py-1 rounded-full ${u.credits_remaining > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-warm-50 text-warm-400'}`}>
+                      {u.credits_remaining} credit{u.credits_remaining !== 1 ? 's' : ''}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-warm-400">{u.created_at ? format(new Date(u.created_at),'MMM d, yyyy') : '—'}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex gap-1 flex-wrap">
+                      <button onClick={() => openGift(u)}
+                        className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-100 font-semibold">
+                        🎁 Gift credits
+                      </button>
+                      <button onClick={async()=>{
+                        if(!confirm(`Change ${u.full_name} to ${u.role==='admin'?'user':'admin'}?`)) return;
+                        await adminAPI.updateRole(u.id, u.role==='admin'?'user':'admin');
+                        setUsers(p=>p.map(x=>x.id===u.id?{...x,role:x.role==='admin'?'user':'admin'}:x));
+                      }} className="text-xs bg-primary-50 text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-100">
+                        {u.role==='admin'?'↓ user':'↑ admin'}
+                      </button>
+                      <button onClick={async()=>{
+                        if(!confirm(`Delete ${u.full_name}? This is irreversible.`)) return;
+                        await adminAPI.deleteUser(u.id);
+                        setUsers(p=>p.filter(x=>x.id!==u.id));
+                        toast.success('User deleted');
+                      }} className="text-xs text-red-400 hover:bg-red-50 px-2 py-1 rounded-lg">🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+};
+
 // ── Admin component ───────────────────────────────────────────────────────────
 const Admin = () => {
   useSEO({ title: 'Admin Panel — Thankeeu', noIndex: true });
@@ -589,126 +710,7 @@ const Admin = () => {
         )}
 
         {/* ─────────────── USERS ─────────────── */}
-        {tab === 'users' && (() => {
-          // Local state for the gift-credits modal
-          const [giftTarget, setGiftTarget] = React.useState(null); // { id, full_name, email, credits_remaining }
-          const [giftAmount, setGiftAmount] = React.useState('');
-          const [giftReason, setGiftReason] = React.useState('');
-          const [gifting, setGifting] = React.useState(false);
-
-          const openGift = (u) => { setGiftTarget(u); setGiftAmount(''); setGiftReason(''); };
-          const closeGift = () => { setGiftTarget(null); };
-          const submitGift = async () => {
-            const n = parseInt(giftAmount, 10);
-            if (!n || n < 1) return toast.error('Enter a valid number of credits');
-            setGifting(true);
-            try {
-              const res = await adminAPI.giftCredits(giftTarget.id, n, giftReason || undefined);
-              toast.success(`✅ Gifted ${n} credit${n > 1 ? 's' : ''} to ${giftTarget.full_name}. New balance: ${res.data.new_balance}`);
-              setUsers(prev => prev.map(u => u.id === giftTarget.id
-                ? { ...u, credits_remaining: res.data.new_balance }
-                : u
-              ));
-              closeGift();
-            } catch (e) {
-              toast.error(e?.response?.data?.error || 'Failed to gift credits');
-            } finally { setGifting(false); }
-          };
-
-          return (
-            <>
-              {/* Gift Credits Modal */}
-              {giftTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.45)' }}>
-                  <div className="bg-white rounded-3xl shadow-2xl border border-purple-100 w-full max-w-sm p-6">
-                    <h3 className="font-bold text-warm-900 text-lg mb-1">Gift Credits</h3>
-                    <p className="text-sm text-warm-500 mb-4">
-                      To <strong>{giftTarget.full_name}</strong> ({giftTarget.email})<br/>
-                      Current balance: <strong className="text-primary-600">{giftTarget.credits_remaining} credit{giftTarget.credits_remaining !== 1 ? 's' : ''}</strong>
-                    </p>
-                    <label className="block text-xs font-bold text-warm-600 mb-1">Number of credits to gift</label>
-                    <input
-                      type="number" min="1" max="1000"
-                      value={giftAmount}
-                      onChange={e => setGiftAmount(e.target.value)}
-                      placeholder="e.g. 5"
-                      className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    />
-                    <label className="block text-xs font-bold text-warm-600 mb-1">Reason (optional)</label>
-                    <input
-                      type="text"
-                      value={giftReason}
-                      onChange={e => setGiftReason(e.target.value)}
-                      placeholder="e.g. Promo, refund, goodwill..."
-                      className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-sm mb-5 focus:outline-none focus:ring-2 focus:ring-primary-300"
-                    />
-                    <div className="flex gap-2">
-                      <button onClick={closeGift} className="flex-1 py-2.5 rounded-xl border border-purple-200 text-sm font-semibold text-warm-600 hover:bg-purple-50">Cancel</button>
-                      <button onClick={submitGift} disabled={gifting}
-                        className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
-                        style={{ background: gifting ? '#C4B5FD' : 'linear-gradient(135deg,#7C3AED,#A855F7)' }}>
-                        {gifting ? 'Gifting…' : `Gift ${giftAmount || '—'} credit${parseInt(giftAmount) === 1 ? '' : 's'}`}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead style={{ background:'#F8F6FF' }}>
-                      <tr>{['Name','Email','Role','Credits','Signed up','Actions'].map(h=>(
-                        <th key={h} className="text-left px-4 py-3 text-xs font-bold text-warm-500 uppercase tracking-wide">{h}</th>
-                      ))}</tr>
-                    </thead>
-                    <tbody className="divide-y divide-purple-50">
-                      {users.map(u => (
-                        <tr key={u.id} className="hover:bg-purple-50/30 transition-colors">
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-xl bg-primary-100 flex items-center justify-center text-xs font-bold text-primary-600">{u.full_name?.[0]||'?'}</div>
-                              <span className="text-sm font-semibold text-warm-800">{u.full_name}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-warm-500">{u.email}</td>
-                          <td className="px-4 py-3"><Badge color={u.role==='admin'?'purple':'gray'}>{u.role}</Badge></td>
-                          <td className="px-4 py-3">
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full ${u.credits_remaining > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-warm-50 text-warm-400'}`}>
-                              {u.credits_remaining} credit{u.credits_remaining !== 1 ? 's' : ''}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-warm-400">{u.created_at ? format(new Date(u.created_at),'MMM d, yyyy') : '—'}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex gap-1 flex-wrap">
-                              <button onClick={() => openGift(u)}
-                                className="text-xs bg-emerald-50 text-emerald-700 px-2 py-1 rounded-lg hover:bg-emerald-100 font-semibold">
-                                🎁 Gift credits
-                              </button>
-                              <button onClick={async()=>{
-                                if(!confirm(`Change ${u.full_name} to ${u.role==='admin'?'user':'admin'}?`)) return;
-                                await adminAPI.updateRole(u.id, u.role==='admin'?'user':'admin');
-                                setUsers(p=>p.map(x=>x.id===u.id?{...x,role:x.role==='admin'?'user':'admin'}:x));
-                              }} className="text-xs bg-primary-50 text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-100">
-                                {u.role==='admin'?'↓ user':'↑ admin'}
-                              </button>
-                              <button onClick={async()=>{
-                                if(!confirm(`Delete ${u.full_name}? This is irreversible.`)) return;
-                                await adminAPI.deleteUser(u.id);
-                                setUsers(p=>p.filter(x=>x.id!==u.id));
-                                toast.success('User deleted');
-                              }} className="text-xs text-red-400 hover:bg-red-50 px-2 py-1 rounded-lg">🗑️</button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </>
-          );
-        })()}
+        {tab === 'users' && <UsersTab users={users} setUsers={setUsers} />}
 
         {/* ─────────────── CARDS ─────────────── */}
         {tab === 'cards' && (

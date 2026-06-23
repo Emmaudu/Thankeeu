@@ -131,9 +131,8 @@ const Blog = () => {
   useSEO({
     title:       'Blog — Group Card Ideas, HR Tips & Celebration Guides | Thankeeu',
     description: 'The Thankeeu blog. Ideas for birthday cards, farewell messages, work anniversary speeches, gift ideas for colleagues, and HR recognition best practices.',
-    keywords:    'group card ideas Nigeria, birthday message ideas colleagues, farewell message for colleague, HR recognition tips, work anniversary wishes',
+    keywords:    'group card ideas Nigeria, birthday message ideas colleagues, farewell message for colleague, HR recognition tips, work anniversary wishes, thankeeu blog, workplace culture, hr tips, group cards guide',
     canonical:   '/blog',
-    keywords:    'thankeeu blog, workplace culture, hr tips, group cards guide, flutterwave gifting, birthday office celebrations',
     jsonLd: [
       SCHEMAS.organization,
       SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog' }]),

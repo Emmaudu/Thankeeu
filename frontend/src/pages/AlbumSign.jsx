@@ -311,8 +311,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   // ── Success screen ─────────────────────────────────────────────────────────
 
   if (submitted && stage !== 'verifying') return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
-      className="section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
       <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-xl border-2 border-purple-100">
         <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center text-4xl mx-auto mb-5 animate-pop">✓</div>
         <h2 className="text-2xl font-bold text-warm-900 mb-2">You're on {card.recipient_name}'s card! 🎉</h2>

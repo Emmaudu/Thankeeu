@@ -946,7 +946,9 @@ const getCompanyReceivedCards = async (req, res) => {
   try {
     const companyId = req.company.id;
 
-    // 1. Cards explicitly transferred TO this company via the received_cards table
+    // Only show cards explicitly transferred TO this company.
+    // We intentionally do NOT include auto-created occasion cards here —
+    // those belong in the "Delivered" tab (created_by = company, recipient = member).
     const { data: transfers, error: transferErr } = await supabase
       .from('received_cards')
       .select('card_id, created_at')
@@ -954,28 +956,14 @@ const getCompanyReceivedCards = async (req, res) => {
       .eq('recipient_type', 'company')
       .order('created_at', { ascending: false });
     if (transferErr) console.error('[company-received] transfers error:', transferErr.message);
+
     const transferIds = (transfers || []).map(t => t.card_id).filter(Boolean);
-
-    // 2. Cards created BY this company (company_id = this company) that were
-    // delivered to members (status = sent). These are the auto-created occasion
-    // cards (birthday, work anniversary, etc.) that the automation fired.
-    // Crucially we filter by company_id = THIS company — never show foreign cards.
-    const { data: ownDelivered, error: odErr } = await supabase
-      .from('cards')
-      .select('id')
-      .eq('company_id', companyId)
-      .eq('status', 'sent')
-      .order('created_at', { ascending: false });
-    if (odErr) console.error('[company-received] own-delivered error:', odErr.message);
-    const ownDeliveredIds = (ownDelivered || []).map(c => c.id);
-
-    const ids = [...new Set([...transferIds, ...ownDeliveredIds])];
-    if (!ids.length) return res.json([]);
+    if (!transferIds.length) return res.json([]);
 
     const { data, error } = await supabase
       .from('cards')
       .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, send_time')
-      .in('id', ids)
+      .in('id', transferIds)
       .order('created_at', { ascending: false });
 
     if (error) {

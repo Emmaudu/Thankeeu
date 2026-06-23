@@ -656,7 +656,7 @@ const Home = () => {
           <div className="occasion-grid">
             {OCCASIONS.map(({ icon, label }) => (
               <Link key={label} to="/card/new"
-                className="bg-white border-2 border-purple-100 rounded-2xl p-3 sm:p-4 flex flex-col items-center gap-1.5 sm:gap-2 text-center transition-all hover:border-primary-300 hover:bg-primary-50 hover:-translate-y-1 hover:shadow-md active:scale-95">
+                className="bg-white border-2 border-purple-100 rounded-2xl p-3 sm:p-4 flex flex-col items-center justify-center gap-1.5 sm:gap-2 text-center transition-all hover:border-primary-300 hover:bg-primary-50 hover:-translate-y-1 hover:shadow-md active:scale-95" style={{ minHeight: 44 }}>
                 <Icon name={icon} size={26} className="text-primary-500"/>
                 <span className="text-xs font-semibold text-warm-600 leading-tight">{label}</span>
               </Link>

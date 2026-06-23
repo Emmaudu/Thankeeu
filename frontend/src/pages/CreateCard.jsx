@@ -225,6 +225,21 @@ const CreateCard = () => {
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const setMsg = (k, v) => setMsgForm(p => ({ ...p, [k]: v }));
 
+  // Convert local date+time to UTC before sending to backend.
+  // The backend and cron run in UTC, so we must store UTC times to deliver
+  // at the exact local time the user expects.
+  // Uses the browser's own timezone (works for Nigeria WAT, UK GMT/BST, etc.)
+  const toUTCSendTime = (dateStr, timeStr) => {
+    if (!dateStr) return { send_date: dateStr, send_time: timeStr };
+    const localDatetime = new Date(`${dateStr}T${timeStr || '09:00'}:00`);
+    if (isNaN(localDatetime.getTime())) return { send_date: dateStr, send_time: timeStr };
+    // Extract UTC date and time parts
+    const utcDate = localDatetime.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const utcTime = localDatetime.toISOString().slice(11, 16); // "HH:MM"
+    return { send_date: utcDate, send_time: utcTime };
+  };
+
+
   const selectedDesign = CARD_DESIGNS.find(d => d.id === form.design_theme);
 
   const handleOccasionSelect = (occ) => {
@@ -265,7 +280,8 @@ const CreateCard = () => {
     try {
       // Strip status from updates so we never downgrade an active card back to draft
       const { status: _s, ...safeForm } = form;
-      const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card` };
+      const { send_date: utcSendDate, send_time: utcSendTime } = toUTCSendTime(safeForm.send_date, safeForm.send_time);
+      const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card`, send_date: utcSendDate, send_time: utcSendTime };
       let slug;
       if (draftSlug) {
         // Updating an existing card (draft or active) — never change its status

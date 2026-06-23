@@ -386,7 +386,8 @@ async function autoSendDueCards() {
 
 // Run delivery check every 15 minutes so cards go out close to their scheduled time.
 // The daily jobs (deadline reminders, nudges) still run once daily inside this block.
-cron.schedule('*/15 * * * *', async () => {
+// Check every minute so cards deliver at their exact scheduled time.
+cron.schedule('* * * * *', async () => {
   await autoSendDueCards();
 });
 

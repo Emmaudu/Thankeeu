@@ -9,12 +9,24 @@ const {
   listPalApplications, approvePalGroup, rejectPalGroup,
 } = require('../controllers/adminController');
 const { adminListPalTickets, adminReplyPalTicket } = require('../controllers/palSupportController');
+const { sendNudgeEmails } = require('../controllers/visitorsController');
 const { validateUUIDParam } = require('../utils/paramGuard');
 
 router.use(adminAuth);
 
 router.get('/stats',    getStats);
 router.get('/visitors', getVisitors);
+
+// Nudge emails — trigger manually from admin panel
+router.post('/visitors/nudge', async (req, res) => {
+  try {
+    await sendNudgeEmails();
+    res.json({ ok: true, message: 'Nudge emails dispatched to eligible unconverted visitors.' });
+  } catch (err) {
+    console.error('admin nudge error:', err.message);
+    res.status(500).json({ error: 'Nudge failed: ' + err.message });
+  }
+});
 
 // Users
 router.get('/users',                                         getAllUsers);

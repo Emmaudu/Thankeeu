@@ -118,6 +118,7 @@ const UsersTab = ({ users, setUsers }) => {
               onChange={e => setGiftAmount(e.target.value)}
               placeholder="e.g. 5"
               className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-primary-300"
+              style={{ background: '#fff', color: '#1a1a2e' }}
             />
             <label className="block text-xs font-bold text-warm-600 mb-1">Reason (optional)</label>
             <input
@@ -126,6 +127,7 @@ const UsersTab = ({ users, setUsers }) => {
               onChange={e => setGiftReason(e.target.value)}
               placeholder="e.g. Promo, refund, goodwill..."
               className="w-full border border-purple-200 rounded-xl px-4 py-2.5 text-sm mb-5 focus:outline-none focus:ring-2 focus:ring-primary-300"
+              style={{ background: '#fff', color: '#1a1a2e' }}
             />
             <div className="flex gap-2">
               <button onClick={closeGift} className="flex-1 py-2.5 rounded-xl border border-purple-200 text-sm font-semibold text-warm-600 hover:bg-purple-50">Cancel</button>
@@ -229,6 +231,7 @@ const Admin = () => {
 
   const [visitors, setVisitors]         = useState([]);
   const [visitorsLoading, setVisitorsLoading] = useState(false);
+  const [nudging, setNudging] = useState(false);
   const [visitorStats, setVisitorStats] = useState(null);
   const [analytics, setAnalytics]       = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
@@ -333,6 +336,24 @@ const Admin = () => {
       toast.error('Failed to load visitors');
       setVisitors([]);
     } finally { setVisitorsLoading(false); }
+  };
+
+  const sendNudge = async () => {
+    if (!confirm('Send nudge emails to all eligible unconverted visitors now? This sends to visitors not nudged in 7 days and under 4 emails total.')) return;
+    setNudging(true);
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const res = await fetch(`${base}/admin/visitors/nudge`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${localStorage.getItem('thankeeu_token')}` },
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || 'Failed');
+      toast.success(d.message || 'Nudge emails sent!');
+      fetchVisitors(); // refresh visitor counts
+    } catch (err) {
+      toast.error(err.message || 'Nudge failed');
+    } finally { setNudging(false); }
   };
 
   const fetchPals = async () => {
@@ -1215,7 +1236,14 @@ const Admin = () => {
                 <h3 className="font-bold text-warm-900">Guest Visitors</h3>
                 <p className="text-sm text-warm-400">People who signed cards without creating an account</p>
               </div>
-              <button onClick={fetchVisitors} className="btn-secondary text-sm py-2 px-4">🔄 Refresh</button>
+              <div className="flex gap-2">
+                <button onClick={sendNudge} disabled={nudging}
+                  className="btn-secondary text-sm py-2 px-4 flex items-center gap-1.5"
+                  title="Send conversion nudge emails to eligible unconverted visitors (max 4 per visitor, 7-day cooldown)">
+                  {nudging ? '⏳ Sending…' : '📧 Send Nudge Emails'}
+                </button>
+                <button onClick={fetchVisitors} className="btn-secondary text-sm py-2 px-4">🔄 Refresh</button>
+              </div>
             </div>
 
             {/* Visitor stats */}

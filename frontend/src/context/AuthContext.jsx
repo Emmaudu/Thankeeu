@@ -31,7 +31,8 @@ export const AuthProvider = ({ children }) => {
     return () => _EVENTS.forEach(e => window.removeEventListener(e, h));
   }, []);
 
-useEffect(() => {
+  // Restore session from localStorage and validate token
+  useEffect(() => {
     const token = localStorage.getItem('thankeeu_token');
     const savedUser = localStorage.getItem('thankeeu_user');
     if (token && savedUser) {

@@ -105,7 +105,6 @@ const giftCredits = async (req, res) => {
       .select('id, full_name, email').eq('id', userId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // Use the same addCreditsToUser pattern from creditController
     const MAX_ATTEMPTS = 5;
     let success = false;
     let newBalance = 0;
@@ -116,26 +115,32 @@ const giftCredits = async (req, res) => {
 
       if (existing) {
         newBalance = (existing.credits_remaining || 0) + amount;
-        const { data: updated } = await supabase.from('card_credits').update({
-          credits_remaining: newBalance,
-          total_purchased:   (existing.total_purchased || 0) + amount,
-          updated_at:        new Date(),
-        })
+        // Build update payload — only include columns we know exist in base schema
+        const updatePayload = { credits_remaining: newBalance };
+        // total_purchased and updated_at are added by migration — include them safely
+        if (existing.total_purchased !== undefined) {
+          updatePayload.total_purchased = (existing.total_purchased || 0) + amount;
+        }
+        updatePayload.updated_at = new Date();
+
+        const { data: updated, error: updateErr } = await supabase.from('card_credits').update(updatePayload)
           .eq('id', existing.id)
           .eq('credits_remaining', existing.credits_remaining) // optimistic lock
           .select('id').maybeSingle();
 
         if (updated) { success = true; break; }
+        if (updateErr) console.warn('[admin/gift-credits] update attempt', attempt, updateErr.message);
         continue; // retry on lock miss
       } else {
         newBalance = amount;
+        // Base insert — only columns guaranteed in schema.sql
+        // Do NOT include plan_type_v2 ('admin_gift' violates the classic|standard|pack5 constraint)
         const { error: insertErr } = await supabase.from('card_credits').insert({
           user_id:           userId,
           credits_remaining: amount,
-          total_purchased:   amount,
-          plan_type_v2:      'admin_gift',
         });
         if (!insertErr) { success = true; break; }
+        console.warn('[admin/gift-credits] insert attempt', attempt, insertErr.message);
       }
     }
 
@@ -143,10 +148,10 @@ const giftCredits = async (req, res) => {
       return res.status(500).json({ error: 'Failed to gift credits after retries. Please try again.' });
     }
 
-    // Log the gift in credit_purchases for audit trail
+    // Log the gift in credit_purchases for audit trail (table may not exist yet — best-effort)
     await supabase.from('credit_purchases').insert({
       user_id:        userId,
-      plan_type:      'admin_gift',
+      plan_type:      'classic',  // closest allowed value in the log table
       credits_bought: amount,
       amount_paid:    0,
       status:         'paid',
@@ -154,6 +159,42 @@ const giftCredits = async (req, res) => {
     }).catch((e) => { console.warn('[admin/gift-credits] audit log insert failed:', e?.message); });
 
     console.log(`[admin/gift-credits] Gifted ${amount} credits to user ${userId} (${user.email}). New balance: ${newBalance}. Reason: ${reason || 'none'}`);
+
+    // Send email notification to the user
+    try {
+      const { sendEmail } = require('../utils/email');
+      const FRONTEND_URL = (() => {
+        const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+        let s = raw.trim();
+        if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+        s = s.replace(/['\"]/g, '').trim().replace(/\/$/, '');
+        return (s.startsWith('http') ? s : 'https://thankeeu.com');
+      })();
+      await sendEmail({
+        to:      user.email,
+        subject: `🎁 You've received ${amount} free credit${amount !== 1 ? 's' : ''} on Thankeeu!`,
+        html: `<div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:32px;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <div style="font-size:48px;">🎁</div>
+            <h2 style="color:#5B4BDF;margin:12px 0 4px;">You've got free credits, ${user.full_name?.split(' ')[0] || 'friend'}!</h2>
+            <p style="color:#888;font-size:14px;margin:0;">A gift from the Thankeeu team</p>
+          </div>
+          <div style="background:#F5F3FF;border-radius:16px;padding:20px 24px;margin:20px 0;text-align:center;">
+            <p style="font-size:40px;font-weight:900;color:#5B4BDF;margin:0;">${amount}</p>
+            <p style="color:#7C3AED;font-size:16px;font-weight:700;margin:4px 0 0;">Free card credit${amount !== 1 ? 's' : ''} added to your account</p>
+            <p style="color:#888;font-size:13px;margin-top:8px;">New balance: <strong>${newBalance} credit${newBalance !== 1 ? 's' : ''}</strong></p>
+          </div>
+          ${reason ? `<p style="color:#555;font-size:14px;text-align:center;">Reason: <em>${reason}</em></p>` : ''}
+          <p style="color:#555;font-size:14px;line-height:1.7;">Each credit lets you send one group card to a recipient — complete with messages, photos, voice notes, and a gift pot.</p>
+          <div style="text-align:center;margin-top:24px;">
+            <a href="${FRONTEND_URL}/card/new" style="display:inline-block;background:#5B4BDF;color:#fff;padding:13px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;">Create a card now →</a>
+          </div>
+          <p style="color:#bbb;font-size:12px;text-align:center;margin-top:24px;">Thankeeu · <a href="${FRONTEND_URL}" style="color:#7C3AED;">thankeeu.com</a></p>
+        </div>`,
+      });
+    } catch (emailErr) {
+      console.warn('[admin/gift-credits] email notification failed:', emailErr.message);
+    }
 
     res.json({
       ok: true,

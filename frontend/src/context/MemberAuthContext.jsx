@@ -31,7 +31,8 @@ export const MemberAuthProvider = ({ children }) => {
     return () => _EVENTS.forEach(e => window.removeEventListener(e, h));
   }, []);
 
-useEffect(() => {
+  // Restore session from localStorage and validate token
+  useEffect(() => {
     const token = localStorage.getItem('thankeeu_member_token');
     const saved  = localStorage.getItem('thankeeu_member');
     if (token && saved) {

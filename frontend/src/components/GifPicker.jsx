@@ -1,9 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { getCachedResults, setCachedResults, getCachedBlob, setCachedBlob } from '../utils/gifCache';
 
-// GIFs are fetched via the Thankeeu backend proxy (/api/gifs/search and /api/gifs/trending)
-// so the GIPHY API key stays server-side and is never exposed in the browser bundle.
-// Set GIPHY_API_KEY in your Railway environment variables.
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const CATEGORIES = [
@@ -12,18 +10,45 @@ const CATEGORIES = [
   'Hug', 'Good Luck',
 ];
 
+// In-session memory cache as a fast L1 layer in front of the persistent Cache API
+const sessionResultsCache = new Map();
+const sessionBlobCache    = new Map();
+
 const GifPicker = ({ onSelect, onClose }) => {
-  const [query, setQuery]         = useState('');
-  const [gifs, setGifs]           = useState([]);
-  const [loading, setLoading]     = useState(false);
+  const [query, setQuery]             = useState('');
+  const [gifs, setGifs]               = useState([]);
+  const [loading, setLoading]         = useState(false);
   const [downloading, setDownloading] = useState(null);
-  const [activeCat, setActiveCat] = useState('Celebration');
-  const [offset, setOffset]       = useState(0);
-  const [error, setError]         = useState(null);
+  const [activeCat, setActiveCat]     = useState('Celebration');
+  const [offset, setOffset]           = useState(0);
+  const [error, setError]             = useState(null);
+  const [cachedIds, setCachedIds]     = useState(new Set()); // GIF ids whose blob is cached
   const ref         = useRef();
   const debounceRef = useRef();
 
   const fetchGifs = useCallback(async (term, append = false, nextOffset = 0) => {
+    const cacheKey = `${term || '__trending__'}:${nextOffset}`;
+
+    // L1: in-session memory cache (instant)
+    if (sessionResultsCache.has(cacheKey)) {
+      const cached = sessionResultsCache.get(cacheKey);
+      setGifs(prev => append ? [...prev, ...cached] : cached);
+      setOffset(nextOffset);
+      setError(null);
+      return;
+    }
+
+    // L2: persistent Cache API (fast, survives refresh)
+    const persisted = await getCachedResults(cacheKey);
+    if (persisted) {
+      sessionResultsCache.set(cacheKey, persisted);
+      setGifs(prev => append ? [...prev, ...persisted] : persisted);
+      setOffset(nextOffset);
+      setError(null);
+      return;
+    }
+
+    // L3: network fetch
     setLoading(true);
     setError(null);
     try {
@@ -38,6 +63,11 @@ const GifPicker = ({ onSelect, onClose }) => {
       }
       const data = await res.json();
       const results = data?.data || [];
+
+      // Store in both caches
+      sessionResultsCache.set(cacheKey, results);
+      setCachedResults(cacheKey, results); // async, non-blocking
+
       setGifs(prev => append ? [...prev, ...results] : results);
       setOffset(nextOffset);
     } catch (err) {
@@ -81,14 +111,39 @@ const GifPicker = ({ onSelect, onClose }) => {
   const handleSelectGif = async (gif) => {
     const url = gif.images?.original?.url || gif.images?.downsized?.url;
     if (!url) return toast.error('This GIF is unavailable, please pick another.');
+
+    // L1: in-session blob cache
+    if (sessionBlobCache.has(url)) {
+      const blob = sessionBlobCache.get(url);
+      onSelect(new File([blob], `${gif.slug || 'gif'}.gif`, { type: 'image/gif' }));
+      onClose?.();
+      return;
+    }
+
+    // L2: persistent blob cache (saved as actual file in browser cache storage)
+    const persistedBlob = await getCachedBlob(url);
+    if (persistedBlob) {
+      sessionBlobCache.set(url, persistedBlob);
+      setCachedIds(prev => new Set([...prev, gif.id]));
+      onSelect(new File([persistedBlob], `${gif.slug || 'gif'}.gif`, { type: 'image/gif' }));
+      onClose?.();
+      return;
+    }
+
+    // L3: download from network
     setDownloading(gif.id);
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
       if (blob.size > 50 * 1024 * 1024) { toast.error('That GIF is too large (max 50MB)'); return; }
-      const file = new File([blob], `${gif.slug || 'gif'}.gif`, { type: 'image/gif' });
-      onSelect(file);
+
+      // Save to both caches — next time this GIF is selected it will be instant
+      sessionBlobCache.set(url, blob);
+      setCachedBlob(url, blob); // async, non-blocking — saves as actual file in Cache API
+      setCachedIds(prev => new Set([...prev, gif.id]));
+
+      onSelect(new File([blob], `${gif.slug || 'gif'}.gif`, { type: 'image/gif' }));
       onClose?.();
     } catch {
       toast.error('Could not load that GIF — please try another.');
@@ -142,11 +197,18 @@ const GifPicker = ({ onSelect, onClose }) => {
             <div className="grid grid-cols-3 gap-1.5">
               {gifs.map(gif => {
                 const thumb = gif.images?.fixed_width_small?.url || gif.images?.preview_gif?.url || gif.images?.original?.url;
+                const isCached = cachedIds.has(gif.id);
                 return (
                   <button key={gif.id} type="button" onClick={() => handleSelectGif(gif)}
                     disabled={downloading !== null}
-                    className="relative rounded-xl overflow-hidden aspect-square bg-purple-50 hover:ring-2 hover:ring-pink-400 transition-all disabled:opacity-50">
+                    title={isCached ? '⚡ Cached — instant' : gif.title}
+                    className={`relative rounded-xl overflow-hidden aspect-square bg-purple-50 hover:ring-2 hover:ring-pink-400 transition-all disabled:opacity-50 ${isCached ? 'ring-1 ring-emerald-300' : ''}`}>
                     <img src={thumb} alt={gif.title || 'GIF'} loading="lazy" className="w-full h-full object-cover"/>
+                    {isCached && (
+                      <div className="absolute top-1 right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center">
+                        <span style={{ fontSize: 8, color: '#fff', fontWeight: 'bold' }}>✓</span>
+                      </div>
+                    )}
                     {downloading === gif.id && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                         <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin"/>

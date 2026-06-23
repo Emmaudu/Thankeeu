@@ -282,23 +282,30 @@ const CardStart = () => {
       const slug = draftSlug || pending?.slug;
       if (!slug) { toast.error('Card draft not found. Please go back and try again.'); setLoading(false); setPaymentStage('idle'); return; }
 
-      // Post creator message if written
-      if (msgForm.content.trim() && user) {
+
+      // Save creator's message AFTER card is active (addMessage blocks on draft cards)
+      const saveCreatorMessage = async (activeSlug) => {
+        if (!msgForm.content.trim()) return;
+        const authorName  = user?.full_name
+          || (member ? `${member?.first_name || ''} ${member?.last_name || ''}`.trim() : null)
+          || company?.contact_person || company?.name || creatorName || 'Card Creator';
+        const authorEmail = user?.email || member?.email || company?.email || '';
         const fd = new FormData();
-        fd.append('author_name', user.full_name || creatorName);
-        fd.append('author_email', user.email || '');
-        fd.append('content', msgForm.content);
-        fd.append('font_style', msgForm.font_style);
-        fd.append('is_private', msgForm.is_private);
+        fd.append('author_name',  authorName);
+        fd.append('author_email', authorEmail);
+        fd.append('content',      msgForm.content);
+        fd.append('font_style',   msgForm.font_style);
+        fd.append('is_private',   msgForm.is_private);
         mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
-        await messagesAPI.add(slug, fd).catch(() => {});
-      }
+        await messagesAPI.add(activeSlug, fd).catch(e => console.warn('[creator-msg] failed to save:', e?.message));
+      };
 
       // Company/member: free activation
       if (isCompanyUser) {
         await cardsAPI.activate(slug, {
           inviteEmails: inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean),
         });
+        await saveCreatorMessage(slug);
         localStorage.removeItem(PENDING_KEY);
         toast.success('Card is live! 🎉');
         setLiveSlug(slug);
@@ -311,6 +318,7 @@ const CardStart = () => {
         setPaymentStage('verifying');
         const res = await creditsAPI.spend(slug);
         if (res.data?.ok) {
+          await saveCreatorMessage(slug);
           localStorage.removeItem(PENDING_KEY);
           setCreditBalance(res.data.credits_remaining);
           toast.success('Card is live! 🎉');
@@ -325,6 +333,7 @@ const CardStart = () => {
       const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency);
       const { payment_link, already_active, card_slug: activatedSlug } = payRes.data;
       if (already_active) {
+        await saveCreatorMessage(activatedSlug || slug);
         localStorage.removeItem(PENDING_KEY);
         toast.success('Your card is already live! 🎉');
         setLiveSlug(activatedSlug || slug);

@@ -282,12 +282,21 @@ cron.schedule('0 9 * * 1', () => sendNudgeEmails().catch(console.error));
 // for testing/debugging, instead of only running blind at 8AM via cron.
 async function autoSendDueCards() {
   const now = new Date();
+
+  // We compare send_date + send_time together as a proper datetime.
+  // send_date is a DATE column (e.g. "2026-06-23") and send_time is a TIME
+  // column (e.g. "14:30:00"). We build a combined ISO string for each card
+  // server-side by selecting both columns and filtering in JS — this avoids
+  // complex Supabase date-casting that varies across Postgres versions.
+  // We cast a wide net (send_date <= today) then filter on combined datetime.
+  const todayStr = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+
   const { data: cardsToSend, error: cardsToSendErr } = await supabase
     .from('cards')
     .select('*, users!creator_id(email, full_name)')
     .eq('status', 'active')
     .eq('recipient_notified', false)
-    .lte('send_date', now.toISOString())
+    .lte('send_date', todayStr)
     .not('recipient_email', 'is', null);
 
   if (cardsToSendErr) {
@@ -295,11 +304,19 @@ async function autoSendDueCards() {
     return { error: cardsToSendErr.message, delivered: [], failed: [] };
   }
 
-  console.log(`[auto-send] Found ${(cardsToSend || []).length} card(s) due for delivery`);
+  // Filter: only cards whose send_date+send_time is <= now
+  const due = (cardsToSend || []).filter(card => {
+    const dateStr = card.send_date; // "YYYY-MM-DD"
+    const timeStr = card.send_time || '00:00:00'; // default midnight if not set
+    const scheduledAt = new Date(`${dateStr}T${timeStr}`);
+    return scheduledAt <= now;
+  });
+
+  console.log(`[auto-send] Found ${(cardsToSend || []).length} active card(s) with past send_date, ${due.length} due after send_time check`);
   const delivered = [];
   const failed = [];
 
-  for (const card of (cardsToSend || [])) {
+  for (const card of due) {
     try {
       const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('card_id', card.id);
       // Generate claim_token so email link uses ?claim= (not raw access_token)
@@ -354,14 +371,17 @@ async function autoSendDueCards() {
   return { error: null, delivered, failed };
 }
 
+// Run delivery check every 15 minutes so cards go out close to their scheduled time.
+// The daily jobs (deadline reminders, nudges) still run once daily inside this block.
+cron.schedule('*/15 * * * *', async () => {
+  await autoSendDueCards();
+});
+
 cron.schedule('0 8 * * *', async () => {
   console.log('Running daily cron jobs...');
   try {
   const now = new Date();
   const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-
-  // Auto-send scheduled cards
-  await autoSendDueCards();
 
   // ── Deadline reminders (48hrs before deadline) — only for company cards ──
   // with a defined audience (company_id set). Targets colleagues who were

@@ -105,58 +105,56 @@ const giftCredits = async (req, res) => {
       .select('id, full_name, email').eq('id', userId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const MAX_ATTEMPTS = 5;
-    let success = false;
+    // Check if a credits row already exists for this user
+    const { data: existing, error: selectErr } = await supabase
+      .from('card_credits')
+      .select('id, credits_remaining')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (selectErr) {
+      console.error('[admin/gift-credits] select error:', selectErr.message);
+      return res.status(500).json({ error: 'Failed to read credit balance: ' + selectErr.message });
+    }
+
     let newBalance = 0;
 
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const { data: existing } = await supabase.from('card_credits')
-        .select('id, credits_remaining, total_purchased').eq('user_id', userId).maybeSingle();
+    if (existing) {
+      // Row exists — plain UPDATE by id, no optimistic lock, no optional columns
+      newBalance = (existing.credits_remaining || 0) + amount;
+      const { error: updateErr } = await supabase
+        .from('card_credits')
+        .update({ credits_remaining: newBalance })
+        .eq('id', existing.id);
 
-      if (existing) {
-        newBalance = (existing.credits_remaining || 0) + amount;
-        // Build update payload — only include columns we know exist in base schema
-        const updatePayload = { credits_remaining: newBalance };
-        // total_purchased and updated_at are added by migration — include them safely
-        if (existing.total_purchased !== undefined) {
-          updatePayload.total_purchased = (existing.total_purchased || 0) + amount;
-        }
-        updatePayload.updated_at = new Date();
+      if (updateErr) {
+        console.error('[admin/gift-credits] update error:', updateErr.message);
+        return res.status(500).json({ error: 'Failed to update credit balance: ' + updateErr.message });
+      }
+    } else {
+      // No row yet — insert with only base schema columns (no plan_type_v2, no updated_at)
+      newBalance = amount;
+      const { error: insertErr } = await supabase
+        .from('card_credits')
+        .insert({ user_id: userId, credits_remaining: amount });
 
-        const { data: updated, error: updateErr } = await supabase.from('card_credits').update(updatePayload)
-          .eq('id', existing.id)
-          .eq('credits_remaining', existing.credits_remaining) // optimistic lock
-          .select('id').maybeSingle();
-
-        if (updated) { success = true; break; }
-        if (updateErr) console.warn('[admin/gift-credits] update attempt', attempt, updateErr.message);
-        continue; // retry on lock miss
-      } else {
-        newBalance = amount;
-        // Base insert — only columns guaranteed in schema.sql
-        // Do NOT include plan_type_v2 ('admin_gift' violates the classic|standard|pack5 constraint)
-        const { error: insertErr } = await supabase.from('card_credits').insert({
-          user_id:           userId,
-          credits_remaining: amount,
-        });
-        if (!insertErr) { success = true; break; }
-        console.warn('[admin/gift-credits] insert attempt', attempt, insertErr.message);
+      if (insertErr) {
+        console.error('[admin/gift-credits] insert error:', insertErr.message);
+        return res.status(500).json({ error: 'Failed to create credit balance: ' + insertErr.message });
       }
     }
 
-    if (!success) {
-      return res.status(500).json({ error: 'Failed to gift credits after retries. Please try again.' });
-    }
-
-    // Log the gift in credit_purchases for audit trail (table may not exist yet — best-effort)
-    await supabase.from('credit_purchases').insert({
+    // Audit log — best-effort, never block the response
+    supabase.from('credit_purchases').insert({
       user_id:        userId,
-      plan_type:      'classic',  // closest allowed value in the log table
+      plan_type:      'classic',
       credits_bought: amount,
       amount_paid:    0,
       status:         'paid',
       flw_reference:  `admin_gift_${Date.now()}_${userId.slice(0,8)}`,
-    }).catch((e) => { console.warn('[admin/gift-credits] audit log insert failed:', e?.message); });
+    }).then(({ error: e }) => {
+      if (e) console.warn('[admin/gift-credits] audit log failed:', e.message);
+    });
 
     console.log(`[admin/gift-credits] Gifted ${amount} credits to user ${userId} (${user.email}). New balance: ${newBalance}. Reason: ${reason || 'none'}`);
 

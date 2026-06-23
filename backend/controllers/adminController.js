@@ -69,16 +69,103 @@ const getStats = async (req, res) => {
 
 const getAllUsers = async (req, res) => {
   try {
-    // limit(2000): Supabase default cap is 1000; raise it so the admin
-    // sees all users. Add pagination if the platform grows beyond 2000.
-    const { data, error } = await supabase
-      .from('users').select('id, full_name, email, role, is_verified, created_at')
-      .order('created_at', { ascending: false })
-      .limit(2000);
-    if (error) throw error;
-    res.json(data);
+    const [usersRes, creditsRes] = await Promise.all([
+      supabase.from('users')
+        .select('id, full_name, email, role, is_verified, created_at')
+        .order('created_at', { ascending: false })
+        .limit(2000),
+      supabase.from('card_credits')
+        .select('user_id, credits_remaining, total_purchased'),
+    ]);
+    if (usersRes.error) throw usersRes.error;
+    const creditsByUser = {};
+    (creditsRes.data || []).forEach(c => { creditsByUser[c.user_id] = c; });
+    const users = (usersRes.data || []).map(u => ({
+      ...u,
+      credits_remaining: creditsByUser[u.id]?.credits_remaining || 0,
+      total_purchased:   creditsByUser[u.id]?.total_purchased   || 0,
+    }));
+    res.json(users);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch users' });
+  }
+};
+
+const giftCredits = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { credits, reason } = req.body;
+    const amount = parseInt(credits, 10);
+
+    if (!amount || amount < 1 || amount > 1000) {
+      return res.status(400).json({ error: 'Credits must be between 1 and 1000' });
+    }
+
+    const { data: user } = await supabase.from('users')
+      .select('id, full_name, email').eq('id', userId).maybeSingle();
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Use the same addCreditsToUser pattern from creditController
+    const MAX_ATTEMPTS = 5;
+    let success = false;
+    let newBalance = 0;
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      const { data: existing } = await supabase.from('card_credits')
+        .select('id, credits_remaining, total_purchased').eq('user_id', userId).maybeSingle();
+
+      if (existing) {
+        newBalance = (existing.credits_remaining || 0) + amount;
+        const { data: updated } = await supabase.from('card_credits').update({
+          credits_remaining: newBalance,
+          total_purchased:   (existing.total_purchased || 0) + amount,
+          updated_at:        new Date(),
+        })
+          .eq('id', existing.id)
+          .eq('credits_remaining', existing.credits_remaining) // optimistic lock
+          .select('id').maybeSingle();
+
+        if (updated) { success = true; break; }
+        continue; // retry on lock miss
+      } else {
+        newBalance = amount;
+        const { error: insertErr } = await supabase.from('card_credits').insert({
+          user_id:           userId,
+          credits_remaining: amount,
+          total_purchased:   amount,
+          plan_type_v2:      'admin_gift',
+        });
+        if (!insertErr) { success = true; break; }
+      }
+    }
+
+    if (!success) {
+      return res.status(500).json({ error: 'Failed to gift credits after retries. Please try again.' });
+    }
+
+    // Log the gift in credit_purchases for audit trail
+    await supabase.from('credit_purchases').insert({
+      user_id:        userId,
+      plan_type:      'admin_gift',
+      credits_bought: amount,
+      amount_paid:    0,
+      status:         'paid',
+      flw_reference:  `admin_gift_${Date.now()}_${userId.slice(0,8)}`,
+    }).catch((e) => { console.warn('[admin/gift-credits] audit log insert failed:', e?.message); });
+
+    console.log(`[admin/gift-credits] Gifted ${amount} credits to user ${userId} (${user.email}). New balance: ${newBalance}. Reason: ${reason || 'none'}`);
+
+    res.json({
+      ok: true,
+      user_id:       userId,
+      user_email:    user.email,
+      user_name:     user.full_name,
+      credits_gifted: amount,
+      new_balance:   newBalance,
+    });
+  } catch (err) {
+    console.error('[admin/gift-credits]', err.message);
+    res.status(500).json({ error: 'Failed to gift credits' });
   }
 };
 
@@ -674,4 +761,4 @@ const rejectPalGroup = async (req, res) => {
   } catch (err) { safeError(res, err, 'Admin operation failed'); }
 };
 
-module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, getAllCards, deleteCard, redeliverCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot, listPalApplications, approvePalGroup, rejectPalGroup };
+module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, giftCredits, getAllCards, deleteCard, redeliverCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot, listPalApplications, approvePalGroup, rejectPalGroup };

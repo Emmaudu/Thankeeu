@@ -6,7 +6,8 @@ import Footer from '../../components/Footer';
 const OCCASIONS = {
   birthday: {
     title: 'Birthday Group Cards & Gift Pots', emoji: '🎂', tagline: 'Make their birthday unforgettable',
-    desc: "A birthday only comes once a year. Thankeeu brings together heartfelt messages, photos, voice notes, and a pooled cash gift from everyone who cares.",
+    desc: 'Make their birthday unforgettable. Everyone signs one card, adds photos and voice notes, and chips in for a pooled birthday gift — delivered on the day.',
+    keywords: 'online group birthday card, birthday gift pool Nigeria, happy birthday group card, group birthday card everyone signs',
     color: '#E84393', accent: '#FF6FB7', gradient: 'linear-gradient(135deg,#FF6FB7 0%,#7C6EFF 100%)',
     bg: '#FFF0F7', cardBg: 'linear-gradient(135deg,#FF6FB7,#E84393)', inkColor: '#fff',
     signers: 24, amount: '₦85,000', sampleTitle: "Tolu's 30th Birthday 🎂",
@@ -21,7 +22,8 @@ const OCCASIONS = {
   },
   farewell: {
     title: 'Farewell Group Cards', emoji: '👋', tagline: "Send them off with love they'll never forget",
-    desc: "When a colleague leaves, everyone wants to say goodbye properly. One beautiful card brings the whole team's voice together.",
+    desc: "When a colleague leaves, everyone wants to say goodbye properly. One link, the whole team signs — with messages, photos and a pooled going-away gift.",
+    keywords: 'farewell group card Nigeria, going away card colleagues, group farewell gift pool, online leaving card',
     color: '#7C6EFF', accent: '#A78BFA', gradient: 'linear-gradient(135deg,#7C6EFF 0%,#5B4BDF 100%)',
     bg: '#F5F3FF', cardBg: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', inkColor: '#fff',
     signers: 42, amount: '₦120,000', sampleTitle: "Emeka's Farewell 👋",
@@ -36,7 +38,8 @@ const OCCASIONS = {
   },
   anniversary: {
     title: 'Work Anniversary Cards', emoji: '🏆', tagline: 'Celebrate loyalty and years of dedication',
-    desc: "Work anniversaries mark years of commitment. Recognise your colleague's milestones with warm appreciation from the whole team.",
+    desc: "Recognise years of hard work with a group card and pooled gift from the whole team. Work anniversaries deserve more than a Slack message.",
+    keywords: 'work anniversary group card Nigeria, staff anniversary card, employee years of service card, work anniversary gift pool',
     color: '#F59E0B', accent: '#FBBF24', gradient: 'linear-gradient(135deg,#F59E0B 0%,#D97706 100%)',
     bg: '#FFFBEB', cardBg: 'linear-gradient(135deg,#FBBF24,#F59E0B)', inkColor: '#1c1917',
     signers: 18, amount: '₦50,000', sampleTitle: "Kemi's 5-Year Anniversary 🏆",
@@ -51,7 +54,8 @@ const OCCASIONS = {
   },
   promotion: {
     title: 'Promotion Celebration Cards', emoji: '🌟', tagline: 'Cheer their hard-earned milestone',
-    desc: "Promotions are earned with years of effort. Celebrate them loudly with a group card full of genuine pride, warm wishes, and a collective gift.",
+    desc: "Celebrate a promotion the right way — a group card from the whole team, with messages everyone writes personally and a pooled gift they\'ll actually remember.",
+    keywords: 'group promotion congratulations card Nigeria, congratulations card for promotion, colleague promotion gift, online promotion card',
     color: '#10B981', accent: '#34D399', gradient: 'linear-gradient(135deg,#10B981 0%,#059669 100%)',
     bg: '#ECFDF5', cardBg: 'linear-gradient(135deg,#34D399,#10B981)', inkColor: '#fff',
     signers: 31, amount: '₦75,000', sampleTitle: "Amaka's Promotion to Lead 🌟",
@@ -66,7 +70,8 @@ const OCCASIONS = {
   },
   wedding: {
     title: 'Wedding Congratulations Cards', emoji: '💍', tagline: 'Celebrate love together as a team',
-    desc: "Nothing unites a team like a wedding! Create a beautiful card filled with heartfelt wishes and a generous pooled gift.",
+    desc: 'Send a wedding congratulations group card from the whole team or family. Everyone adds their warmest wishes, and you pool a Naira wedding gift — no cash awkwardness.',
+    keywords: 'wedding congratulations group card Nigeria, group wedding gift pool, online wedding card colleagues, team wedding card',
     color: '#EC4899', accent: '#F472B6', gradient: 'linear-gradient(135deg,#EC4899 0%,#DB2777 100%)',
     bg: '#FDF2F8', cardBg: 'linear-gradient(135deg,#F472B6,#EC4899)', inkColor: '#fff',
     signers: 37, amount: '₦200,000', sampleTitle: "Tunde & Zainab's Wedding 💍",
@@ -136,14 +141,14 @@ const MessageMiniCard = ({ msg, color }) => {
               <div key={i} className="w-0.5 rounded-full" style={{ height: h*2, background: color, opacity: 0.7 }} />
             ))}
           </div>
-          <span className="text-xs text-purple-600 font-medium">{msg.text.split('(')[1]?.replace(')','') || '0:20'}</span>
+          <span className="text-xs text-purple-600 font-medium">{msg.text.split('(')[1]?.replace('),') || '0:20'}</span>
         </div>
       )}
       {msg.type === 'gif' && (
         <div className="text-3xl text-center leading-tight">{msg.gif}</div>
       )}
       {msg.type === 'photo' && (
-        <div className="text-center text-2xl">📸 <span className="text-xs text-gray-500 font-medium">{msg.text.replace('📸 ','')}</span></div>
+        <div className="text-center text-2xl">📸 <span className="text-xs text-gray-500 font-medium">{msg.text.replace('📸 ,')}</span></div>
       )}
       {msg.type === 'text' && (
         <p className="text-xs text-gray-600 leading-relaxed">{msg.text}</p>
@@ -154,7 +159,7 @@ const MessageMiniCard = ({ msg, color }) => {
 
 export default function OccasionLandingPage({ occasion }) {
   const d = OCCASIONS[occasion] || OCCASIONS.birthday;
-  useSEO({ title: `${d.title} — Thankeeu`, description: d.desc, noIndex: false });
+  useSEO({ title: `${d.title} — Thankeeu`, description: d.desc, keywords: d.keywords || '', canonical: `/occasions/${occasion}`, noIndex: false });
 
   return (
     <div className="min-h-screen" style={{ background: d.bg }}>

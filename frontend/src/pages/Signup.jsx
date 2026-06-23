@@ -10,7 +10,7 @@ import axios from 'axios';
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
 const Signup = () => {
-  useSEO({ title: 'Create a Free Account — Thankeeu', noIndex: false });
+  useSEO({ title: 'Create a Free Account — Start Your First Group Card | Thankeeu', description: 'Sign up free and create your first group card in minutes. No credit card needed to get started. Send it when everyone has signed.', noIndex: false });
   const { login } = useAuth();
   const navigate  = useNavigate();
   const [searchParams] = useSearchParams();

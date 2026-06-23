@@ -25,7 +25,7 @@ const OCCASIONS = {
       ],
       giftTotal: 87500,
     },
-    seo: { title: 'Birthday Group Cards | Thankeeu', desc: 'Create a beautiful group birthday card. Collect messages, voice notes, photos and pool a Naira gift via Flutterwave. From ₦5,000.' },
+    seo: { title: 'Online Group Birthday Card + Gift Pot | Thankeeu', desc: 'Create a beautiful online group birthday card everyone can sign. Pool a Naira birthday gift via Flutterwave. Messages, photos, voice notes. From ₦5,000.', keywords: 'online group birthday card Nigeria, birthday group card everyone signs, birthday gift pool Nigeria, happy birthday group card' },
   },
   farewell: {
     icon: '👋', accent: '#0EA5E9', bg: '#EFF6FF',
@@ -43,7 +43,7 @@ const OCCASIONS = {
       ],
       giftTotal: 120000,
     },
-    seo: { title: 'Farewell Group Cards | Thankeeu', desc: 'Create a meaningful farewell card with memories, voice notes, photos and a pooled gift. For colleagues leaving the company.' },
+    seo: { title: 'Online Group Farewell Card for Colleague | Thankeeu', desc: 'Send a heartfelt farewell card from the whole team. Collect messages, voice notes, photos and a pooled going-away gift in one beautiful card. For colleagues leaving.', keywords: 'online farewell card Nigeria, going away group card, colleague leaving card, group farewell gift Nigeria' },
   },
   graduation: {
     icon: '🎓', accent: '#10B981', bg: '#F0FDF4',
@@ -61,7 +61,7 @@ const OCCASIONS = {
       ],
       giftTotal: 150000,
     },
-    seo: { title: 'Graduation Group Cards | Thankeeu', desc: 'Celebrate a graduation with a group card full of pride, memories, and a pooled gift. From family, friends, and classmates.' },
+    seo: { title: 'Online Group Graduation Card & Gift | Thankeeu', desc: 'Celebrate a graduation with a beautiful group card from family, friends and classmates. Pool a Naira graduation gift everyone contributes to. Makes them feel truly celebrated.', keywords: 'group graduation card Nigeria, graduation gift pool, online graduation card friends, NYSC graduation card' },
   },
   anniversary: {
     icon: '💍', accent: '#F43F5E', bg: '#FFF1F2',
@@ -79,7 +79,7 @@ const OCCASIONS = {
       ],
       giftTotal: 200000,
     },
-    seo: { title: 'Anniversary Group Cards | Thankeeu', desc: 'Create a beautiful anniversary group card with messages from family and friends and a pooled Naira gift.' },
+    seo: { title: 'Online Group Anniversary Card & Gift Pool | Thankeeu', desc: 'Celebrate a work or wedding anniversary with a group card from the whole team or family. Everyone adds a message. Pool a Naira anniversary gift. Delivered on the day.', keywords: 'work anniversary group card Nigeria, wedding anniversary card online, group anniversary gift pool, staff anniversary card' },
   },
   promotion: {
     icon: '🌟', accent: '#F59E0B', bg: '#FFFBEB',
@@ -97,7 +97,7 @@ const OCCASIONS = {
       ],
       giftTotal: 95000,
     },
-    seo: { title: 'Promotion Group Cards | Thankeeu', desc: 'Celebrate a promotion with a group card and pooled gift. Perfect for colleagues, managers, and teams.' },
+    seo: { title: 'Online Group Promotion Congratulations Card | Thankeeu', desc: 'Celebrate a colleague\'s promotion with a group card from the whole team. Everyone signs and chips in for a pooled gift. The perfect way to say congratulations.', keywords: 'promotion congratulations card Nigeria, group card for promotion, colleague promotion gift Nigeria, work promotion online card' },
   },
   'new-baby': {
     icon: '👶', accent: '#EC4899', bg: '#FDF2F8',
@@ -115,7 +115,7 @@ const OCCASIONS = {
       ],
       giftTotal: 175000,
     },
-    seo: { title: 'Baby Shower & New Baby Group Cards | Thankeeu', desc: 'Create a beautiful new baby or baby shower group card with warm messages and a pooled gift for the new parents.' },
+    seo: { title: 'Online Group Baby Shower Card & Gift | Thankeeu', desc: 'Welcome the new baby with a group card full of warm wishes from family, friends and colleagues. Pool a baby shower gift everyone contributes to — delivered straight to the parents.', keywords: 'baby shower group card Nigeria, new baby card online, group baby gift pool Nigeria, welcome baby card colleagues' },
   },
 };
 
@@ -139,7 +139,7 @@ export default function OccasionPage() {
     );
   }
 
-  useSEO({ title: data.seo.title, description: data.seo.desc, canonical: `/occasions/${occasion}` });
+  useSEO({ title: data.seo.title, description: data.seo.desc, canonical: `/occasions/${occasion}`, keywords: data.seo.keywords || '' });
 
   const { example } = data;
   const giftFmt = (n) => n > 0 ? `₦${n.toLocaleString()}` : null;

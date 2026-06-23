@@ -10,8 +10,9 @@ const INDUSTRIES = ['Technology','Finance & Banking','Healthcare','Education','M
 
 const CompanySignup = () => {
   useSEO({
-    title:       'Thankeeu for Teams — Create Company Account',
-    description: 'Create a company account on Thankeeu for Teams. Automate birthday cards, farewell cards, new hire welcome and promotions for your entire workforce. HRIS integration included.',
+    title:       'Thankeeu for Teams — Automate Employee Recognition Cards',
+    description: 'Group cards for every employee milestone — birthdays, farewells, work anniversaries, promotions. Automated, beautiful, and pooled gifts. HRIS integration included. Free trial.',
+    keywords:    'employee recognition cards Nigeria, HR group card platform, birthday card automation employees, team farewell card Nigeria, HRIS group card',
     canonical:   '/company/signup',
     jsonLd:      [
       SCHEMAS.organization,

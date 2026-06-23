@@ -422,9 +422,10 @@ const LiveCardPreview = () => {
 /* ─── Main Home ──────────────────────────────────────────────────────── */
 const Home = () => {
   useSEO({
-    title:'Thankeeu — Online Group Cards & Gifts for Every Occasion',
-    description:"The world's favourite online group card and gift platform. Birthdays, farewells, promotions and more.",
+    title:'Online Group Card & Gift Platform — Thankeeu',
+    description:'Create beautiful online group cards for birthdays, farewells, promotions & more. Everyone signs from one link. Pool a Naira gift via Flutterwave. Free to start.',
     canonical:'/',
+    keywords:'online group card Nigeria, group birthday card, farewell card online, group gift collection, Flutterwave gift, team card Nigeria',
     jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp],
   });
 
@@ -697,12 +698,12 @@ const Home = () => {
       <section className="py-12 md:py-16 px-4 section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-            <div className="text-center">
+            <div className="text-center mx-auto w-full">
               <div className="mb-4 inline-flex items-center gap-1.5"><Icon name="Heart" size={13}/> For individuals</div>
-              <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.85rem,5.5vw,2.6rem)' }}>
+              <h2 className="font-bold text-warm-900 mb-4 text-center" style={{ fontSize:'clamp(1.85rem,5.5vw,2.6rem)' }}>
                 Everything a group card<br/><span className="text-primary-500">should actually have</span>
               </h2>
-              <p className="text-warm-500 mb-6 leading-relaxed">No generic e-cards. One link, everyone signs, gift collected — and it looks stunning.</p>
+              <p className="text-warm-500 mb-6 leading-relaxed text-center">No generic e-cards. One link, everyone signs, gift collected — and it looks stunning.</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-7">
                 {FEATURES.map(f => (
                   <div key={f.title} className="bg-white rounded-2xl border-2 border-purple-100 p-4 flex gap-3">

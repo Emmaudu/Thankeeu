@@ -85,8 +85,9 @@ const StepIndicator = ({ current }) => (
 // ─── Main component ───────────────────────────────────────────────────────────
 const CardStart = () => {
   useSEO({
-    title: 'Create a Group Card — Free | Thankeeu',
-    description: 'Create a beautiful group card in minutes. Add a gift pot, invite people to sign, and deliver it on the perfect day.',
+    title: 'Create a Free Online Group Card | Thankeeu',
+    description: 'Make a stunning group card for any occasion — birthday, farewell, promotion, and more. Add a gift pot, invite everyone via WhatsApp, schedule delivery. Free to start.',
+    keywords: 'create group card online free, make birthday group card, farewell group card Nigeria, online group card with gift',
   });
 
   const { user }    = useAuth();

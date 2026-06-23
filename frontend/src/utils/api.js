@@ -209,13 +209,14 @@ export const remindersAPI = {
 
 // ─── Admin ──────────────────────────────────────────────────────────────────
 export const adminAPI = {
-  getStats:   ()              => api.get('/admin/stats'),
-  getUsers:   ()              => api.get('/admin/users'),
-  updateRole: (userId, role)  => api.put(`/admin/users/${userId}/role`, { role }),
-  deleteUser: (userId)        => api.delete(`/admin/users/${userId}`),
-  getCards:   ()              => api.get('/admin/cards'),
-  redeliverCard: (cardId)     => api.post(`/admin/cards/${cardId}/redeliver`),
-  deleteCard: (cardId)        => api.delete(`/admin/cards/${cardId}`),
+  getStats:     ()                       => api.get('/admin/stats'),
+  getUsers:     ()                       => api.get('/admin/users'),
+  updateRole:   (userId, role)           => api.put(`/admin/users/${userId}/role`, { role }),
+  giftCredits:  (userId, credits, reason) => api.post(`/admin/users/${userId}/gift-credits`, { credits, reason }),
+  deleteUser:   (userId)                 => api.delete(`/admin/users/${userId}`),
+  getCards:     ()                       => api.get('/admin/cards'),
+  redeliverCard: (cardId)               => api.post(`/admin/cards/${cardId}/redeliver`),
+  deleteCard:   (cardId)                => api.delete(`/admin/cards/${cardId}`),
 };
 
 export const adminCompanyAPI = {

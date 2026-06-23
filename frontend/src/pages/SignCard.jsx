@@ -82,7 +82,7 @@ const SignCard = () => {
 
   useSEO({
     title: card ? `Sign ${card.recipient_name}'s card on Thankeeu` : 'Sign a Card — Thankeeu',
-    description: card ? `Add a beautiful message and gift for ${card.recipient_name}.` : 'Sign a group card on Thankeeu.',
+    description: card ? `Sign ${card.recipient_name}'s group card. Add a heartfelt message, photo, voice note or gift contribution — no account needed.` : 'Sign a group card on Thankeeu. Add a message, photo or gift — takes 60 seconds, no account needed.',
   });
 
   useEffect(() => {

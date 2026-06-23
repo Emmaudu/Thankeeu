@@ -2,7 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const { adminAuth } = require('../middleware/auth');
 const {
-  getStats, getAllUsers, updateUserRole, deleteUser,
+  getStats, getAllUsers, updateUserRole, deleteUser, giftCredits,
   getAllCards, deleteCard, redeliverCard,
   getAllCompanies, deleteCompany, getCompanyTeamMembers,
   getVisitors, setCompanyMultiplier, grantPilot,
@@ -17,9 +17,10 @@ router.get('/stats',    getStats);
 router.get('/visitors', getVisitors);
 
 // Users
-router.get('/users',                                    getAllUsers);
-router.put('/users/:userId/role',   validateUUIDParam('userId'),    updateUserRole);
-router.delete('/users/:userId',     validateUUIDParam('userId'),    deleteUser);
+router.get('/users',                                         getAllUsers);
+router.put('/users/:userId/role',     validateUUIDParam('userId'), updateUserRole);
+router.post('/users/:userId/gift-credits', validateUUIDParam('userId'), giftCredits);
+router.delete('/users/:userId',       validateUUIDParam('userId'), deleteUser);
 
 // Cards
 router.get('/cards',                                    getAllCards);

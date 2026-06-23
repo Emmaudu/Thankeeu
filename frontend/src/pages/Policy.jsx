@@ -14,8 +14,9 @@ const Section = ({
 
 const Policy = () => {
   useSEO({
-    title:       'Privacy Policy & Terms of Service',
-    description: 'Read the Thankeeu Privacy Policy and Terms of Service. We protect your personal data and never sell it to third parties.',
+    title:       'Privacy Policy & Terms of Service | Thankeeu',
+    description: 'Thankeeu Privacy Policy and Terms of Service. Your data is safe — we never sell personal information. Secure payments via Flutterwave.',
+    keywords: 'Thankeeu privacy policy, terms of service, data protection Nigeria',
     canonical:   '/policy',
     jsonLd:      [
       SCHEMAS.organization,

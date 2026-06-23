@@ -29,8 +29,9 @@ const cats = ['All', ...new Set(FAQS.map(f => f.cat))];
 
 export default function FAQ() {
   useSEO({
-    title: 'FAQ — Frequently Asked Questions about Thankeeu',
-    description: 'Everything you need to know about Thankeeu group cards, Naira gift pots, secure payments, company subscriptions and more.',
+    title: 'FAQ — Group Cards, Gift Pots & Payments Explained | Thankeeu',
+    description: 'Answers to the most common questions about Thankeeu. How to create a group card, pool a gift, pay securely with Flutterwave, withdraw money to your bank, and more.',
+    keywords: 'Thankeeu FAQ, group card questions, how to withdraw gift money, Flutterwave group card',
     canonical: '/faq',
   });
 

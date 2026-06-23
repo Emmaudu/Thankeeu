@@ -86,8 +86,9 @@ import { CurrencyToggle, RotatingPrice } from '../utils/currencyUI';
 // ── Main Pricing page ─────────────────────────────────────────────────────────
 const Pricing = () => {
   useSEO({
-    title: 'Pricing — Group Cards for Everyone Worldwide · Thankeeu',
-    description: 'Send beautiful group cards from anywhere in the world. Pay in NGN, USD, GBP, EUR, CAD and more. Individual cards from ₦5,000. Team automation — pricing based on your headcount.',
+    title: 'Pricing — Send a Group Card from ₦5,000 | Thankeeu',
+    description: 'Affordable online group cards starting at ₦5,000. Pool a Naira gift. Teams get unlimited cards & HR automation. Pay in NGN, USD, GBP, EUR and more.',
+    keywords: 'group card price Nigeria, how much does group card cost, Thankeeu pricing, team card subscription Nigeria',
     canonical: '/pricing',
   });
 

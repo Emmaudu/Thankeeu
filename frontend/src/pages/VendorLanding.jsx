@@ -22,8 +22,9 @@ const STEPS = [
 
 export default function VendorLanding() {
   useSEO({
-    title: 'Sell on Thankeeu — gifts, cakes, flowers & more',
-    description: 'Open a free storefront on Thankeeu. Reach customers buying gifts for birthdays, farewells, and celebrations — with built-in checkout and order alerts.',
+    title: 'Sell Cakes, Gifts & Flowers on Thankeeu — Free Storefront',
+    description: 'List your products on Thankeeu and reach customers who are already buying gifts for birthdays, farewells and celebrations. Free storefront, instant order alerts, no commission setup fee.',
+    keywords: 'sell gifts online Nigeria, cake vendor Nigeria, gift shop Thankeeu, flower vendor online Nigeria', canonical: '/vendors',
   });
 
   return (

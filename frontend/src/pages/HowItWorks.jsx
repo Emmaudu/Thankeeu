@@ -15,8 +15,9 @@ const STEPS = [
 
 export default function HowItWorks() {
   useSEO({
-    title: 'How Thankeeu Works — Create, Sign, Gift in Minutes',
-    description: 'Step-by-step guide to creating a group card on Thankeeu. Create, invite signers, pool a Naira gift via Flutterwave, and deliver the surprise.',
+    title: 'How It Works — Create an Online Group Card in 2 Minutes | Thankeeu',
+    description: 'Create a group card, share one link on WhatsApp, collect messages and gifts, then deliver it automatically. No signup needed to sign. Free to start.',
+    keywords: 'how to create group card online, online group card Nigeria, how group cards work, WhatsApp group card',
     canonical: '/how-it-works',
   });
 

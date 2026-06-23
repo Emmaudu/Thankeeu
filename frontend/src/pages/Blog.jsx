@@ -129,8 +129,9 @@ const Blog = () => {
   const LIMIT = 9;
 
   useSEO({
-    title:       'Blog — Tips, Guides & Updates from Thankeeu',
-    description: "The Thankeeu blog. Expert guides on workplace celebrations, HRIS integration, group gifting with Flutterwave, and HR best practices for companies worldwide.",
+    title:       'Blog — Group Card Ideas, HR Tips & Celebration Guides | Thankeeu',
+    description: 'The Thankeeu blog. Ideas for birthday cards, farewell messages, work anniversary speeches, gift ideas for colleagues, and HR recognition best practices.',
+    keywords:    'group card ideas Nigeria, birthday message ideas colleagues, farewell message for colleague, HR recognition tips, work anniversary wishes',
     canonical:   '/blog',
     keywords:    'thankeeu blog, workplace culture, hr tips, group cards guide, flutterwave gifting, birthday office celebrations',
     jsonLd: [

@@ -22,8 +22,9 @@ const STEPS = [
 
 export default function PalLanding() {
   useSEO({
-    title: 'Thankeeu Pals — celebrate your closest circle, together',
-    description: 'A free shared account for up to 15 friends, family, or teammates. Automatic celebration cards, pooled gifts, and private contributions.',
+    title: 'Thankeeu Pals — Group Cards for Friends & Family | Thankeeu',
+    description: 'Create a free Pals group for up to 15 friends or family. Automatically celebrate birthdays and milestones together with a group card and pooled gift. No hassle.',
+    keywords: 'group card for friends, family group card Nigeria, birthday reminder group, Thankeeu Pals', canonical: '/pals',
   });
 
   return (

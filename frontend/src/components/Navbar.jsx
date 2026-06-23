@@ -64,7 +64,7 @@ const Navbar = ({ onBookDemo }) => {
             </Link>
 
             {/* Desktop nav links */}
-            <div className="hidden md:flex items-center gap-0.5">
+            <div className="hidden lg:flex items-center gap-0.5">
               {[
                 { to: '/pricing',       label: 'Pricing',       icon: 'Sparkles' },
                 { to: '/how-it-works', label: 'How it works', icon: 'Lightbulb' },
@@ -140,7 +140,7 @@ const Navbar = ({ onBookDemo }) => {
             </div>
 
             {/* CTA cluster */}
-            <div className="hidden md:flex items-center gap-2">
+            <div className="hidden lg:flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
                   <Link to="/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5"><Icon name="Dashboard" size={14}/> Dashboard</Link>
@@ -199,7 +199,7 @@ const Navbar = ({ onBookDemo }) => {
 
             {/* Mobile hamburger */}
             <button onClick={() => setOpen(!open)}
-              className="md:hidden flex items-center justify-center rounded-xl border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors"
+              className="lg:hidden flex items-center justify-center rounded-xl border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors"
               style={{ width: 48, height: 48 }}>
               <Icon name={open ? 'X' : 'Menu'} size={22} />
             </button>
@@ -209,7 +209,7 @@ const Navbar = ({ onBookDemo }) => {
 
       {/* Mobile menu */}
       {open && (
-        <div className="mobile-nav-overlay z-[60] md:hidden" onClick={() => setOpen(false)}>
+        <div className="mobile-nav-overlay z-[60] lg:hidden" onClick={() => setOpen(false)}>
           <div className="absolute right-0 top-[65px] w-80 mx-3 rounded-3xl overflow-hidden shadow-xl animate-slide-up"
             style={{ background:'#FFFFFF', border:'1.5px solid #EDE5FF' }}
             onClick={e => e.stopPropagation()}>

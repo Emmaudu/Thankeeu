@@ -8,7 +8,6 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 
 
 import toast from 'react-hot-toast';
@@ -1533,9 +1532,9 @@ const CardView = () => {
     </div>
   );
 
-  if (layoutType === 'member')  return <><Navbar/>{content}<Footer/></>;
-  if (layoutType === 'company') return <><Navbar/>{content}<Footer/></>;
-  return <><Navbar/>{content}<Footer/></>;
+  if (layoutType === 'member')  return <><Navbar/>{content}</>;
+  if (layoutType === 'company') return <><Navbar/>{content}</>;
+  return <><Navbar/>{content}</>;
 };
 
 export default CardView;

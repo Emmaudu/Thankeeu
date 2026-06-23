@@ -202,25 +202,20 @@ const BlogPost = () => {
             {/* Main content */}
             <div className="min-w-0">
               {/* Breadcrumb */}
-              <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-warm-500 mb-6">
-                <Link to="/" className="hover:text-primary-500 transition-colors">Home</Link>
-                <span>›</span>
-                <Link to="/blog" className="hover:text-primary-500 transition-colors">Blog</Link>
-                <span>›</span>
-                <span className="text-warm-700 line-clamp-1">{post.title}</span>
+              <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-warm-500 mb-6 flex-nowrap overflow-hidden">
+                <Link to="/" className="hover:text-primary-500 transition-colors whitespace-nowrap">Home</Link>
+                <span className="flex-shrink-0">›</span>
+                <Link to="/blog" className="hover:text-primary-500 transition-colors whitespace-nowrap">Blog</Link>
+                <span className="flex-shrink-0">›</span>
+                <span className="text-warm-700 truncate min-w-0">{post.title}</span>
               </nav>
 
-              {/* Category + tags */}
+              {/* Category only — tags moved to end of article */}
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 <Link to={`/blog?category=${encodeURIComponent(post.category)}`}
                   className="bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-primary-200 transition-colors">
                   <span className="inline-flex items-center gap-1.5"><Icon name={CATEGORY_ICONS[post.category] || 'File'} size={12}/> {post.category}</span>
                 </Link>
-                {(post.tags || []).map(tag => (
-                  <span key={tag} className="bg-purple-50 text-warm-600 text-xs px-2.5 py-1 rounded-full">
-                    #{tag}
-                  </span>
-                ))}
               </div>
 
               {/* Title */}

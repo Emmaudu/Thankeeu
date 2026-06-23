@@ -77,7 +77,7 @@ const Navbar = ({ onBookDemo }) => {
                       ? 'bg-primary-50 text-primary-600'
                       : 'text-warm-700 hover:text-primary-600 hover:bg-primary-50'
                   }`}>
-                  <Icon name={icon} size={15} />{label}
+                  {label}
                 </Link>
               ))}
 
@@ -88,7 +88,7 @@ const Navbar = ({ onBookDemo }) => {
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
                     teamsOpen ? 'bg-primary-50 text-primary-600' : 'text-warm-700 hover:text-primary-600 hover:bg-primary-50'
                   }`}>
-                  <Icon name="Building" size={15} /> Teams
+                  Teams
                   <Icon name={teamsOpen ? 'ChevronUp' : 'ChevronDown'} size={13} className="opacity-60" style={{ marginLeft: 2 }} />
                 </button>
                 {teamsOpen && (
@@ -143,7 +143,7 @@ const Navbar = ({ onBookDemo }) => {
             <div className="hidden lg:flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
-                  <Link to="/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5"><Icon name="Dashboard" size={14}/> Dashboard</Link>
+                  <Link to="/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5">Dashboard</Link>
                   <div className="relative">
                     <button onClick={() => setDropdownOpen(!dropdownOpen)}
                       className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
@@ -155,16 +155,16 @@ const Navbar = ({ onBookDemo }) => {
                           <p className="text-xs font-semibold text-warm-900 truncate">{user.full_name}</p>
                           <p className="text-xs text-warm-500 truncate">{user.email}</p>
                         </div>
-                        <Link to="/dashboard" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Dashboard" size={15}/> Dashboard</Link>
-                        <Link to="/create-card" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Plus" size={15}/> New card</Link>
-                        <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors"><Icon name="LogOut" size={15}/> Sign out</button>
+                        <Link to="/dashboard" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Dashboard</Link>
+                        <Link to="/create-card" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">New card</Link>
+                        <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors">Sign out</button>
                       </div>
                     )}
                   </div>
                 </div>
               ) : member ? (
                 <div className="flex items-center gap-2">
-                  <Link to="/member/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5"><Icon name="Home" size={14}/> My Dashboard</Link>
+                  <Link to="/member/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5">My Dashboard</Link>
                   <div className="relative">
                     <button onClick={() => setDropdownOpen(!dropdownOpen)}
                       className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
@@ -176,23 +176,23 @@ const Navbar = ({ onBookDemo }) => {
                           <p className="text-xs font-semibold text-warm-900 truncate">{member.first_name} {member.last_name}</p>
                           <p className="text-xs text-warm-400 truncate">{member.company?.name} · {member.department}</p>
                         </div>
-                        <Link to="/member/dashboard" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Home" size={15}/> Dashboard</Link>
-                        <Link to="/member/occasions" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Party" size={15}/> Occasions</Link>
-                        <Link to="/member/settings" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors"><Icon name="Settings" size={15}/> Settings</Link>
-                        <button onClick={handleMemberLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors"><Icon name="LogOut" size={15}/> Sign out</button>
+                        <Link to="/member/dashboard" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Dashboard</Link>
+                        <Link to="/member/occasions" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Occasions</Link>
+                        <Link to="/member/settings" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Settings</Link>
+                        <button onClick={handleMemberLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors">Sign out</button>
                       </div>
                     )}
                   </div>
                 </div>
               ) : company ? (
                 <div className="flex items-center gap-2">
-                  <Link to="/company/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5"><Icon name="Building" size={14}/> HR Dashboard</Link>
+                  <Link to="/company/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5">HR Dashboard</Link>
                   <button onClick={handleCompanyLogout} className="text-xs text-warm-500 hover:text-rose-500 px-3 py-2 transition-colors font-medium">Sign out</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Link to="/login" onClick={scrollTop} className="text-sm font-semibold text-warm-700 hover:text-primary-600 px-3 py-2 transition-colors">Sign in</Link>
-                  <Link to="/signup" onClick={scrollTop} className="btn-primary text-xs py-2.5 px-5 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={14}/> Start free</Link>
+                  <Link to="/signup" onClick={scrollTop} className="btn-primary text-xs py-2.5 px-5 inline-flex items-center gap-1.5">Start free</Link>
                 </div>
               )}
             </div>
@@ -236,28 +236,24 @@ const Navbar = ({ onBookDemo }) => {
               ].map(({ to, label, icon }) => (
                 <Link key={to} to={to} onClick={scrollTop}
                   className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-primary-50 hover:text-primary-600 transition-all">
-                  <Icon name={icon} size={17} />{label}
+                  {label}
                 </Link>
               ))}
 
               {/* Teams section in mobile */}
               <div className="pt-2 pb-1">
-                <p className="px-4 py-1 text-xs font-bold text-warm-400 uppercase tracking-wider flex items-center gap-1.5"><Icon name="Building" size={12}/> Teams</p>
+                <p className="px-4 py-1 text-xs font-bold text-warm-400 uppercase tracking-wider">Teams</p>
               </div>
               <Link to="/member/login" onClick={scrollTop} className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-blue-50 hover:text-blue-700 transition-all">
-                <span className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center"><Icon name="User" size={14} className="text-blue-500"/></span>
                 Team Member Login
               </Link>
               <Link to="/member/signup" onClick={scrollTop} className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-green-50 hover:text-green-700 transition-all">
-                <span className="w-7 h-7 rounded-lg bg-green-50 flex items-center justify-center"><Icon name="Edit" size={14} className="text-green-500"/></span>
                 Join Your Company
               </Link>
               <Link to="/company/login" onClick={scrollTop} className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-purple-50 hover:text-primary-600 transition-all">
-                <span className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center"><Icon name="Building" size={14} className="text-primary-500"/></span>
                 Company (HR) Login
               </Link>
               <Link to="/company/signup" onClick={scrollTop} className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-amber-50 hover:text-amber-700 transition-all">
-                <span className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center"><Icon name="Rocket" size={14} className="text-amber-500"/></span>
                 Create Company Account
               </Link>
             </div>

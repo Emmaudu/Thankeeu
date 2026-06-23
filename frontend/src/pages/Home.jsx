@@ -715,36 +715,123 @@ const Home = () => {
       <Navbar onBookDemo={() => setShowDemo(true)} />
 
       {/* ══ HERO ══ */}
-      <section className="relative overflow-hidden pt-6 pb-0 px-4 gc-font section-dots">
+      <section className="relative overflow-visible pt-0 pb-10 md:pt-0 md:pb-14 px-2 sm:px-4 gc-font section-dots">
 
-        {/* Ambient glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-40 pointer-events-none"
-          style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.13) 0%,transparent 70%)' }}/>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-32 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
 
         <div className="relative max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
 
-          {/* ── Fixed headline block ── */}
-          <div className="text-center max-w-3xl mx-auto pt-6 pb-10">
-            <h1 className="font-extrabold text-warm-900 mb-5 leading-tight"
-              style={{ fontSize:'clamp(2.4rem,6vw,4rem)', letterSpacing:'-0.03em' }}>
-              Celebrate life's special<br className="hidden sm:block"/> moments together
-            </h1>
-            <p className="text-warm-500 mb-8 max-w-2xl mx-auto"
-              style={{ fontSize:'clamp(1.05rem,2.2vw,1.25rem)', lineHeight:1.65 }}>
-              Collect messages, photos, videos, voice notes and gifts in one beautiful digital card.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to="/card/new" className="gc-btn-primary inline-flex items-center justify-center gap-2 px-8 py-4 text-base">
-                Create Free Card
-              </Link>
-              <Link to="/sample" className="gc-btn-secondary inline-flex items-center justify-center gap-2 px-8 py-4 text-base">
-                View Demo
-              </Link>
+            {/* Left: headline + CTAs + sample card grid */}
+            <div className="text-center lg:text-left">
+              <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(3.5rem,9vw,7rem)', lineHeight:1.0, letterSpacing:'-0.03em' }}>
+                <span style={{ display:'block', fontSize:'clamp(2.8rem,7vw,5.5rem)', color:'#1A1035' }}>Send a Group</span>
+                <span style={{ display:'block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px', fontSize:'clamp(3.5rem,9vw,7rem)' }}>
+                  {ROTATING_WORDS[wordIndex]}
+                </span>
+                <span style={{ display:'block', fontSize:'clamp(2.8rem,7vw,5.5rem)', color:'#1A1035' }}>Card Online</span>
+              </h1>
+
+              <p className="text-warm-600 mb-9 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.2rem,2.8vw,1.45rem)', lineHeight:1.6 }}>
+                Share a group card with your friends and colleagues, let them send in heartfelt messages, gifts, GIFs, voice notes, pictures, videos for your birthdays and special occasions, all in one place.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
+                <Link to="/card/new" className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+                  <Icon name="Sparkles" size={18}/> Create a card
+                </Link>
+                <Link to="/sample" className="gc-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+                  <Icon name="Eye" size={18}/> Try our demo card
+                </Link>
+              </div>
+              <p className="text-sm font-medium text-warm-500 text-center lg:text-left">No signup needed to start · Takes under 2 minutes</p>
+
+              {/* Sample card grid — large, rich tiles matching GroupCards style */}
+              <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: 660 }}>
+                {SAMPLE_MESSAGES.map((m, i) => (
+                  <div key={m.name} className="bg-white rounded-3xl border-2 border-purple-100 overflow-hidden shadow-md hover:shadow-lg transition-shadow"
+                    style={{ marginTop: i % 2 === 1 ? 44 : 0, minHeight: 400 }}>
+                    {/* Media — large, fills top of card */}
+                    {m.media === 'photo' && (
+                      <div style={{ height: 160, overflow:'hidden' }}>
+                        <img src={m.photoUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} loading="lazy"/>
+                      </div>
+                    )}
+                    {m.media === 'gif' && (
+                      <div style={{ height: 160, overflow:'hidden', background:'#1A1035' }}>
+                        <img src={m.gifUrl} alt="GIF" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} loading="lazy"/>
+                      </div>
+                    )}
+                    {m.media === 'voice' && (
+                      <div style={{ height: 100, background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, padding:'0 16px' }}>
+                        <div style={{ display:'flex', gap:3, alignItems:'flex-end', height:36 }}>
+                          {Array.from({length:20},(_,i)=>(
+                            <div key={i} style={{ width:3, borderRadius:2, background:'#7C3AED', height: 10+Math.sin(i*0.7)*16, opacity:0.6+Math.sin(i)*0.4 }}/>
+                          ))}
+                        </div>
+                        <span style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:11, fontWeight:700, color:'#7C3AED' }}>🎙️ Voice note · 0:34</span>
+                      </div>
+                    )}
+                    {/* Card body */}
+                    <div style={{ padding:'18px 20px 22px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                        <img src={m.avatar} alt={m.name} style={{ width:36, height:36, borderRadius:10, objectFit:'cover', flexShrink:0 }}/>
+                        <div>
+                          <p className={m.font} style={{ fontWeight:700, fontSize:'1.05rem', color:'#1A1035', margin:0, lineHeight:1.2 }}>{m.name}</p>
+                          <p style={{ fontSize:'0.7rem', color:'#9CA3AF', margin:0 }}>{m.role}</p>
+                        </div>
+                      </div>
+                      <p className={m.font} style={{ fontSize:'1.2rem', color:'#374151', lineHeight:1.65, margin:0 }}>{m.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Mobile sample cards — also bigger */}
+              <div className="lg:hidden grid grid-cols-2 gap-3 mt-4 max-w-sm mx-auto">
+                {SAMPLE_MESSAGES.map(m => (
+                  <div key={m.name} className="bg-white rounded-2xl border-2 border-purple-100 overflow-hidden shadow-sm">
+                    {m.media === 'photo' && <div style={{ height:90, overflow:'hidden' }}><img src={m.photoUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} loading="lazy"/></div>}
+                    {m.media === 'gif'   && <div style={{ height:90, overflow:'hidden', background:'#1A1035' }}><img src={m.gifUrl} alt="GIF" style={{ width:'100%', height:'100%', objectFit:'cover' }} loading="lazy"/></div>}
+                    {m.media === 'voice' && (
+                      <div style={{ height:60, background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', display:'flex', alignItems:'center', justifyContent:'center', gap:2 }}>
+                        {Array.from({length:14},(_,i)=><div key={i} style={{ width:3, borderRadius:2, background:'#7C3AED', height:8+Math.sin(i*0.8)*10, opacity:0.7 }}/>)}
+                      </div>
+                    )}
+                    <div style={{ padding:'13px 14px' }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:6 }}>
+                        <img src={m.avatar} alt={m.name} style={{ width:28, height:28, borderRadius:8, objectFit:'cover', flexShrink:0 }}/>
+                        <p className={m.font} style={{ fontWeight:700, fontSize:'0.92rem', color:'#1A1035', margin:0 }}>{m.name}</p>
+                      </div>
+                      <p style={{ fontSize:'1rem', color:'#52525B', lineHeight:1.65, margin:0 }}>{m.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="text-xs text-warm-400 mt-4 font-medium">No credit card · No signup to start · Ready in 2 minutes</p>
-          </div>
 
-          {/* ── Rotating use-case showcase ── */}
+            {/* Right: live flipbook demo */}
+            <div className="lcp-outer-wrap" style={{ paddingTop: '0.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
+              <LiveCardPreview />
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
+
+      {/* ══ USE-CASE SLIDESHOW ══ */}
+      <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#FDFCFF 0%,#F5F0FF 100%)' }}>
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
+              What do you need today?
+            </h2>
+            <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
+              Thankeeu works for every occasion. Pick yours and start in seconds.
+            </p>
+          </div>
           <HeroSlideshow />
         </div>
       </section>

@@ -30,7 +30,6 @@ import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import VoiceRecorder from '../components/VoiceRecorder';
 import EmojiPicker from '../components/EmojiPicker';
@@ -1044,7 +1043,6 @@ const CardStart = () => {
     <div className="min-h-screen" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF0F5 60%)' }}>
       <Navbar/>
       {inner}
-      <Footer/>
     </div>
   );
 };

@@ -341,6 +341,17 @@ const CardStart = () => {
         return;
       }
       if (!payment_link) throw new Error('No payment link returned');
+      // Persist creator message snapshot before FLW redirect — CardFeeVerify
+      // will read it back and save it after the card is activated on return.
+      if (msgForm.content.trim()) {
+        try {
+          const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
+          existing.msgSnapshot = msgForm;
+          existing.creatorName  = user?.full_name || member ? `${member?.first_name || ''} ${member?.last_name || ''}`.trim() : company?.contact_person || company?.name || creatorName || '';
+          existing.creatorEmail = user?.email || member?.email || company?.email || '';
+          localStorage.setItem(PENDING_KEY, JSON.stringify(existing));
+        } catch {}
+      }
       window.location.assign(payment_link);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not activate card. Please try again.');

@@ -50,6 +50,29 @@ export default function CardFeeVerify() {
           } else {
             toast.success('Card is now active! 🎉');
           }
+
+          // Restore pending creator message written during card creation.
+          // The message couldn't be saved before the FLW redirect because
+          // the card was still in draft status at that point.
+          try {
+            const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || localStorage.getItem('thankeeu_card_draft') || '{}');
+            const snap = pending?.msgSnapshot;
+            if (snap?.content?.trim() && card_slug) {
+              const { messagesAPI } = await import('../utils/api');
+              const fd = new FormData();
+              fd.append('author_name',  pending?.creatorName || pending?.formSnapshot?.creator_name || 'Card Creator');
+              fd.append('author_email', pending?.creatorEmail || pending?.formSnapshot?.creator_email || '');
+              fd.append('content',      snap.content);
+              fd.append('font_style',   snap.font_style || 'handwritten');
+              fd.append('is_private',   snap.is_private || false);
+              await messagesAPI.add(card_slug, fd).catch(e =>
+                console.warn('[CardFeeVerify] creator msg save failed:', e?.message)
+              );
+            }
+          } catch (msgErr) {
+            console.warn('[CardFeeVerify] could not restore creator message:', msgErr?.message);
+          }
+
           navigate(`/card/${card_slug}`, { replace: true });
         }
 

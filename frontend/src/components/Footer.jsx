@@ -25,10 +25,8 @@ const Footer = () => (
         {/* Brand */}
         <div className="col-span-2 sm:col-span-1">
           <Link to="/" onClick={scrollTop} className="flex items-center gap-2.5 mb-4">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background:'linear-gradient(135deg,#A855F7,#7C3AED)' }}>
-              <Icon name="Gift" size={18} className="text-white" />
-            </div>
+            <img src="/android-chrome-192x192.png" alt="Thankeeu"
+              className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
             <span className="font-display font-bold text-xl text-warm-900">
               Thank<span className="text-primary-500">eeu</span>
             </span>

@@ -43,7 +43,7 @@ export default function FAQ() {
       <Navbar />
 
       <section className="py-12 md:py-16 px-4 text-center section-dots" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
-        <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
+        <div className="mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
         <h1 className="font-extrabold" style={{ fontSize:'clamp(2.1rem,6.5vw,3.6rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'0.75rem' }}>
           Frequently asked questions
         </h1>

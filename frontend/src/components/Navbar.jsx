@@ -56,10 +56,8 @@ const Navbar = ({ onBookDemo }) => {
 
             {/* Logo */}
             <Link to="/" onClick={scrollTop} className="flex items-center gap-2.5 flex-shrink-0 group">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)' }}>
-                <Icon name="Gift" size={18} className="text-white" />
-              </div>
+              <img src="/android-chrome-192x192.png" alt="Thankeeu"
+                className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
               <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:"1.25rem", color:"#1A1035", letterSpacing:"-0.01em" }}>
                 thank<span style={{ color:"#7C3AED" }}>eeu</span>
               </span>

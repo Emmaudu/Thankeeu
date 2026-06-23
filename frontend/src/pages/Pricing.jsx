@@ -136,7 +136,7 @@ const Pricing = () => {
       {/* Hero */}
       <section className="py-12 md:py-16 px-4 text-center section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
-          <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Globe" size={13}/> For everyone, everywhere</div>
+          <div className="mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Globe" size={13}/> For everyone, everywhere</div>
           <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(2.1rem,6.5vw,3.6rem)' }}>
             Simple, fair pricing
           </h1>
@@ -280,7 +280,7 @@ const Pricing = () => {
         <section className="py-10 md:py-16 px-4 bg-white">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-8">
-              <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> Thankeeu for Teams</div>
+              <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> Thankeeu for Teams</div>
               <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.85rem,5.5vw,2.5rem)' }}>
                 Automate team celebrations
               </h2>

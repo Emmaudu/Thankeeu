@@ -27,7 +27,7 @@ export default function HowItWorks() {
       {/* Hero */}
       <section className="py-14 md:py-20 px-4 text-center section-dots" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
         <div className="max-w-2xl mx-auto">
-          <div className="pill mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
+          <div className="mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
           <h1 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(2rem,6vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'1rem' }}>
             Celebrate anyone, anywhere<br/><span style={{ color:'#7C3AED' }}>in under 3 minutes</span>
           </h1>

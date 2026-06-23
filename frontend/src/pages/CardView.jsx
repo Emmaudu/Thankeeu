@@ -6,10 +6,9 @@ import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
-import DashboardLayout from '../components/DashboardLayout';
-import MemberLayout from '../components/member/MemberLayout';
-import CompanyLayout from '../components/company/CompanyLayout';
 import BankAccountTab from '../components/BankAccountTab';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
 
 import toast from 'react-hot-toast';
@@ -830,8 +829,8 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
   const [expanded, setExpanded] = useState(false);
   const font = getFontStyle(message.font_style);
   const hasMedia = !!(message.media_url || message.media_gallery);
-  const isLong = (message.content?.length || 0) > 140;
-  const preview = isLong ? message.content.slice(0, 140).trimEnd() + '…' : message.content;
+  const isLong = (message.content?.length || 0) > 220;
+  const preview = isLong ? message.content.slice(0, 220).trimEnd() + '…' : message.content;
   const rotation = index % 3 === 0 ? '-.45deg' : index % 3 === 1 ? '.35deg' : '-.15deg';
   const calliFont = CALLI_FONTS[index % CALLI_FONTS.length];
 
@@ -875,7 +874,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
           {message.author_name?.slice(0, 2).toUpperCase() || '??'}
         </div>
         <div className="min-w-0 flex-1">
-          <p className={`font-bold truncate text-base ${calliFont}`} style={{ color: design.ink }}>{message.author_name}</p>
+          <p className={`font-bold truncate text-xl ${calliFont}`} style={{ color: design.ink }}>{message.author_name}</p>
           <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{message.created_at ? format(new Date(message.created_at), 'MMM d, yyyy') : ''}</p>
         </div>
         {message.is_private && canViewPrivate && (
@@ -903,8 +902,8 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
               style={{
                 color: design.ink,
                 fontFamily: font.family,
-                fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
-                lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
+                fontSize: message.font_style === 'calligraphy' ? '1.75rem' : message.font_style === 'handwritten' ? '1.45rem' : '1.2rem',
+                lineHeight: message.font_style === 'calligraphy' ? 1.5 : 1.7,
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
                 WebkitBoxOrient: 'vertical',
@@ -928,8 +927,8 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
               style={{
                 color: design.ink,
                 fontFamily: font.family,
-                fontSize: message.font_style === 'calligraphy' ? '1.35rem' : message.font_style === 'handwritten' ? '1.05rem' : '0.875rem',
-                lineHeight: message.font_style === 'calligraphy' ? 1.45 : 1.6,
+                fontSize: message.font_style === 'calligraphy' ? '1.75rem' : message.font_style === 'handwritten' ? '1.45rem' : '1.2rem',
+                lineHeight: message.font_style === 'calligraphy' ? 1.5 : 1.7,
               }}
             >
               {expanded ? message.content : preview}
@@ -1513,8 +1512,8 @@ const CardView = () => {
               style={{
                 color: design.ink,
                 fontFamily: getFontStyle(openMessage.font_style).family,
-                fontSize: openMessage.font_style === 'calligraphy' ? '2.1rem' : openMessage.font_style === 'handwritten' ? '1.65rem' : '1.1rem',
-                lineHeight: 1.65,
+                fontSize: openMessage.font_style === 'calligraphy' ? '2.4rem' : openMessage.font_style === 'handwritten' ? '2rem' : '1.5rem',
+                lineHeight: 1.7,
               }}
             >
               {openMessage.content}
@@ -1534,9 +1533,9 @@ const CardView = () => {
     </div>
   );
 
-  if (layoutType === 'member')  return <MemberLayout title={cardTitle} subtitle="Card view">{content}</MemberLayout>;
-  if (layoutType === 'company') return <CompanyLayout title={cardTitle} subtitle="Card view">{content}</CompanyLayout>;
-  return <DashboardLayout title={cardTitle} subtitle="Card view">{content}</DashboardLayout>;
+  if (layoutType === 'member')  return <><Navbar/>{content}<Footer/></>;
+  if (layoutType === 'company') return <><Navbar/>{content}<Footer/></>;
+  return <><Navbar/>{content}<Footer/></>;
 };
 
 export default CardView;

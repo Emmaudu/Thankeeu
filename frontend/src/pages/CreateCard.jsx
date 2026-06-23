@@ -68,6 +68,8 @@ const CreateCard = () => {
   const creatorName   = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'Someone';
 
   const [step,            setStep]           = useState(0);
+  // Scroll to top whenever the user advances or goes back a step
+  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
   const [loading,         setLoading]        = useState(false);
   const [paymentStage,    setPaymentStage]   = useState('idle');
   const [selectedCurrency,setSelectedCurrency] = useState('NGN');

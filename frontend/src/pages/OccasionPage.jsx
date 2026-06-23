@@ -152,7 +152,7 @@ export default function OccasionPage() {
       <section className="py-14 md:py-20 px-4 text-center" style={{ background: `linear-gradient(160deg,${data.bg},#FDFCFF 60%)` }}>
         <div className="max-w-2xl mx-auto">
           <div className="text-6xl mb-4">{data.icon}</div>
-          <div className="pill mx-auto mb-4" style={{ borderColor: `${data.accent}40`, color: data.accent }}>
+          <div className="mx-auto mb-4" style={{ borderColor: `${data.accent}40`, color: data.accent }}>
             {data.title}
           </div>
           <h1 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'clamp(1.75rem,6vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'1rem' }}>

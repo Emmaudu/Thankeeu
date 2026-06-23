@@ -137,7 +137,7 @@ const DemoModal = ({ onClose }) => {
           <>
             <div className="flex items-start justify-between mb-5">
               <div>
-                <div className="pill mb-2 inline-flex items-center gap-1.5"><Icon name="Calendar" size={13}/> Book a demo</div>
+                <div className="mb-2 inline-flex items-center gap-1.5"><Icon name="Calendar" size={13}/> Book a demo</div>
                 <h3 className="text-xl font-bold text-warm-900">See Thankeeu for Teams live</h3>
                 <p className="text-warm-500 text-sm mt-1">Free · 30 min · Usually within 24hrs</p>
               </div>
@@ -552,7 +552,7 @@ const Home = () => {
       <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 100%)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Eye" size={13}/> Live examples</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Eye" size={13}/> Live examples</div>
             <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               Get inspiration from our<br/><span className="text-primary-500">sample cards</span>
             </h2>
@@ -599,7 +599,7 @@ const Home = () => {
       <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#FDFCFF 0%,#F5F0FF 100%)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={13}/> Beautiful designs</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={13}/> Beautiful designs</div>
             <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               Find the perfect<br/><span className="text-primary-500">card design</span>
             </h2>
@@ -647,7 +647,7 @@ const Home = () => {
       <section className="py-12 md:py-16 px-4 section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-8">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Party" size={13}/> 14 occasions</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Party" size={13}/> 14 occasions</div>
             <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               Whatever the moment,<br/><span className="text-primary-500">there's a card for it</span>
             </h2>
@@ -670,7 +670,7 @@ const Home = () => {
       <section className="py-12 md:py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Zap" size={13}/> Beautifully simple</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Zap" size={13}/> Beautifully simple</div>
             <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               From zero to delivered<br/><span className="text-primary-500">in under 5 minutes</span>
             </h2>
@@ -698,7 +698,7 @@ const Home = () => {
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
             <div>
-              <div className="pill mb-4 inline-flex items-center gap-1.5"><Icon name="Heart" size={13}/> For individuals</div>
+              <div className="mb-4 inline-flex items-center gap-1.5"><Icon name="Heart" size={13}/> For individuals</div>
               <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.85rem,5.5vw,2.6rem)' }}>
                 Everything a group card<br/><span className="text-primary-500">should actually have</span>
               </h2>
@@ -770,7 +770,7 @@ const Home = () => {
       <section className="py-12 md:py-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Star" size={13}/> Real stories</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Star" size={13}/> Real stories</div>
             <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               People who actually<br/><span className="text-primary-500">made someone's day</span>
             </h2>
@@ -799,7 +799,7 @@ const Home = () => {
       <section className="py-12 md:py-16 px-4 gc-font section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> For HR &amp; People teams</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/> For HR &amp; People teams</div>
             <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
               Automate every celebration.<br/><span className="text-primary-500">Zero manual effort.</span>
             </h2>
@@ -885,7 +885,7 @@ const Home = () => {
       <section id="how-it-works" className="py-14 md:py-20 px-4 gc-font section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
             <h2 style={{ fontWeight:800, fontSize:'clamp(2rem,5.5vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
               From zero to celebration<br/><span className="text-primary-500">in under 3 minutes</span>
             </h2>
@@ -917,7 +917,7 @@ const Home = () => {
       <section id="faq" className="py-14 md:py-20 px-4 gc-font">
         <div className="max-w-2xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
             <h2 className="font-extrabold" style={{ fontSize:'clamp(2rem,5.5vw,2.8rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
               Questions we get all the time
             </h2>
@@ -954,7 +954,7 @@ const Home = () => {
       <section className="py-14 md:py-20 px-4" style={{ background:'#fff' }}>
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
-            <div className="pill mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Layers" size={13}/> More ways to celebrate</div>
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Layers" size={13}/> More ways to celebrate</div>
             <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(2rem,5.5vw,2.9rem)' }}>Beyond the card</h2>
             <p className="text-warm-500 max-w-xl mx-auto text-sm sm:text-base leading-relaxed">
               Thankeeu is a full celebration platform — not just a card tool. Send real gifts. Celebrate with your inner circle. Do it all in one place.

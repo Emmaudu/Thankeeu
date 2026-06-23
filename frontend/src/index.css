@@ -156,14 +156,6 @@
   .badge-purple     { background: #F5F0FF; color: #7C3AED; border: 1.5px solid #DDD6FE; @apply badge; }
   .badge-rose       { background: #FFF1F3; color: #E11D48; border: 1.5px solid #FFC9D4; @apply badge; }
 
-  /* ── Pill / tag ── */
-  .pill {
-    @apply inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full;
-    background: #F5F0FF;
-    border: 1.5px solid #DDD6FE;
-    color: #7C3AED;
-  }
-
   /* ── Layout ── */
   .section-container { @apply max-w-6xl mx-auto px-4 sm:px-6 lg:px-8; }
   .section-py { @apply py-16 md:py-20 lg:py-28; }

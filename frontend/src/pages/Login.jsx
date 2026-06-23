@@ -99,10 +99,8 @@ const Login = () => {
 
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg"
-              style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED)' }}>
-              <Icon name="Heart" size={26} className="text-white" />
-            </div>
+            <img src="/android-chrome-192x192.png" alt="Thankeeu"
+              className="w-16 h-16 rounded-2xl mx-auto mb-4 object-cover shadow-lg" />
             <h1 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:'2rem', color:'#1A1035', letterSpacing:'-0.025em', margin:0 }}>
               Welcome back
             </h1>

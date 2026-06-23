@@ -40,9 +40,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
     }}>
       {/* Logo */}
       <div style={{ padding: '1.25rem 1rem 1rem', borderBottom: '1px solid rgba(139,92,246,0.1)', display:'flex', alignItems:'center', gap:'0.75rem' }}>
-        <div style={{ width:38, height:38, borderRadius:12, flexShrink:0, background:'linear-gradient(135deg,#A855F7,#7C3AED)', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 16px rgba(124,58,237,0.5)' }}>
-          <Icon name="Heart" size={18} style={{ color:'#fff' }} />
-        </div>
+        <img src="/android-chrome-192x192.png" alt="Thankeeu" style={{ width:38, height:38, borderRadius:10, flexShrink:0, objectFit:'cover' }} />
         <span style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:16, color:'#E4E2F6', letterSpacing:'-0.01em' }}>
           Thank<span style={{ color:'#A78BFA' }}>eeu</span>
         </span>

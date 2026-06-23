@@ -37,9 +37,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
     <div className="flex flex-col h-full" style={{ background:'linear-gradient(180deg,#1A1438 0%,#120E2A 100%)', minHeight:'100vh' }}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 flex-shrink-0" style={{ borderBottom:'1px solid rgba(124,110,255,0.15)' }}>
-        <div style={{width:36,height:36,borderRadius:10,flexShrink:0,background:'linear-gradient(135deg,#A855F7,#7C3AED)',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 0 14px rgba(124,58,237,0.45)'}}>
-          <span style={{fontSize:20}}>💌</span>
-        </div>
+        <img src="/android-chrome-192x192.png" alt="Thankeeu" style={{ width:36, height:36, borderRadius:9, flexShrink:0, objectFit:'cover' }} />
         <div>
           <span style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, fontSize:17, color:'#E4E2F6' }}>
             Thank<span style={{ color:'#7C6EFF' }}>eeu</span>

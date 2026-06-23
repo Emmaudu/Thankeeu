@@ -81,7 +81,6 @@ const Admin = () => {
   const { user } = useAuth();
   const [loading, setLoading]           = useState(true);
   const [tab, setTab]                   = useState('overview');
-  const [sidebarOpen, setSidebarOpen]   = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Core data
@@ -373,74 +372,6 @@ const Admin = () => {
           className="lg:hidden" />
       )}
 
-      <aside style={{
-        width: sidebarOpen ? 256 : 64, flexShrink:0, transition:'width .25s ease',
-        background:'linear-gradient(180deg,#1A1030 0%,#110820 100%)',
-        borderRight:'1px solid rgba(139,92,246,0.15)',
-        display:'flex', flexDirection:'column',
-        position:'sticky', top:0, height:'100vh',
-        overflowX:'hidden', zIndex:50,
-      }}
-      className="hidden lg:flex">
-        {/* Logo */}
-        <div style={{ padding:'22px 14px 18px', display:'flex', alignItems:'center', gap:11, borderBottom:'1px solid rgba(139,92,246,0.12)', minHeight:72 }}>
-          <div style={{ width:38, height:38, borderRadius:10, background:'linear-gradient(135deg,#7C3AED,#EC4899)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:19, flexShrink:0 }}>&#x1F6E1;&#xFE0F;</div>
-          {sidebarOpen && <div style={{ overflow:'hidden', whiteSpace:'nowrap' }}>
-            <p style={{ fontWeight:800, fontSize:15, margin:0, background:'linear-gradient(90deg,#A78BFA,#F472B6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>Thankeeu</p>
-            <p style={{ fontSize:10, color:'rgba(255,255,255,0.3)', letterSpacing:'0.12em', textTransform:'uppercase', margin:0 }}>Admin Panel</p>
-          </div>}
-        </div>
-
-        {/* Nav */}
-        <nav style={{ flex:1, padding:'10px 8px', overflowY:'auto', overflowX:'hidden' }}>
-          {[
-            { id:'overview',  icon:'⚡', label:'Overview',       badge:null },
-            { id:'analytics', icon:'📊', label:'Analytics',      badge:null },
-            { id:'users',     icon:'👥', label:'Users',          badge:users.length||null },
-            { id:'cards',     icon:'🃏', label:'Cards',          badge:cards.length||null },
-            { id:'companies', icon:'🏢', label:'Companies',      badge:null },
-            { id:'support',   icon:'🎧', label:'Support',        badge:openTickets.length||null },
-            { id:'demos',     icon:'🚀', label:'Demo Requests',  badge:newDemos.length||null },
-            { id:'visitors',  icon:'👣', label:'Visitors',       badge:visitors.length||null },
-            { id:'blog',      icon:'✍️', label:'Blog',           badge:null },
-            { id:'vendors',   icon:'🏪', label:'Vendors',        badge:null },
-            { id:'pals',      icon:'🤝', label:'Pals',           badge:palApplications.filter(p=>p.status==='pending').length||null },
-          ].map(item => {
-            const active = tab === item.id;
-            const isAlert = (item.id==='support'||item.id==='demos') && item.badge > 0;
-            return (
-              <button key={item.id} onClick={() => setTab(item.id)}
-                title={!sidebarOpen ? item.label : undefined}
-                style={{
-                  width:'100%', display:'flex', alignItems:'center', gap:10,
-                  padding: sidebarOpen ? '9px 12px' : '9px 13px',
-                  borderRadius:10, border:'none', cursor:'pointer', marginBottom:2,
-                  background: active ? 'rgba(124,58,237,0.25)' : 'transparent',
-                  color: active ? '#C4B5FD' : 'rgba(255,255,255,0.45)',
-                  boxShadow: active ? 'inset 0 0 0 1px rgba(139,92,246,0.3)' : 'none',
-                  transition:'all .12s', textAlign:'left', position:'relative',
-                }}>
-                {active && <div style={{ position:'absolute', left:0, top:'18%', bottom:'18%', width:3, borderRadius:'0 3px 3px 0', background:'linear-gradient(180deg,#7C3AED,#EC4899)' }} />}
-                <span style={{ fontSize:16, flexShrink:0 }}>{item.icon}</span>
-                {sidebarOpen && <>
-                  <span style={{ fontSize:13, fontWeight:active?700:500, flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{item.label}</span>
-                  {item.badge > 0 && <span style={{ background:isAlert?'#EF4444':'rgba(139,92,246,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:20, flexShrink:0 }}>{item.badge}</span>}
-                </>}
-                {!sidebarOpen && item.badge > 0 && <div style={{ position:'absolute', top:5, right:5, width:7, height:7, borderRadius:'50%', background:isAlert?'#EF4444':'#7C3AED' }} />}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Collapse toggle */}
-        <div style={{ padding:'10px 8px', borderTop:'1px solid rgba(139,92,246,0.12)' }}>
-          <button onClick={() => setSidebarOpen(o => !o)}
-            style={{ width:'100%', padding:'8px', borderRadius:10, border:'none', cursor:'pointer', background:'rgba(255,255,255,0.06)', color:'rgba(255,255,255,0.35)', fontSize:13, display:'flex', alignItems:'center', justifyContent:sidebarOpen?'flex-end':'center', gap:6 }}>
-            {sidebarOpen ? <><span>Collapse</span><span>&#8592;</span></> : <span>&#8594;</span>}
-          </button>
-        </div>
-      </aside>
-
       {/* Mobile sidebar drawer */}
       <aside className="lg:hidden" style={{
         position:'fixed', top:0, left: mobileSidebarOpen ? 0 : '-280px',
@@ -493,25 +424,10 @@ const Admin = () => {
       <main style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', background:'linear-gradient(160deg,#F8F5FF 0%,#FDFCFF 100%)' }}>
 
         {/* Mobile topbar with hamburger */}
-        <div className="lg:hidden" style={{ padding:'12px 16px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.98)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
+        <div style={{ padding:'12px 16px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.98)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <button onClick={() => setMobileSidebarOpen(true)} style={{ width:40, height:40, borderRadius:10, border:'none', background:'linear-gradient(135deg,#7C3AED,#EC4899)', color:'white', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>☰</button>
           <span style={{ fontWeight:800, fontSize:15, color:'#1a1a2e' }}>Admin Panel</span>
           <button onClick={fetchCore} style={{ width:40, height:40, borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:16, cursor:'pointer' }}>↻</button>
-        </div>
-
-        {/* Desktop topbar */}
-        <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
-          <div>
-            <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
-              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals'})[tab] || tab}
-            </h1>
-            <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
-          </div>
-          <div style={{ display:'flex', gap:8 }}>
-            <button onClick={fetchCore} style={{ padding:'8px 14px', borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:12, fontWeight:700, cursor:'pointer' }}>&#8635; Refresh</button>
-            <button onClick={() => { localStorage.removeItem('thankeeu_admin_token'); window.location.href='/admin/login'; }}
-              style={{ padding:'8px 14px', borderRadius:10, border:'none', background:'#FEE2E2', color:'#DC2626', fontSize:12, fontWeight:700, cursor:'pointer' }}>Sign out</button>
-          </div>
         </div>
 
         {/* Stats strip */}

@@ -58,7 +58,7 @@ router.post('/track', async (req, res) => {
     const ip = getIP(req);
     const { country, city } = await getCountry(ip);
 
-    await supabase.from('page_views').insert({
+    const { error: insertErr } = await supabase.from('page_views').insert({
       path:       path.slice(0, 200),
       referrer:   referrer?.slice(0, 500) || null,
       user_agent: ua.slice(0, 300),
@@ -69,8 +69,14 @@ router.post('/track', async (req, res) => {
       created_at: new Date(),
     });
 
+    if (insertErr) {
+      console.error('[analytics/track] insert failed:', insertErr.message, insertErr.code);
+      return res.json({ ok: false, error: insertErr.message });
+    }
+
     res.json({ ok: true });
   } catch (err) {
+    console.error('[analytics/track] unexpected error:', err.message);
     res.json({ ok: false });
   }
 });
@@ -85,12 +91,18 @@ router.get('/dashboard', adminAuth, async (req, res) => {
     // limit(50000): Supabase default cap is 1000 rows. For a 30-day window
     // with active traffic, 1000 rows covers only ~33 views/day which is too low.
     // 50k rows = ~1,600 views/day over 30 days — enough headroom for now.
-    const { data: raw } = await supabase.from('page_views')
+    const { data: raw, error: fetchErr } = await supabase.from('page_views')
       .select('path, session_id, created_at, country, city')
       .gte('created_at', since)
       .order('created_at', { ascending: true })
       .limit(50000);
 
+    if (fetchErr) {
+      console.error('[analytics/dashboard] fetch failed:', fetchErr.message, fetchErr.code);
+      return res.status(500).json({ error: 'Analytics unavailable: ' + fetchErr.message });
+    }
+
+    console.log(`[analytics/dashboard] rows fetched: ${(raw||[]).length} (last ${days} days)`);
     const views = raw || [];
 
     // Aggregate by day

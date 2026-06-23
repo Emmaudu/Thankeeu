@@ -325,17 +325,18 @@ const SignCard = () => {
 
       // ── STEP 3: Payment (only if gift selected) ────────────────────────────
       const shareMode = currentShareMode();
+      // Track guest visitor for nudge emails — regardless of gift contribution
+      if (!isSignedIn && submitMode === 'guest' && form.author_email) {
+        visitorsAPI.track({
+          email:     form.author_email,
+          full_name: form.author_name,
+          card_slug: slug,
+        }).catch(() => {});
+      }
+
       if (!wantsGift) {
         setSubmitting(false);
         setStage('idle');
-        // Bug 5 fix: track guest visitor for follow-up nudge emails
-        if (!isSignedIn && submitMode === 'guest' && form.author_email) {
-          visitorsAPI.track({
-            email:     form.author_email,
-            full_name: form.author_name,
-            card_slug: slug,
-          }).catch(() => {});
-        }
         goToSharePage(shareMode);
         return;
       }
@@ -587,7 +588,7 @@ const SignCard = () => {
 
   // ── Main signing form ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: design.soft || "#F5F0FF" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: design.soft || "#F5F0FF", overflowX: 'hidden' }}>
       <Navbar />
       <main className="flex-1">
 

@@ -65,10 +65,20 @@ const getVisitorStats = async (req, res) => {
 
 const sendNudgeEmails = async () => {
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data } = await supabase.from('visitors').select('*')
+  const { data, error } = await supabase.from('visitors').select('*')
     .is('converted_to_user', null).lt('nudge_count', 4)
     .or(`last_nudged_at.is.null,last_nudged_at.lt.${cutoff}`);
-  for (const v of (data || [])) {
+
+  if (error) {
+    console.error('[nudge] Failed to fetch visitors:', error.message);
+    return;
+  }
+
+  const eligible = data || [];
+  console.log(`[nudge] ${eligible.length} visitor(s) eligible for nudge email`);
+
+  let sent = 0, failed = 0;
+  for (const v of eligible) {
     try {
       await sendEmail({ to: v.email, template: 'visitorNudge', data: {
         name: v.full_name || 'Friend', occasion: v.occasion || 'special occasion',
@@ -76,9 +86,17 @@ const sendNudgeEmails = async () => {
         signupLink: `${FRONTEND_URL}/signup`,
         appUrl: FRONTEND_URL,
       }});
-      await supabase.from('visitors').update({ nudge_count: (v.nudge_count || 0) + 1, last_nudged_at: new Date() }).eq('id', v.id);
-    } catch {}
+      // Only increment count when email actually sent successfully
+      await supabase.from('visitors')
+        .update({ nudge_count: (v.nudge_count || 0) + 1, last_nudged_at: new Date() })
+        .eq('id', v.id);
+      sent++;
+    } catch (err) {
+      console.error(`[nudge] Failed to send to ${v.email}:`, err.message);
+      failed++;
+    }
   }
+  console.log(`[nudge] Done — sent: ${sent}, failed: ${failed}`);
 };
 
 module.exports = { trackVisitor, getVisitors, getVisitorStats, sendNudgeEmails };

@@ -42,6 +42,9 @@ export function usePageTracker() {
         session_id: getSessionId(),
         user_type:  userType,
       }),
-    }).catch(() => {}); // silent — never break the app
+    })
+    .then(r => r.json())
+    .then(d => { if (!d.ok) console.warn('[analytics] track failed:', d.error || d) })
+    .catch(err => console.warn('[analytics] track error:', err.message));
   }, [location.pathname]);
 }

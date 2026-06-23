@@ -411,11 +411,12 @@ function MusicPlayer() {
 
   return (
     <div style={{
-      position:'fixed', bottom:24, right:20, zIndex:9999,
+      position:'fixed', bottom:16, right:12, left:12, zIndex:9999,
+      maxWidth:320, marginLeft:'auto',
       background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))',
       backdropFilter:'blur(16px)', borderRadius:22, padding:'11px 16px',
       boxShadow:'0 8px 40px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.15)',
-      display:'flex', alignItems:'center', gap:11, minWidth:230,
+      display:'flex', alignItems:'center', gap:11,
       border:'1px solid rgba(255,255,255,0.25)',
       animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)',
     }}>
@@ -1204,7 +1205,7 @@ const CardView = () => {
   const layoutType = member ? 'member' : company ? 'company' : 'user';
 
   const content = (
-    <div className="min-h-0 flex flex-col" style={{ background: design?.soft || design?.background?.includes?.("gradient") ? "#F5F0FF" : (design?.soft || "#F5F0FF") }}>
+    <div className="min-h-0 flex flex-col" style={{ background: design?.soft || design?.background?.includes?.("gradient") ? "#F5F0FF" : (design?.soft || "#F5F0FF"), overflowX: 'hidden' }}>
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}
       <Confetti />

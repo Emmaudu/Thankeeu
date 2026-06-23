@@ -370,7 +370,7 @@ const Admin = () => {
       {mobileSidebarOpen && (
         <div onClick={() => setMobileSidebarOpen(false)}
           style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:49, backdropFilter:'blur(2px)' }}
-          className="md:hidden" />
+          className="lg:hidden" />
       )}
 
       <aside style={{
@@ -381,7 +381,7 @@ const Admin = () => {
         position:'sticky', top:0, height:'100vh',
         overflowX:'hidden', zIndex:50,
       }}
-      className="hidden md:flex">
+      className="hidden lg:flex">
         {/* Logo */}
         <div style={{ padding:'22px 14px 18px', display:'flex', alignItems:'center', gap:11, borderBottom:'1px solid rgba(139,92,246,0.12)', minHeight:72 }}>
           <div style={{ width:38, height:38, borderRadius:10, background:'linear-gradient(135deg,#7C3AED,#EC4899)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:19, flexShrink:0 }}>&#x1F6E1;&#xFE0F;</div>
@@ -442,7 +442,7 @@ const Admin = () => {
       </aside>
 
       {/* Mobile sidebar drawer */}
-      <aside className="md:hidden" style={{
+      <aside className="lg:hidden" style={{
         position:'fixed', top:0, left: mobileSidebarOpen ? 0 : '-280px',
         width:260, height:'100vh', zIndex:50,
         background:'linear-gradient(180deg,#1A1030 0%,#110820 100%)',
@@ -493,14 +493,14 @@ const Admin = () => {
       <main style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', background:'linear-gradient(160deg,#F8F5FF 0%,#FDFCFF 100%)' }}>
 
         {/* Mobile topbar with hamburger */}
-        <div className="md:hidden" style={{ padding:'12px 16px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.98)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
+        <div className="lg:hidden" style={{ padding:'12px 16px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.98)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <button onClick={() => setMobileSidebarOpen(true)} style={{ width:40, height:40, borderRadius:10, border:'none', background:'linear-gradient(135deg,#7C3AED,#EC4899)', color:'white', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>☰</button>
           <span style={{ fontWeight:800, fontSize:15, color:'#1a1a2e' }}>Admin Panel</span>
           <button onClick={fetchCore} style={{ width:40, height:40, borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:16, cursor:'pointer' }}>↻</button>
         </div>
 
         {/* Desktop topbar */}
-        <div className="hidden md:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
+        <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <div>
             <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
               {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals'})[tab] || tab}

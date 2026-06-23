@@ -21,7 +21,7 @@ const Footer = () => (
             <img src="/android-chrome-192x192.png" alt="Thankeeu"
               className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
             <span className="font-display font-bold text-xl text-warm-900">
-              Thank<span className="text-primary-500">eeu</span>
+              thank<span className="text-primary-500">eeu</span>
             </span>
           </Link>
           <p className="text-sm text-warm-600 leading-relaxed">
@@ -35,7 +35,7 @@ const Footer = () => (
           <ul className="space-y-2.5">
             {[
               { to:'/create-card',    label:'Create a card' },
-              { to:'/sample',         label:'See a sample card 🎂' },
+              { to:'/sample',         label:'See a sample card' },
               { to:'/pricing',        label:'Pricing' },
               { to:'/company/signup', label:'For Teams' },
               { to:'/blog',           label:'Blog' },

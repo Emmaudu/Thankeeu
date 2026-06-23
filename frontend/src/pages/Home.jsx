@@ -697,7 +697,7 @@ const Home = () => {
       <section className="py-12 md:py-16 px-4 section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-            <div>
+            <div className="text-center">
               <div className="mb-4 inline-flex items-center gap-1.5"><Icon name="Heart" size={13}/> For individuals</div>
               <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.85rem,5.5vw,2.6rem)' }}>
                 Everything a group card<br/><span className="text-primary-500">should actually have</span>
@@ -1030,10 +1030,6 @@ const Home = () => {
             <span className="inline-flex items-center gap-1"><Icon name="Lock" size={12}/> Secure payments</span><span>·</span>
             <span className="inline-flex items-center gap-1"><Icon name="Sparkles" size={12}/> No credit card needed</span><span>·</span>
             <span className="inline-flex items-center gap-1"><Icon name="Globe" size={12}/> Used worldwide</span>
-          </p>
-          <p className="text-xs text-warm-300 mt-4">
-            Got a tight group of friends or family?{' '}<Link to="/pals" className="text-primary-400 hover:text-primary-600 hover:underline">Start a free Thankeeu Pals group</Link>
-            {' '}· Sell cakes, flowers &amp; gifts?{' '}<Link to="/vendors" className="text-primary-400 hover:text-primary-600 hover:underline">Become a vendor</Link>
           </p>
         </div>
       </section>

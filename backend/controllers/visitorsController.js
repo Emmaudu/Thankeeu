@@ -84,6 +84,7 @@ const sendNudgeEmails = async () => {
         name: v.full_name || 'Friend', occasion: v.occasion || 'special occasion',
         creatorName: v.creator_name || 'someone',
         signupLink: `${FRONTEND_URL}/signup`,
+        cardLink: v.card_slug ? `${FRONTEND_URL}/sign/${v.card_slug}` : null,
         appUrl: FRONTEND_URL,
       }});
       // Only increment count when email actually sent successfully

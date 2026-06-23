@@ -744,7 +744,8 @@ Object.assign(emailTemplates, {
         </ul>
       </div>
       ${btn('Create my free account →', d.signupLink, '#E84393')}
-      <p style="color:#aaa;font-size:12px;margin-top:16px;">You received this because you signed a card on Thankeeu. <a href="${d.appUrl}" style="color:#aaa;">Unsubscribe</a></p>
+      ${d.cardLink ? `<p style="color:#aaa;font-size:12px;margin-top:8px;text-align:center;">Or <a href="${d.cardLink}" style="color:#6C5CE7;">view the card you signed</a></p>` : ''}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">You received this because you signed a card on Thankeeu.</p>
     `)
   }),
 });

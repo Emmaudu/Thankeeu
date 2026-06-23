@@ -302,6 +302,24 @@ async function autoSendDueCards() {
   for (const card of (cardsToSend || [])) {
     try {
       const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('card_id', card.id);
+      // Generate claim_token so email link uses ?claim= (not raw access_token)
+      const claimToken = card.claim_token || require('crypto').randomBytes(24).toString('hex');
+      if (!card.claim_token) {
+        await supabase.from('cards').update({ claim_token: claimToken }).eq('id', card.id);
+      }
+
+      // Auto-link card to recipient's account if they already have one
+      const { data: existingUser } = await supabase
+        .from('users').select('id').eq('email', card.recipient_email.toLowerCase()).maybeSingle();
+      if (existingUser) {
+        await supabase.from('received_cards').upsert({
+          card_id: card.id,
+          recipient_user_id: existingUser.id,
+          transferred_by: null,
+          transferred_at: new Date(),
+        }, { onConflict: 'card_id,recipient_user_id' }).catch(() => {});
+      }
+
       await sendEmail({
         to: card.recipient_email,
         template: 'cardDelivery',
@@ -310,14 +328,10 @@ async function autoSendDueCards() {
           recipientEmail: card.recipient_email,
           occasion: card.occasion,
           cardSlug: card.slug,
+          claimToken,
           accessToken: card.access_token,
           senderCount: count || 0,
           giftAmount: card.total_collected > 0 ? card.total_collected : null,
-          // Cards created from the HR/company dashboard (and member-created
-          // cards, which always carry company_id) should send recipients to
-          // the team member login, not the regular individual user login —
-          // the recipient is expected to be a company_members row, accessed
-          // via /member/login, not a `users` row accessed via /login.
           isCompanyCard: !!card.company_id
         }
       });

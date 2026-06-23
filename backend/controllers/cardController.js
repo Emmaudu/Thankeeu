@@ -1028,15 +1028,22 @@ const getClaimGate = async (req, res) => {
     const claimToken = req.query.claim;
     if (!claimToken) return res.status(400).json({ error: 'claim token required' });
 
-    // First try exact claim_token match
-    let { data: card } = await supabase.from('cards')
-      .select('id, slug, recipient_name, recipient_email, status, access_token, claim_token')
-      .eq('slug', slug)
-      .eq('claim_token', claimToken)
-      .maybeSingle();
+    let card = null;
 
-    // Fallback: the token might be the access_token (old email format) or
-    // the card was sent before the claim_token migration ran.
+    // Try claim_token match first (safe — column may not exist if migration not run)
+    try {
+      const { data } = await supabase.from('cards')
+        .select('id, slug, recipient_name, recipient_email, status, access_token, claim_token')
+        .eq('slug', slug)
+        .eq('claim_token', claimToken)
+        .maybeSingle();
+      card = data;
+    } catch (_) {
+      // claim_token column doesn't exist (migration_recipient_claim.sql not run yet)
+      // Fall through to access_token lookup below
+    }
+
+    // Fallback: token might be the access_token (old email format, or missing migration)
     if (!card) {
       const { data: cardByAccess } = await supabase.from('cards')
         .select('id, slug, recipient_name, recipient_email, status, access_token, claim_token')
@@ -1045,12 +1052,14 @@ const getClaimGate = async (req, res) => {
         .maybeSingle();
 
       if (cardByAccess) {
-        // Old format — generate and save a claim_token now so future links work
-        const newClaimToken = require('crypto').randomBytes(24).toString('hex');
-        await supabase.from('cards')
-          .update({ claim_token: newClaimToken })
-          .eq('id', cardByAccess.id)
-          .is('claim_token', null); // only update if not already set
+        // Old format or missing claim_token — try to save claim_token for future links
+        try {
+          const newClaimToken = require('crypto').randomBytes(24).toString('hex');
+          await supabase.from('cards')
+            .update({ claim_token: newClaimToken })
+            .eq('id', cardByAccess.id)
+            .is('claim_token', null);
+        } catch (_) { /* column may not exist — non-fatal */ }
         card = cardByAccess;
       }
     }

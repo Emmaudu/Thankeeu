@@ -80,6 +80,7 @@ import VerifyEmail      from './pages/VerifyEmail';
 import CompanySignup          from './pages/company/CompanySignup';
 import CompanyLogin           from './pages/company/CompanyLogin';
 import CompanyForgotPassword  from './pages/company/CompanyForgotPassword';
+import BookDemo               from './pages/BookDemo';
 import CompanyResetPassword   from './pages/company/CompanyResetPassword';
 import CompanyDashboard       from './pages/company/CompanyDashboard';
 import TeamsPage              from './pages/company/TeamsPage';
@@ -278,6 +279,7 @@ const App = () => (
 
             {/* ── Company (HR) auth ────────────────────────── */}
             <Route path="/company/signup"           element={<CompanySignup />} />
+            <Route path="/business"                 element={<BookDemo />} />
             <Route path="/company/login"            element={<CompanyLogin />} />
             <Route path="/company/forgot-password"  element={<CompanyForgotPassword />} />
             <Route path="/company/reset-password"   element={<CompanyResetPassword />} />

@@ -81,21 +81,40 @@ const Navbar = ({ onBookDemo }) => {
                 </Link>
               ))}
 
-              {/* Teams dropdown */}
+              {/* Business dropdown */}
               <div className="relative" ref={teamsRef}>
                 <button
                   onClick={() => setTeamsOpen(!teamsOpen)}
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
                     teamsOpen ? 'bg-primary-50 text-primary-600' : 'text-warm-700 hover:text-primary-600 hover:bg-primary-50'
                   }`}>
-                  Teams
+                  Business
                   <Icon name={teamsOpen ? 'ChevronUp' : 'ChevronDown'} size={13} className="opacity-60" style={{ marginLeft: 2 }} />
                 </button>
                 {teamsOpen && (
                   <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-purple-100 py-2 z-[60] animate-fade-in">
                     <div className="px-4 py-2 mb-1" style={{ borderBottom: '1px solid #F3F0FF' }}>
-                      <p className="text-xs font-bold uppercase tracking-wider text-primary-400">Thankeeu for Teams</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-primary-400">Thankeeu for Business</p>
                     </div>
+
+                    <Link to="/business" onClick={() => { scrollTop(); setTeamsOpen(false); }}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                      <span className="w-8 h-8 rounded-xl bg-primary-50 flex items-center justify-center"><Icon name="Calendar" size={16} className="text-primary-500"/></span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">Book a Demo</p>
+                        <p className="text-xs text-warm-400">See Thankeeu for HR teams live</p>
+                      </div>
+                    </Link>
+                    <Link to="/company/signup" onClick={() => { scrollTop(); setTeamsOpen(false); }}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
+                      <span className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center"><Icon name="Rocket" size={16} className="text-amber-500"/></span>
+                      <div>
+                        <p className="font-semibold text-sm leading-tight">Create Company Account</p>
+                        <p className="text-xs text-warm-400">Set up Thankeeu for Teams</p>
+                      </div>
+                    </Link>
+
+                    <div className="mx-4 my-1" style={{ borderTop: '1px solid #F3F0FF' }} />
 
                     <p className="px-4 pt-2 pb-1 text-xs font-semibold text-warm-400 uppercase tracking-wider">Team Members</p>
                     <Link to="/member/login" onClick={() => { scrollTop(); setTeamsOpen(false); }}
@@ -124,14 +143,6 @@ const Navbar = ({ onBookDemo }) => {
                       <div>
                         <p className="font-semibold text-sm leading-tight">Company (HR) Login</p>
                         <p className="text-xs text-warm-400">Manage your team account</p>
-                      </div>
-                    </Link>
-                    <Link to="/company/signup" onClick={() => { scrollTop(); setTeamsOpen(false); }}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">
-                      <span className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center"><Icon name="Rocket" size={16} className="text-amber-500"/></span>
-                      <div>
-                        <p className="font-semibold text-sm leading-tight">Create Company Account</p>
-                        <p className="text-xs text-warm-400">Set up Thankeeu for Teams</p>
                       </div>
                     </Link>
                   </div>
@@ -242,7 +253,11 @@ const Navbar = ({ onBookDemo }) => {
 
               {/* Teams section in mobile */}
               <div className="pt-2 pb-1">
-                <p className="px-4 py-1 text-xs font-bold text-warm-400 uppercase tracking-wider">Teams</p>
+                <p className="px-4 py-1 text-xs font-bold text-warm-400 uppercase tracking-wider">Business</p>
+                <Link to="/business" onClick={() => { scrollTop(); setOpen(false); }}
+                  className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-primary-50 hover:text-primary-600 transition-all">
+                  Book a Demo
+                </Link>
               </div>
               <Link to="/member/login" onClick={scrollTop} className="flex items-center gap-3 px-4 py-2.5 rounded-2xl text-sm font-semibold text-warm-800 hover:bg-blue-50 hover:text-blue-700 transition-all">
                 Team Member Login

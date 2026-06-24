@@ -27,7 +27,7 @@ const WA_PAINS = [
 
 const TK_WINS = [
   { icon: 'LayoutGrid',   label: 'Every message in one beautiful card', sub: 'organised, searchable, shared as a permanent memory' },
-  { icon: 'Users',        label: 'The whole team participates',         sub: 'one link on Slack at 9am — done by lunch, no chasing' },
+  { icon: 'Users',        label: 'The whole team participates',         sub: 'one link on Thankeeu at 9am — done by lunch, no chasing' },
   { icon: 'Archive',      label: 'Revisited months or years later',     sub: 'employees screenshot and save these — they mean something' },
   { icon: 'Image',        label: 'Photos, videos and voice notes',      sub: 'in a dedicated gallery, not buried in a group chat' },
   { icon: 'Gift',         label: 'Gift pool collected automatically',   sub: 'no WhatsApp bank alerts, no one Venmo-ing the wrong person' },
@@ -97,7 +97,7 @@ export default function BookDemo() {
             <div className="space-y-2 mb-8 text-left">
               {[
                 { before:`Someone's birthday passes and you only find out Monday`, after:'Automatic occasion detection — nothing slips through ever again' },
-                { before:'Chasing 30 people to sign a card the night before', after:'One Slack link. Everyone signs by lunch. No chasing.' },
+                { before:'Chasing 30 people to sign a card the night before', after:'One Thankeeu link. Everyone signs by lunch. No chasing.' },
                 { before:'Collecting cash via WhatsApp and counting manually', after:'Naira gift pot collected and paid out automatically via Flutterwave' },
               ].map(r => (
                 <div key={r.before} className="bg-white rounded-2xl border border-purple-100 px-4 py-3 shadow-sm">

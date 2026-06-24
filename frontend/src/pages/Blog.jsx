@@ -35,7 +35,8 @@ const PostCard = ({ post, featured = false }) => {
         <div className="md:w-1/2 h-48 md:h-auto overflow-hidden">
           <img src={cover} alt={post.cover_alt || post.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="eager" />
+            loading="eager"
+            onError={e => { e.currentTarget.src = FALLBACK_COVERS[1]; e.currentTarget.onerror = null; }} />
         </div>
         <div className="p-5 md:p-8 md:w-1/2 flex flex-col justify-center">
           <div className="flex items-center gap-2 mb-3">
@@ -73,7 +74,8 @@ const PostCard = ({ post, featured = false }) => {
       <div className="h-40 sm:h-44 overflow-hidden">
         <img src={cover} alt={post.cover_alt || post.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy" width="400" height="176" />
+          loading="lazy" width="400" height="176"
+          onError={e => { e.currentTarget.src = FALLBACK_COVERS[2]; e.currentTarget.onerror = null; }} />
       </div>
       <div className="p-4 md:p-5">
         <div className="flex items-center gap-2 mb-2">

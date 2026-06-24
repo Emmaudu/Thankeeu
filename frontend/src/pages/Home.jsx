@@ -819,7 +819,8 @@ const WhatsAppVsThankeeu = () => (
             style={{ borderColor: '#EDE9FE', background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)' }}>
             <div className="flex items-center gap-3">
               <img src="/android-chrome-192x192.png" alt="Thankeeu"
-                className="w-9 h-9 rounded-xl object-cover flex-shrink-0"/>
+                className="w-9 h-9 rounded-xl object-cover flex-shrink-0"
+                onError={e => { e.currentTarget.src = '/favicon-96x96.png'; e.currentTarget.onerror = null; }}/>
               <div>
                 <p className="font-bold text-warm-900 text-sm">Thankeeu Group Card</p>
                 <p className="text-xs text-primary-400">Happy Birthday, Adaeze! 🎂</p>

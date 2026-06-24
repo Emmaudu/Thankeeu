@@ -516,6 +516,11 @@
   input, select, textarea { font-size: 16px; font-family: inherit; } /* prevent iOS zoom */
 }
 
+/* ── Mobile minimum body-text size (≥12px per Apple/Google guidelines) ── */
+@media (max-width: 640px) {
+  .text-\[9px\], .text-\[10px\] { font-size: 12px !important; }
+}
+
 /* ── Mobile-first responsive helpers ──────────────────────────────── */
 @layer utilities {
   /* Sticky mobile CTA bar */
@@ -638,6 +643,7 @@ body.sidebar-open { overflow: hidden; }
   font-weight: 700;
   padding: 16px 32px;
   font-size: 17px;
+  min-height: 44px;
   box-shadow: 0 4px 14px rgba(124,58,237,0.25);
   transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
@@ -651,6 +657,7 @@ body.sidebar-open { overflow: hidden; }
   font-weight: 700;
   padding: 16px 32px;
   font-size: 17px;
+  min-height: 44px;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 .gc-btn-secondary:hover { border-color: #BBA8FF; background: #F5F0FF; }

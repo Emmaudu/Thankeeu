@@ -157,6 +157,7 @@ const Signup = () => {
                     <div className="relative">
                       <input type={showPw ? 'text' : 'password'} className={`${inputCls} pr-12`}
                         placeholder="Minimum 8 characters" value={form.password}
+                        name="new-password" autoComplete="new-password"
                         onChange={e => set('password', e.target.value)} required />
                       <button type="button" onClick={() => setShowPw(p => !p)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-warm-400 hover:text-warm-700">
@@ -183,6 +184,7 @@ const Signup = () => {
                     <input type="password" className={`${inputCls} ${
                       form.confirm_password ? (pwMatch ? 'border-green-400' : 'border-red-400') : ''
                     }`} placeholder="Repeat password" value={form.confirm_password}
+                      name="confirm-password" autoComplete="new-password"
                       onChange={e => set('confirm_password', e.target.value)} required />
                   </div>
                   <div>

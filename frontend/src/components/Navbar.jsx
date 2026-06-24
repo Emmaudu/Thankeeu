@@ -57,7 +57,8 @@ const Navbar = ({ onBookDemo }) => {
             {/* Logo */}
             <Link to="/" onClick={scrollTop} className="flex items-center gap-2.5 flex-shrink-0 group">
               <img src="/android-chrome-192x192.png" alt="Thankeeu"
-                className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                className="w-9 h-9 rounded-xl object-cover flex-shrink-0"
+                onError={e => { e.currentTarget.src = '/favicon-96x96.png'; e.currentTarget.onerror = null; }} />
               <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:"1.25rem", color:"#1A1035", letterSpacing:"-0.01em" }}>
                 thank<span style={{ color:"#7C3AED" }}>eeu</span>
               </span>
@@ -157,7 +158,9 @@ const Navbar = ({ onBookDemo }) => {
                   <Link to="/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5">Dashboard</Link>
                   <div className="relative">
                     <button onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
+                      aria-label="Open account menu"
+                      aria-expanded={dropdownOpen}
+                      className="w-11 h-11 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
                       {user.full_name?.slice(0,1).toUpperCase() || <Icon name="User" size={15}/>}
                     </button>
                     {dropdownOpen && (
@@ -178,7 +181,9 @@ const Navbar = ({ onBookDemo }) => {
                   <Link to="/member/dashboard" onClick={scrollTop} className="btn-secondary text-xs py-2 px-4 inline-flex items-center gap-1.5">My Dashboard</Link>
                   <div className="relative">
                     <button onClick={() => setDropdownOpen(!dropdownOpen)}
-                      className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
+                      aria-label="Open account menu"
+                      aria-expanded={dropdownOpen}
+                      className="w-11 h-11 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-sm hover:bg-primary-200 transition-colors">
                       {member.first_name?.slice(0,1).toUpperCase() || <Icon name="User" size={15}/>}
                     </button>
                     {dropdownOpen && (
@@ -210,6 +215,8 @@ const Navbar = ({ onBookDemo }) => {
 
             {/* Mobile hamburger */}
             <button onClick={() => setOpen(!open)}
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-expanded={open}
               className="lg:hidden flex items-center justify-center rounded-xl border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors"
               style={{ width: 48, height: 48 }}>
               <Icon name={open ? 'X' : 'Menu'} size={22} />

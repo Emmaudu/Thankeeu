@@ -127,6 +127,7 @@ const Login = () => {
                   <div className="relative">
                     <input type={show ? 'text' : 'password'} className="input pr-16"
                       required value={form.password}
+                      name="password" autoComplete="current-password"
                       onChange={e => setForm({ ...form, password: e.target.value })} />
                     <button type="button" onClick={() => setShow(!show)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold px-2.5 py-1 rounded-lg transition-colors"

@@ -9,6 +9,7 @@
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useSEO } from '../hooks/useSEO';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
@@ -209,6 +210,12 @@ function FlipCard({ messages, onAddMessage }) {
 
 /* ─── Main SampleCard ────────────────────────────────────────────────── */
 export default function SampleCard() {
+  useSEO({
+    title: 'See a Live Demo Card | Thankeeu',
+    description: 'Try Thankeeu before you commit. Sign this demo group card, add a gift, and see exactly what your recipients will experience.',
+    canonical: '/sample',
+  });
+
   const [view,         setView]        = useState('board');
   const [messages,     setMessages]    = useState(SEED);
   const [showModal,    setShowModal]   = useState(false);
@@ -280,6 +287,9 @@ export default function SampleCard() {
     <>
       <style>{FONT_INJECT}</style>
       <Navbar/>
+
+      {/* Hidden H1 for SEO — visually hidden but readable by crawlers */}
+      <h1 className="sr-only">Thankeeu Demo — Interactive Group Card Sample</h1>
 
       {/* ── Top action bar ── */}
       <div style={{ background:'#fff', borderBottom:'1.5px solid #EDE9FE', position:'sticky', top:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', padding:'10px 20px', gap:8, flexWrap:'wrap' }}>

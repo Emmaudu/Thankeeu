@@ -803,6 +803,19 @@ Object.assign(emailTemplates, {
           <li>♾️ A keepsake you'll treasure forever</li>
         </ul>
       </div>
+      ${d.creditBalance > 0
+        ? `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:14px 20px;margin:16px 0;display:flex;align-items:center;gap:12px;">
+            <span style="font-size:22px;">🎟️</span>
+            <div>
+              <p style="color:#166534;font-weight:700;margin:0 0 2px;font-size:14px;">You have ${d.creditBalance} card credit${d.creditBalance !== 1 ? 's' : ''} ready to use!</p>
+              <p style="color:#16a34a;font-size:12px;margin:0;">No payment needed — just create your card and it's activated instantly.</p>
+            </div>
+          </div>`
+        : `<div style="background:#faf5ff;border:1.5px solid #ddd6fe;border-radius:12px;padding:14px 20px;margin:16px 0;">
+            <p style="color:#6d28d9;font-weight:700;margin:0 0 2px;font-size:14px;">💳 No credits yet? No problem.</p>
+            <p style="color:#7c3aed;font-size:12px;margin:0;">A card credit is just ₦5,000 — activate your birthday card in seconds.</p>
+          </div>`
+      }
       ${btn('Create my birthday card →', d.createCardUrl, '#E84393')}
     `)
   }),
@@ -812,6 +825,16 @@ Object.assign(emailTemplates, {
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Don't miss your chance, ${d.name}! 🎂</h2>
       <p style="color:#555;line-height:1.8;">Your birthday is in just <strong>${d.daysLeft} days</strong>! There's still time to set up your Thankeeu birthday card so your friends, family, and colleagues can leave you messages, photos, and gifts all in one place.</p>
       <p style="color:#555;line-height:1.8;">Takes less than 2 minutes to set up.</p>
+      ${d.creditBalance > 0
+        ? `<div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:14px 20px;margin:16px 0;">
+            <p style="color:#166534;font-weight:700;margin:0 0 2px;font-size:14px;">🎟️ You have ${d.creditBalance} card credit${d.creditBalance !== 1 ? 's' : ''} ready — use it now!</p>
+            <p style="color:#16a34a;font-size:12px;margin:0;">Your card will be activated instantly with no payment needed. Don't let it go to waste!</p>
+          </div>`
+        : `<div style="background:#faf5ff;border:1.5px solid #ddd6fe;border-radius:12px;padding:14px 20px;margin:16px 0;">
+            <p style="color:#6d28d9;font-weight:700;margin:0 0 2px;font-size:14px;">💳 Activate for just ₦5,000</p>
+            <p style="color:#7c3aed;font-size:12px;margin:0;">One card credit is all you need. Pay instantly and your birthday card goes live.</p>
+          </div>`
+      }
       ${btn('Set up my birthday card now →', d.createCardUrl, '#E84393')}
     `)
   }),
@@ -880,7 +903,7 @@ Object.assign(emailTemplates, {
       ${btn('View the card →', `${FRONTEND_URL}/card/${d.cardSlug}`, '#7C3AED')}
     `)
   }),
-  reminder: (d) => ({
+  systemReminder: (d) => ({
     subject: `Reminder: ${d.title}`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Reminder from Thankeeu ⏰</h2>

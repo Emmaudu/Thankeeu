@@ -630,14 +630,20 @@ cron.schedule('0 12 * * *', async () => {
         .select('id,email,full_name').not('date_of_birth','is',null)
         .ilike('date_of_birth',`%-${r7mm}-${r7dd}`).eq('birthday_reminded_7d',false);
       for (const u of (u7||[])) {
-        await sendEmail({ to:u.email, template:'birthdayReminder7Days', data:{ name:u.full_name, daysLeft:7, createCardUrl:`${FRONTEND_URL}/create-card` }}).catch(()=>{});
+        const { data: cc7 } = await supabase.from('card_credits')
+          .select('credits_remaining').eq('user_id', u.id).maybeSingle();
+        const creditBalance = cc7?.credits_remaining || 0;
+        await sendEmail({ to:u.email, template:'birthdayReminder7Days', data:{ name:u.full_name, daysLeft:7, createCardUrl:`${FRONTEND_URL}/create-card`, creditBalance }}).catch(()=>{});
         await supabase.from('users').update({ birthday_reminded_7d:true }).eq('id',u.id);
       }
       const { data: u2 } = await supabase.from('users')
         .select('id,email,full_name').not('date_of_birth','is',null)
         .ilike('date_of_birth',`%-${r2mm}-${r2dd}`).eq('birthday_reminded_2d',false);
       for (const u of (u2||[])) {
-        await sendEmail({ to:u.email, template:'birthdayReminder2Days', data:{ name:u.full_name, daysLeft:2, createCardUrl:`${FRONTEND_URL}/create-card` }}).catch(()=>{});
+        const { data: cc2 } = await supabase.from('card_credits')
+          .select('credits_remaining').eq('user_id', u.id).maybeSingle();
+        const creditBalance = cc2?.credits_remaining || 0;
+        await sendEmail({ to:u.email, template:'birthdayReminder2Days', data:{ name:u.full_name, daysLeft:2, createCardUrl:`${FRONTEND_URL}/create-card`, creditBalance }}).catch(()=>{});
         await supabase.from('users').update({ birthday_reminded_2d:true }).eq('id',u.id);
       }
       await supabase.from('users')

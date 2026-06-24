@@ -175,4 +175,31 @@ router.get('/dashboard', adminAuth, async (req, res) => {
   }
 });
 
+// ── GET /api/analytics/country-visits — admin only ────────────────────────────
+// Returns raw visit rows for a given country (or all countries) with path + timestamp
+router.get('/country-visits', adminAuth, async (req, res) => {
+  try {
+    const days    = parseInt(req.query.days)    || 30;
+    const country = req.query.country           || null; // null = all countries
+    const limit   = Math.min(parseInt(req.query.limit) || 200, 1000);
+    const since   = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+    let query = supabase.from('page_views')
+      .select('path, country, city, session_id, user_type, created_at')
+      .gte('created_at', since)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (country) query = query.eq('country', country);
+
+    const { data, error } = await query;
+    if (error) return res.status(500).json({ error: error.message });
+
+    res.json(data || []);
+  } catch (err) {
+    console.error('[analytics/country-visits]', err.message);
+    res.status(500).json({ error: 'Failed to load visit log' });
+  }
+});
+
 module.exports = router;

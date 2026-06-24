@@ -36,9 +36,9 @@ const TK_WINS = [
 
 export default function BookDemo() {
   useSEO({
-    title: 'Book a Demo — Thankeeu for Business | Never Miss an Employee\'s Birthday Again',
-    description: 'See how Thankeeu automates employee birthdays, farewells and recognition end-to-end. Beautiful group cards, pooled gifts, exact-time delivery. Free demo, 30 minutes.',
-    keywords: 'employee recognition platform Nigeria, automated birthday card employees, HR group card tool, Thankeeu for business, employee appreciation software Nigeria',
+    title: 'Employee Recognition That Runs Itself | Thankeeu for Business',
+    description: 'Never miss another employee birthday, work anniversary or recognition moment. Thankeeu automatically tracks milestones, collects team messages, and delivers celebration cards. Book a 15-minute demo.',
+    keywords: 'employee recognition Nigeria, employee engagement platform, birthday automation HR, work anniversary automation, employee experience software Nigeria, HR admin automation, recognition reporting, workplace culture tool',
     canonical: '/business',
   });
 
@@ -321,6 +321,224 @@ export default function BookDemo() {
           <Icon name="Calendar" size={18}/> Book your free demo →
         </a>
       </div>
+
+      {/* ══ HR POSITIONING — THE REAL BUYING LANGUAGE ══ */}
+      <section className="py-16 md:py-24 px-4 gc-font" style={{ background:'#fff' }}>
+        <div className="max-w-5xl mx-auto">
+
+          {/* Insight header */}
+          <div className="text-center mb-14 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-5"
+              style={{ background:'#EDE9FE', color:'#7C3AED' }}>
+              <Icon name="Lightbulb" size={12}/> The HR Insight
+            </div>
+            <h2 className="font-extrabold text-warm-900 mb-4 leading-tight"
+              style={{ fontSize:'clamp(1.7rem,4vw,2.6rem)', letterSpacing:'-0.03em' }}>
+              HRs aren't searching for<br/>
+              <span style={{ background:'linear-gradient(135deg,#7C3AED,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
+                "group cards."
+              </span>
+            </h2>
+            <p className="text-warm-500 text-base leading-relaxed">
+              They're searching for the problems Thankeeu solves. That's why we built the platform around the language HR already uses — not around the output.
+            </p>
+          </div>
+
+          {/* What HRs search for */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-16 items-start">
+            <div>
+              <p className="text-xs font-bold text-warm-400 uppercase tracking-widest mb-4">What HR teams actually search for</p>
+              <div className="space-y-2.5">
+                {[
+                  { icon:'Users',       term:'Employee recognition' },
+                  { icon:'TrendingUp',  term:'Employee engagement' },
+                  { icon:'Building2',   term:'Workplace culture' },
+                  { icon:'Cake',        term:'Birthday automation' },
+                  { icon:'Calendar',    term:'Work anniversary automation' },
+                  { icon:'Heart',       term:'Employee experience' },
+                  { icon:'BarChart2',   term:'Recognition reporting' },
+                  { icon:'Zap',         term:'HR admin automation' },
+                ].map(({ icon, term }) => (
+                  <div key={term} className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-purple-100"
+                    style={{ background:'#F5F0FF' }}>
+                    <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background:'linear-gradient(135deg,#7C3AED,#A855F7)' }}>
+                      <Icon name={icon} size={14} style={{ color:'#fff' }}/>
+                    </div>
+                    <p className="font-semibold text-warm-800 text-sm">{term}</p>
+                    <div className="ml-auto w-2 h-2 rounded-full bg-primary-400 flex-shrink-0"/>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Positioning shift */}
+            <div className="space-y-5">
+              <p className="text-xs font-bold text-warm-400 uppercase tracking-widest mb-4">The positioning that unlocks demo bookings</p>
+
+              {/* Wrong */}
+              <div className="rounded-3xl border-2 border-rose-100 p-5" style={{ background:'#FFF1F2' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-full bg-rose-100 flex items-center justify-center">
+                    <Icon name="X" size={12} style={{ color:'#e11d48' }}/>
+                  </div>
+                  <p className="text-xs font-bold text-rose-500 uppercase tracking-wide">Struggles to get bookings</p>
+                </div>
+                <p className="font-bold text-warm-700 text-base leading-snug">
+                  "Digital Group Cards for Teams"
+                </p>
+                <p className="text-warm-400 text-xs mt-1.5">No budget category. HR doesn't know where to put it.</p>
+              </div>
+
+              {/* Right */}
+              <div className="rounded-3xl border-2 p-5" style={{ background:'linear-gradient(135deg,#F5F0FF,#fff)', borderColor:'#DDD6FE' }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ background:'#7C3AED' }}>
+                    <Icon name="Check" size={12} style={{ color:'#fff' }}/>
+                  </div>
+                  <p className="text-xs font-bold uppercase tracking-wide" style={{ color:'#7C3AED' }}>Immediately gets the meeting</p>
+                </div>
+                <p className="font-extrabold text-warm-900 text-base leading-snug">
+                  "Never miss another employee birthday, work anniversary or recognition moment."
+                </p>
+                <p className="text-warm-500 text-xs mt-1.5">Enters a budget category HR already understands and already has approved.</p>
+              </div>
+
+              {/* Pull quote */}
+              <div className="rounded-3xl p-5 text-center" style={{ background:'linear-gradient(135deg,#1A1035,#2D1B69)' }}>
+                <p className="font-bold text-white text-sm leading-relaxed">
+                  The card is the output.<br/>
+                  <span style={{ background:'linear-gradient(135deg,#A78BFA,#F472B6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>
+                    The automation is the value.
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* What HRs Actually Told Us */}
+          <div className="mb-16">
+            <div className="text-center mb-10">
+              <h2 className="font-extrabold text-warm-900 mb-3 leading-tight"
+                style={{ fontSize:'clamp(1.5rem,3.5vw,2.2rem)', letterSpacing:'-0.025em' }}>
+                What HR leaders actually told us
+              </h2>
+              <p className="text-warm-500 max-w-xl mx-auto text-sm">
+                Three recurring insights from HR conversations — and how Thankeeu answers each one directly.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {[
+                {
+                  quote: 'We struggle with tracking important dates.',
+                  answer: 'Thankeeu syncs directly with your HRIS — SeamlessHR, BambooHR, Zoho People, WorkPay and more. Every birthday and work anniversary is detected automatically. Nothing slips through.',
+                  icon: 'Calendar',
+                  label: 'HR Leader #1',
+                },
+                {
+                  quote: 'HRIS integration, automation and participation together — that sounds valuable.',
+                  answer: 'That\'s exactly the Thankeeu stack. One integration. Auto-created cards. Team participation via a simple link — no logins. Full participation tracking in your dashboard.',
+                  icon: 'Link',
+                  label: 'HR Leader #2',
+                },
+                {
+                  quote: 'Employees don\'t want to log in just to say happy birthday.',
+                  answer: 'Correct — and Thankeeu never asks them to. Contributors open a link, add their message in 30 seconds, and they\'re done. No account. No app. No friction.',
+                  icon: 'UserCheck',
+                  label: 'HR Leader #3',
+                },
+              ].map(({ quote, answer, icon, label }) => (
+                <div key={label} className="rounded-3xl border-2 border-purple-100 bg-white overflow-hidden flex flex-col">
+                  <div className="px-5 pt-5 pb-3">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ background:'linear-gradient(135deg,#EDE9FE,#DDD6FE)' }}>
+                        <Icon name={icon} size={14} style={{ color:'#7C3AED' }}/>
+                      </div>
+                      <span className="text-xs font-bold text-warm-400 uppercase tracking-wide">{label}</span>
+                    </div>
+                    <blockquote className="font-semibold text-warm-800 text-sm leading-relaxed border-l-2 pl-3"
+                      style={{ borderColor:'#7C3AED' }}>
+                      "{quote}"
+                    </blockquote>
+                  </div>
+                  <div className="px-5 pb-5 mt-auto">
+                    <div className="pt-3 border-t border-purple-50">
+                      <p className="text-xs font-bold mb-1" style={{ color:'#7C3AED' }}>How Thankeeu solves it</p>
+                      <p className="text-warm-500 text-xs leading-relaxed">{answer}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Problem → Solution */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+
+            {/* Problem */}
+            <div className="rounded-3xl border-2 border-rose-100 p-6" style={{ background:'#FFF8F8' }}>
+              <p className="text-xs font-bold text-rose-400 uppercase tracking-widest mb-5 flex items-center gap-1.5">
+                <Icon name="AlertCircle" size={13}/> The problem today
+              </p>
+              <p className="font-bold text-warm-800 text-base mb-4">
+                Most companies still manage employee celebrations manually.
+              </p>
+              <div className="space-y-3">
+                {[
+                  'HR checks spreadsheets for upcoming birthdays',
+                  'HRIS sends reminders but team engagement is low',
+                  'Messages get buried in WhatsApp groups',
+                  'Recognition tools require employee logins',
+                  'Important moments get missed — employees notice',
+                ].map(p => (
+                  <div key={p} className="flex items-start gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-rose-100 flex-shrink-0 flex items-center justify-center mt-0.5">
+                      <Icon name="X" size={10} style={{ color:'#e11d48' }}/>
+                    </div>
+                    <p className="text-sm text-warm-600">{p}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Solution */}
+            <div className="rounded-3xl border-2 p-6" style={{ background:'linear-gradient(160deg,#F5F0FF,#fff)', borderColor:'#DDD6FE' }}>
+              <p className="text-xs font-bold uppercase tracking-widest mb-5 flex items-center gap-1.5" style={{ color:'#7C3AED' }}>
+                <Icon name="Zap" size={13}/> The Thankeeu workflow
+              </p>
+              <p className="font-bold text-warm-900 text-base mb-4">
+                Thankeeu automates the entire recognition workflow.
+              </p>
+              <div className="space-y-3">
+                {[
+                  { step:'1', text:'Sync employee milestones from your HRIS in one click' },
+                  { step:'2', text:'Notify the whole team automatically before each occasion' },
+                  { step:'3', text:'Collect heartfelt messages via simple one-click links — no logins' },
+                  { step:'4', text:'Deliver beautiful celebration cards automatically on the day' },
+                  { step:'5', text:'Track participation and recognition metrics in your dashboard' },
+                ].map(({ step, text }) => (
+                  <div key={step} className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-extrabold text-white"
+                      style={{ background:'linear-gradient(135deg,#7C3AED,#A855F7)', marginTop:1 }}>
+                      {step}
+                    </div>
+                    <p className="text-sm text-warm-700">{text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Final CTA nudge into form */}
+          <div className="text-center">
+            <a href="#book-demo"
+              className="gc-btn-primary inline-flex items-center justify-center gap-2 px-10 py-4 text-base">
+              <Icon name="Calendar" size={18}/> Book a 15-Minute Demo →
+            </a>
+            <p className="text-xs text-warm-400 mt-3">Free · No commitment · Response within 24 hours</p>
+          </div>
+        </div>
+      </section>
 
       {/* ══ DEMO FORM ══ */}
       <section id="book-demo" className="py-16 px-4 gc-font">

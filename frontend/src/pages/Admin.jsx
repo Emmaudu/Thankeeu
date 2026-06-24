@@ -245,6 +245,9 @@ const Admin = () => {
   const [analytics, setAnalytics]       = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsDays, setAnalyticsDays] = useState(30);
+  const [countryVisits, setCountryVisits]   = useState([]);
+  const [countryVisitsLoading, setCountryVisitsLoading] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState(null); // null = all
 
   const [blogPosts, setBlogPosts]       = useState([]);
   const [blogLoading, setBlogLoading]   = useState(false);
@@ -324,6 +327,19 @@ const Admin = () => {
       setAnalytics(d);
     } catch { toast.error('Failed to load analytics'); }
     finally { setAnalyticsLoading(false); }
+  };
+
+  const fetchCountryVisits = async (country = selectedCountry, days = analyticsDays) => {
+    setCountryVisitsLoading(true);
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const tok  = localStorage.getItem('thankeeu_token') || '';
+      const qs   = new URLSearchParams({ days, limit: 300, ...(country ? { country } : {}) });
+      const r    = await fetch(`${base}/analytics/country-visits?${qs}`, { headers: { Authorization: `Bearer ${tok}` } });
+      const d    = await r.json();
+      setCountryVisits(Array.isArray(d) ? d : []);
+    } catch { toast.error('Failed to load visit log'); }
+    finally { setCountryVisitsLoading(false); }
   };
 
   const fetchVisitors = async () => {
@@ -1189,9 +1205,17 @@ const Admin = () => {
                     </div>
                   </div>
 
-                  {/* Top countries */}
+                  {/* Top countries — clickable to drill down */}
                   <div className="bg-white rounded-2xl border border-warm-100 p-5">
-                    <h3 className="text-sm font-bold text-warm-700 mb-4">🌍 Top Countries</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-sm font-bold text-warm-700">🌍 Top Countries</h3>
+                      {selectedCountry && (
+                        <button onClick={() => { setSelectedCountry(null); setCountryVisits([]); }}
+                          className="text-xs text-primary-500 hover:underline font-semibold">
+                          ← All countries
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       {(analytics.topCountries || []).map((c, i) => {
                         const maxCount = analytics.topCountries[0]?.count || 1;
@@ -1199,8 +1223,15 @@ const Admin = () => {
                         const flag = c.country ? String.fromCodePoint(
                           ...[...c.country.toUpperCase()].slice(0,2).map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65)
                         ) : '🌐';
+                        const isSelected = selectedCountry === c.country;
                         return (
-                          <div key={i} className="flex items-center gap-3">
+                          <button key={i}
+                            onClick={() => {
+                              const next = isSelected ? null : c.country;
+                              setSelectedCountry(next);
+                              fetchCountryVisits(next, analyticsDays);
+                            }}
+                            className={`w-full flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors text-left ${isSelected ? 'bg-primary-50 ring-1 ring-primary-200' : 'hover:bg-warm-50'}`}>
                             <span className="text-base w-6 flex-shrink-0">{flag}</span>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between mb-0.5">
@@ -1211,15 +1242,95 @@ const Admin = () => {
                                 <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${pct}%` }} />
                               </div>
                             </div>
-                          </div>
+                            <span className="text-[10px] text-primary-400 flex-shrink-0">→</span>
+                          </button>
                         );
                       })}
                       {!(analytics.topCountries?.length) && (
                         <p className="text-sm text-warm-400 text-center py-4">Country data starts appearing after first visitors.</p>
                       )}
                     </div>
+                    {analytics.topCountries?.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-warm-100 flex gap-2">
+                        <button
+                          onClick={() => { setSelectedCountry(null); fetchCountryVisits(null, analyticsDays); }}
+                          className="text-xs text-primary-500 hover:underline font-semibold">
+                          View all visits →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* ── Country visit log — appears when a country is clicked or "View all" ── */}
+                {(countryVisits.length > 0 || countryVisitsLoading) && (
+                  <div className="bg-white rounded-2xl border border-warm-100 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-warm-700">
+                          {selectedCountry ? `🗺️ Visits from ${selectedCountry}` : '🌐 All Country Visits'}
+                        </h3>
+                        {!countryVisitsLoading && (
+                          <p className="text-xs text-warm-400 mt-0.5">{countryVisits.length} most recent visits · last {analyticsDays} days</p>
+                        )}
+                      </div>
+                      <button onClick={() => fetchCountryVisits(selectedCountry, analyticsDays)}
+                        className="text-xs px-3 py-1.5 rounded-xl border border-warm-200 text-warm-600 hover:border-primary-300 transition-colors">
+                        ↻ Refresh
+                      </button>
+                    </div>
+
+                    {countryVisitsLoading ? (
+                      <div className="text-center py-8 text-warm-400 text-sm">Loading visit log…</div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-warm-100">
+                              <th className="text-left py-2 px-2 text-warm-400 font-semibold">Date &amp; Time</th>
+                              <th className="text-left py-2 px-2 text-warm-400 font-semibold">Page</th>
+                              <th className="text-left py-2 px-2 text-warm-400 font-semibold">Country</th>
+                              <th className="text-left py-2 px-2 text-warm-400 font-semibold">City</th>
+                              <th className="text-left py-2 px-2 text-warm-400 font-semibold">Visitor type</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {countryVisits.map((v, i) => {
+                              const flag = v.country ? String.fromCodePoint(
+                                ...[...v.country.toUpperCase()].slice(0,2).map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65)
+                              ) : '🌐';
+                              const dt = new Date(v.created_at);
+                              const dateStr = dt.toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' });
+                              const timeStr = dt.toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit', hour12:true });
+                              return (
+                                <tr key={i} className={`border-b border-warm-50 hover:bg-warm-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/40'}`}>
+                                  <td className="py-2 px-2 whitespace-nowrap">
+                                    <p className="font-semibold text-warm-800">{dateStr}</p>
+                                    <p className="text-warm-400">{timeStr}</p>
+                                  </td>
+                                  <td className="py-2 px-2">
+                                    <span className="font-mono bg-warm-100 text-warm-700 px-1.5 py-0.5 rounded text-[10px]">{v.path || '/'}</span>
+                                  </td>
+                                  <td className="py-2 px-2 whitespace-nowrap">
+                                    <span>{flag} {v.country || '—'}</span>
+                                  </td>
+                                  <td className="py-2 px-2 text-warm-500">{v.city || '—'}</td>
+                                  <td className="py-2 px-2">
+                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                      v.user_type === 'authenticated' ? 'bg-primary-50 text-primary-600'
+                                      : v.user_type === 'company' ? 'bg-blue-50 text-blue-600'
+                                      : 'bg-warm-100 text-warm-500'
+                                    }`}>{v.user_type || 'anonymous'}</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Avg per day */}
                 <p className="text-xs text-warm-400 text-center">

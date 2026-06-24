@@ -690,6 +690,241 @@ const HeroSlideshow = () => {
   );
 };
 
+/* ─── WhatsApp vs Thankeeu Conversion Section ───────────────────────── */
+const WHATSAPP_PAINS = [
+  { icon: 'MessageCircle',  label: '58 unread messages',         sub: 'birthday buried under memes and work chat' },
+  { icon: 'Image',          label: 'Photos buried in scroll',    sub: 'mixed with receipts and random forwards' },
+  { icon: 'Mic',            label: 'Voice notes forgotten',      sub: 'nobody replays a 34-second voice note twice' },
+  { icon: 'UserX',          label: '9 people never sent wishes', sub: '"I didn\'t see the message" — every time' },
+  { icon: 'Search',         label: 'Impossible to find later',   sub: 'scroll back 3 weeks through 600 messages' },
+  { icon: 'Clock',          label: 'Gone in 48 hours',           sub: 'replaced by grocery lists and work updates' },
+];
+
+const THANKEEU_WINS = [
+  { icon: 'LayoutGrid',     label: 'All messages in one place',  sub: 'organised, searchable, beautifully displayed' },
+  { icon: 'Image',          label: 'Photos & videos preserved',  sub: 'in a gallery built just for this moment' },
+  { icon: 'Mic',            label: 'Voice notes front and centre', sub: 'played back any time, forever' },
+  { icon: 'Link',           label: 'One link for everyone',      sub: 'no app, no account, just open and sign' },
+  { icon: 'Gift',           label: 'Gift pool built in',         sub: 'collect and send money together, no chaos' },
+  { icon: 'Heart',          label: 'Revisited years later',      sub: 'a memory they\'ll actually treasure' },
+];
+
+const BENEFITS = [
+  {
+    icon: 'Layers',
+    title: 'Everything in one place',
+    text: 'Messages, photos, GIFs, videos and voice notes collected in a single beautiful card — not scattered across 3 apps.',
+  },
+  {
+    icon: 'Users',
+    title: 'Everyone contributes easily',
+    text: 'Share one link. Friends, family or colleagues add their message from anywhere — no account, no download, no friction.',
+  },
+  {
+    icon: 'Archive',
+    title: 'Memories that last',
+    text: 'Revisit heartfelt messages months or years later. This is what "I\'ll never forget this" actually looks like.',
+  },
+];
+
+const WhatsAppVsThankeeu = () => (
+  <section className="py-16 md:py-24 px-4 gc-font" style={{ background: '#fff' }}>
+    <style>{`
+      @keyframes wa-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+      @keyframes tk-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(124,58,237,0.15)} 70%{box-shadow:0 0 0 12px rgba(124,58,237,0)} }
+      .wa-card { animation: none; }
+      .wa-row { transition: opacity .2s; }
+      .wa-row:hover { opacity: 0.7; }
+      .tk-row { transition: transform .2s, box-shadow .2s; }
+      .tk-row:hover { transform: translateX(4px); }
+    `}</style>
+
+    <div className="max-w-6xl mx-auto">
+
+      {/* ── Headline ── */}
+      <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-5"
+          style={{ background: '#FEF3C7', color: '#92400E' }}>
+          <Icon name="AlertTriangle" size={12}/> Sound familiar?
+        </div>
+        <h2 className="font-extrabold text-warm-900 mb-5 leading-tight"
+          style={{ fontSize: 'clamp(1.9rem,5vw,3rem)', letterSpacing: '-0.03em' }}>
+          Don't let their special day live<br className="hidden sm:block"/>
+          and die in a WhatsApp group.
+        </h2>
+        <p className="text-warm-500 leading-relaxed" style={{ fontSize: 'clamp(1rem,2.2vw,1.2rem)' }}>
+          Turn messages, photos, videos, GIFs and voice notes into one unforgettable group card they'll treasure forever.
+        </p>
+      </div>
+
+      {/* ── Side-by-side comparison ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-16">
+
+        {/* LEFT — WhatsApp */}
+        <div className="wa-card rounded-3xl overflow-hidden border-2 border-warm-100 shadow-sm relative"
+          style={{ background: 'linear-gradient(160deg,#f0fdf4 0%,#f9fafb 100%)' }}>
+          {/* Header */}
+          <div className="px-6 py-4 flex items-center justify-between border-b border-warm-100"
+            style={{ background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(8px)' }}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ background: '#25D366' }}>
+                <Icon name="MessageCircle" size={18} style={{ color: '#fff' }}/>
+              </div>
+              <div>
+                <p className="font-bold text-warm-900 text-sm">WhatsApp Group</p>
+                <p className="text-xs text-warm-400">Birthday Wishes 🎉</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+              style={{ background: '#ef44441a', color: '#dc2626' }}>
+              <Icon name="Bell" size={11}/> 58 unread
+            </div>
+          </div>
+
+          {/* Pain list */}
+          <div className="p-5 space-y-2.5">
+            {WHATSAPP_PAINS.map((p, i) => (
+              <div key={p.label} className="wa-row flex items-start gap-3 p-3 rounded-2xl"
+                style={{ background: 'rgba(255,255,255,0.7)', opacity: 1 - i * 0.06 }}>
+                <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center"
+                  style={{ background: '#f3f4f6', color: '#6b7280' }}>
+                  <Icon name={p.icon} size={15}/>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-warm-700 text-sm leading-tight">{p.label}</p>
+                  <p className="text-xs text-warm-400 mt-0.5 leading-snug">{p.sub}</p>
+                </div>
+                <div className="flex-shrink-0 mt-0.5">
+                  <Icon name="X" size={14} style={{ color: '#fca5a5' }}/>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-warm-100 text-center"
+            style={{ background: 'rgba(255,255,255,0.6)' }}>
+            <p className="text-sm font-semibold text-warm-400 flex items-center justify-center gap-1.5">
+              <Icon name="TrendingDown" size={14}/> Special moments disappear.
+            </p>
+          </div>
+        </div>
+
+        {/* RIGHT — Thankeeu */}
+        <div className="rounded-3xl overflow-hidden border-2 shadow-xl relative"
+          style={{ background: 'linear-gradient(160deg,#F5F0FF 0%,#fff 60%)', borderColor: '#DDD6FE' }}>
+          {/* Glow */}
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full pointer-events-none"
+            style={{ background: 'radial-gradient(circle,rgba(139,92,246,0.15),transparent 70%)' }}/>
+
+          {/* Header */}
+          <div className="px-6 py-4 flex items-center justify-between border-b"
+            style={{ borderColor: '#EDE9FE', background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(8px)' }}>
+            <div className="flex items-center gap-3">
+              <img src="/android-chrome-192x192.png" alt="Thankeeu"
+                className="w-9 h-9 rounded-xl object-cover flex-shrink-0"/>
+              <div>
+                <p className="font-bold text-warm-900 text-sm">Thankeeu Group Card</p>
+                <p className="text-xs text-primary-400">Happy Birthday, Adaeze! 🎂</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+              style={{ background: '#d1fae5', color: '#065f46' }}>
+              <Icon name="CheckCircle" size={11}/> 32 signed
+            </div>
+          </div>
+
+          {/* Win list */}
+          <div className="p-5 space-y-2.5">
+            {THANKEEU_WINS.map((w) => (
+              <div key={w.label} className="tk-row flex items-start gap-3 p-3 rounded-2xl border"
+                style={{ background: 'rgba(255,255,255,0.85)', borderColor: '#EDE9FE' }}>
+                <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg,#EDE9FE,#DDD6FE)', color: '#7C3AED' }}>
+                  <Icon name={w.icon} size={15}/>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-warm-900 text-sm leading-tight">{w.label}</p>
+                  <p className="text-xs text-warm-500 mt-0.5 leading-snug">{w.sub}</p>
+                </div>
+                <div className="flex-shrink-0 mt-0.5">
+                  <Icon name="Check" size={14} style={{ color: '#7C3AED' }}/>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-4 border-t text-center"
+            style={{ borderColor: '#EDE9FE', background: 'rgba(255,255,255,0.6)' }}>
+            <p className="text-sm font-semibold flex items-center justify-center gap-1.5"
+              style={{ color: '#7C3AED' }}>
+              <Icon name="Sparkles" size={14}/> Special moments become lasting memories.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Big statement ── */}
+      <div className="text-center mb-16">
+        <div className="inline-block px-8 py-6 rounded-3xl max-w-3xl"
+          style={{ background: 'linear-gradient(135deg,#1A1035,#2D1B69)', boxShadow: '0 24px 80px rgba(124,58,237,0.25)' }}>
+          <p className="font-extrabold text-white leading-snug"
+            style={{ fontSize: 'clamp(1.3rem,3.5vw,2rem)', letterSpacing: '-0.02em' }}>
+            WhatsApp is where people send wishes.
+          </p>
+          <p className="font-extrabold leading-snug mt-1"
+            style={{ fontSize: 'clamp(1.3rem,3.5vw,2rem)', letterSpacing: '-0.02em',
+              background: 'linear-gradient(135deg,#A78BFA,#F472B6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
+            Thankeeu is where people preserve them.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Three benefit cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-16">
+        {BENEFITS.map((b) => (
+          <div key={b.title}
+            className="rounded-3xl p-6 border-2 hover:shadow-lg transition-shadow"
+            style={{ background: '#fff', borderColor: '#EDE9FE' }}>
+            <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,#EDE9FE,#DDD6FE)' }}>
+              <Icon name={b.icon} size={22} style={{ color: '#7C3AED' }}/>
+            </div>
+            <h3 className="font-bold text-warm-900 mb-2 text-base">{b.title}</h3>
+            <p className="text-warm-500 text-sm leading-relaxed">{b.text}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Bottom CTA ── */}
+      <div className="text-center rounded-3xl py-14 px-6"
+        style={{ background: 'linear-gradient(135deg,#F5F0FF,#EDE9FE)', border: '2px solid #DDD6FE' }}>
+        <h3 className="font-extrabold text-warm-900 mb-3"
+          style={{ fontSize: 'clamp(1.6rem,4vw,2.4rem)', letterSpacing: '-0.025em' }}>
+          Create a group card in under 2 minutes.
+        </h3>
+        <p className="text-warm-500 mb-8 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
+          No design skills. No WhatsApp chaos. Just meaningful celebrations.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Link to="/card/new"
+            className="gc-btn-primary inline-flex items-center justify-center gap-2 px-8 py-4 text-base">
+            <Icon name="Plus" size={18}/> Create Free Card
+          </Link>
+          <Link to="/sample"
+            className="gc-btn-secondary inline-flex items-center justify-center gap-2 px-8 py-4 text-base">
+            <Icon name="Eye" size={18}/> See Example Card
+          </Link>
+        </div>
+        <p className="text-xs text-warm-400 mt-5">Free to start · No account needed to sign · Delivered at the exact time you choose</p>
+      </div>
+
+    </div>
+  </section>
+);
+
 /* ─── Main Home ──────────────────────────────────────────────────────── */
 const Home = () => {
   useSEO({
@@ -835,6 +1070,11 @@ const Home = () => {
           <HeroSlideshow />
         </div>
       </section>
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
+
+      {/* ══ WHATSAPP VS THANKEEU CONVERSION SECTION ══ */}
+      <WhatsAppVsThankeeu />
+
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ SAMPLE CARDS — 5 finished examples ══ */}

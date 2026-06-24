@@ -71,7 +71,7 @@ const getAllUsers = async (req, res) => {
   try {
     const [usersRes, creditsRes] = await Promise.all([
       supabase.from('users')
-        .select('id, full_name, email, role, is_verified, created_at')
+        .select('id, full_name, email, role, is_verified, date_of_birth, created_at')
         .order('created_at', { ascending: false })
         .limit(2000),
       supabase.from('card_credits')

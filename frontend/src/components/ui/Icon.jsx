@@ -15,6 +15,7 @@ import {
   Lightbulb, Menu, PartyPopper, ThumbsUp, Quote,
   Twitter, Linkedin, Instagram, GraduationCap, Baby,
   Sun, Flower2, HeartPulse, Snowflake, Sunrise, ThumbsUp as ThumbsUpDup,
+  TrendingDown, TrendingUp as TrendingUpIcon, LayoutGrid, Archive, AlertTriangle,
 } from 'lucide-react';
 
 const ICONS = {
@@ -38,6 +39,7 @@ const ICONS = {
   Lightbulb, Menu, Party: PartyPopper, ThumbsUp, Quote,
   Twitter, Linkedin, Instagram, GraduationCap, Baby,
   Sun, Flower: Flower2, HeartPulse, Snowflake, Sunrise,
+  TrendingDown, LayoutGrid, Archive, AlertTriangle,
 };
 
 const SIZES = { xs: 12, sm: 14, md: 16, lg: 20, xl: 24, '2xl': 32 };

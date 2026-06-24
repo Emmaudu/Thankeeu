@@ -10,10 +10,10 @@ import Icon from '../components/ui/Icon';
 const TEAM_SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '500+'];
 
 const FEATURES = [
-  { icon: 'Calendar',   title: 'Automated occasion detection',  desc: 'Connect your HR system. Thankeeu automatically creates birthday and work anniversary cards — no manual setup.' },
-  { icon: 'Users',      title: 'Whole team signs in one click', desc: 'Share one link on Slack or email. Every colleague signs, adds photos and voice notes without creating an account.' },
-  { icon: 'Gift',       title: 'Pool gifts safely',             desc: 'Collect Naira contributions from the team in one pot. Paid out instantly to the recipient via Flutterwave.' },
-  { icon: 'BarChart2',  title: 'HR dashboard & analytics',      desc: 'Track participation, upcoming occasions and gift collections from a single HR dashboard.' },
+  { icon: 'Zap',        title: 'Step 1 — Occasion detected automatically',    desc: 'Connect your HR system (or add your team manually). Thankeeu monitors birthdays, work anniversaries, and custom milestones — and triggers a card without you doing anything.' },
+  { icon: 'Edit',       title: 'Step 2 — Card created and sent to your team', desc: 'A beautiful digital card is auto-generated and the link goes straight to your team on Slack, Teams or email. No account needed to sign — anyone can add a message in 30 seconds.' },
+  { icon: 'Gift',       title: 'Step 3 — Gifts pooled effortlessly',          desc: `Team members contribute any amount in Naira. Thankeeu collects, holds and settles the full gift pot to the recipient's bank account via Flutterwave. No WhatsApp bank alerts, no manual counting.` },
+  { icon: 'Send',       title: 'Step 4 — Delivered on the exact day',        desc: `The card and gift notification land in the recipient's inbox at precisely the time you set — even while you're in a meeting, on leave, or asleep. Fully unattended.` },
 ];
 
 export default function BookDemo() {
@@ -60,12 +60,31 @@ export default function BookDemo() {
               style={{ background: '#EDE9FE', color: '#7C3AED' }}>
               🏢 Thankeeu for Business
             </div>
-            <h1 className="font-extrabold text-warm-900 mb-6 leading-tight"
+            <h1 className="font-extrabold text-warm-900 mb-5 leading-tight"
               style={{ fontSize: 'clamp(2rem,5vw,3.2rem)', letterSpacing: '-0.03em' }}>
-              Make every employee<br/>
-              feel <span style={{ background: 'linear-gradient(135deg,#7C3AED,#F43F5E)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>genuinely celebrated</span>
+              Never miss an employee's<br/>
+              birthday <span style={{ background: 'linear-gradient(135deg,#7C3AED,#F43F5E)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>again</span>
             </h1>
-            <p className="text-warm-500 mb-8 leading-relaxed" style={{ fontSize: 'clamp(1.05rem,2.2vw,1.2rem)' }}>
+            <p className="text-warm-500 mb-5 leading-relaxed" style={{ fontSize: 'clamp(1.05rem,2.2vw,1.15rem)' }}>
+              Thankeeu is the end-to-end employee recognition infrastructure your HR team has been missing. Birthdays, work anniversaries, farewells, promotions — every occasion is detected, a card is created automatically, your team signs it, and it lands in the recipient's inbox at exactly the right time. All without you lifting a finger.
+            </p>
+
+            {/* Pain → solution bullets */}
+            <div className="space-y-2.5 mb-6 text-left">
+              {[
+                { icon: '❌', pain: `Someone's birthday passes and HR only finds out after`, fix: 'Automatic occasion detection — nothing slips through' },
+                { icon: '❌', pain: 'Chasing 40 people to sign a card before Friday', fix: 'One link on Slack. Everyone signs in seconds, anywhere' },
+                { icon: '❌', pain: 'Collecting cash gifts via WhatsApp and counting manually', fix: 'Pooled Naira gifts via Flutterwave — settled automatically' },
+              ].map(row => (
+                <div key={row.pain} className="bg-white rounded-2xl border border-purple-100 px-4 py-3 shadow-sm">
+                  <p className="text-xs text-rose-500 font-semibold mb-0.5">Before: {row.pain}</p>
+                  <p className="text-xs font-bold" style={{ color: '#7C3AED' }}>✅ After: {row.fix}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Original angle — make every employee feel celebrated */}
+            <p className="text-warm-600 mb-8 leading-relaxed text-sm sm:text-base border-l-4 border-primary-200 pl-4">
               Automate birthday cards, farewell cards, work anniversaries and team milestones — with real messages, photos and pooled gifts. No chasing people. No Google Forms. Just one link.
             </p>
 
@@ -144,9 +163,9 @@ export default function BookDemo() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.7rem,4vw,2.5rem)' }}>
-              Everything your HR team needs
+              End-to-end. Fully automated.
             </h2>
-            <p className="text-warm-500 max-w-xl mx-auto">One platform. Every occasion. Zero admin overhead.</p>
+            <p className="text-warm-500 max-w-2xl mx-auto">Thankeeu handles every step from occasion detection to delivery. Your team just signs the card — the rest runs itself.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {FEATURES.map(f => (
@@ -163,6 +182,19 @@ export default function BookDemo() {
           </div>
         </div>
       </section>
+
+      {/* ── Bridge CTA ──────────────────────────────────────────────────── */}
+      <div className="py-10 px-4 gc-font text-center" style={{ background: 'linear-gradient(135deg,#7C3AED,#A855F7)' }}>
+        <p className="font-extrabold text-white mb-2" style={{ fontSize: 'clamp(1.4rem,3.5vw,2rem)' }}>
+          Your employees deserve to feel celebrated. Every time.
+        </p>
+        <p className="text-purple-200 mb-5 max-w-xl mx-auto text-sm sm:text-base">
+          Set it up once. Thankeeu handles every birthday, anniversary and farewell from that day forward — automatically, beautifully, on time.
+        </p>
+        <a href="#book-demo" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-primary-600 bg-white hover:bg-purple-50 transition-all text-base shadow-lg">
+          Book your free demo →
+        </a>
+      </div>
 
       {/* ── Demo form ────────────────────────────────────────────────────── */}
       <section id="book-demo" className="py-16 px-4 gc-font">

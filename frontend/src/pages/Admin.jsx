@@ -145,7 +145,7 @@ const UsersTab = ({ users, setUsers }) => {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead style={{ background:'#F8F6FF' }}>
-              <tr>{['Name','Email','Role','Credits','Signed up','Actions'].map(h=>(
+              <tr>{['Name','Email','Role','Credits','Birthday','Signed up','Actions'].map(h=>(
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold text-warm-500 uppercase tracking-wide">{h}</th>
               ))}</tr>
             </thead>
@@ -164,6 +164,15 @@ const UsersTab = ({ users, setUsers }) => {
                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${u.credits_remaining > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-warm-50 text-warm-400'}`}>
                       {u.credits_remaining} credit{u.credits_remaining !== 1 ? 's' : ''}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {u.date_of_birth ? (
+                      <span className="text-xs font-semibold text-warm-700">
+                        🎂 {format(new Date(u.date_of_birth + 'T00:00:00'), 'MMM d, yyyy')}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-warm-300">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-warm-400">{u.created_at ? format(new Date(u.created_at),'MMM d, yyyy') : '—'}</td>
                   <td className="px-4 py-3">

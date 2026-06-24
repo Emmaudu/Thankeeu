@@ -743,10 +743,6 @@ const WhatsAppVsThankeeu = () => (
 
       {/* ── Headline ── */}
       <div className="text-center max-w-3xl mx-auto mb-16">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-5"
-          style={{ background: '#FEF3C7', color: '#92400E' }}>
-          <Icon name="AlertTriangle" size={12}/> Sound familiar?
-        </div>
         <h2 className="font-extrabold text-warm-900 mb-5 leading-tight"
           style={{ fontSize: 'clamp(1.9rem,5vw,3rem)', letterSpacing: '-0.03em' }}>
           Don't let their special day live<br className="hidden sm:block"/>
@@ -1122,55 +1118,7 @@ const Home = () => {
         </div>
       </section>
 
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)'}}/>
 
-      {/* ══ CARD DESIGNS — 10 designs ══ */}
-      <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#FDFCFF 0%,#F5F0FF 100%)' }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={13}/> Beautiful designs</div>
-            <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
-              Find the perfect<br/><span className="text-primary-500">card design</span>
-            </h2>
-            <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
-              All cards come with unlimited messages and pages. Change your design any time before sending.
-            </p>
-          </div>
-
-          <div className="svg-grid">
-            {[
-              { n:'06', label:'Neon Party' },
-              { n:'07', label:'Midnight Stars' },
-              { n:'08', label:'Rose Garden' },
-              { n:'09', label:'Confetti Pop' },
-              { n:'10', label:'Deep Teal' },
-              { n:'11', label:'Pastel Dreams' },
-              { n:'12', label:'Tropical Vibes' },
-              { n:'13', label:'Modern Chic' },
-              { n:'14', label:'Royal Purple' },
-              { n:'15', label:'Midnight Blue' },
-            ].map(({ n, label }) => (
-              <Link key={n} to="/card/new" className="svg-tile" title={`${label} card design`}>
-                <img src={`/cards/birthday_${n}.svg`} alt={label} loading="lazy"/>
-                <div style={{
-                  position:'absolute', bottom:0, left:0, right:0,
-                  background:'linear-gradient(0deg,rgba(0,0,0,0.55) 0%,transparent 100%)',
-                  padding:'20px 10px 8px', pointerEvents:'none',
-                }}>
-                  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:11, color:'#fff', margin:0, textShadow:'0 1px 3px rgba(0,0,0,0.5)' }}>{label}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="text-center mt-10">
-            <p className="text-warm-500 text-sm mb-4">25 designs available in total — pick yours and start in 2 minutes</p>
-            <Link to="/card/new" className="gc-btn-primary inline-flex items-center gap-2 px-8 py-4 text-base">
-              <Icon name="Sparkles" size={18}/> Start with any design — it's free
-            </Link>
-          </div>
-        </div>
-      </section>
 
             {/* ══ OCCASIONS ══ */}
       <section className="py-12 md:py-16 px-4 section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>

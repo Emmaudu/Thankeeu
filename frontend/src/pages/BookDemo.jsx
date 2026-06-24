@@ -9,24 +9,11 @@ import Icon from '../components/ui/Icon';
 
 const TEAM_SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '500+'];
 
-const SOCIAL_PROOF = [
-  { metric: '50,000+',  label: 'Cards sent',             sub: 'by teams worldwide' },
-  { metric: '₦2.3B+',   label: 'Gift money pooled',      sub: 'safely via Flutterwave' },
-  { metric: '4.9 ★',    label: 'Average rating',         sub: 'from 3,000+ reviews' },
-  { metric: '< 2 min',  label: 'To create a card',       sub: 'no training needed' },
-];
-
 const FEATURES = [
   { icon: 'Calendar',   title: 'Automated occasion detection',  desc: 'Connect your HR system. Thankeeu automatically creates birthday and work anniversary cards — no manual setup.' },
   { icon: 'Users',      title: 'Whole team signs in one click', desc: 'Share one link on Slack or email. Every colleague signs, adds photos and voice notes without creating an account.' },
   { icon: 'Gift',       title: 'Pool gifts safely',             desc: 'Collect Naira contributions from the team in one pot. Paid out instantly to the recipient via Flutterwave.' },
   { icon: 'BarChart2',  title: 'HR dashboard & analytics',      desc: 'Track participation, upcoming occasions and gift collections from a single HR dashboard.' },
-];
-
-const TESTIMONIALS = [
-  { text: '"Our colleague\'s farewell card had 34 messages and a ₦120k spa voucher. She cried. Thankeeu made it ridiculously easy."', name: 'Adaeze O.', role: 'HR Manager, Lagos' },
-  { text: '"No more Google Forms and chasing receipts. Everyone just opens the link and signs. The whole team uses it now."',           name: 'Kemi B.',   role: 'People Ops, Port Harcourt' },
-  { text: '"We set it up in a morning. Birthday cards now go out automatically for all 200 staff. Best ₦0 investment we\'ve made."',  name: 'Emeka T.',  role: 'Head of HR, Abuja' },
 ];
 
 export default function BookDemo() {
@@ -81,17 +68,6 @@ export default function BookDemo() {
             <p className="text-warm-500 mb-8 leading-relaxed" style={{ fontSize: 'clamp(1.05rem,2.2vw,1.2rem)' }}>
               Automate birthday cards, farewell cards, work anniversaries and team milestones — with real messages, photos and pooled gifts. No chasing people. No Google Forms. Just one link.
             </p>
-
-            {/* Stats row */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              {SOCIAL_PROOF.map(s => (
-                <div key={s.metric} className="bg-white rounded-2xl border border-purple-100 p-4 shadow-sm text-center lg:text-left">
-                  <p className="font-extrabold text-primary-600" style={{ fontSize: '1.5rem', lineHeight: 1.1 }}>{s.metric}</p>
-                  <p className="font-bold text-warm-800 text-sm mt-0.5">{s.label}</p>
-                  <p className="text-warm-400 text-xs">{s.sub}</p>
-                </div>
-              ))}
-            </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
               <a href="#book-demo" className="gc-btn-primary inline-flex items-center justify-center gap-2 px-8 py-4 text-base">
@@ -182,27 +158,6 @@ export default function BookDemo() {
                   <p className="font-bold text-warm-900 mb-1.5">{f.title}</p>
                   <p className="text-warm-500 text-sm leading-relaxed">{f.desc}</p>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ─────────────────────────────────────────────────── */}
-      <section className="py-14 px-4 gc-font" style={{ background: 'linear-gradient(180deg,#F5F0FF,#FDFCFF)' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="font-bold text-warm-900 mb-2" style={{ fontSize: 'clamp(1.5rem,3.5vw,2rem)' }}>
-              What HR teams say
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map(t => (
-              <div key={t.name} className="bg-white rounded-3xl border-2 border-purple-100 p-6 shadow-sm">
-                <div className="text-2xl mb-3">⭐⭐⭐⭐⭐</div>
-                <p className="text-warm-600 text-sm leading-relaxed mb-4 italic">"{t.text.replace(/^"|"$/g,'')}"</p>
-                <p className="font-bold text-warm-900 text-sm">{t.name}</p>
-                <p className="text-warm-400 text-xs">{t.role}</p>
               </div>
             ))}
           </div>

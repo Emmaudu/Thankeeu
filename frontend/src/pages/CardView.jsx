@@ -1327,25 +1327,6 @@ const CardView = () => {
 
       {/* ── HERO BANNER — Sample-page style ───────────────────────── */}
       <header className="relative overflow-hidden" style={{ background: design.background, color: design.ink }}>
-        {/* Recipient photo — soft faded background, covers full hero area */}
-        {card.recipient_photo_url && (
-          <div
-            aria-hidden="true"
-            style={{
-              position: 'absolute',
-              inset: 0,
-              zIndex: 0,
-              backgroundImage: `url(${card.recipient_photo_url})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center top',
-              backgroundRepeat: 'no-repeat',
-              opacity: 0.18,
-              pointerEvents: 'none',
-              // Ensure crisp scaling on all screen sizes
-              imageRendering: 'auto',
-            }}
-          />
-        )}
         {/* Decorative blurred circles */}
         <div style={{ position:'absolute', top:'-60px', right:'-60px', width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,0.08)', pointerEvents:'none', zIndex:0 }} />
         <div style={{ position:'absolute', bottom:'-40px', left:'-40px', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none', zIndex:0 }} />
@@ -1358,8 +1339,34 @@ const CardView = () => {
             ✨ A keepsake made with love
           </div>
 
-          {/* Floating icon */}
-          <div className="text-6xl sm:text-7xl mb-5 animate-float select-none">{design.icon}</div>
+          {/* Recipient photo — circular frame in hero center, or floating emoji if no photo */}
+          {card.recipient_photo_url ? (
+            <div className="flex justify-center mb-5">
+              <div style={{
+                position: 'relative',
+                width: 110,
+                height: 110,
+                borderRadius: '50%',
+                boxShadow: `0 0 0 4px rgba(255,255,255,0.55), 0 0 0 7px ${design.accent}55, 0 8px 32px rgba(0,0,0,0.22)`,
+                overflow: 'hidden',
+                flexShrink: 0,
+              }}>
+                <img
+                  src={card.recipient_photo_url}
+                  alt={`${card.recipient_name || 'Recipient'}'s photo`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                    objectPosition: 'center top',
+                    display: 'block',
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="text-6xl sm:text-7xl mb-5 animate-float select-none">{design.icon}</div>
+          )}
 
           {/* Big calligraphic title */}
           <h1 className="mb-3 px-2" style={{
@@ -1390,12 +1397,26 @@ const CardView = () => {
                 🎁 {formatNGN(totalCollected)} gift
               </span>
             )}
-            {card.send_date && (
-              <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm"
-                style={{ background:'rgba(255,255,255,0.82)', color: design.ink }}>
-                📅 {format(new Date(card.send_date), 'MMMM d, yyyy')}{card.send_time ? ` · ${card.send_time.slice(0,5)}` : ''}
-              </span>
-            )}
+            {card.send_date && (() => {
+              // send_date and send_time are stored as UTC (the frontend converts to UTC on save).
+              // We must reconstruct the full UTC datetime and convert to local for display,
+              // otherwise a 10:24 PM WAT card shows as 9:24 PM (the raw UTC value).
+              const timeUTC = card.send_time ? card.send_time.slice(0, 5) : '00:00';
+              const dateStr  = String(card.send_date).slice(0, 10);
+              const utcDt    = new Date(`${dateStr}T${timeUTC}:00Z`);
+              const localTime = isNaN(utcDt.getTime())
+                ? timeUTC
+                : utcDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+              const localDate = isNaN(utcDt.getTime())
+                ? format(new Date(card.send_date), 'MMMM d, yyyy')
+                : utcDt.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
+              return (
+                <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm"
+                  style={{ background:'rgba(255,255,255,0.82)', color: design.ink }}>
+                  📅 {localDate}{card.send_time ? ` · ${localTime}` : ''}
+                </span>
+              );
+            })()}
           </div>
 
           {/* Add message CTA — only show if card is still open for signing */}

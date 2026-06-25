@@ -6,6 +6,7 @@ import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
+import DashboardLayout from '../components/DashboardLayout';
 import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
 import VoiceRecorder from '../components/VoiceRecorder';
@@ -180,6 +181,36 @@ const CreateCard = () => {
         // Both draft and active cards can be edited
         // (active cards keep their status — we don't downgrade them back to draft)
 
+        // ── UTC → local conversion for date/time inputs ──────────────────
+        // send_date and send_time are stored as UTC (the frontend converts to UTC on save).
+        // The <input type="date"> and <input type="time"> fields expect LOCAL values.
+        // We reconstruct the full UTC datetime and convert back to local so the user
+        // sees exactly what they set (e.g. 10:24 PM WAT, not 9:24 PM UTC).
+        const utcToLocalDate = (dateStr, timeStr) => {
+          if (!dateStr) return { localDate: '', localTime: '' };
+          const d = String(dateStr).slice(0, 10);
+          const t = timeStr ? String(timeStr).slice(0, 8) : '00:00:00';
+          const utcDt = new Date(`${d}T${t}Z`);
+          if (isNaN(utcDt.getTime())) return { localDate: d, localTime: t.slice(0, 5) };
+          // Format local date as YYYY-MM-DD for <input type="date">
+          const localDate = [
+            utcDt.getFullYear(),
+            String(utcDt.getMonth() + 1).padStart(2, '0'),
+            String(utcDt.getDate()).padStart(2, '0'),
+          ].join('-');
+          // Format local time as HH:MM for <input type="time">
+          const localTime = [
+            String(utcDt.getHours()).padStart(2, '0'),
+            String(utcDt.getMinutes()).padStart(2, '0'),
+          ].join(':');
+          return { localDate, localTime };
+        };
+
+        const { localDate: sendDateLocal, localTime: sendTimeLocal } =
+          utcToLocalDate(card.send_date, card.send_time);
+        const { localDate: deadlineLocal, localTime: deadlineTimeLocal } =
+          utcToLocalDate(card.deadline, card.deadline_time);
+
         setDraftSlug(editSlug);
         setForm(prev => ({
           ...prev,
@@ -191,10 +222,11 @@ const CreateCard = () => {
           title:                  card.title || prev.title,
           recipient_name:         card.recipient_name || '',
           recipient_email:        card.recipient_email || '',
-          send_date:              card.send_date ? String(card.send_date).slice(0, 10) : '',
-          send_time:              card.send_time ? String(card.send_time).slice(0, 5) : prev.send_time,
-          deadline:               card.deadline ? String(card.deadline).slice(0, 10) : '',
-          deadline_time:          card.deadline_time ? String(card.deadline_time).slice(0, 5) : prev.deadline_time,
+          // Use local date/time (converted from UTC) so inputs show what the user set
+          send_date:              sendDateLocal,
+          send_time:              sendTimeLocal || prev.send_time,
+          deadline:               deadlineLocal,
+          deadline_time:          deadlineTimeLocal || prev.deadline_time,
           is_gift_enabled:        card.is_gift_enabled ?? prev.is_gift_enabled,
           gift_type:              card.gift_type || prev.gift_type,
           suggested_amount:       card.suggested_amount ?? prev.suggested_amount,
@@ -203,6 +235,12 @@ const CreateCard = () => {
           hide_amounts:           card.hide_amounts ?? prev.hide_amounts,
           notification_scope:     card.notification_scope || prev.notification_scope,
         }));
+
+        // Restore recipient photo preview — show the existing photo so the user
+        // knows it's saved. file stays null so we don't re-upload unless they change it.
+        if (card.recipient_photo_url) {
+          setRecipientPhoto({ file: null, preview: card.recipient_photo_url });
+        }
 
         // If the creator already wrote their own message on a previous visit, prefill it too
         const myEmail = (user?.email || member?.email || company?.email || '').toLowerCase();
@@ -431,10 +469,9 @@ const CreateCard = () => {
   };
 
   // ── LIVE screen ──────────────────────────────────────────────────────────
-  if (liveSlug) return (
-    <div className="min-h-screen section-dots" style={{ background:'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
-      <Navbar/>
-      <div className="flex flex-col items-center justify-center min-h-[80vh] px-4 py-16 text-center">
+  if (liveSlug) {
+    const liveContent = (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 py-16 text-center">
         <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mb-6 animate-pop" style={{ background:'linear-gradient(135deg,#7C3AED,#EC4899)' }}>🎉</div>
         <h1 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:'clamp(1.75rem,5vw,2.75rem)', color:'#1A1035', marginBottom:12 }}>
           Your card is live!
@@ -468,8 +505,17 @@ const CreateCard = () => {
           </button>
         </div>
       </div>
-    </div>
-  );
+    );
+    if (company) return <CompanyLayout title="Card Live 🎉">{liveContent}</CompanyLayout>;
+    if (member)  return <MemberLayout  title="Card Live 🎉">{liveContent}</MemberLayout>;
+    if (user)    return <DashboardLayout title="Card Live 🎉">{liveContent}</DashboardLayout>;
+    return (
+      <div className="min-h-screen section-dots" style={{ background:'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
+        <Navbar/>
+        {liveContent}
+      </div>
+    );
+  }
 
   if (loadingDraft) {
     const loadingScreen = (
@@ -480,12 +526,13 @@ const CreateCard = () => {
     );
     if (company) return <CompanyLayout title="Create a Card" subtitle="Takes less than 3 minutes">{loadingScreen}</CompanyLayout>;
     if (member)  return <MemberLayout  title="Create a Card" subtitle="Takes less than 3 minutes">{loadingScreen}</MemberLayout>;
+    if (user)    return <DashboardLayout title="Create a Card" subtitle="Takes less than 3 minutes">{loadingScreen}</DashboardLayout>;
     return <div className="min-h-screen"><Navbar/>{loadingScreen}</div>;
   }
 
   const inner = (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
-      {!company && !member && (
+    <div className={`max-w-2xl mx-auto px-4 sm:px-6 ${(user || company || member) ? 'pt-2 pb-10' : 'py-10'}`}>
+      {!company && !member && !user && (
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-warm-900 mb-1">Create a Thankeeu card</h1>
           <p className="text-warm-500 text-sm">Takes less than 3 minutes to set up</p>
@@ -1069,9 +1116,14 @@ const CreateCard = () => {
                   setLoading(true);
                   try {
                     const { status: _s, ...safeForm } = form;
+                    // Convert local time to UTC — same as authenticated path — so the
+                    // cron fires at the user's intended local time, not 1 hour off.
+                    const { send_date: utcSendDate, send_time: utcSendTime } = toUTCSendTime(safeForm.send_date, safeForm.send_time);
                     const cardData = {
                       ...safeForm,
                       title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card`,
+                      send_date: utcSendDate,
+                      send_time: utcSendTime,
                     };
                     const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
                     let slug = draftSlug || existing.slug;
@@ -1334,6 +1386,7 @@ const CreateCard = () => {
 
   if (company) return <CompanyLayout title="Create a Card" subtitle="Takes less than 3 minutes">{inner}</CompanyLayout>;
   if (member)  return <MemberLayout  title="Create a Card" subtitle="Takes less than 3 minutes">{inner}</MemberLayout>;
+  if (user)    return <DashboardLayout title="Create a Card" subtitle="Takes less than 3 minutes">{inner}</DashboardLayout>;
   return <div className="min-h-screen"><Navbar/>{inner}</div>;
 };
 

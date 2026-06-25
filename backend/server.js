@@ -284,41 +284,45 @@ async function autoSendDueCards() {
   const now = new Date();
   const nowISO = now.toISOString();
 
-  // Fetch all active cards whose send_date is on or before today.
-  // We then filter by send_time in JS — this is safe because send_date is
-  // a TIMESTAMPTZ stored as midnight UTC for the chosen date, so
-  // .lte('send_date', endOfTodayISO) catches all cards dated today or earlier.
-  // The send_time comparison is then done in JS in UTC to avoid timezone issues.
-  // End of today in UTC — catches all cards dated today or earlier
+  // Fetch all active cards whose send_date is on or before right now.
+  // We store send_date as a TIMESTAMPTZ date (midnight UTC of the chosen date)
+  // and send_time as a separate TIME column (UTC). We pull everything up to
+  // end of today in UTC, then do the precise send_time comparison in JS.
   const endOfTodayISO = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999)
   ).toISOString();
 
-  const { data: cardsToSend, error: cardsToSendErr } = await supabase
-    .from('cards')
-    .select('*, users!creator_id(email, full_name)')
-    .eq('status', 'active')
-    .eq('recipient_notified', false)
-    .not('recipient_email', 'is', null)
-    .not('send_date', 'is', null)
-    .lte('send_date', endOfTodayISO);
+  let cardsToSend, cardsToSendErr;
+  try {
+    ({ data: cardsToSend, error: cardsToSendErr } = await supabase
+      .from('cards')
+      .select('*, users!creator_id(email, full_name)')
+      .eq('status', 'active')
+      .eq('recipient_notified', false)
+      .not('recipient_email', 'is', null)
+      .not('send_date', 'is', null)
+      .lte('send_date', endOfTodayISO));
+  } catch (queryErr) {
+    console.error('[auto-send] Supabase query threw unexpectedly:', queryErr.message);
+    return { error: queryErr.message, delivered: [], failed: [] };
+  }
 
   if (cardsToSendErr) {
     console.error('[auto-send] Failed to query cards due for delivery:', cardsToSendErr.message);
     return { error: cardsToSendErr.message, delivered: [], failed: [] };
   }
 
-  // Filter in JS: combine send_date's date part with send_time to get the
-  // exact scheduled UTC moment, then check if it's <= now.
+  // Filter in JS: combine send_date's UTC date part with send_time (UTC) to get
+  // the exact scheduled moment, then check if it's <= now.
   const due = (cardsToSend || []).filter(card => {
-    // send_date is a TIMESTAMPTZ — extract just the date portion in UTC
+    // send_date is TIMESTAMPTZ — extract just the date portion in UTC
     const d = new Date(card.send_date);
     const dateUTC = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
 
-    // send_time is a TIME string like "14:00:00" — treat as UTC
-    const timeUTC = card.send_time || '00:00:00';
+    // send_time is a TIME string like "21:24:00" stored as UTC
+    const timeUTC = (card.send_time || '00:00:00').slice(0, 8);
 
-    const scheduledAt = new Date(`${dateUTC}T${timeUTC}Z`); // explicit Z = UTC
+    const scheduledAt = new Date(`${dateUTC}T${timeUTC}Z`); // Z = UTC explicit
     const isdue = scheduledAt <= now;
     if (!isdue) {
       console.log(`[auto-send] Card ${card.slug} not yet due: scheduled ${scheduledAt.toISOString()}, now ${nowISO}`);
@@ -385,11 +389,13 @@ async function autoSendDueCards() {
   return { error: null, delivered, failed };
 }
 
-// Run delivery check every 15 minutes so cards go out close to their scheduled time.
-// The daily jobs (deadline reminders, nudges) still run once daily inside this block.
 // Check every minute so cards deliver at their exact scheduled time.
 cron.schedule('* * * * *', async () => {
-  await autoSendDueCards();
+  try {
+    await autoSendDueCards();
+  } catch (err) {
+    console.error('[auto-send cron] Unhandled error:', err.message, err.stack);
+  }
 });
 
 cron.schedule('0 8 * * *', async () => {

@@ -92,8 +92,23 @@ router.get('/recipient/:slug',        validateSlugParam('slug'), getRecipientCar
 router.post('/recipient/:slug/claim', validateSlugParam('slug'), claimGift);
 
 // ── Recipient photo upload — creator-only, multipart field: "photo" ────────
+// Wraps photoUpload.single() so multer errors (wrong type, file too large)
+// return clean JSON 400s instead of falling through to the global 500 handler.
+const handlePhotoUpload = (req, res, next) => {
+  photoUpload.single('photo')(req, res, (err) => {
+    if (!err) return next();
+    console.error('[recipient-photo upload] multer error:', err.code, err.message);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'Photo must be under 5 MB. Please choose a smaller image.' });
+    }
+    if (err.message && err.message.toLowerCase().includes('image')) {
+      return res.status(400).json({ error: 'Only image files are allowed (JPG, PNG, WebP).' });
+    }
+    return res.status(400).json({ error: 'Could not process the photo. Please try a different image.' });
+  });
+};
 router.post('/:slug/recipient-photo', validateSlugParam('slug'), optionalAuth,
-  photoUpload.single('photo'), uploadRecipientPhoto);
+  handlePhotoUpload, uploadRecipientPhoto);
 
 // ── Slug-based routes (wildcard — must come after all fixed-segment routes) ─
 router.get('/:slug',                validateSlugParam('slug'), flexUserAuth, getCard);

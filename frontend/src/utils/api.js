@@ -151,6 +151,16 @@ export const cardsAPI = {
   activateDraft: (slug, data, draftEditToken) => anyAxios.post(`/cards/${slug}/activate`, data,
     draftEditToken ? { headers: { 'x-draft-edit-token': draftEditToken } } : undefined),
   claimDraft:   (slug, draftEditToken)     => api.post(`/cards/${slug}/claim`, { draft_edit_token: draftEditToken }),
+  // Upload recipient photo (multipart, field: "photo"). Works for auth users and anonymous drafts.
+  uploadRecipientPhoto: (slug, formData, draftEditToken) => anyAxios.post(
+    `/cards/${slug}/recipient-photo`, formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(draftEditToken ? { 'x-draft-edit-token': draftEditToken } : {}),
+      },
+    }
+  ),
 };
 
 // ─── Messages ──────────────────────────────────────────────────────────────

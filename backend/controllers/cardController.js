@@ -1268,5 +1268,58 @@ module.exports = {
   createCard, getUserCards, getCard, updateCard, activateCard, sendCard,
   deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards,
   getClaimGate, getCardLoginType, markClaimed, claimMemberPassword,
-  approveCardScope, notifyAllCompany,
+  approveCardScope, notifyAllCompany, uploadRecipientPhoto,
 };
+
+// ── Recipient photo upload ─────────────────────────────────────────────────
+// POST /cards/:slug/recipient-photo  (multipart/form-data, field: "photo")
+// Saves the Cloudinary / local URL into cards.recipient_photo_url
+async function uploadRecipientPhoto(req, res) {
+  try {
+    const { slug } = req.params;
+    const presentedToken = req.headers['x-draft-edit-token'] || req.body?.draft_edit_token;
+
+    const { data: card } = await supabase
+      .from('cards')
+      .select('id, creator_id, created_by_member_id, company_id, is_draft, draft_edit_token')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    const isOwner =
+      (req.user   && card.creator_id           === req.user.id)   ||
+      (req.member && card.created_by_member_id === req.member.id) ||
+      (req.company && card.company_id          === req.company.id) ||
+      (card.is_draft && card.draft_edit_token && presentedToken &&
+       card.draft_edit_token === presentedToken);
+
+    if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
+    if (!req.file) return res.status(400).json({ error: 'No photo file provided' });
+
+    const appUrl = process.env.APP_URL || 'http://localhost:5000';
+    const photoUrl = req.file.path?.startsWith('http')
+      ? req.file.path
+      : `${appUrl}/uploads/${require('path').basename(req.file.path)}`;
+
+    const { data: updated, error } = await supabase
+      .from('cards')
+      .update({ recipient_photo_url: photoUrl, updated_at: new Date() })
+      .eq('slug', slug)
+      .select('slug, recipient_photo_url')
+      .maybeSingle();
+
+    if (error) {
+      // Column not yet migrated — return URL so frontend can handle gracefully
+      if (error.code === '42703' || /column .* does not exist/i.test(error.message || '')) {
+        return res.json({ recipient_photo_url: photoUrl, warning: 'Run migration to persist photo' });
+      }
+      throw error;
+    }
+
+    res.json({ recipient_photo_url: updated.recipient_photo_url });
+  } catch (err) {
+    console.error('[uploadRecipientPhoto] error:', err.message);
+    res.status(500).json({ error: 'Failed to upload recipient photo' });
+  }
+}

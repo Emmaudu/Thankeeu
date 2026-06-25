@@ -1327,10 +1327,29 @@ const CardView = () => {
 
       {/* ── HERO BANNER — Sample-page style ───────────────────────── */}
       <header className="relative overflow-hidden" style={{ background: design.background, color: design.ink }}>
+        {/* Recipient photo — soft faded background, covers full hero area */}
+        {card.recipient_photo_url && (
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              zIndex: 0,
+              backgroundImage: `url(${card.recipient_photo_url})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center top',
+              backgroundRepeat: 'no-repeat',
+              opacity: 0.18,
+              pointerEvents: 'none',
+              // Ensure crisp scaling on all screen sizes
+              imageRendering: 'auto',
+            }}
+          />
+        )}
         {/* Decorative blurred circles */}
-        <div style={{ position:'absolute', top:'-60px', right:'-60px', width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,0.08)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', bottom:'-40px', left:'-40px', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none' }} />
-        <div style={{ position:'absolute', top:'40%', left:'50%', transform:'translate(-50%,-50%)', width:340, height:340, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none' }} />
+        <div style={{ position:'absolute', top:'-60px', right:'-60px', width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,0.08)', pointerEvents:'none', zIndex:0 }} />
+        <div style={{ position:'absolute', bottom:'-40px', left:'-40px', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none', zIndex:0 }} />
+        <div style={{ position:'absolute', top:'40%', left:'50%', transform:'translate(-50%,-50%)', width:340, height:340, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none', zIndex:0 }} />
 
         <div className="relative max-w-5xl mx-auto px-4 py-14 sm:py-20 text-center" style={{ zIndex:1 }}>
           {/* Badge */}

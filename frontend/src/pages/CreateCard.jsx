@@ -104,6 +104,9 @@ const CreateCard = () => {
   const [showGif,     setShowGif]     = useState(false);
   const [giftAmount,  setGiftAmount]  = useState(null);
   const [customGift,  setCustomGift]  = useState('');
+  // Recipient photo — optional cover photo uploaded in Step 2
+  const [recipientPhoto, setRecipientPhoto] = useState({ file: null, preview: null });
+  const photoInputRef = useRef();
   const fileRef    = useRef();
   const textareaRef = useRef();
 
@@ -293,6 +296,17 @@ const CreateCard = () => {
       else if (member)  { const { memberCardsAPI } = await import('../utils/api'); slug = (await memberCardsAPI.create(cardData)).data.slug; }
       else              slug = (await cardsAPI.create(cardData)).data.slug;
       setDraftSlug(slug);
+      // Upload recipient photo if one was chosen
+      if (recipientPhoto.file) {
+        try {
+          const fd = new FormData();
+          fd.append('photo', recipientPhoto.file);
+          await cardsAPI.uploadRecipientPhoto(slug, fd, null);
+        } catch (photoErr) {
+          console.warn('[recipient-photo] upload failed:', photoErr?.message);
+          // Non-fatal — card still proceeds
+        }
+      }
       localStorage.setItem('thankeeu_pending_card', JSON.stringify({
         cardData, slug, timestamp: Date.now(),
         formSnapshot: form,
@@ -409,6 +423,7 @@ const CreateCard = () => {
     setLoading(false); setPaymentStage('idle');
     setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
     setMediaFiles([]); setGiftAmount(null); setCustomGift(''); setInviteEmails('');
+    setRecipientPhoto({ file: null, preview: null });
     setForm({ occasion:'birthday', design_theme:'rose_love', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
       title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
       send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
@@ -662,6 +677,75 @@ const CreateCard = () => {
                 <label className="block text-sm font-semibold text-warm-700 mb-1.5">Recipient's email</label>
                 <input type="email" className="input" placeholder="amaka@email.com" value={form.recipient_email} onChange={e => set('recipient_email', e.target.value)}/>
               </div>
+            </div>
+
+            {/* ── Optional recipient photo — appears as faded hero background on card view ── */}
+            <div>
+              <label className="block text-sm font-semibold text-warm-700 mb-1">
+                Recipient's photo <span className="text-warm-400 font-normal text-xs">(optional)</span>
+              </label>
+              <p className="text-xs text-warm-400 mb-2">
+                Appears softly in the background of the card view page — beautiful for birthdays and special occasions.
+              </p>
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (!f) return;
+                  if (f.size > 5 * 1024 * 1024) { toast.error('Photo must be under 5 MB'); return; }
+                  if (recipientPhoto.preview) URL.revokeObjectURL(recipientPhoto.preview);
+                  setRecipientPhoto({ file: f, preview: URL.createObjectURL(f) });
+                }}
+              />
+              {recipientPhoto.preview ? (
+                <div style={{ position: 'relative', width: '100%', height: 120, borderRadius: 16, overflow: 'hidden', border: '2px solid #C4B5FD' }}>
+                  <img
+                    src={recipientPhoto.preview}
+                    alt="Recipient preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', opacity: 0.55 }}
+                  />
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(124,58,237,0.06), rgba(124,58,237,0.20))', pointerEvents: 'none' }} />
+                  <span style={{ position: 'absolute', bottom: 8, left: 12, fontSize: 11, fontWeight: 700, color: '#fff', background: 'rgba(0,0,0,0.45)', borderRadius: 8, padding: '2px 8px' }}>
+                    Preview — will appear faded behind card content
+                  </span>
+                  <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(124,58,237,0.75)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13 }}
+                      title="Change photo">
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { URL.revokeObjectURL(recipientPhoto.preview); setRecipientPhoto({ file: null, preview: null }); if (photoInputRef.current) photoInputRef.current.value = ''; }}
+                      style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}
+                      title="Remove photo">
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 16px', borderRadius: 16, border: '2px dashed #C4B5FD', background: '#F9F5FF', cursor: 'pointer', textAlign: 'left', transition: 'border-color .2s, background .2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#7C3AED'; e.currentTarget.style.background = '#EDE9FE'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#C4B5FD'; e.currentTarget.style.background = '#F9F5FF'; }}>
+                  <span style={{ fontSize: 26, flexShrink: 0 }}>📸</span>
+                  <div>
+                    <p style={{ fontFamily: 'Plus Jakarta Sans,sans-serif', fontWeight: 700, fontSize: 13, color: '#1A1035', margin: 0 }}>
+                      Upload a photo of {form.recipient_name || 'the recipient'}
+                    </p>
+                    <p style={{ fontFamily: 'Plus Jakarta Sans,sans-serif', fontSize: 11, color: '#7A6CA8', margin: '3px 0 0' }}>
+                      JPG, PNG or WebP · max 5 MB
+                    </p>
+                  </div>
+                </button>
+              )}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -1010,6 +1094,16 @@ const CreateCard = () => {
                       resumeStep: 4,
                       timestamp: Date.now(),
                     }));
+                    // Upload recipient photo if one was chosen (non-fatal)
+                    if (recipientPhoto.file) {
+                      try {
+                        const fd = new FormData();
+                        fd.append('photo', recipientPhoto.file);
+                        await cardsAPI.uploadRecipientPhoto(slug, fd, editToken);
+                      } catch (photoErr) {
+                        console.warn('[recipient-photo] upload failed:', photoErr?.message);
+                      }
+                    }
                     setGuestPhase('auth');
                   } catch (err) {
                     toast.error(err.response?.data?.error || 'Could not save your draft. Please try again.');

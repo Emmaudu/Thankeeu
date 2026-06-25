@@ -50,4 +50,45 @@ const deleteFile = async (publicId, resourceType = 'image') => {
   catch (err) { console.error('Cloudinary delete error:', err); }
 };
 
-module.exports = { upload, cloudinary, deleteFile };
+// ── Recipient photo upload ──────────────────────────────────────────────────
+// Separate multer instance: images only, 5 MB cap, single file
+let uploadRecipientPhoto;
+
+if (hasCloudinary) {
+  const photoStorage = new CloudinaryStorage({
+    cloudinary,
+    params: async () => ({
+      folder: 'thankeeu/recipient-photos',
+      resource_type: 'image',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 1600, crop: 'limit', quality: 'auto:good' }],
+    }),
+  });
+  uploadRecipientPhoto = multer({
+    storage: photoStorage,
+    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) cb(null, true);
+      else cb(new Error('Only image files are allowed for recipient photos'));
+    },
+  });
+} else {
+  const uploadDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  uploadRecipientPhoto = multer({
+    storage: multer.diskStorage({
+      destination: uploadDir,
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.jpg';
+        cb(null, `recipient-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+      },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) cb(null, true);
+      else cb(new Error('Only image files are allowed for recipient photos'));
+    },
+  });
+}
+
+module.exports = { upload, uploadRecipientPhoto, cloudinary, deleteFile };

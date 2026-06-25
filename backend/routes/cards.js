@@ -9,8 +9,10 @@ const {
   activateCard, sendCard, deleteCard, getPublicCard,
   getRecipientCard, claimGift, getMemberCards, approveCardScope,
   getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember,
-  getClaimGate, getCardLoginType, markClaimed, claimMemberPassword
+  getClaimGate, getCardLoginType, markClaimed, claimMemberPassword,
+  uploadRecipientPhoto,
 } = require('../controllers/cardController');
+const { uploadRecipientPhoto: photoUpload } = require('../utils/cloudinary');
 const { validateSlugParam } = require('../utils/paramGuard');
 
 // Flexible auth — accepts individual user, team member, OR HR company token.
@@ -88,6 +90,10 @@ router.post('/:slug/claim-member-password', validateSlugParam('slug'), claimMemb
 router.get('/public/:slug',           validateSlugParam('slug'), getPublicCard);
 router.get('/recipient/:slug',        validateSlugParam('slug'), getRecipientCard);
 router.post('/recipient/:slug/claim', validateSlugParam('slug'), claimGift);
+
+// ── Recipient photo upload — creator-only, multipart field: "photo" ────────
+router.post('/:slug/recipient-photo', validateSlugParam('slug'), optionalAuth,
+  photoUpload.single('photo'), uploadRecipientPhoto);
 
 // ── Slug-based routes (wildcard — must come after all fixed-segment routes) ─
 router.get('/:slug',                validateSlugParam('slug'), flexUserAuth, getCard);

@@ -981,7 +981,7 @@ const Home = () => {
                   <Icon name="Eye" size={18}/> Try our demo card
                 </Link>
               </div>
-              <p className="text-sm font-medium text-warm-500 text-center lg:text-left">No signup needed to start · Takes under 2 minutes</p>
+              <p className="text-sm font-medium text-warm-500 text-center lg:text-left">Get started in 1 minute. Pay &amp; signup only when you are ready to send</p>
 
               {/* Sample card grid — large, rich tiles matching GroupCards style */}
               <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: 660 }}>

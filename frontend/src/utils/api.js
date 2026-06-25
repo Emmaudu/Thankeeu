@@ -156,12 +156,10 @@ export const cardsAPI = {
 // ─── Messages ──────────────────────────────────────────────────────────────
 export const messagesAPI = {
   // RC3 fix: delete Content-Type so axios sets multipart/form-data+boundary automatically for FormData
-  // Longer timeout than the global 15s default: this request may carry a photo/video/voice
-  // attachment that the backend re-uploads to Cloudinary, which can legitimately take longer
-  // than plain JSON calls — especially video/voice on a slower connection.
+  // Longer timeout — multiple photos/videos/voice notes can take 2-3 mins on slower connections
   add:    (cardSlug, data)  => publicAxios.post(`/messages/${cardSlug}`, data, {
     headers: { 'Content-Type': undefined },
-    timeout: 60000,
+    timeout: 180000, // 3 minutes — enough for multiple large files
   }),
   react:          (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
   updatePosition: (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data),

@@ -56,7 +56,7 @@ const createCard = async (req, res) => {
     const {
       recipient_name, recipient_email, occasion, title, design_theme,
       background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
-      send_date, deadline, allow_private_messages, send_reminders, hide_amounts,
+      send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus
     } = req.body;
@@ -108,6 +108,7 @@ const createCard = async (req, res) => {
       design_theme, background_color, is_gift_enabled,
       gift_type, suggested_amount,
       send_date: send_date || null,
+      send_time: send_time || null,
       deadline: deadline || null,
       allow_private_messages, send_reminders, hide_amounts,
       status: reqStatus || 'draft',

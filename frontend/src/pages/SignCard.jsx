@@ -262,7 +262,8 @@ const SignCard = () => {
   const addMediaFiles = useCallback((files) => {
     const items = [];
     for (const f of Array.from(files)) {
-      if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} too large (max 50 MB)`); continue; }
+      if (f.size > 100 * 1024 * 1024) { toast.error(`${f.name} is too large (max 100MB). Try compressing it first.`); continue; }
+      if (f.size > 50 * 1024 * 1024) { toast(`${f.name} is large (${(f.size/1024/1024).toFixed(0)}MB) — upload may take a moment.`, { icon: '⏳' }); }
       const mime = f.type;
       const type = mime.startsWith('video/') ? 'video'
                  : mime.startsWith('audio/') ? 'voice'
@@ -270,7 +271,14 @@ const SignCard = () => {
                  : 'image';
       items.push({ file: f, preview: URL.createObjectURL(f), type, name: f.name });
     }
-    setMediaFiles(prev => [...prev, ...items].slice(0, 5));
+    setMediaFiles(prev => {
+      const combined = [...prev, ...items];
+      if (combined.length > 10) {
+        toast.error('Maximum 10 files per message. Extra files removed.');
+        return combined.slice(0, 10);
+      }
+      return combined;
+    });
   }, []);
 
   const removeMedia = useCallback((idx) => {
@@ -580,7 +588,9 @@ const SignCard = () => {
   };
 
   const stageLabel = {
-    sending:     'Saving your message...',
+    sending:     mediaFiles.length > 0
+      ? `Uploading ${mediaFiles.length} file${mediaFiles.length > 1 ? 's' : ''}… please wait`
+      : 'Saving your message...',
     paying:      'Preparing payment...',
     redirecting: 'Redirecting to payment...',
     verifying:   'Confirming payment...',
@@ -622,6 +632,18 @@ const SignCard = () => {
                 <span className="bg-emerald-600 text-white rounded-full px-4 py-2 text-sm font-bold shadow-sm">🎁 {formatNGN(card.total_collected)} gift pot</span>
               )}
             </div>
+
+            {/* View messages button */}
+            {(card.signed_count || 0) > 0 && (
+              <div className="mt-5">
+                <a href={`/card/${slug}`}
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105"
+                  style={{ background: 'rgba(255,255,255,0.22)', color: design.ink, border: '1.5px solid rgba(255,255,255,0.35)', backdropFilter: 'blur(8px)' }}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  View {card.signed_count || 0} messages from others
+                </a>
+              </div>
+            )}
           </div>
         </section>
 

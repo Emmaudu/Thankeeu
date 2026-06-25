@@ -8,7 +8,7 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key:    process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
-  timeout:    45000, // bound how long a single upload can hang before failing with a clear error
+  timeout:    180000, // 3 minutes — enough for multiple large files uploading sequentially
 });
 
 const hasCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
@@ -29,7 +29,7 @@ if (hasCloudinary) {
       };
     },
   });
-  upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+  upload = multer({ storage, limits: { fileSize: 100 * 1024 * 1024, files: 10 } });
 } else {
   // Local fallback — serve via /uploads static route
   const uploadDir = path.join(__dirname, '../../uploads');
@@ -41,7 +41,7 @@ if (hasCloudinary) {
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
     },
   });
-  upload = multer({ storage: diskStorage, limits: { fileSize: 50 * 1024 * 1024 } });
+  upload = multer({ storage: diskStorage, limits: { fileSize: 100 * 1024 * 1024, files: 10 } });
 }
 
 const deleteFile = async (publicId, resourceType = 'image') => {

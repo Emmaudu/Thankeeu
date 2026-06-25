@@ -66,11 +66,20 @@ router.delete('/:message_id',     validateUUIDParam('message_id'), auth, deleteM
 const handleUpload = (req, res, next) => {
   upload.any()(req, res, (err) => {
     if (!err) return next();
-    console.error('[messages upload] error:', err.message);
+    console.error('[messages upload] error:', err.code, err.message);
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'That file is too large (50MB max). Please use a smaller photo or video.' });
+      return res.status(400).json({ error: 'One of your files is too large (max 100MB per file). Please use a smaller photo or compress your video.' });
     }
-    return res.status(502).json({ error: 'Could not upload your photo/video right now. Please try again, or remove the attachment and send your message without it.' });
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ error: 'You can attach up to 10 files per message.' });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ error: 'Unexpected file field. Please try again.' });
+    }
+    if (err.message?.includes('timeout') || err.message?.includes('ETIMEDOUT')) {
+      return res.status(504).json({ error: 'Upload timed out — your files may be too large or your connection is slow. Try attaching fewer files or smaller files.' });
+    }
+    return res.status(502).json({ error: 'Could not upload your files right now. Please check your connection and try again. If the problem continues, try sending without attachments first.' });
   });
 };
 

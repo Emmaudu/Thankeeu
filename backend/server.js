@@ -289,8 +289,9 @@ async function autoSendDueCards() {
   // a TIMESTAMPTZ stored as midnight UTC for the chosen date, so
   // .lte('send_date', endOfTodayISO) catches all cards dated today or earlier.
   // The send_time comparison is then done in JS in UTC to avoid timezone issues.
+  // End of today in UTC — catches all cards dated today or earlier
   const endOfTodayISO = new Date(
-    now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999)
   ).toISOString();
 
   const { data: cardsToSend, error: cardsToSendErr } = await supabase

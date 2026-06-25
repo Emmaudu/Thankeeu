@@ -140,11 +140,12 @@ const CardStart = () => {
   // Uses the browser's own timezone (works for Nigeria WAT, UK GMT/BST, etc.)
   const toUTCSendTime = (dateStr, timeStr) => {
     if (!dateStr) return { send_date: dateStr, send_time: timeStr };
-    const localDatetime = new Date(`${dateStr}T${timeStr || '09:00'}:00`);
+    // Ensure time has seconds — input type="time" returns "HH:MM" without seconds
+    const fullTime = (timeStr || '09:00').replace(/^(\d{2}:\d{2})$/, '$1:00');
+    const localDatetime = new Date(`${dateStr}T${fullTime}`);
     if (isNaN(localDatetime.getTime())) return { send_date: dateStr, send_time: timeStr };
-    // Extract UTC date and time parts
-    const utcDate = localDatetime.toISOString().slice(0, 10); // "YYYY-MM-DD"
-    const utcTime = localDatetime.toISOString().slice(11, 16); // "HH:MM"
+    const utcDate = localDatetime.toISOString().slice(0, 10);  // "YYYY-MM-DD"
+    const utcTime = localDatetime.toISOString().slice(11, 19); // "HH:MM:SS"
     return { send_date: utcDate, send_time: utcTime };
   };
 

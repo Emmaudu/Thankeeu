@@ -165,14 +165,17 @@ const getReceivedCards = async (req, res) => {
       .eq('recipient_user_id', userId)
       .order('transferred_at', { ascending: false });
 
-    // 2. Sent cards where recipient_email matches this user's email
+    // 2. Sent/delivered cards where recipient_email matches this user's email
+    // Only 'sent' status (delivered) — never 'active' (not yet sent) or 'draft'
+    // Also exclude cards the user created themselves (they go in the sent tab)
     let emailMatched = [];
     if (userEmail) {
       const { data: em } = await supabase
         .from('cards')
-        .select('id, slug, title, recipient_name, occasion, design_theme, background_color, status, total_collected, is_gift_enabled, access_token, updated_at, messages(count)')
+        .select('id, slug, title, recipient_name, occasion, design_theme, background_color, status, total_collected, is_gift_enabled, access_token, updated_at, messages(count), creator_id')
         .eq('recipient_email', userEmail)
-        .in('status', ['sent', 'active'])
+        .eq('status', 'sent')               // only delivered cards
+        .neq('creator_id', userId)           // exclude cards user created themselves
         .order('updated_at', { ascending: false });
       emailMatched = em || [];
     }

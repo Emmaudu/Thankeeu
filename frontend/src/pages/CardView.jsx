@@ -997,61 +997,62 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
         )}
       </div>
 
-      {/* ── 2. Media full-width below author, above text (Instagram style) ── */}
+      {/* ── 2. Media full-width below author, above text ── */}
       {hasMedia && (
-        <button type="button" onClick={() => onOpen(message)} className="w-full block flex-shrink-0">
-          <Media message={message} />
-        </button>
+        <div className="w-full flex-shrink-0">
+          {/* Show media thumbnail — click to expand inline, not open modal */}
+          {!expanded && (
+            <button type="button" onClick={() => setExpanded(true)} className="w-full block relative group">
+              <Media message={message} />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: 'rgba(0,0,0,0.25)' }}>
+                <span className="text-white text-xs font-bold bg-black/50 px-3 py-1.5 rounded-full">Expand ↓</span>
+              </div>
+            </button>
+          )}
+        </div>
       )}
 
-      {/* ── 3. Text message below media ── */}
+      {/* ── 3. Text message + expanded media ── */}
       <div className="px-4 pt-3 pb-1 flex-shrink-0 relative z-10">
-        {hasMedia ? (
-          // Media present: keep the compact clamp + open the modal for the full view
-          <button type="button" onClick={() => onOpen(message)} className="text-left w-full">
-            <p
-              style={{
-                color: design.ink,
-                fontFamily: font.family,
-                fontSize: message.font_style === 'calligraphy' ? '1.75rem' : message.font_style === 'handwritten' ? '1.45rem' : '1.2rem',
-                lineHeight: message.font_style === 'calligraphy' ? 1.5 : 1.7,
+        <div className="text-left w-full">
+          {/* Full media shown inline when expanded */}
+          {hasMedia && expanded && (
+            <div className="mb-3 rounded-2xl overflow-hidden">
+              <Media message={message} large />
+            </div>
+          )}
+
+          <p
+            className="whitespace-pre-wrap break-words"
+            style={{
+              color: design.ink,
+              fontFamily: font.family,
+              fontSize: message.font_style === 'calligraphy' ? '1.75rem' : message.font_style === 'handwritten' ? '1.45rem' : '1.2rem',
+              lineHeight: message.font_style === 'calligraphy' ? 1.5 : 1.7,
+              ...(!expanded && isLong ? {
                 display: '-webkit-box',
-                WebkitLineClamp: 2,
+                WebkitLineClamp: hasMedia ? 2 : 6,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
-                wordBreak: 'break-word',
-              }}
-            >
-              {message.content}
-            </p>
-            {isLong && (
-              <span className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2 opacity-70" style={{ color: design.accent }}>
-                see more ↗
-              </span>
-            )}
-          </button>
-        ) : (
-          // No media: inline expand/collapse like the Sample card
-          <div className="text-left w-full">
-            <p
-              className="whitespace-pre-wrap break-words"
-              style={{
-                color: design.ink,
-                fontFamily: font.family,
-                fontSize: message.font_style === 'calligraphy' ? '1.75rem' : message.font_style === 'handwritten' ? '1.45rem' : '1.2rem',
-                lineHeight: message.font_style === 'calligraphy' ? 1.5 : 1.7,
-              }}
-            >
-              {expanded ? message.content : preview}
-            </p>
-            {isLong && (
-              <button type="button" onClick={() => setExpanded(e => !e)}
-                className="inline-block mt-1 text-xs font-extrabold underline underline-offset-2 opacity-70" style={{ color: design.accent }}>
-                {expanded ? 'Show less ↑' : 'Read more →'}
-              </button>
-            )}
-          </div>
-        )}
+              } : {}),
+              wordBreak: 'break-word',
+            }}
+          >
+            {message.content}
+          </p>
+
+          {(isLong || hasMedia) && (
+            <button type="button" onClick={() => setExpanded(e => !e)}
+              className="inline-flex items-center gap-1 mt-2 text-xs font-extrabold underline underline-offset-2 opacity-75 hover:opacity-100 transition-opacity"
+              style={{ color: design.accent }}>
+              {expanded
+                ? <><span>Show less</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 15l-6-6-6 6"/></svg></>
+                : <><span>See more</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg></>
+              }
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── 4. Gift badge + reaction at bottom ── */}
@@ -1378,6 +1379,18 @@ const CardView = () => {
             )}
           </div>
 
+          {/* Add message CTA — only show if card is still open for signing */}
+          {card.status === 'active' && (
+            <div className="mt-6">
+              <a href={`/sign/${slug}`}
+                className="inline-flex items-center gap-2 px-7 py-3 rounded-full font-bold text-sm transition-all hover:scale-105 hover:shadow-lg"
+                style={{ background: design.accent, color: '#fff', boxShadow: `0 4px 20px ${design.accent}55` }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Add your message
+              </a>
+            </div>
+          )}
+
           {/* Signer avatar strip — up to 10 initials */}
           {messages.length > 0 && (
             <div className="flex justify-center mt-7" style={{ gap:'-8px' }}>
@@ -1595,7 +1608,18 @@ const CardView = () => {
           <section className="glass-panel rounded-[2rem] p-6 sm:p-8 mt-10">
             <h3 className="text-2xl font-bold mb-2" style={{ color: 'rgba(255,255,255,0.92)' }}>💌 Send love back</h3>
             <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>Write a thank-you note — it goes to everyone who signed your card.</p>
-            <textarea className="input h-28 resize-none mb-3" style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', '::placeholder': { color:'rgba(255,255,255,0.4)' } }} placeholder="Write your heartfelt thank-you here..." value={replyText} onChange={event => setReplyText(event.target.value)} />
+            <textarea
+              className="cv-reply-input h-28 resize-none mb-3 w-full rounded-2xl px-4 py-3 text-sm"
+              style={{
+                background: 'rgba(255,255,255,0.12)',
+                border: '1.5px solid rgba(255,255,255,0.25)',
+                color: '#fff',
+                outline: 'none',
+              }}
+              placeholder="Write your heartfelt thank-you here..."
+              value={replyText}
+              onChange={event => setReplyText(event.target.value)}
+            />
             <button onClick={handleReply} disabled={replyLoading || !replyText.trim()} className="btn-primary">
               {replyLoading
                 ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Sending...</span>

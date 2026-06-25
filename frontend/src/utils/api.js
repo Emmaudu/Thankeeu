@@ -334,6 +334,7 @@ export const memberCardsAPI = {
   create:     (data) => memberAxios.post('/cards', data),
   getOne:     (slug) => memberAxios.get(`/cards/${slug}`),
   update:     (slug, data) => memberAxios.put(`/cards/${slug}`, data),
+  send:       (slug) => memberAxios.post(`/cards/${slug}/send`),
 };
 
 // Member support tickets

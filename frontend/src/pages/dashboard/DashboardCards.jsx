@@ -10,6 +10,21 @@ import { formatNGN } from '../../utils/currency';
 const EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
 const FILTERS = ['all','draft','active','sent'];
 
+// Convert stored UTC date + time to a display string in the viewer's local timezone.
+// send_date and send_time are stored as UTC (frontend converts on save).
+const fmtScheduled = (card) => {
+  if (!card.send_date) return null;
+  const d = String(card.send_date).slice(0, 10);
+  const t = card.send_time ? String(card.send_time).slice(0, 8) : '00:00:00';
+  const utcDt = new Date(`${d}T${t}Z`);
+  if (isNaN(utcDt.getTime())) return format(new Date(card.send_date), 'MMM d, yy');
+  const dateStr = utcDt.toLocaleDateString([], { month: 'short', day: 'numeric', year: '2-digit' });
+  const timeStr = card.send_time
+    ? utcDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+    : null;
+  return timeStr ? `${dateStr} · ${timeStr}` : dateStr;
+};
+
 export default function DashboardCards() {
   const [cards,   setCards]   = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +92,7 @@ export default function DashboardCards() {
                 <div className="flex flex-wrap gap-3" style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:'0.8rem',color:'#A898CC'}}>
                   <span><Icon name="Edit" size={12} className="inline mr-1"/>{card.signed_count||0} signed</span>
                   {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}>{formatNGN(card.total_collected)}</span>}
-                  {(card.send_date||card.created_at) && <span>{format(new Date(card.send_date||card.created_at),'MMM d, yy')}{card.send_date && card.send_time ? ` ${card.send_time.slice(0,5)}` : ''}</span>}
+                  {card.send_date && <span>📅 {fmtScheduled(card)}</span>}
                 </div>
               </div>
               <div className="db-card-item-footer">
@@ -89,6 +104,25 @@ export default function DashboardCards() {
                 <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
                 {(card.status==='draft' || card.status==='active') && (
                   <Link to={`/create-card?edit=${card.slug}`} className="db-card-item-action"><Icon name="Edit" size={13}/>Edit</Link>
+                )}
+                {card.status==='active' && card.recipient_email && (
+                  <button
+                    className="db-card-item-action"
+                    disabled={resending===card.slug}
+                    onClick={async e => {
+                      e.preventDefault(); e.stopPropagation();
+                      if (!window.confirm(`Send card to ${card.recipient_email} now?`)) return;
+                      setResending(card.slug);
+                      try {
+                        await cardsAPI.send(card.slug);
+                        setCards(prev => prev.map(c => c.slug===card.slug ? {...c, status:'sent', recipient_notified:true} : c));
+                        toast.success('Card delivered! 📬');
+                      } catch(err) {
+                        toast.error(err.response?.data?.error||'Failed to send.');
+                      } finally { setResending(null); }
+                    }}>
+                    <Icon name="Send" size={13}/>{resending===card.slug?'Sending…':'Send now'}
+                  </button>
                 )}
                 {card.status==='sent' && card.recipient_email && (
                   <button

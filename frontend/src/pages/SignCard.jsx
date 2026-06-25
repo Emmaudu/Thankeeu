@@ -464,7 +464,7 @@ const SignCard = () => {
   // ── Success / congrats screen ──────────────────────────────────────────────
   if (submitted) return (
     <div className="min-h-screen flex flex-col" style={{ background: design.background }}>
-      <Navbar />
+      <Navbar themeBg={design?.background} themeDark={design?.dark} />
       <main className="flex-1 grid place-items-center px-4 py-12">
         <div className={`card-art ${cardArtClass(design)} celebration-shell glass-panel max-w-lg w-full rounded-[2.25rem] p-8 text-center`}>
           <div className="w-20 h-20 bg-emerald-100 rounded-full grid place-items-center text-4xl mx-auto mb-5 animate-pop">✓</div>
@@ -599,7 +599,7 @@ const SignCard = () => {
   // ── Main signing form ──────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col" style={{ background: design.soft || "#F5F0FF", overflowX: 'hidden' }}>
-      <Navbar />
+      <Navbar themeBg={design?.background} themeDark={design?.dark} />
       <main className="flex-1">
 
         {/* Delivered-but-still-open banner */}

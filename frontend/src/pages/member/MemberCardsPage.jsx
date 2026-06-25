@@ -8,11 +8,38 @@ import { formatNGN } from '../../utils/currency';
 
 const occasionEmoji = { birthday:'🎂',leaving:'👋',promotion:'🌟',anniversary:'💍',graduation:'🎓',wedding:'💒',other:'🎉' };
 
+// Convert stored UTC date + time to local timezone for display.
+const fmtScheduled = (card) => {
+  if (!card.send_date) return null;
+  const d = String(card.send_date).slice(0, 10);
+  const t = card.send_time ? String(card.send_time).slice(0, 8) : '00:00:00';
+  const utcDt = new Date(`${d}T${t}Z`);
+  if (isNaN(utcDt.getTime())) return new Date(card.send_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const dateStr = utcDt.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const timeStr = card.send_time
+    ? utcDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+    : null;
+  return timeStr ? `${dateStr} at ${timeStr}` : dateStr;
+};
+
 export default function MemberCardsPage() {
   const { member } = useMemberAuth();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState(null);
+  const [resending, setResending] = useState(null);
+
+  const handleSendNow = async (card) => {
+    if (!window.confirm(`Send card to ${card.recipient_email} now?`)) return;
+    setResending(card.slug);
+    try {
+      await memberCardsAPI.send(card.slug);
+      setCards(prev => prev.map(c => c.slug === card.slug ? { ...c, status: 'sent', recipient_notified: true } : c));
+      toast.success('Card delivered! 📬');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send. Please try again.');
+    } finally { setResending(null); }
+  };
 
   useEffect(() => {
     memberCardsAPI.getHistory()
@@ -63,8 +90,7 @@ export default function MemberCardsPage() {
                 <p className="text-xs" style={{color:'#7A7898'}}>For {card.recipient_name}</p>
                 {card.send_date && (
                   <p className="text-xs mt-0.5" style={{color:'#9D97C2'}}>
-                    📅 {new Date(card.send_date).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
-                    {card.send_time && ` at ${card.send_time.slice(0,5)}`}
+                    📅 {fmtScheduled(card)}
                   </p>
                 )}
                 {card.total_collected > 0 && (
@@ -80,6 +106,15 @@ export default function MemberCardsPage() {
                   <button className="flex-1 py-2.5 text-sm font-bold hover:bg-purple-50 border-l" style={{color:'#5B4BDF',borderColor:'#EDE9FF'}}
                     onClick={()=>{navigator.clipboard.writeText(`${location.origin}/sign/${card.slug}`);toast.success('Link copied!');}}>
                     📲 Copy link
+                  </button>
+                )}
+                {card.status==='active' && card.recipient_email && (
+                  <button
+                    disabled={resending === card.slug}
+                    className="flex-1 py-2.5 text-sm font-bold hover:bg-green-50 border-l disabled:opacity-50"
+                    style={{color:'#059669',borderColor:'#EDE9FF'}}
+                    onClick={() => handleSendNow(card)}>
+                    {resending === card.slug ? '…' : '📬 Send now'}
                   </button>
                 )}
                 {card.is_gift_enabled && (

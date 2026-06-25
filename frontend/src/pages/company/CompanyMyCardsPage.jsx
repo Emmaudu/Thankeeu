@@ -6,6 +6,20 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../../utils/currency';
 
+// Convert stored UTC date + time to local timezone for display.
+const fmtScheduled = (card) => {
+  if (!card.send_date) return null;
+  const d = String(card.send_date).slice(0, 10);
+  const t = card.send_time ? String(card.send_time).slice(0, 8) : '00:00:00';
+  const utcDt = new Date(`${d}T${t}Z`);
+  if (isNaN(utcDt.getTime())) return format(new Date(card.send_date), 'MMM d, yyyy');
+  const dateStr = utcDt.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+  const timeStr = card.send_time
+    ? utcDt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })
+    : null;
+  return timeStr ? `${dateStr} at ${timeStr}` : dateStr;
+};
+
 const TABS = [
   { id: 'my',        label: '📂 My Cards',       desc: 'Cards you created' },
   { id: 'received',  label: '📥 Received',        desc: 'Cards sent to your company' },
@@ -18,7 +32,7 @@ const statusColor = {
   sent: 'bg-green-50 text-green-700',
 };
 
-const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify, onToggleHideAmounts, toggling, onResend }) => (
+const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify, onToggleHideAmounts, toggling, onResend, onSendNow }) => (
   <div className="bg-white rounded-2xl border border-purple-100 p-4 hover:shadow-sm transition-shadow">
     <div className="flex flex-col gap-3">
       {/* Card info */}
@@ -47,10 +61,7 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
             {card.recipient_email && ` · ${card.recipient_email}`}
           </p>
           <p className="text-xs text-warm-400 mt-0.5">
-            {card.occasion?.replace(/_/g,' ')} · {card.send_date
-              ? format(new Date(card.send_date), 'MMM d, yyyy')
-              : card.created_at ? format(new Date(card.created_at), 'MMM d, yyyy') : ''}
-            {card.send_date && card.send_time && ` at ${card.send_time.slice(0,5)}`}
+            {card.occasion?.replace(/_/g,' ')} · {fmtScheduled(card) || (card.created_at ? format(new Date(card.created_at), 'MMM d, yyyy') : '')}
             {card.total_collected > 0 && ` · 🎁 ${formatNGN(card.total_collected)}`}
           </p>
         </div>
@@ -93,6 +104,12 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
           <button onClick={() => onTransfer(card)}
             className="text-xs border border-green-200 text-green-700 hover:bg-green-50 px-3 py-2 rounded-xl transition-colors">
             ➡️ Transfer
+          </button>
+        )}
+        {card.status === 'active' && card.recipient_email && onSendNow && (
+          <button onClick={() => onSendNow(card)}
+            className="text-xs bg-primary-600 text-white hover:bg-primary-700 px-3 py-2 rounded-xl transition-colors font-semibold">
+            📬 Send now
           </button>
         )}
         {card.status === 'sent' && card.recipient_email && onResend && (
@@ -156,6 +173,18 @@ export default function CompanyMyCardsPage() {
       toast.success('Card resent! A fresh link has been emailed to the recipient. 📬');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to resend. Please try again.');
+    } finally { setResending(null); }
+  };
+
+  const handleSendNow = async (card) => {
+    if (!window.confirm(`Send card to ${card.recipient_email} now?`)) return;
+    setResending(card.slug);
+    try {
+      await companyAxios.post(`/cards/${card.slug}/send`);
+      setCards(prev => prev.map(c => c.slug === card.slug ? { ...c, status: 'sent', recipient_notified: true } : c));
+      toast.success('Card delivered! A link has been emailed to the recipient. 📬');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send. Please try again.');
     } finally { setResending(null); }
   };
 
@@ -276,6 +305,7 @@ export default function CompanyMyCardsPage() {
               onTransfer={tab === 'my' ? (c) => { setTransferCard(c); loadMembers(); } : null}
               onNotify={tab === 'my' ? (c) => { setNotifyCard(c); loadDepts(); } : null}
               onResend={handleResend}
+              onSendNow={tab === 'my' ? handleSendNow : null}
               onToggleHideAmounts={(tab === 'my' || tab === 'delivered') ? handleToggleHideAmounts : null}
               toggling={togglingId === card.id} />
           ))}

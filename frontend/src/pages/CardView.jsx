@@ -967,7 +967,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
 
   return (
     <article
-      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] overflow-hidden border-2 flex flex-col relative`}
+      className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] border-2 flex flex-col relative`}
       style={{
         background: design.background, color: design.ink,
         borderColor: highlighted ? design.accent : `${design.accent}40`,
@@ -1616,7 +1616,7 @@ const CardView = () => {
                   </button>
                 </div>
               )}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
                 {displayMessages.map((message, index) => (
                   <div key={message.id}
                     style={{

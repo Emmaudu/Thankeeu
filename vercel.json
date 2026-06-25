@@ -6,7 +6,7 @@
   "framework": null,
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/((?!.*\\.(?:js|css|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot|webp|avif|json|txt|xml|map)$).*)",
       "headers": [
         { "key": "X-Frame-Options",           "value": "DENY" },
         { "key": "X-Content-Type-Options",     "value": "nosniff" },

@@ -447,13 +447,13 @@ $content$<h2>Why farewells matter more than you think</h2>
 <p>Getting participation requires advance notice and an easy mechanism. A link sent 7–10 days before the departure date, with a clear deadline and a simple interface for leaving messages, consistently achieves higher participation than last-minute emails.</p>
 
 <h3>Personal messages</h3>
-<p>The best farewell messages reference specific shared memories, acknowledge a quality the departing person demonstrated, and express genuine feeling about the departure. Generic messages ("We'll miss you! Good luck!") are better than nothing but significantly less impactful than specific ones ("The day you handled the client meltdown with complete calm while the rest of us were panicking is a story I will tell for years. Thank you for showing me what good looks like.").</p>
+<p>The best farewell messages reference specific shared memories, acknowledge a quality the departing person demonstrated, and express genuine feeling about the departure. Generic messages ('We''ll miss you! Good luck!') are better than nothing but significantly less impactful than specific ones ("The day you handled the client meltdown with complete calm while the rest of us were panicking is a story I will tell for years. Thank you for showing me what good looks like.").</p>
 
 <h3>A tangible keepsake</h3>
 <p>Digital farewell cards can be saved, revisited, and shared in a way that physical cards often cannot. A well-designed farewell card on a platform like <a href="https://thankeeu.com">Thankeeu</a> — with photos, messages, GIFs, and voice notes from colleagues — becomes a genuine keepsake. Many former employees report re-reading their farewell card years later.</p>
 
 <h3>Warmth from leadership</h3>
-<p>When a CEO, MD, or senior leader adds a personal message to a farewell card — one that references specific contributions rather than defaulting to "you'll be missed" — the impact is disproportionate to the effort. Most leaders underestimate how much their specific acknowledgment matters to departing employees.</p>
+<p>When a CEO, MD, or senior leader adds a personal message to a farewell card — one that references specific contributions rather than defaulting to 'you''ll be missed' — the impact is disproportionate to the effort. Most leaders underestimate how much their specific acknowledgment matters to departing employees.</p>
 
 <h2>Types of farewells and how to approach each</h2>
 <p><strong>Retirement:</strong> The longest, most deeply felt farewell occasion. A retirement deserves the full treatment: advance card creation (4–6 weeks before retirement date), participation from all departments the retiree has worked with, senior leadership speeches or messages, a gift pool contribution that reflects the tenure, and a formal handover moment. The retired employee should leave feeling celebrated for an entire career, not just the final role.</p>
@@ -648,7 +648,7 @@ $content$<h2>The remote team recognition gap</h2>
 
 <h2>Designing group cards for remote success</h2>
 <h3>Multi-channel notification</h3>
-<p>Email alone is not enough for remote teams. Send card participation notifications across every channel your team uses: email, Slack or Teams, and WhatsApp if that is the team's primary communication tool. A simple message — "Ahmed's birthday is on Friday. Add your message here: [link]" — sent in the team channel consistently outperforms email-only notification.</p>
+<p>Email alone is not enough for remote teams. Send card participation notifications across every channel your team uses: email, Slack or Teams, and WhatsApp if that is the team's primary communication tool. A simple message — 'Ahmed''s birthday is on Friday. Add your message here: [link]' — sent in the team channel consistently outperforms email-only notification.</p>
 
 <h3>Extended participation windows</h3>
 <p>Remote teams, especially those spanning multiple time zones, need longer participation windows. 10–14 days is the standard for distributed teams. This accounts for employees who work compressed weeks, those in significantly different time zones, and those who see the notification but need time to think of a genuinely personal message.</p>
@@ -752,38 +752,38 @@ $content$<h2>Why your birthday message matters more than you think</h2>
 
 <h2>The anatomy of a great workplace birthday message</h2>
 <p>The best workplace birthday messages have three components: an opening that signals genuine presence (not a copy-paste), a middle that references something specific and real, and a closing that is warm without being over-the-top.</p>
-<p><strong>Opening:</strong> Use the person's name. Start with something other than "Happy birthday!" (which is every other message). "Here's to you, [Name]" or "Seven years ago, this team got significantly better because [Name] joined it — and today we celebrate that" signals that you are actually thinking about this specific person.</p>
+<p><strong>Opening:</strong> Use the person's name. Start with something other than "Happy birthday!" (which is every other message). 'Here''s to you, [Name]' or "Seven years ago, this team got significantly better because [Name] joined it — and today we celebrate that" signals that you are actually thinking about this specific person.</p>
 <p><strong>Middle:</strong> Reference one specific thing. A shared memory, a professional quality, a moment you witnessed, a habit you have appreciated. One specific thing beats five generic compliments every time.</p>
-<p><strong>Closing:</strong> A warm expression of genuine feeling, appropriate to your relationship with the person. "Can't wait to see what this year brings for you" is light and positive. "The team is genuinely lucky to have you" is warmer. "You've changed how I think about what good work looks like, and I don't say that lightly" is reserved for people who have genuinely influenced you.</p>
+<p><strong>Closing:</strong> A warm expression of genuine feeling, appropriate to your relationship with the person. 'Can''t wait to see what this year brings for you' is light and positive. "The team is genuinely lucky to have you" is warmer. 'You''ve changed how I think about what good work looks like, and I don''t say that lightly' is reserved for people who have genuinely influenced you.</p>
 
 <h2>30 birthday message examples for colleagues</h2>
 
 <h3>For a close colleague or friend</h3>
-<p>"Happy birthday to someone who has made every difficult project easier and every team lunch more entertaining. You're one of the most genuinely good people I know."</p>
-<p>"I still think about the way you handled that impossible client situation last year — calmly, professionally, and without ever making the team feel panicked. That's the kind of colleague I aspire to be. Happy birthday."</p>
-<p>"Three years of working next to you (or on the same Zoom call as you) and I'm still impressed by you on a regular basis. Happy birthday — you deserve everything good today."</p>
+<p>'Happy birthday to someone who has made every difficult project easier and every team lunch more entertaining. You''re one of the most genuinely good people I know.'</p>
+<p>'I still think about the way you handled that impossible client situation last year — calmly, professionally, and without ever making the team feel panicked. That''s the kind of colleague I aspire to be. Happy birthday.'</p>
+<p>'Three years of working next to you (or on the same Zoom call as you) and I''m still impressed by you on a regular basis. Happy birthday — you deserve everything good today.'</p>
 
 <h3>For a direct report</h3>
-<p>"Watching your growth this year has been one of the genuine highlights of my job. You're consistently doing things I didn't expect someone at your stage to do — and doing them well. Happy birthday."</p>
-<p>"What I appreciate most about working with you: you ask the right questions, you're honest when something isn't working, and you make everyone around you better. Happy birthday — thank you for your work."</p>
+<p>'Watching your growth this year has been one of the genuine highlights of my job. You''re consistently doing things I didn''t expect someone at your stage to do — and doing them well. Happy birthday.'</p>
+<p>'What I appreciate most about working with you: you ask the right questions, you''re honest when something isn''t working, and you make everyone around you better. Happy birthday — thank you for your work.'</p>
 
 <h3>For a manager or senior leader</h3>
-<p>"Thank you for being the kind of leader who actually makes time for people, remembers what's going on in their lives, and holds standards without making anyone feel small. Happy birthday."</p>
-<p>"I've learned more from watching how you handle difficult situations than from anything I've read or studied. Happy birthday — I hope today is as good to you as you are to this team."</p>
+<p>'Thank you for being the kind of leader who actually makes time for people, remembers what''s going on in their lives, and holds standards without making anyone feel small. Happy birthday.'</p>
+<p>'I''ve learned more from watching how you handle difficult situations than from anything I''ve read or studied. Happy birthday — I hope today is as good to you as you are to this team.'</p>
 
 <h3>For a colleague in another department</h3>
-<p>"We don't work directly together often, but every time we do I'm struck by how good you are at your work and how easy you make collaboration. Happy birthday!"</p>
-<p>"The project we worked on together earlier this year reminded me that the best work happens when you're lucky enough to collaborate with someone who actually cares about getting it right. Thank you for being that person."</p>
+<p>'We don''t work directly together often, but every time we do I''m struck by how good you are at your work and how easy you make collaboration. Happy birthday!'</p>
+<p>'The project we worked on together earlier this year reminded me that the best work happens when you''re lucky enough to collaborate with someone who actually cares about getting it right. Thank you for being that person.'</p>
 
 <h3>For a new colleague</h3>
-<p>"We're still getting to know each other, but from what I've seen so far — your energy, your questions, and the way you've already made an impact — I'm glad you're here. Happy birthday!"</p>
+<p>'We''re still getting to know each other, but from what I''ve seen so far — your energy, your questions, and the way you''ve already made an impact — I''m glad you''re here. Happy birthday!'</p>
 
 <h3>For a long-tenured colleague</h3>
-<p>"Ten years of showing up with the same professionalism, the same kindness, and the same commitment to doing things properly. You've shaped this place. Happy birthday."</p>
-<p>"I've watched this team grow, change, and sometimes fall apart and rebuild — and you've been the constant. Thank you for that. Happy birthday."</p>
+<p>'Ten years of showing up with the same professionalism, the same kindness, and the same commitment to doing things properly. You''ve shaped this place. Happy birthday.'</p>
+<p>'I''ve watched this team grow, change, and sometimes fall apart and rebuild — and you''ve been the constant. Thank you for that. Happy birthday.'</p>
 
 <h3>For a remote colleague you rarely see in person</h3>
-<p>"I've never met you in person, but from every call, every email, and every piece of work I've seen come from you — I know this team is lucky to have you. Happy birthday!"</p>
+<p>'I''ve never met you in person, but from every call, every email, and every piece of work I''ve seen come from you — I know this team is lucky to have you. Happy birthday!'</p>
 <p>"Working across different offices would be much harder without people like you who communicate clearly, follow through consistently, and manage to bring energy even through a screen. Happy birthday."</p>
 
 <h3>Light and fun messages</h3>
@@ -796,7 +796,7 @@ $content$<h2>Why your birthday message matters more than you think</h2>
 <p>The safest creative territory is professional warmth: acknowledging what someone brings to the team, referencing a shared professional memory, and expressing genuine appreciation for the relationship.</p>
 
 <h2>Adding media to your birthday card</h2>
-<p>Beyond text, consider adding a photo (of a shared team moment, or the birthday person doing something they love), a GIF that captures the birthday energy, or a brief voice note if the platform supports it. Voice notes in particular — which <a href="https://thankeeu.com">Thankeeu group cards</a> support — add a human warmth that text cannot fully replicate. Hearing a colleague's voice saying "happy birthday" is a qualitatively different experience from reading the same words.</p>
+<p>Beyond text, consider adding a photo (of a shared team moment, or the birthday person doing something they love), a GIF that captures the birthday energy, or a brief voice note if the platform supports it. Voice notes in particular — which <a href="https://thankeeu.com'>Thankeeu group cards</a> support — add a human warmth that text cannot fully replicate. Hearing a colleague''s voice saying 'happy birthday" is a qualitatively different experience from reading the same words.</p>
 <p>Create a birthday card your colleague will actually remember at <a href="https://thankeeu.com">Thankeeu →</a></p>$content$,
 'Group Cards',
 ARRAY['birthday messages','colleague birthday','what to write','group cards','workplace'],
@@ -924,7 +924,7 @@ $content$<h2>The culture scaling problem</h2>
 <ul>
 <li><strong>Hire slowly enough to onboard well:</strong> New employees who do not understand the culture become culture diluters. A structured onboarding that includes cultural education, not just functional training, is non-negotiable.</li>
 <li><strong>Maintain celebration rituals as the team grows:</strong> The birthday card that everyone signed at 20 people needs a digital equivalent at 200. The ritual matters; the format adapts.</li>
-<li><strong>Document the behaviours that make your culture real:</strong> Not the values (which are abstract) but the specific behaviours that manifest them. "We treat every colleague's birthday as significant" is a behaviour. "We value people" is a value. The behaviour is actionable; the value is aspirational.</li>
+<li><strong>Document the behaviours that make your culture real:</strong> Not the values (which are abstract) but the specific behaviours that manifest them. 'We treat every colleague''s birthday as significant' is a behaviour. "We value people" is a value. The behaviour is actionable; the value is aspirational.</li>
 <li><strong>Protect the communication lines to senior leadership:</strong> As companies grow, the gap between employees and founders/senior leaders widens. Intentional mechanisms to keep that gap narrow — skip-level meetings, open office hours, founder-written internal newsletters — preserve the feeling of working for a mission rather than working for a bureaucracy.</li>
 </ul>
 
@@ -1085,8 +1085,8 @@ $content$<h2>The promotion moment</h2>
 <li>If you have known the person from their earlier career, reference how far they have come</li>
 </ul>
 <p>Example messages:</p>
-<p>"I've watched you grow from someone learning the basics to someone who now teaches others. This promotion is the inevitable result of the daily choices you've been making for three years. Congratulations."</p>
-<p>"The Abuja project was the moment I knew this was coming. You handled things that should have been above your pay grade with a calm and competence that impressed everyone who worked with you. You've earned this completely."</p>
+<p>'I''ve watched you grow from someone learning the basics to someone who now teaches others. This promotion is the inevitable result of the daily choices you''ve been making for three years. Congratulations.'</p>
+<p>'The Abuja project was the moment I knew this was coming. You handled things that should have been above your pay grade with a calm and competence that impressed everyone who worked with you. You''ve earned this completely.'</p>
 <p>"New title, same great person. Congratulations on making official what the rest of us already knew."</p>
 
 <h2>Celebrating promotions for Nigerian companies</h2>
@@ -1131,22 +1131,22 @@ $content$<h2>Why Father''s Day group celebrations work</h2>
 <p>The group celebration model works because it amplifies individual feeling. When 20 people decide to mark a moment together, the collective signal of care is more powerful than any single gesture could be. Father''s Day group cards and gift pools have become one of the most emotionally resonant uses of platforms like <a href="https://thankeeu.com">Thankeeu</a>.</p>
 
 <h2>Group card messages for Father''s Day</h2>
-<p>The best Father''s Day messages are specific and personal. They reference something real — a quality you admire, a memory you share, a specific thing the father has done for his family or community. Generic messages ("Happy Father''s Day! Hope you have a great day!") are warm but forgettable. Specific ones are kept.</p>
+<p>The best Father''s Day messages are specific and personal. They reference something real — a quality you admire, a memory you share, a specific thing the father has done for his family or community. Generic messages ('Happy Father''''s Day! Hope you have a great day!') are warm but forgettable. Specific ones are kept.</p>
 
 <h3>From children</h3>
-<p>"You''re the kind of dad who always shows up — for school events, for problems, for everything. I don''t say it enough, but I notice. Happy Father''s Day."</p>
-<p>"I''ve spent my whole life trying to have your patience and your calm. Watching you handle everything life threw at us without ever making us feel scared — that''s the thing I''m most grateful for. Happy Father''s Day."</p>
+<p>'You''''re the kind of dad who always shows up — for school events, for problems, for everything. I don''''t say it enough, but I notice. Happy Father''''s Day.'</p>
+<p>'I''''ve spent my whole life trying to have your patience and your calm. Watching you handle everything life threw at us without ever making us feel scared — that''''s the thing I''''m most grateful for. Happy Father''''s Day.'</p>
 
 <h3>From a spouse or partner</h3>
-<p>"Watching you become a father has been one of the most beautiful things I''ve ever witnessed. You show up for our children in ways that will shape who they become. I love you for that."</p>
-<p>"You didn''t just become a dad — you became the kind of dad I hoped you would be. Thank you for that. Happy Father''s Day."</p>
+<p>'Watching you become a father has been one of the most beautiful things I''''ve ever witnessed. You show up for our children in ways that will shape who they become. I love you for that.'</p>
+<p>'You didn''''t just become a dad — you became the kind of dad I hoped you would be. Thank you for that. Happy Father''''s Day.'</p>
 
 <h3>From colleagues</h3>
-<p>"The patience you bring to your family clearly comes from somewhere — the same calm you show at work when everything is falling apart. Your kids are lucky. Happy Father''s Day."</p>
-<p>"We don''t often get a window into people''s personal lives at work, but from everything you''ve shared, it''s clear your family has a genuinely good dad. Happy Father''s Day."</p>
+<p>'The patience you bring to your family clearly comes from somewhere — the same calm you show at work when everything is falling apart. Your kids are lucky. Happy Father''''s Day.'</p>
+<p>'We don''''t often get a window into people''''s personal lives at work, but from everything you''''ve shared, it''''s clear your family has a genuinely good dad. Happy Father''''s Day.'</p>
 
 <h3>From friends</h3>
-<p>"I''ve known you for 15 years and watching you become a father has been extraordinary. You''re exactly the kind of dad I hoped you''d be. Happy Father''s Day."</p>
+<p>'I''''ve known you for 15 years and watching you become a father has been extraordinary. You''''re exactly the kind of dad I hoped you''''d be. Happy Father''''s Day.'</p>
 
 <h2>Father''s Day gift pool ideas</h2>
 <p>A pooled gift contribution alongside a group card creates a Father''s Day experience that is both personally meaningful and practically useful. Gift pool options that work well:</p>
@@ -1173,11 +1173,11 @@ $content$<h2>Why Father''s Day group celebrations work</h2>
 <p>For Nigerian families in the diaspora — in the UK, US, Canada, and beyond — group digital celebrations are particularly valuable because they bridge the physical distance that often separates family members from each other and from fathers who may still be in Nigeria.</p>
 <p>Create a Father''s Day group card that the recipient will treasure forever at <a href="https://thankeeu.com">Thankeeu →</a></p>$content$,
 'Personal Occasions',
-ARRAY["Father's Day",'gift ideas','group cards','family celebration','Nigeria'],
+ARRAY['Father''s Day','gift ideas','group cards','family celebration','Nigeria'],
 'published', false, 'Thankeeu Team', 6,
 NOW() + INTERVAL '18 days',
-"Father's Day Gift Ideas from the Whole Team | Group Cards & Gift Pools",
-"Father's Day group cards and gift pools create celebrations that are more meaningful than any single gift. Ideas, messages, and how to organise a group Father's Day celebration."
+'Father''s Day Gift Ideas from the Whole Team | Group Cards & Gift Pools',
+'Father''s Day group cards and gift pools create celebrations that are more meaningful than any single gift. Ideas, messages, and how to organise a group Father''s Day celebration.'
 ) ON CONFLICT (slug) DO UPDATE SET title=EXCLUDED.title,content=EXCLUDED.content,status=EXCLUDED.status,published_at=EXCLUDED.published_at;
 
 -- Article 19
@@ -1204,12 +1204,12 @@ $content$<h2>Why group cards are perfect for baby showers</h2>
 
 <h3>From colleagues</h3>
 <p>"The same dedication and warmth you bring to everything you do at work is going to make you an incredible mother. This is the most important project you will ever lead — and we know you will lead it brilliantly."</p>
-<p>"We are going to miss you terribly while you''re on maternity leave. But knowing why you''re away makes it completely worth it. Congratulations — enjoy every magical moment."</p>
+<p>'We are going to miss you terribly while you''''re on maternity leave. But knowing why you''''re away makes it completely worth it. Congratulations — enjoy every magical moment.'</p>
 
 <h3>Light and joyful messages</h3>
-<p>"No notes, no advice, just pure excitement for you. You''ve got this. Happy baby shower!"</p>
+<p>'No notes, no advice, just pure excitement for you. You''''ve got this. Happy baby shower!'</p>
 <p>"The world is about to get one more small person who is loved very much. What a good day."</p>
-<p>"Baby incoming! Congratulations to the mother-to-be — and to the baby, who doesn''t know yet how lucky they are."</p>
+<p>'Baby incoming! Congratulations to the mother-to-be — and to the baby, who doesn''''t know yet how lucky they are.'</p>
 
 <h2>Virtual baby showers: how to include everyone</h2>
 <p>Modern baby showers often span geographies. The mother''s friends from university might be in Abuja, Lagos, London, and Houston simultaneously. A physical event cannot include everyone. A group card can.</p>
@@ -1466,7 +1466,7 @@ $content$<h2>What makes a group birthday card special</h2>
 </ul>
 
 <h2>Step 5: Send a reminder</h2>
-<p>A few days before the deadline (usually 2–3 days before the birthday), send a reminder to anyone who has not yet signed. You can see who has contributed in the Thankeeu dashboard. A brief, warm reminder ("Don''t forget — Adaeze''s birthday is on Friday! Add your message here: [link]") typically brings in 30–40% additional contributions.</p>
+<p>A few days before the deadline (usually 2–3 days before the birthday), send a reminder to anyone who has not yet signed. You can see who has contributed in the Thankeeu dashboard. A brief, warm reminder ('Don''''t forget — Adaeze''''s birthday is on Friday! Add your message here: [link]') typically brings in 30–40% additional contributions.</p>
 <p>Thankeeu can also send automated reminders on your behalf — you set the reminder date and the system sends the notification to all contributors who have not yet signed.</p>
 
 <h2>Step 6: The card is delivered</h2>
@@ -1476,7 +1476,7 @@ $content$<h2>What makes a group birthday card special</h2>
 <h2>Tips for maximum participation</h2>
 <ul>
 <li><strong>Start early:</strong> 10–14 days before the birthday is ideal. Less than 5 days gives people very little time to write something thoughtful.</li>
-<li><strong>Be specific in your ask:</strong> "Please share a memory or something you appreciate about [Name]" generates better contributions than "Please sign [Name]''s birthday card."</li>
+<li><strong>Be specific in your ask:</strong> "Please share a memory or something you appreciate about [Name]" generates better contributions than 'Please sign [Name]''''s birthday card.'</li>
 <li><strong>Share a message of your own:</strong> When contributors see the organiser''s message, they write better messages.</li>
 <li><strong>Send exactly one reminder:</strong> One reminder works well. Multiple reminders create annoyance rather than participation.</li>
 <li><strong>Choose the right distribution channel:</strong> The channel where your group actually communicates. In Nigerian contexts, this is almost always WhatsApp.</li>

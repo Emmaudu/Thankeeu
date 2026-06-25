@@ -439,20 +439,19 @@
 .message-modal-inner::-webkit-scrollbar-thumb { background: rgba(124,110,255,0.45); border-radius: 999px; }
 .message-modal-inner::-webkit-scrollbar-thumb:hover { background: rgba(124,110,255,0.75); }
 .glass-panel {
-  background: rgba(255,255,255,.10);
-  border: 1px solid rgba(255,255,255,.18);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.22);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
 }
-/* Message cards on dark body — frosted glass with subtle accent glow */
+/* Message cards on dark body — frosted glass with subtle glow */
 .message-art-card {
-  background: rgba(255,255,255,.09) !important;
-  border-color: rgba(255,255,255,.14) !important;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1) !important;
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  color: #fff !important;
+  background: rgba(255,255,255,.11) !important;
+  border-color: rgba(255,255,255,.18) !important;
+  box-shadow: 0 4px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
 }
 .voice-record-button {
   position: relative;

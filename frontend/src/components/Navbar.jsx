@@ -7,7 +7,7 @@ import Icon from './ui/Icon';
 
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
 
-const Navbar = ({ onBookDemo }) => {
+const Navbar = ({ onBookDemo, themeBg, themeAccent, themeDark }) => {
   const { user, logout }              = useAuth();
   const { company, logout: coLogout } = useCompanyAuth();
   const { member, logout: memLogout } = useMemberAuth();
@@ -46,11 +46,16 @@ const Navbar = ({ onBookDemo }) => {
 
   return (
     <>
-      <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? 'bg-purple-50/95 backdrop-blur-md shadow-sm border-b border-purple-200'
-          : 'bg-purple-50 border-b border-purple-100'
-      }`}>
+      <nav className="sticky top-0 z-50 transition-all duration-300 border-b"
+        style={{
+          background: themeBg
+            ? (scrolled ? `${themeBg}f0` : `${themeBg}d8`)
+            : (scrolled ? 'rgba(245,240,255,0.95)' : '#F5F0FF'),
+          borderColor: themeBg ? 'rgba(255,255,255,0.18)' : (scrolled ? '#DDD6FE' : '#EDE9FE'),
+          backdropFilter: scrolled ? 'blur(12px)' : undefined,
+          WebkitBackdropFilter: scrolled ? 'blur(12px)' : undefined,
+          boxShadow: scrolled ? '0 2px 20px rgba(0,0,0,0.15)' : undefined,
+        }}>
         <div className="section-container">
           <div className="flex items-center justify-between h-16 gap-4">
 
@@ -59,8 +64,8 @@ const Navbar = ({ onBookDemo }) => {
               <img src="/android-chrome-192x192.png" alt="Thankeeu"
                 className="w-9 h-9 rounded-xl object-cover flex-shrink-0"
                 onError={e => { e.currentTarget.src = '/favicon-96x96.png'; e.currentTarget.onerror = null; }} />
-              <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:"1.25rem", color:"#1A1035", letterSpacing:"-0.01em" }}>
-                thank<span style={{ color:"#7C3AED" }}>eeu</span>
+              <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:"1.25rem", color: themeDark ? '#fff' : '#1A1035', letterSpacing:"-0.01em" }}>
+                thank<span style={{ color: themeDark ? 'rgba(255,255,255,0.8)' : '#7C3AED' }}>eeu</span>
               </span>
             </Link>
 
@@ -228,9 +233,12 @@ const Navbar = ({ onBookDemo }) => {
       {/* Mobile menu */}
       {open && (
         <div className="mobile-nav-overlay z-[60] lg:hidden" onClick={() => setOpen(false)}>
-          <div className="absolute right-0 top-[65px] w-80 mx-3 rounded-3xl overflow-hidden shadow-xl animate-slide-up"
-            style={{ background:'#FFFFFF', border:'1.5px solid #EDE5FF' }}
+          <div className="absolute right-0 top-[65px] w-80 mx-3 rounded-3xl shadow-xl animate-slide-up"
+            style={{ background:'#FFFFFF', border:'1.5px solid #EDE5FF', maxHeight:'calc(100vh - 80px)', overflow:'hidden', display:'flex', flexDirection:'column' }}
             onClick={e => e.stopPropagation()}>
+
+            {/* Scrollable content area */}
+            <div style={{ overflowY:'auto', overflowX:'hidden', flex:1 }}>
 
             {/* User/company/member info if logged in */}
             {(user || company || member) && (
@@ -305,6 +313,7 @@ const Navbar = ({ onBookDemo }) => {
                 </>
               )}
             </div>
+            </div>{/* end scrollable area */}
           </div>
         </div>
       )}

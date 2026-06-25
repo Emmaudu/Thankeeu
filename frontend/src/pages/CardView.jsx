@@ -825,91 +825,95 @@ const Media = ({ message, large = false }) => {
 };
 
 /* ─── CelebrationBackground ─────────────────────────────────────────────
-   Floating celebration SVG icons + deep frosted glass atmosphere.
-   Derives deep background color from the card's design accent/background.
-   All icons are SVG paths — no emoji — consistent, crisp at any scale.
+   Deep frosted atmosphere derived from the card's accent color.
+   Uses position:absolute so it fills the parent (min-h-screen) and
+   scrolls with the page — no z-index fighting with fixed elements.
 ─────────────────────────────────────────────────────────────────────────── */
 const CELEBRATION_ICONS = [
   /* Star */       'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
   /* Heart */      'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
-  /* Confetti dot */ 'M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z',
-  /* Gift */       'M20 12v10H4V12M22 7H2v5h20V7zM12 22V7m0 0a2 2 0 0 1-2-2 2 2 0 0 1 4 0 2 2 0 0 1-2 2zm-5-7h10',
   /* Sparkle */    'M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83',
+  /* Gift */       'M20 12v10H4V12M22 7H2v5h20V7zM12 22V7m0-2a2 2 0 0 1-4 0 2 2 0 0 1 4 0zm6 2a2 2 0 0 1-4 0 2 2 0 0 1 4 0z',
   /* Bell */       'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0',
   /* Music note */ 'M9 18V5l12-2v13M9 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm12-2a2 2 0 1 1-4 0 2 2 0 0 1 4 0z',
-  /* Crown */      'M2 20h20M5 20V10l7-6 7 6v10',
+  /* Crown */      'M2 20h20M5 20V10l7-7 7 7v10',
+  /* Confetti */   'M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z',
 ];
 
-// Pre-computed stable positions — no random() so no hydration mismatch
 const ICON_POSITIONS = [
-  { x:4,   y:8,   size:28, opacity:0.07, rot:15,  delay:0    },
-  { x:88,  y:5,   size:22, opacity:0.06, rot:-20, delay:0.8  },
-  { x:18,  y:72,  size:36, opacity:0.05, rot:30,  delay:1.4  },
-  { x:75,  y:65,  size:24, opacity:0.07, rot:-10, delay:0.3  },
-  { x:48,  y:15,  size:20, opacity:0.05, rot:45,  delay:2.1  },
-  { x:92,  y:40,  size:30, opacity:0.06, rot:0,   delay:1.7  },
-  { x:10,  y:42,  size:18, opacity:0.05, rot:-35, delay:0.6  },
-  { x:60,  y:85,  size:26, opacity:0.07, rot:20,  delay:1.2  },
-  { x:35,  y:55,  size:16, opacity:0.04, rot:-15, delay:2.5  },
-  { x:80,  y:22,  size:32, opacity:0.06, rot:25,  delay:0.4  },
-  { x:25,  y:88,  size:22, opacity:0.05, rot:-5,  delay:1.9  },
-  { x:65,  y:48,  size:20, opacity:0.04, rot:55,  delay:0.9  },
-  { x:50,  y:92,  size:28, opacity:0.06, rot:-25, delay:1.5  },
-  { x:8,   y:28,  size:14, opacity:0.05, rot:10,  delay:2.8  },
-  { x:95,  y:78,  size:18, opacity:0.05, rot:-40, delay:0.2  },
-  { x:42,  y:38,  size:24, opacity:0.04, rot:35,  delay:1.1  },
+  { x:3,   y:4,   size:44, opacity:0.22, rot:15,  delay:0    },
+  { x:86,  y:3,   size:36, opacity:0.20, rot:-22, delay:0.8  },
+  { x:16,  y:68,  size:52, opacity:0.18, rot:30,  delay:1.4  },
+  { x:74,  y:62,  size:40, opacity:0.22, rot:-12, delay:0.3  },
+  { x:46,  y:12,  size:32, opacity:0.18, rot:45,  delay:2.1  },
+  { x:91,  y:38,  size:48, opacity:0.20, rot:0,   delay:1.7  },
+  { x:8,   y:40,  size:30, opacity:0.18, rot:-35, delay:0.6  },
+  { x:58,  y:82,  size:42, opacity:0.22, rot:20,  delay:1.2  },
+  { x:33,  y:53,  size:28, opacity:0.16, rot:-18, delay:2.5  },
+  { x:78,  y:20,  size:50, opacity:0.20, rot:25,  delay:0.4  },
+  { x:24,  y:86,  size:36, opacity:0.18, rot:-5,  delay:1.9  },
+  { x:63,  y:46,  size:32, opacity:0.16, rot:55,  delay:0.9  },
+  { x:49,  y:90,  size:44, opacity:0.20, rot:-28, delay:1.5  },
+  { x:6,   y:26,  size:26, opacity:0.17, rot:10,  delay:2.8  },
+  { x:94,  y:76,  size:30, opacity:0.18, rot:-42, delay:0.2  },
+  { x:41,  y:36,  size:38, opacity:0.16, rot:35,  delay:1.1  },
+  { x:70,  y:8,   size:34, opacity:0.19, rot:-8,  delay:2.3  },
+  { x:20,  y:20,  size:28, opacity:0.16, rot:62,  delay:3.1  },
 ];
 
 const CelebrationBackground = ({ design }) => {
-  // Derive a deep rich background from the card accent
   const accent = design?.accent || '#7C3AED';
-  const isDark  = design?.dark;
 
-  // Parse hex to darken it significantly for the body
-  const hexToRgb = hex => {
-    const r = parseInt(hex.slice(1,3),16);
-    const g = parseInt(hex.slice(3,5),16);
-    const b = parseInt(hex.slice(5,7),16);
-    return { r, g, b };
-  };
-
-  let bodyBg, iconColor;
+  // Derive deep dark body color from the card accent hex
+  let bodyBg = '#0F0A1E';
+  let iconColor = '#C4B5FD';
   try {
-    if (accent.startsWith('#') && accent.length >= 7) {
-      const { r, g, b } = hexToRgb(accent);
-      // Darken significantly — mix toward very dark purple
-      const dr = Math.round(r * 0.18 + 8);
-      const dg = Math.round(g * 0.12 + 4);
-      const db = Math.round(b * 0.25 + 12);
-      bodyBg   = `rgb(${dr},${dg},${db})`;
-      iconColor = accent;
-    } else {
-      bodyBg   = '#0F0A1E';
-      iconColor = '#A78BFA';
+    if (accent && accent.startsWith('#') && accent.length >= 7) {
+      const r = parseInt(accent.slice(1,3),16);
+      const g = parseInt(accent.slice(3,5),16);
+      const b = parseInt(accent.slice(5,7),16);
+      // Crush toward very dark — keep a hint of the hue
+      const dr = Math.max(5,  Math.round(r * 0.14 + 5));
+      const dg = Math.max(3,  Math.round(g * 0.10 + 3));
+      const db = Math.max(10, Math.round(b * 0.22 + 10));
+      bodyBg    = `rgb(${dr},${dg},${db})`;
+      // Icon color = lighter version of accent for contrast on dark bg
+      const lr = Math.min(255, Math.round(r * 0.6 + 100));
+      const lg = Math.min(255, Math.round(g * 0.6 + 80));
+      const lb = Math.min(255, Math.round(b * 0.7 + 80));
+      iconColor = `rgb(${lr},${lg},${lb})`;
     }
-  } catch {
-    bodyBg   = '#0F0A1E';
-    iconColor = '#A78BFA';
-  }
+  } catch {}
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, zIndex: 0,
-      background: `radial-gradient(ellipse at 30% 20%, ${bodyBg}ee 0%, ${bodyBg} 60%), ${bodyBg}`,
-      overflow: 'hidden', pointerEvents: 'none',
+      position: 'absolute', inset: 0, zIndex: 0,
+      minHeight: '100%', overflow: 'hidden',
+      pointerEvents: 'none',
+      background: `linear-gradient(160deg, ${bodyBg} 0%, ${bodyBg}f0 40%, ${bodyBg} 100%)`,
     }}>
-      {/* Ambient glow blobs */}
-      <div style={{ position:'absolute', top:'-10%', left:'-5%', width:'45vw', height:'45vw', borderRadius:'50%',
-        background:`radial-gradient(circle, ${iconColor}22 0%, transparent 70%)`, filter:'blur(40px)' }}/>
-      <div style={{ position:'absolute', bottom:'-10%', right:'-5%', width:'50vw', height:'50vw', borderRadius:'50%',
-        background:`radial-gradient(circle, ${iconColor}18 0%, transparent 70%)`, filter:'blur(50px)' }}/>
-      <div style={{ position:'absolute', top:'40%', left:'40%', width:'30vw', height:'30vw', borderRadius:'50%',
-        background:`radial-gradient(circle, ${iconColor}10 0%, transparent 70%)`, filter:'blur(30px)' }}/>
+      {/* Ambient glow blobs — gives depth */}
+      <div style={{ position:'absolute', top:'-5%', left:'-5%', width:'55vw', height:'55vw',
+        borderRadius:'50%', filter:'blur(80px)',
+        background:`radial-gradient(circle, ${iconColor}30 0%, transparent 65%)` }}/>
+      <div style={{ position:'absolute', bottom:'0', right:'-5%', width:'50vw', height:'50vw',
+        borderRadius:'50%', filter:'blur(90px)',
+        background:`radial-gradient(circle, ${iconColor}28 0%, transparent 65%)` }}/>
+      <div style={{ position:'absolute', top:'45%', left:'35%', width:'40vw', height:'40vw',
+        borderRadius:'50%', filter:'blur(70px)',
+        background:`radial-gradient(circle, ${iconColor}18 0%, transparent 65%)` }}/>
 
-      {/* Floating celebration SVG icons */}
+      {/* Floating celebration icons */}
+      <style>{`
+        @keyframes celFloat {
+          0%   { transform: translateY(0px) scale(1); }
+          50%  { transform: translateY(-20px) scale(1.05); }
+          100% { transform: translateY(0px) scale(1); }
+        }
+      `}</style>
+
       {ICON_POSITIONS.map((pos, i) => {
         const d = CELEBRATION_ICONS[i % CELEBRATION_ICONS.length];
-        const animName = `celFloat${i}`;
         return (
           <div key={i} style={{
             position: 'absolute',
@@ -917,23 +921,16 @@ const CelebrationBackground = ({ design }) => {
             top: `${pos.y}%`,
             opacity: pos.opacity,
             transform: `rotate(${pos.rot}deg)`,
-            animation: `celFloat ${6 + (i % 4)}s ${pos.delay}s ease-in-out infinite alternate`,
+            animation: `celFloat ${5 + (i % 5)}s ${pos.delay}s ease-in-out infinite`,
           }}>
             <svg width={pos.size} height={pos.size} viewBox="0 0 24 24"
-              fill="none" stroke={iconColor} strokeWidth="1.5"
+              fill="none" stroke={iconColor} strokeWidth={1.8}
               strokeLinecap="round" strokeLinejoin="round">
               <path d={d}/>
             </svg>
           </div>
         );
       })}
-
-      <style>{`
-        @keyframes celFloat {
-          from { transform: translateY(0px) rotate(var(--r, 0deg)); }
-          to   { transform: translateY(-18px) rotate(calc(var(--r, 0deg) + 8deg)); }
-        }
-      `}</style>
     </div>
   );
 };
@@ -1319,7 +1316,7 @@ const CardView = () => {
   const layoutType = member ? 'member' : company ? 'company' : 'user';
 
   const content = (
-    <div className="min-h-0 flex flex-col" style={{ overflowX: 'hidden', background: 'transparent', position: 'relative' }}>
+    <div className="min-h-screen flex flex-col" style={{ overflowX: 'hidden', position: 'relative' }}>
       <CelebrationBackground design={design} />
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}
@@ -1648,9 +1645,9 @@ const CardView = () => {
     </div>
   );
 
-  if (layoutType === 'member')  return <><Navbar/>{content}</>;
-  if (layoutType === 'company') return <><Navbar/>{content}</>;
-  return <><Navbar/>{content}</>;
+  if (layoutType === 'member')  return <><Navbar themeBg={design?.background?.startsWith?.('#') ? design.background : design?.accent} themeAccent={design?.accent} themeDark={design?.dark}/>{content}</>;
+  if (layoutType === 'company') return <><Navbar themeBg={design?.background?.startsWith?.('#') ? design.background : design?.accent} themeAccent={design?.accent} themeDark={design?.dark}/>{content}</>;
+  return <><Navbar themeBg={design?.background?.startsWith?.('#') ? design.background : design?.accent} themeAccent={design?.accent} themeDark={design?.dark}/>{content}</>;
 };
 
 export default CardView;

@@ -1110,13 +1110,11 @@ const Home = () => {
 
             {/* ── Comfort Irorere ── */}
             <div className="rounded-3xl border-2 border-purple-100 overflow-hidden hover:border-primary-300 hover:shadow-xl transition-all flex flex-col" style={{ background:'#FDFCFF' }}>
-              {/* Big photo */}
-              <div className="w-full overflow-hidden" style={{ height:420 }}>
+              <div className="w-full overflow-hidden" style={{ height:260 }}>
                 <img src="/photos/comfort.png" alt="Comfort Irorere"
                   className="w-full h-full object-cover object-top"
                   loading="lazy"/>
               </div>
-              {/* Content */}
               <div className="p-6 flex flex-col gap-4 flex-1 relative">
                 <span className="absolute top-3 right-5 text-7xl text-primary-100 font-serif leading-none select-none pointer-events-none">"</span>
                 <div className="flex gap-0.5">
@@ -1125,32 +1123,25 @@ const Home = () => {
                 <p className="text-sm text-warm-600 leading-relaxed italic flex-1 relative z-10">
                   "My best friend had her baby shower in December and I was stuck in Virginia — no way I could be there in person. I created a Thankeeu card, sent the link to 18 of our girls, and by the day of her shower, she opened it to 18 heartfelt messages, photos, and a gift pool we'd all put together. She literally called me crying. I didn't think an app could ever replace being in the room, but Thankeeu came incredibly close."
                 </p>
-                <div className="flex items-center gap-3 pt-4 border-t border-purple-50">
-                  <img src="/photos/comfort.png" alt="Comfort Irorere"
-                    className="w-12 h-12 rounded-full object-cover object-top flex-shrink-0 border-2 border-primary-200"
-                    loading="lazy"/>
-                  <div className="flex-1 min-w-0">
-                    <a href="https://www.linkedin.com/in/comfort-uduebholo/" target="_blank" rel="noopener noreferrer"
-                      className="text-sm font-bold text-warm-900 hover:text-primary-600 transition-colors flex items-center gap-1.5">
-                      Comfort Irorere
-                      <svg className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-                    </a>
-                    <p className="text-xs text-warm-400">Security Engineer · Amazon Web Services</p>
-                    <p className="text-xs text-warm-400">🇺🇸 Virginia, United States</p>
-                  </div>
+                <div className="flex flex-col gap-0.5 pt-4 border-t border-purple-50">
+                  <a href="https://www.linkedin.com/in/comfort-uduebholo/" target="_blank" rel="noopener noreferrer"
+                    className="text-sm font-bold text-warm-900 hover:text-primary-600 transition-colors flex items-center gap-1.5">
+                    Comfort Irorere
+                    <svg className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  </a>
+                  <p className="text-xs text-warm-400">Security Engineer · Amazon Web Services</p>
+                  <p className="text-xs text-warm-400">🇺🇸 Virginia, United States</p>
                 </div>
               </div>
             </div>
 
             {/* ── Favour Ibude ── */}
             <div className="rounded-3xl border-2 border-purple-100 overflow-hidden hover:border-primary-300 hover:shadow-xl transition-all flex flex-col" style={{ background:'#FDFCFF' }}>
-              {/* Big photo */}
-              <div className="w-full overflow-hidden" style={{ height:420 }}>
+              <div className="w-full overflow-hidden" style={{ height:260 }}>
                 <img src="/photos/favour.jpg" alt="Favour Ibude"
                   className="w-full h-full object-cover object-top"
                   loading="lazy"/>
               </div>
-              {/* Content */}
               <div className="p-6 flex flex-col gap-4 flex-1 relative">
                 <span className="absolute top-3 right-5 text-7xl text-primary-100 font-serif leading-none select-none pointer-events-none">"</span>
                 <div className="flex gap-0.5">
@@ -1159,19 +1150,14 @@ const Home = () => {
                 <p className="text-sm text-warm-600 leading-relaxed italic flex-1 relative z-10">
                   "Father's Day crept up on us and we had zero time to plan anything. I jumped on Thankeeu, created a card for my dad, and shared the link with my siblings and a few cousins. Within hours everyone had left him a message — some even added voice notes. We pooled a gift together and the card was delivered to him on the day. He called each one of us individually just to say thank you. That reaction is exactly why I'll use Thankeeu for every family celebration from now on."
                 </p>
-                <div className="flex items-center gap-3 pt-4 border-t border-purple-50">
-                  <img src="/photos/favour.jpg" alt="Favour Ibude"
-                    className="w-12 h-12 rounded-full object-cover object-top flex-shrink-0 border-2 border-emerald-200"
-                    loading="lazy"/>
-                  <div className="flex-1 min-w-0">
-                    <a href="https://www.linkedin.com/in/favouribude/" target="_blank" rel="noopener noreferrer"
-                      className="text-sm font-bold text-warm-900 hover:text-primary-600 transition-colors flex items-center gap-1.5">
-                      Favour Ibude
-                      <svg className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-                    </a>
-                    <p className="text-xs text-warm-400">Data Scientist / MLOps Engineer · Allianz</p>
-                    <p className="text-xs text-warm-400">🇳🇬 Lagos, Nigeria</p>
-                  </div>
+                <div className="flex flex-col gap-0.5 pt-4 border-t border-purple-50">
+                  <a href="https://www.linkedin.com/in/favouribude/" target="_blank" rel="noopener noreferrer"
+                    className="text-sm font-bold text-warm-900 hover:text-primary-600 transition-colors flex items-center gap-1.5">
+                    Favour Ibude
+                    <svg className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  </a>
+                  <p className="text-xs text-warm-400">Data Scientist / MLOps Engineer · Allianz</p>
+                  <p className="text-xs text-warm-400">🇬🇧 United Kingdom</p>
                 </div>
               </div>
             </div>

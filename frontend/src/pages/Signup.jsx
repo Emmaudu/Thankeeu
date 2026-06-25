@@ -15,14 +15,15 @@ const Signup = () => {
   const navigate  = useNavigate();
   const [searchParams] = useSearchParams();
   const returnTo  = searchParams.get('returnTo');
+  const prefillEmail = searchParams.get('email') || '';
 
-  const [step,     setStep]    = useState('details'); // 'details' | 'verify'
+  const [step,     setStep]    = useState('details');
   const [loading,  setLoading] = useState(false);
   const [showPw,   setShowPw]  = useState(false);
   const [code,     setCode]    = useState('');
 
   const [form, setForm] = useState({
-    full_name: '', email: '', username: '', password: '',
+    full_name: '', email: prefillEmail, username: '', password: '',
     confirm_password: '', date_of_birth: '', terms_accepted: false,
   });
 

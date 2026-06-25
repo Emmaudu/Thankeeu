@@ -1463,6 +1463,28 @@ const CardView = () => {
               {card.isRecipient && card.gift_withdrawn && (
                 <span className="bg-white/15 rounded-full px-4 py-2 text-sm font-bold">✓ Gift withdrawn</span>
               )}
+
+              {/* Recipient has the token but no account — prompt to sign up/in to claim */}
+              {!card.isRecipient && !user && !member && token && totalCollected > 0 && (
+                <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center max-w-sm mx-auto">
+                  <p className="font-bold text-white text-sm mb-1">🎁 {formatNGN(totalCollected)} gift is waiting for you</p>
+                  <p className="text-white/70 text-xs mb-3 leading-relaxed">
+                    Create a free account or log in with <strong>{card.recipient_email}</strong> to withdraw your gift to your bank account.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      to={`/signup?email=${encodeURIComponent(card.recipient_email || '')}&returnTo=${encodeURIComponent(`/card/${slug}?token=${token}`)}`}
+                      className="btn-primary text-sm py-2.5 w-full text-center">
+                      Create free account to claim gift
+                    </Link>
+                    <Link
+                      to={`/login?email=${encodeURIComponent(card.recipient_email || '')}&returnTo=${encodeURIComponent(`/card/${slug}?token=${token}`)}`}
+                      className="bg-white/20 hover:bg-white/30 text-white text-sm py-2.5 rounded-2xl font-bold text-center transition-all">
+                      I already have an account
+                    </Link>
+                  </div>
+                </div>
+              )}
               {/* Show info to logged-in users whose email doesn't match — explain how to get access */}
               {!card.isRecipient && (user || member) && card.recipient_email && (
                 <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800 mt-2">
@@ -1617,6 +1639,30 @@ const CardView = () => {
             </>
           )}
         </section>
+
+        {/* Soft nudge for recipients without an account — save card & claim gift */}
+        {token && !user && !member && !card.isRecipient && (
+          <div className="rounded-3xl p-6 text-center mt-8" style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', border:'2px solid #DDD6FE' }}>
+            <p className="text-2xl mb-2">🎉</p>
+            <p className="font-extrabold text-warm-900 text-lg mb-1">This card was made just for you</p>
+            <p className="text-warm-600 text-sm mb-4 leading-relaxed max-w-sm mx-auto">
+              Create a free account with <strong>{card.recipient_email}</strong> to save this card to your profile, revisit it any time, and{totalCollected > 0 ? ` claim your ${formatNGN(totalCollected)} gift.` : ' keep it forever.'}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Link
+                to={`/signup?email=${encodeURIComponent(card.recipient_email || '')}&returnTo=${encodeURIComponent(`/card/${slug}?token=${token}`)}`}
+                className="gc-btn-primary inline-flex items-center justify-center gap-2 px-6 py-3 text-sm">
+                ✨ Create free account
+              </Link>
+              <Link
+                to={`/login?email=${encodeURIComponent(card.recipient_email || '')}&returnTo=${encodeURIComponent(`/card/${slug}?token=${token}`)}`}
+                className="gc-btn-secondary inline-flex items-center justify-center gap-2 px-6 py-3 text-sm">
+                I have an account
+              </Link>
+            </div>
+            <p className="text-xs text-warm-400 mt-3">No obligation — you can read the card without signing up</p>
+          </div>
+        )}
 
         {(token || card.isRecipient) && (
           <section className="glass-panel rounded-[2rem] p-6 sm:p-8 mt-10">

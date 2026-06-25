@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth }               from './context/AuthContext';
 import { CompanyAuthProvider, useCompanyAuth } from './context/CompanyAuthContext';
@@ -125,28 +125,19 @@ const Spinner = () => (
   </div>
 );
 
-// CardViewGate — routes a /card/:slug visit to the right experience:
-//   - ?claim=TOKEN   → fresh recipient email link → RecipientClaimGate
-//                       (handles login/signup/member-claim before showing the card)
-//   - anything else  → CardView directly, with NO login required.
-// The card itself is meant to be shareable as a plain public link (e.g. the
-// recipient forwarding /card/:slug to family/friends to see their messages).
-// Sensitive actions — withdrawing the gift pot, seeing the private
-// access-token link, transferring the card — are gated separately, deeper
-// inside CardView/GiftClaimPanel, not at this top-level route. The backend
-// (getCard) already filters private messages and hides amounts for
-// non-owners, so it's safe to render CardView for anonymous visitors here.
+// CardViewGate — everyone goes straight to CardView, no login required.
+// If the URL has ?claim=TOKEN (recipient email link), the token is stored
+// in sessionStorage so CardView can unlock recipient-only features
+// (gift withdrawal, reply button) without forcing a login or signup.
 const CardViewGate = () => {
+  const { slug } = useParams();
   const [searchParams] = useSearchParams();
+  const claimToken = searchParams.get('claim');
 
-  // ?claim= means this is a fresh recipient link — send to RecipientClaimGate
-  if (searchParams.get('claim')) {
-    return <RecipientClaimGate />;
+  if (claimToken && slug) {
+    sessionStorage.setItem(`card_token_${slug}`, claimToken);
   }
 
-  // Everyone else — logged in or not, with or without ?token= — goes
-  // straight to the card. CardView/GiftClaimPanel handle auth state
-  // themselves for anything beyond viewing (e.g. withdrawing a gift).
   return <CardView />;
 };
 

@@ -49,12 +49,13 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
       <nav className="sticky top-0 z-50 transition-all duration-300 border-b"
         style={{
           background: themeBg
-            ? (scrolled ? `${themeBg}f0` : `${themeBg}d8`)
+            ? themeBg  // use the full gradient string directly — matches hero exactly
             : (scrolled ? 'rgba(245,240,255,0.95)' : '#F5F0FF'),
           borderColor: themeBg ? 'rgba(255,255,255,0.18)' : (scrolled ? '#DDD6FE' : '#EDE9FE'),
-          backdropFilter: scrolled ? 'blur(12px)' : undefined,
-          WebkitBackdropFilter: scrolled ? 'blur(12px)' : undefined,
+          backdropFilter: themeBg || scrolled ? 'blur(12px)' : undefined,
+          WebkitBackdropFilter: themeBg || scrolled ? 'blur(12px)' : undefined,
           boxShadow: scrolled ? '0 2px 20px rgba(0,0,0,0.15)' : undefined,
+          opacity: themeBg ? (scrolled ? 0.97 : 0.88) : 1,
         }}>
         <div className="section-container">
           <div className="flex items-center justify-between h-16 gap-4">

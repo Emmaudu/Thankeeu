@@ -327,22 +327,27 @@ export default function RecipientClaimGate() {
     }
 
     api.get(`/cards/${slug}/claim-gate?claim=${encodeURIComponent(claimToken)}`)
-      .then(res => setGateData(res.data))
+      .then(res => { setGateData(res.data); setLoading(false); })
       .catch(err => {
         const status = err.response?.status;
         const msg    = err.response?.data?.error || '';
 
-        // 404 = claim_token not found in DB (card sent before migration ran,
-        // or claim_token column doesn't exist yet).
-        // In this case fall back to the old ?token= flow if we can find the card.
-        if (status === 404 || msg.toLowerCase().includes('not found')) {
-          // Try to load card publicly so the user at least sees the card
+        setLoading(false);
+
+        // 404 = claim token not found in DB.
+        // This happens when:
+        //  a) An old email link where claim_token wasn't saved (pre-fix bug)
+        //  b) The link was copied incorrectly (truncated/modified)
+        //  c) The card was sent before the claim_token migration ran
+        // Strategy: show the card publicly so recipient can still read messages,
+        // AND show a soft banner prompting them to sign in to access gift/private messages.
+        if (status === 404) {
           navigate(`/card/${slug}`, { replace: true });
           return;
         }
+
         setError(msg || 'This link is invalid or has expired.');
-      })
-      .finally(() => setLoading(false));
+      });
   }, [slug, claimToken, legacyToken]);
 
   // After auth: call mark-claimed with the bearer token so the card is linked
@@ -367,14 +372,20 @@ export default function RecipientClaimGate() {
     <div className="min-h-screen grid place-items-center px-4" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
       <div className="max-w-sm w-full bg-white rounded-3xl p-8 text-center shadow-xl border border-red-100">
         <div className="text-5xl mb-4">😕</div>
-        <h2 className="text-xl font-bold text-warm-900 mb-2">Link not valid</h2>
-        <p className="text-warm-500 text-sm mb-6">{error}</p>
+        <h2 className="text-xl font-bold text-warm-900 mb-2">Link couldn't be verified</h2>
+        <p className="text-warm-500 text-sm mb-5">{error}</p>
+        <a
+          href={`/card/${slug}`}
+          className="block w-full py-3 rounded-2xl font-bold text-white text-center mb-3"
+          style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
+          💌 View card anyway
+        </a>
         <p className="text-xs text-warm-400">
-          Try signing into your{' '}
+          Or sign into your{' '}
           <Link to="/dashboard" className="text-primary-600 font-semibold">dashboard</Link>
-          {' '}or{' '}
+          {' '}·{' '}
           <Link to="/member/dashboard" className="text-primary-600 font-semibold">team dashboard</Link>
-          {' '}to find your card.
+          {' '}to find your card in the Received tab.
         </p>
       </div>
     </div>

@@ -8,6 +8,16 @@ import { CURRENCIES, formatCurrency } from '../../utils/currency';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
+// Pack of N options — plan_id, credits, priceNGN, per-card price, savings label
+const PACK_OPTIONS = [
+  { id: 'pack5',   credits: 5,   priceNGN: 20000,  perCard: 4000, savings: 'Save ₦5,000 vs 5 singles' },
+  { id: 'pack10',  credits: 10,  priceNGN: 40000,  perCard: 4000, savings: 'Save ₦10,000 vs 10 singles' },
+  { id: 'pack25',  credits: 25,  priceNGN: 100000, perCard: 4000, savings: 'Save ₦25,000 vs 25 singles' },
+  { id: 'pack50',  credits: 50,  priceNGN: 200000, perCard: 4000, savings: 'Save ₦50,000 vs 50 singles' },
+  { id: 'pack70',  credits: 70,  priceNGN: 280000, perCard: 4000, savings: 'Save ₦70,000 vs 70 singles' },
+  { id: 'pack100', credits: 100, priceNGN: 400000, perCard: 4000, savings: 'Save ₦100,000 vs 100 singles' },
+];
+
 const PLANS = [
   {
     id: 'classic', name: 'Classic', priceNGN: 5000, credits: 1,
@@ -24,13 +34,6 @@ const PLANS = [
     desc: 'Best value for 2 cards',
     features: ['2 card credits', 'All Classic features', 'Priority support (12hr)', 'Card analytics (views, opens)', 'Custom card title', 'Exclusive premium designs', 'Early access to new features'],
   },
-  {
-    id: 'pack5', name: 'Pack of 5', priceNGN: 19000, credits: 5,
-    emoji: '🎁', color: 'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50',
-    btnStyle: 'border-2 border-green-400 text-green-700 hover:bg-green-50',
-    desc: '₦3,800 per card — best deal',
-    features: ['5 card credits (never expire)', 'All Standard features', 'Dedicated card manager', 'Priority phone support', 'Advanced gift pot analytics', 'Team collaboration tools'],
-  },
 ];
 
 export default function DashboardCredits() {
@@ -42,6 +45,7 @@ export default function DashboardCredits() {
   const [loading,   setLoading]   = useState(true);
   const [buying,    setBuying]    = useState(null);
   const [currency,  setCurrency]  = useState('NGN');
+  const [selectedPack, setSelectedPack] = useState(PACK_OPTIONS[0]); // default: pack of 5
 
   const fmt = (ngn) => formatCurrency(ngn, currency);
 
@@ -125,6 +129,7 @@ export default function DashboardCredits() {
 
         {/* Plans */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          {/* Classic + Standard — fixed plans */}
           {PLANS.map(plan => (
             <div key={plan.id} className={`relative rounded-3xl border-2 p-5 flex flex-col ${plan.color}`}>
               {plan.popular && (
@@ -164,6 +169,68 @@ export default function DashboardCredits() {
               </button>
             </div>
           ))}
+
+          {/* Pack card — with dropdown selector */}
+          <div className="relative rounded-3xl border-2 border-green-300 bg-gradient-to-br from-green-50 to-emerald-50 p-5 flex flex-col">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-green-600 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap">
+              🏆 Lowest per-card price
+            </div>
+            <div className="text-3xl mb-2">🎁</div>
+            <h3 className="text-lg font-bold text-warm-900 mb-0.5">Credit Pack</h3>
+            <p className="text-xs text-warm-500 mb-3">Choose how many cards you need</p>
+
+            {/* Pack size dropdown */}
+            <div className="mb-3">
+              <label className="block text-xs font-bold text-warm-700 mb-1.5">Pack size</label>
+              <select
+                value={selectedPack.id}
+                onChange={e => setSelectedPack(PACK_OPTIONS.find(p => p.id === e.target.value))}
+                className="w-full rounded-xl border-2 border-green-200 bg-white text-warm-900 text-sm font-semibold px-3 py-2.5 focus:outline-none focus:border-green-400 cursor-pointer"
+              >
+                {PACK_OPTIONS.map(p => (
+                  <option key={p.id} value={p.id}>
+                    Pack of {p.credits} — ₦4,000/card (₦{p.priceNGN.toLocaleString('en-NG')} total)
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Dynamic price display */}
+            <div className="mb-1">
+              <span className="text-3xl font-extrabold text-warm-900">{fmt(selectedPack.priceNGN)}</span>
+              <span className="text-warm-400 text-sm ml-1">one-time</span>
+            </div>
+            <p className="text-primary-600 font-bold text-sm mb-0.5">
+              = {selectedPack.credits} card credits
+            </p>
+            <p className="text-green-700 text-xs font-semibold mb-0.5">
+              {fmt(4000)} per card · same price regardless of pack size
+            </p>
+            {selectedPack.savings && (
+              <p className="text-green-600 text-xs font-bold mb-1">🎉 {selectedPack.savings}</p>
+            )}
+            {currency !== 'NGN' && (
+              <p className="text-xs text-warm-400 mb-2">≈ ₦{selectedPack.priceNGN.toLocaleString('en-NG')}</p>
+            )}
+
+            <div className="h-px bg-white/60 my-3" />
+            <ul className="space-y-1.5 mb-5 flex-1">
+              {['Credits never expire', 'All Classic & Standard features', 'Use across multiple cards any time', 'Priority support', 'Best per-card price in any pack'].map((f, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-warm-700">
+                  <span className="text-green-500 font-bold flex-shrink-0 mt-0.5">✓</span>{f}
+                </li>
+              ))}
+            </ul>
+            <button onClick={() => handleBuy(selectedPack.id)} disabled={!!buying}
+              className="w-full py-3 rounded-2xl font-bold text-sm transition-all disabled:opacity-50 bg-green-600 text-white hover:bg-green-700">
+              {buying === selectedPack.id
+                ? <span className="flex items-center justify-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                    Processing…
+                  </span>
+                : `Buy ${selectedPack.credits} credits — ${fmt(selectedPack.priceNGN)}`}
+            </button>
+          </div>
         </div>
 
         {/* Purchase history */}

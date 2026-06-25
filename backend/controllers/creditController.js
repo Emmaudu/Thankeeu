@@ -44,9 +44,14 @@ const flwHeaders = () => ({
 });
 
 const PLANS = {
-  classic:  { priceNGN: 5000,  credits: 1, label: 'Classic (1 credit)'    },
-  standard: { priceNGN: 9000,  credits: 2, label: 'Standard (2 credits)'  },
-  pack5:    { priceNGN: 19000, credits: 5, label: 'Pack of 5 (5 credits)'  },
+  classic:  { priceNGN: 5000,   credits: 1,   label: 'Classic (1 credit)'      },
+  standard: { priceNGN: 9000,   credits: 2,   label: 'Standard (2 credits)'    },
+  pack5:    { priceNGN: 20000,  credits: 5,   label: 'Pack of 5 (5 credits)'   },
+  pack10:   { priceNGN: 40000,  credits: 10,  label: 'Pack of 10 (10 credits)' },
+  pack25:   { priceNGN: 100000, credits: 25,  label: 'Pack of 25 (25 credits)' },
+  pack50:   { priceNGN: 200000, credits: 50,  label: 'Pack of 50 (50 credits)' },
+  pack70:   { priceNGN: 280000, credits: 70,  label: 'Pack of 70 (70 credits)' },
+  pack100:  { priceNGN: 400000, credits: 100, label: 'Pack of 100 (100 credits)'},
 };
 
 const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
@@ -96,7 +101,7 @@ const purchaseCredits = async (req, res) => {
 
     const { plan_type, currency: reqCurrency } = req.body;
     const plan = PLANS[plan_type];
-    if (!plan) return res.status(400).json({ error: 'Invalid plan. Choose classic, standard, or pack5.' });
+    if (!plan) return res.status(400).json({ error: 'Invalid plan. Choose classic, standard, pack5, pack10, pack25, pack50, pack70, or pack100.' });
 
     const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
     const amount   = currency === 'NGN' ? plan.priceNGN : parseFloat((plan.priceNGN * FX[currency]).toFixed(2));

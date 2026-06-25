@@ -337,11 +337,11 @@ async function autoSendDueCards() {
   for (const card of due) {
     try {
       const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('card_id', card.id);
-      // Generate claim_token so email link uses ?claim= (not raw access_token)
+
+      // Use the existing claim_token if already set; otherwise generate a fresh one.
+      // IMPORTANT: we save it together with status='sent' in a single update below
+      // so the token is always in the DB before we consider delivery complete.
       const claimToken = card.claim_token || require('crypto').randomBytes(24).toString('hex');
-      if (!card.claim_token) {
-        await supabase.from('cards').update({ claim_token: claimToken }).eq('id', card.id);
-      }
 
       // Auto-link card to recipient's account if they already have one
       const { data: existingUser } = await supabase
@@ -353,6 +353,24 @@ async function autoSendDueCards() {
           transferred_by: null,
           transferred_at: new Date(),
         }, { onConflict: 'card_id,recipient_user_id' }).catch(() => {});
+      }
+
+      // Save claim_token + mark as sent in ONE atomic update BEFORE sending the email.
+      // This guarantees the token is in the DB even if the email call later fails
+      // (we can always resend). If this save fails we abort — don't send a broken link.
+      const { error: saveErr } = await supabase.from('cards')
+        .update({
+          claim_token:        claimToken,
+          status:             'sent',
+          recipient_notified: true,
+          delivered_at:       now,
+        })
+        .eq('id', card.id);
+
+      if (saveErr) {
+        console.error(`[auto-send] Could not save claim_token for ${card.slug}:`, saveErr.message);
+        failed.push({ slug: card.slug, reason: `claim_token save failed: ${saveErr.message}` });
+        continue; // skip email — don't send a link that would break
       }
 
       await sendEmail({
@@ -370,16 +388,8 @@ async function autoSendDueCards() {
           isCompanyCard: !!card.company_id
         }
       });
-      const { error: updateErr } = await supabase.from('cards')
-        .update({ status: 'sent', recipient_notified: true, delivered_at: now })
-        .eq('id', card.id);
-      if (updateErr) {
-        console.error(`[auto-send] Email sent for ${card.slug} but failed to update status:`, updateErr.message);
-        failed.push({ slug: card.slug, reason: `status update failed: ${updateErr.message}` });
-      } else {
-        console.log(`[auto-send] Delivered card: ${card.slug} -> ${card.recipient_email}`);
-        delivered.push(card.slug);
-      }
+      console.log(`[auto-send] Delivered card: ${card.slug} -> ${card.recipient_email}`);
+      delivered.push(card.slug);
     } catch (sendErr) {
       console.error(`[auto-send] Failed to deliver card ${card.slug}:`, sendErr.message);
       failed.push({ slug: card.slug, reason: sendErr.message });

@@ -11,6 +11,16 @@ import toast from 'react-hot-toast';
 import { CURRENCIES, formatCurrency, getCurrency } from '../utils/currency';
 
 // ── Plans ─────────────────────────────────────────────────────────────────────
+// Pack-of-N options with progressive per-card discount
+const PACK_OPTIONS = [
+  { id: 'pack5',   credits: 5,   priceNGN: 20000,  perCardNGN: 4000, savings: 'Save ₦5,000 vs 5 singles' },
+  { id: 'pack10',  credits: 10,  priceNGN: 40000,  perCardNGN: 4000, savings: 'Save ₦10,000 vs 10 singles' },
+  { id: 'pack25',  credits: 25,  priceNGN: 100000, perCardNGN: 4000, savings: 'Save ₦25,000 vs 25 singles' },
+  { id: 'pack50',  credits: 50,  priceNGN: 200000, perCardNGN: 4000, savings: 'Save ₦50,000 vs 50 singles' },
+  { id: 'pack70',  credits: 70,  priceNGN: 280000, perCardNGN: 4000, savings: 'Save ₦70,000 vs 70 singles' },
+  { id: 'pack100', credits: 100, priceNGN: 400000, perCardNGN: 4000, savings: 'Save ₦100,000 vs 100 singles' },
+];
+
 const INDIVIDUAL_PLANS = [
   {
     id: 'single', name: 'Classic', priceNGN: 5000, credits: 1,
@@ -45,7 +55,7 @@ const INDIVIDUAL_PLANS = [
     ],
   },
   {
-    id: 'pack5', name: 'Pack of 5', priceNGN: 19000, credits: 5,
+    id: 'pack5', name: 'Pack of 5', priceNGN: 20000, credits: 5,
     label: '5 card credits — lowest per-card price',
     btn: 'Buy 5 credits', btnIcon: 'Gift', popular: false,
     btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
@@ -101,6 +111,7 @@ const Pricing = () => {
   const [loadingPlan,  setLoadingPlan]  = useState(null);
   const [openFAQ,      setOpenFAQ]      = useState(null);
   const [showDemo,     setShowDemo]     = useState(false);
+  const [selectedPack, setSelectedPack] = useState(PACK_OPTIONS[0]);
 
   const cur = getCurrency(currency);
 
@@ -200,10 +211,10 @@ const Pricing = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
-              {INDIVIDUAL_PLANS.map(plan => (
-                <div key={plan.id} className={`gc-card relative p-6 flex flex-col ${
-                  plan.popular ? '' : ''
-                }`} style={plan.popular ? { border: '2px solid #7C3AED' } : undefined}>
+              {/* Classic + Standard */}
+              {INDIVIDUAL_PLANS.filter(p => p.id !== 'pack5').map(plan => (
+                <div key={plan.id} className="gc-card relative p-6 flex flex-col"
+                  style={plan.popular ? { border: '2px solid #7C3AED' } : undefined}>
                   {plan.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap inline-flex items-center gap-1.5">
                       <Icon name="Star" size={12}/> Most popular
@@ -212,18 +223,11 @@ const Pricing = () => {
                   <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
                   <p className="text-warm-500 text-xs mb-4">{plan.label}</p>
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-3xl sm:text-4xl font-bold text-warm-900">
-                      {fmt(plan.priceNGN)}
-                    </span>
+                    <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(plan.priceNGN)}</span>
                     <span className="text-warm-400 text-sm pb-1">one-time</span>
                   </div>
                   {currency !== 'NGN' && (
                     <p className="text-xs text-warm-400 mb-1">≈ ₦{plan.priceNGN.toLocaleString('en-NG')} NGN</p>
-                  )}
-                  {plan.id === 'pack5' && (
-                    <p className="text-green-600 text-xs font-bold mb-1">
-                      Save {fmt(9000 * 5 - 19000)} vs buying 5 standard packs
-                    </p>
                   )}
                   {plan.id === 'standard' && (
                     <p className="text-primary-600 text-xs font-bold mb-1">
@@ -252,6 +256,75 @@ const Pricing = () => {
                   </button>
                 </div>
               ))}
+
+              {/* Credit Pack — dropdown to pick pack size */}
+              <div className="gc-card relative p-6 flex flex-col" style={{ border: '2px solid #16a34a' }}>
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-green-600 text-white text-xs font-bold px-4 py-1.5 rounded-full whitespace-nowrap inline-flex items-center gap-1.5">
+                  🏆 Lowest per-card price
+                </div>
+                <h3 className="text-xl font-bold text-warm-900 mb-1">Credit Pack</h3>
+                <p className="text-warm-500 text-xs mb-4">Choose how many cards you need</p>
+
+                {/* Pack size dropdown */}
+                <div className="mb-3">
+                  <label className="block text-xs font-bold text-warm-600 mb-1.5">Pack size</label>
+                  <select
+                    value={selectedPack.id}
+                    onChange={e => setSelectedPack(PACK_OPTIONS.find(p => p.id === e.target.value))}
+                    className="w-full rounded-xl border-2 border-green-200 bg-white text-warm-900 text-sm font-semibold px-3 py-2.5 focus:outline-none focus:border-green-500 cursor-pointer"
+                  >
+                    {PACK_OPTIONS.map(p => (
+                      <option key={p.id} value={p.id}>
+                        Pack of {p.credits} — ₦4,000/card (₦{p.priceNGN.toLocaleString('en-NG')} total)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end gap-1 mb-1">
+                  <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(selectedPack.priceNGN)}</span>
+                  <span className="text-warm-400 text-sm pb-1">one-time</span>
+                </div>
+                {currency !== 'NGN' && (
+                  <p className="text-xs text-warm-400 mb-1">≈ ₦{selectedPack.priceNGN.toLocaleString('en-NG')} NGN</p>
+                )}
+                <p className="text-green-700 text-xs font-bold mb-0.5">
+                  ₦4,000 per card (flat rate) · {fmt(selectedPack.priceNGN)} total
+                </p>
+                {selectedPack.savings && (
+                  <p className="text-green-600 text-xs font-bold mb-1">🎉 {selectedPack.savings}</p>
+                )}
+
+                <div className="h-px bg-purple-100 my-4" />
+                <ul className="space-y-2.5 mb-7 flex-1">
+                  {[
+                    { text: `${selectedPack.credits} card credits (never expire)`, ok: true },
+                    { text: 'All the same card features as Classic', ok: true },
+                    { text: 'Unlimited contributors — anyone can sign', ok: true },
+                    { text: '100+ premium card designs', ok: true },
+                    { text: 'Video, photo & voice messages', ok: true },
+                    { text: 'Gift pot collection via Flutterwave', ok: true },
+                    { text: 'Use credits across any cards, any time', ok: true },
+                    { text: 'Credits never expire', ok: true },
+                  ].map((f, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm">
+                      <span className="flex-shrink-0 mt-0.5 text-green-500"><Icon name="Check" size={15}/></span>
+                      <span className="text-warm-700">{f.text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button onClick={() => handleIndividualPurchase(selectedPack.id)} disabled={loadingPlan === selectedPack.id}
+                  className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50 bg-green-600 text-white hover:bg-green-700">
+                  {loadingPlan === selectedPack.id
+                    ? <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Processing…
+                      </span>
+                    : <span className="inline-flex items-center justify-center gap-2">
+                        <Icon name="Gift" size={15}/> Buy {selectedPack.credits} credits — {fmt(selectedPack.priceNGN)}
+                      </span>}
+                </button>
+              </div>
             </div>
 
             {/* Gift pot fees */}

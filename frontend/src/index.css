@@ -425,14 +425,6 @@
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
 }
-/* Message cards on dark body — frosted glass with subtle glow */
-.message-art-card {
-  background: rgba(255,255,255,.11) !important;
-  border-color: rgba(255,255,255,.18) !important;
-  box-shadow: 0 4px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-}
 .voice-record-button {
   position: relative;
   display: inline-flex;

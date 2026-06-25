@@ -503,16 +503,20 @@ const sendCard = async (req, res) => {
       .from('messages').select('count').eq('card_id', card.id);
 
     // Generate a claim_token if not already set — this goes in the email URL
-    // instead of the access_token, so the internal access_token stays private
+    // instead of the access_token, so the internal access_token stays private.
+    // IMPORTANT: save it to the DB BEFORE sending the email so the link always works.
     const { data: freshCard } = await supabase.from('cards')
       .select('claim_token').eq('slug', slug).maybeSingle();
     const claimToken = freshCard?.claim_token ||
       require('crypto').randomBytes(24).toString('hex');
 
-    await supabase.from('cards').update({
+    // Save claim_token + status in one update BEFORE sending the email.
+    // If this fails we throw and the email is never sent — no broken links.
+    const { error: saveErr } = await supabase.from('cards').update({
       status: 'sent', recipient_notified: true, delivered_at: new Date(), updated_at: new Date(),
       claim_token: claimToken,
     }).eq('slug', slug);
+    if (saveErr) throw new Error(`Failed to save delivery state: ${saveErr.message}`);
 
     // Auto-link card to recipient's account if they already have one
     const { data: existingUser } = await supabase

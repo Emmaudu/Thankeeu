@@ -1110,14 +1110,16 @@ const Home = () => {
 
             {/* ── Comfort Irorere ── */}
             <div className="rounded-3xl border-2 border-purple-100 overflow-hidden hover:border-primary-300 hover:shadow-xl transition-all flex flex-col" style={{ background:'#FDFCFF' }}>
-              <div className="w-full overflow-hidden" style={{ height:260 }}>
-                <img src="/photos/comfort.png" alt="Comfort Irorere"
-                  className="w-full h-full object-cover object-top"
-                  loading="lazy"/>
-              </div>
               <div className="p-6 flex flex-col gap-4 flex-1 relative">
+                {/* Circular photo centred at top */}
+                <div className="flex justify-center mb-2">
+                  <img src="/photos/comfort.png" alt="Comfort Irorere"
+                    className="rounded-full object-cover border-4 border-primary-100"
+                    style={{ width:240, height:240, objectPosition:'top' }}
+                    loading="lazy"/>
+                </div>
                 <span className="absolute top-3 right-5 text-7xl text-primary-100 font-serif leading-none select-none pointer-events-none">"</span>
-                <div className="flex gap-0.5">
+                <div className="flex justify-center gap-0.5">
                   {[0,1,2,3,4].map(i => <Icon key={i} name="Star" size={15} className="text-amber-400 fill-amber-400"/>)}
                 </div>
                 <p className="text-sm text-warm-600 leading-relaxed italic flex-1 relative z-10">
@@ -1137,14 +1139,16 @@ const Home = () => {
 
             {/* ── Favour Ibude ── */}
             <div className="rounded-3xl border-2 border-purple-100 overflow-hidden hover:border-primary-300 hover:shadow-xl transition-all flex flex-col" style={{ background:'#FDFCFF' }}>
-              <div className="w-full overflow-hidden" style={{ height:260 }}>
-                <img src="/photos/favour.jpg" alt="Favour Ibude"
-                  className="w-full h-full object-cover object-top"
-                  loading="lazy"/>
-              </div>
               <div className="p-6 flex flex-col gap-4 flex-1 relative">
+                {/* Circular photo centred at top */}
+                <div className="flex justify-center mb-2">
+                  <img src="/photos/favour.jpg" alt="Favour Ibude"
+                    className="rounded-full object-cover border-4 border-primary-100"
+                    style={{ width:240, height:240, objectPosition:'top' }}
+                    loading="lazy"/>
+                </div>
                 <span className="absolute top-3 right-5 text-7xl text-primary-100 font-serif leading-none select-none pointer-events-none">"</span>
-                <div className="flex gap-0.5">
+                <div className="flex justify-center gap-0.5">
                   {[0,1,2,3,4].map(i => <Icon key={i} name="Star" size={15} className="text-amber-400 fill-amber-400"/>)}
                 </div>
                 <p className="text-sm text-warm-600 leading-relaxed italic flex-1 relative z-10">

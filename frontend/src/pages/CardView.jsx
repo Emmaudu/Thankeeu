@@ -173,7 +173,7 @@ function MagicSearch({ messages, query, setQuery, active, setActive, design, fou
           }} />
           <style>{`@keyframes gradient-shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }`}</style>
 
-          <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', background:'white', borderRadius:16, padding:'2px 4px', boxShadow:'0 4px 20px rgba(0,0,0,0.1)' }}>
+          <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', background:'rgba(0,0,0,0.45)', backdropFilter:'blur(16px)', borderRadius:16, padding:'2px 4px', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>
             {/* Search icon */}
             <span style={{ padding:'0 12px', fontSize:16, opacity:0.6 }}>🔍</span>
 
@@ -185,7 +185,7 @@ function MagicSearch({ messages, query, setQuery, active, setActive, design, fou
               placeholder={`Search by name — e.g. ${names[0] || 'Chisom'}…`}
               style={{
                 flex:1, border:'none', background:'transparent',
-                fontSize:15, fontWeight:500, color:'#1a1a2e',
+                fontSize:15, fontWeight:500, color:'rgba(255,255,255,0.9)',
                 padding:'12px 0', fontFamily:'inherit',
               }}
             />
@@ -841,24 +841,36 @@ const CELEBRATION_ICONS = [
 ];
 
 const ICON_POSITIONS = [
-  { x:3,   y:4,   size:44, opacity:0.22, rot:15,  delay:0    },
-  { x:86,  y:3,   size:36, opacity:0.20, rot:-22, delay:0.8  },
-  { x:16,  y:68,  size:52, opacity:0.18, rot:30,  delay:1.4  },
-  { x:74,  y:62,  size:40, opacity:0.22, rot:-12, delay:0.3  },
-  { x:46,  y:12,  size:32, opacity:0.18, rot:45,  delay:2.1  },
-  { x:91,  y:38,  size:48, opacity:0.20, rot:0,   delay:1.7  },
-  { x:8,   y:40,  size:30, opacity:0.18, rot:-35, delay:0.6  },
-  { x:58,  y:82,  size:42, opacity:0.22, rot:20,  delay:1.2  },
-  { x:33,  y:53,  size:28, opacity:0.16, rot:-18, delay:2.5  },
-  { x:78,  y:20,  size:50, opacity:0.20, rot:25,  delay:0.4  },
-  { x:24,  y:86,  size:36, opacity:0.18, rot:-5,  delay:1.9  },
-  { x:63,  y:46,  size:32, opacity:0.16, rot:55,  delay:0.9  },
-  { x:49,  y:90,  size:44, opacity:0.20, rot:-28, delay:1.5  },
-  { x:6,   y:26,  size:26, opacity:0.17, rot:10,  delay:2.8  },
-  { x:94,  y:76,  size:30, opacity:0.18, rot:-42, delay:0.2  },
-  { x:41,  y:36,  size:38, opacity:0.16, rot:35,  delay:1.1  },
-  { x:70,  y:8,   size:34, opacity:0.19, rot:-8,  delay:2.3  },
-  { x:20,  y:20,  size:28, opacity:0.16, rot:62,  delay:3.1  },
+  { x:3,   y:4,   size:44, opacity:0.30, rot:15,  delay:0    },
+  { x:86,  y:3,   size:36, opacity:0.28, rot:-22, delay:0.8  },
+  { x:16,  y:68,  size:52, opacity:0.26, rot:30,  delay:1.4  },
+  { x:74,  y:62,  size:40, opacity:0.30, rot:-12, delay:0.3  },
+  { x:46,  y:12,  size:32, opacity:0.26, rot:45,  delay:2.1  },
+  { x:91,  y:38,  size:48, opacity:0.28, rot:0,   delay:1.7  },
+  { x:8,   y:40,  size:30, opacity:0.26, rot:-35, delay:0.6  },
+  { x:58,  y:82,  size:42, opacity:0.30, rot:20,  delay:1.2  },
+  { x:33,  y:53,  size:28, opacity:0.24, rot:-18, delay:2.5  },
+  { x:78,  y:20,  size:50, opacity:0.28, rot:25,  delay:0.4  },
+  { x:24,  y:86,  size:36, opacity:0.26, rot:-5,  delay:1.9  },
+  { x:63,  y:46,  size:32, opacity:0.24, rot:55,  delay:0.9  },
+  { x:49,  y:90,  size:44, opacity:0.28, rot:-28, delay:1.5  },
+  { x:6,   y:26,  size:26, opacity:0.25, rot:10,  delay:2.8  },
+  { x:94,  y:76,  size:30, opacity:0.26, rot:-42, delay:0.2  },
+  { x:41,  y:36,  size:38, opacity:0.24, rot:35,  delay:1.1  },
+  { x:70,  y:8,   size:34, opacity:0.27, rot:-8,  delay:2.3  },
+  { x:20,  y:20,  size:28, opacity:0.24, rot:62,  delay:3.1  },
+  { x:52,  y:28,  size:22, opacity:0.22, rot:-15, delay:1.6  },
+  { x:30,  y:72,  size:40, opacity:0.28, rot:40,  delay:0.5  },
+  { x:82,  y:55,  size:26, opacity:0.24, rot:-30, delay:2.0  },
+  { x:15,  y:48,  size:34, opacity:0.26, rot:18,  delay:1.3  },
+  { x:67,  y:30,  size:30, opacity:0.25, rot:-50, delay:2.7  },
+  { x:38,  y:15,  size:46, opacity:0.28, rot:70,  delay:0.7  },
+  { x:55,  y:65,  size:24, opacity:0.22, rot:-20, delay:3.3  },
+  { x:88,  y:90,  size:38, opacity:0.26, rot:10,  delay:1.0  },
+  { x:12,  y:92,  size:32, opacity:0.24, rot:-45, delay:2.4  },
+  { x:75,  y:42,  size:28, opacity:0.22, rot:28,  delay:3.5  },
+  { x:44,  y:78,  size:42, opacity:0.27, rot:-8,  delay:0.9  },
+  { x:97,  y:15,  size:24, opacity:0.23, rot:55,  delay:1.8  },
 ];
 
 const CelebrationBackground = ({ design }) => {
@@ -872,10 +884,10 @@ const CelebrationBackground = ({ design }) => {
       const r = parseInt(accent.slice(1,3),16);
       const g = parseInt(accent.slice(3,5),16);
       const b = parseInt(accent.slice(5,7),16);
-      // Crush toward very dark — keep a hint of the hue
-      const dr = Math.max(5,  Math.round(r * 0.14 + 5));
-      const dg = Math.max(3,  Math.round(g * 0.10 + 3));
-      const db = Math.max(10, Math.round(b * 0.22 + 10));
+      // Lighten toward a rich deep tone — visible hue, not near-black
+      const dr = Math.max(18, Math.round(r * 0.28 + 18));
+      const dg = Math.max(12, Math.round(g * 0.22 + 12));
+      const db = Math.max(25, Math.round(b * 0.38 + 20));
       bodyBg    = `rgb(${dr},${dg},${db})`;
       // Icon color = lighter version of accent for contrast on dark bg
       const lr = Math.min(255, Math.round(r * 0.6 + 100));
@@ -895,13 +907,13 @@ const CelebrationBackground = ({ design }) => {
       {/* Ambient glow blobs — gives depth */}
       <div style={{ position:'absolute', top:'-5%', left:'-5%', width:'55vw', height:'55vw',
         borderRadius:'50%', filter:'blur(80px)',
-        background:`radial-gradient(circle, ${iconColor}30 0%, transparent 65%)` }}/>
+        background:`radial-gradient(circle, ${iconColor}45 0%, transparent 65%)` }}/>
       <div style={{ position:'absolute', bottom:'0', right:'-5%', width:'50vw', height:'50vw',
         borderRadius:'50%', filter:'blur(90px)',
-        background:`radial-gradient(circle, ${iconColor}28 0%, transparent 65%)` }}/>
+        background:`radial-gradient(circle, ${iconColor}38 0%, transparent 65%)` }}/>
       <div style={{ position:'absolute', top:'45%', left:'35%', width:'40vw', height:'40vw',
         borderRadius:'50%', filter:'blur(70px)',
-        background:`radial-gradient(circle, ${iconColor}18 0%, transparent 65%)` }}/>
+        background:`radial-gradient(circle, ${iconColor}28 0%, transparent 65%)` }}/>
 
       {/* Floating celebration icons */}
       <style>{`
@@ -1466,7 +1478,7 @@ const CardView = () => {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-10 sm:py-14" style={{ position: 'relative', zIndex: 1 }}>
+      <main className="cv-dark-body flex-1 max-w-6xl mx-auto w-full px-4 py-10 sm:py-14" style={{ position: 'relative', zIndex: 1, color: 'rgba(255,255,255,0.92)' }}>
         {totalCollected > 0 && (
           <section className="card-art card-art-sunburst rounded-[2rem] bg-gradient-to-br from-emerald-700 to-teal-900 text-white p-6 sm:p-8 mb-9 shadow-xl">
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -1518,7 +1530,7 @@ const CardView = () => {
         <div className="no-print mb-9 space-y-3">
           {/* Box 1 — Public signing link — open while active AND after delivery (sent) */}
           {(card.status === 'active' || card.status === 'sent') && (
-            <div className="rounded-2xl border-2 p-4 sm:p-5" style={{ borderColor: '#A855F740', background: 'linear-gradient(135deg,#F5F3FF,#FCE7F3)' }}>
+            <div className="rounded-2xl border-2 p-4 sm:p-5" style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)' }}>
               <p className="text-xs font-extrabold tracking-[.15em] uppercase text-primary-600 mb-1">
                 {card.status === 'sent' ? '🎁 Still open — messages & gifts welcome' : '✍️ Signing link — for everyone'}
               </p>
@@ -1546,7 +1558,7 @@ const CardView = () => {
 
           {/* Box 2 — Private view link (recipient + creator only) */}
           {(canViewPrivate && (card.access_token || card.isCreator)) && (
-            <div className="rounded-2xl border border-purple-100 bg-white p-4 sm:p-5">
+            <div className="rounded-2xl p-4 sm:p-5" style={{ border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)' }}>
               <p className="text-xs font-extrabold tracking-[.15em] uppercase text-warm-400 mb-1">👁 Private view link — for you and {card.recipient_name} only</p>
               <p className="text-sm text-warm-600 mb-3">
                 This is the private card view link. Share it only with <strong>{card.recipient_name}</strong> so they can see all the messages and access any gift.

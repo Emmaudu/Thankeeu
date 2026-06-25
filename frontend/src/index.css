@@ -1930,3 +1930,57 @@ body.sidebar-open { overflow: hidden; }
     padding-right: 1.75rem !important;
   }
 }
+
+/* ── CardView dark body glass panels ─────────────────────────────────── */
+.glass-panel {
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* Card view reply input */
+.cv-reply-input {
+  font-family: inherit;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  transition: border-color .2s, box-shadow .2s;
+}
+.cv-reply-input::placeholder {
+  color: rgba(255, 255, 255, 0.42);
+}
+.cv-reply-input:focus {
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+
+/* ── CardView dark body text overrides ─────────────────────────────────
+   The card view page uses a deep dark background (CelebrationBackground).
+   These rules ensure text inside the main body is legible on dark bg.
+──────────────────────────────────────────────────────────────────────── */
+.cv-dark-body .text-warm-900,
+.cv-dark-body .text-warm-800,
+.cv-dark-body .text-warm-700 { color: rgba(255,255,255,0.92) !important; }
+
+.cv-dark-body .text-warm-600,
+.cv-dark-body .text-warm-500 { color: rgba(255,255,255,0.65) !important; }
+
+.cv-dark-body .text-warm-400,
+.cv-dark-body .text-warm-300 { color: rgba(255,255,255,0.42) !important; }
+
+/* Panels/cards that sit on the dark background */
+.cv-dark-body .bg-white,
+.cv-dark-body .bg-purple-50,
+.cv-dark-body .bg-warm-50 {
+  background: rgba(255,255,255,0.10) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.cv-dark-body .border-purple-100,
+.cv-dark-body .border-warm-100,
+.cv-dark-body .border-warm-200 {
+  border-color: rgba(255,255,255,0.16) !important;
+}

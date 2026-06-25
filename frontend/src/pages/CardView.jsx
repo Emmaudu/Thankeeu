@@ -173,7 +173,7 @@ function MagicSearch({ messages, query, setQuery, active, setActive, design, fou
           }} />
           <style>{`@keyframes gradient-shift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }`}</style>
 
-          <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', background:'rgba(0,0,0,0.45)', backdropFilter:'blur(16px)', borderRadius:16, padding:'2px 4px', boxShadow:'0 4px 20px rgba(0,0,0,0.3)' }}>
+          <div style={{ position:'relative', zIndex:1, display:'flex', alignItems:'center', background:'white', borderRadius:16, padding:'2px 4px', boxShadow:'0 4px 20px rgba(0,0,0,0.1)' }}>
             {/* Search icon */}
             <span style={{ padding:'0 12px', fontSize:16, opacity:0.6 }}>🔍</span>
 
@@ -185,7 +185,7 @@ function MagicSearch({ messages, query, setQuery, active, setActive, design, fou
               placeholder={`Search by name — e.g. ${names[0] || 'Chisom'}…`}
               style={{
                 flex:1, border:'none', background:'transparent',
-                fontSize:15, fontWeight:500, color:'rgba(255,255,255,0.9)',
+                fontSize:15, fontWeight:500, color:'#1a1a2e',
                 padding:'12px 0', fontFamily:'inherit',
               }}
             />
@@ -825,124 +825,86 @@ const Media = ({ message, large = false }) => {
 };
 
 /* ─── CelebrationBackground ─────────────────────────────────────────────
-   Deep frosted atmosphere derived from the card's accent color.
-   Uses position:absolute so it fills the parent (min-h-screen) and
-   scrolls with the page — no z-index fighting with fixed elements.
+   Floating celebration SVG icons on the card's LIGHT soft background.
+   Keeps the normal light body but adds celebratory atmosphere with icons.
 ─────────────────────────────────────────────────────────────────────────── */
-const CELEBRATION_ICONS = [
-  /* Star */       'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-  /* Heart */      'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
-  /* Sparkle */    'M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83',
-  /* Gift */       'M20 12v10H4V12M22 7H2v5h20V7zM12 22V7m0-2a2 2 0 0 1-4 0 2 2 0 0 1 4 0zm6 2a2 2 0 0 1-4 0 2 2 0 0 1 4 0z',
-  /* Bell */       'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0',
-  /* Music note */ 'M9 18V5l12-2v13M9 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm12-2a2 2 0 1 1-4 0 2 2 0 0 1 4 0z',
-  /* Crown */      'M2 20h20M5 20V10l7-7 7 7v10',
-  /* Confetti */   'M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z',
+const CEL_ICONS = [
+  'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+  'M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83',
+  'M20 12v10H4V12M22 7H2v5h20V7zM12 22V7m0-2a2 2 0 0 1-4 0 2 2 0 0 1 4 0zm6 2a2 2 0 0 1-4 0 2 2 0 0 1 4 0z',
+  'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0',
+  'M9 18V5l12-2v13M9 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm12-2a2 2 0 1 1-4 0 2 2 0 0 1 4 0z',
+  'M2 20h20M5 20V10l7-7 7 7v10',
+  'M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z',
 ];
 
-const ICON_POSITIONS = [
-  { x:3,   y:4,   size:44, opacity:0.30, rot:15,  delay:0    },
-  { x:86,  y:3,   size:36, opacity:0.28, rot:-22, delay:0.8  },
-  { x:16,  y:68,  size:52, opacity:0.26, rot:30,  delay:1.4  },
-  { x:74,  y:62,  size:40, opacity:0.30, rot:-12, delay:0.3  },
-  { x:46,  y:12,  size:32, opacity:0.26, rot:45,  delay:2.1  },
-  { x:91,  y:38,  size:48, opacity:0.28, rot:0,   delay:1.7  },
-  { x:8,   y:40,  size:30, opacity:0.26, rot:-35, delay:0.6  },
-  { x:58,  y:82,  size:42, opacity:0.30, rot:20,  delay:1.2  },
-  { x:33,  y:53,  size:28, opacity:0.24, rot:-18, delay:2.5  },
-  { x:78,  y:20,  size:50, opacity:0.28, rot:25,  delay:0.4  },
-  { x:24,  y:86,  size:36, opacity:0.26, rot:-5,  delay:1.9  },
-  { x:63,  y:46,  size:32, opacity:0.24, rot:55,  delay:0.9  },
-  { x:49,  y:90,  size:44, opacity:0.28, rot:-28, delay:1.5  },
-  { x:6,   y:26,  size:26, opacity:0.25, rot:10,  delay:2.8  },
-  { x:94,  y:76,  size:30, opacity:0.26, rot:-42, delay:0.2  },
-  { x:41,  y:36,  size:38, opacity:0.24, rot:35,  delay:1.1  },
-  { x:70,  y:8,   size:34, opacity:0.27, rot:-8,  delay:2.3  },
-  { x:20,  y:20,  size:28, opacity:0.24, rot:62,  delay:3.1  },
-  { x:52,  y:28,  size:22, opacity:0.22, rot:-15, delay:1.6  },
-  { x:30,  y:72,  size:40, opacity:0.28, rot:40,  delay:0.5  },
-  { x:82,  y:55,  size:26, opacity:0.24, rot:-30, delay:2.0  },
-  { x:15,  y:48,  size:34, opacity:0.26, rot:18,  delay:1.3  },
-  { x:67,  y:30,  size:30, opacity:0.25, rot:-50, delay:2.7  },
-  { x:38,  y:15,  size:46, opacity:0.28, rot:70,  delay:0.7  },
-  { x:55,  y:65,  size:24, opacity:0.22, rot:-20, delay:3.3  },
-  { x:88,  y:90,  size:38, opacity:0.26, rot:10,  delay:1.0  },
-  { x:12,  y:92,  size:32, opacity:0.24, rot:-45, delay:2.4  },
-  { x:75,  y:42,  size:28, opacity:0.22, rot:28,  delay:3.5  },
-  { x:44,  y:78,  size:42, opacity:0.27, rot:-8,  delay:0.9  },
-  { x:97,  y:15,  size:24, opacity:0.23, rot:55,  delay:1.8  },
+const CEL_POSITIONS = [
+  { x:2,   y:3,   size:42, opacity:0.12, rot:15,  delay:0    },
+  { x:88,  y:2,   size:34, opacity:0.11, rot:-22, delay:0.8  },
+  { x:14,  y:65,  size:50, opacity:0.10, rot:30,  delay:1.4  },
+  { x:76,  y:60,  size:38, opacity:0.12, rot:-12, delay:0.3  },
+  { x:46,  y:10,  size:30, opacity:0.10, rot:45,  delay:2.1  },
+  { x:92,  y:36,  size:46, opacity:0.11, rot:0,   delay:1.7  },
+  { x:7,   y:38,  size:28, opacity:0.10, rot:-35, delay:0.6  },
+  { x:58,  y:80,  size:40, opacity:0.12, rot:20,  delay:1.2  },
+  { x:32,  y:52,  size:26, opacity:0.09, rot:-18, delay:2.5  },
+  { x:78,  y:18,  size:48, opacity:0.11, rot:25,  delay:0.4  },
+  { x:22,  y:85,  size:34, opacity:0.10, rot:-5,  delay:1.9  },
+  { x:64,  y:44,  size:30, opacity:0.09, rot:55,  delay:0.9  },
+  { x:48,  y:91,  size:42, opacity:0.11, rot:-28, delay:1.5  },
+  { x:5,   y:24,  size:24, opacity:0.10, rot:10,  delay:2.8  },
+  { x:95,  y:74,  size:28, opacity:0.10, rot:-42, delay:0.2  },
+  { x:40,  y:34,  size:36, opacity:0.09, rot:35,  delay:1.1  },
+  { x:70,  y:7,   size:32, opacity:0.11, rot:-8,  delay:2.3  },
+  { x:19,  y:19,  size:26, opacity:0.09, rot:62,  delay:3.1  },
+  { x:52,  y:27,  size:20, opacity:0.09, rot:-15, delay:1.6  },
+  { x:30,  y:71,  size:38, opacity:0.11, rot:40,  delay:0.5  },
+  { x:83,  y:53,  size:24, opacity:0.09, rot:-30, delay:2.0  },
+  { x:15,  y:47,  size:32, opacity:0.10, rot:18,  delay:1.3  },
+  { x:67,  y:29,  size:28, opacity:0.10, rot:-50, delay:2.7  },
+  { x:37,  y:14,  size:44, opacity:0.11, rot:70,  delay:0.7  },
+  { x:55,  y:63,  size:22, opacity:0.09, rot:-20, delay:3.3  },
+  { x:89,  y:89,  size:36, opacity:0.10, rot:10,  delay:1.0  },
+  { x:11,  y:93,  size:30, opacity:0.09, rot:-45, delay:2.4  },
+  { x:74,  y:41,  size:26, opacity:0.09, rot:28,  delay:3.5  },
+  { x:43,  y:77,  size:40, opacity:0.11, rot:-8,  delay:0.9  },
+  { x:97,  y:14,  size:22, opacity:0.09, rot:55,  delay:1.8  },
 ];
 
 const CelebrationBackground = ({ design }) => {
   const accent = design?.accent || '#7C3AED';
-
-  // Derive deep dark body color from the card accent hex
-  let bodyBg = '#0F0A1E';
-  let iconColor = '#C4B5FD';
-  try {
-    if (accent && accent.startsWith('#') && accent.length >= 7) {
-      const r = parseInt(accent.slice(1,3),16);
-      const g = parseInt(accent.slice(3,5),16);
-      const b = parseInt(accent.slice(5,7),16);
-      // Lighten toward a rich deep tone — visible hue, not near-black
-      const dr = Math.max(18, Math.round(r * 0.28 + 18));
-      const dg = Math.max(12, Math.round(g * 0.22 + 12));
-      const db = Math.max(25, Math.round(b * 0.38 + 20));
-      bodyBg    = `rgb(${dr},${dg},${db})`;
-      // Icon color = lighter version of accent for contrast on dark bg
-      const lr = Math.min(255, Math.round(r * 0.6 + 100));
-      const lg = Math.min(255, Math.round(g * 0.6 + 80));
-      const lb = Math.min(255, Math.round(b * 0.7 + 80));
-      iconColor = `rgb(${lr},${lg},${lb})`;
-    }
-  } catch {}
+  // Use the accent color for icons — they sit on the LIGHT soft background
+  const iconColor = accent.startsWith('#') ? accent : '#7C3AED';
 
   return (
     <div style={{
       position: 'absolute', inset: 0, zIndex: 0,
-      minHeight: '100%', overflow: 'hidden',
-      pointerEvents: 'none',
-      background: `linear-gradient(160deg, ${bodyBg} 0%, ${bodyBg}f0 40%, ${bodyBg} 100%)`,
+      minHeight: '100%', overflow: 'hidden', pointerEvents: 'none',
     }}>
-      {/* Ambient glow blobs — gives depth */}
-      <div style={{ position:'absolute', top:'-5%', left:'-5%', width:'55vw', height:'55vw',
-        borderRadius:'50%', filter:'blur(80px)',
-        background:`radial-gradient(circle, ${iconColor}45 0%, transparent 65%)` }}/>
-      <div style={{ position:'absolute', bottom:'0', right:'-5%', width:'50vw', height:'50vw',
-        borderRadius:'50%', filter:'blur(90px)',
-        background:`radial-gradient(circle, ${iconColor}38 0%, transparent 65%)` }}/>
-      <div style={{ position:'absolute', top:'45%', left:'35%', width:'40vw', height:'40vw',
-        borderRadius:'50%', filter:'blur(70px)',
-        background:`radial-gradient(circle, ${iconColor}28 0%, transparent 65%)` }}/>
-
-      {/* Floating celebration icons */}
       <style>{`
         @keyframes celFloat {
           0%   { transform: translateY(0px) scale(1); }
-          50%  { transform: translateY(-20px) scale(1.05); }
+          50%  { transform: translateY(-16px) scale(1.04); }
           100% { transform: translateY(0px) scale(1); }
         }
       `}</style>
-
-      {ICON_POSITIONS.map((pos, i) => {
-        const d = CELEBRATION_ICONS[i % CELEBRATION_ICONS.length];
-        return (
-          <div key={i} style={{
-            position: 'absolute',
-            left: `${pos.x}%`,
-            top: `${pos.y}%`,
-            opacity: pos.opacity,
-            transform: `rotate(${pos.rot}deg)`,
-            animation: `celFloat ${5 + (i % 5)}s ${pos.delay}s ease-in-out infinite`,
-          }}>
-            <svg width={pos.size} height={pos.size} viewBox="0 0 24 24"
-              fill="none" stroke={iconColor} strokeWidth={1.8}
-              strokeLinecap="round" strokeLinejoin="round">
-              <path d={d}/>
-            </svg>
-          </div>
-        );
-      })}
+      {CEL_POSITIONS.map((pos, i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          left: `${pos.x}%`,
+          top: `${pos.y}%`,
+          opacity: pos.opacity,
+          transform: `rotate(${pos.rot}deg)`,
+          animation: `celFloat ${5 + (i % 5)}s ${pos.delay}s ease-in-out infinite`,
+        }}>
+          <svg width={pos.size} height={pos.size} viewBox="0 0 24 24"
+            fill="none" stroke={iconColor} strokeWidth={1.6}
+            strokeLinecap="round" strokeLinejoin="round">
+            <path d={CEL_ICONS[i % CEL_ICONS.length]}/>
+          </svg>
+        </div>
+      ))}
     </div>
   );
 };
@@ -1329,7 +1291,7 @@ const CardView = () => {
   const layoutType = member ? 'member' : company ? 'company' : 'user';
 
   const content = (
-    <div className="min-h-screen flex flex-col" style={{ overflowX: 'hidden', position: 'relative' }}>
+    <div className="min-h-0 flex flex-col" style={{ background: design?.soft || '#F5F0FF', overflowX: 'hidden', position: 'relative' }}>
       <CelebrationBackground design={design} />
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}
@@ -1478,7 +1440,7 @@ const CardView = () => {
         </div>
       </header>
 
-      <main className="cv-dark-body flex-1 max-w-6xl mx-auto w-full px-4 py-10 sm:py-14" style={{ position: 'relative', zIndex: 1, color: 'rgba(255,255,255,0.92)' }}>
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-10 sm:py-14" style={{ position: 'relative', zIndex: 1 }}>
         {totalCollected > 0 && (
           <section className="card-art card-art-sunburst rounded-[2rem] bg-gradient-to-br from-emerald-700 to-teal-900 text-white p-6 sm:p-8 mb-9 shadow-xl">
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -1530,7 +1492,7 @@ const CardView = () => {
         <div className="no-print mb-9 space-y-3">
           {/* Box 1 — Public signing link — open while active AND after delivery (sent) */}
           {(card.status === 'active' || card.status === 'sent') && (
-            <div className="rounded-2xl border-2 p-4 sm:p-5" style={{ borderColor: 'rgba(255,255,255,0.2)', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)' }}>
+            <div className="rounded-2xl border-2 p-4 sm:p-5" style={{ borderColor: '#A855F740', background: 'linear-gradient(135deg,#F5F3FF,#FCE7F3)' }}>
               <p className="text-xs font-extrabold tracking-[.15em] uppercase text-primary-600 mb-1">
                 {card.status === 'sent' ? '🎁 Still open — messages & gifts welcome' : '✍️ Signing link — for everyone'}
               </p>
@@ -1558,7 +1520,7 @@ const CardView = () => {
 
           {/* Box 2 — Private view link (recipient + creator only) */}
           {(canViewPrivate && (card.access_token || card.isCreator)) && (
-            <div className="rounded-2xl p-4 sm:p-5" style={{ border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(16px)' }}>
+            <div className="rounded-2xl border border-purple-100 bg-white p-4 sm:p-5">
               <p className="text-xs font-extrabold tracking-[.15em] uppercase text-warm-400 mb-1">👁 Private view link — for you and {card.recipient_name} only</p>
               <p className="text-sm text-warm-600 mb-3">
                 This is the private card view link. Share it only with <strong>{card.recipient_name}</strong> so they can see all the messages and access any gift.
@@ -1610,7 +1572,7 @@ const CardView = () => {
           {messages.length === 0 ? (
             <div className="text-center py-16 glass-panel rounded-[2rem]">
               <div className="text-5xl mb-3">{'\u2709\uFE0F'}</div>
-              <p style={{ color: 'rgba(255,255,255,0.6)' }}>The first beautiful message is on its way.</p>
+              <p className="text-warm-500">The first beautiful message is on its way.</p>
             </div>
           ) : (
             <>
@@ -1658,20 +1620,9 @@ const CardView = () => {
 
         {(token || card.isRecipient) && (
           <section className="glass-panel rounded-[2rem] p-6 sm:p-8 mt-10">
-            <h3 className="text-2xl font-bold mb-2" style={{ color: 'rgba(255,255,255,0.92)' }}>💌 Send love back</h3>
-            <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>Write a thank-you note — it goes to everyone who signed your card.</p>
-            <textarea
-              className="cv-reply-input h-28 resize-none mb-3 w-full rounded-2xl px-4 py-3 text-sm"
-              style={{
-                background: 'rgba(255,255,255,0.12)',
-                border: '1.5px solid rgba(255,255,255,0.25)',
-                color: '#fff',
-                outline: 'none',
-              }}
-              placeholder="Write your heartfelt thank-you here..."
-              value={replyText}
-              onChange={event => setReplyText(event.target.value)}
-            />
+            <h3 className="text-2xl text-warm-900 mb-2">💌 Send love back</h3>
+            <p className="text-sm text-warm-500 mb-4">Write a thank-you note — it goes to everyone who signed your card.</p>
+            <textarea className="input h-28 resize-none mb-3" placeholder="Write your heartfelt thank-you here..." value={replyText} onChange={event => setReplyText(event.target.value)} />
             <button onClick={handleReply} disabled={replyLoading || !replyText.trim()} className="btn-primary">
               {replyLoading
                 ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Sending...</span>

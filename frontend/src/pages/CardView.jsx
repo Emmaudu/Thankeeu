@@ -824,6 +824,120 @@ const Media = ({ message, large = false }) => {
   return <MediaCarousel items={items} large={large} />;
 };
 
+/* ─── CelebrationBackground ─────────────────────────────────────────────
+   Floating celebration SVG icons + deep frosted glass atmosphere.
+   Derives deep background color from the card's design accent/background.
+   All icons are SVG paths — no emoji — consistent, crisp at any scale.
+─────────────────────────────────────────────────────────────────────────── */
+const CELEBRATION_ICONS = [
+  /* Star */       'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+  /* Heart */      'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z',
+  /* Confetti dot */ 'M12 2a10 10 0 1 1 0 20A10 10 0 0 1 12 2z',
+  /* Gift */       'M20 12v10H4V12M22 7H2v5h20V7zM12 22V7m0 0a2 2 0 0 1-2-2 2 2 0 0 1 4 0 2 2 0 0 1-2 2zm-5-7h10',
+  /* Sparkle */    'M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83',
+  /* Bell */       'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0',
+  /* Music note */ 'M9 18V5l12-2v13M9 18a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm12-2a2 2 0 1 1-4 0 2 2 0 0 1 4 0z',
+  /* Crown */      'M2 20h20M5 20V10l7-6 7 6v10',
+];
+
+// Pre-computed stable positions — no random() so no hydration mismatch
+const ICON_POSITIONS = [
+  { x:4,   y:8,   size:28, opacity:0.07, rot:15,  delay:0    },
+  { x:88,  y:5,   size:22, opacity:0.06, rot:-20, delay:0.8  },
+  { x:18,  y:72,  size:36, opacity:0.05, rot:30,  delay:1.4  },
+  { x:75,  y:65,  size:24, opacity:0.07, rot:-10, delay:0.3  },
+  { x:48,  y:15,  size:20, opacity:0.05, rot:45,  delay:2.1  },
+  { x:92,  y:40,  size:30, opacity:0.06, rot:0,   delay:1.7  },
+  { x:10,  y:42,  size:18, opacity:0.05, rot:-35, delay:0.6  },
+  { x:60,  y:85,  size:26, opacity:0.07, rot:20,  delay:1.2  },
+  { x:35,  y:55,  size:16, opacity:0.04, rot:-15, delay:2.5  },
+  { x:80,  y:22,  size:32, opacity:0.06, rot:25,  delay:0.4  },
+  { x:25,  y:88,  size:22, opacity:0.05, rot:-5,  delay:1.9  },
+  { x:65,  y:48,  size:20, opacity:0.04, rot:55,  delay:0.9  },
+  { x:50,  y:92,  size:28, opacity:0.06, rot:-25, delay:1.5  },
+  { x:8,   y:28,  size:14, opacity:0.05, rot:10,  delay:2.8  },
+  { x:95,  y:78,  size:18, opacity:0.05, rot:-40, delay:0.2  },
+  { x:42,  y:38,  size:24, opacity:0.04, rot:35,  delay:1.1  },
+];
+
+const CelebrationBackground = ({ design }) => {
+  // Derive a deep rich background from the card accent
+  const accent = design?.accent || '#7C3AED';
+  const isDark  = design?.dark;
+
+  // Parse hex to darken it significantly for the body
+  const hexToRgb = hex => {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return { r, g, b };
+  };
+
+  let bodyBg, iconColor;
+  try {
+    if (accent.startsWith('#') && accent.length >= 7) {
+      const { r, g, b } = hexToRgb(accent);
+      // Darken significantly — mix toward very dark purple
+      const dr = Math.round(r * 0.18 + 8);
+      const dg = Math.round(g * 0.12 + 4);
+      const db = Math.round(b * 0.25 + 12);
+      bodyBg   = `rgb(${dr},${dg},${db})`;
+      iconColor = accent;
+    } else {
+      bodyBg   = '#0F0A1E';
+      iconColor = '#A78BFA';
+    }
+  } catch {
+    bodyBg   = '#0F0A1E';
+    iconColor = '#A78BFA';
+  }
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 0,
+      background: `radial-gradient(ellipse at 30% 20%, ${bodyBg}ee 0%, ${bodyBg} 60%), ${bodyBg}`,
+      overflow: 'hidden', pointerEvents: 'none',
+    }}>
+      {/* Ambient glow blobs */}
+      <div style={{ position:'absolute', top:'-10%', left:'-5%', width:'45vw', height:'45vw', borderRadius:'50%',
+        background:`radial-gradient(circle, ${iconColor}22 0%, transparent 70%)`, filter:'blur(40px)' }}/>
+      <div style={{ position:'absolute', bottom:'-10%', right:'-5%', width:'50vw', height:'50vw', borderRadius:'50%',
+        background:`radial-gradient(circle, ${iconColor}18 0%, transparent 70%)`, filter:'blur(50px)' }}/>
+      <div style={{ position:'absolute', top:'40%', left:'40%', width:'30vw', height:'30vw', borderRadius:'50%',
+        background:`radial-gradient(circle, ${iconColor}10 0%, transparent 70%)`, filter:'blur(30px)' }}/>
+
+      {/* Floating celebration SVG icons */}
+      {ICON_POSITIONS.map((pos, i) => {
+        const d = CELEBRATION_ICONS[i % CELEBRATION_ICONS.length];
+        const animName = `celFloat${i}`;
+        return (
+          <div key={i} style={{
+            position: 'absolute',
+            left: `${pos.x}%`,
+            top: `${pos.y}%`,
+            opacity: pos.opacity,
+            transform: `rotate(${pos.rot}deg)`,
+            animation: `celFloat ${6 + (i % 4)}s ${pos.delay}s ease-in-out infinite alternate`,
+          }}>
+            <svg width={pos.size} height={pos.size} viewBox="0 0 24 24"
+              fill="none" stroke={iconColor} strokeWidth="1.5"
+              strokeLinecap="round" strokeLinejoin="round">
+              <path d={d}/>
+            </svg>
+          </div>
+        );
+      })}
+
+      <style>{`
+        @keyframes celFloat {
+          from { transform: translateY(0px) rotate(var(--r, 0deg)); }
+          to   { transform: translateY(-18px) rotate(calc(var(--r, 0deg) + 8deg)); }
+        }
+      `}</style>
+    </div>
+  );
+};
+
 const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, highlighted }) => {
   const [reacted, setReacted] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -1205,7 +1319,8 @@ const CardView = () => {
   const layoutType = member ? 'member' : company ? 'company' : 'user';
 
   const content = (
-    <div className="min-h-0 flex flex-col" style={{ background: design?.soft || design?.background?.includes?.("gradient") ? "#F5F0FF" : (design?.soft || "#F5F0FF"), overflowX: 'hidden' }}>
+    <div className="min-h-0 flex flex-col" style={{ overflowX: 'hidden', background: 'transparent', position: 'relative' }}>
+      <CelebrationBackground design={design} />
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}
       <Confetti />
@@ -1301,7 +1416,7 @@ const CardView = () => {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-10 sm:py-14">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-10 sm:py-14" style={{ position: 'relative', zIndex: 1 }}>
         {totalCollected > 0 && (
           <section className="card-art card-art-sunburst rounded-[2rem] bg-gradient-to-br from-emerald-700 to-teal-900 text-white p-6 sm:p-8 mb-9 shadow-xl">
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -1433,7 +1548,7 @@ const CardView = () => {
           {messages.length === 0 ? (
             <div className="text-center py-16 glass-panel rounded-[2rem]">
               <div className="text-5xl mb-3">{'\u2709\uFE0F'}</div>
-              <p className="text-warm-500">The first beautiful message is on its way.</p>
+              <p style={{ color: 'rgba(255,255,255,0.6)' }}>The first beautiful message is on its way.</p>
             </div>
           ) : (
             <>
@@ -1481,9 +1596,9 @@ const CardView = () => {
 
         {(token || card.isRecipient) && (
           <section className="glass-panel rounded-[2rem] p-6 sm:p-8 mt-10">
-            <h3 className="text-2xl text-warm-900 mb-2">💌 Send love back</h3>
-            <p className="text-sm text-warm-500 mb-4">Write a thank-you note — it goes to everyone who signed your card.</p>
-            <textarea className="input h-28 resize-none mb-3" placeholder="Write your heartfelt thank-you here..." value={replyText} onChange={event => setReplyText(event.target.value)} />
+            <h3 className="text-2xl font-bold mb-2" style={{ color: 'rgba(255,255,255,0.92)' }}>💌 Send love back</h3>
+            <p className="text-sm mb-4" style={{ color: 'rgba(255,255,255,0.6)' }}>Write a thank-you note — it goes to everyone who signed your card.</p>
+            <textarea className="input h-28 resize-none mb-3" style={{ background:'rgba(255,255,255,0.1)', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', '::placeholder': { color:'rgba(255,255,255,0.4)' } }} placeholder="Write your heartfelt thank-you here..." value={replyText} onChange={event => setReplyText(event.target.value)} />
             <button onClick={handleReply} disabled={replyLoading || !replyText.trim()} className="btn-primary">
               {replyLoading
                 ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Sending...</span>

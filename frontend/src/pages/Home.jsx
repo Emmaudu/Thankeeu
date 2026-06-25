@@ -956,6 +956,9 @@ const Home = () => {
 
             {/* Left: headline + CTAs + sample card grid */}
             <div className="text-center lg:text-left">
+              <p style={{ fontSize:'clamp(1rem,2vw,1.15rem)', lineHeight:1.6, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#6B7280', fontStyle:'italic', marginBottom:'1rem', display:'block', background:'none', border:'none', borderRadius:0, padding:0 }}>
+                Imagine opening one beautiful card filled with messages from everyone who matters.
+              </p>
               <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(3.5rem,9vw,7rem)', lineHeight:1.0, letterSpacing:'-0.03em' }}>
                 <span style={{ display:'block', fontSize:'clamp(2.8rem,7vw,5.5rem)', color:'#1A1035' }}>Send a Group</span>
                 <span style={{ display:'block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px', fontSize:'clamp(3.5rem,9vw,7rem)' }}>

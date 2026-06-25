@@ -1054,46 +1054,133 @@ const Home = () => {
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ SOCIAL PROOF — LOGO STRIP ══ */}
-      <section className="py-10 px-4 gc-font overflow-hidden" style={{ background:'#F0EEFF' }}>
-        <div className="max-w-5xl mx-auto">
-          <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-warm-400 mb-8">
-            Teams across these organisations celebrate with Thankeeu
-          </p>
+      <section className="py-10 gc-font overflow-hidden" style={{ background:'#F0EEFF' }}>
+        <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-warm-400 mb-8 px-4">
+          Teams across these organisations celebrate with Thankeeu
+        </p>
 
-          {/* Scrolling marquee */}
-          <div className="relative">
-            {/* Fade edges */}
-            <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-              style={{ background:'linear-gradient(to right,#F0EEFF,transparent)' }}/>
-            <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
-              style={{ background:'linear-gradient(to left,#F0EEFF,transparent)' }}/>
+        {/* Full-width marquee — no max-width constraint */}
+        <div className="relative">
+          {/* Fade edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-24 z-10 pointer-events-none"
+            style={{ background:'linear-gradient(to right,#F0EEFF,transparent)' }}/>
+          <div className="absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none"
+            style={{ background:'linear-gradient(to left,#F0EEFF,transparent)' }}/>
 
-            <div className="flex items-center gap-16 animate-marquee" style={{ width:'max-content' }}>
-              {/* Two identical sets for seamless infinite loop */}
-              {[0,1].map(set => (
-                <div key={set} className="flex items-center gap-16 flex-shrink-0">
-                  {[
-                    { src:'/logos/huawei.jpg',   alt:'Huawei',              w:110 },
-                    { src:'/logos/covenant.jpg', alt:'Covenant University',  w:90  },
-                    { src:'/logos/landmark.jpg', alt:'Landmark University',  w:80  },
-                    { src:'/logos/bells.jpg',    alt:'Bells University',     w:72  },
-                  ].map(logo => (
-                    <div key={logo.alt} className="flex items-center justify-center flex-shrink-0" style={{ height:64, minWidth: logo.w }}>
-                      <img src={logo.src} alt={logo.alt}
-                        className="logo-strip-img"
-                        style={{ maxHeight:52, width:logo.w, objectFit:'contain' }}
-                        loading="lazy"
-                        title={logo.alt}
-                        onError={e => { e.currentTarget.style.display='none'; }}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
+          {/* Two identical sets — translate from 0 to -50% → seamless loop */}
+          <div className="flex items-center animate-marquee" style={{ width:'max-content', gap:'80px' }}>
+            {[0,1].map(set => (
+              <div key={set} className="flex items-center flex-shrink-0" style={{ gap:'80px' }}>
+                {[
+                  { src:'/logos/huawei.png',   alt:'Huawei',              w:120 },
+                  { src:'/logos/covenant.png', alt:'Covenant University',  w:90  },
+                  { src:'/logos/landmark.png', alt:'Landmark University',  w:80  },
+                  { src:'/logos/bells.png',    alt:'Bells University',     w:76  },
+                ].map(logo => (
+                  <div key={logo.alt} className="flex items-center justify-center flex-shrink-0"
+                    style={{ height:68, width: logo.w }}>
+                    <img src={logo.src} alt={logo.alt}
+                      className="logo-strip-img"
+                      style={{ maxHeight:56, width:logo.w, objectFit:'contain' }}
+                      loading="lazy"
+                      title={logo.alt}
+                      onError={e => { e.currentTarget.style.display='none'; }}
+                    />
+                  </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
       </section>
+
+      {/* ══ TESTIMONIALS ══ */}
+      <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'#fff' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="mx-auto mb-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary-500">
+              <Icon name="Star" size={13}/> Real stories
+            </div>
+            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
+              People who actually<br/><span className="text-primary-500">made someone's day</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* ── Comfort Irorere ── */}
+            <div className="rounded-3xl border-2 border-purple-100 overflow-hidden hover:border-primary-300 hover:shadow-xl transition-all flex flex-col" style={{ background:'#FDFCFF' }}>
+              {/* Big photo */}
+              <div className="w-full overflow-hidden" style={{ height:420 }}>
+                <img src="/photos/comfort.png" alt="Comfort Irorere"
+                  className="w-full h-full object-cover object-top"
+                  loading="lazy"/>
+              </div>
+              {/* Content */}
+              <div className="p-6 flex flex-col gap-4 flex-1 relative">
+                <span className="absolute top-3 right-5 text-7xl text-primary-100 font-serif leading-none select-none pointer-events-none">"</span>
+                <div className="flex gap-0.5">
+                  {[0,1,2,3,4].map(i => <Icon key={i} name="Star" size={15} className="text-amber-400 fill-amber-400"/>)}
+                </div>
+                <p className="text-sm text-warm-600 leading-relaxed italic flex-1 relative z-10">
+                  "My best friend had her baby shower in December and I was stuck in Virginia — no way I could be there in person. I created a Thankeeu card, sent the link to 18 of our girls, and by the day of her shower, she opened it to 18 heartfelt messages, photos, and a gift pool we'd all put together. She literally called me crying. I didn't think an app could ever replace being in the room, but Thankeeu came incredibly close."
+                </p>
+                <div className="flex items-center gap-3 pt-4 border-t border-purple-50">
+                  <img src="/photos/comfort.png" alt="Comfort Irorere"
+                    className="w-12 h-12 rounded-full object-cover object-top flex-shrink-0 border-2 border-primary-200"
+                    loading="lazy"/>
+                  <div className="flex-1 min-w-0">
+                    <a href="https://www.linkedin.com/in/comfort-uduebholo/" target="_blank" rel="noopener noreferrer"
+                      className="text-sm font-bold text-warm-900 hover:text-primary-600 transition-colors flex items-center gap-1.5">
+                      Comfort Irorere
+                      <svg className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                    </a>
+                    <p className="text-xs text-warm-400">Security Engineer · Amazon Web Services</p>
+                    <p className="text-xs text-warm-400">🇺🇸 Virginia, United States</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Favour Ibude ── */}
+            <div className="rounded-3xl border-2 border-purple-100 overflow-hidden hover:border-primary-300 hover:shadow-xl transition-all flex flex-col" style={{ background:'#FDFCFF' }}>
+              {/* Big photo */}
+              <div className="w-full overflow-hidden" style={{ height:420 }}>
+                <img src="/photos/favour.jpg" alt="Favour Ibude"
+                  className="w-full h-full object-cover object-top"
+                  loading="lazy"/>
+              </div>
+              {/* Content */}
+              <div className="p-6 flex flex-col gap-4 flex-1 relative">
+                <span className="absolute top-3 right-5 text-7xl text-primary-100 font-serif leading-none select-none pointer-events-none">"</span>
+                <div className="flex gap-0.5">
+                  {[0,1,2,3,4].map(i => <Icon key={i} name="Star" size={15} className="text-amber-400 fill-amber-400"/>)}
+                </div>
+                <p className="text-sm text-warm-600 leading-relaxed italic flex-1 relative z-10">
+                  "Father's Day crept up on us and we had zero time to plan anything. I jumped on Thankeeu, created a card for my dad, and shared the link with my siblings and a few cousins. Within hours everyone had left him a message — some even added voice notes. We pooled a gift together and the card was delivered to him on the day. He called each one of us individually just to say thank you. That reaction is exactly why I'll use Thankeeu for every family celebration from now on."
+                </p>
+                <div className="flex items-center gap-3 pt-4 border-t border-purple-50">
+                  <img src="/photos/favour.jpg" alt="Favour Ibude"
+                    className="w-12 h-12 rounded-full object-cover object-top flex-shrink-0 border-2 border-emerald-200"
+                    loading="lazy"/>
+                  <div className="flex-1 min-w-0">
+                    <a href="https://www.linkedin.com/in/favouribude/" target="_blank" rel="noopener noreferrer"
+                      className="text-sm font-bold text-warm-900 hover:text-primary-600 transition-colors flex items-center gap-1.5">
+                      Favour Ibude
+                      <svg className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                    </a>
+                    <p className="text-xs text-warm-400">Data Scientist / MLOps Engineer · Allianz</p>
+                    <p className="text-xs text-warm-400">🇳🇬 Lagos, Nigeria</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
       {/* ══ USE-CASE SLIDESHOW ══ */}
       <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#FDFCFF 0%,#F5F0FF 100%)' }}>
@@ -1280,96 +1367,6 @@ const Home = () => {
               <div className="absolute -top-3 -right-3 w-9 h-9 rounded-2xl bg-white border-2 border-purple-100 flex items-center justify-center animate-bounce-soft shadow-sm"><Icon name="Party" size={16} className="text-primary-500"/></div>
               <div className="absolute -top-2 -left-3 w-8 h-8 rounded-2xl bg-white border-2 border-purple-100 flex items-center justify-center animate-float shadow-sm"><Icon name="Gift" size={14} className="text-pink-500"/></div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
-
-      {/* ══ TESTIMONIALS ══ */}
-      <section className="py-12 md:py-16 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Star" size={13}/> Real stories</div>
-            <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
-              People who actually<br/><span className="text-primary-500">made someone's day</span>
-            </h2>
-          </div>
-
-          {/* ── Featured testimonials — real people with photos ── */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-
-            {/* Comfort Uduebholo */}
-            <div className="bg-white border-2 border-purple-100 rounded-3xl p-6 flex flex-col gap-4 hover:border-primary-300 hover:shadow-lg transition-all relative overflow-hidden">
-              {/* Decorative quote mark */}
-              <span className="absolute top-4 right-5 text-6xl text-primary-100 font-serif leading-none select-none">"</span>
-              <div className="flex gap-0.5">
-                {[0,1,2,3,4].map(i => <Icon key={i} name="Star" size={15} className="text-amber-400 fill-amber-400"/>)}
-              </div>
-              <p className="text-sm text-warm-600 leading-relaxed italic flex-1 relative z-10">
-                "My best friend had her baby shower in December and I was stuck in Virginia — no way I could be there in person. I created a Thankeeu card, sent the link to 18 of our girls, and by the day of her shower, she opened it to 18 heartfelt messages, photos, and a gift pool we'd put together. She literally called me crying. I didn't think an app could ever replace being in the room, but Thankeeu came incredibly close."
-              </p>
-              <div className="flex items-center gap-3 pt-4 border-t border-purple-50">
-                <a href="https://www.linkedin.com/in/comfort-uduebholo/" target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 text-white flex items-center justify-center text-base font-bold border-2 border-primary-200">
-                    CI
-                  </div>
-                </a>
-                <div className="flex-1 min-w-0">
-                  <a href="https://www.linkedin.com/in/comfort-uduebholo/" target="_blank" rel="noopener noreferrer"
-                    className="text-sm font-bold text-warm-900 hover:text-primary-600 transition-colors flex items-center gap-1.5">
-                    Comfort Irorere
-                    <svg className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-                  </a>
-                  <p className="text-xs text-warm-400">Security Engineer · Amazon Web Services</p>
-                  <p className="text-xs text-warm-400">🇺🇸 Virginia, United States</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Favour Ibude */}
-            <div className="bg-white border-2 border-purple-100 rounded-3xl p-6 flex flex-col gap-4 hover:border-primary-300 hover:shadow-lg transition-all relative overflow-hidden">
-              <span className="absolute top-4 right-5 text-6xl text-primary-100 font-serif leading-none select-none">"</span>
-              <div className="flex gap-0.5">
-                {[0,1,2,3,4].map(i => <Icon key={i} name="Star" size={15} className="text-amber-400 fill-amber-400"/>)}
-              </div>
-              <p className="text-sm text-warm-600 leading-relaxed italic flex-1 relative z-10">
-                "My brother turned 30 and we wanted to do something that would genuinely surprise him — not just a WhatsApp forward. I used Thankeeu to set up a group card, added a gift contribution link, and sent it to family and close friends. By morning, 27 people had signed and we raised enough to get him something he'd actually remember. Seeing his face when he opened it on his birthday was everything. Thankeeu made it feel like a real celebration, not just a notification."
-              </p>
-              <div className="flex items-center gap-3 pt-4 border-t border-purple-50">
-                <a href="https://www.linkedin.com/in/favouribude/" target="_blank" rel="noopener noreferrer" className="flex-shrink-0">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center text-base font-bold border-2 border-emerald-200">
-                    FI
-                  </div>
-                </a>
-                <div className="flex-1 min-w-0">
-                  <a href="https://www.linkedin.com/in/favouribude/" target="_blank" rel="noopener noreferrer"
-                    className="text-sm font-bold text-warm-900 hover:text-primary-600 transition-colors flex items-center gap-1.5">
-                    Favour Ibude
-                    <svg className="w-3.5 h-3.5 text-[#0A66C2] flex-shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-                  </a>
-                  <p className="text-xs text-warm-400">Data Scientist / MLOps Engineer · Allianz</p>
-                  <p className="text-xs text-warm-400">🇳🇬 Lagos, Nigeria</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ── Anonymous quick testimonials ── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {TESTIMONIALS.map(t => (
-              <div key={t.name} className="bg-white border-2 border-purple-100 rounded-3xl p-5 flex flex-col gap-3 hover:border-primary-300 hover:shadow-md transition-all">
-                <div className="flex gap-0.5">{Array(t.stars).fill(0).map((_,i)=><Icon key={i} name="Star" size={14} className="text-amber-400 fill-amber-400"/>)}</div>
-                <p className="text-sm text-warm-600 leading-relaxed italic flex-1">"{t.text}"</p>
-                <div className="flex items-center gap-3 pt-3 border-t border-purple-50">
-                  <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold flex-shrink-0">{t.name.split(' ').map(n=>n[0]).join('')}</div>
-                  <div>
-                    <p className="text-sm font-bold text-warm-900">{t.name}</p>
-                    <p className="text-xs text-warm-400">{t.role} · {t.location}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

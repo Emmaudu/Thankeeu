@@ -1645,9 +1645,9 @@ const CardView = () => {
     </div>
   );
 
-  if (layoutType === 'member')  return <><Navbar themeBg={design?.background?.startsWith?.('#') ? design.background : design?.accent} themeAccent={design?.accent} themeDark={design?.dark}/>{content}</>;
-  if (layoutType === 'company') return <><Navbar themeBg={design?.background?.startsWith?.('#') ? design.background : design?.accent} themeAccent={design?.accent} themeDark={design?.dark}/>{content}</>;
-  return <><Navbar themeBg={design?.background?.startsWith?.('#') ? design.background : design?.accent} themeAccent={design?.accent} themeDark={design?.dark}/>{content}</>;
+  if (layoutType === 'member')  return <><Navbar themeBg={design?.accent} themeDark={design?.dark}/>{content}</>;
+  if (layoutType === 'company') return <><Navbar themeBg={design?.accent} themeDark={design?.dark}/>{content}</>;
+  return <><Navbar themeBg={design?.accent} themeDark={design?.dark}/>{content}</>;
 };
 
 export default CardView;

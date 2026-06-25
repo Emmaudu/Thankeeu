@@ -7,7 +7,7 @@ import Icon from './ui/Icon';
 
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
 
-const Navbar = ({ onBookDemo, themeBg, themeAccent, themeDark }) => {
+const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
   const { user, logout }              = useAuth();
   const { company, logout: coLogout } = useCompanyAuth();
   const { member, logout: memLogout } = useMemberAuth();

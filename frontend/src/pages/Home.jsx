@@ -956,9 +956,11 @@ const Home = () => {
 
             {/* Left: headline + CTAs + sample card grid */}
             <div className="text-center lg:text-left">
-              <p style={{ fontSize:'clamp(1.05rem,2.2vw,1.25rem)', lineHeight:1.7, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, fontStyle:'normal', marginBottom:'1.25rem', display:'block', background:'none', border:'none', borderRadius:0, padding:0 }}>
-                Imagine opening one beautiful card filled with messages from everyone who matters.
-              </p>
+              <div style={{ display:'inline-block', background:'#EDE9FE', padding:'10px 16px', borderRadius:8, marginBottom:'1.25rem' }}>
+                <p style={{ fontSize:'clamp(1.05rem,2.2vw,1.25rem)', lineHeight:1.5, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, margin:0, padding:0, display:'block' }}>
+                  Imagine opening one beautiful card filled with messages from everyone who matters.
+                </p>
+              </div>
               <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(3.5rem,9vw,7rem)', lineHeight:1.0, letterSpacing:'-0.03em' }}>
                 <span style={{ display:'block', fontSize:'clamp(2.8rem,7vw,5.5rem)', color:'#1A1035' }}>Send a Group</span>
                 <span style={{ display:'block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px', fontSize:'clamp(3.5rem,9vw,7rem)' }}>

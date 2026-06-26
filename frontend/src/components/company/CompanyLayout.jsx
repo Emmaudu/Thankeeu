@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../ui/Icon';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
@@ -25,6 +25,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [coTooltip, setCoTooltip] = useState({ visible: false, text: '', y: 0 });
 
   const isActive = (p) => location.pathname === p;
   // Check if this company session was obtained via core team switching
@@ -58,7 +59,6 @@ const CompanyLayout = ({ children, title, subtitle }) => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#1E1438 0%,#14102E 100%)' }}>
-      <style>{`.co-tip-wrap:hover .co-tip { opacity: 1 !important; } @media(max-width:768px){.co-tip{display:none!important}}`}</style>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(124,110,255,0.12)' }}>
         <img src="/android-chrome-192x192.png" alt="Thankeeu" style={{ width:36, height:36, borderRadius:9, flexShrink:0, objectFit:'cover' }} />
@@ -120,9 +120,9 @@ const CompanyLayout = ({ children, title, subtitle }) => {
       </div>
 
 
-<nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
+<nav className="flex-1 px-3 py-1 overflow-y-auto overflow-x-hidden sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
         {NAV.map(({ path, icon, label, tip }) => (
-          <div key={path} style={{ position:'relative' }} className="co-tip-wrap">
+          <div key={path}>
             <Link to={path}
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all"
@@ -132,27 +132,40 @@ const CompanyLayout = ({ children, title, subtitle }) => {
                 paddingLeft: isActive(path) ? 9 : 12,
                 background: isActive(path) ? 'rgba(124,110,255,0.15)' : 'transparent',
                 color: isActive(path) ? '#B8B4FF' : '#6B678A',
-              }}>
+              }}
+              onMouseEnter={e => {
+                if (tip) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setCoTooltip({ visible: true, text: tip, y: rect.top + rect.height / 2 });
+                }
+              }}
+              onMouseLeave={() => setCoTooltip(t => ({ ...t, visible: false }))}>
               <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
               {label}
             </Link>
-            {tip && (
-              <div className="co-tip" style={{
-                position:'absolute', left:'calc(100% + 10px)', top:'50%', transform:'translateY(-50%)',
-                background:'#1A1035', color:'#C4B5FD', fontSize:'0.72rem', lineHeight:1.45,
-                padding:'7px 11px', borderRadius:9, width:210, pointerEvents:'none',
-                border:'1px solid rgba(124,110,255,0.25)', boxShadow:'0 4px 20px rgba(0,0,0,0.5)',
-                opacity:0, transition:'opacity 0.15s', zIndex:999, whiteSpace:'normal',
-              }}>
-                <div style={{ position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
-                  borderWidth:'5px', borderStyle:'solid',
-                  borderColor:'transparent #1A1035 transparent transparent' }} />
-                {tip}
-              </div>
-            )}
           </div>
         ))}
       </nav>
+
+      {coTooltip.visible && coTooltip.text && (
+        <div style={{
+          position:'fixed', left:232, top: coTooltip.y,
+          transform:'translateY(-50%)',
+          background:'#fff', color:'#1A1035',
+          fontSize:'0.72rem', lineHeight:1.55, fontFamily:'Space Grotesk,sans-serif',
+          padding:'9px 13px', borderRadius:12, maxWidth:220, pointerEvents:'none',
+          boxShadow:'0 4px 24px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.08)',
+          border:'1px solid #EDE9FE', zIndex:9999, whiteSpace:'normal', fontWeight:500,
+        }}>
+          <div style={{
+            position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
+            borderWidth:'6px', borderStyle:'solid',
+            borderColor:'transparent #fff transparent transparent',
+            filter:'drop-shadow(-2px 0 1px rgba(0,0,0,0.06))',
+          }} />
+          {coTooltip.text}
+        </div>
+      )}
 
       {/* Bottom */}
       <div className="px-3 pb-5 flex-shrink-0 space-y-2">

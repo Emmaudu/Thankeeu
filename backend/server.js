@@ -353,11 +353,14 @@ async function deliverCard(card) {
       data: {
         recipientName:  fresh.recipient_name,
         recipientEmail: fresh.recipient_email,
+        // Pass both raw occasion and resolved display name so template handles all cases
         occasion: (fresh.occasion === 'other' && fresh.custom_occasion)
           ? fresh.custom_occasion
           : (fresh.occasion || '').replace(/_/g, ' '),
+        custom_occasion: fresh.custom_occasion || null,
+        occasionLabel: fresh.custom_occasion || (fresh.occasion || '').replace(/_/g, ' '),
         cardSlug:      fresh.slug,
-        claimToken:    null,           // not used — link uses accessToken directly
+        claimToken:    null,
         accessToken:   fresh.access_token,
         senderCount:   count || 0,
         giftAmount:    fresh.total_collected > 0 ? fresh.total_collected : null,

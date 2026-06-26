@@ -47,7 +47,6 @@ function scheduleCardDelivery(card) {
     }
   }, msUntilFire);
 
-  if (timer.unref) timer.unref();
   _scheduledTimers.set(card.slug, timer);
 }
 

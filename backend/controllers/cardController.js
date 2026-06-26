@@ -586,9 +586,11 @@ const sendCard = async (req, res) => {
         occasion: (card.occasion === 'other' && card.custom_occasion)
           ? card.custom_occasion
           : card.occasion.replace(/_/g, ' '),
+        custom_occasion: card.custom_occasion || null,
+        occasionLabel: card.custom_occasion || card.occasion.replace(/_/g, ' '),
         occasionEmoji: OCCASION_EMOJI[card.occasion] || '🎉',
         cardSlug: card.slug,
-        claimToken: null,              // not used — link uses accessToken directly
+        claimToken: null,
         accessToken: card.access_token,
         senderCount: messages?.[0]?.count || 0,
         giftAmount: card.total_collected > 0 ? card.total_collected : null,

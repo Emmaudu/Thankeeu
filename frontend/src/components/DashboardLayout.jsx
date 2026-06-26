@@ -1,5 +1,5 @@
 import { notificationsAPI } from '../utils/api';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -32,13 +32,14 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
   const initials = user?.full_name?.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || '?';
 
-  const SidebarContent = () => (
+  const SidebarContent = () => {
+  const [tooltip, setTooltip] = useState({ visible: false, text: '', y: 0 });
+  return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',
       background: 'linear-gradient(180deg,#1E1438 0%,#13102C 100%)',
       borderRight: '1px solid rgba(139,92,246,0.12)',
     }}>
-      <style>{`.nav-tip-wrap:hover .nav-tip { opacity: 1 !important; } @media(max-width:768px){.nav-tip{display:none!important}}`}</style>
       {/* Logo */}
       <div style={{ padding: '1.25rem 1rem 1rem', borderBottom: '1px solid rgba(139,92,246,0.1)', display:'flex', alignItems:'center', gap:'0.75rem' }}>
         <img src="/android-chrome-192x192.png" alt="Thankeeu" style={{ width:38, height:38, borderRadius:10, flexShrink:0, objectFit:'cover' }} />
@@ -78,11 +79,11 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       </div>
 
       {/* Nav */}
-      <nav style={{ flex:1, padding:'0.25rem 0.75rem', overflowY:'auto', scrollbarWidth:'thin', scrollbarColor:'rgba(139,92,246,0.3) transparent' }}>
+      <nav style={{ flex:1, padding:'0.25rem 0.75rem', overflowY:'auto', overflowX:'hidden', scrollbarWidth:'thin', scrollbarColor:'rgba(139,92,246,0.3) transparent' }}>
         {NAV.map(({ to, icon, label, tip }) => {
           const active = isActive(to);
           return (
-            <div key={to} style={{ position: 'relative' }} className="nav-tip-wrap">
+            <div key={to}>
               <Link to={to} onClick={() => setOpen(false)} style={{
                 display:'flex', alignItems:'center', gap:'0.625rem',
                 padding:'0.6rem 0.75rem', borderRadius:12, marginBottom:2,
@@ -93,29 +94,47 @@ const DashboardLayout = ({ children, title, subtitle }) => {
                 paddingLeft: active ? 'calc(0.75rem - 3px)' : '0.75rem',
                 fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight: active ? 700 : 600, fontSize:'0.875rem',
               }}
-                onMouseEnter={e => { if(!active) { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#A78BFA'; }}}
-                onMouseLeave={e => { if(!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#6B5FA8'; }}}>
+                onMouseEnter={e => {
+                  if (!active) { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#A78BFA'; }
+                  if (tip) {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setTooltip({ visible: true, text: tip, y: rect.top + rect.height / 2 });
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#6B5FA8'; }
+                  setTooltip(t => ({ ...t, visible: false }));
+                }}>
                 <Icon name={icon} size={16} style={{ flexShrink:0 }} />
                 {label}
               </Link>
-              {tip && (
-                <div className="nav-tip" style={{
-                  position:'absolute', left:'calc(100% + 10px)', top:'50%', transform:'translateY(-50%)',
-                  background:'#1A1035', color:'#C4B5FD', fontSize:'0.72rem', lineHeight:1.45,
-                  padding:'7px 11px', borderRadius:9, width:200, pointerEvents:'none',
-                  border:'1px solid rgba(139,92,246,0.25)', boxShadow:'0 4px 20px rgba(0,0,0,0.5)',
-                  opacity:0, transition:'opacity 0.15s', zIndex:999, whiteSpace:'normal',
-                }}>
-                  <div style={{ position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
-                    borderWidth:'5px', borderStyle:'solid',
-                    borderColor:'transparent #1A1035 transparent transparent' }} />
-                  {tip}
-                </div>
-              )}
             </div>
           );
         })}
       </nav>
+
+      {/* Speech-bubble tooltip — fixed so it escapes all overflow contexts */}
+      {tooltip.visible && tooltip.text && (
+        <div style={{
+          position:'fixed', left:252, top: tooltip.y,
+          transform:'translateY(-50%)',
+          background:'#fff', color:'#1A1035',
+          fontSize:'0.72rem', lineHeight:1.55, fontFamily:'Plus Jakarta Sans,sans-serif',
+          padding:'9px 13px', borderRadius:12, maxWidth:220, pointerEvents:'none',
+          boxShadow:'0 4px 24px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.08)',
+          border:'1px solid #EDE9FE', zIndex:9999, whiteSpace:'normal',
+          fontWeight:500,
+        }}>
+          {/* Left-pointing triangle */}
+          <div style={{
+            position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
+            borderWidth:'6px', borderStyle:'solid',
+            borderColor:'transparent #fff transparent transparent',
+            filter:'drop-shadow(-2px 0 1px rgba(0,0,0,0.06))',
+          }} />
+          {tooltip.text}
+        </div>
+      )}
 
       {/* Create card CTA */}
       <div style={{ padding:'0.5rem 0.75rem' }}>
@@ -147,6 +166,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       </div>
     </div>
   );
+  };
 
   return (
     <div style={{ display:'flex', minHeight:'100vh', background:'#0F0D24' }}>

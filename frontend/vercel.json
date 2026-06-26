@@ -4,11 +4,6 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": null,
-  "functions": {
-    "api/card-meta.js": {
-      "runtime": "edge"
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",

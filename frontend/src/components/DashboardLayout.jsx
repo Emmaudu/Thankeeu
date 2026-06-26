@@ -93,7 +93,12 @@ const DashboardLayout = ({ children, title, subtitle }) => {
               to={to}
               className={`dash-nav-link${active ? ' active' : ''}`}
               onClick={() => { setOpen(false); setTooltip({ visible:false, text:'', y:0 }); }}
+              onPointerDown={e => {
+                // On touch: immediately hide tooltip so it never blocks the tap-to-navigate
+                if (e.pointerType !== 'mouse') setTooltip({ visible:false, text:'', y:0 });
+              }}
               onPointerEnter={e => {
+                // Only show tooltip for real mouse pointer — never for touch or stylus
                 if (e.pointerType !== 'mouse') return;
                 if (tip) {
                   const rect = e.currentTarget.getBoundingClientRect();

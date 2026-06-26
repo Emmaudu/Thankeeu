@@ -92,6 +92,9 @@ const MemberLayout = ({ children, title, subtitle }) => {
                   background: isActive(path) ? 'rgba(124,110,255,0.16)' : 'transparent',
                   color: isActive(path) ? '#B8B4FF' : '#7A7898',
                 }}
+                onPointerDown={e => {
+                  if (e.pointerType !== 'mouse') setMbTooltip({ visible: false, text: '', y: 0 });
+                }}
                 onPointerEnter={e => {
                   if (e.pointerType !== 'mouse') return;
                   if (tip) {

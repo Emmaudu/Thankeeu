@@ -133,6 +133,9 @@ const CompanyLayout = ({ children, title, subtitle }) => {
                 background: isActive(path) ? 'rgba(124,110,255,0.15)' : 'transparent',
                 color: isActive(path) ? '#B8B4FF' : '#6B678A',
               }}
+              onPointerDown={e => {
+                if (e.pointerType !== 'mouse') setCoTooltip({ visible: false, text: '', y: 0 });
+              }}
               onPointerEnter={e => {
                 if (e.pointerType !== 'mouse') return;
                 if (tip) {

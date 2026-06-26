@@ -303,31 +303,37 @@ const CardStart = () => {
       const slug = draftSlug || pending?.slug;
       if (!slug) { toast.error('Card draft not found. Please go back and try again.'); setLoading(false); setPaymentStage('idle'); return; }
 
-      // Persist the step-4 gift toggle choice back to the draft BEFORE payment.
-      // is_gift_enabled and suggested_amount may have changed since handleCreateDraft
-      // ran at step 2→3, and the card in the DB still has the old values.
+      // Save the full form state (gift settings + delivery date/time + deadline)
+      // to the card BEFORE payment so nothing is lost if the user pays and
+      // the page refreshes. This is the single authoritative save.
       try {
         const pending2 = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
         const editToken = pending2.draft_edit_token;
-        const giftUpdate = {
+        const { send_date: utcSD, send_time: utcST } = toUTCSendTime(form.send_date, form.send_time);
+        const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
+        const fullUpdate = {
           is_gift_enabled:  form.is_gift_enabled,
           suggested_amount: form.suggested_amount,
           gift_type:        form.gift_type,
+          send_date:        utcSD || null,
+          send_time:        utcST || null,
+          deadline:         utcDL || null,
+          deadline_time:    utcDLT || null,
         };
         if (editToken) {
-          await cardsAPI.updateDraft(slug, giftUpdate, editToken);
+          await cardsAPI.updateDraft(slug, fullUpdate, editToken);
         } else if (member) {
           const { memberCardsAPI: mAPI } = await import('../utils/api');
-          await mAPI.update(slug, giftUpdate);
+          await mAPI.update(slug, fullUpdate);
         } else if (company) {
-          await cardsAPI.updateAsCompany(slug, giftUpdate);
+          await cardsAPI.updateAsCompany(slug, fullUpdate);
         } else if (user) {
-          await cardsAPI.update(slug, giftUpdate);
+          await cardsAPI.update(slug, fullUpdate);
         }
+        console.log('[pre-payment-update] Saved dates:', { send_date: utcSD, send_time: utcST, deadline: utcDL });
       } catch (updateErr) {
-        // Non-fatal — log and continue; the card will still activate, but gift
-        // setting may not reflect the step-4 toggle. Warn the user if we can tell.
-        console.warn('[gift-update] Failed to save gift setting before payment:', updateErr?.message);
+        console.error('[pre-payment-update] FAILED to save dates before payment:', updateErr?.response?.data || updateErr?.message);
+        toast('⚠️ Could not save delivery schedule. Card will activate but may need re-scheduling.', { duration: 5000 });
       }
 
 
@@ -366,6 +372,11 @@ const CardStart = () => {
         setPaymentStage('verifying');
         const res = await creditsAPI.spend(slug);
         if (res.data?.ok) {
+          // Send invite emails and finalize activation
+          const emailList = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
+          if (emailList.length) {
+            await cardsAPI.activate(slug, { inviteEmails: emailList }).catch(() => {});
+          }
           await saveCreatorMessage(slug);
           localStorage.removeItem(PENDING_KEY);
           setCreditBalance(res.data.credits_remaining);
@@ -390,17 +401,16 @@ const CardStart = () => {
         return;
       }
       if (!payment_link) throw new Error('No payment link returned');
-      // Persist creator message snapshot before FLW redirect — CardFeeVerify
-      // will read it back and save it after the card is activated on return.
-      if (msgForm.content.trim()) {
-        try {
-          const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
-          existing.msgSnapshot = msgForm;
-          existing.creatorName  = user?.full_name || member ? `${member?.first_name || ''} ${member?.last_name || ''}`.trim() : company?.contact_person || company?.name || creatorName || '';
-          existing.creatorEmail = user?.email || member?.email || company?.email || '';
-          localStorage.setItem(PENDING_KEY, JSON.stringify(existing));
-        } catch {}
-      }
+      // Persist creator message + invite emails before FLW redirect — CardFeeVerify
+      // will read them back after payment and send the invites.
+      try {
+        const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
+        existing.msgSnapshot  = msgForm.content.trim() ? msgForm : existing.msgSnapshot;
+        existing.creatorName  = user?.full_name || (member ? `${member?.first_name || ''} ${member?.last_name || ''}`.trim() : null) || company?.contact_person || company?.name || creatorName || '';
+        existing.creatorEmail = user?.email || member?.email || company?.email || '';
+        existing.inviteEmails = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
+        localStorage.setItem(PENDING_KEY, JSON.stringify(existing));
+      } catch {}
       window.location.assign(payment_link);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not activate card. Please try again.');

@@ -290,9 +290,10 @@ const spendCredit = async (req, res) => {
       });
     }
 
-    // Verify card belongs to this user — column is 'creator_id' not 'created_by'
+    // Verify card belongs to this user — fetch full card so we have send_date for scheduling
     const { data: card, error: cardErr } = await supabase.from('cards')
-      .select('id, slug, status, creator_id').eq('slug', card_slug).maybeSingle();
+      .select('id, slug, status, creator_id, send_date, send_time, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, recipient_notified')
+      .eq('slug', card_slug).maybeSingle();
 
     if (cardErr) {
       console.error('spendCredit card lookup error:', cardErr.message);
@@ -333,21 +334,28 @@ const spendCredit = async (req, res) => {
       return res.status(500).json({ error: 'Card activation failed. Credit has been refunded.' });
     }
 
+    // Re-fetch the card with the LATEST data (including any send_date saved by
+    // the frontend's pre-payment update which ran just before this request).
+    const { data: freshCard } = await supabase.from('cards')
+      .select('id, slug, status, send_date, send_time, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, recipient_notified')
+      .eq('slug', card_slug).maybeSingle();
+
+    // Arm precise delivery setTimeout if the card has a scheduled date.
+    // Must happen BEFORE the return statement — code after return never runs.
+    if (freshCard?.send_date && freshCard?.recipient_email && !freshCard?.recipient_notified) {
+      try {
+        const scheduler = require('../utils/scheduler');
+        scheduler.scheduleCardDelivery({ ...freshCard, status: 'active' });
+        console.log('[spendCredit] Scheduled delivery for', card_slug, 'at', freshCard.send_date);
+      } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
+    }
+
     return res.json({
       ok: true,
       card_slug,
       credits_remaining: balance.credits_remaining - 1,
       message: '1 credit used. Card is now active!',
     });
-
-    // Arm precise delivery setTimeout if the card has a scheduled date.
-    // (Runs after response is sent — fire-and-forget)
-    if (card.send_date && card.recipient_email && !card.recipient_notified) {
-      try {
-        const scheduler = require('../utils/scheduler');
-        scheduler.scheduleCardDelivery({ ...card, status: 'active' });
-      } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
-    }
 
   } catch (err) {
     console.error('spendCredit error:', err.message);

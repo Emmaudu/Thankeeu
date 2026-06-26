@@ -864,21 +864,28 @@ body.sidebar-open { overflow: hidden; }
 
 .db-card-item-footer {
   display: flex;
+  flex-wrap: wrap;
   border-top: 1.5px solid #EDE9FE;
 }
 
 .db-card-item-action {
-  flex: 1; display: flex; align-items: center; justify-content: center;
+  flex: 1 0 auto; min-width: 0; display: flex; align-items: center; justify-content: center;
   gap: 0.35rem;
-  padding: 0.625rem;
+  padding: 0.55rem 0.5rem;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 0.8125rem; font-weight: 700; color: #6D28D9;
+  font-size: 0.78rem; font-weight: 700; color: #6D28D9;
   text-decoration: none; cursor: pointer; background: none; border: none;
-  transition: background 0.15s;
+  transition: background 0.15s; white-space: nowrap;
 }
 
 .db-card-item-action:hover { background: #F5F0FF; color: #5B21B6; }
 .db-card-item-action + .db-card-item-action { border-left: 1.5px solid #EDE9FE; }
+
+/* On very small phones, stack footer actions */
+@media (max-width: 360px) {
+  .db-card-item-footer { flex-direction: column; }
+  .db-card-item-action + .db-card-item-action { border-left: none; border-top: 1px solid #EDE9FE; }
+}
 
 /* Status badge */
 .db-badge {

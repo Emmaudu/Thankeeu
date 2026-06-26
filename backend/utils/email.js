@@ -36,15 +36,14 @@ const fmtNGN = (ngnAmount) => {
 };
 
 const BASE = (content) => `
-<div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:580px;margin:0 auto;background:#ffffff;">
-  <div style="padding:20px 32px 0;border-bottom:2px solid #f3f0ff;">
-    <span style="font-size:16px;font-weight:800;color:#6C5CE7;letter-spacing:-0.5px;">Thank<span style="color:#1a1a1a;">eeu</span> <span style="font-size:13px;font-weight:400;color:#aaa;">💜</span></span>
+<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eee;">
+  <div style="background:linear-gradient(135deg,#6C5CE7,#9F77DD);padding:32px;text-align:center;">
+    <h1 style="color:#fff;margin:0;font-size:24px;font-weight:600;">Thankeeu 💜</h1>
+    <p style="color:rgba(255,255,255,0.85);margin:6px 0 0;font-size:13px;">Group cards & gifts for every occasion</p>
   </div>
-  <div style="padding:28px 32px;">${content}</div>
-  <div style="padding:14px 32px 22px;border-top:1px solid #f3f0ff;">
-    <p style="color:#ccc;font-size:11px;margin:0;line-height:1.6;">
-      Thankeeu &middot; <a href="${FRONTEND_URL}" style="color:#ccc;text-decoration:none;">thankeeu.com</a>
-    </p>
+  <div style="padding:32px 36px;">${content}</div>
+  <div style="background:#f9f9f9;padding:20px 36px;text-align:center;border-top:1px solid #f0f0f0;">
+    <p style="color:#aaa;font-size:12px;margin:0;">Sent with 💜 by <strong style="color:#6C5CE7;">Thankeeu</strong> · Worldwide 🌍</p>
   </div>
 </div>`;
 
@@ -60,88 +59,118 @@ const btn = (text, url, color = '#6C5CE7') => {
   safeUrl = safeUrl.replace(/['"]/g, '').trim();
   if (!safeUrl.startsWith('http')) safeUrl = 'https://thankeeu.com' + safeUrl;
 
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:18px 0 4px;">
-    <tr><td style="border-radius:6px;background:${color};">
+  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px;margin-bottom:8px;">
+    <tr><td style="border-radius:8px;background:${color};">
       <a href="${safeUrl}" target="_blank" rel="noopener noreferrer"
-         style="display:inline-block;background:${color};color:#ffffff !important;padding:12px 24px;border-radius:6px;text-decoration:none !important;font-weight:600;font-size:14px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">${text}</a>
+         style="display:inline-block;background:${color};color:#fff !important;padding:13px 28px;border-radius:8px;text-decoration:none !important;font-weight:600;font-size:14px;font-family:'Segoe UI',Arial,sans-serif;border:none;mso-padding-alt:0;">${text}</a>
     </td></tr>
   </table>
-  <p style="color:#ccc;font-size:11px;margin:4px 0 0;word-break:break-all;">
-    Or copy: <a href="${safeUrl}" style="color:#6C5CE7;text-decoration:none;">${safeUrl}</a>
+  <p style="color:#aaa;font-size:12px;margin:4px 0 0;word-break:break-all;">
+    Or copy this link: <a href="${safeUrl}" style="color:#6C5CE7;">${safeUrl}</a>
   </p>`;
 };
 
 const emailTemplates = {
 
   welcome: (data) => ({
-    subject: `Welcome to Thankeeu, ${data.name}`,
+    subject: `Welcome to Thankeeu, ${data.name}!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${data.name},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">Your Thankeeu account is ready. You can now create group cards, collect messages and gifts, and celebrate the people around you.</p>
-      ${btn('Go to your dashboard →', `${FRONTEND_URL}/dashboard`)}
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Welcome aboard, ${data.name}!</h2>
+      <p style="color:#555;line-height:1.7;">You are now part of a community that celebrates the people who matter most. Create beautiful group cards, collect heartfelt messages, and send meaningful gifts.</p>
+      ${btn('Go to your dashboard', `${FRONTEND_URL}/dashboard`)}
     `)
   }),
 
   cardInvite: (data) => ({
-    subject: `${data.creatorName} is asking you to sign ${data.recipientName}'s ${data.occasion} card`,
+    subject: `${data.creatorName} wants you to sign ${data.recipientName}'s ${data.occasion === 'other' && data.custom_occasion ? data.custom_occasion : (data.occasion||'').replace(/_/g,' ')} card!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
-        <strong>${data.creatorName}</strong> is putting together a group card for <strong>${data.recipientName}</strong>'s ${data.occasion} and would like you to add a message.
-      </p>
-      ${data.giftEnabled ? `<p style="color:#555;font-size:13px;line-height:1.7;margin:0 0 16px;">A gift pot is also open — you can chip in any amount alongside your message.</p>` : ''}
-      ${btn(`Sign ${data.recipientName}'s card →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
-      <p style="color:#999;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. No account needed.</p>
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">You have been invited to sign a card!</h2>
+      <p style="color:#555;line-height:1.7;"><strong>${data.creatorName}</strong> is putting together a special group card for <strong>${data.recipientName}</strong>'s ${data.occasion === 'other' && data.custom_occasion ? data.custom_occasion : (data.occasion||'').replace(/_/g,' ')}.</p>
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in from ₦2,500</p></div>` : ''}
+      <p style="color:#555;font-size:13px;">Closes on ${data.deadline}</p>
+      ${btn('Sign the card now', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
     `)
   }),
 
   cardDelivery: (data) => {
-    // Use custom_occasion if provided (occasion='other'), otherwise capitalise the occasion name.
-    // Guard against raw "other" appearing in the email if the migration hasn't been run yet.
-    const rawOccasion = data.occasion || '';
-    const occasionDisplay = (rawOccasion === 'other' || rawOccasion === 'Other')
-      ? (data.custom_occasion || data.occasionLabel || 'special day')
-      : (rawOccasion.charAt(0).toUpperCase() + rawOccasion.slice(1).replace(/_/g, ' '));
-    const firstSender = data.senderCount > 1 ? `${data.senderCount} people` : 'someone';
+    const loginPath = data.isCompanyCard ? '/member/login' : '/login';
+    const dashboardNoun = data.isCompanyCard ? 'team' : 'account';
     return {
-    subject: data.senderCount > 1
-      ? `${firstSender} have a ${occasionDisplay} card for you, ${data.recipientName}`
-      : `You have a ${occasionDisplay} card waiting, ${data.recipientName}`,
+    subject: `🎉 Happy ${data.occasion === 'other' && data.custom_occasion ? data.custom_occasion : data.occasion}, ${data.recipientName}! ${data.senderCount} people made something special for you`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;margin:0 0 6px;">Hi ${data.recipientName},</p>
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:8px;">${data.occasionEmoji || '🎉'}</div>
+        <h1 style="color:#1a1a1a;font-size:26px;margin:0 0 6px;font-weight:700;">Happy ${data.occasion === 'other' && data.custom_occasion ? data.custom_occasion : data.occasion}, ${data.recipientName}!</h1>
+        <p style="color:#7C6EFF;font-size:15px;font-weight:600;margin:0;">You have something very special waiting for you</p>
+      </div>
 
-      <p style="color:#333;line-height:1.8;font-size:15px;margin:16px 0;">
-        ${data.senderCount > 0 ? `<strong>${data.senderCount} ${data.senderCount === 1 ? 'person' : 'people'}</strong> have come together to create a group card for your ${occasionDisplay}.` : `Someone created a group card for your ${occasionDisplay}.`}
-        ${data.giftAmount ? ` They also pooled a gift of <strong style="color:#166534;">${fmtNGN(data.giftAmount)}</strong> for you.` : ''}
-      </p>
+      <p style="color:#555;line-height:1.8;font-size:15px;"><strong>${data.senderCount} people</strong> who care about you came together to create a beautiful group card just for you. They've left you heartfelt messages, warm wishes, and memories you'll want to keep forever.</p>
 
-      ${btn(`Open your ${occasionDisplay} card →`, `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
+      ${data.giftAmount ? `
+      <div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #4CAF50;border-radius:12px;padding:18px 20px;margin:20px 0;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🎁</div>
+        <p style="color:#2E7D32;font-weight:700;font-size:18px;margin:0 0 4px;">Gift pot: <span style="color:#1B5E20;">${fmtNGN(data.giftAmount)}</span></p>
+        <p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>
+      </div>` : ''}
 
-      ${data.giftAmount ? `<p style="color:#555;font-size:13px;line-height:1.7;margin-top:20px;">To claim your gift, open the card and click <strong>Claim gift</strong>. You may need to create a free account using this email address to withdraw.</p>` : ''}
+      ${btn('🎉 Open my card now', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
 
-      <p style="color:#999;font-size:12px;line-height:1.7;margin-top:24px;border-top:1px solid #f0ecff;padding-top:16px;">
-        The button above opens your card directly — no login required to view it.
-        If you want to save it to your account, sign in or sign up at
-        <a href="${FRONTEND_URL}" style="color:#6C5CE7;">thankeeu.com</a> using <strong>${data.recipientEmail || 'this email address'}</strong>.
-      </p>
+      <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
+        <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>
+        <ol style="color:#555;line-height:2;margin:0;padding-left:20px;font-size:14px;">
+          <li>The link above will <strong>automatically guide you</strong> — sign in or create a free account using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
+          <li><strong>Set your username</strong> in your dashboard settings — your friends can transfer cards to you by username</li>
+          <li>Your card will appear in your <strong>Received tab</strong> in your ${dashboardNoun} dashboard automatically</li>
+          ${data.giftAmount ? '<li>Add your <strong>bank account</strong> in settings to withdraw your gift pot 💰</li>' : ''}
+        </ol>
+      </div>
+
+      <p style="color:#888;font-size:13px;line-height:1.7;"><strong>⚠️ Important:</strong> Please sign up with <strong>${data.recipientEmail || 'this email address'}</strong> to automatically access your card and gift pot. If you use a different email, ask the card creator to transfer the card to your username.</p>
+
+      <p style="color:#555;line-height:1.7;margin-top:16px;">If you already have a Thankeeu account, simply <a href="${FRONTEND_URL}${loginPath}" style="color:#7C6EFF;">sign in here</a> and check your Received tab.</p>
     `)
   };
   },
 
   // Sent by an admin's "re-deliver" action — for a card that was already
-  // delivered once, but has picked up new signatures and/or new gift money since then.
+  // delivered once, but has picked up new signatures and/or new gift money
+  // since then. Calls out what's NEW rather than re-presenting it as if
+  // the recipient is seeing the card for the first time.
   cardRedelivery: (data) => ({
-    subject: `Your ${data.occasion} card has ${data.newMessageCount ? `${data.newMessageCount} new message${data.newMessageCount === 1 ? '' : 's'}` : 'been updated'}, ${data.recipientName}`,
+    subject: `💌 Even more love for your ${data.occasion}, ${data.recipientName}!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${data.recipientName},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">
-        ${data.newMessageCount ? `<strong>${data.newMessageCount} more ${data.newMessageCount === 1 ? 'person' : 'people'}</strong> have added messages to your ${data.occasion} card since it was first sent.` : `Your ${data.occasion} card has been updated with new messages.`}
-        ${data.giftAmount ? ` The gift pot now stands at <strong style="color:#166534;">${fmtNGN(data.giftAmount)}</strong>.` : ''}
-      </p>
-      ${btn('Open your updated card →', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
-      <p style="color:#999;font-size:12px;margin-top:20px;">
-        To save your card or claim your gift, sign in at
-        <a href="${FRONTEND_URL}" style="color:#6C5CE7;">thankeeu.com</a> using ${data.recipientEmail || 'this email address'}.
-      </p>
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:8px;">${data.occasionEmoji || '🎉'}</div>
+        <h1 style="color:#1a1a1a;font-size:26px;margin:0 0 6px;font-weight:700;">Your card just got even better, ${data.recipientName}!</h1>
+        <p style="color:#7C6EFF;font-size:15px;font-weight:600;margin:0;">More people have joined in since you last checked</p>
+      </div>
+
+      ${data.newMessageCount ? `
+      <div style="background:#F5F0FF;border-radius:12px;padding:16px 18px;margin:0 0 16px;text-align:center;">
+        <p style="color:#5B21B6;font-weight:700;font-size:16px;margin:0;">✍️ ${data.newMessageCount} new message${data.newMessageCount === 1 ? '' : 's'} added since your last update</p>
+      </div>` : ''}
+
+      <p style="color:#555;line-height:1.8;font-size:15px;"><strong>${data.senderCount} people</strong> in total have now come together to create this group card for you — with heartfelt messages and warm wishes.</p>
+
+      ${data.giftAmount ? `
+      <div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #4CAF50;border-radius:12px;padding:18px 20px;margin:20px 0;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🎁</div>
+        <p style="color:#2E7D32;font-weight:700;font-size:18px;margin:0 0 4px;">Gift pot total: <span style="color:#1B5E20;">${fmtNGN(data.giftAmount)}</span></p>
+        ${data.newGiftAmount ? `<p style="color:#388E3C;font-size:13px;margin:0;">Including <strong>${fmtNGN(data.newGiftAmount)}</strong> added since your card was last delivered!</p>` : `<p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>`}
+      </div>` : ''}
+
+      ${btn('🎉 Open my updated card', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
+
+      <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
+        <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>
+        <ol style="color:#555;line-height:2;margin:0;padding-left:20px;font-size:14px;">
+          <li><strong>Sign up or sign in</strong> at <a href="${FRONTEND_URL}/signup" style="color:#7C6EFF;">thankeeu.com</a> using <strong>this exact email address</strong> (${data.recipientEmail || 'the email you received this on'})</li>
+          <li>Your card will appear in your <strong>Received tab</strong> in your dashboard automatically</li>
+          ${data.giftAmount ? '<li>Add your <strong>bank account</strong> in settings to withdraw your gift pot 💰</li>' : ''}
+        </ol>
+      </div>
+
+      <p style="color:#555;line-height:1.7;margin-top:16px;">If you already have a Thankeeu account, simply <a href="${FRONTEND_URL}/login" style="color:#7C6EFF;">sign in here</a> and check your Received tab.</p>
     `)
   }),
 
@@ -162,12 +191,11 @@ const emailTemplates = {
   }),
 
   cardReminder: (data) => ({
-    subject: `${data.recipientName}'s card closes in ${data.hoursLeft} hours — sign it now`,
+    subject: `Reminder: Sign ${data.recipientName}'s card before it closes!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
-        <strong>${data.recipientName}</strong>'s group card is closing in ${data.hoursLeft} hours. If you haven't added your message yet, now is the time.
-      </p>
-      ${btn(`Sign ${data.recipientName}'s card →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Card closing in ${data.hoursLeft} hours!</h2>
+      <p style="color:#555;line-height:1.7;">Do not miss your chance to add a message to <strong>${data.recipientName}</strong>'s card.</p>
+      ${btn('Sign now', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
     `)
   }),
 
@@ -208,29 +236,33 @@ const emailTemplates = {
   }),
 
   birthdayDeptNotice: (data) => ({
-    subject: `${data.celebrantName}'s birthday is on ${data.birthdayDate} — sign their card`,
+    subject: `${data.celebrantName}'s birthday is in 2 days — sign their card!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
-        <strong>${data.celebrantName}</strong> from the <strong>${data.department}</strong> team has a birthday coming up on <strong>${data.birthdayDate}</strong>.
-        ${data.companyName} is putting together a group card — add your message before it closes.
-      </p>
-      ${data.giftEnabled ? `<p style="color:#555;font-size:13px;margin:0 0 16px;">A gift pot is also open. You can contribute any amount alongside your message.</p>` : ''}
-      ${btn(`Sign ${data.celebrantFirstName}'s birthday card →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
-      <p style="color:#999;font-size:12px;margin-top:16px;">Please keep this a surprise 🤫 &nbsp; Signing closes ${data.deadline}.</p>
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Your colleague's birthday is almost here!</h2>
+      <p style="color:#555;line-height:1.8;"><strong>${data.celebrantName}</strong> from the <strong>${data.department}</strong> team celebrates their birthday on <strong>${data.birthdayDate}</strong>. ${data.companyName} is putting together a group card — add your message!</p>
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — contribute any amount via Flutterwave</p></div>` : ''}
+      <div style="background:#fff8e1;border-radius:8px;padding:14px 16px;margin:16px 0;border-left:4px solid #f0c040;">
+        <p style="color:#7a5f00;font-size:13px;margin:0;">Please keep this a surprise — do not mention the card to ${data.celebrantFirstName} before their birthday!</p>
+      </div>
+      ${btn(`Sign ${data.celebrantFirstName}'s card`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}</p>
     `)
   }),
 
   birthdayCelebrant: (data) => ({
-    subject: `Happy Birthday, ${data.firstName} 🎂 — your team has a card for you`,
+    subject: `Happy Birthday ${data.firstName}! You have a surprise from ${data.companyName}!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${data.firstName},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">
-        Happy Birthday! Your colleagues at <strong>${data.companyName}</strong> put together a group card for you.
-        <strong>${data.signerCount} ${data.signerCount === 1 ? 'person' : 'people'}</strong> signed it and left you messages.
-        ${data.giftAmount ? ` They also pooled a gift of <strong style="color:#166534;">${fmtNGN(data.giftAmount)}</strong>.` : ''}
-      </p>
-      ${btn('Open your birthday card →', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
-      <p style="color:#555;font-size:13px;margin-top:20px;">From everyone at ${data.companyName} — enjoy your day! 🎂</p>
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:56px;line-height:1;margin-bottom:12px;">🎂🎉🎊</div>
+        <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Happy Birthday, ${data.firstName}!</h2>
+      </div>
+      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> just for you!` : ''}</p>
+      <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
+        <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your birthday card is waiting!</p>
+        <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
+      </div>
+      ${btn('Open my birthday card', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
+      <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">From everyone at <strong>${data.companyName}</strong> — we hope today is as amazing as you are!</p>
     `)
   }),
 
@@ -415,54 +447,61 @@ const teamsTemplates = {
   }),
 
   occasionNotice: (data) => ({
-    subject: `${data.memberName}'s ${data.occasionLabel} is on ${data.occasionDate} — sign their card`,
+    subject: `${data.icon} ${data.memberName}'s ${data.occasionLabel} is in ${data.daysLeft} days — sign their card!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
-        <strong>${data.memberName}</strong> from the <strong>${data.department}</strong> team has a ${data.occasionLabel} coming up on <strong>${data.occasionDate}</strong>.
-        ${data.companyName} is putting together a group card — add your message before it closes.
-      </p>
-      ${data.giftEnabled ? `<p style="color:#555;font-size:13px;margin:0 0 16px;">A gift pot is open. You can also contribute any amount alongside your message.</p>` : ''}
-      ${btn(`Sign ${data.memberFirstName}'s card →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
-      <p style="color:#999;font-size:12px;margin-top:16px;">Keep this a surprise 🤫 &nbsp; Signing closes ${data.deadline}. No account needed.</p>
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">${data.icon} Celebrate ${data.memberName}!</h2>
+      <p style="color:#555;line-height:1.8;"><strong>${data.memberName}</strong> from <strong>${data.department}</strong> has an upcoming <strong>${data.occasionLabel}</strong> on <strong>${data.occasionDate}</strong>. ${data.companyName} is putting together a special group card!</p>
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 A gift pot is open — contribute any amount via Flutterwave</p></div>` : ''}
+      <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
+        <p style="color:#7a5f00;font-size:13px;margin:0;">Keep this a surprise — please do not mention the card to ${data.memberFirstName}!</p>
+      </div>
+      ${btn(`Sign ${data.memberFirstName}'s card`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. You do not need an account to sign.</p>
     `)
   }),
 
-  // Mid-period nudge — sent to colleagues who have NOT yet signed
+  // Mid-period nudge — sent to colleagues who have NOT yet signed, partway
+  // between the initial notification and the occasion date.
   occasionReminder: (data) => ({
-    subject: `Reminder: ${data.memberName}'s ${data.occasionLabel} is in ${data.daysLeft} day${data.daysLeft === 1 ? '' : 's'} — you haven't signed yet`,
+    subject: `⏰ Reminder — ${data.memberName}'s ${data.occasionLabel} is in ${data.daysLeft} days. You haven't signed yet!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
-        Just a quick reminder — <strong>${data.memberName}</strong>'s ${data.occasionLabel} is on <strong>${data.occasionDate}</strong> (in ${data.daysLeft} day${data.daysLeft === 1 ? '' : 's'}) and you haven't signed their card yet.
-      </p>
-      ${btn(`Sign ${data.memberFirstName}'s card →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
-      <p style="color:#999;font-size:12px;margin-top:16px;">Keep this a surprise 🤫 &nbsp; Signing closes ${data.deadline}. It only takes a minute.</p>
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">⏰ Don't forget ${data.memberName}'s card!</h2>
+      <p style="color:#555;line-height:1.8;">Just a friendly reminder — <strong>${data.memberName}</strong>'s <strong>${data.occasionLabel}</strong> is coming up on <strong>${data.occasionDate}</strong>, and you haven't added your message to the card yet.</p>
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 The gift pot is still open — contribute any amount via Flutterwave</p></div>` : ''}
+      <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
+        <p style="color:#7a5f00;font-size:13px;margin:0;">Keep this a surprise — please do not mention the card to ${data.memberFirstName}!</p>
+      </div>
+      ${btn(`Sign ${data.memberFirstName}'s card now`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. It only takes a minute!</p>
     `)
   }),
 
 
   occasionCelebrant: (data) => ({
-    subject: `Happy ${data.occasionLabel}, ${data.firstName} ${data.icon} — your team has a card for you`,
+    subject: `${data.icon} Happy ${data.occasionLabel}, ${data.firstName}! You have a surprise from ${data.companyName}!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${data.firstName},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">
-        Happy ${data.occasionLabel}! Your colleagues at <strong>${data.companyName}</strong> created a group card for you.
-        <strong>${data.signerCount} ${data.signerCount === 1 ? 'person' : 'people'}</strong> left you messages.
-        ${data.giftAmount ? ` They also pooled a gift of <strong style="color:#166534;">${fmtNGN(data.giftAmount)}</strong>.` : ''}
-      </p>
-      ${btn(`Open your ${data.occasionLabel} card →`, `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
-      ${data.giftAmount ? `<p style="color:#555;font-size:13px;margin-top:16px;">To claim your gift, open the card and click <strong>Claim gift</strong>.</p>` : ''}
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:56px;line-height:1;margin-bottom:12px;">${data.icon}🎉🎊</div>
+        <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Happy ${data.occasionLabel}, ${data.firstName}!</h2>
+      </div>
+      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> for you!` : ''}</p>
+      <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
+        <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your card is waiting!</p>
+        <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
+      </div>
+      ${btn(`Open my ${data.occasionLabel} card`, `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
+      ${data.giftAmount ? `<p style="color:#555;font-size:13px;margin-top:16px;">To claim your gift of <strong>${fmtNGN(data.giftAmount)}</strong>, open the card and click "Claim gift".</p>` : ''}
     `)
   }),
 
   memberCardCreated: (data) => ({
-    subject: `${data.creatorName} created a ${data.occasion} card for ${data.recipientName} — add your message`,
+    subject: `${data.creatorName} created a card for ${data.recipientName} — sign it!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
-        <strong>${data.creatorName}</strong> created a group card for <strong>${data.recipientName}</strong>'s ${data.occasion}.
-        ${data.giftEnabled ? ' A gift pot is also open — you can contribute alongside your message.' : ''}
-      </p>
-      ${btn(`Sign ${data.recipientName}'s card →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
-      <p style="color:#999;font-size:12px;margin-top:12px;">No account needed to sign.</p>
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">A card was created for ${data.recipientName}!</h2>
+      <p style="color:#555;line-height:1.8;"><strong>${data.creatorName}</strong> created a group card for <strong>${data.recipientName}</strong>'s ${data.occasion === 'other' && data.custom_occasion ? data.custom_occasion : (data.occasion||'').replace(/_/g,' ')}. Add your message and help make it special!</p>
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#3B6D11;font-size:13px;margin:0;">🎁 Gift pot is open — you can contribute too</p></div>` : ''}
+      ${btn('Sign the card', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:12px;">You do not need an account to sign. Creating a card requires a company account.</p>
     `)
   }),
 };
@@ -475,59 +514,88 @@ const additionalTeamsTemplates = {
 
   // Sent to department members when a new employee is joining
   newHireDeptNotice: (data) => ({
-    subject: `${data.newHireName} is joining the ${data.department} team on ${data.startDate} — sign their welcome card`,
+    subject: `🌟 Welcome ${data.newHireName} to the ${data.department} team!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
-        <strong>${data.newHireName}</strong> is joining the <strong>${data.department}</strong> team at <strong>${data.companyName}</strong>
-        on <strong>${data.startDate}</strong>${data.jobTitle ? ` as ${data.jobTitle}` : ''}.
-        Sign their welcome card to give them a great first impression of the team.
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">A new teammate is joining! 🌟</h2>
+      <p style="color:#555;line-height:1.8;">
+        Please welcome <strong>${data.newHireName}</strong> who is joining the <strong>${data.department}</strong> team
+        at <strong>${data.companyName}</strong> on <strong>${data.startDate}</strong> as <strong>${data.jobTitle || 'a new team member'}</strong>.
       </p>
-      ${btn(`Sign ${data.newHireFirstName}'s welcome card →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
-      <p style="color:#999;font-size:12px;margin-top:16px;">Signing closes ${data.deadline}. No account needed.</p>
+      <p style="color:#555;line-height:1.8;">Help make their first day special — sign their welcome card and show them what an amazing team they're joining!</p>
+      <div style="background:#EEEDFE;border-radius:8px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#534AB7;font-size:13px;margin:0;">🎁 A welcome gift pot is open — chip in to help them get settled in their new role!</p>
+      </div>
+      ${btn(`Sign ${data.newHireFirstName}'s welcome card`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. No account needed to sign.</p>
     `)
   }),
 
   // Sent to the new hire on or after their start date
   newHireWelcome: (data) => ({
-    subject: `Welcome to ${data.companyName}, ${data.firstName} — your team has a card for you`,
+    subject: `🌟 Welcome to ${data.companyName}, ${data.firstName}! Your team has a surprise for you`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${data.firstName},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">
-        Welcome to <strong>${data.companyName}</strong>! Your colleagues in the <strong>${data.department}</strong> team
-        put together a welcome card for you. <strong>${data.signerCount} ${data.signerCount === 1 ? 'person' : 'people'}</strong> left you messages.
-        ${data.giftAmount ? ` They also pooled a welcome gift of <strong style="color:#166534;">${fmtNGN(data.giftAmount)}</strong>.` : ''}
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:56px;line-height:1;margin-bottom:12px;">🌟🎉✨</div>
+        <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Welcome to the team, ${data.firstName}!</h2>
+        <p style="color:#555;font-size:15px;margin:0;">We are so excited to have you at ${data.companyName}</p>
+      </div>
+      <p style="color:#555;line-height:1.8;font-size:14px;">
+        Your new colleagues in <strong>${data.department}</strong> wanted to make your first day extra special.
+        <strong>${data.signerCount} people</strong> signed a welcome card just for you!
+        ${data.giftAmount ? `They also pooled together a welcome gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> to help you settle in!` : ''}
       </p>
-      ${btn('Open your welcome card →', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
-      <p style="color:#555;font-size:13px;margin-top:20px;">From everyone at ${data.companyName} — welcome aboard 🙌</p>
+      <div style="background:linear-gradient(135deg,#EEEDFE,#F0F0FF);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
+        <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your welcome card is waiting!</p>
+        <p style="color:#6C5CE7;font-size:13px;margin:0;">Click below to read all the lovely messages from your team</p>
+      </div>
+      ${btn('Open my welcome card 🌟', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
+      <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">From everyone at <strong>${data.companyName}</strong> — welcome aboard. We are glad you are here! 🙌</p>
     `)
   }),
 
   // Sent to department members when a colleague is leaving
   farewellDeptNotice: (data) => ({
-    subject: `${data.leavingName} is leaving on ${data.lastDay} — sign their farewell card`,
+    subject: `👋 ${data.leavingName} is leaving — sign their farewell card!`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:0 0 16px;">
-        <strong>${data.leavingName}</strong> from the <strong>${data.department}</strong> team will be leaving <strong>${data.companyName}</strong> on <strong>${data.lastDay}</strong>.
-        Sign their farewell card and leave a message they'll keep.
-        ${data.giftEnabled ? ' A farewell gift pot is also open.' : ''}
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Time to say a proper goodbye 👋</h2>
+      <p style="color:#555;line-height:1.8;">
+        <strong>${data.leavingName}</strong> from the <strong>${data.department}</strong> team will be leaving <strong>${data.companyName}</strong>
+        on <strong>${data.lastDay}</strong>. Let's send them off in the best possible way — sign their farewell card and leave a message they will always remember!
       </p>
-      ${btn(`Sign ${data.leavingFirstName}'s farewell card →`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#6C5CE7')}
-      <p style="color:#999;font-size:12px;margin-top:16px;">Keep this a surprise 🤫 &nbsp; Signing closes ${data.deadline}. No account needed.</p>
+      ${data.giftEnabled ? `
+      <div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#3B6D11;font-size:13px;margin:0;">🎁 A farewell gift pot is open — contribute any amount via Flutterwave</p>
+      </div>` : ''}
+      <div style="background:#fff8e1;border-radius:8px;padding:14px;margin:16px 0;border-left:4px solid #f0c040;">
+        <p style="color:#7a5f00;font-size:13px;margin:0;">Please keep this a surprise until we present the card on their last day! 🤫</p>
+      </div>
+      ${btn(`Sign ${data.leavingFirstName}'s farewell card`, `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">Signing closes on ${data.deadline}. No account needed to sign.</p>
     `)
   }),
 
   // Sent to the leaving employee on their last day
   farewellCelebrant: (data) => ({
-    subject: `${data.companyName} has a farewell card for you, ${data.firstName}`,
+    subject: `👋 Goodbye and good luck, ${data.firstName}! A farewell surprise from ${data.companyName}`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${data.firstName},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">
-        Your colleagues at <strong>${data.companyName}</strong> put together a farewell card for you.
-        <strong>${data.signerCount} ${data.signerCount === 1 ? 'person' : 'people'}</strong> left you messages.
-        ${data.giftAmount ? ` They also pooled a farewell gift of <strong style="color:#166534;">${fmtNGN(data.giftAmount)}</strong>.` : ''}
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:56px;line-height:1;margin-bottom:12px;">👋💜🌟</div>
+        <h2 style="color:#E84393;font-size:26px;margin:0 0 8px;font-weight:700;">Goodbye and good luck, ${data.firstName}!</h2>
+        <p style="color:#555;font-size:15px;margin:0;">Your ${data.companyName} family wishes you all the best</p>
+      </div>
+      <p style="color:#555;line-height:1.8;font-size:14px;">
+        As you move on to your next chapter, your colleagues at <strong>${data.companyName}</strong> wanted you to know how much you meant to the team.
+        <strong>${data.signerCount} people</strong> signed your farewell card and left you heartfelt messages!
+        ${data.giftAmount ? `They also pooled together a farewell gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> just for you!` : ''}
       </p>
-      ${btn('Open your farewell card →', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#6C5CE7')}
-      <p style="color:#555;font-size:13px;margin-top:20px;">From everyone at ${data.companyName} — thank you for everything. Good luck 🙏</p>
+      <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
+        <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your farewell card is waiting!</p>
+        <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to read all the messages and memories your colleagues left for you</p>
+      </div>
+      ${btn('Open my farewell card 💜', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#E84393')}
+      <p style="color:#555;font-size:13px;margin-top:20px;line-height:1.7;">
+        From everyone at <strong>${data.companyName}</strong> — thank you for everything. The door is always open. 🙏
+      </p>
     `)
   }),
 };
@@ -579,47 +647,55 @@ Object.assign(emailTemplates, demoTemplates);
 const newFeatureTemplates = {
 
   reminder: ({ userName, recipientName, occasion, occasionDate, daysUntil, createLink }) => ({
-    subject: `${recipientName}'s ${occasion} is in ${daysUntil} days`,
+    subject: `⏰ Reminder: ${recipientName}'s ${occasion} is in ${daysUntil} days!`,
     html: wrap(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${userName},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;"><strong>${recipientName}'s ${occasion}</strong> is on <strong>${occasionDate}</strong> — ${daysUntil} day${daysUntil === 1 ? '' : 's'} away. You can create a group card and start collecting messages now.</p>
-      ${btn('Create a card →', createLink)}
-      <p style="color:#999;font-size:11px;margin-top:16px;">You set this reminder on Thankeeu. <a href="${FRONTEND_URL}/dashboard" style="color:#6C5CE7;">Manage reminders</a></p>
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">⏰ Don't forget!</h2>
+      <p>Hey ${userName},</p>
+      <p>Just a heads up — <strong>${recipientName}'s ${occasion}</strong> is coming up on <strong>${occasionDate}</strong> (in about ${daysUntil} days).</p>
+      <p>Now is the perfect time to create a beautiful group card and start collecting messages and gifts!</p>
+      ${btn('Create a card now 🎉', createLink)}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">You're receiving this because you set a reminder on Thankeeu. <a href="${FRONTEND_URL}/dashboard" style="color:#6C5CE7;">Manage reminders →</a></p>
     `)
   }),
 
   cardOpened: ({ name, cardTitle, cardSlug, appUrl }) => ({
-    subject: `${name}, your card "${cardTitle}" was just opened`,
+    subject: `👀 Your card "${cardTitle}" was just opened!`,
     html: wrap(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${name},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">The recipient just opened your card <strong>"${cardTitle}"</strong>.</p>
-      ${btn('View card →', `${appUrl}/card/${cardSlug}`)}
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">👀 They opened it!</h2>
+      <p>Hey ${name},</p>
+      <p>The recipient just opened your card <strong>"${cardTitle}"</strong>. They're reading all the beautiful messages right now! 💜</p>
+      ${btn('View your card', `${appUrl}/card/${cardSlug}`)}
     `)
   }),
 
   cardScheduled: ({ name, cardTitle, sendDate, cardSlug, appUrl }) => ({
-    subject: `Your card "${cardTitle}" is scheduled for ${sendDate}`,
+    subject: `📅 Card "${cardTitle}" is scheduled and ready!`,
     html: wrap(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${name},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">Your card <strong>"${cardTitle}"</strong> is scheduled for delivery on <strong>${sendDate}</strong>. Share the link to collect more messages before then.</p>
-      ${btn('View & share →', `${appUrl}/card/${cardSlug}`)}
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">📅 Your card is scheduled!</h2>
+      <p>Hey ${name},</p>
+      <p>Your card <strong>"${cardTitle}"</strong> is scheduled for delivery on <strong>${sendDate}</strong>.</p>
+      <p>Keep sharing the invite link so more people can sign before it's delivered!</p>
+      ${btn('View & share your card', `${appUrl}/card/${cardSlug}`)}
     `)
   }),
 
   cardSent: ({ name, cardTitle, recipientName, cardSlug, appUrl }) => ({
-    subject: `Your card for ${recipientName} has been delivered`,
+    subject: `🚀 Your card "${cardTitle}" was delivered to ${recipientName}!`,
     html: wrap(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${name},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">Your card <strong>"${cardTitle}"</strong> has been delivered to <strong>${recipientName}</strong>. You'll be notified when they open it.</p>
-      ${btn('View card →', `${appUrl}/card/${cardSlug}`)}
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">🚀 Delivered!</h2>
+      <p>Hey ${name},</p>
+      <p>Your card <strong>"${cardTitle}"</strong> has been delivered to <strong>${recipientName}</strong>. We'll let you know when they open it 👀</p>
+      ${btn('View delivered card', `${appUrl}/card/${cardSlug}`)}
     `)
   }),
 
   pendingToSign: ({ signerName, creatorName, recipientName, occasion, cardSlug, appUrl }) => ({
-    subject: `${creatorName} invited you to sign ${recipientName}'s ${occasion} card`,
+    subject: `✍️ You're invited to sign ${recipientName}'s ${occasion} card!`,
     html: wrap(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${signerName},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;"><strong>${creatorName}</strong> invited you to leave a message on <strong>${recipientName}'s ${occasion} card</strong>.</p>
+      <h2 style="color:#5B4BDF;font-size:22px;margin-bottom:8px;">✍️ You're invited to sign!</h2>
+      <p>Hey ${signerName},</p>
+      <p><strong>${creatorName}</strong> invited you to sign <strong>${recipientName}'s ${occasion} card</strong> on Thankeeu.</p>
+      <p>Create your free account (or log in) to sign — it only takes a minute!</p>
       ${btn('Sign the card →', `${appUrl}/sign/${cardSlug}`)}
     `)
   }),
@@ -654,16 +730,22 @@ Object.assign(emailTemplates, verificationTemplates);
 // Visitor nurture (guests who signed a card without an account)
 Object.assign(emailTemplates, {
   visitorNudge: (d) => ({
-    subject: `${d.name}, you signed ${d.creatorName}'s ${d.occasion} card on Thankeeu`,
+    subject: `${d.name}, capture your ${d.occasion} wishes forever 🎉`,
     html: BASE(`
-      <p style="color:#333;font-size:15px;line-height:1.8;">Hi ${d.name},</p>
-      <p style="color:#333;font-size:15px;line-height:1.8;margin:12px 0 20px;">
-        You recently signed ${d.creatorName}'s ${d.occasion} card on Thankeeu.
-        If you create a free account, you'll receive your own group cards — with messages, photos, voice notes and cash gifts — all saved in one place when your colleagues celebrate you.
-      </p>
-      ${btn('Create a free account →', d.signupLink, '#6C5CE7')}
-      ${d.cardLink ? `<p style="color:#999;font-size:12px;margin-top:12px;"><a href="${d.cardLink}" style="color:#6C5CE7;">View the card you signed</a></p>` : ''}
-      <p style="color:#ccc;font-size:11px;margin-top:20px;">You received this because you signed a card on Thankeeu. This is a one-time message.</p>
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 10px;">Hey ${d.name}! 👋</h2>
+      <p style="color:#555;line-height:1.8;">You recently signed ${d.creatorName}'s <strong>${d.occasion} card</strong> on Thankeeu.</p>
+      <p style="color:#555;line-height:1.8;">With a <strong>free account</strong>, when <em>your</em> birthday or special occasion comes around, all your heartfelt messages, photos, voice notes, and cash gifts from friends and colleagues will be in one beautiful place — instead of scattered across DMs and social media.</p>
+      <div style="background:#EEEDFE;border-radius:12px;padding:16px 20px;margin:20px 0;">
+        <ul style="color:#534AB7;font-size:13px;margin:0;padding-left:18px;line-height:2.2;">
+          <li>🎂 Get a group birthday card from your whole team</li>
+          <li>🎁 Receive a pooled cash gift to your bank account</li>
+          <li>💌 Keep all birthday wishes forever</li>
+          <li>📸 Photos, voice notes, heartfelt messages in one place</li>
+        </ul>
+      </div>
+      ${btn('Create my free account →', d.signupLink, '#E84393')}
+      ${d.cardLink ? `<p style="color:#aaa;font-size:12px;margin-top:8px;text-align:center;">Or <a href="${d.cardLink}" style="color:#6C5CE7;">view the card you signed</a></p>` : ''}
+      <p style="color:#aaa;font-size:12px;margin-top:16px;">You received this because you signed a card on Thankeeu.</p>
     `)
   }),
 });

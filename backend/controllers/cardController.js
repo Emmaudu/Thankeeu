@@ -38,9 +38,10 @@ const notifyAllCompany = async (companyId, card, slug, recipientName, occasion, 
     sendEmail({ to: m.email, template: 'cardInvite', data: {
       memberName: m.first_name,
       creatorName, recipientName, occasion,
+      custom_occasion: card?.custom_occasion || null,
       scope: 'your entire company',
-      cardSlug:  slug,   // template uses data.cardSlug, NOT signLink
-      signLink,          // kept for reference but template reads cardSlug
+      cardSlug:  slug,
+      signLink,
       giftEnabled,
       deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
     }}).catch(() => {});
@@ -220,8 +221,9 @@ const createCard = async (req, res) => {
             sendEmail({ to: m.email, template: 'cardInvite', data: {
               memberName: m.first_name,
               creatorName, recipientName: recipient_name, occasion,
+              custom_occasion: cleanCustomOccasion || null,
               scope: `${creatorDept} department`,
-              cardSlug:  slug,  // template uses data.cardSlug
+              cardSlug:  slug,
               signLink,
               giftEnabled: is_gift_enabled,
               deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
@@ -432,6 +434,18 @@ const updateCard = async (req, res) => {
       }
     }
 
+    // Same for deadline + deadline_time
+    if (safeUpdates.deadline) {
+      const d = String(safeUpdates.deadline).slice(0, 10);
+      const t = safeUpdates.deadline_time
+        ? String(safeUpdates.deadline_time).slice(0, 8)
+        : '23:59:59';
+      const combined = new Date(`${d}T${t}Z`);
+      if (!isNaN(combined.getTime())) {
+        safeUpdates.deadline = combined.toISOString();
+      }
+    }
+
     // Attempt update with all columns first; fall back gracefully if optional
     // columns (card_layout, font_style) don't exist yet in this schema version.
     let updated, error;
@@ -498,6 +512,7 @@ const activateCard = async (req, res) => {
             creatorName,
             recipientName: card.recipient_name,
             occasion: card.occasion,
+            custom_occasion: card.custom_occasion || null,
             cardSlug: card.slug,
             giftEnabled: card.is_gift_enabled,
             deadline

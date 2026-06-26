@@ -380,24 +380,33 @@ const CreateCard = () => {
         return;
       }
 
-      // Persist the step-4 gift toggle choice back to the draft BEFORE payment.
-      // is_gift_enabled / suggested_amount may have changed since the step-2 save.
+      // Persist gift toggle + scheduling fields BEFORE payment.
+      // This is critical — if this fails, warn loudly so the user can retry.
       try {
-        const giftUpdate = {
+        const { send_date: utcSD, send_time: utcST } = toUTCSendTime(form.send_date, form.send_time);
+        const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
+        const fullUpdate = {
           is_gift_enabled:  form.is_gift_enabled,
           suggested_amount: form.suggested_amount,
           gift_type:        form.gift_type,
+          send_date:        utcSD || null,
+          send_time:        utcST || null,
+          deadline:         utcDL || null,
+          deadline_time:    utcDLT || null,
         };
         if (member) {
           const { memberCardsAPI: mAPI } = await import('../utils/api');
-          await mAPI.update(slug, giftUpdate);
+          await mAPI.update(slug, fullUpdate);
         } else if (company) {
-          await cardsAPI.updateAsCompany(slug, giftUpdate);
+          await cardsAPI.updateAsCompany(slug, fullUpdate);
         } else if (user) {
-          await cardsAPI.update(slug, giftUpdate);
+          await cardsAPI.update(slug, fullUpdate);
         }
+        console.log('[pre-payment-update] Saved dates:', { send_date: utcSD, send_time: utcST, deadline: utcDL });
       } catch (updateErr) {
-        console.warn('[gift-update] Failed to save gift setting before payment:', updateErr?.message);
+        console.error('[pre-payment-update] FAILED to save dates before payment:', updateErr?.response?.data || updateErr?.message);
+        // Non-fatal — payment continues, but warn the user their schedule may not be set
+        toast('⚠️ Could not save delivery schedule. Card will activate but may need re-scheduling.', { duration: 5000 });
       }
 
 
@@ -434,6 +443,11 @@ const CreateCard = () => {
         setPaymentStage('verifying');
         const res = await creditsAPI.spend(slug);
         if (res.data?.ok) {
+          // Send invite emails after activation
+          const emailList = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
+          if (emailList.length) {
+            await cardsAPI.activate(slug, { inviteEmails: emailList }).catch(() => {});
+          }
           await saveCreatorMessage(slug);
           localStorage.removeItem('thankeeu_pending_card');
           setCreditBalance(res.data.credits_remaining);

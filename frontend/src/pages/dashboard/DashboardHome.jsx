@@ -189,9 +189,17 @@ export default function DashboardHome() {
                 </div>
                 <p className="db-card-item-title">{card.title}</p>
                 <p className="db-card-item-meta">For {card.recipient_name}</p>
-                <div className="flex gap-3 mt-2" style={{fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.8rem', color:'#A898CC'}}>
-                  <span><Icon name="Edit" size={12} className="inline mr-1"/>{card.signed_count||0}</span>
+                <div className="flex flex-wrap gap-3 mt-2" style={{fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.8rem', color:'#A898CC'}}>
+                  <span><Icon name="Edit" size={12} className="inline mr-1"/>{card.signed_count||0} signed</span>
                   {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}><Icon name="Gift" size={12} className="inline mr-1"/>{formatNGN(card.total_collected)}</span>}
+                  {card.send_date && card.status === 'active' && (
+                    <span style={{color:'#7C3AED'}}>📅 {(() => {
+                      const d = String(card.send_date).slice(0,10);
+                      const t = card.send_time ? String(card.send_time).slice(0,8) : '00:00:00';
+                      const dt = new Date(`${d}T${t}Z`);
+                      return isNaN(dt.getTime()) ? d : dt.toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+                    })()}</span>
+                  )}
                 </div>
               </div>
               <div className="db-card-item-footer">

@@ -51,11 +51,19 @@ export default function CardFeeVerify() {
             toast.success('Card is now active! 🎉');
           }
 
-          // Restore pending creator message written during card creation.
-          // The message couldn't be saved before the FLW redirect because
-          // the card was still in draft status at that point.
+          // Restore pending creator message + send invite emails
           try {
             const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || localStorage.getItem('thankeeu_card_draft') || '{}');
+
+            // Send invite emails to signers
+            const emailList = pending?.inviteEmails || [];
+            if (emailList.length && card_slug) {
+              const { cardsAPI: cAPI } = await import('../utils/api');
+              await cAPI.activate(card_slug, { inviteEmails: emailList }).catch(e =>
+                console.warn('[CardFeeVerify] invite emails failed:', e?.message)
+              );
+            }
+
             const snap = pending?.msgSnapshot;
             if (snap?.content?.trim() && card_slug) {
               const { messagesAPI } = await import('../utils/api');

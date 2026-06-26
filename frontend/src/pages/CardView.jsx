@@ -1207,9 +1207,22 @@ const CardView = () => {
       .finally(() => setClaimResolving(false));
   }, [slug, claimParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const BASE_URL = import.meta.env.VITE_APP_URL || 'https://thankeeu.com';
+  const cardOccasionLabel = card
+    ? (card.occasion === 'other' && card.custom_occasion
+        ? card.custom_occasion
+        : (occasionLabel[card.occasion] || card.occasion || 'special day'))
+    : null;
+
   useSEO({
-    title: card ? `${card.recipient_name}'s ${card.occasion === 'other' && card.custom_occasion ? card.custom_occasion : (occasionLabel[card.occasion] || '')} Card` : 'View Card - Thankeeu',
-    description: card ? `A beautiful group card for ${card.recipient_name}.` : 'View a group card on Thankeeu.',
+    title: card
+      ? `${card.recipient_name}'s ${cardOccasionLabel} Card`
+      : 'View Card — Thankeeu',
+    description: card
+      ? `A beautiful group card for ${card.recipient_name}'s ${cardOccasionLabel}. ${card.signed_count > 0 ? `${card.signed_count} people signed it.` : ''} Made with love on Thankeeu.`
+      : 'View a group card on Thankeeu.',
+    ogImage: card ? (() => { const apiBase = import.meta.env.VITE_API_URL || ''; return apiBase.startsWith('http') ? `${apiBase}/cards/${card.slug}/og-image` : `https://thankeeu.com/api/cards/${card.slug}/og-image`; })() : undefined,
+    canonical: card ? `/card/${card.slug}` : undefined,
     noIndex: false,
   });
 

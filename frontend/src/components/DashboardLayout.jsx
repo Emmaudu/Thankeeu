@@ -8,11 +8,11 @@ import Icon from './ui/Icon';
 const NAV = [
   { to: '/dashboard',            icon: 'Home',       label: 'Home',             tip: 'Your dashboard overview — recent activity, quick stats and shortcuts' },
   { to: '/dashboard/cards',      icon: 'Heart',      label: 'My Cards',         tip: 'All group cards you have created, active or delivered' },
-  { to: '/dashboard/credits',    icon: 'CreditCard', label: 'Credits & Plans',  tip: 'Buy and manage card credits — one credit = one card' },
+  { to: '/dashboard/credits',    icon: 'Card',       label: 'Credits & Plans',  tip: 'Buy and manage card credits — one credit = one card' },
   { to: '/dashboard/delivered',  icon: 'Send',       label: 'Delivered',        tip: 'Cards you have already sent to their recipients' },
   { to: '/dashboard/received',   icon: 'Gift',       label: 'Received',         tip: 'Group cards that were sent to you by others' },
   { to: '/dashboard/pending',    icon: 'Edit',       label: 'Pending to Sign',  tip: 'Cards you have been invited to sign but have not signed yet' },
-  { to: '/dashboard/gift-cards', icon: 'Gift',       label: 'Gift Cards',       tip: 'Send digital gift cards (Airtime, Amazon, Steam and more)' },
+  { to: '/dashboard/gift-cards', icon: 'Gift',       label: 'Gift Cards',       tip: 'View your gift-to-gift-card conversion history — redeem gift pot money as Airtime, Amazon, Steam and more' },
   { to: '/dashboard/finances',   icon: 'Wallet',     label: 'Financials',       tip: 'Your bank account details and gift withdrawal history' },
   { to: '/dashboard/reminders',  icon: 'Bell',       label: 'Reminders',        tip: 'Set birthday and occasion reminders so you never miss a moment' },
   { to: '/dashboard/settings',   icon: 'Settings',   label: 'Settings',         tip: 'Update your profile, password, notifications and preferences' },
@@ -25,6 +25,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
   const location  = useLocation();
   const navigate  = useNavigate();
   const [open, setOpen] = useState(false);
+  const [tooltip, setTooltip] = useState({ visible: false, text: '', y: 0 });
 
   const handleLogout = () => { logout(); navigate('/'); };
   const isActive = (to) =>
@@ -33,7 +34,6 @@ const DashboardLayout = ({ children, title, subtitle }) => {
   const initials = user?.full_name?.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() || '?';
 
   const SidebarContent = () => {
-  const [tooltip, setTooltip] = useState({ visible: false, text: '', y: 0 });
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',

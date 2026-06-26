@@ -80,9 +80,25 @@ const SignCard = () => {
     full_name: '', username: '', email: '', password: '', confirm_password: '', date_of_birth: '',
   });
 
+  // ── Rich OG/Twitter preview for WhatsApp, iMessage, Twitter, LinkedIn ──────
+  const occasionLabel = card
+    ? (card.occasion === 'other' && card.custom_occasion
+        ? card.custom_occasion
+        : (card.occasion || '').replace(/_/g, ' '))
+    : null;
+  const signerCount = card?.signed_count ?? card?.messages?.[0]?.count ?? 0;
+  const BASE_URL = import.meta.env.VITE_APP_URL || 'https://thankeeu.com';
+
   useSEO({
-    title: card ? `Sign ${card.recipient_name}'s card on Thankeeu` : 'Sign a Card — Thankeeu',
-    description: card ? `Sign ${card.recipient_name}'s group card. Add a heartfelt message, photo, voice note or gift contribution — no account needed.` : 'Sign a group card on Thankeeu. Add a message, photo or gift — takes 60 seconds, no account needed.',
+    title: card
+      ? `Sign ${card.recipient_name}'s ${occasionLabel} card`
+      : 'Sign a Card — Thankeeu',
+    description: card
+      ? `${signerCount > 0 ? `${signerCount} ${signerCount === 1 ? 'person' : 'people'} have already signed. ` : ''}Add your message to ${card.recipient_name}'s ${occasionLabel} card — takes 60 seconds, no account needed.`
+      : 'Sign a group card on Thankeeu. Add a message, photo or gift — takes 60 seconds, no account needed.',
+    ogImage: card ? (() => { const apiBase = import.meta.env.VITE_API_URL || ''; return apiBase.startsWith('http') ? `${apiBase}/cards/${card.slug}/og-image` : `https://thankeeu.com/api/cards/${card.slug}/og-image`; })() : undefined,
+    canonical: card ? `/sign/${card.slug}` : undefined,
+    noIndex: false,
   });
 
   useEffect(() => {

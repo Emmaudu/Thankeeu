@@ -31,10 +31,23 @@ export default function DashboardCards() {
   const [filter,  setFilter]  = useState('all');
   const [togglingId, setTogglingId] = useState(null);
   const [resending,  setResending]  = useState(null);
+  const [deleting,   setDeleting]   = useState(null);
 
   useEffect(() => {
     cardsAPI.getAll().then(r=>setCards(r.data||[])).catch(()=>toast.error('Failed to load')).finally(()=>setLoading(false));
   }, []);
+
+  const handleDelete = async (card) => {
+    if (!window.confirm(`Delete "${card.title}"? This cannot be undone.`)) return;
+    setDeleting(card.slug);
+    try {
+      await cardsAPI.delete(card.slug);
+      setCards(prev => prev.filter(c => c.slug !== card.slug));
+      toast.success('Draft deleted');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not delete card');
+    } finally { setDeleting(null); }
+  };
 
   const handleToggleHideAmounts = async (card) => {
     setTogglingId(card.id);
@@ -104,6 +117,15 @@ export default function DashboardCards() {
                 <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
                 {(card.status==='draft' || card.status==='active') && (
                   <Link to={`/create-card?edit=${card.slug}`} className="db-card-item-action"><Icon name="Edit" size={13}/>Edit</Link>
+                )}
+                {card.status==='draft' && (
+                  <button
+                    className="db-card-item-action"
+                    style={{color:'#ef4444'}}
+                    disabled={deleting===card.slug}
+                    onClick={() => handleDelete(card)}>
+                    <Icon name="Trash" size={13}/>{deleting===card.slug?'Deleting…':'Delete'}
+                  </button>
                 )}
                 {card.status==='active' && card.recipient_email && (
                   <button

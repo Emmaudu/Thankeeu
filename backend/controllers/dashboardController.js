@@ -65,15 +65,23 @@ const getDashboard = async (req, res) => {
       new Date(c.deadline) <= in48h
     );
 
-    // Recent activity — last 5 active/sent cards
-    const recent_cards = cards.slice(0, 6);
+    // Recent activity — last 6 cards, with signed_count mapped from messages aggregate
+    const recent_cards = cards.slice(0, 6).map(card => ({
+      ...card,
+      signed_count: card.messages?.[0]?.count || 0,
+      messages: undefined,
+    }));
 
     res.json({
       stats,
       recent_cards,
       closing_soon,
       notifications: notificationsRes.data || [],
-      all_cards: cards
+      all_cards: cards.map(card => ({
+        ...card,
+        signed_count: card.messages?.[0]?.count || 0,
+        messages: undefined,
+      }))
     });
 
   } catch (err) {

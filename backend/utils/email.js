@@ -305,7 +305,7 @@ const emailTemplates = {
   }),
 };
 
-const sendEmail = async ({ to, template, data, subject, html }) => {
+const sendEmail = async ({ to, template, data, subject, html, reply_to }) => {
   try {
     let emailSubject = subject;
     let emailHtml    = html;
@@ -326,12 +326,15 @@ const sendEmail = async ({ to, template, data, subject, html }) => {
 
     if (!emailSubject || !emailHtml) throw new Error('Email requires either a template or both subject and html');
 
-    const result = await resend.emails.send({
+    const payload = {
       from: `${process.env.EMAIL_FROM_NAME || 'Thankeeu'} <${process.env.EMAIL_FROM || 'hello@thankeeu.com'}>`,
       to,
       subject: emailSubject,
       html:    emailHtml,
-    });
+    };
+    if (reply_to) payload.replyTo = reply_to;
+
+    const result = await resend.emails.send(payload);
     return { success: true, id: result.id };
   } catch (error) {
     console.error('Email error:', error?.message || error);

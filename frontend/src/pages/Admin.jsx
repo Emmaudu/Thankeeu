@@ -206,6 +206,178 @@ const UsersTab = ({ users, setUsers }) => {
   );
 };
 
+// ── Broadcast Tab ─────────────────────────────────────────────────────────────
+const SEGMENTS = [
+  { id: 'all',         label: 'All users',              desc: 'Every registered user on Thankeeu' },
+  { id: 'active',      label: 'Active users',           desc: 'Users who have created at least one card' },
+  { id: 'inactive_30', label: 'Inactive 30+ days',      desc: 'Signed up 30+ days ago, never created a card' },
+  { id: 'inactive_90', label: 'Inactive 90+ days',      desc: 'Signed up 90+ days ago, never created a card' },
+];
+
+const BroadcastTab = () => {
+  const [segment,    setSegment]    = React.useState('all');
+  const [subject,    setSubject]    = React.useState('');
+  const [body,       setBody]       = React.useState('');
+  const [testEmail,  setTestEmail]  = React.useState('');
+  const [preview,    setPreview]    = React.useState(null);
+  const [previewing, setPreviewing] = React.useState(false);
+  const [sending,    setSending]    = React.useState(false);
+  const [result,     setResult]     = React.useState(null);
+
+  const fetchPreview = async (seg = segment) => {
+    setPreviewing(true);
+    try {
+      const r = await adminAPI.broadcastPreview(seg);
+      setPreview(r.data.count);
+    } catch { setPreview(null); }
+    finally { setPreviewing(false); }
+  };
+
+  const handleSegmentChange = (seg) => {
+    setSegment(seg);
+    setPreview(null);
+    fetchPreview(seg);
+  };
+
+  React.useEffect(() => { fetchPreview('all'); }, []);
+
+  const sendTest = async () => {
+    if (!testEmail.trim()) return toast.error('Enter a test email address');
+    if (!subject.trim())   return toast.error('Subject is required');
+    if (!body.trim())      return toast.error('Email body is required');
+    setSending(true); setResult(null);
+    try {
+      const r = await adminAPI.broadcast({ subject, body, test_email: testEmail.trim() });
+      toast.success(r.data.message);
+      setResult({ type: 'test', ...r.data });
+    } catch (e) { toast.error(e?.response?.data?.error || 'Failed to send test'); }
+    finally { setSending(false); }
+  };
+
+  const sendBroadcast = async () => {
+    if (!subject.trim()) return toast.error('Subject is required');
+    if (!body.trim())    return toast.error('Email body is required');
+    const seg = SEGMENTS.find(s => s.id === segment);
+    const confirmed = window.confirm(
+      `Send this email to ${preview !== null ? preview : '?'} ${seg?.label.toLowerCase()}?\n\nSubject: ${subject}\n\nReplies will go to support@thankeeu.com.\n\nThis cannot be undone.`
+    );
+    if (!confirmed) return;
+    setSending(true); setResult(null);
+    try {
+      const r = await adminAPI.broadcast({ subject, body, segment });
+      toast.success(r.data.message);
+      setResult({ type: 'broadcast', ...r.data });
+    } catch (e) { toast.error(e?.response?.data?.error || 'Broadcast failed'); }
+    finally { setSending(false); }
+  };
+
+  const segInfo = SEGMENTS.find(s => s.id === segment);
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h2 style={{ fontSize:18, fontWeight:800, color:'#1a1a2e', margin:'0 0 4px' }}>📣 Email Broadcast</h2>
+        <p style={{ fontSize:13, color:'#9CA3AF', margin:0 }}>Send a message to your users. Replies go to <strong>support@thankeeu.com</strong>.</p>
+      </div>
+
+      {/* Result banner */}
+      {result && (
+        <div style={{ background: result.type === 'test' ? '#EFF6FF' : '#F0FDF4', border: `1px solid ${result.type === 'test' ? '#BFDBFE' : '#BBF7D0'}`, borderRadius:12, padding:'14px 18px' }}>
+          <p style={{ margin:0, fontWeight:700, fontSize:14, color: result.type === 'test' ? '#1D4ED8' : '#15803D' }}>
+            {result.type === 'test' ? '🧪 Test sent!' : '✅ Broadcast complete!'}
+          </p>
+          <p style={{ margin:'4px 0 0', fontSize:13, color:'#374151' }}>{result.message}</p>
+          {result.failed > 0 && <p style={{ margin:'4px 0 0', fontSize:12, color:'#DC2626' }}>{result.failed} emails failed to send.</p>}
+        </div>
+      )}
+
+      {/* Segment picker */}
+      <div style={{ background:'white', border:'1px solid #EDE9FF', borderRadius:16, padding:20 }}>
+        <p style={{ margin:'0 0 12px', fontWeight:700, fontSize:13, color:'#374151' }}>1. Choose audience</p>
+        <div className="grid grid-cols-2 gap-3">
+          {SEGMENTS.map(s => (
+            <button key={s.id} onClick={() => handleSegmentChange(s.id)}
+              style={{
+                textAlign:'left', padding:'12px 14px', borderRadius:12, cursor:'pointer', border: `2px solid ${segment === s.id ? '#7C3AED' : '#EDE9FF'}`,
+                background: segment === s.id ? '#F5F3FF' : 'white', transition:'all .12s',
+              }}>
+              <p style={{ margin:'0 0 2px', fontWeight:700, fontSize:13, color: segment === s.id ? '#7C3AED' : '#1a1a2e' }}>{s.label}</p>
+              <p style={{ margin:0, fontSize:11, color:'#9CA3AF' }}>{s.desc}</p>
+            </button>
+          ))}
+        </div>
+        <div style={{ marginTop:12, padding:'10px 14px', background:'#F8F6FF', borderRadius:10, display:'flex', alignItems:'center', gap:8 }}>
+          {previewing
+            ? <span style={{ fontSize:13, color:'#9CA3AF' }}>Counting recipients…</span>
+            : preview !== null
+              ? <><span style={{ fontSize:22, fontWeight:800, color:'#7C3AED' }}>{preview.toLocaleString()}</span><span style={{ fontSize:13, color:'#6B7280' }}> {segInfo?.label.toLowerCase()} will receive this email</span></>
+              : <button onClick={() => fetchPreview(segment)} style={{ fontSize:13, color:'#7C3AED', fontWeight:600, background:'none', border:'none', cursor:'pointer' }}>Check recipient count →</button>
+          }
+        </div>
+      </div>
+
+      {/* Compose */}
+      <div style={{ background:'white', border:'1px solid #EDE9FF', borderRadius:16, padding:20 }}>
+        <p style={{ margin:'0 0 14px', fontWeight:700, fontSize:13, color:'#374151' }}>2. Compose email</p>
+        <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#6B7280', marginBottom:6 }}>Subject line *</label>
+        <input
+          value={subject} onChange={e => setSubject(e.target.value)}
+          placeholder="e.g. Exciting news from Thankeeu 🎉"
+          style={{ width:'100%', border:'1px solid #DDD6FE', borderRadius:10, padding:'10px 14px', fontSize:14, color:'#1a1a2e', outline:'none', boxSizing:'border-box', marginBottom:16 }}
+        />
+        <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#6B7280', marginBottom:6 }}>
+          Message body * <span style={{ fontWeight:400, color:'#9CA3AF' }}>(plain text — use double line breaks for paragraphs)</span>
+        </label>
+        <textarea
+          value={body} onChange={e => setBody(e.target.value)}
+          rows={10}
+          placeholder={"We've been working hard to make Thankeeu better for you...\n\nHere's what's new this month:\n\n• Feature one\n• Feature two\n\nThank you for being part of the Thankeeu community.\n\nWarm regards,\nEmmanuel\nCEO, Thankeeu"}
+          style={{ width:'100%', border:'1px solid #DDD6FE', borderRadius:10, padding:'10px 14px', fontSize:14, color:'#1a1a2e', outline:'none', boxSizing:'border-box', resize:'vertical', fontFamily:'inherit', lineHeight:1.7 }}
+        />
+        <p style={{ margin:'8px 0 0', fontSize:11, color:'#9CA3AF' }}>
+          Your name and Thankeeu logo will be added automatically. Users can reply to <strong>support@thankeeu.com</strong>.
+        </p>
+      </div>
+
+      {/* Test + Send */}
+      <div style={{ background:'white', border:'1px solid #EDE9FF', borderRadius:16, padding:20, display:'flex', flexDirection:'column', gap:14 }}>
+        <p style={{ margin:0, fontWeight:700, fontSize:13, color:'#374151' }}>3. Send</p>
+
+        {/* Test send */}
+        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+          <input
+            value={testEmail} onChange={e => setTestEmail(e.target.value)}
+            placeholder="your@email.com — send a test first"
+            style={{ flex:1, border:'1px solid #DDD6FE', borderRadius:10, padding:'9px 14px', fontSize:13, color:'#1a1a2e', outline:'none' }}
+          />
+          <button onClick={sendTest} disabled={sending}
+            style={{ padding:'9px 18px', borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:13, fontWeight:700, cursor: sending ? 'not-allowed' : 'pointer', whiteSpace:'nowrap', opacity: sending ? 0.6 : 1 }}>
+            🧪 Send test
+          </button>
+        </div>
+
+        {/* Real broadcast */}
+        <button onClick={sendBroadcast} disabled={sending || preview === null || preview === 0}
+          style={{
+            padding:'12px 24px', borderRadius:12, border:'none',
+            background: sending || preview === null || preview === 0 ? '#C4B5FD' : 'linear-gradient(135deg,#7C3AED,#EC4899)',
+            color:'white', fontSize:15, fontWeight:800, cursor: sending || preview === null || preview === 0 ? 'not-allowed' : 'pointer',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+          }}>
+          {sending
+            ? '⏳ Sending…'
+            : preview === null
+            ? '📣 Load recipient count first'
+            : `📣 Send to ${preview.toLocaleString()} ${segInfo?.label.toLowerCase()}`
+          }
+        </button>
+        {preview === 0 && <p style={{ margin:0, fontSize:12, color:'#DC2626' }}>No users in this segment — pick a different audience.</p>}
+        {preview === null && !previewing && <p style={{ margin:0, fontSize:12, color:'#9CA3AF' }}>Select an audience above to see recipient count.</p>}
+      </div>
+    </div>
+  );
+};
+
 // ── Admin component ───────────────────────────────────────────────────────────
 const Admin = () => {
   useSEO({ title: 'Admin Panel — Thankeeu', noIndex: true });
@@ -556,6 +728,7 @@ const Admin = () => {
             { id:'cards',     icon:'🃏', label:'Cards',         badge:cards.length||null },
             { id:'companies', icon:'🏢', label:'Companies',     badge:null },
             { id:'support',   icon:'🎧', label:'Support',       badge:openTickets.length||null },
+            { id:'broadcast', icon:'📣', label:'Broadcast',     badge:null },
             { id:'demos',     icon:'🚀', label:'Demo Requests', badge:newDemos.length||null },
             { id:'visitors',  icon:'👣', label:'Visitors',      badge:visitors.length||null },
             { id:'blog',      icon:'✍️', label:'Blog',          badge:null },
@@ -615,6 +788,7 @@ const Admin = () => {
             { id:'cards',     icon:'🃏', label:'Cards',         badge:cards.length||null },
             { id:'companies', icon:'🏢', label:'Companies',     badge:null },
             { id:'support',   icon:'🎧', label:'Support',       badge:openTickets.length||null },
+            { id:'broadcast', icon:'📣', label:'Broadcast',     badge:null },
             { id:'demos',     icon:'🚀', label:'Demo Requests', badge:newDemos.length||null },
             { id:'visitors',  icon:'👣', label:'Visitors',      badge:visitors.length||null },
             { id:'blog',      icon:'✍️', label:'Blog',          badge:null },
@@ -650,7 +824,7 @@ const Admin = () => {
         <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <div>
             <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
-              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals'})[tab] || tab}
+              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'📣 Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals'})[tab] || tab}
             </h1>
             <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
           </div>
@@ -754,6 +928,9 @@ const Admin = () => {
             </div>
           </div>
         )}
+
+        {/* ─────────────── BROADCAST ─────────────── */}
+        {tab === 'broadcast' && <BroadcastTab />}
 
         {/* ─────────────── USERS ─────────────── */}
         {tab === 'users' && <UsersTab users={users} setUsers={setUsers} />}

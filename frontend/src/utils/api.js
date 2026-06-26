@@ -228,6 +228,8 @@ export const adminAPI = {
   getCards:     ()                       => api.get('/admin/cards'),
   redeliverCard: (cardId)               => api.post(`/admin/cards/${cardId}/redeliver`),
   deleteCard:   (cardId)                => api.delete(`/admin/cards/${cardId}`),
+  broadcastPreview: (segment)           => api.get(`/admin/broadcast/preview?segment=${segment}`),
+  broadcast:    (data)                  => api.post('/admin/broadcast', data),
 };
 
 export const adminCompanyAPI = {

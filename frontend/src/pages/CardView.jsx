@@ -352,13 +352,11 @@ function MusicPlayer() {
 
     const unlock = () => {
       if (startedRef.current) return;
-      // Remove all gesture listeners first
-      document.removeEventListener('touchend', unlock);
-      document.removeEventListener('click',    unlock);
+      document.removeEventListener('click', unlock);
       doPlay();
     };
 
-    // 1. Try silent autoplay immediately (works on desktop without user gesture)
+    // 1. Try silent autoplay immediately (works on desktop)
     audio.volume = 0;
     audio.play().then(() => {
       startedRef.current = true;
@@ -367,18 +365,15 @@ function MusicPlayer() {
       fadeIn(audio);
       startProgressTracker(audio);
     }).catch(() => {
-      // Blocked — show tap prompt, listen for first touch or click
+      // Blocked — wait for first tap/click anywhere (fires after tap, never blocks scroll)
       setNeedsTap(true);
-      // touchend fires AFTER the touch completes — safe, does not block scroll
-      document.addEventListener('touchend', unlock, { passive: true });
-      document.addEventListener('click',    unlock);
+      document.addEventListener('click', unlock);
     });
 
     return () => {
       clearInterval(timerRef.current);
       clearInterval(fadeRef.current);
-      document.removeEventListener('touchend', unlock);
-      document.removeEventListener('click',    unlock);
+      document.removeEventListener('click', unlock);
       if (audioRef.current) audioRef.current.pause();
     };
   }, []);
@@ -1512,7 +1507,7 @@ const CardView = () => {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-10 sm:py-14" style={{ position: 'relative', zIndex: 1 }}>
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 pt-10 sm:pt-14 pb-28 sm:pb-20" style={{ position: 'relative', zIndex: 1 }}>
         {totalCollected > 0 && (
           <section className="card-art card-art-sunburst rounded-[2rem] bg-gradient-to-br from-emerald-700 to-teal-900 text-white p-6 sm:p-8 mb-9 shadow-xl">
             <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">

@@ -50,7 +50,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
       {/* User chip */}
       <div style={{ padding:'0.75rem 0.75rem 0.5rem' }}>
-        <Link to="/dashboard/settings" onClick={() => setOpen(false)} style={{
+        <Link to="/dashboard/settings" onClick={() => { setOpen(false); setTooltip({ visible:false, text:'', y:0 }); }} style={{
           display:'flex', alignItems:'center', gap:'0.625rem',
           padding:'0.625rem 0.75rem', borderRadius:14,
           textDecoration:'none', transition:'background 0.15s',
@@ -78,42 +78,40 @@ const DashboardLayout = ({ children, title, subtitle }) => {
         </Link>
       </div>
 
-      {/* Nav */}
+      {/* Nav — tooltip only fires for mouse pointer, never for touch/tap */}
+      <style>{`
+        .dash-nav-link { display:flex; align-items:center; gap:0.625rem; padding:0.6rem 0.75rem; border-radius:12px; margin-bottom:2px; text-decoration:none; transition:background 0.12s,color 0.12s; border-left:3px solid transparent; font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:0.875rem; color:#6B5FA8; background:transparent; -webkit-tap-highlight-color:transparent; cursor:pointer; user-select:none; }
+        .dash-nav-link:hover { background:rgba(255,255,255,0.05); color:#A78BFA; }
+        .dash-nav-link.active { background:rgba(139,92,246,0.15); color:#C4B5FD; font-weight:700; border-left-color:#7C3AED; padding-left:calc(0.75rem - 3px); }
+      `}</style>
       <nav style={{ flex:1, padding:'0.25rem 0.75rem', overflowY:'auto', overflowX:'hidden', scrollbarWidth:'thin', scrollbarColor:'rgba(139,92,246,0.3) transparent' }}>
         {NAV.map(({ to, icon, label, tip }) => {
           const active = isActive(to);
           return (
-            <div key={to}>
-              <Link to={to} onClick={() => setOpen(false)} style={{
-                display:'flex', alignItems:'center', gap:'0.625rem',
-                padding:'0.6rem 0.75rem', borderRadius:12, marginBottom:2,
-                textDecoration:'none', transition:'all 0.15s',
-                background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
-                color: active ? '#C4B5FD' : '#6B5FA8',
-                borderLeft: active ? '3px solid #7C3AED' : '3px solid transparent',
-                paddingLeft: active ? 'calc(0.75rem - 3px)' : '0.75rem',
-                fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight: active ? 700 : 600, fontSize:'0.875rem',
+            <Link
+              key={to}
+              to={to}
+              className={`dash-nav-link${active ? ' active' : ''}`}
+              onClick={() => { setOpen(false); setTooltip({ visible:false, text:'', y:0 }); }}
+              onPointerEnter={e => {
+                if (e.pointerType !== 'mouse') return;
+                if (tip) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({ visible:true, text:tip, y: rect.top + rect.height / 2 });
+                }
               }}
-                onMouseEnter={e => {
-                  if (!active) { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#A78BFA'; }
-                  if (tip) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setTooltip({ visible: true, text: tip, y: rect.top + rect.height / 2 });
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#6B5FA8'; }
-                  setTooltip(t => ({ ...t, visible: false }));
-                }}>
-                <Icon name={icon} size={16} style={{ flexShrink:0 }} />
-                {label}
-              </Link>
-            </div>
+              onPointerLeave={e => {
+                if (e.pointerType !== 'mouse') return;
+                setTooltip(t => ({ ...t, visible:false }));
+              }}>
+              <Icon name={icon} size={16} style={{ flexShrink:0 }} />
+              {label}
+            </Link>
           );
         })}
       </nav>
 
-      {/* Speech-bubble tooltip — fixed so it escapes all overflow contexts */}
+      {/* Tooltip — mouse pointer only, never shown on touch or stylus */}
       {tooltip.visible && tooltip.text && (
         <div style={{
           position:'fixed', left:252, top: tooltip.y,
@@ -121,32 +119,24 @@ const DashboardLayout = ({ children, title, subtitle }) => {
           background:'#fff', color:'#1A1035',
           fontSize:'0.72rem', lineHeight:1.55, fontFamily:'Plus Jakarta Sans,sans-serif',
           padding:'9px 13px', borderRadius:12, maxWidth:220, pointerEvents:'none',
-          boxShadow:'0 4px 24px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.08)',
-          border:'1px solid #EDE9FE', zIndex:9999, whiteSpace:'normal',
-          fontWeight:500,
+          boxShadow:'0 4px 24px rgba(0,0,0,0.18)', border:'1px solid #EDE9FE',
+          zIndex:9999, whiteSpace:'normal', fontWeight:500,
         }}>
-          {/* Left-pointing triangle */}
-          <div style={{
-            position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
-            borderWidth:'6px', borderStyle:'solid',
-            borderColor:'transparent #fff transparent transparent',
-            filter:'drop-shadow(-2px 0 1px rgba(0,0,0,0.06))',
-          }} />
+          <div style={{ position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)', borderWidth:'6px', borderStyle:'solid', borderColor:'transparent #fff transparent transparent' }} />
           {tooltip.text}
         </div>
       )}
 
+
       {/* Create card CTA */}
       <div style={{ padding:'0.5rem 0.75rem' }}>
-        <Link to="/create-card" onClick={() => setOpen(false)} style={{
+        <Link to="/create-card" onClick={() => { setOpen(false); setTooltip({ visible:false, text:'', y:0 }); }} style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap:'0.4rem',
           padding:'0.7rem', borderRadius:14, textDecoration:'none',
           background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff',
           fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.875rem',
-          boxShadow:'0 4px 16px rgba(124,58,237,0.35)', transition:'filter 0.15s',
-        }}
-          onMouseEnter={e => e.currentTarget.style.filter='brightness(1.1)'}
-          onMouseLeave={e => e.currentTarget.style.filter='brightness(1)'}>
+          boxShadow:'0 4px 16px rgba(124,58,237,0.35)', WebkitTapHighlightColor:'transparent',
+        }}>
           <Icon name="Plus" size={15} /> New card
         </Link>
       </div>
@@ -181,7 +171,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       {/* Mobile overlay */}
       {open && (
         <div className="fixed inset-0 z-50 md:hidden" style={{ background:'rgba(0,0,0,0.6)', backdropFilter:'blur(3px)' }}
-          onClick={() => setOpen(false)} />
+          onClick={() => { setOpen(false); setTooltip({ visible:false, text:'', y:0 }); }} />
       )}
       <div className="fixed top-0 left-0 h-full z-50 md:hidden" style={{
         width: SIDEBAR_W, transform: open ? 'translateX(0)' : 'translateX(-100%)',

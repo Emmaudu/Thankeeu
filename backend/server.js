@@ -281,31 +281,56 @@ cron.schedule('0 9 * * 1', () => sendNudgeEmails().catch(console.error));
 // ─────────────────────────────────────────────────────────────────────────────
 // CARD DELIVERY ENGINE
 // ─────────────────────────────────────────────────────────────────────────────
-// deliverCard: send one card to its recipient right now.
-// Updates DB status → 'sent' FIRST (idempotent guard), THEN sends email.
 const crypto = require('crypto');
 const scheduler = require('./utils/scheduler');
 
+// In-memory lock: prevent two concurrent deliveries of the same card
+// (e.g. startup autoSendDueCards + scheduler firing at the same time)
+const _delivering = new Set();
+
 async function deliverCard(card) {
   const now = new Date();
-  const slug = card.slug;
+  const slug = card?.slug || 'unknown';
+
+  // In-memory lock: if another async path is already delivering this card, skip
+  if (_delivering.has(slug)) {
+    console.log(`[deliver] Already in progress for ${slug}, skipping duplicate`);
+    return { skipped: true };
+  }
+  _delivering.add(slug);
+
   try {
+    // Safety check — card must have an id to proceed
+    if (!card || !card.id) {
+      console.error(`[deliver] Card missing id. card=`, JSON.stringify(card)?.slice(0, 200));
+      return { error: 'card.id is missing' };
+    }
+
     // Guard: re-fetch current status so a concurrent delivery never double-sends
-    const { data: fresh } = await supabase
+    const { data: fresh, error: fetchErr } = await supabase
       .from('cards')
       .select('id, slug, status, recipient_notified, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id')
       .eq('id', card.id)
       .maybeSingle();
+
+    if (fetchErr) {
+      console.error(`[deliver] Failed to fetch card ${slug}:`, fetchErr.message);
+      return { error: fetchErr.message };
+    }
 
     if (!fresh || fresh.status !== 'active' || fresh.recipient_notified) {
       console.log(`[deliver] Skipping ${slug}: status=${fresh?.status}, notified=${fresh?.recipient_notified}`);
       return { skipped: true };
     }
 
+    if (!fresh.recipient_email) {
+      console.error(`[deliver] Card ${slug} has no recipient_email — cannot deliver`);
+      return { error: 'no recipient_email' };
+    }
+
     const claimToken = fresh.claim_token || crypto.randomBytes(24).toString('hex');
 
-    // 1. Mark as sent in DB FIRST — if this fails, abort. No email until token is safe.
-    // Try full update first; if columns are missing, fall back to minimal update.
+    // 1. Mark as sent in DB FIRST
     let saveErr;
     ({ error: saveErr } = await supabase.from('cards').update({
       status:             'sent',
@@ -314,7 +339,7 @@ async function deliverCard(card) {
       claim_token:        claimToken,
     }).eq('id', fresh.id).eq('status', 'active'));
 
-    // Fallback: if delivered_at or claim_token columns don't exist yet, retry without them
+    // Fallback: if delivered_at or claim_token columns don't exist yet
     if (saveErr && (saveErr.code === '42703' || /column .* does not exist/i.test(saveErr.message || ''))) {
       console.warn(`[deliver] Optional column missing, retrying minimal update for ${slug}:`, saveErr.message);
       ({ error: saveErr } = await supabase.from('cards').update({
@@ -329,31 +354,38 @@ async function deliverCard(card) {
     }
 
     // 2. Auto-link to recipient's account if they have one
-    const { data: existingUser } = await supabase
-      .from('users').select('id').eq('email', fresh.recipient_email.toLowerCase()).maybeSingle();
-    if (existingUser) {
-      await supabase.from('received_cards').upsert({
-        card_id: fresh.id,
-        recipient_user_id: existingUser.id,
-        transferred_by: null,
-        transferred_at: now,
-      }, { onConflict: 'card_id,recipient_user_id' }).catch(() => {});
+    try {
+      const { data: existingUser } = await supabase
+        .from('users').select('id').eq('email', fresh.recipient_email.toLowerCase()).maybeSingle();
+      if (existingUser?.id) {
+        // Use insert and silently ignore the duplicate-key error (UNIQUE constraint on card_id, recipient_user_id)
+        // instead of upsert with onConflict, which has parsing quirks in some Supabase JS versions.
+        const { error: insertErr } = await supabase.from('received_cards').insert({
+          card_id:           fresh.id,
+          recipient_user_id: existingUser.id,
+          transferred_by:    null,
+          transferred_at:    now,
+        });
+        if (insertErr && !insertErr.code?.includes('23505')) {
+          // 23505 = unique_violation (already linked) — ignore that, log anything else
+          console.warn(`[deliver] received_cards insert warning for ${slug}:`, insertErr.message);
+        }
+      }
+    } catch (linkErr) {
+      console.warn(`[deliver] Auto-link failed for ${slug} (non-fatal):`, linkErr.message);
     }
 
     // 3. Count messages for the email
     const { count } = await supabase.from('messages')
       .select('*', { count: 'exact', head: true }).eq('card_id', fresh.id);
 
-    // 4. Send delivery email — link uses ?token= (the access_token directly).
-    // This lets CardView open the private recipient view immediately with no
-    // claim-gate round-trip, no missing-column failures, and no extra API call.
+    // 4. Send delivery email
     await sendEmail({
       to: fresh.recipient_email,
       template: 'cardDelivery',
       data: {
         recipientName:  fresh.recipient_name,
         recipientEmail: fresh.recipient_email,
-        // Pass both raw occasion and resolved display name so template handles all cases
         occasion: (fresh.occasion === 'other' && fresh.custom_occasion)
           ? fresh.custom_occasion
           : (fresh.occasion || '').replace(/_/g, ' '),
@@ -363,15 +395,17 @@ async function deliverCard(card) {
         claimToken:    null,
         accessToken:   fresh.access_token,
         senderCount:   count || 0,
-        giftAmount:    fresh.total_collected > 0 ? fresh.total_collected : null,
+        giftAmount:    (fresh.total_collected || 0) > 0 ? fresh.total_collected : null,
         isCompanyCard: !!fresh.company_id,
       },
     });
 
     console.log(`[deliver] ✅ Delivered ${slug} → ${fresh.recipient_email}`);
+    _delivering.delete(slug);
     return { delivered: slug };
   } catch (err) {
-    console.error(`[deliver] ❌ Error for ${slug}:`, err.message);
+    _delivering.delete(slug);
+    console.error(`[deliver] ❌ Error for ${slug}:`, err.message, err.stack?.split('\n').slice(1, 4).join(' | '));
     return { error: err.message };
   }
 }

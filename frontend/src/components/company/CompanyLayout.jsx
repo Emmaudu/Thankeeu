@@ -133,13 +133,17 @@ const CompanyLayout = ({ children, title, subtitle }) => {
                 background: isActive(path) ? 'rgba(124,110,255,0.15)' : 'transparent',
                 color: isActive(path) ? '#B8B4FF' : '#6B678A',
               }}
-              onMouseEnter={e => {
+              onPointerEnter={e => {
+                if (e.pointerType !== 'mouse') return;
                 if (tip) {
                   const rect = e.currentTarget.getBoundingClientRect();
                   setCoTooltip({ visible: true, text: tip, y: rect.top + rect.height / 2 });
                 }
               }}
-              onMouseLeave={() => setCoTooltip(t => ({ ...t, visible: false }))}>
+              onPointerLeave={e => {
+                if (e.pointerType !== 'mouse') return;
+                setCoTooltip(t => ({ ...t, visible: false }));
+              }}>
               <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
               {label}
             </Link>

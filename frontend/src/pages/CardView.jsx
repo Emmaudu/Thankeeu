@@ -274,178 +274,167 @@ function Confetti() {
   );
 }
 
-// ── Soft Music Player — plays a 30s gentle instrumental on page open ─────────
-// Uses the Web Audio API to synthesise a soft, warm piano-like melody so there
-// are no external audio files to load and no copyright concerns.
+// ── Music Player — works on iOS, Android, iPad, and desktop ──────────────────
+// Mobile browsers (iOS Safari, Chrome Android) block autoplay entirely.
+// Strategy: show the pill immediately with a "Tap to play ▶" prompt.
+// On desktop we attempt autoplay; if it succeeds, great. If blocked, the pill
+// stays in "tap to play" state. Either way the user always has a tap target.
 function MusicPlayer() {
-  const [playing,  setPlaying]  = useState(false);
-  const [done,     setDone]     = useState(false);
-  const [visible,  setVisible]  = useState(true);
-  const [progress, setProgress] = useState(0);
-  const ctxRef   = useRef(null);
-  const timerRef = useRef(null);
-  const startRef = useRef(null);
-  const DURATION = 32;
+  const [playing,   setPlaying]   = useState(false);
+  const [done,      setDone]      = useState(false);
+  const [visible,   setVisible]   = useState(true);
+  const [progress,  setProgress]  = useState(0);
+  const [needsTap,  setNeedsTap]  = useState(false); // true = waiting for user gesture
+  const audioRef  = useRef(null);
+  const timerRef  = useRef(null);
+  const fadeRef   = useRef(null);
 
-  // Dreamy romantic melody in D major — chord progression D-Bm-G-A
-  // Four layered voices: melody (sine+triangle), warm pad, deep bass, shimmer
-  const MELODY = [
-    [587.33,0.0,1.0,0.18],[523.25,1.0,0.5,0.15],[587.33,1.5,0.5,0.16],
-    [659.25,2.0,1.2,0.20],[587.33,3.2,0.8,0.18],[493.88,4.0,1.0,0.17],
-    [440.00,5.0,0.6,0.16],[493.88,5.6,0.6,0.17],[523.25,6.2,1.8,0.19],
-    [440.00,8.0,0.6,0.16],[493.88,8.6,0.6,0.17],[523.25,9.2,0.8,0.18],
-    [587.33,10.0,0.8,0.20],[659.25,10.8,1.2,0.22],[739.99,12.0,0.6,0.20],
-    [659.25,12.6,0.6,0.19],[587.33,13.2,0.8,0.18],[523.25,14.0,2.0,0.20],
-    [493.88,16.0,1.0,0.18],[440.00,17.0,0.5,0.16],[369.99,17.5,0.5,0.15],
-    [440.00,18.0,1.0,0.17],[493.88,19.0,0.8,0.18],[523.25,19.8,0.8,0.19],
-    [587.33,20.6,1.4,0.21],[523.25,22.0,0.6,0.18],[493.88,22.6,1.4,0.17],
-    [440.00,24.0,0.8,0.18],[493.88,24.8,0.8,0.19],[523.25,25.6,0.8,0.20],
-    [587.33,26.4,1.2,0.21],[659.25,27.6,0.8,0.19],[587.33,28.4,0.6,0.18],
-    [523.25,29.0,0.6,0.17],[587.33,29.6,2.4,0.15],
-  ];
-  // No pad layer — removed the chord block that caused the organ/chord sound.
-  // The melody + bass + shimmer alone create a clean, warm piano feel.
-  const PAD = [];
-  const BASS = [
-    [73.42,0.0,3.8,0.07],[61.74,4.0,3.8,0.06],[49.00,8.0,3.8,0.06],[55.00,12.0,3.8,0.07],
-    [73.42,16.0,3.8,0.07],[61.74,20.0,3.8,0.06],[49.00,24.0,3.8,0.06],[55.00,28.0,3.8,0.05],
-  ];
-  const SHIMMER = [
-    [1174.7,0.0,0.3,0.04],[1174.7,2.0,0.3,0.04],[1174.7,4.0,0.3,0.04],[1318.5,6.0,0.3,0.04],
-    [1174.7,8.0,0.3,0.04],[1318.5,10.0,0.3,0.04],[1174.7,12.0,0.3,0.04],[1174.7,14.0,0.3,0.04],
-    [1174.7,16.0,0.3,0.04],[1318.5,18.0,0.3,0.04],[1174.7,20.0,0.3,0.04],[1174.7,22.0,0.3,0.04],
-    [1174.7,24.0,0.3,0.04],[1318.5,26.0,0.3,0.04],[1174.7,28.0,0.3,0.04],[1174.7,30.0,0.3,0.03],
-  ];
-
-  // Synthesizes one note with a warm, piano/music-box-like timbre instead of
-  // a pure sine tone. A single sine oscillator has zero overtones, which is
-  // exactly what makes a breath-blown instrument like a recorder or flute
-  // sound — airy and whistly. Real plucked/struck instruments (piano, harp,
-  // music box) are bright at the very start (the "attack") and are built from
-  // several harmonics (the fundamental frequency plus quieter multiples of it),
-  // which is what actually reads as "warm" rather than "thin and breathy".
-  function schedNote(ctx, master, freq, start, dur, vol, _type, _detune) {
-    const t0 = ctx.currentTime + start;
-
-    // A small lowpass + slight body resonance shapes the tone without making
-    // it sound like a flute (a narrow, fixed-frequency filter is what gives
-    // a windy/breathy character).
-    const toneShaper = ctx.createBiquadFilter();
-    toneShaper.type = 'lowpass';
-    toneShaper.frequency.value = Math.min(8000, freq * 7);
-    toneShaper.Q.value = 0.3;
-    toneShaper.connect(master);
-
-    // Harmonic stack: fundamental (strongest) + 2nd/3rd/4th partials (quieter,
-    // decaying faster than the fundamental) — this combination is what the
-    // ear recognises as a plucked/struck "piano-like" tone rather than a
-    // single pure whistle tone.
-    const harmonics = [
-      { mult: 1, gain: 1.00, decayMul: 1.00 },
-      { mult: 2, gain: 0.28, decayMul: 0.55 },
-      { mult: 3, gain: 0.12, decayMul: 0.40 },
-      { mult: 4, gain: 0.05, decayMul: 0.30 },
-    ];
-
-    harmonics.forEach(({ mult, gain, decayMul }) => {
-      const osc = ctx.createOscillator();
-      const gn  = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq * mult;
-      osc.connect(gn);
-      gn.connect(toneShaper);
-
-      const noteVol  = vol * gain;
-      const noteDur  = dur * decayMul + 0.05;
-
-      // Percussive attack: a fast 8ms rise (not the soft 60ms fade that reads
-      // as a breath instrument starting), then an exponential decay — the
-      // same envelope shape a piano hammer or plucked string naturally has.
-      gn.gain.setValueAtTime(0, t0);
-      gn.gain.linearRampToValueAtTime(noteVol, t0 + 0.008);
-      gn.gain.exponentialRampToValueAtTime(Math.max(noteVol * 0.001, 0.0001), t0 + noteDur);
-
-      osc.start(t0);
-      osc.stop(t0 + noteDur + 0.05);
-    });
-  }
-
-  const startMusic = () => {
-    if (done) return;
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const ctx = new AC();
-    ctxRef.current = ctx;
-    const master = ctx.createGain();
-    master.connect(ctx.destination);
-    master.gain.setValueAtTime(0, ctx.currentTime);
-    master.gain.linearRampToValueAtTime(1, ctx.currentTime + 2);
-    master.gain.setValueAtTime(1, ctx.currentTime + DURATION - 3);
-    master.gain.linearRampToValueAtTime(0, ctx.currentTime + DURATION);
-    MELODY.forEach(([f,s,d,v]) => schedNote(ctx,master,f,s,d,v));
-    PAD.forEach(([f,s,d,v])    => schedNote(ctx,master,f,s,d,v));
-    BASS.forEach(([f,s,d,v])   => schedNote(ctx,master,f,s,d,v));
-    SHIMMER.forEach(([f,s,d,v])=> schedNote(ctx,master,f,s,d,v));
-    setPlaying(true);
-    startRef.current = Date.now();
+  const startProgressTracker = (audio) => {
+    clearInterval(timerRef.current);
     timerRef.current = setInterval(() => {
-      const el = (Date.now() - startRef.current) / 1000;
-      setProgress(Math.min(100, (el / DURATION) * 100));
-      if (el >= DURATION) { clearInterval(timerRef.current); setPlaying(false); setDone(true); setTimeout(() => setVisible(false), 3000); }
+      if (!audio.duration) return;
+      setProgress(Math.min(100, (audio.currentTime / audio.duration) * 100));
     }, 250);
   };
 
+  const fadeIn = (audio) => {
+    audio.volume = 0;
+    clearInterval(fadeRef.current);
+    fadeRef.current = setInterval(() => {
+      audio.volume = Math.min(1, audio.volume + 0.04);
+      if (audio.volume >= 1) clearInterval(fadeRef.current);
+    }, 80);
+  };
+
+  const doPlay = () => {
+    const audio = audioRef.current;
+    if (!audio || done) return;
+    fadeIn(audio);
+    audio.play().then(() => {
+      setPlaying(true);
+      setNeedsTap(false);
+      startProgressTracker(audio);
+    }).catch(() => {
+      // Still blocked (shouldn't happen after tap, but be safe)
+      audio.volume = 1;
+      setNeedsTap(true);
+    });
+  };
+
   const stopMusic = () => {
-    if (ctxRef.current) { ctxRef.current.close().catch(() => {}); ctxRef.current = null; }
+    const audio = audioRef.current;
     clearInterval(timerRef.current);
+    clearInterval(fadeRef.current);
+    if (audio && !audio.paused) {
+      let v = audio.volume;
+      const fo = setInterval(() => {
+        v = Math.max(0, v - 0.08);
+        audio.volume = v;
+        if (v <= 0) { clearInterval(fo); audio.pause(); }
+      }, 60);
+    }
     setPlaying(false); setDone(true);
     setTimeout(() => setVisible(false), 2000);
   };
 
+  const handleEnded = () => {
+    clearInterval(timerRef.current);
+    setPlaying(false); setDone(true);
+    setTimeout(() => setVisible(false), 3000);
+  };
+
+  // On mount: attempt autoplay (works on desktop, fails silently on mobile)
   useEffect(() => {
-    const t = setTimeout(() => startMusic(), 1000);
-    return () => { clearTimeout(t); clearInterval(timerRef.current); if (ctxRef.current) ctxRef.current.close().catch(() => {}); };
+    const audio = audioRef.current;
+    if (!audio) return;
+    // Small delay so the card content loads first
+    const t = setTimeout(() => {
+      audio.volume = 0;
+      audio.play().then(() => {
+        setPlaying(true);
+        setNeedsTap(false);
+        fadeIn(audio);
+        startProgressTracker(audio);
+      }).catch(() => {
+        // Autoplay blocked (mobile) — show tap-to-play prompt
+        setNeedsTap(true);
+      });
+    }, 800);
+    return () => {
+      clearTimeout(t);
+      clearInterval(timerRef.current);
+      clearInterval(fadeRef.current);
+      if (audioRef.current) { audioRef.current.pause(); }
+    };
   }, []);
 
   if (!visible) return null;
 
   return (
-    <div style={{
-      position:'fixed', bottom:16, right:12, left:12, zIndex:9999,
-      maxWidth:320, marginLeft:'auto',
-      background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))',
-      backdropFilter:'blur(16px)', borderRadius:22, padding:'11px 16px',
-      boxShadow:'0 8px 40px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.15)',
-      display:'flex', alignItems:'center', gap:11,
-      border:'1px solid rgba(255,255,255,0.25)',
-      animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)',
-    }}>
+    <div
+      onClick={needsTap ? doPlay : undefined}
+      style={{
+        position:'fixed', bottom:16, right:12, left:12, zIndex:9999,
+        maxWidth:320, marginLeft:'auto',
+        background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))',
+        backdropFilter:'blur(16px)', borderRadius:22, padding:'11px 16px',
+        boxShadow:'0 8px 40px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.15)',
+        display:'flex', alignItems:'center', gap:11,
+        border:'1px solid rgba(255,255,255,0.25)',
+        animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)',
+        cursor: needsTap ? 'pointer' : 'default',
+        WebkitTapHighlightColor: 'transparent',
+      }}>
+      <audio ref={audioRef} src="/card-music.mp3" onEnded={handleEnded} preload="auto" playsInline />
       <style>{`
         @keyframes music-slide-in { from{transform:translateY(80px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
         @keyframes music-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
         @keyframes music-wave { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
       `}</style>
-      <div style={{ width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0,animation:playing?'music-pulse 1.4s ease infinite':'none' }}>
-        {done?'♥':'🎵'}
+
+      {/* Icon */}
+      <div style={{
+        width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.22)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        fontSize:needsTap?20:17, flexShrink:0,
+        animation: playing ? 'music-pulse 1.4s ease infinite' : 'none',
+      }}>
+        {done ? '♥' : needsTap ? '▶' : '🎵'}
       </div>
-      <div style={{flex:1,minWidth:0}}>
-        <p style={{color:'white',fontSize:11,fontWeight:700,margin:'0 0 2px',letterSpacing:'0.06em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-          {done?'♥ Sent with love':playing?'A melody just for you…':'Welcome ♥'}
+
+      {/* Text + waveform / progress */}
+      <div style={{flex:1, minWidth:0}}>
+        <p style={{color:'white', fontSize:11, fontWeight:700, margin:'0 0 2px', letterSpacing:'0.06em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
+          {done
+            ? '♥ Sent with love'
+            : needsTap
+            ? 'Tap to play your card music ▶'
+            : playing
+            ? 'I Think They Call This Love ♥'
+            : 'Welcome ♥'}
         </p>
-        {playing&&!done&&(
-          <div style={{display:'flex',alignItems:'flex-end',gap:2.5,height:20}}>
+        {playing && !done && (
+          <div style={{display:'flex', alignItems:'flex-end', gap:2.5, height:20}}>
             {[0,1,2,3,4,5,6,7].map(i=>(
-              <div key={i} style={{width:3,borderRadius:2,background:'rgba(255,255,255,0.75)',animation:`music-wave ${0.55+i*0.1}s ${i*0.07}s ease infinite`}}/>
+              <div key={i} style={{width:3, borderRadius:2, background:'rgba(255,255,255,0.75)', animation:`music-wave ${0.55+i*0.1}s ${i*0.07}s ease infinite`}}/>
             ))}
           </div>
         )}
-        {!done&&(
-          <div style={{marginTop:playing?3:5,height:3,background:'rgba(255,255,255,0.2)',borderRadius:2,overflow:'hidden'}}>
-            <div style={{height:'100%',background:'#FBBF24',borderRadius:2,width:`${progress}%`,transition:'width 0.25s linear'}}/>
+        {!done && (
+          <div style={{marginTop: playing?3:5, height:3, background:'rgba(255,255,255,0.2)', borderRadius:2, overflow:'hidden'}}>
+            <div style={{height:'100%', background:'#FBBF24', borderRadius:2, width:`${progress}%`, transition:'width 0.25s linear'}}/>
           </div>
         )}
       </div>
-      {!done&&<button onClick={stopMusic} style={{background:'rgba(255,255,255,0.18)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:10,color:'white',fontSize:12,fontWeight:600,padding:'5px 10px',cursor:'pointer',flexShrink:0}}>✕</button>}
+
+      {/* Stop button — only show when playing or needsTap is false (not in tap-prompt state) */}
+      {!done && !needsTap && (
+        <button
+          onClick={e => { e.stopPropagation(); stopMusic(); }}
+          style={{background:'rgba(255,255,255,0.18)', border:'1px solid rgba(255,255,255,0.3)', borderRadius:10, color:'white', fontSize:12, fontWeight:600, padding:'5px 10px', cursor:'pointer', flexShrink:0}}>
+          ✕
+        </button>
+      )}
     </div>
   );
 }

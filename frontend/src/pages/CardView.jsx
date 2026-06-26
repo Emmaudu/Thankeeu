@@ -351,10 +351,10 @@ function MusicPlayer({ design }) {
         `}</style>
         <div style={{textAlign:'center', padding:'0 32px'}}>
           <div style={{fontSize:72, marginBottom:16, animation:'splash-bob 2s ease-in-out infinite'}}>💌</div>
-          <p style={{color:'rgba(255,255,255,0.9)', fontSize:13, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:8}}>
+          <p style={{color: accent, fontSize:13, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:8}}>
             A keepsake made with love
           </p>
-          <p style={{color:'white', fontSize:28, fontWeight:800, marginBottom:32, lineHeight:1.2}}>
+          <p style={{color: accent, fontSize:28, fontWeight:800, marginBottom:32, lineHeight:1.2}}>
             You have a card waiting
           </p>
           <button

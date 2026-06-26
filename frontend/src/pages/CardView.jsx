@@ -350,45 +350,35 @@ function MusicPlayer() {
     const audio = audioRef.current;
     if (!audio) return;
 
-    // 1. Try immediate silent autoplay (works on some desktop browsers)
-    const tryAutoplay = () => {
+    const unlock = () => {
       if (startedRef.current) return;
-      audio.volume = 0;
-      audio.play().then(() => {
-        startedRef.current = true;
-        setPlaying(true);
-        setNeedsTap(false);
-        fadeIn(audio);
-        startProgressTracker(audio);
-      }).catch(() => {
-        // Autoplay blocked — wait for first user gesture
-        setNeedsTap(true);
-      });
-    };
-
-    // 2. On first ANY user interaction anywhere on the page, start music
-    const onGesture = () => {
-      if (startedRef.current) return;
-      ['click','touchstart','scroll','keydown','pointerdown'].forEach(ev =>
-        document.removeEventListener(ev, onGesture, { capture: true })
-      );
+      // Remove all gesture listeners first
+      document.removeEventListener('touchend', unlock);
+      document.removeEventListener('click',    unlock);
       doPlay();
     };
 
-    ['click','touchstart','scroll','keydown','pointerdown'].forEach(ev =>
-      document.addEventListener(ev, onGesture, { capture: true, passive: true })
-    );
-
-    // Try autoplay after card content settles
-    const t = setTimeout(tryAutoplay, 600);
+    // 1. Try silent autoplay immediately (works on desktop without user gesture)
+    audio.volume = 0;
+    audio.play().then(() => {
+      startedRef.current = true;
+      setPlaying(true);
+      setNeedsTap(false);
+      fadeIn(audio);
+      startProgressTracker(audio);
+    }).catch(() => {
+      // Blocked — show tap prompt, listen for first touch or click
+      setNeedsTap(true);
+      // touchend fires AFTER the touch completes — safe, does not block scroll
+      document.addEventListener('touchend', unlock, { passive: true });
+      document.addEventListener('click',    unlock);
+    });
 
     return () => {
-      clearTimeout(t);
       clearInterval(timerRef.current);
       clearInterval(fadeRef.current);
-      ['click','touchstart','scroll','keydown','pointerdown'].forEach(ev =>
-        document.removeEventListener(ev, onGesture, { capture: true })
-      );
+      document.removeEventListener('touchend', unlock);
+      document.removeEventListener('click',    unlock);
       if (audioRef.current) audioRef.current.pause();
     };
   }, []);
@@ -794,7 +784,33 @@ const MediaCarousel = ({ items, large = false }) => {
       {item.media_type === 'voice' && (
         <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-white/10 p-4" style={{ minHeight: '100px' }}>
           <span className="text-4xl">🎧</span>
-          <audio src={item.media_url} controls className="w-full max-w-xs" />
+          <audio
+            controls
+            playsInline
+            preload="metadata"
+            controlsList="nodownload"
+            className="w-full max-w-xs"
+            style={{ minWidth: 0 }}
+            onError={e => {
+              // If direct URL fails, try stripping Cloudinary transformations
+              const el = e.currentTarget;
+              if (!el.dataset.retried) {
+                el.dataset.retried = '1';
+                const src = el.src || item.media_url;
+                // Force mp3 format via Cloudinary URL manipulation
+                const mp3url = src.includes('cloudinary.com')
+                  ? src.replace(/\.(wav|ogg|webm|m4a|aac)(\?.*)?$/, '.mp3').replace('/video/upload/', '/video/upload/f_mp3/')
+                  : src;
+                el.src = mp3url;
+                el.load();
+              }
+            }}
+          >
+            <source src={item.media_url} />
+            {item.media_url && item.media_url.includes('cloudinary.com') && (
+              <source src={item.media_url.replace('/video/upload/', '/video/upload/f_mp3/').replace(/\.(wav|ogg|webm|m4a|aac)(\?.*)?$/, '.mp3')} type="audio/mpeg" />
+            )}
+          </audio>
         </div>
       )}
       {(!item.media_type || item.media_type === 'image' || item.media_type === 'gif') && (
@@ -1347,7 +1363,7 @@ const CardView = () => {
   const layoutType = member ? 'member' : company ? 'company' : 'user';
 
   const content = (
-    <div className="min-h-0 flex flex-col" style={{ background: design?.soft || '#F5F0FF', overflowX: 'hidden', position: 'relative' }}>
+    <div className="min-h-0 flex flex-col" style={{ background: design?.soft || '#F5F0FF', overflowX: 'hidden', position: 'relative', WebkitOverflowScrolling: 'touch' }}>
       <CelebrationBackground design={design} />
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}

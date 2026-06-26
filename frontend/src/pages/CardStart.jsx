@@ -303,6 +303,33 @@ const CardStart = () => {
       const slug = draftSlug || pending?.slug;
       if (!slug) { toast.error('Card draft not found. Please go back and try again.'); setLoading(false); setPaymentStage('idle'); return; }
 
+      // Persist the step-4 gift toggle choice back to the draft BEFORE payment.
+      // is_gift_enabled and suggested_amount may have changed since handleCreateDraft
+      // ran at step 2→3, and the card in the DB still has the old values.
+      try {
+        const pending2 = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
+        const editToken = pending2.draft_edit_token;
+        const giftUpdate = {
+          is_gift_enabled:  form.is_gift_enabled,
+          suggested_amount: form.suggested_amount,
+          gift_type:        form.gift_type,
+        };
+        if (editToken) {
+          await cardsAPI.updateDraft(slug, giftUpdate, editToken);
+        } else if (member) {
+          const { memberCardsAPI: mAPI } = await import('../utils/api');
+          await mAPI.update(slug, giftUpdate);
+        } else if (company) {
+          await cardsAPI.updateAsCompany(slug, giftUpdate);
+        } else if (user) {
+          await cardsAPI.update(slug, giftUpdate);
+        }
+      } catch (updateErr) {
+        // Non-fatal — log and continue; the card will still activate, but gift
+        // setting may not reflect the step-4 toggle. Warn the user if we can tell.
+        console.warn('[gift-update] Failed to save gift setting before payment:', updateErr?.message);
+      }
+
 
       // Save creator's message AFTER card is active (addMessage blocks on draft cards)
       const saveCreatorMessage = async (activeSlug) => {
@@ -351,7 +378,8 @@ const CardStart = () => {
 
       // Flutterwave
       setPaymentStage('redirecting');
-      const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency);
+      const userEmail = user?.email || member?.email || company?.email || '';
+      const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency, userEmail);
       const { payment_link, already_active, card_slug: activatedSlug } = payRes.data;
       if (already_active) {
         await saveCreatorMessage(activatedSlug || slug);

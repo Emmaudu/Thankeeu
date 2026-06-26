@@ -122,11 +122,12 @@ const GiftCheckout = () => {
                 setBankDetails(p => ({ ...p, bank_code: e.target.value, bank_name: opt.text, account_name: '' }));
               }}>
               <option value="">-- Select your bank --</option>
-              {[['044','Access Bank'],['011','First Bank'],['058','GTBank'],['057','Zenith Bank'],
-                ['033','UBA'],['070','Fidelity Bank'],['214','FCMB'],['232','Sterling Bank'],
-                ['032','Union Bank'],['035','Wema Bank'],['076','Polaris Bank'],['050','Ecobank'],
-                ['090267','Kuda MFB'],['100004','OPay'],['100033','PalmPay'],['50515','Moniepoint MFB'],
-              ].map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+              {[['050','Ecobank'],['214','FCMB'],['070','Fidelity Bank'],['011','First Bank'],
+                ['058','GTBank'],['090267','Kuda MFB'],['50515','Moniepoint MFB'],['100004','OPay'],
+                ['100033','PalmPay'],['076','Polaris Bank'],['232','Sterling Bank'],['033','UBA'],
+                ['032','Union Bank'],['044','Access Bank'],['035','Wema Bank'],['057','Zenith Bank'],
+              ].sort((a, b) => a[1].localeCompare(b[1]))
+               .map(([code, name]) => <option key={code} value={code}>{name}</option>)}
             </select>
             <input className="input" inputMode="numeric" maxLength={10} placeholder="10-digit account number"
               value={bankDetails.account_number}

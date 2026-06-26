@@ -15,26 +15,27 @@ const MemberLayout = ({ children, title, subtitle }) => {
   const isActive = p => location.pathname === p;
 
   const NAV = [
-    { path: '/member/dashboard',   icon: 'Home', label: 'Dashboard' },
-    { path: '/member/occasions',   icon: 'Cake', label: 'Occasions' },
-    { path: '/member/cards',       icon: 'Heart', label: 'My Cards' },
-    { path: '/member/received',    icon: 'Gift', label: 'Received' },
-    { path: '/member/pending',     icon: 'Edit', label: 'Pending to Sign' },
-    { path: '/member/gift-cards',  icon: 'Gift',   label: 'Gift Cards' },
-    { path: '/member/finances',    icon: 'Wallet', label: 'Financials' },
-    { path: '/member/reminders',   icon: 'Clock', label: 'Reminders' },
+    { path: '/member/dashboard',   icon: 'Home',     label: 'Dashboard',        tip: 'Your home — recent cards, occasions coming up, and quick actions' },
+    { path: '/member/occasions',   icon: 'Cake',     label: 'Occasions',        tip: 'Birthdays and work anniversaries for your colleagues' },
+    { path: '/member/cards',       icon: 'Heart',    label: 'My Cards',         tip: 'Group cards you have created or contributed to' },
+    { path: '/member/received',    icon: 'Gift',     label: 'Received',         tip: 'Cards and gifts sent to you by your team' },
+    { path: '/member/pending',     icon: 'Edit',     label: 'Pending to Sign',  tip: 'Cards you have been invited to sign but haven\'t yet' },
+    { path: '/member/gift-cards',  icon: 'Gift',     label: 'Gift Cards',       tip: 'Send digital gift cards alongside a group card' },
+    { path: '/member/finances',    icon: 'Wallet',   label: 'Financials',       tip: 'Your bank account and gift withdrawal history' },
+    { path: '/member/reminders',   icon: 'Clock',    label: 'Reminders',        tip: 'Personal reminders for birthdays and special occasions' },
     ...(isLeader ? [
-      { path: '/member/approvals',  icon: 'Check', label: 'Approvals' },
-      { path: '/member/deductions', icon: 'Card', label: 'Deductions' },
+      { path: '/member/approvals',  icon: 'Check',  label: 'Approvals',        tip: 'Approve or reject card creation requests from team members' },
+      { path: '/member/deductions', icon: 'Card',   label: 'Deductions',       tip: 'Manage salary deduction requests for gift contributions' },
     ] : []),
-    { path: '/member/settings',    icon: 'Settings', label: 'Settings' },
-    { path: '/member/support',     icon: 'Message', label: 'Support' },
+    { path: '/member/settings',    icon: 'Settings', label: 'Settings',         tip: 'Update your profile, password and notification preferences' },
+    { path: '/member/support',     icon: 'Message',  label: 'Support',          tip: 'Get help from the Thankeeu team' },
   ];
 
   const initials = member ? `${member.first_name?.[0]||''}${member.last_name?.[0]||''}`.toUpperCase() : '?';
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full" style={{ background:'linear-gradient(180deg,#1A1438 0%,#120E2A 100%)', minHeight:'100vh' }}>
+      <style>{`.mb-tip-wrap:hover .mb-tip { opacity: 1 !important; } @media(max-width:768px){.mb-tip{display:none!important}}`}</style>
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 flex-shrink-0" style={{ borderBottom:'1px solid rgba(124,110,255,0.15)' }}>
         <img src="/android-chrome-192x192.png" alt="Thankeeu" style={{ width:36, height:36, borderRadius:9, flexShrink:0, objectFit:'cover' }} />
@@ -80,19 +81,35 @@ const MemberLayout = ({ children, title, subtitle }) => {
       {/* Nav — scrollable */}
       <nav className="flex-1 px-3 py-1 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
         <div className="space-y-0.5 pb-4">
-          {NAV.map(({ path, icon, label }) => (
-            <Link key={path} to={path}
-              onClick={() => setMobileOpen(false)}
-              className="flex items-center gap-3 py-3 rounded-xl text-base font-semibold transition-all"
-              style={{
-                paddingLeft: isActive(path) ? 9 : 13, paddingRight: 12,
-                borderLeft: `3px solid ${isActive(path) ? '#7C6EFF' : 'transparent'}`,
-                background: isActive(path) ? 'rgba(124,110,255,0.16)' : 'transparent',
-                color: isActive(path) ? '#B8B4FF' : '#7A7898',
-              }}>
-              <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
-              <span>{label}</span>
-            </Link>
+          {NAV.map(({ path, icon, label, tip }) => (
+            <div key={path} style={{ position:'relative' }} className="mb-tip-wrap">
+              <Link to={path}
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 py-3 rounded-xl text-base font-semibold transition-all"
+                style={{
+                  paddingLeft: isActive(path) ? 9 : 13, paddingRight: 12,
+                  borderLeft: `3px solid ${isActive(path) ? '#7C6EFF' : 'transparent'}`,
+                  background: isActive(path) ? 'rgba(124,110,255,0.16)' : 'transparent',
+                  color: isActive(path) ? '#B8B4FF' : '#7A7898',
+                }}>
+                <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
+                <span>{label}</span>
+              </Link>
+              {tip && (
+                <div className="mb-tip" style={{
+                  position:'absolute', left:'calc(100% + 10px)', top:'50%', transform:'translateY(-50%)',
+                  background:'#1A1035', color:'#C4B5FD', fontSize:'0.72rem', lineHeight:1.45,
+                  padding:'7px 11px', borderRadius:9, width:210, pointerEvents:'none',
+                  border:'1px solid rgba(124,110,255,0.25)', boxShadow:'0 4px 20px rgba(0,0,0,0.5)',
+                  opacity:0, transition:'opacity 0.15s', zIndex:999, whiteSpace:'normal',
+                }}>
+                  <div style={{ position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
+                    borderWidth:'5px', borderStyle:'solid',
+                    borderColor:'transparent #1A1035 transparent transparent' }} />
+                  {tip}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </nav>

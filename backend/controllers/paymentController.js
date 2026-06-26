@@ -261,6 +261,18 @@ const verifyCardFee = async (req, res) => {
     await supabase.from('cards').update({ status: 'active' }).eq('slug', cardSlug);
     console.log('Card activated:', cardSlug);
 
+    // Arm precise delivery setTimeout if the card has a scheduled date.
+    const { data: activatedCard } = await supabase
+      .from('cards')
+      .select('id, slug, send_date, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, recipient_notified')
+      .eq('slug', cardSlug).maybeSingle();
+    if (activatedCard?.send_date && activatedCard?.recipient_email && !activatedCard?.recipient_notified) {
+      try {
+        const scheduler = require('../utils/scheduler');
+        scheduler.scheduleCardDelivery({ ...activatedCard, status: 'active' });
+      } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
+    }
+
     return res.json({ ok: true, card_slug: cardSlug });
 
   } catch (err) {

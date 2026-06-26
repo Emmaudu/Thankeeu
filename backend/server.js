@@ -278,17 +278,112 @@ app.use((err, req, res, next) => {
 // Visitor nurture emails — weekly Mondays
 cron.schedule('0 9 * * 1', () => sendNudgeEmails().catch(console.error));
 
-// Extracted so it can be triggered manually via /api/admin/run-auto-send
-// for testing/debugging, instead of only running blind at 8AM via cron.
+// ─────────────────────────────────────────────────────────────────────────────
+// CARD DELIVERY ENGINE
+// ─────────────────────────────────────────────────────────────────────────────
+// deliverCard: send one card to its recipient right now.
+// Updates DB status → 'sent' FIRST (idempotent guard), THEN sends email.
+const crypto = require('crypto');
+const scheduler = require('./utils/scheduler');
+
+async function deliverCard(card) {
+  const now = new Date();
+  const slug = card.slug;
+  try {
+    // Guard: re-fetch current status so a concurrent delivery never double-sends
+    const { data: fresh } = await supabase
+      .from('cards')
+      .select('id, slug, status, recipient_notified, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id')
+      .eq('id', card.id)
+      .maybeSingle();
+
+    if (!fresh || fresh.status !== 'active' || fresh.recipient_notified) {
+      console.log(`[deliver] Skipping ${slug}: status=${fresh?.status}, notified=${fresh?.recipient_notified}`);
+      return { skipped: true };
+    }
+
+    const claimToken = fresh.claim_token || crypto.randomBytes(24).toString('hex');
+
+    // 1. Mark as sent in DB FIRST — if this fails, abort. No email until token is safe.
+    // Try full update first; if columns are missing, fall back to minimal update.
+    let saveErr;
+    ({ error: saveErr } = await supabase.from('cards').update({
+      status:             'sent',
+      recipient_notified: true,
+      delivered_at:       now,
+      claim_token:        claimToken,
+    }).eq('id', fresh.id).eq('status', 'active'));
+
+    // Fallback: if delivered_at or claim_token columns don't exist yet, retry without them
+    if (saveErr && (saveErr.code === '42703' || /column .* does not exist/i.test(saveErr.message || ''))) {
+      console.warn(`[deliver] Optional column missing, retrying minimal update for ${slug}:`, saveErr.message);
+      ({ error: saveErr } = await supabase.from('cards').update({
+        status:             'sent',
+        recipient_notified: true,
+      }).eq('id', fresh.id).eq('status', 'active'));
+    }
+
+    if (saveErr) {
+      console.error(`[deliver] DB update failed for ${slug}:`, saveErr.message);
+      return { error: saveErr.message };
+    }
+
+    // 2. Auto-link to recipient's account if they have one
+    const { data: existingUser } = await supabase
+      .from('users').select('id').eq('email', fresh.recipient_email.toLowerCase()).maybeSingle();
+    if (existingUser) {
+      await supabase.from('received_cards').upsert({
+        card_id: fresh.id,
+        recipient_user_id: existingUser.id,
+        transferred_by: null,
+        transferred_at: now,
+      }, { onConflict: 'card_id,recipient_user_id' }).catch(() => {});
+    }
+
+    // 3. Count messages for the email
+    const { count } = await supabase.from('messages')
+      .select('*', { count: 'exact', head: true }).eq('card_id', fresh.id);
+
+    // 4. Send delivery email — link uses ?token= (the access_token directly).
+    // This lets CardView open the private recipient view immediately with no
+    // claim-gate round-trip, no missing-column failures, and no extra API call.
+    await sendEmail({
+      to: fresh.recipient_email,
+      template: 'cardDelivery',
+      data: {
+        recipientName:  fresh.recipient_name,
+        recipientEmail: fresh.recipient_email,
+        occasion: (fresh.occasion === 'other' && fresh.custom_occasion)
+          ? fresh.custom_occasion
+          : (fresh.occasion || '').replace(/_/g, ' '),
+        cardSlug:      fresh.slug,
+        claimToken:    null,           // not used — link uses accessToken directly
+        accessToken:   fresh.access_token,
+        senderCount:   count || 0,
+        giftAmount:    fresh.total_collected > 0 ? fresh.total_collected : null,
+        isCompanyCard: !!fresh.company_id,
+      },
+    });
+
+    console.log(`[deliver] ✅ Delivered ${slug} → ${fresh.recipient_email}`);
+    return { delivered: slug };
+  } catch (err) {
+    console.error(`[deliver] ❌ Error for ${slug}:`, err.message);
+    return { error: err.message };
+  }
+}
+
+// Register deliverCard with the shared scheduler so controllers can arm timers
+// without circular-requiring server.js.
+scheduler.init(deliverCard);
+
+// autoSendDueCards: sweep the DB for any past-due cards.
+// Serves as a safety net for cards missed during restarts or whose
+// send_date is too far out for setTimeout. Runs every minute via cron.
 async function autoSendDueCards() {
   const now = new Date();
   const nowISO = now.toISOString();
 
-  // Fetch all active cards that are pending delivery, scheduled for any date up to
-  // and including right now. We fetch the entire date range (not capped to "today")
-  // so cards that were missed during a server restart/redeploy are caught immediately
-  // on the next cron tick. The precise send_time check is done in JS below.
-  // Using nowISO as the upper bound means we never even consider future-date cards.
   let cardsToSend, cardsToSendErr;
   try {
     ({ data: cardsToSend, error: cardsToSendErr } = await supabase
@@ -298,113 +393,53 @@ async function autoSendDueCards() {
       .eq('recipient_notified', false)
       .not('recipient_email', 'is', null)
       .not('send_date', 'is', null)
-      .lte('send_date', nowISO));  // only fetch cards whose date is not in the future
+      .lte('send_date', nowISO));
   } catch (queryErr) {
-    console.error('[auto-send] Supabase query threw unexpectedly:', queryErr.message);
-    return { error: queryErr.message, delivered: [], failed: [] };
+    console.error('[auto-send] Supabase query threw:', queryErr.message);
+    return;
   }
 
   if (cardsToSendErr) {
-    console.error('[auto-send] Failed to query cards due for delivery:', cardsToSendErr.message);
-    return { error: cardsToSendErr.message, delivered: [], failed: [] };
+    console.error('[auto-send] Query error:', cardsToSendErr.message);
+    return;
   }
 
-  // Filter in JS: combine send_date's UTC date part with send_time (UTC) to get
-  // the exact scheduled moment, then check if it's <= now.
-  const due = (cardsToSend || []).filter(card => {
-    // send_date is TIMESTAMPTZ — extract just the date portion in UTC
-    const d = new Date(card.send_date);
-    const dateUTC = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
-
-    // send_time is a TIME string like "21:24:00" stored as UTC
-    const timeUTC = (card.send_time || '00:00:00').slice(0, 8);
-
-    const scheduledAt = new Date(`${dateUTC}T${timeUTC}Z`); // Z = UTC explicit
-    const isdue = scheduledAt <= now;
-    if (!isdue) {
-      console.log(`[auto-send] Card ${card.slug} not yet due: scheduled ${scheduledAt.toISOString()}, now ${nowISO}`);
-    }
-    return isdue;
-  });
-
-  console.log(`[auto-send] ${(cardsToSend||[]).length} active card(s) with past send_date, ${due.length} due now (${nowISO})`);
-  const delivered = [];
-  const failed = [];
-
-  for (const card of due) {
-    try {
-      const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('card_id', card.id);
-
-      // Use the existing claim_token if already set; otherwise generate a fresh one.
-      // IMPORTANT: we save it together with status='sent' in a single update below
-      // so the token is always in the DB before we consider delivery complete.
-      const claimToken = card.claim_token || require('crypto').randomBytes(24).toString('hex');
-
-      // Auto-link card to recipient's account if they already have one
-      const { data: existingUser } = await supabase
-        .from('users').select('id').eq('email', card.recipient_email.toLowerCase()).maybeSingle();
-      if (existingUser) {
-        await supabase.from('received_cards').upsert({
-          card_id: card.id,
-          recipient_user_id: existingUser.id,
-          transferred_by: null,
-          transferred_at: new Date(),
-        }, { onConflict: 'card_id,recipient_user_id' }).catch(() => {});
-      }
-
-      // Save claim_token + mark as sent in ONE atomic update BEFORE sending the email.
-      // This guarantees the token is in the DB even if the email call later fails
-      // (we can always resend). If this save fails we abort — don't send a broken link.
-      const { error: saveErr } = await supabase.from('cards')
-        .update({
-          claim_token:        claimToken,
-          status:             'sent',
-          recipient_notified: true,
-          delivered_at:       now,
-        })
-        .eq('id', card.id);
-
-      if (saveErr) {
-        console.error(`[auto-send] Could not save claim_token for ${card.slug}:`, saveErr.message);
-        failed.push({ slug: card.slug, reason: `claim_token save failed: ${saveErr.message}` });
-        continue; // skip email — don't send a link that would break
-      }
-
-      await sendEmail({
-        to: card.recipient_email,
-        template: 'cardDelivery',
-        data: {
-          recipientName: card.recipient_name,
-          recipientEmail: card.recipient_email,
-          occasion: (card.occasion === 'other' && card.custom_occasion)
-            ? card.custom_occasion
-            : (card.occasion || '').replace(/_/g, ' '),
-          cardSlug: card.slug,
-          claimToken,
-          accessToken: card.access_token,
-          senderCount: count || 0,
-          giftAmount: card.total_collected > 0 ? card.total_collected : null,
-          isCompanyCard: !!card.company_id
-        }
-      });
-      console.log(`[auto-send] Delivered card: ${card.slug} -> ${card.recipient_email}`);
-      delivered.push(card.slug);
-    } catch (sendErr) {
-      console.error(`[auto-send] Failed to deliver card ${card.slug}:`, sendErr.message);
-      failed.push({ slug: card.slug, reason: sendErr.message });
+  const cards = cardsToSend || [];
+  if (cards.length) {
+    console.log(`[auto-send] Sweep found ${cards.length} due card(s)`);
+    for (const card of cards) {
+      await deliverCard(card).catch(e => console.error('[auto-send] deliver error:', e.message));
     }
   }
-
-  return { error: null, delivered, failed };
 }
 
-// Check every minute so cards deliver at their exact scheduled time.
+// scheduleAllActive: on startup, load every future-scheduled active card
+// and register a precise setTimeout for each one.
+async function scheduleAllActive() {
+  const { data: cards, error } = await supabase
+    .from('cards')
+    .select('id, slug, send_date, send_time, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, status, recipient_notified')
+    .eq('status', 'active')
+    .eq('recipient_notified', false)
+    .not('send_date', 'is', null)
+    .not('recipient_email', 'is', null);
+
+  if (error) { console.error('[scheduleAllActive] Query error:', error.message); return; }
+
+  const future = (cards || []).filter(c => {
+    const t = new Date(c.send_date);
+    return !isNaN(t.getTime());
+  });
+
+  console.log(`[scheduleAllActive] Registering ${future.length} scheduled card(s)`);
+  future.forEach(c => scheduler.scheduleCardDelivery(c));
+}
+
+
+// Per-minute sweep: safety net for cards whose setTimeout was missed (e.g. server restart).
 cron.schedule('* * * * *', async () => {
-  try {
-    await autoSendDueCards();
-  } catch (err) {
-    console.error('[auto-send cron] Unhandled error:', err.message, err.stack);
-  }
+  try { await autoSendDueCards(); }
+  catch (err) { console.error('[auto-send cron] Unhandled error:', err.message); }
 });
 
 cron.schedule('0 8 * * *', async () => {
@@ -478,10 +513,15 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Thankeeu API running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  // On startup, immediately run the delivery check so any cards missed during
-  // a server restart/redeploy are sent without waiting for the next cron tick.
-  setTimeout(() => {
-    autoSendDueCards().catch(e => console.error('[startup auto-send] Error:', e.message));
+  // On startup: (1) sweep for any past-due cards and deliver immediately,
+  // (2) register precise setTimeout for all future-scheduled active cards.
+  setTimeout(async () => {
+    try {
+      await autoSendDueCards();      // deliver anything already past due
+      await scheduleAllActive();     // arm setTimeout for future cards
+    } catch (e) {
+      console.error('[startup] Scheduling init error:', e.message);
+    }
   }, 5000); // 5s delay to let DB connection stabilise
 });
 

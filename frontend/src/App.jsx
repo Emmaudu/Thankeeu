@@ -126,18 +126,11 @@ const Spinner = () => (
 );
 
 // CardViewGate — everyone goes straight to CardView, no login required.
-// If the URL has ?claim=TOKEN (recipient email link), the token is stored
-// in sessionStorage so CardView can unlock recipient-only features
-// (gift withdrawal, reply button) without forcing a login or signup.
+// If the URL has ?claim=TOKEN (recipient email link), CardView itself resolves
+// the claim_token → real access_token via the claim-gate API before loading.
+// Do NOT store the raw claim_token in sessionStorage here — it is NOT the
+// access_token, and using it as one will cause "card not found" errors.
 const CardViewGate = () => {
-  const { slug } = useParams();
-  const [searchParams] = useSearchParams();
-  const claimToken = searchParams.get('claim');
-
-  if (claimToken && slug) {
-    sessionStorage.setItem(`card_token_${slug}`, claimToken);
-  }
-
   return <CardView />;
 };
 

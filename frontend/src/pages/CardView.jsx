@@ -1181,10 +1181,18 @@ const CardView = () => {
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
 
+  // True while we're still waiting to resolve ?claim= → access_token.
+  // fetchCard must not fire until this is false, to avoid an anonymous
+  // public-view request racing ahead of the real recipient token.
+  const [claimResolving, setClaimResolving] = useState(!!claimParam && !token);
+
   // Resolve ?claim= token → real access_token via claim-gate, then store it
   // so the card loads as a proper recipient view (not a public/anonymous view).
   useEffect(() => {
-    if (!claimParam || token) return; // already have a token, nothing to do
+    if (!claimParam || token) {
+      setClaimResolving(false);
+      return;
+    }
     cardsAPI.getClaimGate(slug, claimParam)
       .then(res => {
         const accessToken = res.data?.access_token;
@@ -1194,8 +1202,9 @@ const CardView = () => {
         }
       })
       .catch(() => {
-        // claim-gate failed — proceed without token (public view)
-      });
+        // claim-gate failed — fall through to public/anonymous view
+      })
+      .finally(() => setClaimResolving(false));
   }, [slug, claimParam]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useSEO({
@@ -1242,6 +1251,7 @@ const CardView = () => {
   };
 
   useEffect(() => {
+    if (claimResolving) return; // wait for claim-gate resolution first
     fetchCard();
     const refresh = () => fetchCard(true);
     const interval = window.setInterval(refresh, 10000);
@@ -1250,7 +1260,7 @@ const CardView = () => {
       window.clearInterval(interval);
       window.removeEventListener('focus', refresh);
     };
-  }, [slug, token, user?.id, member?.id, company?.id]);
+  }, [slug, token, user?.id, member?.id, company?.id, claimResolving]);
 
   useEffect(() => {
     const close = event => {

@@ -43,7 +43,7 @@ export default function PalMemberProfile() {
     if (data.bank_details?.account_number && data.bank_details?.account_name) setVerified(true);
   }).finally(() => setLoading(false));
   useEffect(() => { load(); }, [id]);
-  useEffect(() => { banksAPI.getList().then(r => setBanks(r.data || [])).catch(() => {}); }, []);
+  useEffect(() => { banksAPI.getList().then(r => setBanks((r.data || []).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {}); }, []);
 
   const set = (k, v) => setMember(p => ({ ...p, [k]: v }));
   const setBank = (k, v) => setMember(p => ({ ...p, bank_details: { ...(p.bank_details||{}), [k]: v } }));

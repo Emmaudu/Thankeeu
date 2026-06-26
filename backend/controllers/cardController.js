@@ -113,7 +113,17 @@ const createCard = async (req, res) => {
       title: cleanTitle || `${cleanRecipientName}'s Card`,
       design_theme, background_color, is_gift_enabled,
       gift_type, suggested_amount,
-      send_date: send_date || null,
+      // Store send_date as the FULL combined UTC datetime (date + time) so the
+      // cron can do a single TIMESTAMPTZ comparison without reconstructing from
+      // two separate columns. If only a date is given, default time to midnight.
+      send_date: send_date
+        ? (() => {
+            const d = String(send_date).slice(0, 10);
+            const t = send_time ? String(send_time).slice(0, 8) : '00:00:00';
+            const combined = new Date(`${d}T${t}Z`);
+            return isNaN(combined.getTime()) ? send_date : combined.toISOString();
+          })()
+        : null,
       send_time: send_time || null,
       deadline: deadline || null,
       allow_private_messages, send_reminders, hide_amounts,
@@ -125,26 +135,36 @@ const createCard = async (req, res) => {
       ...(isAnonymousDraft && { draft_edit_token: draftEditToken, is_draft: true }),
     };
 
-    // Try inserting with all optional columns, falling back gracefully
+    // Try inserting with all optional columns, falling back gracefully.
+    // Each attempt strips one more unknown column until the insert succeeds.
     const isMissingCol = (e) => !!e && (e.code === '42703' || /column .* does not exist/i.test(e.message || ''));
+
     let card, error;
 
-    // Attempt 1: font_style + card_layout
+    // Attempt 1: all columns including font_style + card_layout + custom_occasion
     ({ data: card, error } = await supabase.from('cards')
       .insert({ ...insertData, font_style: font_style || 'elegant', card_layout: cleanCardLayout })
       .select().maybeSingle());
 
-    // Attempt 2: font_style only (card_layout column not yet added)
+    // Attempt 2: card_layout column missing
     if (error && isMissingCol(error) && error.message?.includes('card_layout')) {
       ({ data: card, error } = await supabase.from('cards')
         .insert({ ...insertData, font_style: font_style || 'elegant' })
         .select().maybeSingle());
     }
 
-    // Attempt 3: neither (font_style column not yet added)
+    // Attempt 3: font_style column also missing
     if (error && isMissingCol(error) && error.message?.includes('font_style')) {
       ({ data: card, error } = await supabase.from('cards')
         .insert(insertData)
+        .select().maybeSingle());
+    }
+
+    // Attempt 4: custom_occasion column not yet added (migration not run yet)
+    if (error && isMissingCol(error) && error.message?.includes('custom_occasion')) {
+      const { custom_occasion: _co, ...insertWithoutCustom } = insertData;
+      ({ data: card, error } = await supabase.from('cards')
+        .insert(insertWithoutCustom)
         .select().maybeSingle());
     }
 
@@ -399,6 +419,19 @@ const updateCard = async (req, res) => {
       }
     }
 
+    // If send_date is being updated, combine with send_time into a full UTC TIMESTAMPTZ
+    // so the cron can do a single column comparison instead of reconstructing two fields.
+    if (safeUpdates.send_date) {
+      const d = String(safeUpdates.send_date).slice(0, 10);
+      const t = safeUpdates.send_time
+        ? String(safeUpdates.send_time).slice(0, 8)
+        : '00:00:00';
+      const combined = new Date(`${d}T${t}Z`);
+      if (!isNaN(combined.getTime())) {
+        safeUpdates.send_date = combined.toISOString();
+      }
+    }
+
     // Attempt update with all columns first; fall back gracefully if optional
     // columns (card_layout, font_style) don't exist yet in this schema version.
     let updated, error;
@@ -479,6 +512,15 @@ const activateCard = async (req, res) => {
     }
 
     res.json({ message: 'Card activated', slug });
+
+    // If this card has a scheduled delivery date, arm the precise setTimeout now.
+    // This is the primary delivery trigger — more reliable than waiting for the cron.
+    if (card.send_date && card.recipient_email && !card.recipient_notified) {
+      try {
+        const scheduler = require('../utils/scheduler');
+        scheduler.scheduleCardDelivery({ ...card, status: 'active' });
+      } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
+    }
   } catch (err) {
     res.status(500).json({ error: 'Failed to activate card' });
   }
@@ -509,20 +551,18 @@ const sendCard = async (req, res) => {
     const { data: messages } = await supabase
       .from('messages').select('count').eq('card_id', card.id);
 
-    // Generate a claim_token if not already set — this goes in the email URL
-    // instead of the access_token, so the internal access_token stays private.
-    // IMPORTANT: save it to the DB BEFORE sending the email so the link always works.
-    const { data: freshCard } = await supabase.from('cards')
-      .select('claim_token').eq('slug', slug).maybeSingle();
-    const claimToken = freshCard?.claim_token ||
-      require('crypto').randomBytes(24).toString('hex');
-
-    // Save claim_token + status in one update BEFORE sending the email.
-    // If this fails we throw and the email is never sent — no broken links.
-    const { error: saveErr } = await supabase.from('cards').update({
+    // Save status + mark notified BEFORE sending the email so link is always ready.
+    // Try full update first; fall back if optional columns don't exist yet.
+    let saveErr;
+    ({ error: saveErr } = await supabase.from('cards').update({
       status: 'sent', recipient_notified: true, delivered_at: new Date(), updated_at: new Date(),
-      claim_token: claimToken,
-    }).eq('slug', slug);
+    }).eq('slug', slug));
+
+    if (saveErr && (saveErr.code === '42703' || /column .* does not exist/i.test(saveErr.message || ''))) {
+      ({ error: saveErr } = await supabase.from('cards').update({
+        status: 'sent', recipient_notified: true,
+      }).eq('slug', slug));
+    }
     if (saveErr) throw new Error(`Failed to save delivery state: ${saveErr.message}`);
 
     // Auto-link card to recipient's account if they already have one
@@ -548,14 +588,11 @@ const sendCard = async (req, res) => {
           : card.occasion.replace(/_/g, ' '),
         occasionEmoji: OCCASION_EMOJI[card.occasion] || '🎉',
         cardSlug: card.slug,
-        claimToken: claimToken,
+        claimToken: null,              // not used — link uses accessToken directly
         accessToken: card.access_token,
         senderCount: messages?.[0]?.count || 0,
         giftAmount: card.total_collected > 0 ? card.total_collected : null,
         appUrl: FRONTEND_URL,
-        // See note in server.js's autoSendDueCards — company-card recipients
-        // are company_members rows, so they should be routed to the team
-        // member login (/member/login), not the regular user login (/login).
         isCompanyCard: !!card.company_id,
       }
     });

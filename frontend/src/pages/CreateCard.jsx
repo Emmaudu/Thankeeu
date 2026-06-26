@@ -380,6 +380,26 @@ const CreateCard = () => {
         return;
       }
 
+      // Persist the step-4 gift toggle choice back to the draft BEFORE payment.
+      // is_gift_enabled / suggested_amount may have changed since the step-2 save.
+      try {
+        const giftUpdate = {
+          is_gift_enabled:  form.is_gift_enabled,
+          suggested_amount: form.suggested_amount,
+          gift_type:        form.gift_type,
+        };
+        if (member) {
+          const { memberCardsAPI: mAPI } = await import('../utils/api');
+          await mAPI.update(slug, giftUpdate);
+        } else if (company) {
+          await cardsAPI.updateAsCompany(slug, giftUpdate);
+        } else if (user) {
+          await cardsAPI.update(slug, giftUpdate);
+        }
+      } catch (updateErr) {
+        console.warn('[gift-update] Failed to save gift setting before payment:', updateErr?.message);
+      }
+
 
       // Save creator's message AFTER activation (addMessage blocks on draft cards)
       const saveCreatorMessage = async (activeSlug) => {
@@ -426,7 +446,8 @@ const CreateCard = () => {
 
       // Flutterwave direct
       setPaymentStage('redirecting');
-      const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency);
+      const userEmail = user?.email || member?.email || company?.email || '';
+      const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency, userEmail);
       const { payment_link, already_active, card_slug: activatedSlug } = payRes.data;
 
       // Card was already activated by a previous payment (e.g. user's JWT expired during

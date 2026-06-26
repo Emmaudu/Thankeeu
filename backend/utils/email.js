@@ -113,7 +113,7 @@ const emailTemplates = {
         <p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>
       </div>` : ''}
 
-      ${btn('🎉 Open my card now', `${FRONTEND_URL}/card/${data.cardSlug}?claim=${data.claimToken || data.accessToken}`, '#7C6EFF')}
+      ${btn('🎉 Open my card now', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
 
       <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
         <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>

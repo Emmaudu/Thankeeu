@@ -6,16 +6,16 @@ import NotificationBell from './NotificationBell';
 import Icon from './ui/Icon';
 
 const NAV = [
-  { to: '/dashboard',            icon: 'Home',     label: 'Home' },
-  { to: '/dashboard/cards',      icon: 'Heart',    label: 'My Cards' },
-  { to: '/dashboard/credits',    icon: 'CreditCard', label: 'Credits & Plans' },
-  { to: '/dashboard/delivered',  icon: 'Send',     label: 'Delivered' },
-  { to: '/dashboard/received',   icon: 'Gift',     label: 'Received' },
-  { to: '/dashboard/pending',    icon: 'Edit',     label: 'Pending to Sign' },
-  { to: '/dashboard/gift-cards', icon: 'Gift',     label: 'Gift Cards' },
-  { to: '/dashboard/finances',   icon: 'Wallet',   label: 'Financials' },
-  { to: '/dashboard/reminders',  icon: 'Bell',     label: 'Reminders' },
-  { to: '/dashboard/settings',   icon: 'Settings', label: 'Settings' },
+  { to: '/dashboard',            icon: 'Home',       label: 'Home',             tip: 'Your dashboard overview — recent activity, quick stats and shortcuts' },
+  { to: '/dashboard/cards',      icon: 'Heart',      label: 'My Cards',         tip: 'All group cards you have created, active or delivered' },
+  { to: '/dashboard/credits',    icon: 'CreditCard', label: 'Credits & Plans',  tip: 'Buy and manage card credits — one credit = one card' },
+  { to: '/dashboard/delivered',  icon: 'Send',       label: 'Delivered',        tip: 'Cards you have already sent to their recipients' },
+  { to: '/dashboard/received',   icon: 'Gift',       label: 'Received',         tip: 'Group cards that were sent to you by others' },
+  { to: '/dashboard/pending',    icon: 'Edit',       label: 'Pending to Sign',  tip: 'Cards you have been invited to sign but have not signed yet' },
+  { to: '/dashboard/gift-cards', icon: 'Gift',       label: 'Gift Cards',       tip: 'Send digital gift cards (Airtime, Amazon, Steam and more)' },
+  { to: '/dashboard/finances',   icon: 'Wallet',     label: 'Financials',       tip: 'Your bank account details and gift withdrawal history' },
+  { to: '/dashboard/reminders',  icon: 'Bell',       label: 'Reminders',        tip: 'Set birthday and occasion reminders so you never miss a moment' },
+  { to: '/dashboard/settings',   icon: 'Settings',   label: 'Settings',         tip: 'Update your profile, password, notifications and preferences' },
 ];
 
 const SIDEBAR_W = 240;
@@ -38,6 +38,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
       background: 'linear-gradient(180deg,#1E1438 0%,#13102C 100%)',
       borderRight: '1px solid rgba(139,92,246,0.12)',
     }}>
+      <style>{`.nav-tip-wrap:hover .nav-tip { opacity: 1 !important; } @media(max-width:768px){.nav-tip{display:none!important}}`}</style>
       {/* Logo */}
       <div style={{ padding: '1.25rem 1rem 1rem', borderBottom: '1px solid rgba(139,92,246,0.1)', display:'flex', alignItems:'center', gap:'0.75rem' }}>
         <img src="/android-chrome-192x192.png" alt="Thankeeu" style={{ width:38, height:38, borderRadius:10, flexShrink:0, objectFit:'cover' }} />
@@ -78,24 +79,40 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
       {/* Nav */}
       <nav style={{ flex:1, padding:'0.25rem 0.75rem', overflowY:'auto', scrollbarWidth:'thin', scrollbarColor:'rgba(139,92,246,0.3) transparent' }}>
-        {NAV.map(({ to, icon, label }) => {
+        {NAV.map(({ to, icon, label, tip }) => {
           const active = isActive(to);
           return (
-            <Link key={to} to={to} onClick={() => setOpen(false)} style={{
-              display:'flex', alignItems:'center', gap:'0.625rem',
-              padding:'0.6rem 0.75rem', borderRadius:12, marginBottom:2,
-              textDecoration:'none', transition:'all 0.15s',
-              background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
-              color: active ? '#C4B5FD' : '#6B5FA8',
-              borderLeft: active ? '3px solid #7C3AED' : '3px solid transparent',
-              paddingLeft: active ? 'calc(0.75rem - 3px)' : '0.75rem',
-              fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight: active ? 700 : 600, fontSize:'0.875rem',
-            }}
-              onMouseEnter={e => { if(!active) { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#A78BFA'; }}}
-              onMouseLeave={e => { if(!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#6B5FA8'; }}}>
-              <Icon name={icon} size={16} style={{ flexShrink:0 }} />
-              {label}
-            </Link>
+            <div key={to} style={{ position: 'relative' }} className="nav-tip-wrap">
+              <Link to={to} onClick={() => setOpen(false)} style={{
+                display:'flex', alignItems:'center', gap:'0.625rem',
+                padding:'0.6rem 0.75rem', borderRadius:12, marginBottom:2,
+                textDecoration:'none', transition:'all 0.15s',
+                background: active ? 'rgba(139,92,246,0.15)' : 'transparent',
+                color: active ? '#C4B5FD' : '#6B5FA8',
+                borderLeft: active ? '3px solid #7C3AED' : '3px solid transparent',
+                paddingLeft: active ? 'calc(0.75rem - 3px)' : '0.75rem',
+                fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight: active ? 700 : 600, fontSize:'0.875rem',
+              }}
+                onMouseEnter={e => { if(!active) { e.currentTarget.style.background='rgba(255,255,255,0.04)'; e.currentTarget.style.color='#A78BFA'; }}}
+                onMouseLeave={e => { if(!active) { e.currentTarget.style.background='transparent'; e.currentTarget.style.color='#6B5FA8'; }}}>
+                <Icon name={icon} size={16} style={{ flexShrink:0 }} />
+                {label}
+              </Link>
+              {tip && (
+                <div className="nav-tip" style={{
+                  position:'absolute', left:'calc(100% + 10px)', top:'50%', transform:'translateY(-50%)',
+                  background:'#1A1035', color:'#C4B5FD', fontSize:'0.72rem', lineHeight:1.45,
+                  padding:'7px 11px', borderRadius:9, width:200, pointerEvents:'none',
+                  border:'1px solid rgba(139,92,246,0.25)', boxShadow:'0 4px 20px rgba(0,0,0,0.5)',
+                  opacity:0, transition:'opacity 0.15s', zIndex:999, whiteSpace:'normal',
+                }}>
+                  <div style={{ position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
+                    borderWidth:'5px', borderStyle:'solid',
+                    borderColor:'transparent #1A1035 transparent transparent' }} />
+                  {tip}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

@@ -183,7 +183,10 @@ export const messagesAPI = {
 // ─── Payments ──────────────────────────────────────────────────────────────
 export const paymentsAPI = {
   // Card creation fee — returns { payment_link }
-  initCardFee:         (card_slug, currency) => anyAxios.post('/payments/initialize/purchase', { card_slug, currency: currency || 'NGN' }),
+  // Uses publicAxios (no auth required) — email passed in body as fallback when
+  // the user's JWT has expired mid-session. optionalAuth on the backend still
+  // picks up any valid token that IS present via the Authorization header.
+  initCardFee:         (card_slug, currency, email) => publicAxios.post('/payments/initialize/purchase', { card_slug, currency: currency || 'NGN', ...(email ? { email } : {}) }),
   verifyCardFee:       (txRef)     => anyAxios.get(`/payments/verify-card-fee?tx_ref=${encodeURIComponent(txRef)}`),
 
   // Gift contribution — returns { payment_link }
@@ -370,7 +373,7 @@ export const creditsAPI = {
   getHistory:  ()           => api.get('/credits/history'),
   purchase:    (plan_type, currency) => api.post('/credits/purchase', { plan_type, currency: currency || 'NGN' }),
   verify:      (txRef)      => api.get(`/credits/verify/${encodeURIComponent(txRef)}`),
-  spend:       (card_slug)  => api.post('/credits/spend', { card_slug }),
+  spend:       (card_slug)  => smartAxios.post('/credits/spend', { card_slug }),
 };
 
 export const giftcardsAPI = {

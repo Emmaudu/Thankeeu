@@ -21,7 +21,7 @@ const BankAccountTab = ({ compact = false, onSaved = () => {} }) => {
   const [showAdd, setShowAdd] = useState(compact);
 
   useEffect(() => {
-    banksAPI.getList().then(r => setBanks(r.data || [])).catch(() => {});
+    banksAPI.getList().then(r => setBanks((r.data || []).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
     banksAPI.getMy().then(r => setAccounts(r.data || [])).catch(() => {}).finally(() => setLoading(false));
   }, []);
 

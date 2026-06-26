@@ -340,6 +340,15 @@ const spendCredit = async (req, res) => {
       message: '1 credit used. Card is now active!',
     });
 
+    // Arm precise delivery setTimeout if the card has a scheduled date.
+    // (Runs after response is sent — fire-and-forget)
+    if (card.send_date && card.recipient_email && !card.recipient_notified) {
+      try {
+        const scheduler = require('../utils/scheduler');
+        scheduler.scheduleCardDelivery({ ...card, status: 'active' });
+      } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
+    }
+
   } catch (err) {
     console.error('spendCredit error:', err.message);
     return res.status(500).json({ error: 'Credit operation failed' });

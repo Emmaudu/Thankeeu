@@ -4,20 +4,20 @@ import Icon from '../ui/Icon';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 
 const NAV = [
-  { path: '/company/dashboard',    icon: 'Home', label: 'Dashboard' },
-  { path: '/company/occasions',    icon: 'Cake', label: 'Occasions Manager' },
-  { path: '/create-card',          icon: 'Heart', label: 'Create Card' },
-  { path: '/company/my-cards',     icon: 'Gift', label: 'My Cards' },
-  { path: '/company/activity',     icon: 'File', label: 'Activity Log' },
-  { path: '/company/team-members', icon: 'Users', label: 'Team Members' },
-  { path: '/company/core-team',    icon: 'Building', label: 'Core Team' },
-  { path: '/company/members',      icon: 'Check', label: 'Approvals' },
-  { path: '/company/deductions',   icon: 'Wallet', label: 'Deductions' },
-  { path: '/company/subscription', icon: 'Card', label: 'Subscription' },
-  { path: '/company/gift-cards',   icon: 'Gift', label: 'Gift Cards' },
-  { path: '/company/hris',         icon: 'Link', label: 'HRIS Sync' },
-  { path: '/company/settings',     icon: 'Settings', label: 'Settings' },
-  { path: '/company/support',      icon: 'Message', label: 'Support' },
+  { path: '/company/dashboard',    icon: 'Home',     label: 'Dashboard',         tip: 'Overview of your team\'s card activity, occasions and recent events' },
+  { path: '/company/occasions',    icon: 'Cake',     label: 'Occasions Manager', tip: 'Auto-send cards for birthdays, work anniversaries and custom occasions' },
+  { path: '/create-card',          icon: 'Heart',    label: 'Create Card',       tip: 'Create a new group card for any team member or occasion' },
+  { path: '/company/my-cards',     icon: 'Gift',     label: 'My Cards',          tip: 'All group cards created under your company account' },
+  { path: '/company/activity',     icon: 'File',     label: 'Activity Log',      tip: 'Full audit trail of all HR actions, logins and card events' },
+  { path: '/company/team-members', icon: 'Users',    label: 'Team Members',      tip: 'Manage your employees — add, invite, import via Excel or HRIS' },
+  { path: '/company/core-team',    icon: 'Building', label: 'Core Team',         tip: 'HR admins and team leaders who can manage cards and occasions' },
+  { path: '/company/members',      icon: 'Check',    label: 'Approvals',         tip: 'Review and approve pending member join requests' },
+  { path: '/company/deductions',   icon: 'Wallet',   label: 'Deductions',        tip: 'Track salary deduction requests for gift contributions' },
+  { path: '/company/subscription', icon: 'Card',     label: 'Subscription',      tip: 'Manage your Thankeeu for Teams plan and billing' },
+  { path: '/company/gift-cards',   icon: 'Gift',     label: 'Gift Cards',        tip: 'Send digital gift cards to employees alongside their group card' },
+  { path: '/company/hris',         icon: 'Link',     label: 'HRIS Sync',         tip: 'Connect BambooHR, SeamlessHR, Zoho People or SAP to auto-import staff' },
+  { path: '/company/settings',     icon: 'Settings', label: 'Settings',          tip: 'Company profile, logo, notification preferences and integrations' },
+  { path: '/company/support',      icon: 'Message',  label: 'Support',           tip: 'Get help from the Thankeeu team' },
 ];
 
 const CompanyLayout = ({ children, title, subtitle }) => {
@@ -58,6 +58,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#1E1438 0%,#14102E 100%)' }}>
+      <style>{`.co-tip-wrap:hover .co-tip { opacity: 1 !important; } @media(max-width:768px){.co-tip{display:none!important}}`}</style>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 flex-shrink-0" style={{ borderBottom: '1px solid rgba(124,110,255,0.12)' }}>
         <img src="/android-chrome-192x192.png" alt="Thankeeu" style={{ width:36, height:36, borderRadius:9, flexShrink:0, objectFit:'cover' }} />
@@ -120,20 +121,36 @@ const CompanyLayout = ({ children, title, subtitle }) => {
 
 
 <nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
-        {NAV.map(({ path, icon, label }) => (
-          <Link key={path} to={path}
-            onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all"
-            style={{
-              paddingRight: 12,
-              borderLeft: `3px solid ${isActive(path) ? '#7C6EFF' : 'transparent'}`,
-              paddingLeft: isActive(path) ? 9 : 12,
-              background: isActive(path) ? 'rgba(124,110,255,0.15)' : 'transparent',
-              color: isActive(path) ? '#B8B4FF' : '#6B678A',
-            }}>
-            <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
-            {label}
-          </Link>
+        {NAV.map(({ path, icon, label, tip }) => (
+          <div key={path} style={{ position:'relative' }} className="co-tip-wrap">
+            <Link to={path}
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-2.5 py-2.5 rounded-xl text-sm font-medium transition-all"
+              style={{
+                paddingRight: 12,
+                borderLeft: `3px solid ${isActive(path) ? '#7C6EFF' : 'transparent'}`,
+                paddingLeft: isActive(path) ? 9 : 12,
+                background: isActive(path) ? 'rgba(124,110,255,0.15)' : 'transparent',
+                color: isActive(path) ? '#B8B4FF' : '#6B678A',
+              }}>
+              <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
+              {label}
+            </Link>
+            {tip && (
+              <div className="co-tip" style={{
+                position:'absolute', left:'calc(100% + 10px)', top:'50%', transform:'translateY(-50%)',
+                background:'#1A1035', color:'#C4B5FD', fontSize:'0.72rem', lineHeight:1.45,
+                padding:'7px 11px', borderRadius:9, width:210, pointerEvents:'none',
+                border:'1px solid rgba(124,110,255,0.25)', boxShadow:'0 4px 20px rgba(0,0,0,0.5)',
+                opacity:0, transition:'opacity 0.15s', zIndex:999, whiteSpace:'normal',
+              }}>
+                <div style={{ position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
+                  borderWidth:'5px', borderStyle:'solid',
+                  borderColor:'transparent #1A1035 transparent transparent' }} />
+                {tip}
+              </div>
+            )}
+          </div>
         ))}
       </nav>
 

@@ -9,9 +9,11 @@ const {
   verifyPayment,
 } = require('../controllers/paymentController');
 
-// Card creation fee (auth required to init, but NOT to verify)
-router.post('/initialize/purchase',    anyAuth, initCardFee);
-router.post('/initialize/card-fee',    anyAuth, initCardFee);
+// Card creation fee — optionalAuth so the user's email from the request body is
+// used as fallback when their JWT has expired during the session. The controller
+// checks req.body.email || req.user?.email || req.member?.email || req.company?.email.
+router.post('/initialize/purchase',    optionalAuth, initCardFee);
+router.post('/initialize/card-fee',    optionalAuth, initCardFee);
 
 // optionalAuth (not anyAuth) — FLW redirect lands here after a full-page reload.
 // The user's JWT may have expired during checkout; requiring auth would silently

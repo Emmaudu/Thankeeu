@@ -13,7 +13,7 @@ export default function VendorBank() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    banksAPI.getList().then(r => setBanks(r.data || [])).catch(() => {});
+    banksAPI.getList().then(r => setBanks((r.data || []).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
     vendorAxios.get('/vendor/me').then(r => {
       const bd = r.data.bank_details;
       if (bd) {

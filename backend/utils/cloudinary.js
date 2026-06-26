@@ -29,7 +29,7 @@ if (hasCloudinary) {
       };
     },
   });
-  upload = multer({ storage, limits: { fileSize: 100 * 1024 * 1024, files: 10 } });
+  upload = multer({ storage, limits: { fileSize: 9 * 1024 * 1024, files: 10 } });
 } else {
   // Local fallback — serve via /uploads static route
   const uploadDir = path.join(__dirname, '../../uploads');

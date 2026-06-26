@@ -68,13 +68,16 @@ const handleUpload = (req, res, next) => {
     if (!err) return next();
     console.error('[messages upload] error:', err.code, err.message);
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'One of your files is too large (max 100MB per file). Please use a smaller photo or compress your video.' });
+      return res.status(400).json({ error: 'File too large — maximum size is 9MB per file. GIFs and images must be under 9MB.' });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {
       return res.status(400).json({ error: 'You can attach up to 10 files per message.' });
     }
     if (err.code === 'LIMIT_UNEXPECTED_FILE') {
       return res.status(400).json({ error: 'Unexpected file field. Please try again.' });
+    }
+    if (err.message?.includes('File size too large') || err.message?.includes('Maximum is')) {
+      return res.status(400).json({ error: 'File too large for upload. Please use a GIF or image under 9MB.' });
     }
     if (err.message?.includes('timeout') || err.message?.includes('ETIMEDOUT')) {
       return res.status(504).json({ error: 'Upload timed out — your files may be too large or your connection is slow. Try attaching fewer files or smaller files.' });

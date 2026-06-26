@@ -37,7 +37,10 @@ const notifyAllCompany = async (companyId, card, slug, recipientName, occasion, 
     });
     sendEmail({ to: m.email, template: 'cardInvite', data: {
       memberName: m.first_name,
-      creatorName, recipientName, occasion,
+      creatorName, recipientName,
+      occasion: (occasion === 'other' && card?.custom_occasion)
+        ? card.custom_occasion
+        : (occasion || '').replace(/_/g, ' '),
       custom_occasion: card?.custom_occasion || null,
       scope: 'your entire company',
       cardSlug:  slug,
@@ -220,7 +223,10 @@ const createCard = async (req, res) => {
             // Email
             sendEmail({ to: m.email, template: 'cardInvite', data: {
               memberName: m.first_name,
-              creatorName, recipientName: recipient_name, occasion,
+              creatorName, recipientName: recipient_name,
+              occasion: (occasion === 'other' && cleanCustomOccasion)
+                ? cleanCustomOccasion
+                : (occasion || '').replace(/_/g, ' '),
               custom_occasion: cleanCustomOccasion || null,
               scope: `${creatorDept} department`,
               cardSlug:  slug,
@@ -511,7 +517,9 @@ const activateCard = async (req, res) => {
           data: {
             creatorName,
             recipientName: card.recipient_name,
-            occasion: card.occasion,
+            occasion: (card.occasion === 'other' && card.custom_occasion)
+              ? card.custom_occasion
+              : (card.occasion || '').replace(/_/g, ' '),
             custom_occasion: card.custom_occasion || null,
             cardSlug: card.slug,
             giftEnabled: card.is_gift_enabled,

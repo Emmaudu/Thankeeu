@@ -186,20 +186,13 @@ const initCardFee = async (req, res) => {
 
     const txRef = `TK-FEE-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
-    // Store tx_ref on card before returning config (needed for webhook fallback)
-    try { await supabase.from('cards').update({ payment_ref: txRef }).eq('slug', card_slug); }
-    catch (e) { console.warn('payment_ref store:', e.message); }
-
-    // Return inline checkout config — frontend calls window.FlutterwaveCheckout()
-    // directly via flwInline.js. No FLW redirect link needed; this avoids the blank
-    // page caused by navigating away to a flwlnk- URL.
-    const flwConfig = {
-      public_key: process.env.FLW_PUBLIC_KEY,
-      tx_ref:     txRef,
-      amount:     feeInCurrency,
+    const payload = {
+      tx_ref:    txRef,
+      amount:    feeInCurrency,
       currency,
+      // FLW redirects browser directly to frontend — no backend hop needed
       redirect_url: `${FRONTEND_URL}/create-card/verify`,
-      customer:   { email, name: callerName },
+      customer:  { email, name: callerName },
       customizations: {
         title:       'Thankeeu Card Fee',
         description: 'One-time card creation fee',
@@ -208,8 +201,18 @@ const initCardFee = async (req, res) => {
       meta: { type: 'card_fee', card_slug },
     };
 
+    const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
+    if (r.data.status !== 'success') {
+      console.error('FLW initCardFee rejected:', r.data);
+      return res.status(400).json({ error: r.data.message || 'Payment gateway rejected the request' });
+    }
+
+    // Store tx_ref on card as fallback for webhook
+    try { await supabase.from('cards').update({ payment_ref: txRef }).eq('slug', card_slug); }
+    catch (e) { console.warn('payment_ref store:', e.message); }
+
     console.log('initCardFee OK tx_ref:', txRef, 'card:', card_slug);
-    return res.json({ tx_ref: txRef, flw_config: flwConfig });
+    return res.json({ payment_link: r.data.data.link, tx_ref: txRef });
 
   } catch (err) {
     console.error('initCardFee error:', err.response?.data?.message || err.message);

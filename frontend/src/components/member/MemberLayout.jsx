@@ -9,27 +9,26 @@ const MemberLayout = ({ children, title, subtitle }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mbTooltip, setMbTooltip] = useState({ visible: false, text: '', y: 0 });
 
   const isLeader = member?.role === 'team_leader';
   const handleLogout = () => { logout(); navigate('/member/login'); };
   const isActive = p => location.pathname === p;
 
   const NAV = [
-    { path: '/member/dashboard',   icon: 'Home',     label: 'Dashboard',        tip: 'Your home — recent cards, occasions coming up, and quick actions' },
-    { path: '/member/occasions',   icon: 'Cake',     label: 'Occasions',        tip: 'Birthdays and work anniversaries for your colleagues' },
-    { path: '/member/cards',       icon: 'Heart',    label: 'My Cards',         tip: 'Group cards you have created or contributed to' },
-    { path: '/member/received',    icon: 'Gift',     label: 'Received',         tip: 'Cards and gifts sent to you by your team' },
-    { path: '/member/pending',     icon: 'Edit',     label: 'Pending to Sign',  tip: 'Cards you have been invited to sign but haven\'t yet' },
-    { path: '/member/gift-cards',  icon: 'Gift',     label: 'Gift Cards',       tip: 'Send digital gift cards alongside a group card' },
-    { path: '/member/finances',    icon: 'Wallet',   label: 'Financials',       tip: 'Your bank account and gift withdrawal history' },
-    { path: '/member/reminders',   icon: 'Clock',    label: 'Reminders',        tip: 'Personal reminders for birthdays and special occasions' },
+    { path: '/member/dashboard',   icon: 'Home',     label: 'Dashboard'       },
+    { path: '/member/occasions',   icon: 'Cake',     label: 'Occasions'       },
+    { path: '/member/cards',       icon: 'Heart',    label: 'My Cards'        },
+    { path: '/member/received',    icon: 'Gift',     label: 'Received'        },
+    { path: '/member/pending',     icon: 'Edit',     label: 'Pending to Sign' },
+    { path: '/member/gift-cards',  icon: 'Gift',     label: 'Gift Cards'      },
+    { path: '/member/finances',    icon: 'Wallet',   label: 'Financials'      },
+    { path: '/member/reminders',   icon: 'Clock',    label: 'Reminders'       },
     ...(isLeader ? [
-      { path: '/member/approvals',  icon: 'Check',  label: 'Approvals',        tip: 'Approve or reject card creation requests from team members' },
-      { path: '/member/deductions', icon: 'Card',   label: 'Deductions',       tip: 'Manage salary deduction requests for gift contributions' },
+      { path: '/member/approvals',  icon: 'Check',  label: 'Approvals'       },
+      { path: '/member/deductions', icon: 'Card',   label: 'Deductions'      },
     ] : []),
-    { path: '/member/settings',    icon: 'Settings', label: 'Settings',         tip: 'Update your profile, password and notification preferences' },
-    { path: '/member/support',     icon: 'Message',  label: 'Support',          tip: 'Get help from the Thankeeu team' },
+    { path: '/member/settings',    icon: 'Settings', label: 'Settings'        },
+    { path: '/member/support',     icon: 'Message',  label: 'Support'         },
   ];
 
   const initials = member ? `${member.first_name?.[0]||''}${member.last_name?.[0]||''}`.toUpperCase() : '?';
@@ -81,7 +80,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
       {/* Nav — scrollable */}
       <nav className="flex-1 px-3 py-1 overflow-y-auto overflow-x-hidden sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
         <div className="space-y-0.5 pb-4">
-          {NAV.map(({ path, icon, label, tip }) => (
+          {NAV.map(({ path, icon, label }) => (
             <div key={path}>
               <Link to={path}
                 onClick={() => setMobileOpen(false)}
@@ -91,20 +90,6 @@ const MemberLayout = ({ children, title, subtitle }) => {
                   borderLeft: `3px solid ${isActive(path) ? '#7C6EFF' : 'transparent'}`,
                   background: isActive(path) ? 'rgba(124,110,255,0.16)' : 'transparent',
                   color: isActive(path) ? '#B8B4FF' : '#7A7898',
-                }}
-                onPointerDown={e => {
-                  if (e.pointerType !== 'mouse') setMbTooltip({ visible: false, text: '', y: 0 });
-                }}
-                onPointerEnter={e => {
-                  if (e.pointerType !== 'mouse') return;
-                  if (tip) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setMbTooltip({ visible: true, text: tip, y: rect.top + rect.height / 2 });
-                  }
-                }}
-                onPointerLeave={e => {
-                  if (e.pointerType !== 'mouse') return;
-                  setMbTooltip(t => ({ ...t, visible: false }));
                 }}>
                 <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
                 <span>{label}</span>
@@ -113,26 +98,6 @@ const MemberLayout = ({ children, title, subtitle }) => {
           ))}
         </div>
       </nav>
-
-      {mbTooltip.visible && mbTooltip.text && (
-        <div style={{
-          position:'fixed', left:252, top: mbTooltip.y,
-          transform:'translateY(-50%)',
-          background:'#fff', color:'#1A1035',
-          fontSize:'0.72rem', lineHeight:1.55, fontFamily:'Space Grotesk,sans-serif',
-          padding:'9px 13px', borderRadius:12, maxWidth:220, pointerEvents:'none',
-          boxShadow:'0 4px 24px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.08)',
-          border:'1px solid #EDE9FE', zIndex:9999, whiteSpace:'normal', fontWeight:500,
-        }}>
-          <div style={{
-            position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
-            borderWidth:'6px', borderStyle:'solid',
-            borderColor:'transparent #fff transparent transparent',
-            filter:'drop-shadow(-2px 0 1px rgba(0,0,0,0.06))',
-          }} />
-          {mbTooltip.text}
-        </div>
-      )}
 
       {/* Company tag + Sign out */}
       <div className="px-3 pb-5 pt-2 flex-shrink-0" style={{ borderTop:'1px solid rgba(124,110,255,0.1)' }}>

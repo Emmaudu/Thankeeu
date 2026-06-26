@@ -38,7 +38,6 @@ import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI } from '../utils/api';
-import { openFlwCheckout } from '../utils/flwInline';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 import { formatNGN, formatCurrency, CURRENCIES } from '../utils/currency';
 
@@ -206,7 +205,12 @@ const CardStart = () => {
   const addMedia = useCallback((files) => {
     const items = [];
     for (const f of Array.from(files)) {
-      if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} too large (max 50MB)`); continue; }
+      const isGifOrImage = f.type === 'image/gif' || f.type.startsWith('image/');
+      const maxSize = isGifOrImage ? 9 * 1024 * 1024 : 50 * 1024 * 1024;
+      if (f.size > maxSize) {
+        toast.error(`${f.name} is too large. ${isGifOrImage ? 'Images and GIFs must be under 9MB.' : 'Videos must be under 50MB.'}`);
+        continue;
+      }
       const mime = f.type;
       const type = mime.startsWith('video/') ? 'video' : mime.startsWith('audio/') ? 'voice' : mime === 'image/gif' ? 'gif' : 'image';
       items.push({ file: f, preview: URL.createObjectURL(f), type, name: f.name });
@@ -388,11 +392,11 @@ const CardStart = () => {
         }
       }
 
-      // Flutterwave inline checkout
+      // Flutterwave
       setPaymentStage('redirecting');
       const userEmail = user?.email || member?.email || company?.email || '';
       const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency, userEmail);
-      const { flw_config, already_active, card_slug: activatedSlug } = payRes.data;
+      const { payment_link, already_active, card_slug: activatedSlug } = payRes.data;
       if (already_active) {
         await saveCreatorMessage(activatedSlug || slug);
         localStorage.removeItem(PENDING_KEY);
@@ -401,10 +405,9 @@ const CardStart = () => {
         setLoading(false); setPaymentStage('idle');
         return;
       }
-      if (!flw_config) throw new Error('Payment configuration not returned. Please try again.');
-
-      // Persist creator message + invite emails before modal opens — verifyCardFee
-      // will activate the card and we'll restore them in the onSuccess callback.
+      if (!payment_link) throw new Error('No payment link returned');
+      // Persist creator message + invite emails before FLW redirect — CardFeeVerify
+      // will read them back after payment and send the invites.
       try {
         const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
         existing.msgSnapshot  = msgForm.content.trim() ? msgForm : existing.msgSnapshot;
@@ -413,44 +416,7 @@ const CardStart = () => {
         existing.inviteEmails = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
         localStorage.setItem(PENDING_KEY, JSON.stringify(existing));
       } catch {}
-
-      setLoading(false); setPaymentStage('idle');
-
-      await openFlwCheckout({
-        flwConfig: flw_config,
-        onSuccess: async (txRef) => {
-          setLoading(true); setPaymentStage('verifying');
-          try {
-            const verifyRes = await paymentsAPI.verifyCardFee(txRef);
-            const { card_slug: activeSlug } = verifyRes.data;
-            const finalSlug = activeSlug || slug;
-
-            // Restore invite emails
-            try {
-              const pending = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
-              const emailList = pending?.inviteEmails || [];
-              if (emailList.length) {
-                await cardsAPI.activate(finalSlug, { inviteEmails: emailList }).catch(() => {});
-              }
-            } catch {}
-
-            await saveCreatorMessage(finalSlug);
-            localStorage.removeItem(PENDING_KEY);
-            toast.success('Card is live! 🎉');
-            setLiveSlug(finalSlug);
-          } catch (verifyErr) {
-            toast.error(verifyErr.response?.data?.error || 'Payment received but activation failed. Check your dashboard.');
-            navigate('/dashboard');
-          } finally {
-            setLoading(false); setPaymentStage('idle');
-          }
-        },
-        onClose: () => {
-          toast('Payment cancelled. Your draft is saved — you can try again.', { icon: 'ℹ️' });
-          setLoading(false); setPaymentStage('idle');
-        },
-      });
-      return;
+      window.location.assign(payment_link);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not activate card. Please try again.');
       setLoading(false); setPaymentStage('idle');

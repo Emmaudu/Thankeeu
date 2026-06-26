@@ -4,20 +4,20 @@ import Icon from '../ui/Icon';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 
 const NAV = [
-  { path: '/company/dashboard',    icon: 'Home',     label: 'Dashboard',         tip: 'Overview of your team\'s card activity, occasions and recent events' },
-  { path: '/company/occasions',    icon: 'Cake',     label: 'Occasions Manager', tip: 'Auto-send cards for birthdays, work anniversaries and custom occasions' },
-  { path: '/create-card',          icon: 'Heart',    label: 'Create Card',       tip: 'Create a new group card for any team member or occasion' },
-  { path: '/company/my-cards',     icon: 'Gift',     label: 'My Cards',          tip: 'All group cards created under your company account' },
-  { path: '/company/activity',     icon: 'File',     label: 'Activity Log',      tip: 'Full audit trail of all HR actions, logins and card events' },
-  { path: '/company/team-members', icon: 'Users',    label: 'Team Members',      tip: 'Manage your employees — add, invite, import via Excel or HRIS' },
-  { path: '/company/core-team',    icon: 'Building', label: 'Core Team',         tip: 'HR admins and team leaders who can manage cards and occasions' },
-  { path: '/company/members',      icon: 'Check',    label: 'Approvals',         tip: 'Review and approve pending member join requests' },
-  { path: '/company/deductions',   icon: 'Wallet',   label: 'Deductions',        tip: 'Track salary deduction requests for gift contributions' },
-  { path: '/company/subscription', icon: 'Card',     label: 'Subscription',      tip: 'Manage your Thankeeu for Teams plan and billing' },
-  { path: '/company/gift-cards',   icon: 'Gift',     label: 'Gift Cards',        tip: 'Send digital gift cards to employees alongside their group card' },
-  { path: '/company/hris',         icon: 'Link',     label: 'HRIS Sync',         tip: 'Connect BambooHR, SeamlessHR, Zoho People or SAP to auto-import staff' },
-  { path: '/company/settings',     icon: 'Settings', label: 'Settings',          tip: 'Company profile, logo, notification preferences and integrations' },
-  { path: '/company/support',      icon: 'Message',  label: 'Support',           tip: 'Get help from the Thankeeu team' },
+  { path: '/company/dashboard',    icon: 'Home',     label: 'Dashboard'         },
+  { path: '/company/occasions',    icon: 'Cake',     label: 'Occasions Manager' },
+  { path: '/create-card',          icon: 'Heart',    label: 'Create Card'       },
+  { path: '/company/my-cards',     icon: 'Gift',     label: 'My Cards'          },
+  { path: '/company/activity',     icon: 'File',     label: 'Activity Log'      },
+  { path: '/company/team-members', icon: 'Users',    label: 'Team Members'      },
+  { path: '/company/core-team',    icon: 'Building', label: 'Core Team'         },
+  { path: '/company/members',      icon: 'Check',    label: 'Approvals'         },
+  { path: '/company/deductions',   icon: 'Wallet',   label: 'Deductions'        },
+  { path: '/company/subscription', icon: 'Card',     label: 'Subscription'      },
+  { path: '/company/gift-cards',   icon: 'Gift',     label: 'Gift Cards'        },
+  { path: '/company/hris',         icon: 'Link',     label: 'HRIS Sync'         },
+  { path: '/company/settings',     icon: 'Settings', label: 'Settings'          },
+  { path: '/company/support',      icon: 'Message',  label: 'Support'           },
 ];
 
 const CompanyLayout = ({ children, title, subtitle }) => {
@@ -25,7 +25,6 @@ const CompanyLayout = ({ children, title, subtitle }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [coTooltip, setCoTooltip] = useState({ visible: false, text: '', y: 0 });
 
   const isActive = (p) => location.pathname === p;
   // Check if this company session was obtained via core team switching
@@ -121,7 +120,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
 
 
 <nav className="flex-1 px-3 py-1 overflow-y-auto overflow-x-hidden sidebar-nav" style={{ scrollbarWidth:'thin', scrollbarColor:'rgba(124,110,255,0.35) transparent' }}>
-        {NAV.map(({ path, icon, label, tip }) => (
+        {NAV.map(({ path, icon, label }) => (
           <div key={path}>
             <Link to={path}
               onClick={() => setMobileOpen(false)}
@@ -132,20 +131,6 @@ const CompanyLayout = ({ children, title, subtitle }) => {
                 paddingLeft: isActive(path) ? 9 : 12,
                 background: isActive(path) ? 'rgba(124,110,255,0.15)' : 'transparent',
                 color: isActive(path) ? '#B8B4FF' : '#6B678A',
-              }}
-              onPointerDown={e => {
-                if (e.pointerType !== 'mouse') setCoTooltip({ visible: false, text: '', y: 0 });
-              }}
-              onPointerEnter={e => {
-                if (e.pointerType !== 'mouse') return;
-                if (tip) {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setCoTooltip({ visible: true, text: tip, y: rect.top + rect.height / 2 });
-                }
-              }}
-              onPointerLeave={e => {
-                if (e.pointerType !== 'mouse') return;
-                setCoTooltip(t => ({ ...t, visible: false }));
               }}>
               <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center"><Icon name={icon} size={16} /></span>
               {label}
@@ -153,26 +138,6 @@ const CompanyLayout = ({ children, title, subtitle }) => {
           </div>
         ))}
       </nav>
-
-      {coTooltip.visible && coTooltip.text && (
-        <div style={{
-          position:'fixed', left:232, top: coTooltip.y,
-          transform:'translateY(-50%)',
-          background:'#fff', color:'#1A1035',
-          fontSize:'0.72rem', lineHeight:1.55, fontFamily:'Space Grotesk,sans-serif',
-          padding:'9px 13px', borderRadius:12, maxWidth:220, pointerEvents:'none',
-          boxShadow:'0 4px 24px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.08)',
-          border:'1px solid #EDE9FE', zIndex:9999, whiteSpace:'normal', fontWeight:500,
-        }}>
-          <div style={{
-            position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)',
-            borderWidth:'6px', borderStyle:'solid',
-            borderColor:'transparent #fff transparent transparent',
-            filter:'drop-shadow(-2px 0 1px rgba(0,0,0,0.06))',
-          }} />
-          {coTooltip.text}
-        </div>
-      )}
 
       {/* Bottom */}
       <div className="px-3 pb-5 flex-shrink-0 space-y-2">

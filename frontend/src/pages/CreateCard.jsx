@@ -298,7 +298,12 @@ const CreateCard = () => {
   const addMedia = useCallback((files) => {
     const items = [];
     for (const f of Array.from(files)) {
-      if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} too large (max 50MB)`); continue; }
+      const isGifOrImage = f.type === 'image/gif' || f.type.startsWith('image/');
+      const maxSize = isGifOrImage ? 9 * 1024 * 1024 : 50 * 1024 * 1024;
+      if (f.size > maxSize) {
+        toast.error(`${f.name} is too large. ${isGifOrImage ? 'Images and GIFs must be under 9MB.' : 'Videos must be under 50MB.'}`);
+        continue;
+      }
       const mime = f.type;
       const type = mime.startsWith('video/') ? 'video' : mime.startsWith('audio/') ? 'voice' : mime === 'image/gif' ? 'gif' : 'image';
       items.push({ file: f, preview: URL.createObjectURL(f), type, name: f.name });

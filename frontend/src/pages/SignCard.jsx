@@ -278,8 +278,14 @@ const SignCard = () => {
   const addMediaFiles = useCallback((files) => {
     const items = [];
     for (const f of Array.from(files)) {
-      if (f.size > 100 * 1024 * 1024) { toast.error(`${f.name} is too large (max 100MB). Try compressing it first.`); continue; }
-      if (f.size > 50 * 1024 * 1024) { toast(`${f.name} is large (${(f.size/1024/1024).toFixed(0)}MB) — upload may take a moment.`, { icon: '⏳' }); }
+      const isGifOrImage = f.type === 'image/gif' || f.type.startsWith('image/');
+      const maxSize = isGifOrImage ? 9 * 1024 * 1024 : 100 * 1024 * 1024;
+      if (f.size > maxSize) {
+        toast.error(`${f.name} is too large. ${isGifOrImage ? 'Images and GIFs must be under 9MB.' : 'Videos must be under 100MB.'}`);
+        continue;
+      }
+      if (f.size > 5 * 1024 * 1024 && isGifOrImage) { toast(`${f.name} is large (${(f.size/1024/1024).toFixed(0)}MB) — upload may take a moment.`, { icon: '⏳' }); }
+      if (f.size > 50 * 1024 * 1024 && !isGifOrImage) { toast(`${f.name} is large (${(f.size/1024/1024).toFixed(0)}MB) — upload may take a moment.`, { icon: '⏳' }); }
       const mime = f.type;
       const type = mime.startsWith('video/') ? 'video'
                  : mime.startsWith('audio/') ? 'voice'

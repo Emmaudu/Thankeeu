@@ -82,10 +82,10 @@ const emailTemplates = {
   }),
 
   cardInvite: (data) => ({
-    subject: `${data.creatorName} wants you to sign ${data.recipientName}'s ${data.occasion === 'other' && data.custom_occasion ? data.custom_occasion : (data.occasion||'').replace(/_/g,' ')} card!`,
+    subject: `${data.creatorName} wants you to sign ${data.recipientName}'s ${data.occasion} card!`,
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">You have been invited to sign a card!</h2>
-      <p style="color:#555;line-height:1.7;"><strong>${data.creatorName}</strong> is putting together a special group card for <strong>${data.recipientName}</strong>'s ${data.occasion === 'other' && data.custom_occasion ? data.custom_occasion : (data.occasion||'').replace(/_/g,' ')}.</p>
+      <p style="color:#555;line-height:1.7;"><strong>${data.creatorName}</strong> is putting together a special group card for <strong>${data.recipientName}</strong>'s ${data.occasion}.</p>
       ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in from ₦2,500</p></div>` : ''}
       <p style="color:#555;font-size:13px;">Closes on ${data.deadline}</p>
       ${btn('Sign the card now', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}

@@ -6,16 +6,16 @@ import NotificationBell from './NotificationBell';
 import Icon from './ui/Icon';
 
 const NAV = [
-  { to: '/dashboard',            icon: 'Home',       label: 'Home',             tip: 'Your dashboard overview — recent activity, quick stats and shortcuts' },
-  { to: '/dashboard/cards',      icon: 'Heart',      label: 'My Cards',         tip: 'All group cards you have created, active or delivered' },
-  { to: '/dashboard/credits',    icon: 'Card',       label: 'Credits & Plans',  tip: 'Buy and manage card credits — one credit = one card' },
-  { to: '/dashboard/delivered',  icon: 'Send',       label: 'Delivered',        tip: 'Cards you have already sent to their recipients' },
-  { to: '/dashboard/received',   icon: 'Gift',       label: 'Received',         tip: 'Group cards that were sent to you by others' },
-  { to: '/dashboard/pending',    icon: 'Edit',       label: 'Pending to Sign',  tip: 'Cards you have been invited to sign but have not signed yet' },
-  { to: '/dashboard/gift-cards', icon: 'Gift',       label: 'Gift Cards',       tip: 'View your gift-to-gift-card conversion history — redeem gift pot money as Airtime, Amazon, Steam and more' },
-  { to: '/dashboard/finances',   icon: 'Wallet',     label: 'Financials',       tip: 'Your bank account details and gift withdrawal history' },
-  { to: '/dashboard/reminders',  icon: 'Bell',       label: 'Reminders',        tip: 'Set birthday and occasion reminders so you never miss a moment' },
-  { to: '/dashboard/settings',   icon: 'Settings',   label: 'Settings',         tip: 'Update your profile, password, notifications and preferences' },
+  { to: '/dashboard',            icon: 'Home',       label: 'Home'            },
+  { to: '/dashboard/cards',      icon: 'Heart',      label: 'My Cards'        },
+  { to: '/dashboard/credits',    icon: 'Card',       label: 'Credits & Plans' },
+  { to: '/dashboard/delivered',  icon: 'Send',       label: 'Delivered'       },
+  { to: '/dashboard/received',   icon: 'Gift',       label: 'Received'        },
+  { to: '/dashboard/pending',    icon: 'Edit',       label: 'Pending to Sign' },
+  { to: '/dashboard/gift-cards', icon: 'Gift',       label: 'Gift Cards'      },
+  { to: '/dashboard/finances',   icon: 'Wallet',     label: 'Financials'      },
+  { to: '/dashboard/reminders',  icon: 'Bell',       label: 'Reminders'       },
+  { to: '/dashboard/settings',   icon: 'Settings',   label: 'Settings'        },
 ];
 
 const SIDEBAR_W = 240;
@@ -25,7 +25,6 @@ const DashboardLayout = ({ children, title, subtitle }) => {
   const location  = useLocation();
   const navigate  = useNavigate();
   const [open, setOpen] = useState(false);
-  const [tooltip, setTooltip] = useState({ visible: false, text: '', y: 0 });
 
   const handleLogout = () => { logout(); navigate('/'); };
   const isActive = (to) =>
@@ -50,7 +49,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
       {/* User chip */}
       <div style={{ padding:'0.75rem 0.75rem 0.5rem' }}>
-        <Link to="/dashboard/settings" onClick={() => { setOpen(false); setTooltip({ visible:false, text:'', y:0 }); }} style={{
+        <Link to="/dashboard/settings" onClick={() => { setOpen(false); }} style={{
           display:'flex', alignItems:'center', gap:'0.625rem',
           padding:'0.625rem 0.75rem', borderRadius:14,
           textDecoration:'none', transition:'background 0.15s',
@@ -85,30 +84,14 @@ const DashboardLayout = ({ children, title, subtitle }) => {
         .dash-nav-link.active { background:rgba(139,92,246,0.15); color:#C4B5FD; font-weight:700; border-left-color:#7C3AED; padding-left:calc(0.75rem - 3px); }
       `}</style>
       <nav style={{ flex:1, padding:'0.25rem 0.75rem', overflowY:'auto', overflowX:'hidden', scrollbarWidth:'thin', scrollbarColor:'rgba(139,92,246,0.3) transparent' }}>
-        {NAV.map(({ to, icon, label, tip }) => {
+        {NAV.map(({ to, icon, label }) => {
           const active = isActive(to);
           return (
             <Link
               key={to}
               to={to}
               className={`dash-nav-link${active ? ' active' : ''}`}
-              onClick={() => { setOpen(false); setTooltip({ visible:false, text:'', y:0 }); }}
-              onPointerDown={e => {
-                // On touch: immediately hide tooltip so it never blocks the tap-to-navigate
-                if (e.pointerType !== 'mouse') setTooltip({ visible:false, text:'', y:0 });
-              }}
-              onPointerEnter={e => {
-                // Only show tooltip for real mouse pointer — never for touch or stylus
-                if (e.pointerType !== 'mouse') return;
-                if (tip) {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setTooltip({ visible:true, text:tip, y: rect.top + rect.height / 2 });
-                }
-              }}
-              onPointerLeave={e => {
-                if (e.pointerType !== 'mouse') return;
-                setTooltip(t => ({ ...t, visible:false }));
-              }}>
+              onClick={() => setOpen(false)}>
               <Icon name={icon} size={16} style={{ flexShrink:0 }} />
               {label}
             </Link>
@@ -116,26 +99,9 @@ const DashboardLayout = ({ children, title, subtitle }) => {
         })}
       </nav>
 
-      {/* Tooltip — mouse pointer only, never shown on touch or stylus */}
-      {tooltip.visible && tooltip.text && (
-        <div style={{
-          position:'fixed', left:252, top: tooltip.y,
-          transform:'translateY(-50%)',
-          background:'#fff', color:'#1A1035',
-          fontSize:'0.72rem', lineHeight:1.55, fontFamily:'Plus Jakarta Sans,sans-serif',
-          padding:'9px 13px', borderRadius:12, maxWidth:220, pointerEvents:'none',
-          boxShadow:'0 4px 24px rgba(0,0,0,0.18)', border:'1px solid #EDE9FE',
-          zIndex:9999, whiteSpace:'normal', fontWeight:500,
-        }}>
-          <div style={{ position:'absolute', right:'100%', top:'50%', transform:'translateY(-50%)', borderWidth:'6px', borderStyle:'solid', borderColor:'transparent #fff transparent transparent' }} />
-          {tooltip.text}
-        </div>
-      )}
-
-
       {/* Create card CTA */}
       <div style={{ padding:'0.5rem 0.75rem' }}>
-        <Link to="/create-card" onClick={() => { setOpen(false); setTooltip({ visible:false, text:'', y:0 }); }} style={{
+        <Link to="/create-card" onClick={() => setOpen(false)} style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap:'0.4rem',
           padding:'0.7rem', borderRadius:14, textDecoration:'none',
           background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff',

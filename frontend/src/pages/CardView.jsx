@@ -280,13 +280,47 @@ function MusicPlayer() {
   const [done,     setDone]     = useState(false);
   const [visible,  setVisible]  = useState(true);
   const [progress, setProgress] = useState(0);
+  const [blocked,  setBlocked]  = useState(false); // true = browser blocked autoplay
   const audioRef  = useRef(null);
   const timerRef  = useRef(null);
+  const fadeRef   = useRef(null);
+
+  const startTracking = (a) => {
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      if (!a.duration) return;
+      setProgress(Math.min(100, (a.currentTime / a.duration) * 100));
+    }, 250);
+  };
+
+  const fadeIn = (a) => {
+    clearInterval(fadeRef.current);
+    let vol = 0;
+    fadeRef.current = setInterval(() => {
+      vol = Math.min(1, vol + 0.05);
+      a.volume = vol;
+      if (vol >= 1) { a.muted = false; clearInterval(fadeRef.current); }
+    }, 80);
+  };
+
+  const doPlay = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.muted = true;
+    a.volume = 0;
+    a.play().then(() => {
+      setPlaying(true);
+      setBlocked(false);
+      fadeIn(a);
+      startTracking(a);
+    }).catch(() => {});
+  };
 
   const stopMusic = () => {
     const a = audioRef.current;
     if (a) { a.pause(); a.currentTime = 0; }
     clearInterval(timerRef.current);
+    clearInterval(fadeRef.current);
     setPlaying(false); setDone(true);
     setTimeout(() => setVisible(false), 2000);
   };
@@ -300,28 +334,28 @@ function MusicPlayer() {
   useEffect(() => {
     const a = audioRef.current;
     if (!a) return;
-    // Start muted — browsers allow muted autoplay everywhere (iOS, Android, desktop)
-    a.muted  = true;
+    // Try muted autoplay — works on most browsers including mobile
+    a.muted = true;
     a.volume = 0;
     a.play().then(() => {
-      // Successfully playing — gradually unmute
       setPlaying(true);
-      let vol = 0;
-      const fade = setInterval(() => {
-        vol = Math.min(1, vol + 0.05);
-        a.volume = vol;
-        if (vol >= 1) { a.muted = false; clearInterval(fade); }
-      }, 80);
-      timerRef.current = setInterval(() => {
-        if (!a.duration) return;
-        setProgress(Math.min(100, (a.currentTime / a.duration) * 100));
-      }, 250);
+      fadeIn(a);
+      startTracking(a);
     }).catch(() => {
-      // Very rare fallback — if even muted play is blocked, hide the player
-      setVisible(false);
+      // Autoplay blocked — show tap-to-play pill instead of hiding
+      setBlocked(true);
     });
+    // Also catch any first user interaction and start music then
+    const unlock = () => {
+      if (playing || done) return;
+      document.removeEventListener('click', unlock);
+      doPlay();
+    };
+    document.addEventListener('click', unlock);
     return () => {
       clearInterval(timerRef.current);
+      clearInterval(fadeRef.current);
+      document.removeEventListener('click', unlock);
       if (audioRef.current) audioRef.current.pause();
     };
   }, []);
@@ -329,7 +363,7 @@ function MusicPlayer() {
   if (!visible) return null;
 
   return (
-    <div style={{
+    <div onClick={blocked ? doPlay : undefined} style={{
       position:'fixed', bottom:16, right:12, left:12, zIndex:9999,
       maxWidth:320, marginLeft:'auto',
       background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))',
@@ -338,19 +372,24 @@ function MusicPlayer() {
       display:'flex', alignItems:'center', gap:11,
       border:'1px solid rgba(255,255,255,0.25)',
       animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)',
+      cursor: blocked ? 'pointer' : 'default',
+      WebkitTapHighlightColor: 'transparent',
     }}>
       <audio ref={audioRef} src="/card-music.mp3" onEnded={handleEnded} preload="auto" playsInline />
       <style>{`
         @keyframes music-slide-in { from{transform:translateY(80px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
         @keyframes music-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
         @keyframes music-wave { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
+        @keyframes music-tap-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
       `}</style>
-      <div style={{ width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0,animation:playing?'music-pulse 1.4s ease infinite':'none' }}>
-        {done ? '♥' : '🎵'}
+      <div
+        onClick={blocked ? doPlay : undefined}
+        style={{ width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:blocked?20:17,flexShrink:0,animation:playing?'music-pulse 1.4s ease infinite':blocked?'music-tap-pulse 1.8s ease infinite':'none',cursor:blocked?'pointer':'default' }}>
+        {done ? '♥' : blocked ? '▶' : '🎵'}
       </div>
       <div style={{flex:1,minWidth:0}}>
         <p style={{color:'white',fontSize:11,fontWeight:700,margin:'0 0 2px',letterSpacing:'0.06em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-          {done ? '♥ Sent with love' : playing ? 'I Think They Call This Love ♥' : 'Starting…'}
+          {done ? '♥ Sent with love' : blocked ? 'Tap to play music ▶' : playing ? 'I Think They Call This Love ♥' : 'Starting…'}
         </p>
         {playing && !done && (
           <div style={{display:'flex',alignItems:'flex-end',gap:2.5,height:20}}>
@@ -1289,7 +1328,7 @@ const CardView = () => {
   const layoutType = member ? 'member' : company ? 'company' : 'user';
 
   const content = (
-    <div style={{ background: design?.soft || '#F5F0FF', overflowX: 'hidden', position: 'relative' }}>
+    <div style={{ background: design?.soft || '#F5F0FF' }}>
       <CelebrationBackground design={design} />
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}

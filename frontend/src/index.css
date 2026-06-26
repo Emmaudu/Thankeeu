@@ -8,7 +8,7 @@
 /* ── Base reset ───────────────────────────────────────────────────── */
 @layer base {
   *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html { scroll-behavior: smooth; font-size: 16px; overflow-x: hidden; max-width: 100%; }
+  html { scroll-behavior: smooth; font-size: 16px; max-width: 100%; }
 
   body {
     background-color: #FDFCFF;

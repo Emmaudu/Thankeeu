@@ -703,7 +703,7 @@ cron.schedule('0 12 * * *', async () => {
           : (daysUntil <= 0 && daysUntil >= -7);
 
         if (isCelebrantDue && !(track.year === year && track.celebrant_notified) && !(!occ.isRecurring && track.celebrant_notified)) {
-          await deliverCard({ m, ot, occ, company, year, tracking, trackKey });
+          await deliverCompanyCard({ m, ot, occ, company, year, tracking, trackKey });
           trackingChanged = true;
         }
       }
@@ -1056,9 +1056,9 @@ async function sendMidReminder({ m, ot, occ, company, occasionDate, daysUntil, y
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// deliverCard — Step 2: deliver the finished card to the celebrant on the day
+// deliverCompanyCard — Step 2: deliver the finished card to the celebrant on the day
 // ─────────────────────────────────────────────────────────────────────────────
-async function deliverCard({ m, ot, occ, company, year, tracking, trackKey }) {
+async function deliverCompanyCard({ m, ot, occ, company, year, tracking, trackKey }) {
   const track = tracking[trackKey] || {};
   const cardSlug = track.card_slug;
   if (!cardSlug) return; // STEP 1 hasn't created the card yet (shouldn't normally happen if notify_days_before >= 0)

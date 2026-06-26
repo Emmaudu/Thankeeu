@@ -33,7 +33,7 @@ const INDIVIDUAL_PLANS = [
       { text: '100+ premium card designs', ok: true },
       { text: 'Video, photo & voice messages', ok: true },
       { text: 'Scheduled delivery on any date', ok: true },
-      { text: 'Gift pot collection via Flutterwave', ok: true },
+      { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
       { text: 'Download card as PDF', ok: true },
     ],
@@ -49,7 +49,7 @@ const INDIVIDUAL_PLANS = [
       { text: 'Unlimited contributors — anyone can sign', ok: true },
       { text: '100+ premium card designs', ok: true },
       { text: 'Video, photo & voice messages', ok: true },
-      { text: 'Gift pot collection via Flutterwave', ok: true },
+      { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
       { text: 'Credits never expire', ok: true },
     ],
@@ -65,7 +65,7 @@ const INDIVIDUAL_PLANS = [
       { text: 'Unlimited contributors — anyone can sign', ok: true },
       { text: '100+ premium card designs', ok: true },
       { text: 'Video, photo & voice messages', ok: true },
-      { text: 'Gift pot collection via Flutterwave', ok: true },
+      { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
       { text: 'Credits never expire', ok: true },
     ],
@@ -75,7 +75,7 @@ const INDIVIDUAL_PLANS = [
 const COMPANY_PLANS = [
   {
     id: 'monthly', name: 'Monthly', period: '/month',
-    features: ['Unlimited employees','Automated birthday emails','Birthday card delivery','Gift pot collection via Flutterwave','HR dashboard & analytics','Import & re-import team data','Email support within 24 hours'],
+    features: ['Unlimited employees','Automated birthday emails','Birthday card delivery','Gift pooling · Visa, Mastercard & bank transfer','HR dashboard & analytics','Import & re-import team data','Email support within 24 hours'],
   },
   {
     id: 'yearly', name: 'Yearly', period: '/year', popular: true,
@@ -85,9 +85,9 @@ const COMPANY_PLANS = [
 
 const FAQ = [
   { q: 'Is Thankeeu for Nigerians only?', a: 'Not at all! Thankeeu works globally. Contributors can pay in NGN, USD, GBP, EUR, CAD, GHS, KES, ZAR and more. The card creator pays the card fee in their preferred currency — Flutterwave handles the conversion automatically.' },
-  { q: 'How does the gift pot work?', a: 'Contributors pay via Flutterwave when signing. Money is securely held and the recipient can withdraw to their bank account, buy airtime, or redeem a gift card — instantly.' },
+  { q: 'How does the gift pot work?', a: 'Contributors pay securely when signing using Visa, Mastercard, or bank transfer. Money is securely held and the recipient can withdraw to their bank account or redeem a gift card — instantly.' },
   { q: 'Does the recipient need an account?', a: 'No — recipients open and enjoy their card without any account. Only the card creator needs one.' },
-  { q: 'What payment methods are accepted?', a: 'Nigerian cards, bank transfer, USSD, mobile money. International: Visa, Mastercard, American Express. All via Flutterwave.' },
+  { q: 'What payment methods are accepted?', a: 'Nigerian cards, bank transfer, USSD, mobile money. International: Visa, Mastercard, American Express. All processed by our secure payments partner.' },
   { q: 'What happens if I cancel my company subscription?', a: 'Automation stops after your current period ends, but all your team data is preserved.' },
 ];
 
@@ -205,7 +205,7 @@ const Pricing = () => {
               <CurrencyToggle selected={currency} onChange={setCurrency} />
               {currency !== 'NGN' && (
                 <p className="text-xs text-warm-400 mt-2">
-                  Approximate {cur.name} equivalent · Flutterwave charges at live rate
+                  Approximate {cur.name} equivalent · Live exchange rate applied at checkout
                 </p>
               )}
             </div>
@@ -303,7 +303,7 @@ const Pricing = () => {
                     { text: 'Unlimited contributors — anyone can sign', ok: true },
                     { text: '100+ premium card designs', ok: true },
                     { text: 'Video, photo & voice messages', ok: true },
-                    { text: 'Gift pot collection via Flutterwave', ok: true },
+                    { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
                     { text: 'Use credits across any cards, any time', ok: true },
                     { text: 'Credits never expire', ok: true },
                   ].map((f, i) => (

@@ -92,10 +92,16 @@ const Footer = () => (
         <p className="text-xs text-warm-500 text-center sm:text-left">
           © {new Date().getFullYear()} Thankeeu. Made with love worldwide
         </p>
-        <span className="text-xs px-3 py-1.5 rounded-full font-bold"
-          style={{ background:'#F5F0FF', color:'#7C3AED', border:'1.5px solid #DDD6FE' }}>
-          Secure Naira payments via Flutterwave
-        </span>
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+          <span className="text-xs px-3 py-1.5 rounded-full font-bold"
+            style={{ background:'#F5F0FF', color:'#7C3AED', border:'1.5px solid #DDD6FE' }}>
+            🔒 Payments secured by PCI-DSS
+          </span>
+          <span className="text-xs px-3 py-1.5 rounded-full font-bold"
+            style={{ background:'#F0FDF4', color:'#15803D', border:'1.5px solid #BBF7D0' }}>
+            🌍 Available in 30+ countries
+          </span>
+        </div>
       </div>
     </div>
   </footer>

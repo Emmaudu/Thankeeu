@@ -852,7 +852,7 @@ const SignCard = () => {
                 <div className="flex items-start justify-between gap-4 mb-4">
                   <div>
                     <h3 className="text-xl font-bold" style={{ color: design.accent }}>Add a gift 🎁</h3>
-                    <p className="text-sm text-warm-500 mt-1">Optional · Secure via Flutterwave</p>
+                    <p className="text-sm text-warm-500 mt-1">Optional · Secure · Visa, Mastercard, bank transfer</p>
                   </div>
                 </div>
                 {card.total_collected > 0 && !card.hide_amounts && (
@@ -1060,7 +1060,26 @@ const SignCard = () => {
                 </button>
             }
 
-            <p className="text-center text-sm text-warm-400">Secured by Flutterwave · Your message is private until delivery</p>
+            {/* Trust badges */}
+            <div className="flex items-center justify-center gap-3 py-3 border-t border-b border-purple-100 mb-2">
+              <div className="flex items-center gap-1.5 text-xs text-warm-500 font-semibold">
+                <svg width="28" height="18" viewBox="0 0 50 32" fill="none"><rect width="50" height="32" rx="4" fill="#1A1F71"/><text x="50%" y="65%" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold" fontFamily="Arial">VISA</text></svg>
+                Visa
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-warm-500 font-semibold">
+                <svg width="28" height="18" viewBox="0 0 50 32" fill="none"><rect width="50" height="32" rx="4" fill="#EB001B"/><circle cx="20" cy="16" r="10" fill="#EB001B"/><circle cx="30" cy="16" r="10" fill="#F79E1B"/><path d="M25 9.5a10 10 0 0 1 0 13A10 10 0 0 1 25 9.5z" fill="#FF5F00"/></svg>
+                Mastercard
+              </div>
+              <div className="flex items-center gap-1.5 text-xs text-warm-500 font-semibold">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                SSL Secured
+              </div>
+              <div className="text-xs text-warm-500 font-semibold">
+                🌍 30+ countries
+              </div>
+            </div>
+
+            <p className="text-center text-sm text-warm-400">🔒 Secured · Payments processed by PCI-DSS certified infrastructure · Works in 30+ countries</p>
           </aside>
         </div>
       </main>

@@ -284,14 +284,11 @@ async function autoSendDueCards() {
   const now = new Date();
   const nowISO = now.toISOString();
 
-  // Fetch all active cards whose send_date is on or before right now.
-  // We store send_date as a TIMESTAMPTZ date (midnight UTC of the chosen date)
-  // and send_time as a separate TIME column (UTC). We pull everything up to
-  // end of today in UTC, then do the precise send_time comparison in JS.
-  const endOfTodayISO = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999)
-  ).toISOString();
-
+  // Fetch all active cards that are pending delivery, scheduled for any date up to
+  // and including right now. We fetch the entire date range (not capped to "today")
+  // so cards that were missed during a server restart/redeploy are caught immediately
+  // on the next cron tick. The precise send_time check is done in JS below.
+  // Using nowISO as the upper bound means we never even consider future-date cards.
   let cardsToSend, cardsToSendErr;
   try {
     ({ data: cardsToSend, error: cardsToSendErr } = await supabase
@@ -301,7 +298,7 @@ async function autoSendDueCards() {
       .eq('recipient_notified', false)
       .not('recipient_email', 'is', null)
       .not('send_date', 'is', null)
-      .lte('send_date', endOfTodayISO));
+      .lte('send_date', nowISO));  // only fetch cards whose date is not in the future
   } catch (queryErr) {
     console.error('[auto-send] Supabase query threw unexpectedly:', queryErr.message);
     return { error: queryErr.message, delivered: [], failed: [] };
@@ -379,7 +376,9 @@ async function autoSendDueCards() {
         data: {
           recipientName: card.recipient_name,
           recipientEmail: card.recipient_email,
-          occasion: card.occasion,
+          occasion: (card.occasion === 'other' && card.custom_occasion)
+            ? card.custom_occasion
+            : (card.occasion || '').replace(/_/g, ' '),
           cardSlug: card.slug,
           claimToken,
           accessToken: card.access_token,
@@ -479,6 +478,11 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Thankeeu API running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+  // On startup, immediately run the delivery check so any cards missed during
+  // a server restart/redeploy are sent without waiting for the next cron tick.
+  setTimeout(() => {
+    autoSendDueCards().catch(e => console.error('[startup auto-send] Error:', e.message));
+  }, 5000); // 5s delay to let DB connection stabilise
 });
 
 // CRON: Birthday automation for Teams — runs every day at 7AM

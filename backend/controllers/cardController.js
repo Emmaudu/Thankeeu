@@ -57,6 +57,7 @@ const createCard = async (req, res) => {
       recipient_name, recipient_email, occasion, title, design_theme,
       background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
       send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts,
+      custom_occasion,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus
     } = req.body;
@@ -70,6 +71,11 @@ const createCard = async (req, res) => {
     const cleanRecipientName = sanitizeName(recipient_name, 'Recipient name', { required: true, maxLen: 100 });
     const cleanTitle = title?.trim()
       ? sanitizeText(title, 'Card title', { maxLen: 120 })
+      : null;
+
+    // Sanitize custom occasion label (only meaningful when occasion === 'other')
+    const cleanCustomOccasion = (occasion === 'other' && custom_occasion?.trim())
+      ? sanitizeText(custom_occasion, 'Custom occasion', { maxLen: 80 })
       : null;
 
     // Validate numeric fields
@@ -111,6 +117,7 @@ const createCard = async (req, res) => {
       send_time: send_time || null,
       deadline: deadline || null,
       allow_private_messages, send_reminders, hide_amounts,
+      ...(cleanCustomOccasion && { custom_occasion: cleanCustomOccasion }),
       status: reqStatus || 'draft',
       ...(effectiveCompanyId && { company_id: effectiveCompanyId }),
       ...(effectiveMemberId && { created_by_member_id: effectiveMemberId }),
@@ -536,7 +543,9 @@ const sendCard = async (req, res) => {
       data: {
         recipientName: card.recipient_name,
         recipientEmail: card.recipient_email,
-        occasion: card.occasion.replace(/_/g, ' '),
+        occasion: (card.occasion === 'other' && card.custom_occasion)
+          ? card.custom_occasion
+          : card.occasion.replace(/_/g, ' '),
         occasionEmoji: OCCASION_EMOJI[card.occasion] || '🎉',
         cardSlug: card.slug,
         claimToken: claimToken,

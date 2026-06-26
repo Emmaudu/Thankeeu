@@ -123,6 +123,7 @@ const CardStart = () => {
     is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
     allow_private_messages: true, send_reminders: true, hide_amounts: false,
     notification_scope: 'department',
+    custom_occasion: '',
   });
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -188,8 +189,10 @@ const CardStart = () => {
   // ── Occasion helper ──────────────────────────────────────────────────────
   const handleOccasionSelect = (occ) => {
     set('occasion', occ.id);
+    set('custom_occasion', ''); // reset custom when switching occasion
     const name = form.recipient_name || 'Someone';
-    set('title', `${name}'s ${occ.label} Card`);
+    const label = occ.id === 'other' ? 'Special' : occ.label;
+    set('title', `${name}'s ${label} Card`);
   };
 
   // ── Design helper ────────────────────────────────────────────────────────
@@ -242,6 +245,7 @@ const CardStart = () => {
   // ── Step 2 → 3: create/update draft for authenticated users ─────────────
   const handleCreateDraft = async () => {
     if (!form.recipient_name?.trim()) return toast.error('Recipient name is required');
+    if (form.occasion === 'other' && !form.custom_occasion?.trim()) return toast.error('Please specify the occasion name');
     setLoading(true);
     try {
       const { status: _s, ...safeForm } = form;
@@ -445,7 +449,7 @@ const CardStart = () => {
         <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
           <h2 className="text-xl font-bold text-warm-900 mb-1">What's the occasion?</h2>
           <p className="text-warm-500 text-sm mb-6">Pick the type of card you're creating</p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-8">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
             {OCCASIONS.map(o => (
               <button key={o.id} onClick={() => handleOccasionSelect(o)}
                 className={`rounded-2xl p-4 text-center transition-all border-2 ${form.occasion === o.id ? 'border-primary-400 bg-primary-50 shadow-sm' : 'border-transparent bg-warm-100 hover:bg-purple-50'}`}>
@@ -454,6 +458,19 @@ const CardStart = () => {
               </button>
             ))}
           </div>
+          {form.occasion === 'other' && (
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-warm-700 mb-1">What's the occasion? <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                className="input w-full"
+                placeholder="e.g. Housewarming, Work Anniversary, Congratulations…"
+                maxLength={80}
+                value={form.custom_occasion || ''}
+                onChange={e => set('custom_occasion', e.target.value)}
+              />
+            </div>
+          )}
           <div className="flex justify-end">
             <button onClick={() => setStep(1)} className="btn-primary">Choose design →</button>
           </div>
@@ -582,7 +599,7 @@ const CardStart = () => {
               <div>
                 <label className="block text-sm font-semibold text-warm-700 mb-1.5">Recipient's name *</label>
                 <input className="input" placeholder="e.g. Amaka" value={form.recipient_name}
-                  onChange={e => { set('recipient_name', e.target.value); if (form.title.includes("Someone's") || form.title.endsWith(' Card')) set('title', `${e.target.value}'s ${OCCASIONS.find(o=>o.id===form.occasion)?.label||'Card'} Card`); }} required/>
+                  onChange={e => { set('recipient_name', e.target.value); if (form.title.includes("Someone's") || form.title.endsWith(' Card')) set('title', `${e.target.value}'s ${form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o=>o.id===form.occasion)?.label||'Card')} Card`); }} required/>
               </div>
               <div>
                 <label className="block text-sm font-semibold text-warm-700 mb-1.5">Recipient's email</label>
@@ -830,7 +847,7 @@ const CardStart = () => {
             {/* Full summary */}
             <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
               {[
-                ['Occasion',         OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion],
+                ['Occasion',         form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion)],
                 ['Design',           form.design_theme?.replace(/_/g, ' ')],
                 ['Card title',       form.title || '—'],
                 ['Recipient name',   form.recipient_name || '—'],
@@ -916,7 +933,7 @@ const CardStart = () => {
             {/* Full summary */}
             <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
               {[
-                ['Occasion',         OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion],
+                ['Occasion',         form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion)],
                 ['Design',           form.design_theme?.replace(/_/g, ' ')],
                 ['Card title',       form.title || '—'],
                 ['Recipient',        form.recipient_name || '—'],
@@ -1004,7 +1021,7 @@ const CardStart = () => {
 
             <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
               {[
-                ['Occasion',  OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion],
+                ['Occasion',  form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion)],
                 ['Recipient', form.recipient_name || '—'],
                 ['Gift',      form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount)} suggested` : 'No'],
                 ...(isCompanyUser

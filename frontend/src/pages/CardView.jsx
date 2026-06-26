@@ -1157,11 +1157,21 @@ const CardView = () => {
   const { member }  = useMemberAuth();
   const { company } = useCompanyAuth();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token') || sessionStorage.getItem(`card_token_${slug}`);
+
+  // ?token= is the direct access_token (old format / copy-link).
+  // ?claim= is the claim_token sent in delivery emails — must be resolved via
+  // the claim-gate endpoint first to get the real access_token.
+  const rawToken  = searchParams.get('token');
+  const claimParam = searchParams.get('claim');
+
   // Persist access token for this card in sessionStorage so reply works even after navigation
-  if (searchParams.get('token')) {
-    sessionStorage.setItem(`card_token_${slug}`, searchParams.get('token'));
+  if (rawToken) {
+    sessionStorage.setItem(`card_token_${slug}`, rawToken);
   }
+
+  const [token, setToken] = useState(
+    rawToken || sessionStorage.getItem(`card_token_${slug}`) || null
+  );
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAll,      setShowAll]      = useState(false);
@@ -1171,8 +1181,25 @@ const CardView = () => {
   const [replyText, setReplyText] = useState('');
   const [replyLoading, setReplyLoading] = useState(false);
 
+  // Resolve ?claim= token → real access_token via claim-gate, then store it
+  // so the card loads as a proper recipient view (not a public/anonymous view).
+  useEffect(() => {
+    if (!claimParam || token) return; // already have a token, nothing to do
+    cardsAPI.getClaimGate(slug, claimParam)
+      .then(res => {
+        const accessToken = res.data?.access_token;
+        if (accessToken) {
+          sessionStorage.setItem(`card_token_${slug}`, accessToken);
+          setToken(accessToken);
+        }
+      })
+      .catch(() => {
+        // claim-gate failed — proceed without token (public view)
+      });
+  }, [slug, claimParam]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useSEO({
-    title: card ? `${card.recipient_name}'s ${occasionLabel[card.occasion] || ''} Card` : 'View Card - Thankeeu',
+    title: card ? `${card.recipient_name}'s ${card.occasion === 'other' && card.custom_occasion ? card.custom_occasion : (occasionLabel[card.occasion] || '')} Card` : 'View Card - Thankeeu',
     description: card ? `A beautiful group card for ${card.recipient_name}.` : 'View a group card on Thankeeu.',
     noIndex: false,
   });
@@ -1350,7 +1377,7 @@ const CardView = () => {
             color: design.dark ? '#ffffff' : design.accent,
             textShadow: design.dark ? '0 2px 24px rgba(0,0,0,0.25)' : 'none',
           }}>
-            {card.title || `Happy ${(card.occasion||'').replace(/_/g,' ')}, ${card.recipient_name}!`}
+            {card.title || `Happy ${card.occasion === 'other' && card.custom_occasion ? card.custom_occasion : (card.occasion||'').replace(/_/g,' ')}, ${card.recipient_name}!`}
           </h1>
 
           {/* Subtitle */}

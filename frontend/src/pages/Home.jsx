@@ -55,7 +55,7 @@ const OCCASIONS = [
 const STEPS = [
   { num:'01', icon:'Wand',   label:'Create',  title:'Pick occasion & design', desc:'14 occasions, beautiful designs, set delivery date. Done in 2 minutes.' },
   { num:'02', icon:'Share',  label:'Invite',  title:'Share signing link',     desc:'WhatsApp, email, Slack. Anyone can sign — no account needed.' },
-  { num:'03', icon:'Heart',  label:'Collect', title:'Pool a gift together',   desc:'Chip in from ₦500. Flutterwave handles everything — no cash chasing.' },
+  { num:'03', icon:'Heart',  label:'Collect', title:'Pool a gift together',   desc:'Everyone chips in whatever they can. Secure payments. No cash chasing. Works in GBP, USD, NGN and 30+ currencies.' },
   { num:'04', icon:'Rocket', label:'Deliver', title:'Deliver the surprise',   desc:'Schedule or send instantly. Your recipient opens a full card with messages, media & gift.' },
 ];
 
@@ -926,9 +926,9 @@ const WhatsAppVsThankeeu = () => (
 const Home = () => {
   useSEO({
     title:'Online Group Card & Gift Platform — Thankeeu',
-    description:'Create beautiful online group cards for birthdays, farewells, promotions & more. Everyone signs from one link. Pool a Naira gift via Flutterwave. Free to start.',
+    description:'Create beautiful online group cards for birthdays, farewells and team celebrations. Everyone signs from one link. Pool a group gift. Works in the UK, US, Nigeria and 30+ countries. Free to start.',
     canonical:'/',
-    keywords:'online group card Nigeria, group birthday card, farewell card online, group gift collection, Flutterwave gift, team card Nigeria',
+    keywords:'online group card UK, group birthday card, farewell card online, group gift collection, digital group card US, team birthday card UK, online group card Nigeria, group card app',
     jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp],
   });
 
@@ -1177,6 +1177,34 @@ const Home = () => {
 
       <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
+      {/* ══ GLOBAL TRUST STRIP ══ */}
+      <section className="py-5 px-4 gc-font" style={{ background:'#fff', borderBottom:'1px solid #F3F0FF' }}>
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
+            <p className="text-xs font-bold text-warm-400 uppercase tracking-widest hidden sm:block">Celebrations across</p>
+            {[
+              { flag:'🇬🇧', name:'United Kingdom' },
+              { flag:'🇺🇸', name:'United States' },
+              { flag:'🇨🇦', name:'Canada' },
+              { flag:'🇳🇬', name:'Nigeria' },
+              { flag:'🇬🇭', name:'Ghana' },
+              { flag:'🇰🇪', name:'Kenya' },
+              { flag:'🇿🇦', name:'South Africa' },
+              { flag:'🇦🇺', name:'Australia' },
+            ].map(c => (
+              <div key={c.name} className="flex items-center gap-1.5 text-xs font-semibold text-warm-600">
+                <span className="text-base">{c.flag}</span>
+                <span>{c.name}</span>
+              </div>
+            ))}
+            <div className="flex items-center gap-1.5 text-xs font-bold text-primary-500">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              30+ countries
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ══ USE-CASE SLIDESHOW ══ */}
       <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#FDFCFF 0%,#F5F0FF 100%)' }}>
         <div className="max-w-6xl mx-auto">
@@ -1385,7 +1413,7 @@ const Home = () => {
               { icon:'Link',    title:'HRIS Integration',         desc:'SeamlessHR, BambooHR, Zoho People, WorkPay — one sync and your whole org is in.' },
               { icon:'Party',   title:'12 Occasions Automated',   desc:"Birthdays, farewells, promotions, new hires, Women's Day — zero manual effort." },
               { icon:'Mail',    title:'Whole-dept Notifications', desc:'Every department member gets an email to sign. No one left out.' },
-              { icon:'Card',    title:'Gift pot per employee',     desc:'Flutterwave handles multi-currency collections. HR never chases money again.' },
+              { icon:'Card',    title:'Gift pot per employee',     desc:'Multi-currency gift collections in GBP, USD, NGN and more. HR never chases money again.' },
               { icon:'File',    title:'HR Analytics Dashboard',   desc:'Full visibility into automations, upcoming occasions, and spending.' },
               { icon:'Shield',  title:'Approval Workflows',       desc:'Team leaders sign off on card creation. Full control maintained.' },
             ].map(f => (
@@ -1422,7 +1450,7 @@ const Home = () => {
                 <span className="text-primary-600 font-extrabold text-2xl">{formatCurrency(5000, homeCurrency)}</span>
                 <span className="text-warm-400 text-sm">one-time</span>
               </div>
-              {homeCurrency !== 'NGN' && <p className="text-xs text-warm-400 mb-3">≈ ₦5,000 · charged at live rate</p>}
+              {homeCurrency !== 'NGN' && <p className="text-xs text-warm-400 mb-3">≈ ₦5,000 · live rate applied at checkout</p>}
               <p className="text-warm-600 mb-5 text-sm leading-relaxed">Create a card for anyone — friend, colleague, family. No account needed to sign.</p>
               <ul className="space-y-2 mb-6">
                 {['✓ Quick card creation','✓ Unlimited signers','✓ Global gift pot','✓ Photo & video messages'].map(f => (
@@ -1498,8 +1526,8 @@ const Home = () => {
           {[
             { q:'Is it really free to create a card?', a:"Yes — creating a card and collecting messages is 100% free. You only pay ₦5,000 when you're ready to activate and send the card to the recipient." },
             { q:'Does the recipient need to create an account?', a:"No. The recipient simply opens a link, reads all the messages and can claim the gift — no sign-up required." },
-            { q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Flutterwave.' },
-            { q:'Can people outside Nigeria contribute to the gift pot?', a:'Yes. Flutterwave supports international Visa and Mastercard cards. Your signers can contribute from anywhere in the world.' },
+            { q:'What payment methods are supported?', a:'Visa, Mastercard, American Express, bank transfers, and local payment methods depending on your country. We support GBP, USD, EUR, NGN, GHS, KES, ZAR and 30+ currencies.' },
+            { q:'Can people outside Nigeria contribute to the gift pot?', a:'Yes — signers can contribute from anywhere in the world using Visa, Mastercard or local bank transfer. GBP, USD, EUR and 30+ currencies are all supported.' },
             { q:'What types of media can contributors add?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs — all in one beautiful card.' },
             { q:'How does the gift pot work for companies?', a:"Each celebration card has its own Flutterwave gift pot. Department members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account." },
             { q:'Can I schedule the card to send on a specific date?', a:"Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget." },

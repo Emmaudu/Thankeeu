@@ -95,6 +95,7 @@ const CreateCard = () => {
     is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
     allow_private_messages: true, send_reminders: true, hide_amounts: false,
     notification_scope: 'department',
+    custom_occasion: '',
   });
 
   // Creator's own first message (Step 3)
@@ -285,7 +286,11 @@ const CreateCard = () => {
 
   const handleOccasionSelect = (occ) => {
     set('occasion', occ.id);
-    if (!form.title || form.title.endsWith('Card')) set('title', `${creatorName.split(' ')[0]}'s ${occ.label} Card`);
+    set('custom_occasion', ''); // reset custom when switching occasion
+    if (!form.title || form.title.endsWith('Card')) {
+      const label = occ.id === 'other' ? 'Special' : occ.label;
+      set('title', `${creatorName.split(' ')[0]}'s ${label} Card`);
+    }
   };
   const handleDesignSelect = (d) => { set('design_theme', d.id); set('background_color', d.background || d.bg || '#F5F0FF'); };
 
@@ -546,7 +551,7 @@ const CreateCard = () => {
         <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
           <h2 className="text-xl font-bold text-warm-900 mb-1">What's the occasion?</h2>
           <p className="text-warm-500 text-sm mb-6">Pick the type of card you're creating</p>
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-8">
+          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
             {OCCASIONS.map(o => (
               <button key={o.id} onClick={() => handleOccasionSelect(o)}
                 className={`rounded-2xl p-4 text-center transition-all border-2 ${form.occasion === o.id ? 'border-primary-400 bg-primary-50 shadow-sm' : 'border-transparent bg-warm-100 hover:bg-purple-50'}`}>
@@ -555,6 +560,19 @@ const CreateCard = () => {
               </button>
             ))}
           </div>
+          {form.occasion === 'other' && (
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-warm-700 mb-1">What's the occasion? <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                className="input w-full"
+                placeholder="e.g. Housewarming, Work Anniversary, Congratulations…"
+                maxLength={80}
+                value={form.custom_occasion || ''}
+                onChange={e => set('custom_occasion', e.target.value)}
+              />
+            </div>
+          )}
           <div className="flex justify-end">
             <button onClick={() => setStep(1)} className="btn-primary">Choose design →</button>
           </div>
@@ -1086,7 +1104,7 @@ const CreateCard = () => {
             {/* Full card summary */}
             <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
               {[
-                ['Occasion',         OCCASIONS.find(o=>o.id===form.occasion)?.label || form.occasion],
+                ['Occasion',         form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o=>o.id===form.occasion)?.label || form.occasion)],
                 ['Design',           form.design_theme?.replace(/_/g,' ')],
                 ['Card title',       form.title || '—'],
                 ['Recipient',        form.recipient_name || '—'],
@@ -1208,7 +1226,7 @@ const CreateCard = () => {
             {/* Full draft summary */}
             <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
               {[
-                ['Occasion',         OCCASIONS.find(o=>o.id===form.occasion)?.label || form.occasion],
+                ['Occasion',         form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o=>o.id===form.occasion)?.label || form.occasion)],
                 ['Design',           form.design_theme?.replace(/_/g,' ')],
                 ['Card title',       form.title || '—'],
                 ['Recipient',        form.recipient_name || '—'],
@@ -1314,7 +1332,7 @@ const CreateCard = () => {
           {/* Summary */}
           <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
             {[
-              ['Occasion', OCCASIONS.find(o=>o.id===form.occasion)?.label||form.occasion],
+              ['Occasion', form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o=>o.id===form.occasion)?.label||form.occasion)],
               ['Recipient', form.recipient_name],
               ['Gift', form.is_gift_enabled?`Yes — ${formatNGN(form.suggested_amount)} suggested`:'No'],
               ...(isCompanyUser?[['Card fee','🆓 Free (company)']]:
@@ -1342,7 +1360,7 @@ const CreateCard = () => {
                   <button type="button" onClick={() => setPayMode('direct')}
                     className={`p-3 rounded-xl border-2 text-left text-xs transition-all ${payMode==='direct'?'border-primary-400 bg-primary-50':'border-purple-100'}`}>
                     <p className="font-bold text-warm-900">🏦 Pay now</p>
-                    <p className="text-warm-500">via Flutterwave</p>
+                    <p className="text-warm-500">Visa / Mastercard / Bank</p>
                   </button>
                 </div>
               )}

@@ -274,20 +274,22 @@ function Confetti() {
   );
 }
 
-// ── Music Player — works on iOS, Android, iPad, and desktop ──────────────────
-// Mobile browsers (iOS Safari, Chrome Android) block autoplay entirely.
-// Strategy: show the pill immediately with a "Tap to play ▶" prompt.
-// On desktop we attempt autoplay; if it succeeds, great. If blocked, the pill
-// stays in "tap to play" state. Either way the user always has a tap target.
+// ── Music Player — auto-plays on first user interaction (tap/scroll/click) ───
+// Browsers block silent autoplay everywhere now (desktop Chrome, Safari, Firefox,
+// iOS, Android). The universal workaround: listen for the FIRST user gesture
+// on the page (scroll, touchstart, click, keydown) and start audio then.
+// This fires within 1-2 seconds of opening the card because the recipient
+// naturally scrolls or taps to read their messages.
 function MusicPlayer() {
   const [playing,   setPlaying]   = useState(false);
   const [done,      setDone]      = useState(false);
   const [visible,   setVisible]   = useState(true);
   const [progress,  setProgress]  = useState(0);
-  const [needsTap,  setNeedsTap]  = useState(false); // true = waiting for user gesture
-  const audioRef  = useRef(null);
-  const timerRef  = useRef(null);
-  const fadeRef   = useRef(null);
+  const [needsTap,  setNeedsTap]  = useState(false);
+  const audioRef   = useRef(null);
+  const timerRef   = useRef(null);
+  const fadeRef    = useRef(null);
+  const startedRef = useRef(false);
 
   const startProgressTracker = (audio) => {
     clearInterval(timerRef.current);
@@ -307,16 +309,17 @@ function MusicPlayer() {
   };
 
   const doPlay = () => {
+    if (startedRef.current || done) return;
     const audio = audioRef.current;
-    if (!audio || done) return;
+    if (!audio) return;
+    startedRef.current = true;
     fadeIn(audio);
     audio.play().then(() => {
       setPlaying(true);
       setNeedsTap(false);
       startProgressTracker(audio);
     }).catch(() => {
-      // Still blocked (shouldn't happen after tap, but be safe)
-      audio.volume = 1;
+      startedRef.current = false;
       setNeedsTap(true);
     });
   };
@@ -343,28 +346,50 @@ function MusicPlayer() {
     setTimeout(() => setVisible(false), 3000);
   };
 
-  // On mount: attempt autoplay (works on desktop, fails silently on mobile)
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    // Small delay so the card content loads first
-    const t = setTimeout(() => {
+
+    // 1. Try immediate silent autoplay (works on some desktop browsers)
+    const tryAutoplay = () => {
+      if (startedRef.current) return;
       audio.volume = 0;
       audio.play().then(() => {
+        startedRef.current = true;
         setPlaying(true);
         setNeedsTap(false);
         fadeIn(audio);
         startProgressTracker(audio);
       }).catch(() => {
-        // Autoplay blocked (mobile) — show tap-to-play prompt
+        // Autoplay blocked — wait for first user gesture
         setNeedsTap(true);
       });
-    }, 800);
+    };
+
+    // 2. On first ANY user interaction anywhere on the page, start music
+    const onGesture = () => {
+      if (startedRef.current) return;
+      ['click','touchstart','scroll','keydown','pointerdown'].forEach(ev =>
+        document.removeEventListener(ev, onGesture, { capture: true })
+      );
+      doPlay();
+    };
+
+    ['click','touchstart','scroll','keydown','pointerdown'].forEach(ev =>
+      document.addEventListener(ev, onGesture, { capture: true, passive: true })
+    );
+
+    // Try autoplay after card content settles
+    const t = setTimeout(tryAutoplay, 600);
+
     return () => {
       clearTimeout(t);
       clearInterval(timerRef.current);
       clearInterval(fadeRef.current);
-      if (audioRef.current) { audioRef.current.pause(); }
+      ['click','touchstart','scroll','keydown','pointerdown'].forEach(ev =>
+        document.removeEventListener(ev, onGesture, { capture: true })
+      );
+      if (audioRef.current) audioRef.current.pause();
     };
   }, []);
 
@@ -383,35 +408,28 @@ function MusicPlayer() {
         border:'1px solid rgba(255,255,255,0.25)',
         animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)',
         cursor: needsTap ? 'pointer' : 'default',
-        WebkitTapHighlightColor: 'transparent',
+        WebkitTapHighlightColor:'transparent',
       }}>
       <audio ref={audioRef} src="/card-music.mp3" onEnded={handleEnded} preload="auto" playsInline />
       <style>{`
         @keyframes music-slide-in { from{transform:translateY(80px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
         @keyframes music-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
         @keyframes music-wave { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
+        @keyframes music-tap-pulse { 0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,0.4)} 50%{transform:scale(1.05);box-shadow:0 0 0 8px rgba(255,255,255,0)} }
       `}</style>
 
-      {/* Icon */}
       <div style={{
         width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.22)',
         display:'flex', alignItems:'center', justifyContent:'center',
-        fontSize:needsTap?20:17, flexShrink:0,
-        animation: playing ? 'music-pulse 1.4s ease infinite' : 'none',
+        fontSize: needsTap ? 18 : 17, flexShrink:0,
+        animation: playing ? 'music-pulse 1.4s ease infinite' : needsTap ? 'music-tap-pulse 1.8s ease infinite' : 'none',
       }}>
         {done ? '♥' : needsTap ? '▶' : '🎵'}
       </div>
 
-      {/* Text + waveform / progress */}
       <div style={{flex:1, minWidth:0}}>
         <p style={{color:'white', fontSize:11, fontWeight:700, margin:'0 0 2px', letterSpacing:'0.06em', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>
-          {done
-            ? '♥ Sent with love'
-            : needsTap
-            ? 'Tap to play your card music ▶'
-            : playing
-            ? 'I Think They Call This Love ♥'
-            : 'Welcome ♥'}
+          {done ? '♥ Sent with love' : needsTap ? 'Tap to play your card music ▶' : playing ? 'I Think They Call This Love ♥' : 'Starting music…'}
         </p>
         {playing && !done && (
           <div style={{display:'flex', alignItems:'flex-end', gap:2.5, height:20}}>
@@ -421,13 +439,12 @@ function MusicPlayer() {
           </div>
         )}
         {!done && (
-          <div style={{marginTop: playing?3:5, height:3, background:'rgba(255,255,255,0.2)', borderRadius:2, overflow:'hidden'}}>
+          <div style={{marginTop: playing ? 3 : 5, height:3, background:'rgba(255,255,255,0.2)', borderRadius:2, overflow:'hidden'}}>
             <div style={{height:'100%', background:'#FBBF24', borderRadius:2, width:`${progress}%`, transition:'width 0.25s linear'}}/>
           </div>
         )}
       </div>
 
-      {/* Stop button — only show when playing or needsTap is false (not in tap-prompt state) */}
       {!done && !needsTap && (
         <button
           onClick={e => { e.stopPropagation(); stopMusic(); }}

@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
 
 const OCCASION_LINKS = [
-  { to:'/occasions/birthday',    label:'Birthday' },
-  { to:'/occasions/farewell',    label:'Farewell' },
-  { to:'/occasions/graduation',  label:'Graduation' },
-  { to:'/occasions/anniversary', label:'Anniversary' },
-  { to:'/occasions/promotion',   label:'Promotion' },
-  { to:'/occasions/new-baby',    label:'Baby Shower' },
+  { to:'/occasions/birthday',           label:'Birthday' },
+  { to:'/occasions/farewell',           label:'Farewell' },
+  { to:'/occasions/graduation',         label:'Graduation' },
+  { to:'/occasions/anniversary',        label:'Anniversary' },
+  { to:'/occasions/promotion',          label:'Promotion' },
+  { to:'/occasions/new-baby',           label:'Baby Shower' },
+  { to:'/occasions/wedding',            label:'Wedding' },
+  { to:'/occasions/staff-appreciation', label:'Staff Appreciation' },
 ];
 
 const Footer = () => (

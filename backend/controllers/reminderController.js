@@ -124,7 +124,10 @@ const processDueReminders = async () => {
 
   for (const r of (due || [])) {
     try {
-      const daysUntil = Math.ceil((new Date(r.occasion_date).setFullYear(now.getFullYear()) - now) / 86400000);
+      const occ = new Date(r.occasion_date);
+      occ.setFullYear(now.getFullYear());
+      if (occ < now) occ.setFullYear(now.getFullYear() + 1);
+      const daysUntil = Math.ceil((occ - now) / 86400000);
       await sendEmail({
         to: r.users.email,
         template: 'reminder',

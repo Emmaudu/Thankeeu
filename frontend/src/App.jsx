@@ -73,7 +73,8 @@ import AnniversaryPage from './pages/occasions/Anniversary';
 import PromotionPage   from './pages/occasions/Promotion';
 import WeddingPage     from './pages/occasions/Wedding';
 import GraduationPage  from './pages/occasions/Graduation';
-import NewBabyPage     from './pages/occasions/NewBaby';
+import NewBabyPage           from './pages/occasions/NewBaby';
+import StaffAppreciationPage from './pages/occasions/StaffAppreciation';
 import VerifyEmail      from './pages/VerifyEmail';
 
 // Company (HR) pages
@@ -196,7 +197,8 @@ const App = () => (
             <Route path="/occasions/promotion"   element={<PromotionPage />} />
             <Route path="/occasions/wedding"     element={<WeddingPage />} />
             <Route path="/occasions/graduation"  element={<GraduationPage />} />
-            <Route path="/occasions/new-baby"    element={<NewBabyPage />} />
+            <Route path="/occasions/new-baby"           element={<NewBabyPage />} />
+            <Route path="/occasions/staff-appreciation" element={<StaffAppreciationPage />} />
             <Route path="/vendor/login"             element={<VendorLogin />} />
             <Route path="/vendors"                  element={<VendorLanding />} />
             <Route path="/vendor/signup"            element={<VendorSignup />} />

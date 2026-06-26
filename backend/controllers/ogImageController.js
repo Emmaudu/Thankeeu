@@ -154,4 +154,40 @@ const getOgImage = async (req, res) => {
   }
 };
 
-module.exports = { getOgImage };
+/**
+ * GET /api/cards/:slug/og-meta
+ * Returns JSON with title, description for the Vercel Edge prerender function.
+ * No auth required — used by the crawler prerender layer.
+ */
+const getOgMeta = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { data: card } = await supabase
+      .from('cards')
+      .select('title, recipient_name, occasion, custom_occasion, messages(count)')
+      .eq('slug', slug)
+      .in('status', ['active', 'sent'])
+      .maybeSingle();
+
+    if (!card) return res.status(404).json({ error: 'Not found' });
+
+    const signers = card.messages?.[0]?.count || 0;
+    const occasionRaw = card.occasion === 'other' && card.custom_occasion
+      ? card.custom_occasion
+      : (card.occasion || 'special day').replace(/_/g, ' ');
+    const occasion = occasionRaw.charAt(0).toUpperCase() + occasionRaw.slice(1);
+
+    const title = `Sign ${card.recipient_name}'s ${occasion} card 💜`;
+    const description = signers > 0
+      ? `${signers} ${signers === 1 ? 'person has' : 'people have'} already signed. Add your message to ${card.recipient_name}'s ${occasion} card — takes 60 seconds, no account needed.`
+      : `Add your message to ${card.recipient_name}'s ${occasion} card — takes 60 seconds, no account needed.`;
+
+    res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
+    res.json({ title, description, slug });
+  } catch (err) {
+    console.error('[og-meta]', err.message);
+    res.status(500).json({ error: 'Failed' });
+  }
+};
+
+module.exports = { getOgImage, getOgMeta };

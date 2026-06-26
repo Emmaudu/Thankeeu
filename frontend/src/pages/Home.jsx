@@ -53,7 +53,7 @@ const OCCASIONS = [
 ];
 
 const STEPS = [
-  { num:'01', icon:'Wand',   label:'Create',  title:'Pick occasion & design', desc:'14 occasions, beautiful designs, set delivery date. Done in 2 minutes.' },
+  { num:'01', icon:'Wand',   label:'Create',  title:'Pick occasion & design', desc:'14 occasions, beautiful designs, set delivery date. Done in 1 minute.' },
   { num:'02', icon:'Share',  label:'Invite',  title:'Share signing link',     desc:'WhatsApp, email, Slack. Anyone can sign — no account needed.' },
   { num:'03', icon:'Heart',  label:'Collect', title:'Pool a gift together',   desc:'Everyone chips in whatever they can. Secure payments. No cash chasing. Works in GBP, USD, NGN and 30+ currencies.' },
   { num:'04', icon:'Rocket', label:'Deliver', title:'Deliver the surprise',   desc:'Schedule or send instantly. Your recipient opens a full card with messages, media & gift.' },
@@ -492,7 +492,7 @@ const SLIDES = [
   {
     occasion:    'celebration',
     title:       'Celebrating someone special?',
-    description: 'Create a card in under 2 minutes.',
+    description: 'Create a card in under 1 minute.',
     cta:         'Create Card',
     color:       '#7C3AED',
     accent:      '#EDE9FE',
@@ -900,7 +900,7 @@ const WhatsAppVsThankeeu = () => (
         style={{ background: 'linear-gradient(135deg,#F5F0FF,#EDE9FE)', border: '2px solid #DDD6FE' }}>
         <h3 className="font-extrabold text-warm-900 mb-3"
           style={{ fontSize: 'clamp(1.6rem,4vw,2.4rem)', letterSpacing: '-0.025em' }}>
-          Create a group card in under 2 minutes.
+          Create a group card in under 1 minute.
         </h3>
         <p className="text-warm-500 mb-8 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
           No design skills. No WhatsApp chaos. Just meaningful celebrations.
@@ -1302,7 +1302,7 @@ const Home = () => {
           <div className="text-center mb-10">
             <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Zap" size={13}/> Beautifully simple</div>
             <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
-              From zero to delivered<br/><span className="text-primary-500">in under 5 minutes</span>
+              From zero to delivered<br/><span className="text-primary-500">in under 1 minute</span>
             </h2>
           </div>
           <div className="steps-grid">
@@ -1488,12 +1488,12 @@ const Home = () => {
           <div className="text-center mb-12">
             <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Lightbulb" size={13}/> How it works</div>
             <h2 style={{ fontWeight:800, fontSize:'clamp(2rem,5.5vw,3rem)', letterSpacing:'-0.02em', color:'#1A1035' }}>
-              From zero to celebration<br/><span className="text-primary-500">in under 3 minutes</span>
+              From zero to celebration<br/><span className="text-primary-500">in under 1 minute</span>
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {[
-              { num:'1', icon:'Wand',   title:'Create your card',         desc:'Pick an occasion, choose a design, set the recipient and delivery date. Takes 2 minutes flat.' },
+              { num:'1', icon:'Wand',   title:'Create your card',         desc:'Pick an occasion, choose a design, set the recipient and delivery date. Takes 1 minute flat.' },
               { num:'2', icon:'Share',  title:'Share the signing link',   desc:'Copy a WhatsApp link or email it. No login needed — anyone can sign from their phone.' },
               { num:'3', icon:'Heart',  title:'Watch messages roll in',   desc:'Your signers add messages, photos, voice notes, GIFs and chip in to the gift pot via Flutterwave.' },
               { num:'4', icon:'Gift',   title:'Deliver the surprise',     desc:'Card and gift arrive by email on the exact day. The recipient opens a beautiful card, reads every message and claims the gift.' },
@@ -1624,7 +1624,7 @@ const Home = () => {
           </h2>
           <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={5000}/> per card · Pay only when you send · Works worldwide</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/card/new" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/> Get started — takes 2 min</Link>
+            <Link to="/card/new" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/> Get started — takes 1 min</Link>
             <Link to="/pricing" className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Card" size={16}/> See pricing</Link>
           </div>
           <p className="text-xs text-warm-400 mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">

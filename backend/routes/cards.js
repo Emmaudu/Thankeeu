@@ -12,7 +12,7 @@ const {
   getClaimGate, getCardLoginType, markClaimed, claimMemberPassword,
   uploadRecipientPhoto,
 } = require('../controllers/cardController');
-const { getOgImage } = require('../controllers/ogImageController');
+const { getOgImage, getOgMeta } = require('../controllers/ogImageController');
 const { uploadRecipientPhoto: photoUpload } = require('../utils/cloudinary');
 const { validateSlugParam } = require('../utils/paramGuard');
 
@@ -91,6 +91,7 @@ router.post('/:slug/claim-member-password', validateSlugParam('slug'), claimMemb
 router.get('/public/:slug',           validateSlugParam('slug'), getPublicCard);
 router.get('/recipient/:slug',        validateSlugParam('slug'), getRecipientCard);
 router.get('/:slug/og-image',         validateSlugParam('slug'), getOgImage);
+router.get('/:slug/og-meta',          validateSlugParam('slug'), getOgMeta);
 router.post('/recipient/:slug/claim', validateSlugParam('slug'), claimGift);
 
 // ── Recipient photo upload — creator-only, multipart field: "photo" ────────

@@ -275,15 +275,13 @@ function Confetti() {
 }
 
 // ── Music Player ─────────────────────────────────────────────────────────────
-function MusicPlayer() {
-  const [playing,  setPlaying]  = useState(false);
-  const [done,     setDone]     = useState(false);
-  const [visible,  setVisible]  = useState(true);
+// Uses a brief entrance splash screen — the "Open Card" button click is a real
+// user gesture, so audio.play() inside it is GUARANTEED to work on every browser.
+function MusicPlayer({ design }) {
+  const [phase,    setPhase]    = useState('splash'); // splash | playing | done | hidden
   const [progress, setProgress] = useState(0);
-  const [blocked,  setBlocked]  = useState(false); // true = browser blocked autoplay
-  const audioRef  = useRef(null);
-  const timerRef  = useRef(null);
-  const fadeRef   = useRef(null);
+  const audioRef = useRef(null);
+  const timerRef = useRef(null);
 
   const startTracking = (a) => {
     clearInterval(timerRef.current);
@@ -293,77 +291,93 @@ function MusicPlayer() {
     }, 250);
   };
 
-  const fadeIn = (a) => {
-    clearInterval(fadeRef.current);
-    let vol = 0;
-    fadeRef.current = setInterval(() => {
-      vol = Math.min(1, vol + 0.05);
-      a.volume = vol;
-      if (vol >= 1) { a.muted = false; clearInterval(fadeRef.current); }
-    }, 80);
-  };
-
-  const doPlay = () => {
+  const openCard = () => {
+    // This runs inside a click handler — browser MUST allow audio.play() here
     const a = audioRef.current;
-    if (!a) return;
-    a.muted = true;
-    a.volume = 0;
-    a.play().then(() => {
-      setPlaying(true);
-      setBlocked(false);
-      fadeIn(a);
-      startTracking(a);
-    }).catch(() => {});
+    if (a) {
+      a.volume = 1;
+      a.play().then(() => {
+        startTracking(a);
+      }).catch(() => {});
+    }
+    setPhase('playing');
   };
 
   const stopMusic = () => {
     const a = audioRef.current;
     if (a) { a.pause(); a.currentTime = 0; }
     clearInterval(timerRef.current);
-    clearInterval(fadeRef.current);
-    setPlaying(false); setDone(true);
-    setTimeout(() => setVisible(false), 2000);
+    setPhase('done');
+    setTimeout(() => setPhase('hidden'), 2000);
   };
 
   const handleEnded = () => {
     clearInterval(timerRef.current);
-    setPlaying(false); setDone(true);
-    setTimeout(() => setVisible(false), 3000);
+    setPhase('done');
+    setTimeout(() => setPhase('hidden'), 3000);
   };
 
   useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    // Try muted autoplay — works on most browsers including mobile
-    a.muted = true;
-    a.volume = 0;
-    a.play().then(() => {
-      setPlaying(true);
-      fadeIn(a);
-      startTracking(a);
-    }).catch(() => {
-      // Autoplay blocked — show tap-to-play pill instead of hiding
-      setBlocked(true);
-    });
-    // Also catch any first user interaction and start music then
-    const unlock = () => {
-      if (playing || done) return;
-      document.removeEventListener('click', unlock);
-      doPlay();
-    };
-    document.addEventListener('click', unlock);
     return () => {
       clearInterval(timerRef.current);
-      clearInterval(fadeRef.current);
-      document.removeEventListener('click', unlock);
       if (audioRef.current) audioRef.current.pause();
     };
   }, []);
 
-  if (!visible) return null;
+  if (phase === 'hidden') return null;
 
+  const accent  = design?.accent  || '#7C3AED';
+  const bg      = design?.background || 'linear-gradient(135deg,#7C3AED,#EC4899)';
+  const inkCol  = design?.ink || '#fff';
+
+  // ── Splash screen ──
+  if (phase === 'splash') {
+    return (
+      <div style={{
+        position:'fixed', inset:0, zIndex:99999,
+        background: bg,
+        display:'flex', flexDirection:'column',
+        alignItems:'center', justifyContent:'center',
+        animation:'splash-in 0.4s ease',
+      }}>
+        <audio ref={audioRef} src="/card-music.mp3" onEnded={handleEnded} preload="auto" playsInline />
+        <style>{`
+          @keyframes splash-in  { from{opacity:0;transform:scale(1.04)} to{opacity:1;transform:scale(1)} }
+          @keyframes splash-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+          @keyframes splash-btn { 0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.5)} 70%{box-shadow:0 0 0 18px rgba(255,255,255,0)} }
+          @keyframes music-slide-in { from{transform:translateY(80px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+          @keyframes music-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+          @keyframes music-wave { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
+        `}</style>
+        <div style={{textAlign:'center', padding:'0 32px'}}>
+          <div style={{fontSize:72, marginBottom:16, animation:'splash-bob 2s ease-in-out infinite'}}>💌</div>
+          <p style={{color:'rgba(255,255,255,0.9)', fontSize:13, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:8}}>
+            A keepsake made with love
+          </p>
+          <p style={{color:'white', fontSize:28, fontWeight:800, marginBottom:32, lineHeight:1.2}}>
+            You have a card waiting
+          </p>
+          <button
+            onClick={openCard}
+            style={{
+              background:'white', color: accent,
+              border:'none', borderRadius:50,
+              padding:'16px 48px', fontSize:16, fontWeight:800,
+              cursor:'pointer', animation:'splash-btn 1.5s ease infinite',
+              boxShadow:'0 4px 24px rgba(0,0,0,0.2)',
+              letterSpacing:'0.02em',
+            }}>
+            ✨ Open my card
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Music pill (playing / done) ──
+  if (phase === 'hidden') return null;
   return (
-    <div onClick={blocked ? doPlay : undefined} style={{
+    <div style={{
       position:'fixed', bottom:16, right:12, left:12, zIndex:9999,
       maxWidth:320, marginLeft:'auto',
       background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))',
@@ -372,39 +386,28 @@ function MusicPlayer() {
       display:'flex', alignItems:'center', gap:11,
       border:'1px solid rgba(255,255,255,0.25)',
       animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)',
-      cursor: blocked ? 'pointer' : 'default',
-      WebkitTapHighlightColor: 'transparent',
     }}>
-      <audio ref={audioRef} src="/card-music.mp3" onEnded={handleEnded} preload="auto" playsInline />
-      <style>{`
-        @keyframes music-slide-in { from{transform:translateY(80px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
-        @keyframes music-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
-        @keyframes music-wave { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
-        @keyframes music-tap-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-      `}</style>
-      <div
-        onClick={blocked ? doPlay : undefined}
-        style={{ width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:blocked?20:17,flexShrink:0,animation:playing?'music-pulse 1.4s ease infinite':blocked?'music-tap-pulse 1.8s ease infinite':'none',cursor:blocked?'pointer':'default' }}>
-        {done ? '♥' : blocked ? '▶' : '🎵'}
+      <div style={{width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0,animation:phase==='playing'?'music-pulse 1.4s ease infinite':'none'}}>
+        {phase === 'done' ? '♥' : '🎵'}
       </div>
       <div style={{flex:1,minWidth:0}}>
         <p style={{color:'white',fontSize:11,fontWeight:700,margin:'0 0 2px',letterSpacing:'0.06em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-          {done ? '♥ Sent with love' : blocked ? 'Tap to play music ▶' : playing ? 'I Think They Call This Love ♥' : 'Starting…'}
+          {phase === 'done' ? '♥ Sent with love' : 'I Think They Call This Love ♥'}
         </p>
-        {playing && !done && (
+        {phase === 'playing' && (
           <div style={{display:'flex',alignItems:'flex-end',gap:2.5,height:20}}>
             {[0,1,2,3,4,5,6,7].map(i=>(
               <div key={i} style={{width:3,borderRadius:2,background:'rgba(255,255,255,0.75)',animation:`music-wave ${0.55+i*0.1}s ${i*0.07}s ease infinite`}}/>
             ))}
           </div>
         )}
-        {!done && (
-          <div style={{marginTop:playing?3:5,height:3,background:'rgba(255,255,255,0.2)',borderRadius:2,overflow:'hidden'}}>
+        {phase !== 'done' && (
+          <div style={{marginTop:phase==='playing'?3:5,height:3,background:'rgba(255,255,255,0.2)',borderRadius:2,overflow:'hidden'}}>
             <div style={{height:'100%',background:'#FBBF24',borderRadius:2,width:`${progress}%`,transition:'width 0.25s linear'}}/>
           </div>
         )}
       </div>
-      {!done && (
+      {phase !== 'done' && (
         <button onClick={stopMusic} style={{background:'rgba(255,255,255,0.18)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:10,color:'white',fontSize:12,fontWeight:600,padding:'5px 10px',cursor:'pointer',flexShrink:0}}>✕</button>
       )}
     </div>
@@ -1334,7 +1337,7 @@ const CardView = () => {
       {/* Confetti runs forever — never stops */}
       <Confetti />
       {/* Soft welcome music — auto-plays for 30s when recipient opens the card */}
-      <MusicPlayer />
+      <MusicPlayer design={design} />
 
       {/* ── HERO BANNER — Sample-page style ───────────────────────── */}
       <header className="relative overflow-hidden" style={{ background: design.background, color: design.ink }}>

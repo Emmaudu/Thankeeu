@@ -1,30 +1,32 @@
 # Thankeeu — robots.txt
 # https://thankeeu.com
-# Last updated: 2026-01-01
+# Last updated: 2026-06-27
 
 # ── Default: allow all crawlers ───────────────────────────────────────────────
 User-agent: *
 Allow: /
 Allow: /pricing
+Allow: /how-it-works
+Allow: /sample
+Allow: /faq
+Allow: /blog
+Allow: /blog/
 Allow: /policy
 Allow: /login
 Allow: /signup
-Allow: /forgot-password
 Allow: /sign/
 Allow: /card/
+Allow: /occasions/
 Allow: /company/signup
 Allow: /company/login
-Allow: /company/forgot-password
 Allow: /member/signup
 Allow: /member/login
-Allow: /member/forgot-password
-Allow: /blog
-Allow: /blog/
 
 # Block private / authenticated pages (no SEO value, auth-gated)
 Disallow: /dashboard
 Disallow: /create
 Disallow: /reset-password
+Disallow: /forgot-password
 Disallow: /gift/
 Disallow: /admin
 Disallow: /company/dashboard
@@ -36,39 +38,32 @@ Disallow: /company/settings
 Disallow: /company/support
 Disallow: /company/hris
 Disallow: /company/reset-password
+Disallow: /company/forgot-password
 Disallow: /member/dashboard
 Disallow: /member/occasions
 Disallow: /member/reset-password
+Disallow: /member/forgot-password
 
-# ── Allow Facebook's crawler for OG previews ─────────────────────────────────
+# ── Allow social crawlers for OG previews ────────────────────────────────────
 User-agent: facebookexternalhit
 Allow: /
-Allow: /sign/
-Allow: /card/
 
-# ── Allow WhatsApp's link previewer ─────────────────────────────────────────
 User-agent: WhatsApp
 Allow: /
-Allow: /sign/
-Allow: /card/
 
-# ── Allow Telegram link previewer ─────────────────────────────────────────
 User-agent: TelegramBot
 Allow: /
-Allow: /sign/
-Allow: /card/
 
-# ── Allow LinkedIn's crawler ─────────────────────────────────────────────────
 User-agent: LinkedInBot
 Allow: /
 
-# ── Allow Slack's unfurling bot ──────────────────────────────────────────────
 User-agent: Slackbot
 Allow: /
-Allow: /sign/
-Allow: /card/
 
-# ── Block AI training crawlers (do not train on our content) ─────────────────
+User-agent: Twitterbot
+Allow: /
+
+# ── Block AI training crawlers ────────────────────────────────────────────────
 User-agent: GPTBot
 Disallow: /
 
@@ -87,20 +82,11 @@ Disallow: /
 User-agent: Google-Extended
 Disallow: /
 
-User-agent: Omgilibot
-Disallow: /
-
 User-agent: Bytespider
 Disallow: /
 
 User-agent: PerplexityBot
 Disallow: /
 
-User-agent: YouBot
-Disallow: /
-
-# ── Sitemap location ─────────────────────────────────────────────────────────
+# ── Sitemap ───────────────────────────────────────────────────────────────────
 Sitemap: https://thankeeu.com/sitemap.xml
-
-# ── Crawl delay for well-behaved bots (optional — Google ignores this) ───────
-Crawl-delay: 1

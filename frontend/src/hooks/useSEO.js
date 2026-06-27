@@ -379,6 +379,25 @@ export const SCHEMAS = {
       inLanguage:        'en',
     };
   },
+
+  // SiteNavigationElement — tells Google which pages to show as sitelinks
+  siteNavigation() {
+    const links = [
+      { name: 'Birthday Group Cards',      url: '/occasions/birthday' },
+      { name: 'Pricing',                   url: '/pricing' },
+      { name: 'How It Works',              url: '/how-it-works' },
+      { name: 'Farewell Group Cards',      url: '/occasions/farewell' },
+      { name: 'Staff Appreciation Cards',  url: '/occasions/staff-appreciation' },
+      { name: 'Blog',                      url: '/blog' },
+      { name: 'For Teams',                 url: '/company/signup' },
+      { name: 'Sample Card',               url: '/sample' },
+    ];
+    return links.map(({ name, url }) => ({
+      '@type': 'SiteNavigationElement',
+      name,
+      url: `${BASE_URL}${url}`,
+    }));
+  },
 };
 
 export { BASE_URL, OG_IMAGE, SITE_NAME, SITE_DESC };

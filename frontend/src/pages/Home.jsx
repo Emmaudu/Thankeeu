@@ -929,7 +929,7 @@ const Home = () => {
     description:'Create beautiful online group cards for birthdays, farewells and team celebrations. Everyone signs from one link. Pool a group gift. Works in the UK, US, Nigeria and 30+ countries. Free to start.',
     canonical:'/',
     keywords:'online group card UK, group birthday card, farewell card online, group gift collection, digital group card US, team birthday card UK, online group card Nigeria, group card app',
-    jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp],
+    jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp, ...SCHEMAS.siteNavigation()],
   });
 
   const [showDemo,     setShowDemo]     = useState(false);

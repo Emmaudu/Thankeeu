@@ -116,7 +116,9 @@ router.post('/broadcast', async (req, res) => {
         to: test_email.trim(),
         subject,
         html: buildBroadcastHtml(body, FRONTEND_URL),
+        text: buildBroadcastText(body),
         reply_to: 'support@thankeeu.com',
+        headers: { 'X-Entity-Ref-ID': `broadcast-test-${Date.now()}` },
       });
       if (!result.success) throw new Error('Failed to send test email');
       return res.json({ ok: true, sent: 1, message: `Test email sent to ${test_email}` });
@@ -180,7 +182,9 @@ router.post('/broadcast', async (req, res) => {
           to:       u.email,
           subject,
           html:     buildBroadcastHtml(body, FRONTEND_URL, u.full_name),
+          text:     buildBroadcastText(body, u.full_name),
           reply_to: 'support@thankeeu.com',
+          headers:  { 'X-Entity-Ref-ID': `broadcast-${Date.now()}-${u.email}` },
         }))
       );
       results.forEach(r => {
@@ -256,30 +260,27 @@ router.get('/broadcast/preview', async (req, res) => {
 
 function buildBroadcastHtml(body, frontendUrl, firstName) {
   const greeting = firstName?.trim() ? `Hi ${firstName.trim().split(' ')[0]},` : 'Hi there,';
+  // Plain paragraph tags only — no marketing HTML, no gradients, no banners
+  // This is the most important thing for inbox placement
   const htmlBody = body
     .split(/\n\n+/)
-    .map(para => `<p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.7;">${para.trim().replace(/\n/g,'<br>')}</p>`)
+    .map(para => `<p style="margin:0 0 18px;color:#1a1a1a;font-size:15px;line-height:1.8;font-family:Georgia,serif;">${para.trim().replace(/\n/g,'<br>')}</p>`)
     .join('');
-  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#F5F3FF;font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;">
-  <div style="max-width:600px;margin:32px auto;background:white;border-radius:20px;overflow:hidden;box-shadow:0 4px 24px rgba(124,58,237,0.08);">
-    <div style="background:linear-gradient(135deg,#7C3AED,#EC4899);padding:24px 32px;display:flex;align-items:center;gap:12px;">
-      <img src="${frontendUrl}/android-chrome-192x192.png" alt="Thankeeu" style="height:40px;width:40px;border-radius:10px;flex-shrink:0;" onerror="this.style.display='none'">
-      <span style="font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px;">thank<span style="opacity:0.85;">eeu</span></span>
-    </div>
-    <div style="padding:32px;">
-      <p style="margin:0 0 20px;font-size:16px;font-weight:700;color:#1a1a2e;">${greeting}</p>
-      ${htmlBody}
-      <div style="margin-top:28px;padding-top:24px;border-top:1px solid #EDE9FF;">
-        <p style="margin:0;font-size:12px;color:#9CA3AF;line-height:1.6;">
-          You're receiving this because you have a Thankeeu account.<br>
-          Questions? Reply to this email — it goes straight to <a href="mailto:support@thankeeu.com" style="color:#7C3AED;">support@thankeeu.com</a><br>
-          <a href="${frontendUrl}/unsubscribe" style="color:#9CA3AF;font-size:11px;">Unsubscribe</a>
-        </p>
-      </div>
-    </div>
-  </div>
+  return `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#ffffff;">
+<div style="max-width:560px;margin:0 auto;padding:48px 32px;background:#ffffff;font-family:Georgia,serif;">
+  <p style="margin:0 0 24px;font-size:15px;color:#1a1a1a;line-height:1.8;">${greeting}</p>
+  ${htmlBody}
+  <p style="margin:32px 0 0;font-size:15px;color:#1a1a1a;line-height:1.8;">Emmanuel<br>
+  <span style="color:#555;font-size:13px;">Founder, Thankeeu · <a href="mailto:support@thankeeu.com" style="color:#7C3AED;text-decoration:none;">support@thankeeu.com</a></span></p>
+</div>
 </body></html>`;
+}
+
+function buildBroadcastText(body, firstName) {
+  const greeting = firstName?.trim() ? `Hi ${firstName.trim().split(' ')[0]},` : 'Hi there,';
+  return `${greeting}\n\n${body}\n\nEmmanuel\nFounder, Thankeeu\nsupport@thankeeu.com`;
 }
 
 

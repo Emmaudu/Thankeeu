@@ -336,7 +336,7 @@ const BroadcastTab = () => {
           style={{ width:'100%', border:'1px solid #DDD6FE', borderRadius:10, padding:'10px 14px', fontSize:14, color:'#1a1a2e', outline:'none', boxSizing:'border-box', resize:'vertical', fontFamily:'inherit', lineHeight:1.7 }}
         />
         <p style={{ margin:'8px 0 0', fontSize:11, color:'#9CA3AF' }}>
-          Your name and Thankeeu logo will be added automatically. Users can reply to <strong>support@thankeeu.com</strong>.
+          Sent as a plain personal email from Emmanuel — no banners, no unsubscribe footer. Designed to land in Primary inbox. Replies go to <strong>support@thankeeu.com</strong>.
         </p>
       </div>
 

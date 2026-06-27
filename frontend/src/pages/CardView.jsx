@@ -275,10 +275,8 @@ function Confetti() {
 }
 
 // ── Music Player ─────────────────────────────────────────────────────────────
-// Uses a brief entrance splash screen — the "Open Card" button click is a real
-// user gesture, so audio.play() inside it is GUARANTEED to work on every browser.
 function MusicPlayer({ design }) {
-  const [phase,    setPhase]    = useState('splash'); // splash | playing | done | hidden
+  const [phase,    setPhase]    = useState('splash');
   const [progress, setProgress] = useState(0);
   const audioRef = useRef(null);
   const timerRef = useRef(null);
@@ -292,13 +290,10 @@ function MusicPlayer({ design }) {
   };
 
   const openCard = () => {
-    // This runs inside a click handler — browser MUST allow audio.play() here
     const a = audioRef.current;
     if (a) {
       a.volume = 1;
-      a.play().then(() => {
-        startTracking(a);
-      }).catch(() => {});
+      a.play().then(() => startTracking(a)).catch(() => {});
     }
     setPhase('playing');
   };
@@ -324,30 +319,27 @@ function MusicPlayer({ design }) {
     };
   }, []);
 
+  const accent = design?.accent || '#7C3AED';
+  const bg     = design?.background || 'linear-gradient(135deg,#7C3AED,#EC4899)';
+
+  // Audio always stays in DOM so it doesn't reset when phase changes
+  const audioNode = (
+    <audio ref={audioRef} src="/card-music.mp3" onEnded={handleEnded} preload="auto" playsInline style={{display:'none'}} />
+  );
+
   if (phase === 'hidden') return null;
 
-  const accent  = design?.accent  || '#7C3AED';
-  const bg      = design?.background || 'linear-gradient(135deg,#7C3AED,#EC4899)';
-  const inkCol  = design?.ink || '#fff';
-
-  // ── Splash screen ──
   if (phase === 'splash') {
     return (
-      <div style={{
-        position:'fixed', inset:0, zIndex:99999,
-        background: bg,
-        display:'flex', flexDirection:'column',
-        alignItems:'center', justifyContent:'center',
-        animation:'splash-in 0.4s ease',
-      }}>
-        <audio ref={audioRef} src="/card-music.mp3" onEnded={handleEnded} preload="auto" playsInline />
+      <div style={{ position:'fixed', inset:0, zIndex:99999, background: bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', animation:'splash-in 0.4s ease' }}>
+        {audioNode}
         <style>{`
           @keyframes splash-in  { from{opacity:0;transform:scale(1.04)} to{opacity:1;transform:scale(1)} }
           @keyframes splash-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
           @keyframes splash-btn { 0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.5)} 70%{box-shadow:0 0 0 18px rgba(255,255,255,0)} }
           @keyframes music-slide-in { from{transform:translateY(80px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
           @keyframes music-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
-          @keyframes music-wave { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
+          @keyframes music-wave  { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
         `}</style>
         <div style={{textAlign:'center', padding:'0 32px'}}>
           <div style={{fontSize:72, marginBottom:16, animation:'splash-bob 2s ease-in-out infinite'}}>💌</div>
@@ -357,16 +349,7 @@ function MusicPlayer({ design }) {
           <p style={{color: accent, fontSize:28, fontWeight:800, marginBottom:32, lineHeight:1.2}}>
             You have a card waiting
           </p>
-          <button
-            onClick={openCard}
-            style={{
-              background:'white', color: accent,
-              border:'none', borderRadius:50,
-              padding:'16px 48px', fontSize:16, fontWeight:800,
-              cursor:'pointer', animation:'splash-btn 1.5s ease infinite',
-              boxShadow:'0 4px 24px rgba(0,0,0,0.2)',
-              letterSpacing:'0.02em',
-            }}>
+          <button onClick={openCard} style={{ background:'white', color: accent, border:'none', borderRadius:50, padding:'16px 48px', fontSize:16, fontWeight:800, cursor:'pointer', animation:'splash-btn 1.5s ease infinite', boxShadow:'0 4px 24px rgba(0,0,0,0.2)', letterSpacing:'0.02em' }}>
             ✨ Open my card
           </button>
         </div>
@@ -374,19 +357,9 @@ function MusicPlayer({ design }) {
     );
   }
 
-  // ── Music pill (playing / done) ──
-  if (phase === 'hidden') return null;
   return (
-    <div style={{
-      position:'fixed', bottom:16, right:12, left:12, zIndex:9999,
-      maxWidth:320, marginLeft:'auto',
-      background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))',
-      backdropFilter:'blur(16px)', borderRadius:22, padding:'11px 16px',
-      boxShadow:'0 8px 40px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.15)',
-      display:'flex', alignItems:'center', gap:11,
-      border:'1px solid rgba(255,255,255,0.25)',
-      animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)',
-    }}>
+    <div style={{ position:'fixed', bottom:16, right:12, left:12, zIndex:9999, maxWidth:320, marginLeft:'auto', background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))', backdropFilter:'blur(16px)', borderRadius:22, padding:'11px 16px', boxShadow:'0 8px 40px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.15)', display:'flex', alignItems:'center', gap:11, border:'1px solid rgba(255,255,255,0.25)', animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)' }}>
+      {audioNode}
       <div style={{width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0,animation:phase==='playing'?'music-pulse 1.4s ease infinite':'none'}}>
         {phase === 'done' ? '♥' : '🎵'}
       </div>

@@ -305,7 +305,7 @@ const emailTemplates = {
   }),
 };
 
-const sendEmail = async ({ to, template, data, subject, html, reply_to }) => {
+const sendEmail = async ({ to, template, data, subject, html, text, reply_to, headers }) => {
   try {
     let emailSubject = subject;
     let emailHtml    = html;
@@ -326,13 +326,24 @@ const sendEmail = async ({ to, template, data, subject, html, reply_to }) => {
 
     if (!emailSubject || !emailHtml) throw new Error('Email requires either a template or both subject and html');
 
+    // Auto-generate plain text from HTML if not provided
+    if (!text && emailHtml) {
+      text = emailHtml
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&nbsp;/g,' ').replace(/&#39;/g,"'").replace(/&quot;/g,'"')
+        .replace(/\s{2,}/g,'\n').trim();
+    }
+
     const payload = {
       from: `${process.env.EMAIL_FROM_NAME || 'Thankeeu'} <${process.env.EMAIL_FROM || 'hello@thankeeu.com'}>`,
       to,
       subject: emailSubject,
       html:    emailHtml,
+      text,
     };
     if (reply_to) payload.replyTo = reply_to;
+    if (headers)  payload.headers = headers;
 
     const result = await resend.emails.send(payload);
     return { success: true, id: result.id };

@@ -260,27 +260,23 @@ router.get('/broadcast/preview', async (req, res) => {
 
 function buildBroadcastHtml(body, frontendUrl, firstName) {
   const greeting = firstName?.trim() ? `Hi ${firstName.trim().split(' ')[0]},` : 'Hi there,';
-  // Plain paragraph tags only — no marketing HTML, no gradients, no banners
-  // This is the most important thing for inbox placement
   const htmlBody = body
     .split(/\n\n+/)
-    .map(para => `<p style="margin:0 0 18px;color:#1a1a1a;font-size:15px;line-height:1.8;font-family:Georgia,serif;">${para.trim().replace(/\n/g,'<br>')}</p>`)
+    .map(para => `<p style="margin:0 0 18px;color:#1a1a1a;font-size:15px;line-height:1.8;font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;">${para.trim().replace(/\n/g,'<br>')}</p>`)
     .join('');
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#ffffff;">
-<div style="max-width:560px;margin:0 auto;padding:48px 32px;background:#ffffff;font-family:Georgia,serif;">
+<div style="max-width:560px;margin:0 auto;padding:48px 32px;background:#ffffff;font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;">
   <p style="margin:0 0 24px;font-size:15px;color:#1a1a1a;line-height:1.8;">${greeting}</p>
   ${htmlBody}
-  <p style="margin:32px 0 0;font-size:15px;color:#1a1a1a;line-height:1.8;">Emmanuel<br>
-  <span style="color:#555;font-size:13px;">Founder, Thankeeu · <a href="mailto:support@thankeeu.com" style="color:#7C3AED;text-decoration:none;">support@thankeeu.com</a></span></p>
 </div>
 </body></html>`;
 }
 
 function buildBroadcastText(body, firstName) {
   const greeting = firstName?.trim() ? `Hi ${firstName.trim().split(' ')[0]},` : 'Hi there,';
-  return `${greeting}\n\n${body}\n\nEmmanuel\nFounder, Thankeeu\nsupport@thankeeu.com`;
+  return `${greeting}\n\n${body}`;
 }
 
 

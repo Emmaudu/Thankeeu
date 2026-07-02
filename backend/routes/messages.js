@@ -87,7 +87,8 @@ const handleUpload = (req, res, next) => {
 };
 
 // Wildcard routes — must be after all fixed-segment routes
-router.post('/:card_slug',        validateSlugParam('card_slug'), handleUpload, addMessage);
+// flexAuth runs before upload so req.user is set for logged-in signers (needed for signer_user_id)
+router.post('/:card_slug',        validateSlugParam('card_slug'), flexAuth, handleUpload, addMessage);
 // Access-token recipients can reply without a login session
 router.post('/:card_slug/reply',  validateSlugParam('card_slug'), flexAuth, requireAuth, sendReply);
 

@@ -274,118 +274,6 @@ function Confetti() {
   );
 }
 
-// ── Music Player ─────────────────────────────────────────────────────────────
-function MusicPlayer({ design }) {
-  const [phase,    setPhase]    = useState('splash');
-  const [progress, setProgress] = useState(0);
-  const audioRef = useRef(null);
-  const timerRef = useRef(null);
-
-  const startTracking = (a) => {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      if (!a.duration) return;
-      setProgress(Math.min(100, (a.currentTime / a.duration) * 100));
-    }, 250);
-  };
-
-  const openCard = () => {
-    const a = audioRef.current;
-    if (a) {
-      a.volume = 1;
-      a.play().then(() => startTracking(a)).catch(() => {});
-    }
-    setPhase('playing');
-  };
-
-  const stopMusic = () => {
-    const a = audioRef.current;
-    if (a) { a.pause(); a.currentTime = 0; }
-    clearInterval(timerRef.current);
-    setPhase('done');
-    setTimeout(() => setPhase('hidden'), 2000);
-  };
-
-  const handleEnded = () => {
-    clearInterval(timerRef.current);
-    setPhase('done');
-    setTimeout(() => setPhase('hidden'), 3000);
-  };
-
-  useEffect(() => {
-    return () => {
-      clearInterval(timerRef.current);
-      if (audioRef.current) audioRef.current.pause();
-    };
-  }, []);
-
-  const accent = design?.accent || '#7C3AED';
-  const bg     = design?.background || 'linear-gradient(135deg,#7C3AED,#EC4899)';
-
-  // Audio always stays in DOM so it doesn't reset when phase changes
-  const audioNode = (
-    <audio ref={audioRef} src="/card-music.mp3" onEnded={handleEnded} preload="auto" playsInline style={{display:'none'}} />
-  );
-
-  if (phase === 'hidden') return null;
-
-  if (phase === 'splash') {
-    return (
-      <div style={{ position:'fixed', inset:0, zIndex:99999, background: bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', animation:'splash-in 0.4s ease' }}>
-        {audioNode}
-        <style>{`
-          @keyframes splash-in  { from{opacity:0;transform:scale(1.04)} to{opacity:1;transform:scale(1)} }
-          @keyframes splash-bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-          @keyframes splash-btn { 0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.5)} 70%{box-shadow:0 0 0 18px rgba(255,255,255,0)} }
-          @keyframes music-slide-in { from{transform:translateY(80px) scale(0.9);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
-          @keyframes music-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
-          @keyframes music-wave  { 0%,100%{height:5px} 25%{height:15px} 50%{height:9px} 75%{height:18px} }
-        `}</style>
-        <div style={{textAlign:'center', padding:'0 32px'}}>
-          <div style={{fontSize:72, marginBottom:16, animation:'splash-bob 2s ease-in-out infinite'}}>💌</div>
-          <p style={{color: accent, fontSize:13, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:8}}>
-            A keepsake made with love
-          </p>
-          <p style={{color: accent, fontSize:28, fontWeight:800, marginBottom:32, lineHeight:1.2}}>
-            You have a card waiting
-          </p>
-          <button onClick={openCard} style={{ background:'white', color: accent, border:'none', borderRadius:50, padding:'16px 48px', fontSize:16, fontWeight:800, cursor:'pointer', animation:'splash-btn 1.5s ease infinite', boxShadow:'0 4px 24px rgba(0,0,0,0.2)', letterSpacing:'0.02em' }}>
-            ✨ Open my card
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ position:'fixed', bottom:16, right:12, left:12, zIndex:9999, maxWidth:320, marginLeft:'auto', background:'linear-gradient(135deg,rgba(124,58,237,0.95),rgba(236,72,153,0.90))', backdropFilter:'blur(16px)', borderRadius:22, padding:'11px 16px', boxShadow:'0 8px 40px rgba(124,58,237,0.4),0 2px 8px rgba(0,0,0,0.15)', display:'flex', alignItems:'center', gap:11, border:'1px solid rgba(255,255,255,0.25)', animation:'music-slide-in 0.6s cubic-bezier(.22,1,.36,1)' }}>
-      {audioNode}
-      <div style={{width:38,height:38,borderRadius:'50%',background:'rgba(255,255,255,0.22)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,flexShrink:0,animation:phase==='playing'?'music-pulse 1.4s ease infinite':'none'}}>
-        {phase === 'done' ? '♥' : '🎵'}
-      </div>
-      <div style={{flex:1,minWidth:0}}>
-        <p style={{color:'white',fontSize:11,fontWeight:700,margin:'0 0 2px',letterSpacing:'0.06em',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-          {phase === 'done' ? '♥ Sent with love' : 'I Think They Call This Love ♥'}
-        </p>
-        {phase === 'playing' && (
-          <div style={{display:'flex',alignItems:'flex-end',gap:2.5,height:20}}>
-            {[0,1,2,3,4,5,6,7].map(i=>(
-              <div key={i} style={{width:3,borderRadius:2,background:'rgba(255,255,255,0.75)',animation:`music-wave ${0.55+i*0.1}s ${i*0.07}s ease infinite`}}/>
-            ))}
-          </div>
-        )}
-        {phase !== 'done' && (
-          <div style={{marginTop:phase==='playing'?3:5,height:3,background:'rgba(255,255,255,0.2)',borderRadius:2,overflow:'hidden'}}>
-            <div style={{height:'100%',background:'#FBBF24',borderRadius:2,width:`${progress}%`,transition:'width 0.25s linear'}}/>
-          </div>
-        )}
-      </div>
-      {phase !== 'done' && (
-        <button onClick={stopMusic} style={{background:'rgba(255,255,255,0.18)',border:'1px solid rgba(255,255,255,0.3)',borderRadius:10,color:'white',fontSize:12,fontWeight:600,padding:'5px 10px',cursor:'pointer',flexShrink:0}}>✕</button>
-      )}
-    </div>
-  );
-}
 
 // ── Gift Claim Panel — Bank Transfer (FLW) or Gift Card (Reloadly) ───────────
 const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
@@ -1309,9 +1197,6 @@ const CardView = () => {
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}
       <Confetti />
-      {/* Soft welcome music — auto-plays for 30s when recipient opens the card */}
-      <MusicPlayer design={design} />
-
       {/* ── HERO BANNER — Sample-page style ───────────────────────── */}
       <header className="relative overflow-hidden" style={{ background: design.background, color: design.ink }}>
         {/* Decorative blurred circles */}
@@ -1323,7 +1208,7 @@ const CardView = () => {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase mb-6"
             style={{ background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', color: design.dark ? 'rgba(255,255,255,0.9)' : design.accent, border:'1px solid rgba(255,255,255,0.25)' }}>
-            ✨ A keepsake made with love
+            ✨ Online Group Card
           </div>
 
           {/* Recipient photo — circular frame in hero center, or floating emoji if no photo */}

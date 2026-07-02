@@ -99,6 +99,7 @@ const addMessage = async (req, res) => {
       card_id: card.id,
       author_name: cleanAuthorName,
       author_email: author_email ? author_email.toLowerCase().trim().slice(0, 254) : null,
+      signer_user_id: req.user?.id || null,
       content: cleanContent,
       is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
       media_url,
@@ -135,7 +136,9 @@ const addMessage = async (req, res) => {
             media_gallery: m_gallery, font_style: f_style,
             position_x: p_x, position_y: p_y, rotation: p_rot, font_color: p_fc,
             font_size: p_fs, page_number: p_pg,
+            signer_user_id: s_uid,
             ...coreData } = msgData;
+    const signerField = s_uid ? { signer_user_id: s_uid } : {};
 
     const placementFields = {
       ...(p_x   != null && { position_x: p_x }),
@@ -151,17 +154,26 @@ const addMessage = async (req, res) => {
     const galleryField = m_gallery ? { media_gallery: m_gallery } : {};
 
     const attempts = [
-      // Full: font_style + placement + gift + gallery
+      // Full: font_style + placement + gift + gallery + signer_user_id
+      { ...coreData, ...signerField, ...galleryField, font_style: font_style || 'handwritten', ...placementFields, ...giftFields },
+      // Without signer_user_id (migration not run yet)
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...placementFields, ...giftFields },
-      // Without placement columns (migration not run yet)
+      // Without placement columns
+      { ...coreData, ...signerField, ...galleryField, font_style: font_style || 'handwritten', ...giftFields },
+      // Without placement + signer
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...giftFields },
       // Without gift columns
+      { ...coreData, ...signerField, ...galleryField, font_style: font_style || 'handwritten', ...placementFields },
+      // Without gift + signer
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...placementFields },
       // Without font_style
+      { ...coreData, ...signerField, ...galleryField, ...placementFields, ...giftFields },
       { ...coreData, ...galleryField, ...placementFields, ...giftFields },
       // Without gallery (media_gallery column may not exist)
+      { ...coreData, ...signerField, font_style: font_style || 'handwritten' },
       { ...coreData, font_style: font_style || 'handwritten' },
       // Without gallery and without font_style
+      { ...coreData, ...signerField },
       { ...coreData },
       // Core data only — absolute minimum fallback
       coreData,

@@ -373,6 +373,21 @@ const updateProfile = async (req, res) => {
       .select('id, email, full_name, username, role, avatar_url, bio')
       .maybeSingle();
     if (error) throw error;
+
+    // If the user included a name change, propagate it to all messages
+    // they signed as a logged-in user (signer_user_id links them).
+    if (cleanName !== undefined) {
+      try {
+        await supabase
+          .from('messages')
+          .update({ author_name: cleanName })
+          .eq('signer_user_id', req.user.id);
+      } catch (syncErr) {
+        // Non-fatal — signer_user_id column may not exist yet if migration hasn't run
+        console.warn('[updateProfile] author_name sync skipped:', syncErr.message);
+      }
+    }
+
     res.json(user);
   } catch (err) {
     const { isSanitizeError } = require('../utils/sanitize');

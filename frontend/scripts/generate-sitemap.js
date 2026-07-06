@@ -71,18 +71,20 @@ const STATIC_PAGES = [
   { loc: '/occasions/wedding',     changefreq: 'monthly', priority: '0.8', hreflang: true },
 
   // ── Individual user auth pages ─────────────────────────────────────────────
+  // Only /signup is listed — it carries real marketing copy and is
+  // intentionally indexable (noIndex:false). /login and /forgot-password are
+  // pure auth forms marked noIndex:true in useSEO() and are deliberately left
+  // out of the sitemap — listing a noindex page wastes crawl budget and sends
+  // a contradictory signal to Google.
   { loc: '/signup',           changefreq: 'yearly', priority: '0.8', hreflang: true },
-  { loc: '/login',            changefreq: 'yearly', priority: '0.6' },
-  { loc: '/forgot-password',  changefreq: 'yearly', priority: '0.3' },
 
   // ── Company / Teams auth pages ─────────────────────────────────────────────
+  // /company/login and /company/forgot-password are noIndex:true — excluded.
   { loc: '/company/signup',          changefreq: 'yearly', priority: '0.8', hreflang: true },
-  { loc: '/company/login',           changefreq: 'yearly', priority: '0.6' },
-  { loc: '/company/forgot-password', changefreq: 'yearly', priority: '0.3' },
 
   // ── Team member pages ───────────────────────────────────────────────────────
+  // /member/login is noIndex:true — excluded.
   { loc: '/member/signup', changefreq: 'yearly', priority: '0.7', hreflang: true },
-  { loc: '/member/login',  changefreq: 'yearly', priority: '0.5' },
 
   // ── Legal ────────────────────────────────────────────────────────────────────
   { loc: '/policy', changefreq: 'yearly', priority: '0.4', hreflang: true },

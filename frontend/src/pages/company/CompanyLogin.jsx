@@ -12,6 +12,7 @@ const CompanyLogin = () => {
     description: 'Sign in to your Thankeeu for Teams HR dashboard to manage employee occasion cards.',
     canonical:   '/company/login',
     jsonLd:      [SCHEMAS.organization, SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Company Sign In', url: '/company/login' }])],
+    noIndex:     true,
   });
 
 

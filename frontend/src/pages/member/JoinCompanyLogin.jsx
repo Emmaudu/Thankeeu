@@ -15,6 +15,7 @@ const JoinCompanyLogin = () => {
     description: 'Sign in to your team account on Thankeeu for Teams.',
     canonical:   '/member/login',
     jsonLd:      [SCHEMAS.organization, SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Team Sign In', url: '/member/login' }])],
+    noIndex:     true,
   });
 
 

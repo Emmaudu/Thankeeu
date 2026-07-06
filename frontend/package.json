@@ -6,7 +6,7 @@
     "dev": "vite",
     "generate-sitemap": "node scripts/generate-sitemap.js",
     "prebuild": "node scripts/generate-sitemap.js",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender.js",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

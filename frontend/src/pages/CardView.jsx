@@ -1247,6 +1247,9 @@ const CardView = () => {
             lineHeight: 1.2,
             color: design.dark ? '#ffffff' : design.accent,
             textShadow: design.dark ? '0 2px 24px rgba(0,0,0,0.25)' : 'none',
+            overflowWrap: 'break-word',
+            wordBreak: 'break-word',
+            maxWidth: '100%',
           }}>
             {card.title || `Happy ${card.occasion === 'other' && card.custom_occasion ? card.custom_occasion : (card.occasion||'').replace(/_/g,' ')}, ${card.recipient_name}!`}
           </h1>
@@ -1584,11 +1587,11 @@ const CardView = () => {
             onClick={event => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 mb-6">
-              <div>
-                <p className="text-xl font-extrabold" style={{ color: design.ink }}>{openMessage.author_name}</p>
+              <div className="min-w-0">
+                <p className="text-xl font-extrabold break-words" style={{ color: design.ink }}>{openMessage.author_name}</p>
                 <p className="text-xs opacity-60" style={{ color: design.ink }}>{format(new Date(openMessage.created_at), 'MMMM d, yyyy')}</p>
               </div>
-              <button onClick={() => setOpenMessage(null)} className="w-10 h-10 rounded-full bg-white/80 font-bold" aria-label="Close">x</button>
+              <button onClick={() => setOpenMessage(null)} className="w-10 h-10 rounded-full bg-white/80 font-bold flex-shrink-0" aria-label="Close">x</button>
             </div>
             <p
               className="whitespace-pre-wrap break-words mb-6"

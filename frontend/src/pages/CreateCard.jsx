@@ -1157,7 +1157,7 @@ const CreateCard = () => {
               ].map(([k,v]) => (
                 <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
                   <span className="text-sm text-warm-500 shrink-0">{k}</span>
-                  <span className="text-sm font-semibold text-warm-800 text-right">{v}</span>
+                  <span className="text-sm font-semibold text-warm-800 text-right min-w-0 flex-1 break-words">{v}</span>
                 </div>
               ))}
             </div>
@@ -1280,7 +1280,7 @@ const CreateCard = () => {
               ].map(([k,v]) => (
                 <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
                   <span className="text-sm text-warm-500 shrink-0">{k}</span>
-                  <span className="text-sm font-semibold text-warm-800 text-right">{v}</span>
+                  <span className="text-sm font-semibold text-warm-800 text-right min-w-0 flex-1 break-words">{v}</span>
                 </div>
               ))}
             </div>
@@ -1379,9 +1379,9 @@ const CreateCard = () => {
                 payMode==='credit'&&creditBalance>0?[['Card fee',`1 credit (${creditBalance} remaining)`]]:
                 [['Card fee',`${formatCurrency(5000,selectedCurrency)} one-time`]]),
             ].map(([k,v]) => (
-              <div key={k} className="flex justify-between items-center px-4 py-3">
-                <span className="text-sm text-warm-500">{k}</span>
-                <span className="text-sm font-semibold text-warm-900">{v}</span>
+              <div key={k} className="flex justify-between items-start px-4 py-3 gap-2">
+                <span className="text-sm text-warm-500 shrink-0">{k}</span>
+                <span className="text-sm font-semibold text-warm-900 text-right min-w-0 flex-1 break-words">{v}</span>
               </div>
             ))}
           </div>

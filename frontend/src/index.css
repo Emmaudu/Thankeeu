@@ -289,7 +289,11 @@
 .card-art {
   position: relative;
   isolation: isolate;
-  /* overflow removed here — message cards expand downward on "See more", no scroll */
+  overflow: hidden; /* clips the oversized ::before/::after shapes below at the card's own edge.
+                        Safe for "See more" expansion: height is auto everywhere this is used, so
+                        the box always grows to fit its content first — overflow:hidden only clips
+                        things that exceed that size, i.e. the negative-offset decorative shapes,
+                        never the card's own (auto) height. */
 }
 .card-art::before,
 .card-art::after {
@@ -302,7 +306,6 @@
 .message-art-card {
   display: flex;
   flex-direction: column;
-  overflow: visible;
   height: auto;
   min-height: 220px;
   transition: transform .25s ease, box-shadow .25s ease;

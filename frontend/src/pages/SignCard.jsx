@@ -87,7 +87,7 @@ const SignCard = () => {
         : (card.occasion || '').replace(/_/g, ' '))
     : null;
   const signerCount = card?.signed_count ?? card?.messages?.[0]?.count ?? 0;
-  const BASE_URL = import.meta.env.VITE_APP_URL || 'https://thankeeu.com';
+  const BASE_URL = import.meta.env.VITE_APP_URL || 'https://www.thankeeu.com';
 
   useSEO({
     title: card
@@ -96,7 +96,7 @@ const SignCard = () => {
     description: card
       ? `${signerCount > 0 ? `${signerCount} ${signerCount === 1 ? 'person' : 'people'} have already signed. ` : ''}Add your message to ${card.recipient_name}'s ${occasionLabel} card — takes 60 seconds, no account needed.`
       : 'Sign a group card on Thankeeu. Add a message, photo or gift — takes 60 seconds, no account needed.',
-    ogImage: card ? (() => { const apiBase = import.meta.env.VITE_API_URL || ''; return apiBase.startsWith('http') ? `${apiBase}/cards/${card.slug}/og-image` : `https://thankeeu.com/api/cards/${card.slug}/og-image`; })() : undefined,
+    ogImage: card ? (() => { const apiBase = import.meta.env.VITE_API_URL || ''; return apiBase.startsWith('http') ? `${apiBase}/cards/${card.slug}/og-image` : `https://www.thankeeu.com/api/cards/${card.slug}/og-image`; })() : undefined,
     canonical: card ? `/sign/${card.slug}` : undefined,
     noIndex: false,
   });

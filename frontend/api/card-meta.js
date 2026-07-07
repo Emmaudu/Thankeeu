@@ -14,7 +14,7 @@
  */
 
 const BACKEND  = 'https://thankeeu-production.up.railway.app';
-const BASE_URL = 'https://thankeeu.com';
+const BASE_URL = 'https://www.thankeeu.com'; // live canonical host — apex 308-redirects here
 const ASSETS_BASE = BASE_URL; // Vite assets live here
 
 const CRAWLER_RE = /facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|slackbot|telegrambot|discordbot|applebot|googlebot|adsbot-google|google-inspectiontool|mediapartners-google|bingbot|bingpreview|duckduckbot|yandex(bot)?|baiduspider|pinterest|vkshare|xing-contenttabreceiver|mattermost|rocket\.chat|iframely|opengraph|preview|embedly|quora/i;

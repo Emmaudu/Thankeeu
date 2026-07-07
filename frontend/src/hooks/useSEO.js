@@ -14,7 +14,12 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://thankeeu.com';
+const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://www.thankeeu.com';
+// NOTE: the live site's canonical host is www.thankeeu.com — the apex
+// (thankeeu.com) 308-redirects to www. VITE_APP_URL in Vercel MUST be set
+// to https://www.thankeeu.com, or every canonical/og:url tag on the site
+// points to a URL that immediately redirects away from itself, which is
+// a documented cause of Google refusing to index pages.
 const SITE_NAME  = 'Thankeeu';
 const SITE_DESC  = "The world's group card and gift platform — birthdays, farewells, promotions, and more. Powered by Flutterwave.";
 const OG_IMAGE   = `${BASE_URL}/og-image.png`;

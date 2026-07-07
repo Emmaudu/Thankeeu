@@ -14,7 +14,13 @@
  *   node scripts/generate-sitemap.js && vite build
  *
  * Env:
- *   APP_URL      – public site URL, default https://thankeeu.com
+ *   APP_URL      – public site URL, default https://www.thankeeu.com
+ *                  (the live site's canonical host is www — the apex
+ *                  thankeeu.com 308-redirects to www.thankeeu.com. Every
+ *                  URL here MUST use www, or Google sees sitemap entries
+ *                  that redirect away from themselves, and canonical tags
+ *                  that point back to a URL that just redirected — a
+ *                  documented cause of indexing failures.)
  *   API_URL      – backend base URL to fetch /api/blog/sitemap from,
  *                  default https://api.thankeeu.com (override for staging/local)
  *
@@ -32,7 +38,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-const APP_URL = (process.env.APP_URL || 'https://thankeeu.com').replace(/\/$/, '');
+const APP_URL = (process.env.APP_URL || 'https://www.thankeeu.com').replace(/\/$/, '');
 
 // API_URL: prefer explicit API_URL, then derive from VITE_API_URL (which is
 // usually something like https://api.thankeeu.com/api), then fall back to

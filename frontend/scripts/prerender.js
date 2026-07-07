@@ -46,7 +46,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-const APP_URL = (process.env.APP_URL || 'https://thankeeu.com').replace(/\/$/, '');
+const APP_URL = (process.env.APP_URL || 'https://www.thankeeu.com').replace(/\/$/, '');
 
 function resolveApiBase() {
   if (process.env.API_URL) return process.env.API_URL.replace(/\/$/, '');

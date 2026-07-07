@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 
 /**
@@ -147,7 +149,8 @@ export default function CountryLandingPage({ country }) {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col">
+      <Navbar />
       {/* Hero */}
       <section className="max-w-4xl mx-auto px-4 pt-16 pb-10 text-center">
         <h1 className="text-4xl sm:text-5xl font-extrabold text-warm-900 mb-4">{d.h1}</h1>
@@ -218,6 +221,7 @@ export default function CountryLandingPage({ country }) {
         <h2 className="text-2xl font-bold text-warm-900 mb-4">Start your group card now</h2>
         <Link to="/card/new" className="btn-primary px-8 py-3 text-lg">Create a group card — free to start</Link>
       </section>
+      <Footer />
     </div>
   );
 }

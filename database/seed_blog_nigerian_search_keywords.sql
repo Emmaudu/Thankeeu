@@ -5,8 +5,10 @@
 -- who don't know group-card products exist. Each post fully answers the
 -- search intent (real usable messages/prayers), then introduces Thankeeu.
 -- Run in Supabase SQL editor. Uses same format as seed_blog_hr_seo_articles.sql.
--- published_at is set to now() (not future) so posts are live immediately —
--- the API now gates on published_at <= now().
+-- IDEMPOTENT: every insert uses ON CONFLICT (slug) DO NOTHING, so re-running
+-- this file is safe — posts that already exist are skipped, missing ones are
+-- inserted. published_at is set to now() (not future) so posts are live
+-- immediately — the API now gates on published_at <= now().
 -- ============================================================================
 
 INSERT INTO blog_posts (title,slug,excerpt,content,category,tags,status,is_featured,author_name,read_time,published_at,meta_title,meta_description)
@@ -61,7 +63,7 @@ ARRAY['birthday wishes','Nigeria','colleagues','prayers','pidgin'],
 'published', false, 'Thankeeu Team', 7, now(),
 '100+ Birthday Wishes for a Colleague in Nigeria — Prayers, Pidgin & Professional',
 'Birthday wishes for a Nigerian colleague: professional messages, heartfelt prayers, and pidgin options — plus the best way to deliver them so they are never buried in a WhatsApp chain.'
-);
+) ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO blog_posts (title,slug,excerpt,content,category,tags,status,is_featured,author_name,read_time,published_at,meta_title,meta_description)
 VALUES (
@@ -107,7 +109,7 @@ ARRAY['birthday prayers','Nigeria','family','boss','friends'],
 'published', false, 'Thankeeu Team', 6, now(),
 'Powerful Birthday Prayers for a Friend, Sister, Brother or Boss — Nigeria',
 'Heartfelt Nigerian birthday prayers for friends, siblings, parents, bosses and mentors — plus how to gather every prayer into one group card the celebrant keeps forever.'
-);
+) ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO blog_posts (title,slug,excerpt,content,category,tags,status,is_featured,author_name,read_time,published_at,meta_title,meta_description)
 VALUES (
@@ -151,7 +153,7 @@ ARRAY['send forth','farewell','Nigeria','colleague','NYSC'],
 'published', false, 'Thankeeu Team', 6, now(),
 'Send-Forth Messages for a Colleague in Nigeria — What to Write (Examples)',
 'Nigerian send-forth messages for colleagues, bosses, corps members and friends relocating abroad — plus the stress-free way to organise the group card and contribution money.'
-);
+) ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO blog_posts (title,slug,excerpt,content,category,tags,status,is_featured,author_name,read_time,published_at,meta_title,meta_description)
 VALUES (
@@ -188,7 +190,7 @@ ARRAY['contribution','group gift','Nigeria','collect money','office'],
 'published', false, 'Thankeeu Team', 5, now(),
 'How to Collect Contribution Money for a Colleague''s Gift in Nigeria',
 'Stop chasing transfers for office gifts. How Nigerian teams collect contribution money with one link — transparent, secure Flutterwave payments, withdrawable to any Nigerian bank.'
-);
+) ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO blog_posts (title,slug,excerpt,content,category,tags,status,is_featured,author_name,read_time,published_at,meta_title,meta_description)
 VALUES (
@@ -226,7 +228,7 @@ ARRAY['wedding wishes','Nigeria','prayers','couple','marriage'],
 'published', false, 'Thankeeu Team', 5, now(),
 'Wedding Wishes and Prayers for a Nigerian Couple — What to Write',
 'Heartfelt Nigerian wedding wishes and prayers for colleagues, friends and family — plus how everyone (office, friends, family abroad) celebrates the couple in one group card.'
-);
+) ON CONFLICT (slug) DO NOTHING;
 
 INSERT INTO blog_posts (title,slug,excerpt,content,category,tags,status,is_featured,author_name,read_time,published_at,meta_title,meta_description)
 VALUES (
@@ -257,4 +259,4 @@ ARRAY['birthday surprise','Nigeria','ideas','midnight','celebration'],
 'published', false, 'Thankeeu Team', 6, now(),
 'How to Surprise Someone on Their Birthday in Nigeria — 10 Ideas That Work',
 '10 birthday surprise ideas for Nigeria that actually make people feel celebrated — midnight group cards, voice notes from everyone, surprise contributions and more.'
-);
+) ON CONFLICT (slug) DO NOTHING;

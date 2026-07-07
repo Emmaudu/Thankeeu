@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 
 /**
@@ -190,7 +192,8 @@ export default function ExtraOccasionPage({ occasion }) {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col">
+      <Navbar />
       <section className="max-w-4xl mx-auto px-4 pt-16 pb-10 text-center">
         <h1 className="text-4xl sm:text-5xl font-extrabold text-warm-900 mb-4">{d.h1}</h1>
         <p className="text-lg text-warm-600 mb-8 max-w-2xl mx-auto">{d.sub}</p>
@@ -237,6 +240,7 @@ export default function ExtraOccasionPage({ occasion }) {
         <h2 className="text-2xl font-bold text-warm-900 mb-4">Create yours in under 2 minutes</h2>
         <Link to="/card/new" className="btn-primary px-8 py-3 text-lg">Start your group card</Link>
       </section>
+      <Footer />
     </div>
   );
 }

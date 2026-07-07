@@ -39,6 +39,7 @@ const getPosts = async (req, res) => {
       .from('blog_posts')
       .select('id,title,slug,excerpt,cover_image,cover_alt,author_name,author_avatar,category,tags,is_featured,read_time,views,published_at', { count: 'exact' })
       .eq('status', 'published')
+      .lte('published_at', new Date().toISOString())
       .order('is_featured', { ascending: false })
       .order('published_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -62,7 +63,8 @@ const getCategories = async (req, res) => {
     const { data, error } = await supabase
       .from('blog_posts')
       .select('category')
-      .eq('status', 'published');
+      .eq('status', 'published')
+      .lte('published_at', new Date().toISOString());
     if (error) throw error;
 
     const counts = {};
@@ -88,6 +90,7 @@ const getPost = async (req, res) => {
       .select('*')
       .eq('slug', slug)
       .eq('status', 'published')
+      .lte('published_at', new Date().toISOString())
       .maybeSingle();
 
     if (error || !post) return res.status(404).json({ error: 'Post not found' });
@@ -101,6 +104,7 @@ const getPost = async (req, res) => {
       .from('blog_posts')
       .select('id,title,slug,excerpt,cover_image,author_name,category,read_time,published_at')
       .eq('status', 'published')
+      .lte('published_at', new Date().toISOString())
       .eq('category', post.category)
       .neq('id', post.id)
       .order('published_at', { ascending: false })
@@ -309,6 +313,7 @@ const getBlogSitemap = async (req, res) => {
       .from('blog_posts')
       .select('slug,updated_at,published_at')
       .eq('status', 'published')
+      .lte('published_at', new Date().toISOString())
       .order('published_at', { ascending: false });
     if (error) throw error;
     res.json(data || []);

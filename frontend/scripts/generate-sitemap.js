@@ -68,6 +68,16 @@ const STATIC_PAGES = [
   { loc: '/faq',             changefreq: 'monthly', priority: '0.6', hreflang: true },
 
   // ── Occasion landing pages ─────────────────────────────────────────────────
+  { loc: '/online-group-cards-uk',      changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/online-group-cards-us',      changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/online-group-cards-canada',  changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/online-group-cards-nigeria', changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/cards/leaving-card',    changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/cards/retirement',      changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/cards/get-well-soon',   changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/cards/thank-you',       changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/cards/maternity-leave', changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/cards/christmas',       changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/occasions/birthday',    changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/occasions/farewell',    changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/occasions/anniversary', changefreq: 'monthly', priority: '0.8', hreflang: true },

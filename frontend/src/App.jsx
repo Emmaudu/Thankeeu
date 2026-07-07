@@ -68,6 +68,8 @@ import CardFeeVerify  from './pages/CardFeeVerify';
 import SampleCard from './pages/SampleCard';
 import NotFound         from './pages/NotFound';
 import BirthdayPage    from './pages/occasions/Birthday';
+import { GroupCardsUK, GroupCardsUS, GroupCardsCanada, GroupCardsNigeria } from './pages/occasions/CountryLandingPage';
+import { LeavingCardPage, RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, ChristmasCardPage } from './pages/occasions/ExtraOccasionPage';
 import FarewellPage    from './pages/occasions/Farewell';
 import AnniversaryPage from './pages/occasions/Anniversary';
 import PromotionPage   from './pages/occasions/Promotion';
@@ -192,6 +194,16 @@ const App = () => (
             <Route path="/policy"        element={<Policy />} />
             <Route path="/how-it-works"  element={<HowItWorks />} />
             <Route path="/occasions/birthday"    element={<BirthdayPage />} />
+            <Route path="/online-group-cards-uk"      element={<GroupCardsUK />} />
+            <Route path="/online-group-cards-us"      element={<GroupCardsUS />} />
+            <Route path="/online-group-cards-canada"  element={<GroupCardsCanada />} />
+            <Route path="/online-group-cards-nigeria" element={<GroupCardsNigeria />} />
+            <Route path="/cards/leaving-card"    element={<LeavingCardPage />} />
+            <Route path="/cards/retirement"      element={<RetirementPage />} />
+            <Route path="/cards/get-well-soon"   element={<GetWellSoonPage />} />
+            <Route path="/cards/thank-you"       element={<ThankYouCardPage />} />
+            <Route path="/cards/maternity-leave" element={<MaternityLeavePage />} />
+            <Route path="/cards/christmas"       element={<ChristmasCardPage />} />
             <Route path="/occasions/farewell"    element={<FarewellPage />} />
             <Route path="/occasions/anniversary" element={<AnniversaryPage />} />
             <Route path="/occasions/promotion"   element={<PromotionPage />} />

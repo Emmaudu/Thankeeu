@@ -186,6 +186,56 @@ const STATIC_PAGES = [
     description: 'Thankeeu Privacy Policy and Terms of Service. Your data is safe — we never sell personal information. Secure payments via Flutterwave.',
   },
   {
+    path: '/online-group-cards-uk',
+    title: 'Online Group Cards UK — Sign Together, Add a Group Gift | Thankeeu',
+    description: 'Create an online group card in the UK in under 2 minutes. Colleagues sign from one link — messages, photos, GIFs, voice notes — and chip in to a group gift in GBP. Free to start, no signup needed to sign.',
+  },
+  {
+    path: '/online-group-cards-us',
+    title: 'Online Group Cards US — Group Ecards & Group Gifts | Thankeeu',
+    description: 'Create an online group card for your US team. Coworkers sign from one link — messages, photos, GIFs, voice notes — and pool a group gift in USD. Free to start; nobody needs an account to sign.',
+  },
+  {
+    path: '/online-group-cards-canada',
+    title: 'Online Group Cards Canada — Group Ecards & Gifts in CAD | Thankeeu',
+    description: 'Create an online group card for your Canadian team. Everyone signs from one link — messages, photos, GIFs, voice notes — and chips in to a group gift. Free to start, bilingual-team friendly.',
+  },
+  {
+    path: '/online-group-cards-nigeria',
+    title: 'Online Group Cards Nigeria — Sign Together, Pool a Naira Gift | Thankeeu',
+    description: 'Create an online group card in Nigeria. The whole team signs from one WhatsApp link — messages, photos, voice notes — and pools a Naira gift with secure Flutterwave payments. Withdraw to any Nigerian bank.',
+  },
+  {
+    path: '/cards/leaving-card',
+    title: 'Online Leaving Card — Group Leaving Cards for Colleagues | Thankeeu',
+    description: "Create an online leaving card the whole team signs from one link. Messages, photos, GIFs and voice notes, plus an optional gift collection. Free to start — no signup needed to sign.",
+  },
+  {
+    path: '/cards/retirement',
+    title: 'Online Retirement Card — Group Retirement Cards & Gifts | Thankeeu',
+    description: 'Honour decades of service with an online retirement card signed by everyone — colleagues past and present. Messages, photos, voice notes, and a pooled retirement gift.',
+  },
+  {
+    path: '/cards/get-well-soon',
+    title: 'Online Get Well Soon Card — Group Get Well Cards | Thankeeu',
+    description: 'Send strength from the whole team with an online get well soon card. Everyone signs from one link — kind words, photos and voice notes — delivered when it matters most.',
+  },
+  {
+    path: '/cards/thank-you',
+    title: 'Online Thank You Card — Group Thank You Cards & Ecards | Thankeeu',
+    description: 'Say thank you together. Create an online thank you card the whole team signs — messages, photos, GIFs and voice notes, with an optional group gift. Free to start.',
+  },
+  {
+    path: '/cards/maternity-leave',
+    title: 'Maternity Leave Card — Group Cards for Mums-to-Be | Thankeeu',
+    description: 'Send a colleague off on maternity leave with a group card the whole team signs — warm wishes, photos, voice notes, and a pooled baby gift.',
+  },
+  {
+    path: '/cards/christmas',
+    title: 'Online Christmas Card — Group Christmas Cards for Teams | Thankeeu',
+    description: 'Send one beautiful online Christmas card from the whole team. Everyone signs from one link — festive messages, photos, GIFs — with an optional group gift or bonus pool.',
+  },
+  {
     path: '/occasions/birthday',
     title: 'Online Birthday Group Cards Nigeria | Thankeeu',
     description: 'Create an online birthday group card in Nigeria that everyone signs from their phone. Add photos, voice notes, and a pooled Naira gift. Delivered at the perfect moment.',

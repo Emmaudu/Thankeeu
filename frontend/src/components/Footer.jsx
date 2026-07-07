@@ -11,6 +11,16 @@ const OCCASION_LINKS = [
   { to:'/occasions/new-baby',           label:'Baby Shower' },
   { to:'/occasions/wedding',            label:'Wedding' },
   { to:'/occasions/staff-appreciation', label:'Staff Appreciation' },
+  { to:'/cards/leaving-card',           label:'Leaving Cards' },
+  { to:'/cards/retirement',             label:'Retirement' },
+  { to:'/cards/get-well-soon',          label:'Get Well Soon' },
+  { to:'/cards/thank-you',              label:'Thank You Cards' },
+  { to:'/cards/maternity-leave',        label:'Maternity Leave' },
+  { to:'/cards/christmas',              label:'Christmas Cards' },
+  { to:'/online-group-cards-uk',        label:'Group Cards UK' },
+  { to:'/online-group-cards-us',        label:'Group Cards US' },
+  { to:'/online-group-cards-canada',    label:'Group Cards Canada' },
+  { to:'/online-group-cards-nigeria',   label:'Group Cards Nigeria' },
 ];
 
 const Footer = () => (

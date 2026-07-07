@@ -1,5 +1,5 @@
 # Thankeeu — robots.txt
-# https://thankeeu.com
+# https://www.thankeeu.com
 # Last updated: 2026-06-27
 
 # ── Default: allow all crawlers ───────────────────────────────────────────────
@@ -89,4 +89,4 @@ User-agent: PerplexityBot
 Disallow: /
 
 # ── Sitemap ───────────────────────────────────────────────────────────────────
-Sitemap: https://thankeeu.com/sitemap.xml
+Sitemap: https://www.thankeeu.com/sitemap.xml

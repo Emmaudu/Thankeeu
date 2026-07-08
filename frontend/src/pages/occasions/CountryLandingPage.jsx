@@ -19,6 +19,7 @@ const COUNTRIES = {
     h1: 'Online Group Cards for UK Teams',
     sub: 'One link. The whole team signs. Pool a gift in GBP. Delivered on the day.',
     currency: 'GBP (£)',
+    locale: 'en_GB',
     payments: 'Pay by UK debit/credit card. Contributions pool in GBP with transparent fees.',
     useCases: [
       ['Leaving cards', 'The classic office leaving card — without chasing the card around the office. Everyone signs online, from anywhere.'],
@@ -47,6 +48,7 @@ const COUNTRIES = {
     h1: 'Online Group Cards for US Teams',
     sub: 'One link for the whole team. Sign, celebrate, and pool a gift in USD.',
     currency: 'USD ($)',
+    locale: 'en_US',
     payments: 'Pay by US debit/credit card. Contributions pool in USD with fees shown upfront.',
     useCases: [
       ['Farewell & goodbye cards', 'A coworker\'s last day deserves more than a Slack thread. Everyone signs one card, from any office or time zone.'],
@@ -75,6 +77,7 @@ const COUNTRIES = {
     h1: 'Online Group Cards for Canadian Teams',
     sub: 'One link, every colleague — from Vancouver to Halifax. Pool a gift together.',
     currency: 'CAD ($)',
+    locale: 'en_CA',
     payments: 'Pay by Canadian debit/credit card. Contributions pool with fees shown upfront.',
     useCases: [
       ['Farewell & retirement cards', 'Send off a colleague properly, even across a fully remote Canadian team.'],
@@ -103,6 +106,7 @@ const COUNTRIES = {
     h1: 'Online Group Cards for Nigerian Teams',
     sub: 'Share one link on WhatsApp. Everyone signs. Pool a Naira gift — no cash chasing.',
     currency: 'NGN (₦)',
+    locale: 'en_NG',
     payments: 'Pay by card, bank transfer or USSD via Flutterwave. Withdraw pooled gifts to any Nigerian bank account.',
     useCases: [
       ['Office birthdays', 'The whole team signs from their phones — messages, photos and voice notes — plus a pooled Naira gift.'],
@@ -133,6 +137,7 @@ export default function CountryLandingPage({ country }) {
     description: d.desc,
     keywords: d.keywords,
     canonical: d.path,
+    locale: d.locale,
     jsonLd: [
       SCHEMAS.organization,
       SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: d.h1, url: d.path }]),

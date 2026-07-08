@@ -8,40 +8,42 @@ const OCCASION_LINKS = [
   { to:'/occasions/graduation',         label:'Graduation' },
   { to:'/occasions/anniversary',        label:'Anniversary' },
   { to:'/occasions/promotion',          label:'Promotion' },
-  { to:'/occasions/new-baby',           label:'Baby Shower' },
+  { to:'/occasions/new-baby',           label:'New Baby' },
   { to:'/occasions/wedding',            label:'Wedding' },
   { to:'/occasions/staff-appreciation', label:'Staff Appreciation' },
   { to:'/cards/leaving-card',           label:'Leaving Cards' },
   { to:'/cards/retirement',             label:'Retirement' },
   { to:'/cards/get-well-soon',          label:'Get Well Soon' },
-  { to:'/cards/thank-you',              label:'Thank You Cards' },
+  { to:'/cards/thank-you',              label:'Thank You' },
+];
+
+const MORE_OCCASION_LINKS = [
   { to:'/cards/maternity-leave',        label:'Maternity Leave' },
-  { to:'/cards/christmas',              label:'Christmas Cards' },
-  { to:'/cards/sympathy',               label:'Sympathy Cards' },
+  { to:'/cards/baby-shower',            label:'Baby Shower' },
+  { to:'/cards/christmas',              label:'Christmas' },
+  { to:'/cards/sympathy',               label:'Sympathy' },
   { to:'/cards/welcome',                label:'Welcome Cards' },
-  { to:'/cards/good-luck',              label:'Good Luck Cards' },
-  { to:'/cards/baby-shower',            label:'Baby Shower Cards' },
+  { to:'/cards/good-luck',              label:'Good Luck' },
+  { to:'/cards/engagement',             label:'Engagement' },
+  { to:'/cards/new-home',               label:'New Home' },
   { to:'/cards/teacher-thank-you',      label:'Teacher Thank You' },
-  { to:'/cards/engagement',             label:'Engagement Cards' },
-  { to:'/cards/new-home',               label:'New Home Cards' },
-  { to:'/cards/administrative-professionals-day', label:'Admin Professionals Day' },
-  { to:'/cards/boss-day',               label:"Boss's Day" },
   { to:'/cards/teacher-appreciation',   label:'Teacher Appreciation' },
-  { to:'/cards/thanksgiving',           label:'Thanksgiving Cards' },
+  { to:'/cards/boss-day',               label:"Boss's Day" },
+  { to:'/cards/administrative-professionals-day', label:'Admin Pro Day' },
+  { to:'/cards/thanksgiving',           label:'Thanksgiving' },
   { to:'/cards/mothers-day',            label:"Mother's Day" },
   { to:'/cards/fathers-day',            label:"Father's Day" },
   { to:'/online-group-cards-uk',        label:'Group Cards UK' },
   { to:'/online-group-cards-us',        label:'Group Cards US' },
-  { to:'/online-group-cards-canada',    label:'Group Cards Canada' },
   { to:'/online-group-cards-nigeria',   label:'Group Cards Nigeria' },
 ];
 
 const Footer = () => (
   <footer style={{ background:'linear-gradient(180deg,#F5F0FF,#EDE5FF)' }} className="border-t border-purple-100 mt-auto">
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 mb-10">
         {/* Brand */}
-        <div className="col-span-2 sm:col-span-1">
+        <div className="col-span-2 sm:col-span-3 lg:col-span-1">
           <Link to="/" onClick={scrollTop} className="flex items-center gap-2.5 mb-4">
             <img src="/android-chrome-192x192.png" alt="Thankeeu"
               className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
@@ -50,7 +52,7 @@ const Footer = () => (
             </span>
           </Link>
           <p className="text-sm text-warm-600 leading-relaxed">
-            The world's favourite group card &amp; gift platform. Celebrate every milestone, together.
+            The world&apos;s favourite group card &amp; gift platform. Celebrate every milestone, together.
           </p>
         </div>
 
@@ -75,6 +77,20 @@ const Footer = () => (
           <p className="font-bold text-warm-900 text-sm mb-4">Occasions</p>
           <ul className="space-y-2.5">
             {OCCASION_LINKS.map(({ to, label }) => (
+              <li key={to}>
+                <Link to={to} onClick={scrollTop} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* More Occasions */}
+        <div>
+          <p className="font-bold text-warm-900 text-sm mb-4">More Occasions</p>
+          <ul className="space-y-2.5">
+            {MORE_OCCASION_LINKS.map(({ to, label }) => (
               <li key={to}>
                 <Link to={to} onClick={scrollTop} className="text-sm text-warm-600 hover:text-primary-600 font-medium transition-colors">
                   {label}

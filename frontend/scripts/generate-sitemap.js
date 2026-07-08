@@ -68,10 +68,10 @@ const STATIC_PAGES = [
   { loc: '/faq',             changefreq: 'monthly', priority: '0.6', hreflang: true },
 
   // ── Occasion landing pages ─────────────────────────────────────────────────
-  { loc: '/online-group-cards-uk',      changefreq: 'monthly', priority: '0.9', hreflang: true },
-  { loc: '/online-group-cards-us',      changefreq: 'monthly', priority: '0.9', hreflang: true },
-  { loc: '/online-group-cards-canada',  changefreq: 'monthly', priority: '0.9', hreflang: true },
-  { loc: '/online-group-cards-nigeria', changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/online-group-cards-uk',      changefreq: 'monthly', priority: '0.9', hreflang: 'en-GB' },
+  { loc: '/online-group-cards-us',      changefreq: 'monthly', priority: '0.9', hreflang: 'en-US' },
+  { loc: '/online-group-cards-canada',  changefreq: 'monthly', priority: '0.9', hreflang: 'en-CA' },
+  { loc: '/online-group-cards-nigeria', changefreq: 'monthly', priority: '0.9', hreflang: 'en-NG' },
   { loc: '/cards/leaving-card',    changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/cards/retirement',      changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/cards/get-well-soon',   changefreq: 'monthly', priority: '0.8', hreflang: true },
@@ -169,8 +169,11 @@ function renderUrl({ loc, changefreq, priority, hreflang, image }) {
   if (changefreq) lines.push(`    <changefreq>${changefreq}</changefreq>`);
   if (priority)   lines.push(`    <priority>${priority}</priority>`);
   if (hreflang) {
-    lines.push(`    <xhtml:link rel="alternate" hreflang="en-NG" href="${escapeXML(fullLoc)}"/>`);
-    if (loc === '/') {
+    // hreflang can be true (generic 'en') or a specific locale string (e.g. 'en-GB')
+    const lang = typeof hreflang === 'string' ? hreflang : 'en';
+    lines.push(`    <xhtml:link rel="alternate" hreflang="${lang}" href="${escapeXML(fullLoc)}"/>`);
+    // x-default on homepage and generic pages only
+    if (loc === '/' || hreflang === true) {
       lines.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXML(fullLoc)}"/>`);
     }
   }
@@ -193,7 +196,8 @@ function renderBlogPostUrl(post) {
   lines.push(`    <lastmod>${lastmodFrom(post)}</lastmod>`);
   lines.push('    <changefreq>monthly</changefreq>');
   lines.push(`    <priority>${post.is_featured ? '0.8' : '0.7'}</priority>`);
-  lines.push(`    <xhtml:link rel="alternate" hreflang="en-NG" href="${escapeXML(fullLoc)}"/>`);
+  lines.push(`    <xhtml:link rel="alternate" hreflang="en" href="${escapeXML(fullLoc)}"/>`);
+  lines.push(`    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXML(fullLoc)}"/>`);
   lines.push('  </url>');
   return lines.join('\n');
 }

@@ -49,8 +49,13 @@ const __dirname  = path.dirname(__filename);
 const APP_URL = (process.env.APP_URL || 'https://www.thankeeu.com').replace(/\/$/, '');
 
 function resolveApiBase() {
+  // API_URL is the correct build-time Node env var for the Railway backend.
   if (process.env.API_URL) return process.env.API_URL.replace(/\/$/, '');
-  if (process.env.VITE_API_URL) return process.env.VITE_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
+  // VITE_API_URL is a browser env var — only use it if it's a real https URL
+  // (not localhost, which would fail inside Vercel's build environment).
+  if (process.env.VITE_API_URL && process.env.VITE_API_URL.startsWith('https://')) {
+    return process.env.VITE_API_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
+  }
   return 'https://api.thankeeu.com';
 }
 const API_URL  = resolveApiBase();

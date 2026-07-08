@@ -23,7 +23,7 @@ const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://www.thankeeu.com';
 const SITE_NAME  = 'Thankeeu';
 const SITE_DESC  = "The world's group card and gift platform — birthdays, farewells, promotions, and more. Powered by Flutterwave.";
 const OG_IMAGE   = `${BASE_URL}/og-image.png`;
-const TWITTER_HANDLE = '@thankeeu_ng';
+const TWITTER_HANDLE = '@thankeeu';
 
 // ─── DOM helpers ─────────────────────────────────────────────────────────────
 
@@ -95,13 +95,17 @@ export function useSEO({
   twitterCard = 'summary_large_image',
   noIndex     = false,
   keywords    = '',
+  locale      = 'en_GB',
   jsonLd      = null,
 } = {}) {
   const location = useLocation();
 
   useEffect(() => {
+    // Don't double-append brand if title already ends with "| Thankeeu"
     const fullTitle = title
-      ? `${title} | ${SITE_NAME}`
+      ? (title.includes(SITE_NAME)
+          ? title
+          : `${title} | ${SITE_NAME}`)
       : `${SITE_NAME} — Group Cards & Gifts for Every Occasion 💜`;
 
     const desc = (description || SITE_DESC).slice(0, 160);
@@ -139,7 +143,7 @@ export function useSEO({
     setMeta('property', 'og:image:height', '630');
     setMeta('property', 'og:image:type',   'image/png');
     setMeta('property', 'og:site_name',    SITE_NAME);
-    setMeta('property', 'og:locale',       'en_NG');
+    setMeta('property', 'og:locale',       locale);
 
     // ── Twitter / X Card ─────────────────────────────────────────────────────
     setMeta('name', 'twitter:card',        twitterCard);
@@ -193,7 +197,6 @@ export const SCHEMAS = {
     foundingDate: '2024',
     address: {
       '@type':           'PostalAddress',
-      addressCountry:    'NG',
       addressRegion:     'Global',
       addressLocality:   'Worldwide',
     },
@@ -212,7 +215,7 @@ export const SCHEMAS = {
       availableLanguage:  [{ '@type': 'Language', name: 'English' }],
     }],
     sameAs: [
-      'https://twitter.com/thankeeu_ng',
+      'https://twitter.com/thankeeu',
       'https://www.instagram.com/thankeeu',
       'https://www.linkedin.com/company/thankeeu',
     ],
@@ -255,14 +258,6 @@ export const SCHEMAS = {
       price:         '5000',
       priceCurrency: 'NGN',
       description:   'Create and send a group card for ₦5,000.',
-    },
-    aggregateRating: {
-      '@type':       'AggregateRating',
-      ratingValue:   '4.9',
-      ratingCount:   '1247',
-      bestRating:    '5',
-      worstRating:   '1',
-      reviewCount:   '1247',
     },
     publisher: { '@id': `${BASE_URL}/#organization` },
   },
@@ -355,7 +350,7 @@ export const SCHEMAS = {
     name:            SITE_NAME,
     url:             BASE_URL,
     description:     SITE_DESC,
-    currenciesAccepted: 'NGN',
+    currenciesAccepted: 'NGN, GBP, USD, CAD',
     paymentAccepted:    'Flutterwave (Cards, Bank Transfer, USSD)',
     areaServed: {
       '@type': 'Country',
@@ -363,7 +358,6 @@ export const SCHEMAS = {
     },
     address: {
       '@type':         'PostalAddress',
-      addressCountry:  'NG',
       addressLocality: 'Worldwide',
       addressRegion:   'Global',
     },
@@ -388,14 +382,18 @@ export const SCHEMAS = {
   // SiteNavigationElement — tells Google which pages to show as sitelinks
   siteNavigation() {
     const links = [
-      { name: 'Birthday Group Cards',      url: '/occasions/birthday' },
-      { name: 'Pricing',                   url: '/pricing' },
-      { name: 'How It Works',              url: '/how-it-works' },
-      { name: 'Farewell Group Cards',      url: '/occasions/farewell' },
-      { name: 'Staff Appreciation Cards',  url: '/occasions/staff-appreciation' },
-      { name: 'Blog',                      url: '/blog' },
-      { name: 'For Teams',                 url: '/company/signup' },
-      { name: 'Sample Card',               url: '/sample' },
+      { name: 'Birthday Group Cards',       url: '/occasions/birthday' },
+      { name: 'Online Leaving Cards',        url: '/cards/leaving-card' },
+      { name: 'Pricing',                    url: '/pricing' },
+      { name: 'How It Works',               url: '/how-it-works' },
+      { name: 'Farewell Group Cards',       url: '/occasions/farewell' },
+      { name: 'Get Well Soon Cards',        url: '/cards/get-well-soon' },
+      { name: 'Sympathy Cards',             url: '/cards/sympathy' },
+      { name: 'Group Cards UK',             url: '/online-group-cards-uk' },
+      { name: 'Group Cards Nigeria',        url: '/online-group-cards-nigeria' },
+      { name: 'Blog',                       url: '/blog' },
+      { name: 'For Teams',                  url: '/company/signup' },
+      { name: 'Retirement Cards',           url: '/cards/retirement' },
     ];
     return links.map(({ name, url }) => ({
       '@type': 'SiteNavigationElement',

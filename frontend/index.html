@@ -77,6 +77,7 @@
     <link rel="dns-prefetch" href="https://api.flutterwave.com" />
     <link rel="dns-prefetch" href="https://checkout.flutterwave.com" />
     <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://api.thankeeu.com" crossorigin />
 
     <!-- ── Base JSON-LD (React overwrites per-page via useSEO) ──────── -->
     <script type="application/ld+json" id="ld-base">
@@ -134,7 +135,11 @@
           "operatingSystem": "Web, iOS, Android",
           "url": "https://www.thankeeu.com",
           "description": "Group cards and gift collection platform for businesses and individuals worldwide.",
-          "offers": { "@type": "Offer", "price": "5000", "priceCurrency": "NGN" }
+          "offers": [
+            { "@type": "Offer", "price": "5000", "priceCurrency": "NGN" },
+            { "@type": "Offer", "price": "4.99", "priceCurrency": "GBP" },
+            { "@type": "Offer", "price": "5.99", "priceCurrency": "USD" }
+          ]
         }
       ]
     }

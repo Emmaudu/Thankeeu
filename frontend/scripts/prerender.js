@@ -381,10 +381,59 @@ async function prerenderBlogPosts() {
   console.log(`[prerender] Wrote ${ok}/${slugs.length} blog post pages${failed ? ` (${failed} failed — check API_URL/backend availability)` : ''}.`);
 }
 
+// ── IndexNow — ping Bing/DuckDuckGo/Yahoo after every deploy ────────────────
+// Google doesn't support IndexNow (as of July 2026), but Bing shares submissions
+// with DuckDuckGo, Yahoo, Ecosia, Yandex and other partners automatically.
+// The key file must be hosted at: https://www.thankeeu.com/bb74ad2e9171ce36fe8d42aa69dc5ac7.txt
+const INDEXNOW_KEY = process.env.INDEXNOW_KEY || 'bb74ad2e9171ce36fe8d42aa69dc5ac7';
+
+async function pingIndexNow(urls) {
+  if (!INDEXNOW_KEY || urls.length === 0) return;
+  const host = new URL(APP_URL).hostname;
+  const body = JSON.stringify({
+    host,
+    key: INDEXNOW_KEY,
+    keyLocation: `${APP_URL}/${INDEXNOW_KEY}.txt`,
+    urlList: urls.slice(0, 10000), // IndexNow batch limit
+  });
+  try {
+    const { default: https } = await import('https');
+    await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: 'api.indexnow.org',
+        path: '/indexnow',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body) },
+        timeout: 8000,
+      }, (res) => {
+        res.resume();
+        if (res.statusCode === 200 || res.statusCode === 202) {
+          console.log(`[indexnow] Pinged ${urls.length} URLs → HTTP ${res.statusCode}`);
+          resolve();
+        } else {
+          reject(new Error(`HTTP ${res.statusCode}`));
+        }
+      });
+      req.on('timeout', () => req.destroy(new Error('timeout')));
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+  } catch (err) {
+    // Non-fatal — IndexNow failure never breaks the build
+    console.warn(`[indexnow] Ping failed (build continues): ${err.message}`);
+  }
+}
+
 async function main() {
   console.log(`[prerender] API_URL=${API_URL} APP_URL=${APP_URL}`);
   prerenderStaticPages();
   await prerenderBlogPosts();
+
+  // Build list of all URLs to ping IndexNow with
+  const staticUrls = STATIC_PAGES.map(p => `${APP_URL}${p.path}`);
+  await pingIndexNow(staticUrls);
+
   console.log('[prerender] Done.');
 }
 

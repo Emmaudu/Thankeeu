@@ -53,6 +53,22 @@ const OUT_PATH = path.join(__dirname, '..', 'public', 'sitemap.xml');
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
+// Static page lastmod dates — update these manually when page content meaningfully changes.
+// Using fixed dates prevents Google from thinking ALL pages changed on every deploy,
+// which wastes crawl budget and dilutes freshness signals for pages that actually changed.
+const STATIC_LASTMOD = {
+  '/':                      '2026-07-08',
+  '/pricing':               '2026-07-01',
+  '/how-it-works':          '2026-06-27',
+  '/sample':                '2026-06-27',
+  '/faq':                   '2026-06-27',
+  '/policy':                '2026-06-27',
+  '/blog':                  TODAY, // blog index changes frequently
+  '/signup':                '2026-06-27',
+  '/company/signup':        '2026-06-27',
+  '/member/signup':         '2026-06-27',
+};
+
 // ── Static public pages ──────────────────────────────────────────────────────
 // changefreq/priority are SEO hints to crawlers, not guarantees.
 const STATIC_PAGES = [
@@ -165,7 +181,7 @@ function renderUrl({ loc, changefreq, priority, hreflang, image }) {
   const lines = [];
   lines.push('  <url>');
   lines.push(`    <loc>${escapeXML(fullLoc)}</loc>`);
-  lines.push(`    <lastmod>${TODAY}</lastmod>`);
+  lines.push(`    <lastmod>${STATIC_LASTMOD[loc] || TODAY}</lastmod>`);
   if (changefreq) lines.push(`    <changefreq>${changefreq}</changefreq>`);
   if (priority)   lines.push(`    <priority>${priority}</priority>`);
   if (hreflang) {

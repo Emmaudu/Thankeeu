@@ -69,15 +69,23 @@
     <!-- ── Fonts (Fraunces display + Plus Jakarta Sans body) ─────────── -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Direct stylesheet link — the preload+onload pattern is unreliable on Safari iOS -->
-    <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;0,9..144,800;1,9..144,400;1,9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" />
+    <!-- Single consolidated font request — all families the site uses, one HTTP round-trip.
+         Removed the duplicate @import in index.css to avoid double-loading. -->
+    <link rel="preload" as="style"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript>
+      <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" />
+    </noscript>
 
-    <!-- ── DNS prefetch ───────────────────────────────────────────────── -->
+    <!-- ── DNS prefetch for third-party origins ──────────────────────── -->
     <link rel="dns-prefetch" href="https://api.flutterwave.com" />
     <link rel="dns-prefetch" href="https://checkout.flutterwave.com" />
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://api.thankeeu.com" crossorigin />
+
+    <!-- LCP hint: preload the default OG image used by most pages -->
+    <link rel="preload" as="image" href="/og-image.png" fetchpriority="low" />
 
     <!-- ── Base JSON-LD (React overwrites per-page via useSEO) ──────── -->
     <script type="application/ld+json" id="ld-base">

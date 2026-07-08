@@ -1291,6 +1291,28 @@ const Home = () => {
               </Link>
             ))}
           </div>
+          {/* Explore occasion landing pages — real links for SEO crawlability */}
+          <div className="mt-8 flex flex-wrap justify-center gap-2">
+            {[
+              ['/cards/leaving-card',   'Leaving cards'],
+              ['/cards/sympathy',       'Sympathy cards'],
+              ['/cards/retirement',     'Retirement cards'],
+              ['/cards/get-well-soon',  'Get well soon'],
+              ['/cards/welcome',        'Welcome & new hire'],
+              ['/cards/baby-shower',    'Baby shower'],
+              ['/cards/good-luck',      'Good luck cards'],
+              ['/cards/christmas',      'Christmas cards'],
+              ['/cards/thank-you',      'Thank you cards'],
+              ['/online-group-cards-uk',      'Group cards UK'],
+              ['/online-group-cards-us',      'Group cards US'],
+              ['/online-group-cards-nigeria', 'Group cards Nigeria'],
+            ].map(([to, label]) => (
+              <Link key={to} to={to}
+                className="text-xs px-3 py-1.5 rounded-full bg-white border border-purple-100 text-warm-600 hover:text-primary-600 hover:border-primary-200 transition-colors font-medium">
+                {label}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

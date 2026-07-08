@@ -166,6 +166,348 @@ const OCCASIONS = {
       ['/blog/build-workplace-culture-fast-growing-nigerian-company', 'Building workplace culture'],
     ],
   },
+
+  // ── UK Tier 1 ──────────────────────────────────────────────────────────────
+  'sympathy': {
+    path: '/cards/sympathy',
+    title: 'Online Sympathy Card — Group Condolence Cards | Thankeeu',
+    desc: 'Send heartfelt condolences from the whole team with an online sympathy card. Everyone signs from one link — kind words, memories and support — delivered privately when needed most.',
+    keywords: 'online sympathy card, group sympathy card, condolence card online, sympathy card for colleague, bereavement card group, online condolence card, sympathy card everyone signs',
+    h1: 'Sympathy Cards from the Whole Team',
+    sub: 'When a colleague experiences loss, a card full of warm words from everyone says more than any single message can.',
+    useCases: [
+      ['Bereavement at work', 'Colleagues want to reach out but sending dozens of individual messages can overwhelm someone who is grieving. One card collects every voice in one quiet, private place.'],
+      ['Loss of a parent, partner or child', 'The whole team, including those who work remotely or in other offices, can add a personal message from one link — delivered by email at a time of your choosing.'],
+      ['Loss of a pet', 'For many colleagues, a pet is family. A card from the team acknowledges that without overstepping.'],
+      ['Supporting a colleague long-term', 'The card stays open — teammates can keep adding messages over weeks, and the recipient can revisit them in their own time.'],
+    ],
+    faqs: [
+      ['How do I send a group sympathy card without making it overwhelming?', 'Share the link privately with contributors only, set a close date, and deliver it to the recipient by email. They receive one card they can open when they are ready — not a flood of individual messages.'],
+      ['Can contributors add photos to a sympathy card?', 'Yes — contributors can add a photo of a shared memory alongside their message, which is often the most meaningful part of a sympathy card.'],
+      ['Do contributors need an account?', 'No — anyone with the link can sign instantly.'],
+      ['Can we include a contribution for the recipient?', 'Yes — an optional collection pot lets contributors add a financial gift for flowers, funeral costs, or practical support.'],
+    ],
+    blogLinks: [
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for remote teams'],
+      ['/blog/employee-appreciation-vs-recognition', 'Supporting colleagues through difficult times'],
+      ['/blog/build-workplace-culture-fast-growing-nigerian-company', 'Building workplace culture'],
+    ],
+  },
+  'welcome': {
+    path: '/cards/welcome',
+    title: 'Online Welcome Card — Group Welcome Cards for New Starters | Thankeeu',
+    desc: 'Make a new starter feel at home from day one with a welcome card signed by the whole team. Everyone adds a message, photo or GIF from one link. Free to start.',
+    keywords: 'online welcome card, welcome card for new starter, new hire welcome card, welcome to the team card, onboarding card, group welcome card, new employee card',
+    h1: 'Welcome Cards That Make New Starters Feel at Home',
+    sub: 'First impressions stick. A card from the whole team on day one tells a new starter they joined somewhere that pays attention.',
+    useCases: [
+      ['New hire first day', 'Schedule the card to land in their inbox at 9am on their first day — before they have even opened their laptop. It sets the tone for everything that follows.'],
+      ['Remote onboarding', 'Distributed teams can struggle to make new starters feel connected. A welcome card from colleagues they haven\'t met yet closes that gap immediately.'],
+      ['Returning from leave', 'A colleague returning from maternity, paternity or long-term sick leave often needs a warm "welcome back" as much as any new hire.'],
+      ['Transfer or promotion into a new team', 'When someone joins a team from another department, a welcome card from their new colleagues signals genuine inclusion rather than just a process.'],
+    ],
+    faqs: [
+      ['How early should I create the welcome card?', 'A week before the start date gives enough time for the whole team to sign without rushing. Schedule delivery for their first morning.'],
+      ['Can I include a gift with the welcome card?', 'Yes — an optional collection lets the team pool a welcome gift (coffee voucher, stationery, gift card) alongside their messages.'],
+      ['What should people write in a welcome card?', 'Name + role + one personal touch: a favourite thing about the team, a practical tip, or a warm promise to be a helpful resource. Short and genuine beats long and formal.'],
+      ['Do contributors need to register?', 'No — anyone with the link can sign from their phone or laptop instantly.'],
+    ],
+    blogLinks: [
+      ['/blog/employee-onboarding-making-new-hires-feel-welcome', 'Making new hires feel welcome'],
+      ['/blog/build-workplace-culture-fast-growing-nigerian-company', 'Building workplace culture'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for remote teams'],
+      ['/blog/employee-recognition-ideas-nigerian-companies', 'Employee recognition ideas'],
+    ],
+  },
+  'good-luck': {
+    path: '/cards/good-luck',
+    title: 'Online Good Luck Card — Group Good Luck Cards | Thankeeu',
+    desc: 'Send good luck wishes from the whole group with one online card. Perfect for job interviews, exams, surgery, a new venture, or any big moment. Everyone signs from one link.',
+    keywords: 'online good luck card, group good luck card, good luck card for colleague, good luck ecard, virtual good luck card, good luck card everyone signs, good luck in new job card',
+    h1: 'Good Luck Cards from Everyone Who\'s Rooting for Them',
+    sub: 'Big moments are less daunting when the whole team is in their corner. One card collects everyone\'s encouragement in one place.',
+    useCases: [
+      ['Starting a new job', 'A card from former colleagues saying "we believe in you" is one of the most meaningful things someone can receive before their first day at a new company.'],
+      ['Exams and professional qualifications', 'Classmates, study groups, and supportive colleagues can all sign one card wishing someone the best in a big exam or certification.'],
+      ['Surgery or medical procedure', 'Good luck cards for medical occasions sit between get well soon and sympathy — warm, encouraging, forward-looking. The whole team can sign from one link.'],
+      ['A new business or venture', 'When a colleague takes the leap to start their own thing, a card from everyone who has worked with them and believes in them is a powerful send-off.'],
+    ],
+    faqs: [
+      ['What\'s the difference between a good luck card and a leaving card?', 'A leaving card marks the end of a chapter. A good luck card looks forward — it\'s specifically about cheering someone on for what\'s ahead, regardless of whether they\'re leaving.'],
+      ['Can I send a good luck card to someone outside my organisation?', 'Yes — anyone with the link can contribute, so family members, friends and colleagues from other companies can all sign the same card.'],
+      ['Can we include a gift?', 'Yes — an optional collection lets contributors chip in for a good luck gift alongside their messages.'],
+      ['When should I send it?', 'The day before or the morning of the big event, scheduled for a specific time so it lands at just the right moment.'],
+    ],
+    blogLinks: [
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for remote teams'],
+      ['/blog/celebrating-employee-promotions-why-matters-how', 'Celebrating employee promotions'],
+      ['/blog/best-way-celebrate-colleague-leaving-work', 'Celebrating a colleague leaving'],
+    ],
+  },
+  'baby-shower': {
+    path: '/cards/baby-shower',
+    title: 'Online Baby Shower Card — Group Cards & Gift Collections | Thankeeu',
+    desc: 'Create an online baby shower card the whole team or group signs from one link. Messages, photos, GIFs and voice notes, with an optional pooled baby shower gift.',
+    keywords: 'online baby shower card, group baby shower card, baby shower ecard, baby shower card for colleague, virtual baby shower card, baby shower gift collection, baby shower card everyone signs',
+    h1: 'Baby Shower Cards from Everyone Who Loves Them',
+    sub: 'Gather warm wishes and pool a gift for the mum-to-be — all in one link, before the big day.',
+    useCases: [
+      ['Office baby shower', 'Colleagues can sign the card and chip into a group gift in the weeks before the baby arrives — no chasing cash, no passing a card round the office.'],
+      ['Virtual baby shower', 'Friends and family spread across different cities or countries can all sign one card and contribute to one pooled gift, regardless of distance.'],
+      ['Remote team celebration', 'Distributed teams can\'t throw an in-person shower, but a group card delivered on the day makes the occasion just as special from afar.'],
+      ['Extended family gift pool', 'Aunties, cousins and family friends can all contribute to one meaningful baby gift instead of buying five separate small ones.'],
+    ],
+    faqs: [
+      ['What\'s the difference between a baby shower card and a new baby card?', 'A baby shower card is sent before the birth — it\'s celebratory and anticipatory. A new baby card is sent after the arrival to congratulate the parents. Thankeeu has both.'],
+      ['Can remote friends contribute to the gift?', 'Yes — contributors anywhere in the world can add a message and chip into the gift collection from one link.'],
+      ['Do contributors need an account?', 'No — anyone with the link can sign and contribute instantly.'],
+      ['When should we send the card?', 'Before the due date — at the baby shower itself (delivered to a screen) or scheduled to arrive a few days before the expected date.'],
+    ],
+    blogLinks: [
+      ['/blog/baby-shower-group-card-ideas-celebrate-new-mum', 'Baby shower group card ideas'],
+      ['/blog/group-gifting-work-office-gift-pools', 'Group gifting at work'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for remote teams'],
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+    ],
+  },
+  'teacher-thank-you': {
+    path: '/cards/teacher-thank-you',
+    title: 'Online Teacher Thank You Card — Group Cards from the Class | Thankeeu',
+    desc: 'Create a thank you card for a teacher or teaching assistant from the whole class. Every pupil, parent and family member signs from one link — messages, photos, drawings and voice notes.',
+    keywords: 'teacher thank you card online, group thank you card for teacher, class thank you card, end of year teacher card, teacher appreciation card, thank you card for teaching assistant, virtual card for teacher',
+    h1: 'Teacher Thank You Cards from the Whole Class',
+    sub: 'Every pupil. Every parent. One beautiful card. No paper, no chasing, no last-minute panic.',
+    useCases: [
+      ['End of school year', 'The class parent shares one link with all families; every child adds a message, drawing description or photo; the teacher receives one card with every voice in the class.'],
+      ['Teacher leaving or retiring', 'When a beloved teacher moves on, a card signed by current and former pupils — going back years — is something they keep for the rest of their career.'],
+      ['Teaching assistant appreciation', 'TAs rarely get the recognition they deserve. A group card from the class and their parents is a simple way to fix that.'],
+      ['Thank you from parents', 'Parents can add their own messages alongside their children\'s, making the card a fuller picture of the impact a teacher has had.'],
+    ],
+    faqs: [
+      ['How do I organise a class thank you card for a teacher?', 'Share the link with all class parents via the school WhatsApp or email group. Ask each family to add their child\'s message before the last day. Schedule it to deliver at the end-of-term assembly or on the last day.'],
+      ['Can children sign themselves?', 'Yes — any child old enough to type can add their own message. Younger children can dictate to a parent who types it.'],
+      ['Can we include a gift collection?', 'Yes — parents can contribute to a pooled gift card or cash gift alongside their message.'],
+      ['Is there a limit on signers?', 'No — every pupil and parent in the class can sign.'],
+    ],
+    blogLinks: [
+      ['/blog/employee-appreciation-vs-recognition', 'The importance of appreciation'],
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/group-gifting-work-office-gift-pools', 'Group gifting ideas'],
+      ['/blog/creating-employee-recognition-programme-from-scratch', 'Building a culture of recognition'],
+    ],
+  },
+  'engagement': {
+    path: '/cards/engagement',
+    title: 'Online Engagement Card — Group Congratulations Cards | Thankeeu',
+    desc: 'Celebrate an engagement with a group card from everyone who loves them. Messages, photos, GIFs, voice notes and an optional pooled engagement gift — all from one shared link.',
+    keywords: 'online engagement card, group engagement card, engagement congratulations card, congratulations on engagement card, virtual engagement card, engagement card everyone signs, engaged card online',
+    h1: 'Engagement Cards Signed by Everyone Who Loves Them',
+    sub: 'An engagement deserves more than a flurry of individual WhatsApp messages. One card collects every congratulations in one beautiful place.',
+    useCases: [
+      ['Office engagement announcement', 'When a colleague gets engaged, the whole team can sign one card from one link — no chasing anyone down, no passing a card around.'],
+      ['Family and friends group', 'Parents, siblings, childhood friends and newer friends can all sign the same card, turning it into a record of everyone who celebrated this moment with them.'],
+      ['Long-distance celebration', 'Friends and family who can\'t be there in person can still be part of the moment — contributing a message and a share of the gift from anywhere.'],
+      ['Gift pool for the couple', 'Instead of ten individual small gifts, everyone chips in to one meaningful engagement present the couple actually wants.'],
+    ],
+    faqs: [
+      ['Should we send an engagement card or wait for the wedding?', 'Both. An engagement is its own milestone worth marking. Send a card now and another for the wedding — they\'re different moments.'],
+      ['Can we include both people in the card?', 'Yes — address it to both partners and contributors can write to either or both.'],
+      ['How do we pool a gift?', 'Enable the optional collection when creating the card. Everyone contributes when they sign and the couple withdraws the total as a gift.'],
+      ['Do contributors need to register?', 'No — anyone with the link can sign and contribute instantly.'],
+    ],
+    blogLinks: [
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/wedding-wishes-prayers-nigerian-couple-card', 'Wedding wishes for a couple'],
+      ['/blog/group-gifting-work-office-gift-pools', 'Group gifting at work'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for remote and distributed teams'],
+    ],
+  },
+  'new-home': {
+    path: '/cards/new-home',
+    title: 'Online New Home Card — Group Cards & Housewarming Gifts | Thankeeu',
+    desc: 'Celebrate a new home with a group card from family, friends and colleagues. Everyone signs from one link — messages, photos and GIFs — with an optional pooled housewarming gift.',
+    keywords: 'online new home card, group new home card, housewarming card online, new home congratulations card, virtual new home card, housewarming ecard, new home card everyone signs',
+    h1: 'New Home Cards from Everyone Who\'s Celebrating With Them',
+    sub: 'Moving is chaotic. A card from everyone who loves you waiting on the other side makes it worth it.',
+    useCases: [
+      ['Housewarming from colleagues', 'A card from the whole office signed before or after the move-in is a warm gesture that goes beyond the usual group chat congratulations.'],
+      ['First home', 'Buying your first home is a major life milestone. A card from family and close friends with personal messages is something people keep for years.'],
+      ['Family moving abroad', 'When someone moves to another country, a card from everyone back home is a piece of the old life they take with them.'],
+      ['Pooled housewarming gift', 'Instead of everyone buying individually, pool contributions for one useful, meaningful housewarming gift the new homeowners actually want.'],
+    ],
+    faqs: [
+      ['When is the right time to send a new home card?', 'On moving day, scheduled to arrive when they\'ve had a chance to catch their breath — the evening of the move or the morning after tends to land well.'],
+      ['What do people write in a new home card?', 'Wishes for warmth, happiness and many good memories in the new space. If you know the person well, something specific about what the home means to them.'],
+      ['Can we pool a housewarming gift?', 'Yes — enable the collection when creating the card and contributors chip in when they sign.'],
+      ['Can people outside the immediate group sign?', 'Yes — anyone with the link can sign from anywhere.'],
+    ],
+    blogLinks: [
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/group-gifting-work-office-gift-pools', 'Group gifting ideas'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for remote teams'],
+      ['/blog/how-to-surprise-someone-birthday-nigeria-ideas', 'Creative ways to celebrate people'],
+    ],
+  },
+
+  // ── US Tier 1 — US-specific occasions ─────────────────────────────────────
+  'administrative-professionals-day': {
+    path: '/cards/administrative-professionals-day',
+    title: 'Administrative Professionals Day Card — Group Thank You Cards | Thankeeu',
+    desc: 'Celebrate Administrative Professionals Day with a group thank you card from the whole office. Everyone signs from one link — personal messages, photos and GIFs — with an optional gift collection.',
+    keywords: 'administrative professionals day card, admin professionals day card, admin assistant appreciation card, secretary day card, administrative assistant thank you card, group card administrative professionals day',
+    h1: 'Administrative Professionals Day Cards from the Whole Office',
+    sub: 'One card. Every message. Because the person who holds the office together deserves to hear it from everyone.',
+    useCases: [
+      ['Office-wide appreciation', 'Every executive, manager and colleague who relies on an admin professional can sign one card from one link — no chasing signatures around the building.'],
+      ['Remote and hybrid teams', 'Distributed teams can still show coordinated appreciation — everyone contributes from wherever they\'re working.'],
+      ['Executive assistant recognition', 'EAs manage the unmeasurable. A card with personal messages from every person they support is one of the most meaningful gifts they can receive.'],
+      ['Team gift collection', 'Add an optional collection to pool a gift card, spa voucher or experience alongside the card messages.'],
+    ],
+    faqs: [
+      ['When is Administrative Professionals Day?', 'The last Wednesday of April — it falls within Administrative Professionals Week. Mark your calendar and start the card a week out so everyone has time to sign.'],
+      ['What should I write in an Administrative Professionals Day card?', 'Be specific: mention one thing they handled that saved the team, a problem they solved quietly, or simply the way they make the office run. Specific > generic every time.'],
+      ['Can we include a gift?', 'Yes — enable the collection when creating the card. Contributors add a message and chip in toward a group gift simultaneously.'],
+      ['Do contributors need an account?', 'No — anyone with the link signs instantly from their phone or desktop.'],
+    ],
+    blogLinks: [
+      ['/blog/employee-appreciation-vs-recognition', 'Employee appreciation vs recognition'],
+      ['/blog/creating-employee-recognition-programme-from-scratch', 'Building a recognition programme'],
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/group-gifting-work-office-gift-pools', 'Group gifting at work'],
+    ],
+  },
+  'boss-day': {
+    path: '/cards/boss-day',
+    title: 'Boss\'s Day Card — Online Group Cards for Your Manager | Thankeeu',
+    desc: 'Celebrate Boss\'s Day with a group card the whole team signs. Messages, photos and GIFs from everyone — plus an optional gift collection. One link, no account needed.',
+    keywords: "boss's day card, boss day card online, national boss day card, group card for boss, happy boss day card, boss appreciation card, thank you boss card group",
+    h1: "Boss's Day Cards from the Whole Team",
+    sub: 'Show your manager the team appreciates them — one card, every voice, delivered on Boss\'s Day.',
+    useCases: [
+      ['Whole-team appreciation', 'Every direct report signing one card carries more weight than a single message from one person. It shows a coordinated, genuine appreciation.'],
+      ['Remote teams', 'Distributed teams can contribute from any time zone — the card collects everyone\'s message before Boss\'s Day and delivers at the right moment.'],
+      ['New manager welcome + appreciation', 'A card celebrating a manager\'s first Boss\'s Day with the team is a warm gesture that builds rapport fast.'],
+      ['Gift from the team', 'Pool contributions for a group gift alongside the card messages — one meaningful present instead of several individual ones.'],
+    ],
+    faqs: [
+      ["When is Boss's Day?", "National Boss's Day (also called National Boss Day) is October 16 in the US. Start the card a week out so everyone has time to contribute."],
+      ["What should I write in a Boss's Day card?", 'Be genuine and specific. Mention one thing your manager did that made a real difference to you or the team — not generic praise. Specific messages are more memorable and meaningful.'],
+      ['Can the whole team contribute?', 'Yes — share one link via email or Slack and everyone adds their own message. No account needed to sign.'],
+      ['Can we include a gift?', 'Yes — enable the collection pot when creating the card. The team chips in a gift contribution alongside their messages.'],
+    ],
+    blogLinks: [
+      ['/blog/what-to-write-birthday-card-boss-nigeria', "What to write in your boss's birthday card"],
+      ['/blog/employee-appreciation-vs-recognition', 'Employee appreciation vs recognition'],
+      ['/blog/creating-employee-recognition-programme-from-scratch', 'Building a recognition programme'],
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+    ],
+  },
+  'teacher-appreciation': {
+    path: '/cards/teacher-appreciation',
+    title: 'Teacher Appreciation Card — Group Cards from the Class | Thankeeu',
+    desc: 'Create a teacher appreciation card the whole class signs. Every student and parent contributes messages, photos and drawings from one link — with an optional group gift.',
+    keywords: 'teacher appreciation card online, teacher appreciation week card, group card for teacher, class thank you card for teacher, virtual teacher appreciation card, teacher gift card group, end of year teacher card',
+    h1: 'Teacher Appreciation Cards from Every Student and Parent',
+    sub: 'Teacher Appreciation Week only comes once a year. Make it count with a card that holds every voice in the class.',
+    useCases: [
+      ['Teacher Appreciation Week (May)', 'The class parent creates one card, shares the link with all families via the class app or group, and the teacher receives every student\'s message in one place on the big day.'],
+      ['End of school year', 'The most popular time for teacher appreciation — combine messages from students, parents and families into one card the teacher keeps long after the year ends.'],
+      ['Favorite teacher retirement', 'Former students and parents from previous years can sign the same card, making it a tribute to an entire career rather than just one year.'],
+      ['Pooled teacher gift', 'Parents chip into a group gift card (Amazon, Target, school supplies store) alongside their child\'s message — no Venmo requests, no chasing.'],
+    ],
+    faqs: [
+      ['When is Teacher Appreciation Week?', 'The first full week of May in the US. Teacher Appreciation Day falls on the Tuesday of that week. Start the card two weeks out to collect everyone\'s messages.'],
+      ['Can students sign the card themselves?', 'Yes — older students can type their own message. For younger children, parents add a message on their behalf.'],
+      ['What should we write?', 'Ask your child what their favorite thing about the teacher is and write that — specific, genuine memories mean more than generic appreciation.'],
+      ['Can we include a gift card?', 'Yes — enable the collection pot and parents contribute when they sign. The teacher receives the card and the pooled gift together.'],
+    ],
+    blogLinks: [
+      ['/blog/employee-appreciation-vs-recognition', 'The importance of genuine appreciation'],
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/group-gifting-work-office-gift-pools', 'Group gifting ideas'],
+      ['/blog/creating-employee-recognition-programme-from-scratch', 'Recognition that actually lands'],
+    ],
+  },
+  'thanksgiving': {
+    path: '/cards/thanksgiving',
+    title: 'Online Thanksgiving Card — Group Cards for Teams & Clients | Thankeeu',
+    desc: 'Send a Thanksgiving card from the whole team. Colleagues sign from one link — personal messages, photos and GIFs — perfect for client appreciation and team gratitude.',
+    keywords: 'online thanksgiving card, thanksgiving card for team, thanksgiving card for clients, group thanksgiving card, thanksgiving ecard business, virtual thanksgiving card, thanksgiving appreciation card',
+    h1: 'Thanksgiving Cards from the Whole Team',
+    sub: 'The holiday of gratitude is the perfect time for your team to say thank you — to each other, to clients, and to the people who make the work worthwhile.',
+    useCases: [
+      ['Client appreciation cards', 'Send every key client a Thanksgiving card that\'s actually signed by the people who work with them — not a templated corporate email blast from marketing.'],
+      ['Team-to-team gratitude', 'Cross-functional teams can thank the departments they rely on — engineering thanking design, sales thanking operations — with one coordinated card.'],
+      ['Manager to direct reports', 'A Thanksgiving card from a manager with personal messages for each team member is one of the most valued year-end gestures.'],
+      ['Remote team connection', 'Distributed teams across time zones can all contribute to one card that arrives in time for Thanksgiving, no matter where everyone is.'],
+    ],
+    faqs: [
+      ['When should I send a Thanksgiving card to clients?', 'The week before Thanksgiving — it arrives before the holiday rush and stands out better than the wave of December holiday cards every client receives at the same time.'],
+      ['Can multiple people sign one client\'s Thanksgiving card?', 'Yes — every person who works with that client can add a personal message to one card, making it far warmer than a single email.'],
+      ['Is this appropriate for professional relationships?', 'Yes — Thanksgiving appreciation cards are a well-established US business tradition. Warm and genuine beats formal and generic every time.'],
+      ['Do contributors need an account to sign?', 'No — one link, sign instantly, no registration.'],
+    ],
+    blogLinks: [
+      ['/blog/employee-appreciation-vs-recognition', 'Employee appreciation vs recognition'],
+      ['/blog/creating-employee-recognition-programme-from-scratch', 'Building a recognition programme'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for remote teams'],
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+    ],
+  },
+  'mothers-day': {
+    path: '/cards/mothers-day',
+    title: 'Online Mother\'s Day Card — Group Cards from the Whole Family | Thankeeu',
+    desc: 'Create a Mother\'s Day card the whole family signs from one link — messages, photos, voice notes and memories. Pool a gift together. Delivered on Mother\'s Day.',
+    keywords: "online mother's day card, group mother's day card, mother's day card from family, virtual mother's day card, happy mother's day card everyone signs, mother's day gift collection family",
+    h1: "Mother's Day Cards from the Whole Family",
+    sub: 'Every sibling. Every grandchild. Every person who wants to say thank you — gathered in one card, delivered on her day.',
+    useCases: [
+      ['Siblings coordinating across distance', 'Brothers and sisters spread across states or countries can all sign one card from one link — no one gets left out, no one has to coordinate shipping.'],
+      ['Grandchildren to grandmother', 'The whole family signs one card from the grandkids — messages, drawings described in text, and photos — that grandma can keep and revisit forever.'],
+      ['Gift from the whole family', 'Instead of everyone buying separately, pool contributions for one meaningful Mother\'s Day gift the whole family is proud of.'],
+      ['Stepmothers, mother figures and maternal mentors', 'The card can be addressed to anyone who has filled a maternal role — it\'s about the relationship, not just the title.'],
+    ],
+    faqs: [
+      ["When is Mother's Day in the US?", "The second Sunday of May. Start the card one to two weeks out so everyone has time to add their message before it delivers on the day."],
+      ['Can we include photos?', 'Yes — each contributor can add a personal photo alongside their message, turning the card into a family album as well as a card.'],
+      ['Can family members abroad sign?', 'Yes — anyone with the link can contribute from anywhere in the world.'],
+      ['Can we pool a gift?', 'Yes — enable the collection and family members contribute when they sign. The gift recipient or organiser withdraws the total.'],
+    ],
+    blogLinks: [
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/group-gifting-work-office-gift-pools', 'Group gifting ideas'],
+      ['/blog/birthday-wishes-for-sister-nigeria', 'Heartfelt messages for the women in your life'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for distributed families'],
+    ],
+  },
+  'fathers-day': {
+    path: '/cards/fathers-day',
+    title: "Online Father's Day Card — Group Cards from the Whole Family | Thankeeu",
+    desc: "Create a Father's Day card the whole family signs from one link — messages, photos, voice notes and memories. Pool a gift together. Delivered on Father's Day.",
+    keywords: "online father's day card, group father's day card, father's day card from family, virtual father's day card, happy father's day card everyone signs, father's day gift collection family",
+    h1: "Father's Day Cards from the Whole Family",
+    sub: 'Every kid. Every grandkid. Everyone who wants to say they\'re grateful — in one card he\'ll keep for years.',
+    useCases: [
+      ['Kids coordinating a surprise', 'Siblings can secretly set up the card, invite family members, and schedule it to deliver at a specific time on Father\'s Day morning.'],
+      ['Grandchildren to grandfather', 'The whole extended family signs one card — messages, drawings, old photos — creating something far more meaningful than any individual gift.'],
+      ['Pooled gift from the family', 'Pool contributions for one experience or meaningful gift instead of everyone buying separately.'],
+      ['Stepfathers, father figures and mentors', 'The card works for anyone who has been a father figure — coaches, uncles, family friends who stepped in. It\'s about the relationship.'],
+    ],
+    faqs: [
+      ["When is Father's Day in the US?", "The third Sunday of June. Start the card one to two weeks out to collect everyone's messages before delivery day."],
+      ['Can we make it a surprise?', 'Yes — share the link only with contributors and schedule delivery for Father\'s Day morning. The recipient never sees the card until it arrives.'],
+      ['Can family members in other states sign?', 'Yes — the link works from anywhere, on any device, with no account needed.'],
+      ['Can we include a gift?', 'Yes — enable the collection pot and family members contribute when they sign.'],
+    ],
+    blogLinks: [
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual cards'],
+      ['/blog/group-gifting-work-office-gift-pools', 'Group gifting ideas'],
+      ['/blog/birthday-wishes-for-brother-nigeria', 'Heartfelt messages for the men in your life'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for distributed families'],
+    ],
+  },
 };
 
 export default function ExtraOccasionPage({ occasion }) {
@@ -251,3 +593,18 @@ export function GetWellSoonPage()   { return <ExtraOccasionPage occasion="get-we
 export function ThankYouCardPage()  { return <ExtraOccasionPage occasion="thank-you" />; }
 export function MaternityLeavePage(){ return <ExtraOccasionPage occasion="maternity-leave" />; }
 export function ChristmasCardPage() { return <ExtraOccasionPage occasion="christmas" />; }
+// UK Tier 1
+export function SympathyCardPage()           { return <ExtraOccasionPage occasion="sympathy" />; }
+export function WelcomeCardPage()            { return <ExtraOccasionPage occasion="welcome" />; }
+export function GoodLuckCardPage()           { return <ExtraOccasionPage occasion="good-luck" />; }
+export function BabyShowerCardPage()         { return <ExtraOccasionPage occasion="baby-shower" />; }
+export function TeacherThankYouPage()        { return <ExtraOccasionPage occasion="teacher-thank-you" />; }
+export function EngagementCardPage()         { return <ExtraOccasionPage occasion="engagement" />; }
+export function NewHomeCardPage()            { return <ExtraOccasionPage occasion="new-home" />; }
+// US Tier 1
+export function AdminProfessionalsDayPage()  { return <ExtraOccasionPage occasion="administrative-professionals-day" />; }
+export function BossDayPage()                { return <ExtraOccasionPage occasion="boss-day" />; }
+export function TeacherAppreciationPage()    { return <ExtraOccasionPage occasion="teacher-appreciation" />; }
+export function ThanksgivingCardPage()       { return <ExtraOccasionPage occasion="thanksgiving" />; }
+export function MothersDayCardPage()         { return <ExtraOccasionPage occasion="mothers-day" />; }
+export function FathersDayCardPage()         { return <ExtraOccasionPage occasion="fathers-day" />; }

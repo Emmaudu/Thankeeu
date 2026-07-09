@@ -156,8 +156,8 @@ const Footer = () => (
   <footer style={{ background:'linear-gradient(180deg,#F5F0FF,#EDE5FF)' }} className="border-t border-purple-100 mt-auto">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
 
-      {/* ── Top row: Brand + Use Cases + Product + Company ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 mb-10">
+      {/* ── Top row: Brand + Use Cases + Occasions + More Cards + Product + Company ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-8 mb-10">
 
         {/* Brand */}
         <div className="col-span-2 sm:col-span-3 lg:col-span-1">
@@ -200,22 +200,8 @@ const Footer = () => (
           </ul>
         </div>
 
-        {/* Product */}
+        {/* Occasions — first 13 */}
         <div>
-          <p className="font-bold text-warm-900 text-sm mb-4">Product</p>
-          <ul className="space-y-2 mb-6">
-            {[
-              { to:'/',               label:'Home' },
-              { to:'/create-card',    label:'Create a card' },
-              { to:'/pricing',        label:'Pricing' },
-              { to:'/faq',            label:'FAQ' },
-              { to:'/company/signup', label:'For Business' },
-              { to:'/sample',         label:'Demo card' },
-            ].map(({ to, label }) => (
-              <li key={to}><Link to={to} onClick={scrollTop}
-                className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
-            ))}
-          </ul>
           <p className="font-bold text-warm-900 text-sm mb-4">Occasions</p>
           <ul className="space-y-2">
             {[
@@ -232,6 +218,18 @@ const Footer = () => (
               { to:'/cards/christmas',       label:'Christmas' },
               { to:'/cards/welcome',         label:'Welcome' },
               { to:'/cards/good-luck',       label:'Good Luck' },
+            ].map(({ to, label }) => (
+              <li key={to}><Link to={to} onClick={scrollTop}
+                className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
+            ))}
+          </ul>
+        </div>
+
+        {/* More Cards — last 12 */}
+        <div>
+          <p className="font-bold text-warm-900 text-sm mb-4">More Cards</p>
+          <ul className="space-y-2">
+            {[
               { to:'/cards/baby-shower',     label:'Baby Shower' },
               { to:'/occasions/new-baby',    label:'New Baby' },
               { to:'/cards/engagement',      label:'Engagement' },
@@ -244,6 +242,24 @@ const Footer = () => (
               { to:'/cards/fathers-day',     label:"Father's Day" },
               { to:'/cards/teacher-thank-you', label:'Teacher Thank You' },
               { to:'/cards/administrative-professionals-day', label:'Admin Pro Day' },
+            ].map(({ to, label }) => (
+              <li key={to}><Link to={to} onClick={scrollTop}
+                className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Product */}
+        <div>
+          <p className="font-bold text-warm-900 text-sm mb-4">Product</p>
+          <ul className="space-y-2">
+            {[
+              { to:'/',               label:'Home' },
+              { to:'/create-card',    label:'Create a card' },
+              { to:'/pricing',        label:'Pricing' },
+              { to:'/faq',            label:'FAQ' },
+              { to:'/company/signup', label:'For Business' },
+              { to:'/sample',         label:'Demo card' },
             ].map(({ to, label }) => (
               <li key={to}><Link to={to} onClick={scrollTop}
                 className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
@@ -274,10 +290,10 @@ const Footer = () => (
           <p className="font-bold text-warm-900 text-sm mb-4">Markets</p>
           <ul className="space-y-2">
             {[
-              { to:'/online-group-cards-uk',      label:'Group Cards UK' },
-              { to:'/online-group-cards-us',      label:'Group Cards US' },
-              { to:'/online-group-cards-canada',  label:'Group Cards Canada' },
-              { to:'/online-group-cards-nigeria', label:'Group Cards Nigeria' },
+              { to:'/online-group-cards-uk',         label:'Group Cards UK' },
+              { to:'/online-group-cards-us',         label:'Group Cards US' },
+              { to:'/online-group-cards-canada',     label:'Group Cards Canada' },
+              { to:'/online-group-cards-nigeria',    label:'Group Cards Nigeria' },
               { to:'/online-birthday-cards-nigeria', label:'Birthday Cards Nigeria' },
             ].map(({ to, label }) => (
               <li key={to}><Link to={to} onClick={scrollTop}

@@ -482,6 +482,32 @@ const OCCASIONS = {
       ['/blog/group-cards-remote-teams-inclusion', 'Group cards for distributed families'],
     ],
   },
+  'online-birthday-nigeria': {
+    path: '/online-birthday-cards-nigeria',
+    title: 'Online Birthday Cards Nigeria — Buy, Personalise & Send Same Day | Thankeeu',
+    desc: 'Buy an online birthday card in Nigeria — personalised, delivered instantly, signed by everyone who loves them. No printing, no Lagos traffic, no delivery fees. Add a pooled Naira gift via Flutterwave.',
+    keywords: 'online birthday card Nigeria, birthday card Lagos, buy birthday card Nigeria, where to buy birthday card in Nigeria, customised birthday card Nigeria, personalised birthday card Nigeria, birthday card delivery Lagos, send birthday card Nigeria, happy birthday card design Nigeria, birthday card for colleague Nigeria, group birthday card Nigeria, birthday card Abuja',
+    h1: 'Online Birthday Cards in Nigeria — Personalised, Instant, Signed by Everyone',
+    sub: 'Skip the traffic, the printing and the delivery fees. Create a beautiful birthday card online, get everyone to sign it, and deliver it at midnight — anywhere in Nigeria.',
+    useCases: [
+      ['Instead of buying a card in Lagos traffic', 'Physical cards in Lagos mean finding a shop, hoping the design is right, and paying ₦2,000–₦15,000 plus delivery. An online card is created in 2 minutes, costs less, and looks exactly how you want it.'],
+      ['Same-day and midnight delivery, free', 'Card shops need orders before 10am for same-day delivery — and never deliver on weekends. Thankeeu delivers at the exact minute you choose, any day, at no delivery cost, to any phone in Nigeria.'],
+      ['Personalised by everyone, not just you', 'A physical card carries one or two signatures. An online group card carries messages, photos and voice notes from everyone — colleagues, family, friends abroad.'],
+      ['With a Naira gift built in', 'Instead of an envelope of cash taped to a card, contributors chip into a secure gift pool via Flutterwave when they sign. The celebrant withdraws to any Nigerian bank.'],
+    ],
+    faqs: [
+      ['Can I send an online birthday card anywhere in Nigeria?', 'Yes — Lagos, Abuja, Port Harcourt, Kano, anywhere with a phone signal. The card is delivered by email and viewable on any device, so there are no delivery zones, no courier fees, and no "we don\'t deliver on Sundays."'],
+      ['How is this different from buying a physical birthday card?', 'A physical card is one design, one or two signatures, delivered by dispatch rider if you\'re lucky. An online group card is personalised by everyone who signs it — messages, photos, voice notes — delivered at the exact moment you choose, and kept forever.'],
+      ['Can I customise the design?', 'Yes — choose from beautiful designs for every occasion and personality, add a cover photo of the celebrant, and every signer personalises their own message.'],
+      ['How much does an online birthday card cost in Nigeria?', 'Free to create and collect messages. A small fee, always shown upfront in Naira, applies when you send. Compare that to ₦2,000–₦15,000 for a premium physical card plus ₦1,500+ delivery in Lagos.'],
+    ],
+    blogLinks: [
+      ['/blog/where-to-buy-birthday-cards-nigeria', 'Where to buy birthday cards in Nigeria'],
+      ['/blog/physical-vs-digital-birthday-card-colleague-nigeria', 'Physical vs digital birthday cards compared'],
+      ['/blog/birthday-wishes-for-colleague-nigeria-prayers-pidgin', 'Birthday wishes for a Nigerian colleague'],
+      ['/blog/how-to-surprise-someone-birthday-nigeria-ideas', 'Birthday surprise ideas that work in Nigeria'],
+    ],
+  },
   'fathers-day': {
     path: '/cards/fathers-day',
     title: "Online Father's Day Card — Group Cards from the Whole Family | Thankeeu",
@@ -752,3 +778,4 @@ export function TeacherAppreciationPage()    { return <ExtraOccasionPage occasio
 export function ThanksgivingCardPage()       { return <ExtraOccasionPage occasion="thanksgiving" />; }
 export function MothersDayCardPage()         { return <ExtraOccasionPage occasion="mothers-day" />; }
 export function FathersDayCardPage()         { return <ExtraOccasionPage occasion="fathers-day" />; }
+export function OnlineBirthdayNigeriaPage()  { return <ExtraOccasionPage occasion="online-birthday-nigeria" />; }

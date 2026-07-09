@@ -12,7 +12,7 @@ const OCCASIONS = {
     emoji: '🎂',
     tagline: 'Make their birthday unforgettable — the whole team, in one card',
     desc: 'Create an online birthday group card in Nigeria that everyone signs from their phone. Add photos, voice notes, and a pooled Naira gift. Delivered at the perfect moment.',
-    keywords: 'online birthday group card Nigeria, happy birthday group card Nigeria, birthday card everyone signs Nigeria, group birthday gift pool Nigeria, virtual birthday card Lagos Abuja, birthday wishes colleague Nigeria, send birthday card online Nigeria, group ecard Nigeria birthday, staff birthday card Nigeria, office birthday card Nigeria, birthday card team Nigeria, birthday wishes for coworker Nigeria',
+    keywords: 'online birthday card Nigeria, birthday card Lagos, buy birthday card Nigeria, where to buy birthday card in Nigeria, customised birthday card Nigeria, personalised birthday card Nigeria, birthday card delivery Lagos, send birthday card Nigeria, happy birthday card design Nigeria, birthday card for colleague Nigeria, group birthday card Nigeria, online birthday group card Nigeria, birthday card everyone signs Nigeria, group birthday gift pool Nigeria, virtual birthday card Lagos Abuja, office birthday card Nigeria',
     color: '#E84393', accent: '#FF6FB7', gradient: 'linear-gradient(135deg,#FF6FB7 0%,#7C6EFF 100%)',
     bg: '#FFF0F7', cardBg: 'linear-gradient(135deg,#FF6FB7,#E84393)', inkColor: '#fff',
     signers: 24, amount: '₦85,000', sampleTitle: "Tolu's 30th Birthday 🎂",

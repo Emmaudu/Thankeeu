@@ -253,6 +253,7 @@ const STATIC_PAGES = [
   { path: '/cards/thanksgiving', title: 'Online Thanksgiving Card — Group Cards for Teams & Clients | Thankeeu', description: 'Send a Thanksgiving card from the whole team. Colleagues sign from one link — personal messages, photos and GIFs — perfect for client appreciation and team gratitude.' },
   { path: '/cards/mothers-day', title: "Online Mother's Day Card — Group Cards from the Whole Family | Thankeeu", description: "Create a Mother's Day card the whole family signs from one link — messages, photos, voice notes and memories. Pool a gift together." },
   { path: '/cards/fathers-day', title: "Online Father's Day Card — Group Cards from the Whole Family | Thankeeu", description: "Create a Father's Day card the whole family signs from one link — messages, photos, voice notes and memories. Pool a gift together." },
+  { path: '/online-birthday-cards-nigeria', title: 'Online Birthday Cards Nigeria — Buy, Personalise & Send Same Day | Thankeeu', description: 'Buy an online birthday card in Nigeria — personalised, delivered instantly, signed by everyone who loves them. No printing, no Lagos traffic, no delivery fees. Add a pooled Naira gift via Flutterwave.' },
   {
     path: '/occasions/birthday',
     title: 'Online Birthday Group Cards Nigeria | Thankeeu',

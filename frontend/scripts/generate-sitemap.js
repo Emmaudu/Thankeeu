@@ -107,6 +107,7 @@ const STATIC_PAGES = [
   { loc: '/cards/thanksgiving',                   changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/cards/mothers-day',                    changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/cards/fathers-day',                    changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/online-birthday-cards-nigeria',        changefreq: 'monthly', priority: '0.9', hreflang: 'en-NG' },
   { loc: '/occasions/birthday',    changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/occasions/farewell',    changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/occasions/anniversary', changefreq: 'monthly', priority: '0.8', hreflang: true },

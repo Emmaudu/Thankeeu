@@ -69,7 +69,7 @@ import SampleCard from './pages/SampleCard';
 import NotFound         from './pages/NotFound';
 import BirthdayPage    from './pages/occasions/Birthday';
 import { GroupCardsUK, GroupCardsUS, GroupCardsCanada, GroupCardsNigeria } from './pages/occasions/CountryLandingPage';
-import { LeavingCardPage, RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, ChristmasCardPage, SympathyCardPage, WelcomeCardPage, GoodLuckCardPage, BabyShowerCardPage, TeacherThankYouPage, EngagementCardPage, NewHomeCardPage, AdminProfessionalsDayPage, BossDayPage, TeacherAppreciationPage, ThanksgivingCardPage, MothersDayCardPage, FathersDayCardPage } from './pages/occasions/ExtraOccasionPage';
+import { LeavingCardPage, RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, ChristmasCardPage, SympathyCardPage, WelcomeCardPage, GoodLuckCardPage, BabyShowerCardPage, TeacherThankYouPage, EngagementCardPage, NewHomeCardPage, AdminProfessionalsDayPage, BossDayPage, TeacherAppreciationPage, ThanksgivingCardPage, MothersDayCardPage, FathersDayCardPage, OnlineBirthdayNigeriaPage } from './pages/occasions/ExtraOccasionPage';
 import FarewellPage    from './pages/occasions/Farewell';
 import AnniversaryPage from './pages/occasions/Anniversary';
 import PromotionPage   from './pages/occasions/Promotion';
@@ -219,6 +219,7 @@ const App = () => (
             <Route path="/cards/thanksgiving"                  element={<ThanksgivingCardPage />} />
             <Route path="/cards/mothers-day"                   element={<MothersDayCardPage />} />
             <Route path="/cards/fathers-day"                   element={<FathersDayCardPage />} />
+            <Route path="/online-birthday-cards-nigeria"      element={<OnlineBirthdayNigeriaPage />} />
             <Route path="/occasions/farewell"    element={<FarewellPage />} />
             <Route path="/occasions/anniversary" element={<AnniversaryPage />} />
             <Route path="/occasions/promotion"   element={<PromotionPage />} />

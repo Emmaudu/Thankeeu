@@ -15,10 +15,7 @@ const USE_CASE_LINKS = [
   { to:'/live-memory-wall',                           label:'Live Memory Wall™' },
   { to:'/wedding-memory-wall',                        label:'Wedding Memory Wall' },
   { to:'/birthday-memory-wall',                       label:'Birthday Memory Wall' },
-  { to:'/employee-memory-wall',                       label:'Employee Memory Wall' },
-  { to:'/live-memory-wall',                           label:'Live Memory Wall™' },
-  { to:'/wedding-memory-wall',                        label:'Wedding Memory Wall' },
-  { to:'/birthday-memory-wall',                       label:'Birthday Memory Wall' },
+  { to:'/church-memory-wall',                         label:'Church Memory Wall' },
   { to:'/employee-memory-wall',                       label:'Employee Memory Wall' },
   { to:'/leaving-cards-uk',                              label:'Online Leaving Cards UK' },
   { to:'/birthday-cards-uk',                             label:'Online Birthday Cards UK' },
@@ -267,12 +264,14 @@ const Footer = () => (
           <p className="font-bold text-warm-900 text-sm mb-4">Product</p>
           <ul className="space-y-2">
             {[
-              { to:'/',               label:'Home' },
-              { to:'/create-card',    label:'Create a card' },
-              { to:'/pricing',        label:'Pricing' },
-              { to:'/faq',            label:'FAQ' },
-              { to:'/company/signup', label:'For Business' },
-              { to:'/sample',         label:'Demo card' },
+              { to:'/',                   label:'Home' },
+              { to:'/create-card',        label:'Create a card' },
+              { to:'/pricing',            label:'Pricing' },
+              { to:'/memory-movie',       label:'Memory Movie™' },
+              { to:'/live-memory-wall',   label:'Live Memory Wall™' },
+              { to:'/faq',               label:'FAQ' },
+              { to:'/company/signup',    label:'For Business' },
+              { to:'/sample',            label:'Demo card' },
             ].map(({ to, label }) => (
               <li key={to}><Link to={to} onClick={scrollTop}
                 className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>

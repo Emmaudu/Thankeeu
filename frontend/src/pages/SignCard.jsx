@@ -1118,6 +1118,16 @@ const SignCard = () => {
                 </button>
             }
 
+            {/* Memory Movie teaser */}
+            <div className="mt-3 rounded-xl px-4 py-3 flex items-center gap-3"
+              style={{ background: 'linear-gradient(135deg,#0d0020,#2d1052)' }}>
+              <span className="text-xl flex-shrink-0">🎥</span>
+              <p className="text-xs text-white/80 leading-snug">
+                Your message becomes part of a <strong className="text-white">Memory Movie™</strong> — an auto-generated keepsake video {card.recipient_name} will treasure forever.{' '}
+                <Link to="/memory-movie" className="text-purple-300 hover:text-white underline">Learn more</Link>
+              </p>
+            </div>
+
             {/* Trust badges — only shown when gift is enabled */}
             {card.is_gift_enabled && (
               <>

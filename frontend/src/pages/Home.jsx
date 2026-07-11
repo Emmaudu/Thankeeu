@@ -924,6 +924,19 @@ const WhatsAppVsThankeeu = () => (
                 📸 Live Memory Wall™ →
               </Link>
               </div>
+              <div className="flex gap-2 flex-wrap mt-3">
+                {[
+                  { to: '/wedding-memory-wall',  label: '💍 Wedding' },
+                  { to: '/birthday-memory-wall', label: '🎂 Birthday' },
+                  { to: '/church-memory-wall',   label: '⛪ Church' },
+                  { to: '/employee-memory-wall', label: '🏆 Employee' },
+                ].map(({ to, label }) => (
+                  <Link key={to} to={to}
+                    className="text-xs px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white border border-white/10 transition-all font-medium">
+                    {label}
+                  </Link>
+                ))}
+              </div>
             </div>
             <div className="sm:w-64 rounded-2xl bg-white/5 border border-white/10 p-5 flex-shrink-0">
               <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-4">Imagine receiving…</p>

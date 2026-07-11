@@ -28,6 +28,54 @@
   </url>
 
   <url>
+    <loc>https://thankeeu.com/memory-movie</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://thankeeu.com/memory-movie"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.com/live-memory-wall</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://thankeeu.com/live-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.com/wedding-memory-wall</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://thankeeu.com/wedding-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.com/birthday-memory-wall</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://thankeeu.com/birthday-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.com/church-memory-wall</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://thankeeu.com/church-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://thankeeu.com/employee-memory-wall</loc>
+    <lastmod>2026-07-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://thankeeu.com/employee-memory-wall"/>
+  </url>
+
+  <url>
     <loc>https://thankeeu.com/how-it-works</loc>
     <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>

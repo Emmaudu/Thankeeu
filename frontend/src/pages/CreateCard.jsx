@@ -892,11 +892,11 @@ const CreateCard = () => {
               <div className="space-y-3">
                 {[
                   { id:'card_only',     emoji:'❤️', title:'Group Card Only',
-                    desc:'Contributors send messages, photos, videos, voice notes and gifts.' },
+                    desc:'Contributors send messages, photos, videos, voice notes and gifts. Auto-generates a Memory Movie™ keepsake.' },
                   { id:'wall_only',     emoji:'📸', title:'Live Memory Wall™ Only',
                     desc:'Contributors upload photos and videos to a live timeline throughout the event. No traditional card.' },
                   { id:'card_and_wall', emoji:'✨', title:'Group Card + Live Memory Wall™',
-                    desc:'Best of both — contributors write heartfelt messages AND upload event photos to a live wall. Recommended.', recommended: true },
+                    desc:'Best of both — heartfelt messages AND a live photo wall. Auto-generates one unforgettable Memory Movie™.', recommended: true },
                 ].map(opt => (
                   <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
                     className={`w-full text-left rounded-xl p-4 border-2 transition-all ${form.card_experience === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>

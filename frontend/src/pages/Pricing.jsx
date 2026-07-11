@@ -35,8 +35,8 @@ const INDIVIDUAL_PLANS = [
       { text: 'Scheduled delivery on any date', ok: true },
       { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
-      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true },
-      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true },
+      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true, link: '/memory-movie' },
+      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true, link: '/live-memory-wall' },
       { text: 'Download card as PDF', ok: true },
     ],
   },
@@ -53,8 +53,8 @@ const INDIVIDUAL_PLANS = [
       { text: 'Video, photo & voice messages', ok: true },
       { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
-      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true },
-      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true },
+      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true, link: '/memory-movie' },
+      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true, link: '/live-memory-wall' },
       { text: 'Credits never expire', ok: true },
     ],
   },
@@ -71,8 +71,8 @@ const INDIVIDUAL_PLANS = [
       { text: 'Video, photo & voice messages', ok: true },
       { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
-      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true },
-      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true },
+      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true, link: '/memory-movie' },
+      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true, link: '/live-memory-wall' },
       { text: 'Credits never expire', ok: true },
     ],
   },
@@ -262,7 +262,9 @@ const Pricing = () => {
                         <span className={`flex-shrink-0 mt-0.5 ${f.ok ? 'text-green-500' : 'text-warm-300'}`}>
                           <Icon name={f.ok ? 'Check' : 'X'} size={15}/>
                         </span>
-                        <span className={f.ok ? 'text-warm-700' : 'text-warm-400 line-through'}>{f.text}</span>
+                        {f.link
+                          ? <Link to={f.link} className="text-primary-600 hover:underline font-medium">{f.text}</Link>
+                          : <span className={f.ok ? 'text-warm-700' : 'text-warm-400 line-through'}>{f.text}</span>}
                       </li>
                     ))}
                   </ul>

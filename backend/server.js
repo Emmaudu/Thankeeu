@@ -203,7 +203,9 @@ app.use('/api/deductions', require('./routes/deductions'));
 app.use('/api/hris', require('./routes/hrisPublic')); // public: zoho-callback (no auth)
 app.use('/api/hris', require('./routes/hris'));       // protected: all other hris routes
 app.use('/api/demo', require('./routes/demo'));
-app.use('/api/blog', require('./routes/blog'));
+app.use('/api/blog',   require('./routes/blog'));
+app.use('/api/movies', require('./routes/movies'));
+app.use('/api/wall',   require('./routes/wall'));
 app.use('/api/reminders', require('./routes/reminders'));
 app.use('/api/pals', require('./routes/pals'));
 
@@ -309,7 +311,7 @@ async function deliverCard(card) {
     // Guard: re-fetch current status so a concurrent delivery never double-sends
     const { data: fresh, error: fetchErr } = await supabase
       .from('cards')
-      .select('id, slug, status, recipient_notified, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id')
+      .select('id, slug, status, recipient_notified, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, card_experience, movie_status')
       .eq('id', card.id)
       .maybeSingle();
 
@@ -397,10 +399,35 @@ async function deliverCard(card) {
         senderCount:   count || 0,
         giftAmount:    (fresh.total_collected || 0) > 0 ? fresh.total_collected : null,
         isCompanyCard: !!fresh.company_id,
+        hasMemoryWall: ['card_and_wall','wall_only'].includes(fresh.card_experience),
+        // The movie renders AFTER this email (background job below), so at send
+        // time it is not yet ready. Signal that it's on its way instead; a
+        // separate "movie ready" email is sent when rendering completes.
+        movieComing:   (count || 0) > 0,
+        hasMovie:      false,
       },
     });
 
     console.log(`[deliver] ✅ Delivered ${slug} → ${fresh.recipient_email}`);
+
+    // ── Auto-generate Memory Movie in background ──────────────────────────────
+    // Fire-and-forget — never awaited, never blocks delivery, never throws.
+    // Only render when the card actually has messages to build a movie from.
+    setImmediate(async () => {
+      try {
+        const { count: msgCount } = await supabase.from('messages')
+          .select('*', { count: 'exact', head: true }).eq('card_id', fresh.id);
+        if (!msgCount || msgCount < 1) {
+          console.log(`[movie] Skipping auto-render for ${slug}: no messages`);
+          return;
+        }
+        const { runMovieJob } = require('./controllers/movieController');
+        if (runMovieJob) await runMovieJob(fresh.id);
+      } catch (e) {
+        console.warn(`[movie] Auto-trigger failed for ${slug}:`, e.message);
+      }
+    });
+
     _delivering.delete(slug);
     return { delivered: slug };
   } catch (err) {

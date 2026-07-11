@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI, giftcardsAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
+import LiveMemoryWall from '../components/LiveMemoryWall';
+import MemoryMoviePlayer from '../components/MemoryMoviePlayer';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
@@ -1025,6 +1027,9 @@ const CardView = () => {
   );
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [cardViewTab,  setCardViewTab]  = useState(
+    ['wall','movie'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'messages'
+  );
   const [showAll,      setShowAll]      = useState(false);
   const [searchQuery,  setSearchQuery]  = useState('');
   const [searchActive, setSearchActive] = useState(false);
@@ -1306,8 +1311,63 @@ const CardView = () => {
             </div>
           )}
 
+          {/* ── Tab navigation (Messages / Memory Wall / Movie) ── */}
+          {(() => {
+            const hasWall  = ['card_and_wall','wall_only'].includes(card?.card_experience);
+            const movieSt  = card?.movie_status || 'none';
+            const canGen   = Boolean(card?.isCreator || card?.isRecipient);
+            const showMovieTab = movieSt !== 'none' || canGen;
+            // Only render the tab bar if there's more than the default Messages view.
+            if (!hasWall && !showMovieTab) return null;
+            return (
+            <div className="flex justify-center gap-1 mt-6 mb-2 flex-wrap">
+              {card?.card_experience !== 'wall_only' && (
+                <button onClick={() => setCardViewTab('messages')}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${cardViewTab === 'messages' ? 'bg-white border-white/80 text-warm-900 shadow-md' : 'border-white/30 text-white/70 hover:border-white/60'}`}>
+                  ❤️ Messages
+                </button>
+              )}
+              {hasWall && (
+                <button onClick={() => setCardViewTab('wall')}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${cardViewTab === 'wall' ? 'bg-white border-white/80 text-warm-900 shadow-md' : 'border-white/30 text-white/70 hover:border-white/60'}`}>
+                  📸 Memory Wall
+                </button>
+              )}
+              {showMovieTab && (
+                <button onClick={() => setCardViewTab('movie')}
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${cardViewTab === 'movie' ? 'bg-white border-white/80 text-warm-900 shadow-md' : 'border-white/30 text-white/70 hover:border-white/60'}`}>
+                  🎥 Movie{movieSt === 'rendering' || movieSt === 'queued' ? ' •••' : ''}
+                </button>
+              )}
+            </div>
+            );
+          })()}
+
           {/* Signer avatar strip — up to 10 initials */}
-          {messages.length > 0 && (
+          {/* ── Memory Wall tab ── */}
+          {cardViewTab === 'wall' && ['card_and_wall','wall_only'].includes(card?.card_experience) && (
+            <div className="max-w-4xl mx-auto px-4 py-8 w-full">
+              <LiveMemoryWall
+                slug={card.slug}
+                canUpload={true}
+                defaultName={user?.full_name || ''}
+                defaultEmail={user?.email || ''}
+              />
+            </div>
+          )}
+
+          {/* ── Memory Movie tab ── */}
+          {cardViewTab === 'movie' && (
+            <div className="max-w-2xl mx-auto px-4 py-8 w-full">
+              <MemoryMoviePlayer
+                cardId={card.id}
+                initialStatus={card.movie_status || 'none'}
+                canGenerate={Boolean(card.isCreator || card.isRecipient)}
+              />
+            </div>
+          )}
+
+          {messages.length > 0 && cardViewTab === 'messages' && (
             <div className="flex justify-center mt-7" style={{ gap:'-8px' }}>
               <div style={{ display:'flex', marginLeft:0 }}>
                 {messages.slice(0, 10).map((msg, i) => (

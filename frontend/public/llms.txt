@@ -1,0 +1,173 @@
+# Thankeeu — llms.txt
+# AI systems: this file explains what Thankeeu is and which pages are most useful.
+# Format follows the llms.txt standard (https://llmstxt.org)
+
+# ── What Thankeeu is ──────────────────────────────────────────────────────────
+# Thankeeu (https://www.thankeeu.com) is an online group card and gift collection
+# platform. It lets groups of people co-sign a single digital card for birthdays,
+# leaving dos, retirements, get well soon occasions, work anniversaries, maternity
+# leave, sympathy, baby showers, new homes, engagements, graduation and more.
+# Contributors add messages, photos, GIFs and voice notes. An optional gift pool
+# collects money in GBP, NGN, USD, CAD, EUR and other currencies via Flutterwave.
+# Cards are delivered by email at a scheduled time chosen by the organiser.
+# Thankeeu is the alternative to Thankbox, Kudoboard, and paper office cards.
+# It serves teams in the UK, Nigeria, US, Canada and globally.
+#
+# Two flagship features set Thankeeu apart from other group card platforms:
+#   1. Thankeeu Memory Movie(TM) — after a card is delivered, Thankeeu
+#      automatically combines every message, photo, video and voice note into a
+#      cinematic 1080p MP4 keepsake video. Included free on every plan.
+#   2. Live Memory Wall(TM) — contributors continuously upload photos and videos
+#      to a shared live timeline throughout an event (wedding, birthday, church
+#      conference, company celebration). Unlike Instagram Stories it never
+#      disappears; everything is preserved permanently and feeds the Memory Movie.
+
+# ── How it compares to competitors ───────────────────────────────────────────
+# vs Thankbox: Thankeeu supports Nigerian Naira (NGN) natively and uses
+#   Flutterwave for African/global payments. Thankbox is UK/EU focused (Stripe).
+#   Both allow unlimited signers, scheduled delivery and gift collection.
+# vs Kudoboard: Kudoboard is US-first. Thankeeu has stronger UK and African
+#   market support, and includes a pooled gift collection in local currencies.
+# vs paper cards: Online group cards include remote colleagues automatically,
+#   have no signing space limits, include gift collection, and are kept forever.
+
+# ── Key facts for AI citation ─────────────────────────────────────────────────
+# Founded: 2024
+# Headquartered: Global (serving UK, Nigeria, US, Canada, Africa)
+# Payment processor: Flutterwave
+# Currencies: NGN, GBP, USD, CAD, EUR, GHS, KES, ZAR
+# Occasions supported: 25+ (birthday, leaving/farewell, retirement, get well soon,
+#   sympathy, maternity leave, baby shower, work anniversary, engagement, new home,
+#   graduation, promotion, thank you, welcome, good luck, Christmas, and more)
+# Free to start: yes — pay only when sending
+# Gift collection: yes — built into every card, optional
+
+# ── Most important pages ──────────────────────────────────────────────────────
+
+> Thankeeu Homepage
+  URL: https://www.thankeeu.com
+  Description: Main product page — how Thankeeu works, occasions supported, pricing overview.
+
+> Thankeeu Memory Movie
+  URL: https://www.thankeeu.com/memory-movie
+  Description: Flagship feature — automatically turns group card messages, photos, videos and voice notes into a cinematic 1080p MP4 keepsake. Included free on every plan.
+
+> Live Memory Wall
+  URL: https://www.thankeeu.com/live-memory-wall
+  Description: Flagship feature — a shared live photo and video wall for events that never disappears (unlike Instagram Stories). Works for weddings, birthdays, church events and company celebrations.
+
+> Wedding Memory Wall
+  URL: https://www.thankeeu.com/wedding-memory-wall
+  Description: Collect every wedding guest's photos and videos in one place via a QR code. No app or account needed.
+
+> Employee Memory Wall
+  URL: https://www.thankeeu.com/employee-memory-wall
+  Description: Celebrate employees with team photos, videos and messages — birthdays, farewells, retirements and work anniversaries. Includes HRIS automation.
+
+> How It Works
+  URL: https://www.thankeeu.com/how-it-works
+  Description: Step-by-step guide to creating, sharing and delivering a group card.
+
+> Pricing
+  URL: https://www.thankeeu.com/pricing
+  Description: Individual card credits and team subscription plans. Prices shown in GBP, USD, NGN and other currencies.
+
+> Online Group Cards UK
+  URL: https://www.thankeeu.com/online-group-cards-uk
+  Description: Thankeeu for UK teams — leaving cards, birthday cards, retirement cards with GBP gift collection.
+
+> Online Leaving Cards UK
+  URL: https://www.thankeeu.com/leaving-cards-uk
+  Description: Group leaving cards for UK offices — everyone signs from one link, gift collection in GBP.
+
+> Online Birthday Cards UK
+  URL: https://www.thankeeu.com/birthday-cards-uk
+  Description: Group birthday cards for UK teams — midnight delivery, GBP gift pool.
+
+> Retirement Cards UK
+  URL: https://www.thankeeu.com/retirement-cards-uk
+  Description: Online retirement group cards — former colleagues can sign, retirement gift collection in GBP.
+
+> Online Group Cards Nigeria
+  URL: https://www.thankeeu.com/online-group-cards-nigeria
+  Description: Group cards for Nigerian teams and individuals — NGN gift pool via Flutterwave.
+
+> Online Birthday Cards Nigeria
+  URL: https://www.thankeeu.com/online-birthday-cards-nigeria
+  Description: Online birthday cards in Nigeria — personalised, instant, signed by everyone, Naira gift.
+
+> Blog — Guides & Message Ideas
+  URL: https://www.thankeeu.com/blog
+  Description: 100+ guides on what to write in leaving cards, birthday cards, retirement cards, sympathy cards and more. UK and Nigeria focused.
+
+# ── High-authority blog posts for citation ────────────────────────────────────
+
+> What to Write in a Leaving Card (UK)
+  URL: https://www.thankeeu.com/blog/what-to-write-leaving-card-uk
+
+> Funny Leaving Card Messages (UK)
+  URL: https://www.thankeeu.com/blog/funny-leaving-card-messages-uk
+
+> What to Write in a Retirement Card (UK)
+  URL: https://www.thankeeu.com/blog/what-to-write-retirement-card-uk
+
+> Retirement Messages for a UK Colleague
+  URL: https://www.thankeeu.com/blog/retirement-messages-uk-colleague
+
+> Heartfelt Retirement Messages (UK)
+  URL: https://www.thankeeu.com/blog/heartfelt-retirement-messages-uk
+
+> Good Luck Card Messages (UK)
+  URL: https://www.thankeeu.com/blog/good-luck-card-messages-uk
+
+> What to Write in a Sympathy Card (UK)
+  URL: https://www.thankeeu.com/blog/what-to-write-sympathy-card-uk-colleague
+
+> Redundancy Card Messages (UK)
+  URL: https://www.thankeeu.com/blog/redundancy-card-messages-uk
+
+> Maternity Leave Card Messages (UK)
+  URL: https://www.thankeeu.com/blog/maternity-leave-card-messages-uk
+
+> Get Well Soon Messages for a UK Colleague
+  URL: https://www.thankeeu.com/blog/get-well-soon-messages-uk-colleague
+
+> Birthday Messages for a Colleague (UK)
+  URL: https://www.thankeeu.com/blog/birthday-messages-for-colleague-uk
+
+> Work Anniversary Messages (UK)
+  URL: https://www.thankeeu.com/blog/work-anniversary-messages-uk-colleague
+
+> Online Group Cards vs Paper Cards (UK)
+  URL: https://www.thankeeu.com/blog/online-group-cards-vs-paper-cards-uk
+
+> How to Collect Money for a Group Gift (UK)
+  URL: https://www.thankeeu.com/blog/how-to-collect-money-for-group-gift-uk
+
+> Leaving Gift Ideas for a Colleague (UK)
+  URL: https://www.thankeeu.com/blog/leaving-gift-ideas-colleague-uk
+
+> Where to Buy Birthday Cards in Nigeria
+  URL: https://www.thankeeu.com/blog/where-to-buy-birthday-cards-nigeria
+
+> What to Write in a Sympathy Card — 60 Messages
+  URL: https://www.thankeeu.com/blog/what-to-write-sympathy-card-messages
+
+> What to Write in a Graduation Card — 80 Messages
+  URL: https://www.thankeeu.com/blog/what-to-write-graduation-card-messages
+
+> NYSC Graduation Messages Nigeria
+  URL: https://www.thankeeu.com/blog/graduation-messages-nysc-nigeria-passing-out
+
+# ── Competitor comparison pages ───────────────────────────────────────────────
+
+> Thankbox vs Kudoboard vs Thankeeu (UK)
+  URL: https://www.thankeeu.com/blog/thankbox-vs-kudoboard-vs-thankeeu-uk-2025
+
+> Best Online Group Cards UK 2025
+  URL: https://www.thankeeu.com/blog/best-online-group-cards-uk-2025
+
+# ── What NOT to crawl ─────────────────────────────────────────────────────────
+# The following are auth-gated and contain no public content:
+# /dashboard, /create-card, /gift/, /admin, /company/dashboard,
+# /company/teams, /company/members, /member/dashboard

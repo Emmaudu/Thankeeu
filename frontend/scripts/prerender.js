@@ -171,6 +171,31 @@ function writeStatic(relPath, html) {
 // user-facing changes — we're just making it visible to crawlers before JS.
 const STATIC_PAGES = [
   {
+    path: '/',
+    title: 'Thankeeu — Online Group Cards & Gift Collection | Everyone Signs',
+    description: 'Create an online group card for birthdays, leaving dos, retirements and more. Everyone signs from one link. Optional gift pool in GBP, NGN, USD and more. Free to start.',
+  },
+  {
+    path: '/pricing',
+    title: 'Pricing — Online Group Cards from £4.99 | Thankeeu',
+    description: 'Send a group card from £4.99 GBP / ₦5,000 NGN. Pool a gift in GBP, NGN, USD, CAD and more. Team plans with unlimited cards and HR automation. Free to create — pay when you send.',
+  },
+  {
+    path: '/blog',
+    title: 'Blog — Group Card Guides & Message Ideas | Thankeeu',
+    description: '100+ guides on what to write in leaving cards, birthday cards, retirement cards, sympathy cards and more. UK and Nigeria focused.',
+  },
+  {
+    path: '/signup',
+    title: 'Create a Free Account | Thankeeu',
+    description: 'Sign up free. Create group cards, collect gifts in GBP or NGN, and deliver at the perfect moment.',
+  },
+  {
+    path: '/company/signup',
+    title: 'Thankeeu for Teams — Unlimited Group Cards & HR Automation',
+    description: 'Automate birthday and anniversary cards for your whole team. HRIS integration, unlimited cards, and gift collection in GBP or NGN. Free trial.',
+  },
+  {
     path: '/faq',
     title: 'FAQ — Group Cards, Gift Pots & Payments Explained | Thankeeu',
     description: 'Answers to the most common questions about Thankeeu. How to create a group card, pool a gift, pay securely with Flutterwave, withdraw money to your bank, and more.',
@@ -253,7 +278,56 @@ const STATIC_PAGES = [
   { path: '/cards/thanksgiving', title: 'Online Thanksgiving Card — Group Cards for Teams & Clients | Thankeeu', description: 'Send a Thanksgiving card from the whole team. Colleagues sign from one link — personal messages, photos and GIFs — perfect for client appreciation and team gratitude.' },
   { path: '/cards/mothers-day', title: "Online Mother's Day Card — Group Cards from the Whole Family | Thankeeu", description: "Create a Mother's Day card the whole family signs from one link — messages, photos, voice notes and memories. Pool a gift together." },
   { path: '/cards/fathers-day', title: "Online Father's Day Card — Group Cards from the Whole Family | Thankeeu", description: "Create a Father's Day card the whole family signs from one link — messages, photos, voice notes and memories. Pool a gift together." },
-  { path: '/online-birthday-cards-nigeria', title: 'Online Birthday Cards Nigeria — Buy, Personalise & Send Same Day | Thankeeu', description: 'Buy an online birthday card in Nigeria — personalised, delivered instantly, signed by everyone who loves them. No printing, no Lagos traffic, no delivery fees. Add a pooled Naira gift via Flutterwave.' },
+  { path: '/online-birthday-cards-nigeria', title: 'Online Birthday Cards Nigeria — Buy, Personalise & Send Same Day | Thankeeu', description: 'Buy an online birthday card in Nigeria — personalised, delivered instantly, signed by everyone who loves them. No printing, no Lagos traffic, no delivery fees.' },
+  { path: '/leaving-cards-uk', title: 'Online Leaving Cards UK — Group Leaving Cards Everyone Signs | Thankeeu', description: 'Create an online leaving card for a UK colleague in under 2 minutes. The whole team signs from one link — messages, photos, GIFs, voice notes — with a leaving gift collection in GBP.' },
+  { path: '/birthday-cards-uk', title: 'Online Birthday Cards UK — Group Birthday Cards for Every Team | Thankeeu', description: 'Create an online birthday group card for a UK colleague. Everyone signs from one link with a birthday gift collection in GBP. Delivered at midnight.' },
+  { path: '/retirement-cards-uk', title: 'Online Retirement Cards UK — Group Cards for Retiring Colleagues | Thankeeu', description: 'Create an online retirement group card for a UK colleague — signed by current and former colleagues, with an optional retirement gift collection in GBP.' },
+  { path: '/get-well-soon-cards-uk', title: 'Online Get Well Soon Cards UK — Group Cards from the Whole Team | Thankeeu', description: 'Send strength from the whole UK team with an online get well soon card. Everyone signs from one link — messages, photos and voice notes — delivered privately.' },
+  {
+    path: '/live-memory-wall',
+    title: 'Live Memory Wall™ — Collect Every Photo & Video from Your Celebration | Thankeeu',
+    description: 'Thankeeu Live Memory Wall lets guests upload photos and videos in real time. Everything preserved forever and automatically becomes a Memory Movie.',
+  },
+  {
+    path: '/wedding-memory-wall',
+    title: "Wedding Memory Wall — Collect Every Guest's Photos & Videos | Thankeeu",
+    description: "Collect every guest's wedding photos and videos in one shared Memory Wall. Guests scan a QR code, upload throughout the day, and get a permanent album and Memory Movie.",
+  },
+  {
+    path: '/birthday-memory-wall',
+    title: 'Birthday Memory Wall — Turn Your Birthday Into a Live Celebration | Thankeeu',
+    description: "Collect birthday photos, videos and messages from everyone at the party and beyond with Thankeeu's Live Memory Wall.",
+  },
+  {
+    path: '/church-memory-wall',
+    title: 'Church Memory Wall — Capture Every Moment from Church Conferences | Thankeeu',
+    description: 'Capture photos and videos from church conferences, pastor appreciation services, baby dedications and special occasions.',
+  },
+  {
+    path: '/employee-memory-wall',
+    title: 'Employee Memory Wall — Celebrate Employees With More Than Just Messages | Thankeeu',
+    description: 'Capture photos, videos and memories from the entire team for employee celebrations. Build a permanent Memory Wall and auto-generate a keepsake movie.',
+  },
+  { path: '/live-memory-wall',     title: 'Live Memory Wall™ — Collect Every Photo & Video From Your Event | Thankeeu',     description: 'Your Instagram Stories disappear. Your memories shouldn\'t. Collect every photo, video and moment from everyone at your celebration in one beautiful shared memory wall that lasts forever.' },
+  { path: '/wedding-memory-wall',  title: 'Wedding Memory Wall — Collect Every Guest\'s Photos & Videos | Thankeeu',           description: 'Collect every guest\'s wedding photos and videos in one beautiful shared memory wall. Guests scan a QR code and upload instantly.' },
+  { path: '/birthday-memory-wall', title: 'Birthday Memory Wall — Turn Your Birthday Into A Live Celebration | Thankeeu',       description: 'Create a live birthday memory wall where friends and family upload photos, videos and messages throughout the day.' },
+  { path: '/church-memory-wall',   title: 'Church Memory Wall — Capture Every Conference & Service Moment | Thankeeu',         description: 'Capture every moment from church conferences, pastor appreciation days and special services in one permanent memory wall.' },
+  { path: '/employee-memory-wall', title: 'Employee Memory Wall — Celebrate Employees With More Than Messages | Thankeeu',     description: 'Capture photos, videos and memories from the whole team for birthdays, farewells, retirements and work anniversaries.' },
+  {
+    path: '/memory-movie',
+    title: 'Thankeeu Memory Movie™ — Turn Birthday Messages, Photos & Videos Into One Beautiful Movie',
+    description: 'Thankeeu automatically creates a cinematic 1080p Memory Movie from every message, photo, video and voice note on your group card. Included free on every plan.',
+  },
+  {
+    path: '/occasions/staff-appreciation',
+    title: 'Staff Appreciation Group Cards — Thank Your Team | Thankeeu',
+    description: 'Create a staff appreciation group card in minutes. Everyone on the team adds a message, photo or voice note. Optional gift collection in GBP or NGN. Free to start.',
+  },
+  {
+    path: '/member/signup',
+    title: 'Join Your Team on Thankeeu — Member Signup',
+    description: 'Join your company\'s Thankeeu account to sign group cards, send appreciation, and celebrate colleagues automatically.',
+  },
   {
     path: '/occasions/birthday',
     title: 'Online Birthday Group Cards Nigeria | Thankeeu',
@@ -337,22 +411,71 @@ async function prerenderBlogPosts() {
       const ogImage = post.og_image || post.cover_image || `${APP_URL}/og-image.png`;
       const canonicalPath = `/blog/${post.slug}`;
 
-      const jsonLd = {
-        '@context': 'https://schema.org',
-        '@type': 'Article',
-        headline: post.title,
-        description,
-        image: ogImage ? [ogImage] : undefined,
-        author: { '@type': 'Organization', name: post.author_name || 'Thankeeu Team' },
-        publisher: {
-          '@type': 'Organization',
-          name: 'Thankeeu',
-          logo: { '@type': 'ImageObject', url: `${APP_URL}/android-chrome-512x512.png` },
+      // ── Named author entity — AI citation credibility requires Person, not Org ──
+      const authorName = post.author_name || 'Thankeeu Team';
+      const authorSchema = authorName === 'Thankeeu Team'
+        ? { '@type': 'Organization', name: 'Thankeeu', url: APP_URL }
+        : { '@type': 'Person', name: authorName, url: `${APP_URL}/about` };
+
+      // ── Detect FAQ content in the post body ──
+      const hasFaq = (post.content || '').includes('<h2>') &&
+        /(FAQ|frequently asked|common question|faq)/i.test(post.content || '');
+
+      // ── Build the JSON-LD graph — Article + Breadcrumb + optional FAQ ──
+      const graph = [
+        {
+          '@type': ['Article', 'BlogPosting'],
+          '@id': `${APP_URL}${canonicalPath}#article`,
+          headline: post.title,
+          description,
+          image: ogImage ? [ogImage] : undefined,
+          author: authorSchema,
+          publisher: {
+            '@type': 'Organization',
+            '@id': `${APP_URL}/#organization`,
+            name: 'Thankeeu',
+            logo: { '@type': 'ImageObject', url: `${APP_URL}/android-chrome-512x512.png` },
+          },
+          datePublished: post.published_at || post.created_at,
+          dateModified: post.updated_at || post.published_at || post.created_at,
+          mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}${canonicalPath}` },
+          // Speakable — voice AI reads these sections first
+          speakable: {
+            '@type': 'SpeakableSpecification',
+            cssSelector: ['h1', 'h2', '.article-excerpt'],
+          },
+          // Keywords extracted from tags
+          keywords: (post.tags || []).join(', '),
+          inLanguage: 'en',
+          isPartOf: { '@type': 'Blog', '@id': `${APP_URL}/blog` },
         },
-        datePublished: post.published_at || post.created_at,
-        dateModified: post.updated_at || post.published_at || post.created_at,
-        mainEntityOfPage: { '@type': 'WebPage', '@id': `${APP_URL}${canonicalPath}` },
-      };
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home',  item: APP_URL },
+            { '@type': 'ListItem', position: 2, name: 'Blog',  item: `${APP_URL}/blog` },
+            { '@type': 'ListItem', position: 3, name: post.title, item: `${APP_URL}${canonicalPath}` },
+          ],
+        },
+      ];
+
+      // ── FAQPage schema — AI extracts Q&A pairs directly from this ──
+      if (hasFaq) {
+        const h2Pairs = [...(post.content || '').matchAll(/<h2[^>]*>(.*?)<\/h2>\s*<p[^>]*>(.*?)<\/p>/gs)];
+        const faqItems = h2Pairs
+          .filter(([, q]) => q.length < 120)
+          .slice(0, 8)
+          .map(([, q, a]) => ({
+            '@type': 'Question',
+            name: q.replace(/<[^>]+>/g, '').trim(),
+            acceptedAnswer: { '@type': 'Answer', text: a.replace(/<[^>]+>/g, '').trim() },
+          }));
+        if (faqItems.length > 0) {
+          graph.push({ '@type': 'FAQPage', mainEntity: faqItems });
+        }
+      }
+
+      const jsonLd = { '@context': 'https://schema.org', '@graph': graph };
 
       // Visible, crawlable content — real <h1>/<article> markup, not JS-injected.
       const rootHtml = `

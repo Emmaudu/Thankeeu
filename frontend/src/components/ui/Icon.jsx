@@ -16,6 +16,7 @@ import {
   Twitter, Linkedin, Instagram, GraduationCap, Baby,
   Sun, Flower2, HeartPulse, Snowflake, Sunrise, ThumbsUp as ThumbsUpDup,
   TrendingDown, TrendingUp as TrendingUpIcon, LayoutGrid, Archive, AlertTriangle,
+  Film, Loader2, Play, Video, Music, CheckCircle,
 } from 'lucide-react';
 
 const ICONS = {
@@ -27,8 +28,8 @@ const ICONS = {
   Building: Building2, User, UserPlus, UserCheck, UserX,
   Shield, Lock, Unlock,
   Card: CreditCard, Wallet, TrendingUp, BarChart: BarChart2, PieChart, Activity,
-  Send, Message: MessageSquare, Image, Paperclip, Smile, Mic,
-  Share: Share2, Link, ExternalLink, Tag,
+  Send, Message: MessageSquare, MessageSquare, Image, Paperclip, Smile, Mic,
+  Share: Share2, Share2, Link, ExternalLink, Tag,
   File: FileText, Folder: FolderOpen, Table, Grid, List,
   ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Refresh: RefreshCw,
   Zap, Award, Flag, Briefcase, Book: BookOpen,
@@ -40,6 +41,7 @@ const ICONS = {
   Twitter, Linkedin, Instagram, GraduationCap, Baby,
   Sun, Flower: Flower2, HeartPulse, Snowflake, Sunrise,
   TrendingDown, LayoutGrid, Archive, AlertTriangle,
+  Film, Loader: Loader2, Play, Video, Music, CheckCircle,
 };
 
 const SIZES = { xs: 12, sm: 14, md: 16, lg: 20, xl: 24, '2xl': 32 };

@@ -508,6 +508,110 @@ const OCCASIONS = {
       ['/blog/how-to-surprise-someone-birthday-nigeria-ideas', 'Birthday surprise ideas that work in Nigeria'],
     ],
   },
+  'leaving-card-uk': {
+    path: '/leaving-cards-uk',
+    title: 'Online Leaving Cards UK — Group Leaving Cards Everyone Signs | Thankeeu',
+    desc: 'Create an online leaving card for a UK colleague in under 2 minutes. The whole team signs from one link — messages, photos, GIFs, voice notes — with a leaving gift collection in GBP. Delivered on their last day.',
+    keywords: 'online leaving card UK, leaving card for colleague UK, group leaving card UK, virtual leaving card UK, online farewell card UK, leaving collection UK, farewell card everyone signs UK, leaving card free UK',
+    h1: 'Online Leaving Cards for UK Teams',
+    sub: 'One link. Everyone signs. The leaving collection sorted at the same time. Delivered on their last day at the exact minute you choose.',
+    useCases: [
+      ['Colleague moving to a new role', 'Every team member signs from one link — office staff, remote workers and the person on annual leave. Messages, photos from team events, and voice notes collected in one card.'],
+      ['Leaving gift collection included', 'Enable the optional gift pool and contributors add their message and their contribution at the same time. No separate email, no bank transfer to a personal account, no chasing.'],
+      ['Manager or team leader leaving', 'A proper send-off for someone who has led the team — with full-length messages from every direct report, including those in other offices.'],
+      ['Someone made redundant', 'A card signed by everyone says: whatever the circumstances, you were valued here. Remote signing means nobody is excluded because they were working from home.'],
+    ],
+    faqs: [
+      ['How much does an online leaving card cost in the UK?', 'Free to create and collect messages. A small fee, shown upfront in GBP, applies when you send. Significantly less than a decent card from a shop, before delivery is added.'],
+      ['Can remote colleagues sign?', 'Yes — the link works from any device, anywhere. Your Manchester office, the person on parental leave and the colleague who left last year but wants to sign can all contribute.'],
+      ['How does the leaving gift collection work in GBP?', 'Enable the optional collection when creating the card. Contributors pay by debit or credit card in GBP — no personal bank accounts involved. The recipient or organiser withdraws the total directly.'],
+      ['When should I create the card?', 'At least a week before their last day, ideally two — this gives everyone time to sign without rushing. Set delivery for their last morning.'],
+    ],
+    blogLinks: [
+      ['/blog/what-to-write-leaving-card-uk', 'What to write in a leaving card (UK)'],
+      ['/blog/funny-leaving-card-messages-uk', 'Funny leaving card messages (UK)'],
+      ['/blog/leaving-card-messages-colleague-uk', 'Leaving card messages by relationship'],
+      ['/blog/collect-money-leaving-gift-uk', 'How to collect money for a leaving gift (UK)'],
+    ],
+  },
+  'birthday-uk': {
+    path: '/birthday-cards-uk',
+    title: 'Online Birthday Cards UK — Group Birthday Cards for Every Team | Thankeeu',
+    desc: 'Create an online birthday group card for a UK colleague in under 2 minutes. Everyone signs from one link — messages, photos, GIFs and voice notes — with a birthday gift collection in GBP. Delivered at midnight.',
+    keywords: 'online birthday card UK, group birthday card UK, birthday card for colleague UK, virtual birthday card UK, birthday card everyone signs UK, office birthday card UK, birthday gift collection UK, group ecard UK birthday',
+    h1: 'Online Birthday Cards for UK Teams',
+    sub: 'Midnight delivery. Every colleague signs. Birthday gift collection in GBP. No carrier bag, no cramped margins.',
+    useCases: [
+      ['Office birthday cards that actually include everyone', 'The person working from home, the team in another city, the colleague on holiday — they all sign the same card from one link.'],
+      ['Birthday gift collection without the awkwardness', 'Contributors add their message and their contribution simultaneously. No chasing bank transfers, no personal accounts, no fixed amounts causing friction.'],
+      ['Weekend and weekday birthdays', 'Schedule delivery for midnight on the birthday — any day of the week, including weekends and bank holidays — at no extra cost.'],
+      ['Whole-office birthday cards', 'For large organisations, one link handles any number of contributors. Every department, every floor, every office — one card.'],
+    ],
+    faqs: [
+      ['How much does an online birthday card cost in the UK?', 'Free to create and collect messages. A small sending fee shown upfront in GBP — less than a decent card from a shop, with no delivery charge.'],
+      ['Can it be delivered at midnight on their birthday?', 'Yes — set any date and time, including midnight, for a surprise the celebrant opens first thing.'],
+      ['How does the birthday gift collection work?', 'Enable the pool when creating the card. Everyone pays by debit or credit card in GBP when they sign. The recipient withdraws the total directly.'],
+      ['Is this better than a paper birthday card?', 'For groups: yes. Unlimited messages, remote colleagues included, gift collection built in, delivered on time regardless of day of the week.'],
+    ],
+    blogLinks: [
+      ['/blog/birthday-messages-for-colleague-uk', 'Birthday messages for a UK colleague'],
+      ['/blog/office-birthday-card-ideas-uk', 'Office birthday card ideas (UK)'],
+      ['/blog/birthday-card-messages-uk-colleagues-2025', 'Birthday card messages for UK colleagues'],
+      ['/blog/best-online-group-cards-uk-2025', 'Best online group cards UK'],
+    ],
+  },
+  'retirement-uk': {
+    path: '/retirement-cards-uk',
+    title: 'Online Retirement Cards UK — Group Cards for Retiring Colleagues | Thankeeu',
+    desc: 'Create an online retirement group card for a UK colleague — signed by current and former colleagues, with messages, photos, voice notes and an optional retirement gift collection in GBP.',
+    keywords: 'online retirement card UK, retirement card for colleague UK, group retirement card UK, virtual retirement card UK, retirement gift collection UK, retirement leaving card UK, retirement card everyone signs UK',
+    h1: 'Online Retirement Cards for UK Colleagues',
+    sub: 'A career of that length deserves more than a card bought in the petrol station on the way in.',
+    useCases: [
+      ['Long-service retirements', 'Former colleagues who left years ago can sign alongside current ones — one link works for anyone with the URL, regardless of when they last worked with the retiree.'],
+      ['Retirement gift collection in GBP', 'Pool contributions from the whole team into one meaningful retirement gift — no envelopes, no chasing, no personal accounts.'],
+      ['Voice notes for a retirement card', 'Hearing familiar voices from a decades-long career is something a paper card cannot do. Every contributor can record a voice note straight from their phone.'],
+      ['Delivered at the retirement party or on the last day', 'Schedule the card for the moment it will land most meaningfully — during the party, on the last morning, or at the retirement dinner.'],
+    ],
+    faqs: [
+      ['Can former colleagues sign the retirement card?', 'Yes — anyone with the link can sign, regardless of whether they still work at the organisation. A retiree with a 30-year career may have colleagues from every decade who want to contribute.'],
+      ['Is there a limit on how many people can sign?', 'No — retirement cards often have very large signing lists. There is no limit on contributors.'],
+      ['How does the retirement gift collection work in GBP?', 'Enable the collection when creating the card. Everyone contributes by card or bank transfer in GBP. The retiree or organiser withdraws the total directly.'],
+      ['When should I start the card?', 'At least two weeks before the retirement date — more if you want to invite former colleagues, who may need more time to see the link.'],
+    ],
+    blogLinks: [
+      ['/blog/what-to-write-retirement-card-uk', 'What to write in a retirement card (UK)'],
+      ['/blog/retirement-messages-uk-colleague', 'Retirement messages for a UK colleague'],
+      ['/blog/work-anniversary-cards-guide', 'Work anniversary and retirement card guide'],
+      ['/blog/best-way-celebrate-colleague-leaving-work', 'How to celebrate a colleague leaving'],
+    ],
+  },
+  'get-well-soon-uk': {
+    path: '/get-well-soon-cards-uk',
+    title: 'Online Get Well Soon Cards UK — Group Cards from the Whole Team | Thankeeu',
+    desc: 'Send strength from the whole UK team with an online get well soon card. Everyone signs from one link — messages, photos and voice notes — delivered privately when it matters most.',
+    keywords: 'online get well soon card UK, group get well card UK, get well card for colleague UK, virtual get well soon card UK, get well soon card everyone signs UK, get well card UK office',
+    h1: 'Get Well Soon Cards from the Whole Team',
+    sub: 'One card. Every colleague. Delivered when they need it most — not a flood of individual WhatsApp messages.',
+    useCases: [
+      ['Serious illness or surgery', 'Coordinate quietly — share the link with colleagues without the recipient knowing, set delivery for when they\'ve had a chance to settle, and let every message arrive together.'],
+      ['Long recovery', 'The card stays live — contributors can keep adding messages over weeks, and the recipient can revisit them whenever they need lifting.'],
+      ['Remote and hybrid UK teams', 'Colleagues working from home, in other offices and on flexible arrangements all sign the same card from one link.'],
+      ['Optional support collection', 'For situations where a financial contribution would be welcome — help with costs or a thoughtful gift — enable the optional pool alongside the card.'],
+    ],
+    faqs: [
+      ['How do I send a get well soon card without overwhelming someone who is unwell?', 'Create the card privately, share the link only with contributors, set delivery for a time when they\'ll have space to read it — not the day of an operation, but a few days later. One card with many messages is much gentler than many individual messages arriving all at once.'],
+      ['Can contributors add voice notes?', 'Yes — hearing a familiar voice when you\'re unwell and isolated is genuinely comforting. Anyone can record a voice note from their phone.'],
+      ['Do contributors need an account?', 'No — anyone with the link can sign instantly.'],
+      ['Can we include a contribution?', 'Yes — enable the optional gift pool for practical help alongside the messages.'],
+    ],
+    blogLinks: [
+      ['/blog/get-well-soon-messages-uk-colleague', 'Get well soon messages for a UK colleague'],
+      ['/blog/get-well-soon-messages-colleague-friend-nigeria', 'Get well soon messages — what to write'],
+      ['/blog/why-group-cards-beat-individual-cards', 'Why group cards beat individual messages'],
+      ['/blog/group-cards-remote-teams-inclusion', 'Group cards for remote and hybrid teams'],
+    ],
+  },
   'fathers-day': {
     path: '/cards/fathers-day',
     title: "Online Father's Day Card — Group Cards from the Whole Family | Thankeeu",
@@ -779,3 +883,8 @@ export function ThanksgivingCardPage()       { return <ExtraOccasionPage occasio
 export function MothersDayCardPage()         { return <ExtraOccasionPage occasion="mothers-day" />; }
 export function FathersDayCardPage()         { return <ExtraOccasionPage occasion="fathers-day" />; }
 export function OnlineBirthdayNigeriaPage()  { return <ExtraOccasionPage occasion="online-birthday-nigeria" />; }
+// UK-specific occasion pages
+export function LeavingCardUKPage()          { return <ExtraOccasionPage occasion="leaving-card-uk" />; }
+export function BirthdayCardUKPage()         { return <ExtraOccasionPage occasion="birthday-uk" />; }
+export function RetirementCardUKPage()       { return <ExtraOccasionPage occasion="retirement-uk" />; }
+export function GetWellSoonUKPage()          { return <ExtraOccasionPage occasion="get-well-soon-uk" />; }

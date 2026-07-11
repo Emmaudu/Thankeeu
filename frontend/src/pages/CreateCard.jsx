@@ -96,6 +96,7 @@ const CreateCard = () => {
     allow_private_messages: true, send_reminders: true, hide_amounts: false,
     notification_scope: 'department',
     custom_occasion: '',
+    card_experience: 'card_and_wall', // default: Group Card + Live Memory Wall
   });
 
   // Creator's own first message (Step 3)
@@ -392,6 +393,7 @@ const CreateCard = () => {
         const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
         const fullUpdate = {
           is_gift_enabled:  form.is_gift_enabled,
+          card_experience:  form.card_experience || 'card_and_wall',
           suggested_amount: form.suggested_amount,
           gift_type:        form.gift_type,
           send_date:        utcSD || null,
@@ -883,6 +885,39 @@ const CreateCard = () => {
                 </div>
               </div>
             )}
+            {/* ── Celebration Experience ── */}
+            <div className="rounded-2xl border-2 border-purple-100 p-5">
+              <h3 className="font-bold text-warm-900 text-sm mb-1">Celebration Experience</h3>
+              <p className="text-xs text-warm-500 mb-4">Choose how contributors participate in the celebration.</p>
+              <div className="space-y-3">
+                {[
+                  { id:'card_only',     emoji:'❤️', title:'Group Card Only',
+                    desc:'Contributors send messages, photos, videos, voice notes and gifts.' },
+                  { id:'wall_only',     emoji:'📸', title:'Live Memory Wall™ Only',
+                    desc:'Contributors upload photos and videos to a live timeline throughout the event. No traditional card.' },
+                  { id:'card_and_wall', emoji:'✨', title:'Group Card + Live Memory Wall™',
+                    desc:'Best of both — contributors write heartfelt messages AND upload event photos to a live wall. Recommended.', recommended: true },
+                ].map(opt => (
+                  <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
+                    className={`w-full text-left rounded-xl p-4 border-2 transition-all ${form.card_experience === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl mt-0.5">{opt.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-warm-900 text-sm">{opt.title}</span>
+                          {opt.recommended && <span className="text-xs px-2 py-0.5 rounded-full bg-primary-100 text-primary-600 font-bold">Recommended</span>}
+                        </div>
+                        <p className="text-xs text-warm-500 mt-0.5 leading-relaxed">{opt.desc}</p>
+                      </div>
+                      <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5 transition-colors ${form.card_experience === opt.id ? 'border-primary-500 bg-primary-500' : 'border-gray-300'}`}>
+                        {form.card_experience === opt.id && <span className="w-2 h-2 rounded-full bg-white block"/>}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="rounded-2xl border border-purple-100 divide-y divide-gray-100">
               {[
                 { key:'allow_private_messages', label:'Allow private messages', desc:'Contributors can mark messages visible only to recipient' },

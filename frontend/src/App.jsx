@@ -6,6 +6,12 @@ import { MemberAuthProvider, useMemberAuth }   from './context/MemberAuthContext
 
 // Individual user pages
 import Home             from './pages/Home';
+import MemoryMoviePage       from './pages/MemoryMovie';
+import LiveMemoryWallPage    from './pages/LiveMemoryWallPage';
+import WeddingMemoryWall     from './pages/WeddingMemoryWall';
+import BirthdayMemoryWall    from './pages/BirthdayMemoryWall';
+import ChurchMemoryWall      from './pages/ChurchMemoryWall';
+import EmployeeMemoryWall    from './pages/EmployeeMemoryWall';
 import HowItWorks       from './pages/HowItWorks';
 import FAQ              from './pages/FAQ';
 import Login            from './pages/Login';
@@ -69,7 +75,7 @@ import SampleCard from './pages/SampleCard';
 import NotFound         from './pages/NotFound';
 import BirthdayPage    from './pages/occasions/Birthday';
 import { GroupCardsUK, GroupCardsUS, GroupCardsCanada, GroupCardsNigeria } from './pages/occasions/CountryLandingPage';
-import { LeavingCardPage, RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, ChristmasCardPage, SympathyCardPage, WelcomeCardPage, GoodLuckCardPage, BabyShowerCardPage, TeacherThankYouPage, EngagementCardPage, NewHomeCardPage, AdminProfessionalsDayPage, BossDayPage, TeacherAppreciationPage, ThanksgivingCardPage, MothersDayCardPage, FathersDayCardPage, OnlineBirthdayNigeriaPage } from './pages/occasions/ExtraOccasionPage';
+import { LeavingCardPage, RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, ChristmasCardPage, SympathyCardPage, WelcomeCardPage, GoodLuckCardPage, BabyShowerCardPage, TeacherThankYouPage, EngagementCardPage, NewHomeCardPage, AdminProfessionalsDayPage, BossDayPage, TeacherAppreciationPage, ThanksgivingCardPage, MothersDayCardPage, FathersDayCardPage, OnlineBirthdayNigeriaPage, LeavingCardUKPage, BirthdayCardUKPage, RetirementCardUKPage, GetWellSoonUKPage } from './pages/occasions/ExtraOccasionPage';
 import FarewellPage    from './pages/occasions/Farewell';
 import AnniversaryPage from './pages/occasions/Anniversary';
 import PromotionPage   from './pages/occasions/Promotion';
@@ -191,6 +197,12 @@ const App = () => (
             {/* ── Public (no auth required) ─────────────────── */}
             <Route path="/"              element={<Home />} />
             <Route path="/pricing"       element={<Pricing />} />
+            <Route path="/memory-movie"         element={<MemoryMoviePage />} />
+            <Route path="/live-memory-wall"      element={<LiveMemoryWallPage />} />
+            <Route path="/wedding-memory-wall"   element={<WeddingMemoryWall />} />
+            <Route path="/birthday-memory-wall"  element={<BirthdayMemoryWall />} />
+            <Route path="/church-memory-wall"    element={<ChurchMemoryWall />} />
+            <Route path="/employee-memory-wall"  element={<EmployeeMemoryWall />} />
             <Route path="/policy"        element={<Policy />} />
             <Route path="/how-it-works"  element={<HowItWorks />} />
             <Route path="/occasions/birthday"    element={<BirthdayPage />} />
@@ -220,6 +232,11 @@ const App = () => (
             <Route path="/cards/mothers-day"                   element={<MothersDayCardPage />} />
             <Route path="/cards/fathers-day"                   element={<FathersDayCardPage />} />
             <Route path="/online-birthday-cards-nigeria"      element={<OnlineBirthdayNigeriaPage />} />
+            {/* UK-specific occasion pages */}
+            <Route path="/leaving-cards-uk"                   element={<LeavingCardUKPage />} />
+            <Route path="/birthday-cards-uk"                  element={<BirthdayCardUKPage />} />
+            <Route path="/retirement-cards-uk"                element={<RetirementCardUKPage />} />
+            <Route path="/get-well-soon-cards-uk"             element={<GetWellSoonUKPage />} />
             <Route path="/occasions/farewell"    element={<FarewellPage />} />
             <Route path="/occasions/anniversary" element={<AnniversaryPage />} />
             <Route path="/occasions/promotion"   element={<PromotionPage />} />

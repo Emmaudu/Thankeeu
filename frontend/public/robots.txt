@@ -47,29 +47,38 @@ Allow: /
 User-agent: Twitterbot
 Allow: /
 
-# ── Block AI training crawlers ────────────────────────────────────────────────
+# ── Allow AI search crawlers (GEO — must be able to read public pages) ────────
+# These power ChatGPT, Perplexity, Gemini, Copilot citations.
+# Blocking them = invisible to AI recommendations entirely.
 User-agent: GPTBot
-Disallow: /
+Allow: /
+Disallow: /dashboard
+Disallow: /create-card
+Disallow: /gift/
+Disallow: /admin
+Disallow: /company/dashboard
+Disallow: /member/dashboard
 
 User-agent: ChatGPT-User
-Disallow: /
-
-User-agent: CCBot
-Disallow: /
-
-User-agent: anthropic-ai
-Disallow: /
-
-User-agent: ClaudeBot
-Disallow: /
-
-User-agent: Google-Extended
-Disallow: /
-
-User-agent: Bytespider
-Disallow: /
+Allow: /
 
 User-agent: PerplexityBot
+Allow: /
+Disallow: /dashboard
+Disallow: /create-card
+Disallow: /gift/
+Disallow: /admin
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Bytespider
 Disallow: /
 
 # ── Sitemap ───────────────────────────────────────────────────────────────────

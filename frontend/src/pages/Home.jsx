@@ -8,7 +8,6 @@ import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import VoiceRecorder from '../components/VoiceRecorder';
 import { demoAPI } from '../utils/api';
-import { CARD_DESIGNS } from '../utils/cardDesigns';
 import toast from 'react-hot-toast';
 
 const HERO_FONT_INJECT = `
@@ -893,6 +892,56 @@ const WhatsAppVsThankeeu = () => (
             <p className="text-warm-500 text-sm leading-relaxed">{b.text}</p>
           </div>
         ))}
+      </div>
+
+      {/* ── Memory Movie feature callout ── */}
+      <div className="mb-16 rounded-3xl overflow-hidden border-2 border-purple-200"
+        style={{ background: 'linear-gradient(135deg,#0d0020,#2d1052)' }}>
+        <div className="p-8 sm:p-10 text-white">
+          <div className="flex flex-col sm:flex-row gap-8 items-start">
+            <div className="flex-1">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-xs font-bold uppercase tracking-widest border border-white/20 mb-4">
+                ✨ New — Celebrate Together. Remember Forever.
+              </span>
+              <h3 className="text-2xl sm:text-3xl font-extrabold mb-3">
+                More Than A Group Card.
+              </h3>
+              <p className="text-white/70 text-base mb-6 max-w-lg">
+                Collect messages. Collect photos. Collect videos. Capture every moment on a <strong className="text-white">Live Memory Wall™</strong>. Then watch it all become one beautiful <strong className="text-white">Memory Movie™</strong>. Everything in one place. Included free.
+              </p>
+              <div className="grid grid-cols-2 gap-2 mb-6 text-sm">
+                {['✔ Unlimited messages','✔ Voice notes','✔ Videos','✔ Photos','✔ 📸 Live Memory Wall™','✔ 🎥 Beautiful Memory Movie™','✔ Downloadable MP4'].map(f => (
+                  <span key={f} className="text-white/80 font-medium">{f}</span>
+                ))}
+              </div>
+              <div className="flex gap-3 flex-wrap">
+              <Link to="/memory-movie"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-purple-600 hover:from-primary-600 hover:to-purple-700 font-bold text-sm transition-all shadow-lg">
+                <Icon name="Film" size={16}/> Memory Movie →
+              </Link>
+              <Link to="/live-memory-wall"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 font-bold text-sm border border-white/20 transition-all">
+                📸 Live Memory Wall™ →
+              </Link>
+              </div>
+            </div>
+            <div className="sm:w-64 rounded-2xl bg-white/5 border border-white/10 p-5 flex-shrink-0">
+              <p className="text-white/50 text-xs font-bold uppercase tracking-widest mb-4">Imagine receiving…</p>
+              {[['❤️','80','birthday wishes'],['📷','50','photos'],['🎥','12','videos'],['🎙','20','voice notes']].map(([e, n, l]) => (
+                <div key={l} className="flex items-center gap-3 mb-3">
+                  <span className="text-xl">{e}</span>
+                  <div>
+                    <span className="font-bold text-white">{n} </span>
+                    <span className="text-white/60 text-sm">{l}</span>
+                  </div>
+                </div>
+              ))}
+              <p className="text-white/40 text-xs mt-4 border-t border-white/10 pt-3">
+                → Beautifully transformed into one unforgettable movie.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ── Bottom CTA ── */}

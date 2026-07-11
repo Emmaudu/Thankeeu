@@ -115,6 +115,29 @@ const emailTemplates = {
 
       ${btn('🎉 Open my card now', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
 
+      ${data.hasMemoryWall ? `
+      <div style="background:linear-gradient(135deg,#0d0020,#2d1052);border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">📸</div>
+        <p style="color:#fff;font-weight:700;font-size:16px;margin:0 0 4px;">Your Live Memory Wall™ is waiting</p>
+        <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:0 0 12px;">Photos, videos and moments from everyone at your celebration are collected in one beautiful place.</p>
+        <a href="${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}&tab=wall" style="background:#7C3AED;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">View Memory Wall →</a>
+      </div>` : ''}
+
+      ${data.hasMovie ? `
+      <div style="background:linear-gradient(135deg,#1a0533,#2d1052);border:2px solid #7C3AED;border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🎥</div>
+        <p style="color:#fff;font-weight:700;font-size:16px;margin:0 0 4px;">Your Thankeeu Memory Movie™ is ready</p>
+        <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:0 0 12px;">Every message, photo, video and voice note has been transformed into a beautiful 1080p movie — yours to watch, download and keep forever.</p>
+        <a href="${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}&tab=movie" style="background:linear-gradient(135deg,#7C3AED,#9333EA);color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">🎬 Watch My Movie →</a>
+      </div>` : ''}
+
+      ${data.movieComing && !data.hasMovie ? `
+      <div style="background:linear-gradient(135deg,#1a0533,#2d1052);border:1px solid #7C3AED;border-radius:12px;padding:18px 20px;margin:20px 0;text-align:center;">
+        <div style="font-size:32px;margin-bottom:8px;">🎬</div>
+        <p style="color:#fff;font-weight:700;font-size:16px;margin:0 0 4px;">Your Memory Movie™ is being created</p>
+        <p style="color:rgba(255,255,255,0.7);font-size:13px;margin:0;">We're combining every message, photo, video and voice note into a beautiful 1080p movie. It'll appear on your card shortly — we'll email you the moment it's ready.</p>
+      </div>` : ''}
+
       <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
         <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>
         <ol style="color:#555;line-height:2;margin:0;padding-left:20px;font-size:14px;">
@@ -136,6 +159,23 @@ const emailTemplates = {
   // delivered once, but has picked up new signatures and/or new gift money
   // since then. Calls out what's NEW rather than re-presenting it as if
   // the recipient is seeing the card for the first time.
+  movieReady: (data) => ({
+    subject: `🎬 Your Memory Movie™ is ready, ${data.recipientName}!`,
+    html: BASE(`
+      <div style="text-align:center;margin-bottom:24px;">
+        <div style="font-size:48px;margin-bottom:8px;">🎥</div>
+        <h1 style="color:#1a1a1a;font-size:26px;margin:0 0 6px;font-weight:700;">Your Memory Movie™ is ready!</h1>
+        <p style="color:#7C6EFF;font-size:15px;font-weight:600;margin:0;">Every message, photo and voice note — one cinematic keepsake</p>
+      </div>
+      <p style="color:#555;line-height:1.8;font-size:15px;">We've combined every heartfelt message, photo, video and voice note from your group card into one beautiful 1080p movie — yours to watch, download and keep forever.</p>
+      <div style="background:linear-gradient(135deg,#1a0533,#2d1052);border:2px solid #7C3AED;border-radius:12px;padding:24px 20px;margin:20px 0;text-align:center;">
+        <div style="font-size:40px;margin-bottom:10px;">🎬</div>
+        <a href="${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}&tab=movie" style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#9333EA);color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">🎥 Watch My Memory Movie →</a>
+      </div>
+      <p style="color:#888;font-size:13px;line-height:1.7;">You can download the movie as an MP4 and share it with anyone. It'll always be here on your card.</p>
+    `)
+  }),
+
   cardRedelivery: (data) => ({
     subject: `💌 Even more love for your ${data.occasion}, ${data.recipientName}!`,
     html: BASE(`

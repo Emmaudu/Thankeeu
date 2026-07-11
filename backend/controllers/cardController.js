@@ -60,7 +60,7 @@ const createCard = async (req, res) => {
     const {
       recipient_name, recipient_email, occasion, title, design_theme,
       background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
-      send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts,
+      send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts, card_experience,
       custom_occasion,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus
@@ -131,6 +131,7 @@ const createCard = async (req, res) => {
       send_time: send_time || null,
       deadline: deadline || null,
       allow_private_messages, send_reminders, hide_amounts,
+      card_experience: card_experience || 'card_and_wall',
       ...(cleanCustomOccasion && { custom_occasion: cleanCustomOccasion }),
       status: reqStatus || 'draft',
       ...(effectiveCompanyId && { company_id: effectiveCompanyId }),

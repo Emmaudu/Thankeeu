@@ -8,6 +8,7 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI, visitorsAPI, vendorAPI } from '../utils/api';
 import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import VoiceRecorder from '../components/VoiceRecorder';
+import LiveMemoryWall from '../components/LiveMemoryWall';
 import EmojiPicker from '../components/EmojiPicker';
 import GifPicker from '../components/GifPicker';
 import Navbar from '../components/Navbar';
@@ -28,6 +29,9 @@ const SignCard = () => {
 
   const [card,        setCard]        = useState(null);
   const [loading,     setLoading]     = useState(true);
+  const [wallTab,     setWallTab]     = useState(
+    searchParams.get('tab') === 'wall' ? 'wall' : 'messages'
+  ); // 'messages' | 'wall'
   const [submitting,  setSubmitting]  = useState(false);
   // 'idle' | 'sending' | 'paying' | 'verifying' | 'done'
   const [stage,       setStage]       = useState('idle');
@@ -672,6 +676,38 @@ const SignCard = () => {
         {/* Form — two-column on large screens */}
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 grid lg:grid-cols-[1fr_.82fr] gap-7 items-start">
 
+          {/* ── Tabs for card_and_wall experience ── */}
+          {['card_and_wall','wall_only'].includes(card?.card_experience) && (
+            <div className="lg:col-span-2 flex border-b-2 border-purple-100 mb-2 gap-1">
+              {card?.card_experience !== 'wall_only' && (
+                <button onClick={() => setWallTab('messages')}
+                  className={`flex items-center gap-2 px-5 py-3 font-bold text-sm border-b-2 -mb-0.5 transition-colors ${wallTab === 'messages' ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-400 hover:text-warm-700'}`}>
+                  ❤️ Messages
+                </button>
+              )}
+              <button onClick={() => setWallTab('wall')}
+                className={`flex items-center gap-2 px-5 py-3 font-bold text-sm border-b-2 -mb-0.5 transition-colors ${wallTab === 'wall' ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-400 hover:text-warm-700'}`}>
+                📸 Memory Wall
+                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-600 font-bold">Live</span>
+              </button>
+            </div>
+          )}
+
+          {/* Memory Wall tab */}
+          {wallTab === 'wall' && ['card_and_wall','wall_only'].includes(card?.card_experience) && (
+            <div className="lg:col-span-2">
+              <LiveMemoryWall
+                slug={slug}
+                canUpload={true}
+                defaultName={user?.full_name || member?.first_name || ''}
+                defaultEmail={user?.email || member?.email || ''}
+              />
+            </div>
+          )}
+
+          {/* Messages form — hidden when wall tab active */}
+          {(wallTab === 'messages' || !['card_and_wall','wall_only'].includes(card?.card_experience)) && (
+            <>
           {/* ── Left: message form ── */}
           <section className="rounded-[2rem] p-5 sm:p-8" style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.97) 0%, rgba(245,240,255,0.95) 100%)", border: `2px solid ${design.accent}25`, boxShadow: `0 8px 40px ${design.accent}18` }}>
             <div className="mb-7">
@@ -1107,6 +1143,8 @@ const SignCard = () => {
               </>
             )}
           </aside>
+          </>
+          )}
         </div>
       </main>
     </div>

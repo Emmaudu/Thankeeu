@@ -1,29 +1,29 @@
 import { useSEO } from '../hooks/useSEO';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
-import { paymentsAPI, subscriptionAPI, creditsAPI } from '../utils/api';
+import { subscriptionAPI, creditsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
-import { CURRENCIES, formatCurrency, getCurrency } from '../utils/currency';
+import { formatCurrency, getCurrency } from '../utils/currency';
 
 // ── Plans ─────────────────────────────────────────────────────────────────────
 // Pack-of-N options with progressive per-card discount
 const PACK_OPTIONS = [
-  { id: 'pack5',   credits: 5,   priceNGN: 20000,  perCardNGN: 4000, savings: 'Save ₦5,000 vs 5 singles' },
-  { id: 'pack10',  credits: 10,  priceNGN: 40000,  perCardNGN: 4000, savings: 'Save ₦10,000 vs 10 singles' },
-  { id: 'pack25',  credits: 25,  priceNGN: 100000, perCardNGN: 4000, savings: 'Save ₦25,000 vs 25 singles' },
-  { id: 'pack50',  credits: 50,  priceNGN: 200000, perCardNGN: 4000, savings: 'Save ₦50,000 vs 50 singles' },
-  { id: 'pack70',  credits: 70,  priceNGN: 280000, perCardNGN: 4000, savings: 'Save ₦70,000 vs 70 singles' },
-  { id: 'pack100', credits: 100, priceNGN: 400000, perCardNGN: 4000, savings: 'Save ₦100,000 vs 100 singles' },
+  { id: 'pack5',   credits: 5,   priceNGN: 20000,  perCardNGN: 4000, savingsNGN: 5000  },
+  { id: 'pack10',  credits: 10,  priceNGN: 40000,  perCardNGN: 4000, savingsNGN: 10000 },
+  { id: 'pack25',  credits: 25,  priceNGN: 100000, perCardNGN: 4000, savingsNGN: 25000 },
+  { id: 'pack50',  credits: 50,  priceNGN: 200000, perCardNGN: 4000, savingsNGN: 50000 },
+  { id: 'pack70',  credits: 70,  priceNGN: 280000, perCardNGN: 4000, savingsNGN: 70000 },
+  { id: 'pack100', credits: 100, priceNGN: 400000, perCardNGN: 4000, savingsNGN: 100000 },
 ];
 
 const INDIVIDUAL_PLANS = [
   {
-    id: 'single', name: 'Classic', priceNGN: 5000, credits: 1,
+    id: 'single', name: 'Classic', priceNGN: 5000, credits: 1, savingsNGN: 0,
     label: '1 card credit',
     btn: 'Buy 1 credit', btnIcon: 'Sparkles', popular: false,
     btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
@@ -35,11 +35,13 @@ const INDIVIDUAL_PLANS = [
       { text: 'Scheduled delivery on any date', ok: true },
       { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
+      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true },
+      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true },
       { text: 'Download card as PDF', ok: true },
     ],
   },
   {
-    id: 'standard', name: 'Standard', priceNGN: 9000, credits: 2,
+    id: 'standard', name: 'Standard', priceNGN: 9000, credits: 2, savingsNGN: 1000,
     label: '2 card credits — best per-card price',
     btn: 'Buy 2 credits', btnIcon: 'Star', popular: true,
     btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
@@ -51,6 +53,8 @@ const INDIVIDUAL_PLANS = [
       { text: 'Video, photo & voice messages', ok: true },
       { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
+      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true },
+      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true },
       { text: 'Credits never expire', ok: true },
     ],
   },
@@ -67,6 +71,8 @@ const INDIVIDUAL_PLANS = [
       { text: 'Video, photo & voice messages', ok: true },
       { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
       { text: 'WhatsApp & email invite links', ok: true },
+      { text: '🎥 Memory Movie™ — auto-generated keepsake MP4', ok: true },
+      { text: '📸 Live Memory Wall™ — live photo/video stream', ok: true },
       { text: 'Credits never expire', ok: true },
     ],
   },
@@ -75,11 +81,11 @@ const INDIVIDUAL_PLANS = [
 const COMPANY_PLANS = [
   {
     id: 'monthly', name: 'Monthly', period: '/month',
-    features: ['Unlimited employees','Automated birthday emails','Birthday card delivery','Gift pooling · Visa, Mastercard & bank transfer','HR dashboard & analytics','Import & re-import team data','Email support within 24 hours'],
+    features: ['Unlimited employees','Automated birthday emails','Birthday card delivery','Gift pooling · Visa, Mastercard & bank transfer','HR dashboard & analytics','Import & re-import team data','📸 Live Memory Wall™ per card','🎥 Memory Movie™ auto-generated','Email support within 24 hours'],
   },
   {
     id: 'yearly', name: 'Yearly', period: '/year', popular: true,
-    features: ['Everything in Monthly','2 months FREE vs monthly','Priority phone & email support','Custom email branding','Dedicated account manager','Advanced birthday analytics','Team data export anytime'],
+    features: ['Everything in Monthly','2 months FREE vs monthly','Priority phone & email support','Custom email branding','Dedicated account manager','Advanced birthday analytics','📸 Live Memory Wall™ per card','🎥 Memory Movie™ auto-generated','Team data export anytime'],
   },
 ];
 
@@ -96,9 +102,9 @@ import { CurrencyToggle, RotatingPrice } from '../utils/currencyUI';
 // ── Main Pricing page ─────────────────────────────────────────────────────────
 const Pricing = () => {
   useSEO({
-    title: 'Pricing — Send a Group Card from ₦5,000 | Thankeeu',
-    description: 'Affordable online group cards starting at ₦5,000. Pool a Naira gift. Teams get unlimited cards & HR automation. Pay in NGN, USD, GBP, EUR and more.',
-    keywords: 'group card price Nigeria, how much does group card cost, Thankeeu pricing, team card subscription Nigeria',
+    title: 'Pricing — Online Group Cards from £4.99 | Thankeeu',
+    description: 'Send a group card from £4.99 GBP / ₦5,000 NGN. Pool a gift in GBP, NGN, USD, CAD and more. Team plans with unlimited cards and HR automation. Free to create — pay when you send.',
+    keywords: 'group card price UK, online group card cost, Thankeeu pricing, team card subscription, leaving card price UK, birthday card price',
     canonical: '/pricing',
   });
 
@@ -107,7 +113,22 @@ const Pricing = () => {
   const navigate    = useNavigate();
 
   const [tab,          setTab]          = useState('individual');
-  const [currency,     setCurrency]     = useState('NGN');
+  const [currency,     setCurrency]     = useState(() => {
+    // Detect user's likely currency from browser locale + timezone — no API call needed.
+    // UK visitors see GBP by default; Nigerians see NGN; others get their regional default.
+    try {
+      const tz   = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      const lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+      if (tz.startsWith('Europe/London') || tz === 'Europe/Dublin' || lang.startsWith('en-gb')) return 'GBP';
+      if (tz.startsWith('America/') && lang.startsWith('en-ca')) return 'CAD';
+      if (tz.startsWith('America/') && (lang.startsWith('en-us') || lang === 'en')) return 'USD';
+      if (tz.startsWith('Europe/')) return 'EUR';
+      if (tz.startsWith('Africa/Accra'))    return 'GHS';
+      if (tz.startsWith('Africa/Nairobi'))  return 'KES';
+      if (tz.startsWith('Africa/Johannesburg') || tz.startsWith('Africa/Harare')) return 'ZAR';
+    } catch (_) {}
+    return 'NGN'; // default fallback
+  });
   const [loadingPlan,  setLoadingPlan]  = useState(null);
   const [openFAQ,      setOpenFAQ]      = useState(null);
   const [showDemo,     setShowDemo]     = useState(false);
@@ -226,12 +247,12 @@ const Pricing = () => {
                     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(plan.priceNGN)}</span>
                     <span className="text-warm-400 text-sm pb-1">one-time</span>
                   </div>
-                  {currency !== 'NGN' && (
+                  {currency !== 'NGN' && currency !== 'GBP' && currency !== 'USD' && currency !== 'EUR' && currency !== 'CAD' && (
                     <p className="text-xs text-warm-400 mb-1">≈ ₦{plan.priceNGN.toLocaleString('en-NG')} NGN</p>
                   )}
-                  {plan.id === 'standard' && (
+                  {plan.savingsNGN > 0 && (
                     <p className="text-primary-600 text-xs font-bold mb-1">
-                      Save {fmt(5000 * 2 - 9000)} vs 2 classic
+                      Save {fmt(plan.savingsNGN)} vs {plan.credits} classics
                     </p>
                   )}
                   <div className="h-px bg-purple-100 my-4" />
@@ -275,7 +296,7 @@ const Pricing = () => {
                   >
                     {PACK_OPTIONS.map(p => (
                       <option key={p.id} value={p.id}>
-                        Pack of {p.credits} — ₦4,000/card (₦{p.priceNGN.toLocaleString('en-NG')} total)
+                        Pack of {p.credits} — {fmt(p.perCardNGN)}/card ({fmt(p.priceNGN)} total)
                       </option>
                     ))}
                   </select>
@@ -285,14 +306,14 @@ const Pricing = () => {
                   <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(selectedPack.priceNGN)}</span>
                   <span className="text-warm-400 text-sm pb-1">one-time</span>
                 </div>
-                {currency !== 'NGN' && (
+                {currency !== 'NGN' && !['GBP','USD','EUR','CAD'].includes(currency) && (
                   <p className="text-xs text-warm-400 mb-1">≈ ₦{selectedPack.priceNGN.toLocaleString('en-NG')} NGN</p>
                 )}
                 <p className="text-green-700 text-xs font-bold mb-0.5">
-                  ₦4,000 per card (flat rate) · {fmt(selectedPack.priceNGN)} total
+                  {fmt(selectedPack.perCardNGN)} per card (flat rate) · {fmt(selectedPack.priceNGN)} total
                 </p>
-                {selectedPack.savings && (
-                  <p className="text-green-600 text-xs font-bold mb-1">🎉 {selectedPack.savings}</p>
+                {selectedPack.savingsNGN > 0 && (
+                  <p className="text-green-600 text-xs font-bold mb-1">🎉 Save {fmt(selectedPack.savingsNGN)} vs {selectedPack.credits} singles</p>
                 )}
 
                 <div className="h-px bg-purple-100 my-4" />

@@ -20,6 +20,24 @@ import POVAlt                from './pages/POVAlternative';
 import GuestCamAlt           from './pages/GuestCamAlternative';
 import VsThankbox            from './pages/VsThankbox';
 import VsKudoboard           from './pages/VsKudoboard';
+import WeddingPhotoSharingApp      from './pages/WeddingPhotoSharingApp';
+import WeddingPhotoUploadApp       from './pages/WeddingPhotoUploadApp';
+import QRCodeForWeddingPhotos      from './pages/QRCodeForWeddingPhotos';
+import CollectWeddingGuestPhotos   from './pages/CollectWeddingGuestPhotos';
+import DigitalWeddingGuestBook     from './pages/DigitalWeddingGuestBook';
+import WeddingMemoryBook           from './pages/WeddingMemoryBook';
+import WeddingPhotoGallery         from './pages/WeddingPhotoGallery';
+import WeddingPhotoAlbumOnline     from './pages/WeddingPhotoAlbumOnline';
+import BestWeddingPhotoSharingApp  from './pages/BestWeddingPhotoSharingApp';
+import WeddingGuestPhotoCollection from './pages/WeddingGuestPhotoCollection';
+import OnlineWeddingGuestbook      from './pages/OnlineWeddingGuestbook';
+import WeddingVideoMessageBook     from './pages/WeddingVideoMessageBook';
+import WeddingVoiceNoteGuestBook   from './pages/WeddingVoiceNoteGuestBook';
+import WeddingCashGiftPlatform     from './pages/WeddingCashGiftPlatform';
+import WeddingGroupCard            from './pages/WeddingGroupCard';
+import UKWeddingPhotoSharing       from './pages/UKWeddingPhotoSharing';
+import USAWeddingPhotoSharing      from './pages/USAWeddingPhotoSharing';
+import OnlineGroupCard             from './pages/OnlineGroupCard';
 import HowItWorks       from './pages/HowItWorks';
 import FAQ              from './pages/FAQ';
 import Login            from './pages/Login';
@@ -212,6 +230,25 @@ const App = () => (
             <Route path="/church-memory-wall"         element={<ChurchMemoryWall />} />
             <Route path="/employee-memory-wall"       element={<EmployeeMemoryWall />} />
             <Route path="/thankeeu-vs-wedtrove"       element={<VsWedtrove />} />
+            {/* ── Wedding SEO landing pages ── */}
+            <Route path="/wedding-photo-sharing-app"     element={<WeddingPhotoSharingApp />} />
+            <Route path="/wedding-photo-upload-app"      element={<WeddingPhotoUploadApp />} />
+            <Route path="/qr-code-for-wedding-photos"    element={<QRCodeForWeddingPhotos />} />
+            <Route path="/collect-wedding-guest-photos"  element={<CollectWeddingGuestPhotos />} />
+            <Route path="/digital-wedding-guest-book"    element={<DigitalWeddingGuestBook />} />
+            <Route path="/wedding-memory-book"           element={<WeddingMemoryBook />} />
+            <Route path="/wedding-photo-gallery"         element={<WeddingPhotoGallery />} />
+            <Route path="/wedding-photo-album-online"    element={<WeddingPhotoAlbumOnline />} />
+            <Route path="/best-wedding-photo-sharing-app" element={<BestWeddingPhotoSharingApp />} />
+            <Route path="/wedding-guest-photo-collection" element={<WeddingGuestPhotoCollection />} />
+            <Route path="/online-wedding-guestbook"      element={<OnlineWeddingGuestbook />} />
+            <Route path="/wedding-video-message-book"    element={<WeddingVideoMessageBook />} />
+            <Route path="/wedding-voice-note-guest-book" element={<WeddingVoiceNoteGuestBook />} />
+            <Route path="/wedding-cash-gift-platform"    element={<WeddingCashGiftPlatform />} />
+            <Route path="/wedding-group-card"            element={<WeddingGroupCard />} />
+            <Route path="/uk-wedding-photo-sharing"      element={<UKWeddingPhotoSharing />} />
+            <Route path="/usa-wedding-photo-sharing"     element={<USAWeddingPhotoSharing />} />
+            <Route path="/online-group-card"             element={<OnlineGroupCard />} />
             <Route path="/weduploader-alternative"     element={<WedUploaderAlt />} />
             <Route path="/guestpix-alternative"        element={<GuestPixAlt />} />
             <Route path="/kululu-alternative"          element={<KululuAlt />} />

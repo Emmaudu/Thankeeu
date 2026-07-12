@@ -159,7 +159,6 @@ async function ensureCardExists(group, member, evt, occDate, occKey) {
     deadline: deadline.toISOString(),
     allow_private_messages: true,
     hide_amounts: true, // privacy: only recipient sees contribution amounts
-    notification_scope: 'all',
     pal_group_id: group.id,
     pal_member_id: member.id,
     pal_occasion_key: occKey,

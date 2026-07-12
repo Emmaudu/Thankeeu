@@ -55,7 +55,61 @@ router.post('/pals/:id/reject',        validateUUIDParam('id'), rejectPalGroup);
 
 
 
-// ── Broadcast email ────────────────────────────────────────────────────────
+// ── Site settings (movie music, etc.) ─────────────────────────────────────
+const { uploadMusic } = require('../utils/cloudinary');
+
+// GET all settings
+router.get('/settings', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('site_settings').select('key, value, updated_at');
+    if (error) throw new Error(error.message);
+    // Return as flat object { key: value }
+    const settings = {};
+    for (const row of (data || [])) settings[row.key] = row.value;
+    res.json({ ok: true, settings });
+  } catch (err) {
+    console.error('[admin/settings] GET error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /admin/music-upload — upload an MP3 to Cloudinary, save URL to site_settings
+router.post('/music-upload', uploadMusic.single('music'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No music file uploaded' });
+
+    // Cloudinary URL is in req.file.path (multer-storage-cloudinary sets it)
+    const musicUrl = req.file.path || req.file.secure_url;
+    if (!musicUrl) return res.status(500).json({ error: 'Upload succeeded but no URL returned' });
+
+    // Persist to site_settings
+    const { error } = await supabase
+      .from('site_settings')
+      .upsert({ key: 'movie_bg_music_url', value: musicUrl, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    if (error) throw new Error(error.message);
+
+    console.log(`[admin] Movie BG music updated: ${musicUrl}`);
+    res.json({ ok: true, url: musicUrl, message: 'Music uploaded and saved. All new Memory Movies will use this track.' });
+  } catch (err) {
+    console.error('[admin/music-upload] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /admin/music — remove the current track (revert to generated ambient)
+router.delete('/music', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('site_settings')
+      .upsert({ key: 'movie_bg_music_url', value: null, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+    if (error) throw new Error(error.message);
+    res.json({ ok: true, message: 'Music track removed. Movies will use generated ambient music.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 const supabase      = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
 const FRONTEND_URL  = process.env.FRONTEND_URL || 'https://thankeeu.com';

@@ -1024,7 +1024,7 @@ const Home = () => {
  <Navbar onBookDemo={() => setShowDemo(true)} />
 
  {/* ══ HERO ══ */}
- <section className="relative overflow-visible pt-0 pb-10 md:pt-0 md:pb-14 px-2 sm:px-4 gc-font section-dots">
+ <section className="relative overflow-visible pt-4 pb-10 md:pt-6 md:pb-14 px-2 sm:px-4 gc-font section-dots">
 
  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-32 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
 
@@ -1033,21 +1033,23 @@ const Home = () => {
 
  {/* Left: headline + CTAs + sample card grid */}
  <div className="text-center lg:text-left">
- <div style={{ display:'inline-block', background:'#EDE9FE', padding:'10px 16px', borderRadius:8, marginBottom:'1.25rem' }}>
+ <div style={{ display:'inline-block', background:'#EDE9FE', padding:'8px 14px', borderRadius:8, marginBottom:'0.75rem' }}>
  <p style={{ fontSize:'clamp(1.05rem,2.2vw,1.25rem)', lineHeight:1.5, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, margin:0, padding:0, display:'block' }}>
  More than a group card. More than Instagram Stories. One place for everyone.
  </p>
  </div>
- <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(2.2rem,5.5vw,4rem)', lineHeight:1.1, letterSpacing:'-0.02em' }}>
- <span style={{ color:'#1A1035' }}>Send a Group{' '}</span>
+ <h1 className="font-extrabold text-warm-900 mb-4" style={{ fontSize:'clamp(2.2rem,5.5vw,4rem)', lineHeight:1.1, letterSpacing:'-0.02em' }}>
+ <span style={{ color:'#1A1035' }}>Send a Group</span>
+ <br />
  <span style={{ display:'inline-block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px' }}>
  {ROTATING_WORDS[wordIndex]}
  </span>
- <span style={{ color:'#1A1035' }}>{' '}Card &amp; Real-time Album Online</span>
+ <br />
+ <span style={{ color:'#1A1035' }}>Card &amp; Get Real-time Guest Shots Online</span>
  </h1>
 
- <p className="text-warm-600 mb-6 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.1rem,2.4vw,1.3rem)', lineHeight:1.6 }}>
- The card that collects everyone's love — messages, photos, voice notes and a gift — then turns it all into a memory they keep forever.
+ <p className="text-warm-600 mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.1rem,2.4vw,1.3rem)', lineHeight:1.6 }}>
+ The card that collects everyone's love — messages, photos, voice notes and a gift — then turns it all into a group card and movie video memory they keep forever.
  </p>
 
  {/* ── 3 Feature Cards ── */}

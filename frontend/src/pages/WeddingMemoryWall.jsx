@@ -76,6 +76,36 @@ export default function WeddingMemoryWallPage() { useSEO({ title: 'Wedding Guest
 <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{a}</p>
 </details> ))} </div>
 </div>
+</section> {/* ── Related Wedding Pages ── */} <section className="py-12 px-4 bg-white">
+<div className="max-w-4xl mx-auto">
+<h2 className="text-xl font-display font-bold text-warm-900 mb-2">More wedding tools from Thankeeu</h2>
+<p className="text-sm text-warm-500 mb-8">Everything you need for wedding memories — photos, messages, gifts, and more.</p>
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+{[
+  { to:'/wedding-photo-sharing-app',     emoji:'📸', title:'Wedding Photo Sharing App',      desc:'The easiest way for guests to share photos. One QR code at the venue.' },
+  { to:'/qr-code-for-wedding-photos',    emoji:'📷', title:'QR Code for Wedding Photos',     desc:'Auto-generated, print-ready QR code for your table cards and welcome sign.' },
+  { to:'/collect-wedding-guest-photos',  emoji:'🗂️', title:'Collect Wedding Guest Photos',   desc:'Gather every guest\'s best shots automatically — no chasing required.' },
+  { to:'/digital-wedding-guest-book',    emoji:'📖', title:'Digital Wedding Guest Book',     desc:'Messages, photos, voice notes and videos — all in one digital keepsake.' },
+  { to:'/online-wedding-guestbook',      emoji:'✍️', title:'Online Wedding Guestbook',       desc:'Replace the paper book with one that captures far more than signatures.' },
+  { to:'/wedding-group-card',            emoji:'💌', title:'Wedding Group Card',             desc:'Everyone signs one card — messages, photos, voice notes and a gift.' },
+  { to:'/wedding-memory-book',           emoji:'🎞️', title:'Wedding Memory Book',            desc:'A cinematic Memory Movie™ assembled from every guest\'s contribution.' },
+  { to:'/wedding-video-message-book',    emoji:'🎥', title:'Wedding Video Messages',         desc:'Guests record short video clips — assembled into a keepsake film.' },
+  { to:'/wedding-voice-note-guest-book', emoji:'🎙️', title:'Wedding Voice Note Book',        desc:'Hear every blessing and prayer in your guests\' own voices.' },
+  { to:'/wedding-cash-gift-platform',    emoji:'💳', title:'Wedding Cash Gift Platform',     desc:'Pool cash gifts in NGN, GBP, USD alongside messages and photos.' },
+  { to:'/best-wedding-photo-sharing-app',emoji:'🏆', title:'Best Wedding Photo App',        desc:'Honest 2025 comparison of GuestPix, WedUploader, Wedtrove & Thankeeu.' },
+  { to:'/wedding-photo-album-online',    emoji:'🖼️', title:'Online Wedding Photo Album',     desc:'A shared album every guest contributes to — full quality, permanent.' },
+].map(({ to, emoji, title, desc }) => (
+  <Link key={to} to={to} onClick={() => window.scrollTo({ top:0, behavior:'instant' })}
+    className="flex gap-3 p-4 rounded-2xl border-2 border-purple-100 bg-white hover:border-primary-300 hover:bg-primary-50 transition-all group">
+    <span className="text-2xl flex-shrink-0 mt-0.5">{emoji}</span>
+    <div>
+      <p className="font-bold text-warm-900 text-sm leading-tight mb-1 group-hover:text-primary-700 transition-colors">{title}</p>
+      <p className="text-xs text-warm-500 leading-snug">{desc}</p>
+    </div>
+  </Link>
+))}
+</div>
+</div>
 </section> {/* ── CTA ── */} <section className="py-20 px-4 bg-gradient-to-br from-[#1a0030] to-[#2d0052] text-white text-center">
 <div className="max-w-2xl mx-auto">
 <h2 className="text-3xl sm:text-4xl font-display font-extrabold mb-4">Capture every guest's perspective.</h2>

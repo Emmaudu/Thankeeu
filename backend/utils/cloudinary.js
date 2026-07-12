@@ -91,4 +91,42 @@ if (hasCloudinary) {
   });
 }
 
-module.exports = { upload, uploadRecipientPhoto, cloudinary, deleteFile };
+// ── Music upload (admin only — stores to thankeeu/music, raw resource_type) ──
+let uploadMusic;
+
+if (hasCloudinary) {
+  const musicStorage = new CloudinaryStorage({
+    cloudinary,
+    params: async () => ({
+      folder: 'thankeeu/music',
+      resource_type: 'video',   // Cloudinary uses 'video' for audio files
+      allowed_formats: ['mp3', 'wav', 'm4a', 'aac', 'ogg'],
+      use_filename: true,
+      unique_filename: true,
+    }),
+  });
+  uploadMusic = multer({
+    storage: musicStorage,
+    limits: { fileSize: 20 * 1024 * 1024, files: 1 },  // 20 MB max
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('audio/') || file.mimetype === 'application/octet-stream') cb(null, true);
+      else cb(new Error('Only audio files are allowed (mp3, wav, m4a, aac, ogg)'));
+    },
+  });
+} else {
+  // Local fallback
+  const uploadDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  uploadMusic = multer({
+    storage: multer.diskStorage({
+      destination: uploadDir,
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.mp3';
+        cb(null, `music-${Date.now()}${ext}`);
+      },
+    }),
+    limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+  });
+}
+
+module.exports = { upload, uploadRecipientPhoto, uploadMusic, cloudinary, deleteFile };

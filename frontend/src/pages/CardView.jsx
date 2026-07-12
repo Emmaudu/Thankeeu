@@ -148,10 +148,12 @@ function MagicSearch({ messages, query, setQuery, active, setActive, design, fou
           onMouseEnter={e => {
             e.currentTarget.style.background = design.accent + '22';
             e.currentTarget.style.transform = 'scale(1.04)';
+            e.currentTarget.style.animationPlayState = 'paused';
           }}
           onMouseLeave={e => {
             e.currentTarget.style.background = design.accent + '0F';
             e.currentTarget.style.transform = 'scale(1)';
+            e.currentTarget.style.animationPlayState = 'running';
           }}>
           <span style={{ fontSize:16 }}>🔍</span>
           <span style={{ fontFamily:"'Dancing Script', cursive", fontSize:15 }}>
@@ -1323,6 +1325,10 @@ const CardView = () => {
             if (cardViewTab === 'movie' && !canGen && showMessages) {
               setTimeout(() => setCardViewTab('messages'), 0);
             }
+            // If someone landed on wall tab but card has no wall, redirect to messages
+            if (cardViewTab === 'wall' && !hasWall && showMessages) {
+              setTimeout(() => setCardViewTab('messages'), 0);
+            }
             // Theme-aware inactive tab styling: on light-background themes we must NOT use
             // white text/borders (invisible). Use the theme ink colour instead.
             const activeCls   = 'shadow-lg scale-105';
@@ -1350,15 +1356,15 @@ const CardView = () => {
                   )}
                 </button>
               )}
+              {hasWall && (
               <button onClick={() => setCardViewTab('wall')}
                 className={`${tabBase} ${cardViewTab === 'wall' ? activeCls : ''}`}
                 style={cardViewTab === 'wall' ? activeStyle : inactiveStyle}>
                 <span>Photo Wall</span>
-                {hasWall && (
-                  <span className="text-xs px-1.5 py-0.5 rounded-md font-extrabold"
-                    style={cardViewTab === 'wall' ? badgeActive : badgeInactive}>Live</span>
-                )}
+                <span className="text-xs px-1.5 py-0.5 rounded-md font-extrabold"
+                  style={cardViewTab === 'wall' ? badgeActive : badgeInactive}>Live</span>
               </button>
+              )}
               {canGen && (
               <button onClick={() => setCardViewTab('movie')}
                 className={`${tabBase} ${cardViewTab === 'movie' ? activeCls : ''}`}

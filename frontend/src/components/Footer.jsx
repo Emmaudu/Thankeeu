@@ -2,40 +2,48 @@ import { Link } from 'react-router-dom';
 
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
 
-// ── Use Cases (mirrors Recocards exact 22 use-case structure) ─────────────────
-const USE_CASE_LINKS = [
-  { to:'/occasions/anniversary',                      label:'Free Anniversary Group Cards' },
-  { to:'/cards/christmas',                            label:'Free Christmas Group Cards' },
-  { to:'/occasions/graduation',                       label:'Free Congratulations Group Cards' },
-  { to:'/occasions/birthday',                         label:'Free Group Birthday Cards' },
-  { to:'/cards/get-well-soon',                        label:'Free Get Well Soon Group Cards' },
-  { to:'/cards/sympathy',                             label:'Free Sympathy Group Cards' },
-  { to:'/cards/thank-you',                            label:'Free Thank You Group Cards' },
-  { to:'/memory-movie',                              label:'Thankeeu Memory Movie™' },
-  { to:'/live-memory-wall',                           label:'Live Memory Wall™' },
-  { to:'/wedding-memory-wall',                        label:'Wedding Memory Wall' },
-  { to:'/birthday-memory-wall',                       label:'Birthday Memory Wall' },
-  { to:'/church-memory-wall',                         label:'Church Memory Wall' },
-  { to:'/employee-memory-wall',                       label:'Employee Memory Wall' },
-  { to:'/leaving-cards-uk',                              label:'Online Leaving Cards UK' },
-  { to:'/birthday-cards-uk',                             label:'Online Birthday Cards UK' },
-  { to:'/retirement-cards-uk',                           label:'Retirement Cards UK' },
-  { to:'/get-well-soon-cards-uk',                        label:'Get Well Soon Cards UK' },
-  { to:'/online-birthday-cards-nigeria',                 label:'Free Online Birthday Cards Nigeria' },
-  { to:'/occasions/birthday',                         label:'Free Group Card With Multiple Signatures' },
-  { to:'/occasions/farewell',                         label:'Free Group Cards With Multiple Signers' },
-  { to:'/occasions/birthday',                         label:'Free Group Electronic Cards' },
-  { to:'/occasions/birthday',                         label:'Free Group Gift Cards' },
-  { to:'/occasions/birthday',                         label:'Free GroupGreeting Cards' },
-  { to:'/occasions/birthday',                         label:'Free Online Birthday Group Cards' },
-  { to:'/cards/leaving-card',                         label:'Virtual Farewell Cards Online' },
-  { to:'/blog/what-to-write-farewell-card-colleague-nigeria',   label:'What to Write in a Farewell Card' },
-  { to:'/blog/get-well-soon-messages-colleague-friend-nigeria', label:'Get Well Soon Messages' },
-  { to:'/cards/leaving-card',                         label:'Online Group Cards Together, Free' },
-  { to:'/online-group-cards-uk',                      label:'Free Kudoboard Alternative UK' },
-  { to:'/blog/thankbox-vs-kudoboard-vs-thankeeu-uk-2025', label:'Free Thankbox Alternative' },
-  { to:'/blog/what-to-write-birthday-card-boss-nigeria',   label:'What to Write in a Birthday Card' },
-  { to:'/cards/sympathy',                             label:'What to Write in a Sympathy Card' },
+// ── Use Cases split into 4 sub-columns ────────────────────────────────────────
+const USE_CASE_COL1 = [
+  { to:'/occasions/birthday',    label:'Free Group Birthday Cards' },
+  { to:'/occasions/anniversary', label:'Free Anniversary Group Cards' },
+  { to:'/cards/christmas',       label:'Free Christmas Group Cards' },
+  { to:'/occasions/graduation',  label:'Free Congratulations Cards' },
+  { to:'/cards/get-well-soon',   label:'Free Get Well Soon Cards' },
+  { to:'/cards/sympathy',        label:'Free Sympathy Group Cards' },
+  { to:'/cards/thank-you',       label:'Free Thank You Group Cards' },
+  { to:'/occasions/birthday',    label:'Free Group Electronic Cards' },
+];
+const USE_CASE_COL2 = [
+  { to:'/memory-movie',          label:'Thankeeu Memory Movie™' },
+  { to:'/live-memory-wall',      label:'Live Memory Wall™' },
+  { to:'/wedding-memory-wall',   label:'Wedding Memory Wall' },
+  { to:'/birthday-memory-wall',  label:'Birthday Memory Wall' },
+  { to:'/church-memory-wall',    label:'Church Memory Wall' },
+  { to:'/employee-memory-wall',  label:'Employee Memory Wall' },
+  { to:'/wedding-photo-sharing-app',     label:'Wedding Photo Sharing App' },
+  { to:'/digital-wedding-guest-book',    label:'Digital Wedding Guest Book' },
+];
+const USE_CASE_COL3 = [
+  { to:'/leaving-cards-uk',              label:'Online Leaving Cards UK' },
+  { to:'/birthday-cards-uk',             label:'Online Birthday Cards UK' },
+  { to:'/retirement-cards-uk',           label:'Retirement Cards UK' },
+  { to:'/get-well-soon-cards-uk',        label:'Get Well Soon Cards UK' },
+  { to:'/online-birthday-cards-nigeria', label:'Birthday Cards Nigeria' },
+  { to:'/online-group-cards-uk',         label:'Free Kudoboard Alternative UK' },
+  { to:'/qr-code-for-wedding-photos',    label:'QR Code for Wedding Photos' },
+  { to:'/collect-wedding-guest-photos',  label:'Collect Wedding Guest Photos' },
+];
+const USE_CASE_COL4 = [
+  { to:'/wedding-group-card',            label:'Wedding Group Card' },
+  { to:'/wedding-cash-gift-platform',    label:'Wedding Cash Gift Platform' },
+  { to:'/online-wedding-guestbook',      label:'Online Wedding Guestbook' },
+  { to:'/wedding-memory-book',           label:'Wedding Memory Book' },
+  { to:'/wedding-video-message-book',    label:'Wedding Video Messages' },
+  { to:'/wedding-photo-upload-app',      label:'Wedding Photo Upload App' },
+  { to:'/wedding-photo-gallery',         label:'Wedding Photo Gallery' },
+  { to:'/uk-wedding-photo-sharing',      label:'UK Wedding Photo Sharing' },
+  { to:'/usa-wedding-photo-sharing',     label:'USA Wedding Photo Sharing' },
+  { to:'/online-group-card',             label:'Online Group Card' },
 ];
 
 // ── Articles (exact categories from Recocards, unique Thankeeu content) ───────
@@ -166,8 +174,8 @@ const Footer = () => (
   <footer style={{ background:'linear-gradient(180deg,#F5F0FF,#EDE5FF)' }} className="border-t border-purple-100 mt-auto">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
 
-      {/* ── Top row: Brand + Use Cases + Occasions + More Cards + Product + Company ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-8 mb-10">
+      {/* ── Top row: Brand + Occasions + More Cards + Product + Company ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-8 mb-10">
 
         {/* Brand */}
         <div className="col-span-2 sm:col-span-3 lg:col-span-1">
@@ -208,21 +216,6 @@ const Footer = () => (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
             </a>
           </div>
-        </div>
-
-        {/* Use Cases */}
-        <div className="col-span-2 lg:col-span-2">
-          <p className="font-bold text-warm-900 text-sm mb-4">Use Cases</p>
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-2">
-            {USE_CASE_LINKS.map(({ to, label }, i) => (
-              <li key={`uc-${i}`}>
-                <Link to={to} onClick={scrollTop}
-                  className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors leading-snug">
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
         </div>
 
         {/* Occasions — first 13 */}
@@ -327,6 +320,64 @@ const Footer = () => (
                 className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
             ))}
           </ul>
+        </div>
+      </div>
+
+      {/* ── Use Cases — 4 columns ── */}
+      <div className="border-t border-purple-100 pt-10 mb-10">
+        <p className="font-bold text-warm-900 text-sm mb-6">Use Cases</p>
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2">
+          {/* Column 1 */}
+          <ul className="space-y-2">
+            <li className="text-xs font-bold text-warm-700 mb-1">Group Cards</li>
+            {USE_CASE_COL1.map(({ to, label }, i) => (
+              <li key={`uc1-${i}`}><Link to={to} onClick={scrollTop} className="text-xs text-warm-500 hover:text-primary-600 transition-colors leading-snug block">{label}</Link></li>
+            ))}
+          </ul>
+          {/* Column 2 */}
+          <ul className="space-y-2">
+            <li className="text-xs font-bold text-warm-700 mb-1">Memory & Walls</li>
+            {USE_CASE_COL2.map(({ to, label }, i) => (
+              <li key={`uc2-${i}`}><Link to={to} onClick={scrollTop} className="text-xs text-warm-500 hover:text-primary-600 transition-colors leading-snug block">{label}</Link></li>
+            ))}
+          </ul>
+          {/* Column 3 */}
+          <ul className="space-y-2">
+            <li className="text-xs font-bold text-warm-700 mb-1">By Region</li>
+            {USE_CASE_COL3.map(({ to, label }, i) => (
+              <li key={`uc3-${i}`}><Link to={to} onClick={scrollTop} className="text-xs text-warm-500 hover:text-primary-600 transition-colors leading-snug block">{label}</Link></li>
+            ))}
+          </ul>
+          {/* Column 4 */}
+          <ul className="space-y-2">
+            <li className="text-xs font-bold text-warm-700 mb-1">Weddings</li>
+            {USE_CASE_COL4.map(({ to, label }, i) => (
+              <li key={`uc4-${i}`}><Link to={to} onClick={scrollTop} className="text-xs text-warm-500 hover:text-primary-600 transition-colors leading-snug block">{label}</Link></li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* ── Comparisons ── */}
+      <div className="border-t border-purple-100 pt-10 mb-10">
+        <p className="font-bold text-warm-900 text-sm mb-6">Comparisons</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-x-6 gap-y-2">
+          {[
+            { to:'/thankeeu-vs-thankbox',           label:'Thankeeu vs Thankbox' },
+            { to:'/thankeeu-vs-kudoboard',           label:'Thankeeu vs Kudoboard' },
+            { to:'/thankeeu-vs-wedtrove',            label:'Thankeeu vs Wedtrove' },
+            { to:'/guestpix-alternative',            label:'GuestPix Alternative' },
+            { to:'/weduploader-alternative',         label:'WedUploader Alternative' },
+            { to:'/kululu-alternative',              label:'Kululu Alternative' },
+            { to:'/pov-alternative',                 label:'POV Alternative' },
+            { to:'/guestcam-alternative',            label:'GuestCam Alternative' },
+            { to:'/best-wedding-photo-sharing-app',  label:'Best Wedding Photo App' },
+            { to:'/wedding-photo-album-online',      label:'Wedding Photo Album Online' },
+            { to:'/wedding-guest-photo-collection',  label:'Wedding Guest Photo Collection' },
+            { to:'/wedding-voice-note-guest-book',   label:'Wedding Voice Note Book' },
+          ].map(({ to, label }) => (
+            <div key={to}><Link to={to} onClick={scrollTop} className="text-xs text-warm-500 hover:text-primary-600 transition-colors leading-snug block">{label}</Link></div>
+          ))}
         </div>
       </div>
 

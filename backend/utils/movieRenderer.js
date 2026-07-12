@@ -2,85 +2,101 @@
  * movieRenderer.js — Thankeeu Memory Movie™ engine
  *
  * Builds a 1080p MP4 from a card's messages, photos, videos and voice notes
- * using only FFmpeg — no AI video APIs, no expensive third-party services.
+ * using only FFmpeg.
  *
  * Pipeline:
- *   1. Download all assets (cover image, message photos, videos, voice notes)
- *   2. Build colour slides for title/message cards with drawtext overlays
- *   3. Assemble timeline segments — images become fixed-duration clips
- *   4. Concatenate all clips via concat demuxer
- *   5. Mix background music + voice notes over the video
- *   6. Encode to H.264/AAC MP4 at 1080p
- *   7. Upload to Cloudinary
- *   8. Return { movie_url, thumbnail_url, duration_secs, file_size_bytes }
+ *   1.  Classify messages by media type
+ *   2.  Download photos, videos, voice notes
+ *   3.  Build decorated name+caption slides per contributor (with celebration bg)
+ *   4.  Sequence: contributor name/caption → their photo/video → repeat
+ *   5.  Generate ambient background music (or download from MOVIE_BG_MUSIC_URL)
+ *   6.  Concatenate all clips
+ *   7.  Mix music + voice notes over video
+ *   8.  Upload to Cloudinary, return result
  *
- * DESIGN NOTES:
- *   - zoompan was removed — it is O(n) per frame, extremely slow on constrained
- *     Railway containers (~30s per slide). Simple scale+pad is used instead.
- *   - Every execFileAsync call has an explicit timeout and a stderr capture so
- *     failures surface clearly in Railway logs rather than vanishing silently.
- *   - Voice notes are normalised to 44.1kHz stereo WAV before concatenating
- *     to avoid codec/sample-rate mismatch errors during final mix.
+ * DESIGN:
+ *   - Backgrounds: deep purple-blue with drawbox geometric celebration shapes
+ *     and a ghosted occasion word — not plain colour.
+ *   - Per-contributor sequence: name+message slide first, then their media.
+ *   - Slide order: Opening title → [for each contributor: caption slide → media] →
+ *     Signatures → Closing.
+ *   - Music: tries MOVIE_BG_MUSIC_URL env var first (must be direct MP3 link),
+ *     falls back to ffmpeg-generated layered ambient sine tones (always works).
+ *   - No zoompan — too slow on Railway constrained containers.
  */
 
 'use strict';
 
-const path    = require('path');
-const fs      = require('fs');
-const os      = require('os');
-const https   = require('https');
-const http    = require('http');
-const { execFile }    = require('child_process');
-const { promisify }   = require('util');
-const execFileAsync   = promisify(execFile);
-const cloudinary      = require('./cloudinary').cloudinary;
+const path          = require('path');
+const fs            = require('fs');
+const os            = require('os');
+const https         = require('https');
+const http          = require('http');
+const { execFile }  = require('child_process');
+const { promisify } = require('util');
+const execFileAsync = promisify(execFile);
+const cloudinary    = require('./cloudinary').cloudinary;
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const W = 1920, H = 1080;
-const FPS = 25;           // 25fps is standard and slightly lighter than 30
-const SLIDE_DUR = 4;      // seconds per image/text slide
-const MAX_ASSETS = 30;    // cap for render-time safety on Railway free tier
-const MAX_TEXT   = 160;   // truncate long messages
+const W         = 1920;
+const H         = 1080;
+const FPS       = 25;
+const SLIDE_DUR = 4;       // seconds per text/name slide
+const MEDIA_DUR = 5;       // seconds for photo slides (slightly longer than text)
+const MAX_CONTRIBUTORS = 25;
+const MAX_TEXT  = 200;
 
-// Background music — royalty-free ambient, falls back silently if unavailable
-const BG_MUSIC_URL = process.env.MOVIE_BG_MUSIC_URL
-  || 'https://cdn.pixabay.com/download/audio/2022/10/30/audio_1e9fce5ab4.mp3';
+// ── Music URL resolution ──────────────────────────────────────────────────────
+// Priority: 1) DB site_settings.movie_bg_music_url  2) MOVIE_BG_MUSIC_URL env  3) generated ambient
+async function resolveMusicUrl() {
+  try {
+    const supabase = require('./supabase');
+    const { data } = await supabase
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'movie_bg_music_url')
+      .maybeSingle();
+    if (data?.value) {
+      console.log(`[movie] Music URL from DB: ${data.value}`);
+      return data.value;
+    }
+  } catch (e) {
+    console.warn('[movie] Could not read music URL from DB (non-fatal):', e.message);
+  }
+  if (process.env.MOVIE_BG_MUSIC_URL) {
+    console.log(`[movie] Music URL from env: ${process.env.MOVIE_BG_MUSIC_URL}`);
+    return process.env.MOVIE_BG_MUSIC_URL;
+  }
+  return null;
+}
 
 // ── Font resolution ───────────────────────────────────────────────────────────
 function resolveFontFile() {
   const candidates = [
     process.env.MOVIE_FONT_FILE,
-    // Alpine Linux (Dockerfile with apk add ttf-dejavu)
     '/usr/share/fonts/ttf-dejavu/DejaVuSans-Bold.ttf',
     '/usr/share/fonts/ttf-dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
-    '/usr/share/fonts/dejavu/DejaVuSans.ttf',
-    // Ubuntu/Debian (nixpacks)
     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
-    '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
     '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
-    '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
-    // macOS dev
     '/System/Library/Fonts/Supplemental/Arial.ttf',
-    '/System/Library/Fonts/Helvetica.ttc',
   ];
   for (const c of candidates) {
-    try { if (c && fs.existsSync(c)) { console.log(`[movie] Using font: ${c}`); return c; } } catch { /* ignore */ }
+    try { if (c && fs.existsSync(c)) { console.log(`[movie] font: ${c}`); return c; } } catch {}
   }
-  // Try scanning /nix/store for any DejaVu font
+  // Scan nix store
   try {
     const nixStore = '/nix/store';
     if (fs.existsSync(nixStore)) {
       const dirs = fs.readdirSync(nixStore).filter(d => d.includes('dejavu') || d.includes('freefont'));
       for (const d of dirs.slice(0, 5)) {
         const f = path.join(nixStore, d, 'share', 'fonts', 'truetype', 'DejaVuSans-Bold.ttf');
-        if (fs.existsSync(f)) { console.log(`[movie] Using nix font: ${f}`); return f; }
+        if (fs.existsSync(f)) return f;
       }
     }
-  } catch { /* ignore */ }
-  console.warn('[movie] WARNING: No font file found — text overlays will use fontconfig default');
+  } catch {}
   return null;
 }
 const FONT_FILE = resolveFontFile();
@@ -88,32 +104,57 @@ const FONT_FRAG = FONT_FILE ? `fontfile='${FONT_FILE.replace(/\\/g, '\\\\').repl
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Download a URL to a local temp file. Returns the local path. */
+/**
+ * Download a URL to a local file.
+ * Passes URL string directly to https.get (not decomposed object) so the
+ * Host header is set correctly — fixes 403s from CDNs that check Host.
+ */
 function download(url, destPath) {
   return new Promise((resolve, reject) => {
     const proto = url.startsWith('https') ? https : http;
     const file  = fs.createWriteStream(destPath);
-    const req   = proto.get(url, res => {
+
+    // Pass URL as string + separate options object — Node sets Host header correctly
+    const req = proto.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept':     '*/*',
+        'Referer':    'https://thankeeu.com/',
+      },
+      timeout: 30000,
+    }, res => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         file.close();
+        fs.unlink(destPath, () => {});
         return download(res.headers.location, destPath).then(resolve).catch(reject);
       }
       if (res.statusCode !== 200) {
         file.close();
-        return reject(new Error(`Download ${res.statusCode}: ${url}`));
+        fs.unlink(destPath, () => {});
+        return reject(new Error(`HTTP ${res.statusCode}: ${url}`));
       }
       res.pipe(file);
-      file.on('finish', () => { file.close(); resolve(destPath); });
+      file.on('finish', () => {
+        file.close();
+        try {
+          const stat = fs.statSync(destPath);
+          if (stat.size < 512) {
+            fs.unlink(destPath, () => {});
+            return reject(new Error(`File too small (${stat.size}B): ${url}`));
+          }
+        } catch {}
+        resolve(destPath);
+      });
     });
-    req.on('error', err => { file.close(); reject(err); });
-    req.setTimeout(30000, () => { req.destroy(); reject(new Error(`Download timeout: ${url}`)); });
+    req.on('error', err => { file.close(); fs.unlink(destPath, () => {}); reject(err); });
+    req.on('timeout',  () => { req.destroy(); reject(new Error(`Timeout: ${url}`)); });
   });
 }
 
-/** Escape text for FFmpeg drawtext. Strips emoji/non-ASCII the font can't render. */
+/** Escape text for FFmpeg drawtext */
 const escFF = s => String(s)
   .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}]/gu, '')
-  .replace(/[^\x00-\x7F]/g, '')   // strip all non-ASCII (font safety)
+  .replace(/[^\x00-\x7F]/g, '')
   .replace(/\s{2,}/g, ' ')
   .trim()
   .replace(/\\/g, '\\\\')
@@ -124,8 +165,8 @@ const escFF = s => String(s)
   .replace(/,/g, '\\,')
   .replace(/;/g, '\\;');
 
-/** Wrap text to ~N chars per line, return as array of strings */
-function wrapLines(text, maxChars = 36) {
+/** Wrap text to lines */
+function wrapLines(text, maxChars = 38) {
   const words = text.split(' ');
   const lines = [];
   let cur = '';
@@ -138,59 +179,266 @@ function wrapLines(text, maxChars = 36) {
     }
   }
   if (cur) lines.push(cur.trim());
-  return lines.slice(0, 4); // max 4 lines
+  return lines.slice(0, 4);
 }
 
-/** Run ffmpeg with timeout and capture stderr for diagnostics */
+/** Run ffmpeg with timeout */
 async function ff(args, timeoutMs = 90000, label = '') {
   try {
-    const r = await execFileAsync('ffmpeg', ['-hide_banner', '-loglevel', 'error', ...args], {
+    return await execFileAsync('ffmpeg', ['-hide_banner', '-loglevel', 'error', ...args], {
       timeout: timeoutMs,
       maxBuffer: 10 * 1024 * 1024,
     });
-    return r;
   } catch (err) {
-    const msg = err.stderr || err.message || String(err);
-    console.error(`[movie] ffmpeg${label ? ' ' + label : ''} FAILED: ${msg.slice(0, 500)}`);
-    throw new Error(`ffmpeg${label ? ' ' + label : ''}: ${msg.slice(0, 300)}`);
+    const msg = (err.stderr || err.message || String(err)).slice(0, 500);
+    console.error(`[movie] ffmpeg ${label || ''} FAILED: ${msg}`);
+    throw new Error(`ffmpeg ${label}: ${msg.slice(0, 200)}`);
   }
 }
 
-/** Generate a solid-colour PNG using FFmpeg */
-async function makeColourSlide(colour, outPath) {
-  await ff([
-    '-y', '-f', 'lavfi',
-    '-i', `color=c=${colour}:s=${W}x${H}:r=1:d=1`,
-    '-vframes', '1',
-    outPath,
-  ], 15000, 'colour-slide');
-}
-
-/** Convert an image to a padded 1920x1080 PNG */
+/** Normalise an image to 1920x1080 PNG with black letterbox */
 async function normaliseImage(srcPath, outPath) {
   await ff([
     '-y', '-i', srcPath,
     '-vf', `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black`,
-    '-vframes', '1',
-    '-q:v', '2',
-    outPath,
+    '-vframes', '1', '-q:v', '2', outPath,
   ], 20000, 'normalise-image');
+}
+
+/**
+ * Build the decorated background vf filter string.
+ *
+ * Creates a rich celebration background with:
+ *   - Deep gradient-like dual-layer drawbox overlay
+ *   - Corner and edge decorative shapes (circles simulated with small boxes)
+ *   - Scattered star/sparkle drawtext glyphs in gold, pink, purple
+ *   - Ghosted occasion word as large watermark text
+ *   - Top coloured accent bar
+ *
+ * @param {string} occasionWord  e.g. "Birthday" "Wedding"
+ * @param {string} baseColour    hex without # e.g. "1a0533"
+ */
+function buildDecoratedBg(occasionWord = 'Celebration', baseColour = '1a0533') {
+  const occ = escFF(occasionWord);
+
+  // Scattered decoration positions — fixed so every slide has same pattern
+  const decorations = [
+    // Corner boxes (simulating circles)
+    `drawbox=x=40:y=35:w=110:h=110:color=FFD700@0.18:t=fill`,
+    `drawbox=x=1770:y=35:w=110:h=110:color=FF69B4@0.18:t=fill`,
+    `drawbox=x=40:y=935:w=110:h=110:color=9966CC@0.18:t=fill`,
+    `drawbox=x=1770:y=935:w=110:h=110:color=FFD700@0.18:t=fill`,
+    // Mid-edge accents
+    `drawbox=x=880:y=20:w=160:h=80:color=FF69B4@0.12:t=fill`,
+    `drawbox=x=880:y=980:w=160:h=80:color=9966CC@0.12:t=fill`,
+    `drawbox=x=20:y=460:w=80:h=160:color=FFD700@0.10:t=fill`,
+    `drawbox=x=1820:y=460:w=80:h=160:color=FF69B4@0.10:t=fill`,
+    // Inner scattered small boxes
+    `drawbox=x=200:y=140:w=60:h=60:color=FFD700@0.10:t=fill`,
+    `drawbox=x=1660:y=140:w=60:h=60:color=FF69B4@0.10:t=fill`,
+    `drawbox=x=200:y=880:w=60:h=60:color=9966CC@0.10:t=fill`,
+    `drawbox=x=1660:y=880:w=60:h=60:color=FFD700@0.10:t=fill`,
+    `drawbox=x=400:y=80:w=40:h=40:color=FF69B4@0.08:t=fill`,
+    `drawbox=x=1480:y=80:w=40:h=40:color=9966CC@0.08:t=fill`,
+    `drawbox=x=400:y=960:w=40:h=40:color=FFD700@0.08:t=fill`,
+    `drawbox=x=1480:y=960:w=40:h=40:color=FF69B4@0.08:t=fill`,
+    // Top accent bar
+    `drawbox=x=0:y=0:w=1920:h=8:color=FFD700@0.6:t=fill`,
+    `drawbox=x=0:y=1072:w=1920:h=8:color=9966CC@0.6:t=fill`,
+    // Ghosted occasion watermark
+    `drawtext=${FONT_FRAG}text='${occ}':fontsize=240:fontcolor=FFFFFF@0.04:x=(w-text_w)/2:y=(h-text_h)/2`,
+    // Star/sparkle glyphs in corners using * and + characters
+    `drawtext=${FONT_FRAG}text='*':fontsize=90:fontcolor=FFD700@0.5:x=55:y=50:shadowcolor=black@0.3:shadowx=2:shadowy=2`,
+    `drawtext=${FONT_FRAG}text='*':fontsize=70:fontcolor=FF69B4@0.5:x=1790:y=50:shadowcolor=black@0.3:shadowx=2:shadowy=2`,
+    `drawtext=${FONT_FRAG}text='*':fontsize=80:fontcolor=9966CC@0.5:x=55:y=950:shadowcolor=black@0.3:shadowx=2:shadowy=2`,
+    `drawtext=${FONT_FRAG}text='*':fontsize=90:fontcolor=FFD700@0.5:x=1790:y=950:shadowcolor=black@0.3:shadowx=2:shadowy=2`,
+    `drawtext=${FONT_FRAG}text='+':fontsize=55:fontcolor=FF69B4@0.4:x=210:y=150:shadowcolor=black@0.3:shadowx=1:shadowy=1`,
+    `drawtext=${FONT_FRAG}text='+':fontsize=45:fontcolor=FFD700@0.4:x=1670:y=150`,
+    `drawtext=${FONT_FRAG}text='+':fontsize=50:fontcolor=9966CC@0.4:x=210:y=890`,
+    `drawtext=${FONT_FRAG}text='+':fontsize=55:fontcolor=FF69B4@0.4:x=1670:y=890`,
+    `drawtext=${FONT_FRAG}text='+':fontsize=35:fontcolor=FFD700@0.35:x=895:y=30`,
+    `drawtext=${FONT_FRAG}text='+':fontsize=35:fontcolor=9966CC@0.35:x=895:y=1010`,
+  ];
+
+  return decorations.join(',');
+}
+
+/**
+ * Build a decorated name+caption slide PNG.
+ * Background has celebration shapes + ghosted occasion word.
+ * Foreground shows: [occasion label] / name / message lines / — author
+ */
+async function makeNameCaptionSlide(opts, outPath) {
+  const { name, caption, occasionWord, baseColour = '1a0533' } = opts;
+
+  const decoratedBg = buildDecoratedBg(occasionWord, baseColour);
+
+  // Foreground text layers
+  const nameSafe    = escFF(name || 'A friend');
+  const lines       = caption ? wrapLines(caption.slice(0, MAX_TEXT)) : [];
+  const lineCount   = lines.length;
+
+  // Vertical positioning — centre the text block
+  const lineH       = 72;
+  const blockH      = (lineCount > 0 ? lineCount * lineH + 20 : 0) + 110; // name + lines
+  const blockTop    = Math.round((H - blockH) / 2) - 20;
+
+  const fgFilters = [];
+
+  // Name (large, gold)
+  fgFilters.push(
+    `drawtext=${FONT_FRAG}text='${nameSafe}':fontsize=82:fontcolor=FFD700:x=(w-text_w)/2:y=${blockTop}:shadowcolor=black@0.85:shadowx=4:shadowy=4`
+  );
+
+  // Message lines (white)
+  lines.forEach((line, i) => {
+    const y = blockTop + 110 + i * lineH;
+    fgFilters.push(
+      `drawtext=${FONT_FRAG}text='${escFF(line)}':fontsize=54:fontcolor=FFFFFF:x=(w-text_w)/2:y=${y}:shadowcolor=black@0.7:shadowx=3:shadowy=3`
+    );
+  });
+
+  const vf = `color=c=0x${baseColour}:s=${W}x${H}:r=1:d=1[base];[base]${decoratedBg},${fgFilters.join(',')}`;
+
+  await ff([
+    '-y', '-f', 'lavfi', '-i', `color=c=0x${baseColour}:s=${W}x${H}:r=1:d=1`,
+    '-vf', `${decoratedBg},${fgFilters.join(',')}`,
+    '-vframes', '1', '-update', '1', outPath,
+  ], 15000, 'name-caption-slide');
+}
+
+/**
+ * Build the opening title slide.
+ */
+async function makeTitleSlide(occasionWord, recipientName, outPath) {
+  const decoratedBg = buildDecoratedBg(occasionWord, '0d0020');
+  const occ  = escFF(occasionWord);
+  const name = escFF(recipientName || '');
+
+  await ff([
+    '-y', '-f', 'lavfi', '-i', `color=c=0x0d0020:s=${W}x${H}:r=1:d=1`,
+    '-vf', [
+      decoratedBg,
+      `drawtext=${FONT_FRAG}text='${occ}':fontsize=110:fontcolor=FFD700:x=(w-text_w)/2:y=(h/2)-160:shadowcolor=black@0.9:shadowx=5:shadowy=5`,
+      name ? `drawtext=${FONT_FRAG}text='for ${name}':fontsize=80:fontcolor=FFFFFF:x=(w-text_w)/2:y=(h/2)-30:shadowcolor=black@0.9:shadowx=4:shadowy=4` : null,
+      `drawtext=${FONT_FRAG}text='Made with love by everyone':fontsize=46:fontcolor=BB88FF:x=(w-text_w)/2:y=(h/2)+90:shadowcolor=black@0.7:shadowx=2:shadowy=2`,
+    ].filter(Boolean).join(','),
+    '-vframes', '1', '-update', '1', outPath,
+  ], 15000, 'title-slide');
+}
+
+/**
+ * Build the signatures slide.
+ */
+async function makeSignaturesSlide(names, occasionWord, outPath) {
+  const decoratedBg = buildDecoratedBg(occasionWord, '1a0533');
+  const nameList    = escFF(names.slice(0, 12).join('  ·  '));
+
+  await ff([
+    '-y', '-f', 'lavfi', '-i', `color=c=0x1a0533:s=${W}x${H}:r=1:d=1`,
+    '-vf', [
+      decoratedBg,
+      `drawtext=${FONT_FRAG}text='Signed with love by':fontsize=72:fontcolor=FFD700:x=(w-text_w)/2:y=(h/2)-100:shadowcolor=black@0.9:shadowx=4:shadowy=4`,
+      names.length ? `drawtext=${FONT_FRAG}text='${nameList}':fontsize=38:fontcolor=CCCCCC:x=(w-text_w)/2:y=(h/2)+20:shadowcolor=black@0.7:shadowx=2:shadowy=2` : null,
+    ].filter(Boolean).join(','),
+    '-vframes', '1', '-update', '1', outPath,
+  ], 15000, 'signatures-slide');
+}
+
+/**
+ * Build the closing slide.
+ */
+async function makeClosingSlide(outPath) {
+  const decoratedBg = buildDecoratedBg('Thankeeu', '0d0020');
+
+  await ff([
+    '-y', '-f', 'lavfi', '-i', `color=c=0x0d0020:s=${W}x${H}:r=1:d=1`,
+    '-vf', [
+      decoratedBg,
+      `drawtext=${FONT_FRAG}text='Made with love':fontsize=90:fontcolor=FFD700:x=(w-text_w)/2:y=(h/2)-90:shadowcolor=black@0.9:shadowx=5:shadowy=5`,
+      `drawtext=${FONT_FRAG}text='by everyone who cares about you':fontsize=52:fontcolor=FFFFFF:x=(w-text_w)/2:y=(h/2)+30:shadowcolor=black@0.8:shadowx=3:shadowy=3`,
+      `drawtext=${FONT_FRAG}text='-- Thankeeu':fontsize=40:fontcolor=9966CC:x=(w-text_w)/2:y=(h/2)+120:shadowcolor=black@0.7:shadowx=2:shadowy=2`,
+    ].join(','),
+    '-vframes', '1', '-update', '1', outPath,
+  ], 15000, 'closing-slide');
+}
+
+/** Render an image PNG into a fixed-duration MP4 chunk with silent audio */
+async function imageToChunk(imgPath, duration, outPath) {
+  await ff([
+    '-y',
+    '-loop', '1', '-i', imgPath,
+    '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+    '-t', String(duration),
+    '-vf', `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black`,
+    '-map', '0:v:0', '-map', '1:a:0',
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
+    '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-ar', '44100',
+    '-r', String(FPS), '-pix_fmt', 'yuv420p', '-shortest',
+    outPath,
+  ], 45000, 'image-chunk');
+}
+
+/** Render a decorated slide PNG into a fixed-duration MP4 chunk */
+async function slideToChunk(imgPath, duration, outPath) {
+  await ff([
+    '-y',
+    '-loop', '1', '-i', imgPath,
+    '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+    '-t', String(duration),
+    '-vf', `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black`,
+    '-map', '0:v:0', '-map', '1:a:0',
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
+    '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-ar', '44100',
+    '-r', String(FPS), '-pix_fmt', 'yuv420p', '-shortest',
+    outPath,
+  ], 45000, 'slide-chunk');
+}
+
+/** Trim/transcode a video file to a fixed-duration MP4 chunk — preserves native audio */
+async function videoToChunk(videoPath, duration, outPath) {
+  const vf = [
+    `scale=${W}:${H}:force_original_aspect_ratio=decrease`,
+    `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black`,
+  ].join(',');
+
+  // Try to keep native video audio; if no audio stream, fall back to silence
+  try {
+    await ff([
+      '-y', '-i', videoPath,
+      '-t', String(duration),
+      '-vf', vf,
+      '-map', '0:v:0', '-map', '0:a:0',
+      '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '30',
+      '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100',
+      '-r', String(FPS), '-pix_fmt', 'yuv420p', '-shortest',
+      outPath,
+    ], 60000, 'video-chunk-native-audio');
+  } catch {
+    // No audio stream or codec issue — use silence
+    await ff([
+      '-y', '-i', videoPath,
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-t', String(duration),
+      '-vf', vf,
+      '-map', '0:v:0', '-map', '1:a:0',
+      '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '30',
+      '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-ar', '44100',
+      '-r', String(FPS), '-pix_fmt', 'yuv420p', '-shortest',
+      outPath,
+    ], 60000, 'video-chunk-silent');
+  }
 }
 
 // ── Main renderer ─────────────────────────────────────────────────────────────
 
 async function renderMovie(card, msgs) {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'thankeeu-movie-'));
-  console.log(`[movie] Start render for card ${card.id}, tmpDir=${tmpDir}`);
+  console.log(`[movie] Start render card=${card.id} tmpDir=${tmpDir}`);
 
   try {
-    // Verify ffmpeg is available before doing anything expensive
-    try {
-      await execFileAsync('ffmpeg', ['-version'], { timeout: 10000 });
-      console.log('[movie] ffmpeg found');
-    } catch {
-      throw new Error('ffmpeg is not installed or not in PATH. Add nixPkgs = ["ffmpeg-full"] to nixpacks.toml.');
-    }
+    // Check ffmpeg
+    await execFileAsync('ffmpeg', ['-version'], { timeout: 10000 });
 
     // ── 0. Merge wall posts ──────────────────────────────────────────────────
     try {
@@ -210,41 +458,56 @@ async function renderMovie(card, msgs) {
         }))];
         console.log(`[movie] Merged ${wallPosts.length} wall posts`);
       }
-    } catch (e) { console.warn('[movie] wall posts merge error (non-fatal):', e.message); }
+    } catch (e) { console.warn('[movie] wall posts merge (non-fatal):', e.message); }
 
-    // ── 1. Classify assets ───────────────────────────────────────────────────
-    const photoMsgs = msgs.filter(m => m.media_type === 'image' && m.media_url).slice(0, MAX_ASSETS);
-    const videoMsgs = msgs.filter(m => m.media_type === 'video' && m.media_url).slice(0, 6);
+    // ── 1. Group messages by contributor ────────────────────────────────────
+    // Each contributor gets: one name+caption slide, then their media
+    const seen = new Map(); // author_name → { content, mediaItems[] }
+    for (const m of msgs) {
+      const key = (m.author_name || 'Anonymous').trim();
+      if (!seen.has(key)) seen.set(key, { name: key, content: m.content, mediaItems: [] });
+      const entry = seen.get(key);
+      // Use first non-null content as the caption for this person
+      if (!entry.content && m.content?.trim()) entry.content = m.content;
+      // Collect media (photos, videos) — voice notes handled separately
+      if ((m.media_type === 'image' || m.media_type === 'video') && m.media_url) {
+        entry.mediaItems.push({ type: m.media_type, url: m.media_url });
+      }
+    }
+
+    // Voice notes collected separately (played in audio mix, not visual segments)
     const voiceMsgs = msgs.filter(m => m.media_type === 'voice' && m.media_url).slice(0, 10);
-    const textMsgs  = msgs.filter(m => m.content?.trim()).slice(0, 15);
-    console.log(`[movie] Assets: ${photoMsgs.length} photos, ${videoMsgs.length} videos, ${voiceMsgs.length} voice, ${textMsgs.length} text`);
 
-    // ── 2. Cover slide — use card design colour (no cover_image column on cards) ──
-    let coverPath = null; // no cover image available from cards table
+    const contributors = [...seen.values()].slice(0, MAX_CONTRIBUTORS);
+    console.log(`[movie] ${contributors.length} contributors, ${voiceMsgs.length} voice notes`);
 
-    // ── 3. Download and normalise photos ────────────────────────────────────
-    const photoPaths = [];
-    for (let i = 0; i < photoMsgs.length; i++) {
-      try {
-        const raw  = path.join(tmpDir, `photo_raw_${i}`);
-        await download(photoMsgs[i].media_url, raw);
-        const norm = path.join(tmpDir, `photo_${i}.png`);
-        await normaliseImage(raw, norm);
-        photoPaths.push({ path: norm, author: photoMsgs[i].author_name });
-      } catch (e) { console.warn(`[movie] photo ${i} failed:`, e.message); }
+    // ── 2. Occasion label ────────────────────────────────────────────────────
+    const occasionWord = card.occasion
+      ? card.occasion.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+      : 'Celebration';
+
+    // ── 3. Download all media ────────────────────────────────────────────────
+    // Download photos & videos for each contributor
+    for (const c of contributors) {
+      const resolved = [];
+      for (let i = 0; i < Math.min(c.mediaItems.length, 10); i++) {
+        const item = c.mediaItems[i];
+        try {
+          const rawPath = path.join(tmpDir, `${escFileName(c.name)}_raw_${i}`);
+          await download(item.url, rawPath);
+          if (item.type === 'image') {
+            const normPath = path.join(tmpDir, `${escFileName(c.name)}_img_${i}.png`);
+            await normaliseImage(rawPath, normPath);
+            resolved.push({ type: 'image', path: normPath });
+          } else {
+            resolved.push({ type: 'video', path: rawPath });
+          }
+        } catch (e) { console.warn(`[movie] media ${c.name}[${i}] failed:`, e.message); }
+      }
+      c.resolvedMedia = resolved;
     }
 
-    // ── 4. Download videos ───────────────────────────────────────────────────
-    const videoPaths = [];
-    for (let i = 0; i < videoMsgs.length; i++) {
-      try {
-        const dest = path.join(tmpDir, `video_${i}.mp4`);
-        await download(videoMsgs[i].media_url, dest);
-        videoPaths.push({ path: dest, author: videoMsgs[i].author_name });
-      } catch (e) { console.warn(`[movie] video ${i} failed:`, e.message); }
-    }
-
-    // ── 5. Download and normalise voice notes ────────────────────────────────
+    // Download voice notes
     const voicePaths = [];
     for (let i = 0; i < voiceMsgs.length; i++) {
       try {
@@ -252,238 +515,238 @@ async function renderMovie(card, msgs) {
         await download(voiceMsgs[i].media_url, raw);
         const norm = path.join(tmpDir, `voice_${i}.wav`);
         await ff(['-y', '-i', raw, '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', norm], 30000, `voice-${i}`);
-        voicePaths.push({ path: norm, author: voiceMsgs[i].author_name });
+        voicePaths.push(norm);
       } catch (e) { console.warn(`[movie] voice ${i} failed:`, e.message); }
     }
 
-    // ── 6. Download background music ────────────────────────────────────────
+    // ── 4. Generate / download background music ──────────────────────────────
     let bgMusicPath = null;
-    try {
-      bgMusicPath = path.join(tmpDir, 'bgmusic.mp3');
-      await download(BG_MUSIC_URL, bgMusicPath);
-      console.log('[movie] BG music downloaded');
-    } catch (e) { console.warn('[movie] BG music download failed (non-fatal):', e.message); bgMusicPath = null; }
+    const musicUrl  = await resolveMusicUrl();
 
-    // ── 7. Build segment list ────────────────────────────────────────────────
-    const segments = [];
-
-    // Opening title slide
-    const titleSlide = path.join(tmpDir, 'title.png');
-    await makeColourSlide('0x1a0533', titleSlide);
-    const occasionText = card.occasion
-      ? card.occasion.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-      : 'Happy Celebration';
-    segments.push({ type: 'image', path: titleSlide, duration: SLIDE_DUR,
-      overlays: [
-        { text: escFF(occasionText),          fs: 80, col: 'FFD700', y: '(h/2)-80' },
-        { text: escFF(card.recipient_name || ''), fs: 60, col: 'FFFFFF', y: '(h/2)+20' },
-        { text: 'Made with love by everyone', fs: 32, col: '9966CC', y: '(h/2)+120' },
-      ],
-    });
-
-    // Cover image
-    if (coverPath) segments.push({ type: 'image', path: coverPath, duration: SLIDE_DUR, overlays: [] });
-
-    // Text message slides (up to 10)
-    for (const m of textMsgs.slice(0, 10)) {
-      const slide = path.join(tmpDir, `msg_${segments.length}.png`);
-      await makeColourSlide('0x2d0052', slide);
-      const lines  = wrapLines(m.content.slice(0, MAX_TEXT));
-      const yStart = H / 2 - (lines.length * 35);
-      const overlays = lines.map((line, li) => ({
-        text: escFF(line), fs: 46, col: 'FFFFFF', y: String(yStart + li * 70),
-      }));
-      if (m.author_name) overlays.push({
-        text: escFF(`— ${m.author_name}`), fs: 34, col: 'BB88FF', y: String(yStart + lines.length * 70 + 20),
-      });
-      segments.push({ type: 'image', path: slide, duration: SLIDE_DUR, overlays });
+    if (musicUrl) {
+      console.log(`[movie] Trying music URL: ${musicUrl}`);
+      try {
+        const dest = path.join(tmpDir, 'bgmusic.mp3');
+        await download(musicUrl, dest);
+        bgMusicPath = dest;
+        console.log('[movie] Music ready from URL');
+      } catch (e) {
+        console.warn('[movie] Music URL failed, generating ambient:', e.message);
+      }
     }
 
-    // Photo slides
-    for (const p of photoPaths) {
-      const overlays = p.author
-        ? [{ text: escFF(p.author), fs: 36, col: 'FFFFFF', y: 'h-80' }]
-        : [];
-      segments.push({ type: 'image', path: p.path, duration: SLIDE_DUR, overlays });
+    if (!bgMusicPath) {
+      console.log('[movie] Generating ambient music with ffmpeg');
+      try {
+        const dest = path.join(tmpDir, 'bgmusic.mp3');
+        await ff([
+          '-f', 'lavfi', '-i', 'sine=frequency=432:duration=300',
+          '-f', 'lavfi', '-i', 'sine=frequency=528:duration=300',
+          '-f', 'lavfi', '-i', 'sine=frequency=396:duration=300',
+          '-filter_complex',
+          '[0:a]volume=0.07[a1];[1:a]volume=0.04[a2];[2:a]volume=0.03[a3];' +
+          '[a1][a2][a3]amix=inputs=3:normalize=0,aecho=0.8:0.6:60:0.3,lowpass=f=1200[out]',
+          '-map', '[out]',
+          '-c:a', 'libmp3lame', '-b:a', '64k',
+          '-y', dest,
+        ], 30000, 'gen-ambient');
+        bgMusicPath = dest;
+        console.log('[movie] Ambient music generated');
+      } catch (e) {
+        console.warn('[movie] Ambient music failed (non-fatal):', e.message);
+      }
     }
 
-    // Video clips (trimmed to 8s each)
-    for (const v of videoPaths) {
-      const overlays = v.author
-        ? [{ text: escFF(v.author), fs: 36, col: 'FFFFFF', y: 'h-80' }]
-        : [];
-      segments.push({ type: 'video', path: v.path, duration: 8, overlays });
+    // ── 5. Build and render all chunks ───────────────────────────────────────
+    const chunkPaths = [];
+    let chunkIdx = 0;
+
+    const addChunk = async (renderFn) => {
+      const outPath = path.join(tmpDir, `chunk_${chunkIdx++}.mp4`);
+      await renderFn(outPath);
+      chunkPaths.push(outPath);
+    };
+
+    // Opening title
+    const titleImg = path.join(tmpDir, 'slide_title.png');
+    await makeTitleSlide(occasionWord, card.recipient_name, titleImg);
+    await addChunk(out => slideToChunk(titleImg, SLIDE_DUR + 1, out));
+    console.log('[movie] Title chunk done');
+
+    // Per-contributor: name+caption slide → their media
+    for (let ci = 0; ci < contributors.length; ci++) {
+      const contrib = contributors[ci];
+
+      // Name + caption decorated slide
+      const captionImg = path.join(tmpDir, `slide_caption_${ci}.png`);
+      await makeNameCaptionSlide({
+        name:         contrib.name,
+        caption:      contrib.content,
+        occasionWord,
+        baseColour:   ci % 2 === 0 ? '1a0533' : '2d0052',
+      }, captionImg);
+      await addChunk(out => slideToChunk(captionImg, SLIDE_DUR, out));
+
+      // Their media (images then videos)
+      for (const media of contrib.resolvedMedia) {
+        if (media.type === 'image') {
+          await addChunk(out => imageToChunk(media.path, MEDIA_DUR, out));
+        } else if (media.type === 'video') {
+          await addChunk(out => videoToChunk(media.path, 8, out));
+        }
+      }
+
+      console.log(`[movie] Contributor ${ci + 1}/${contributors.length} done (${contrib.resolvedMedia.length} media)`);
     }
 
     // Signatures slide
-    const sigSlide = path.join(tmpDir, 'sig.png');
-    await makeColourSlide('0x1a0533', sigSlide);
-    const sigNames = [...new Set(msgs.map(m => m.author_name).filter(Boolean))].slice(0, 15);
-    segments.push({ type: 'image', path: sigSlide, duration: SLIDE_DUR,
-      overlays: [
-        { text: 'Signed with love by',  fs: 52, col: 'FFD700', y: '(h/2)-80' },
-        { text: escFF(sigNames.join(' · ')), fs: 30, col: 'CCCCCC', y: '(h/2)+20' },
-      ],
-    });
+    const sigNames  = contributors.map(c => c.name).filter(Boolean);
+    const sigImg    = path.join(tmpDir, 'slide_sig.png');
+    await makeSignaturesSlide(sigNames, occasionWord, sigImg);
+    await addChunk(out => slideToChunk(sigImg, SLIDE_DUR + 1, out));
 
     // Closing slide
-    const closeSlide = path.join(tmpDir, 'close.png');
-    await makeColourSlide('0x0d0020', closeSlide);
-    segments.push({ type: 'image', path: closeSlide, duration: SLIDE_DUR,
-      overlays: [
-        { text: 'Made with love',       fs: 60, col: 'FFD700', y: '(h/2)-70' },
-        { text: 'by everyone who cares about you', fs: 38, col: 'FFFFFF', y: '(h/2)+20' },
-        { text: '— Thankeeu',           fs: 32, col: '9966CC', y: '(h/2)+100' },
-      ],
-    });
+    const closeImg = path.join(tmpDir, 'slide_close.png');
+    await makeClosingSlide(closeImg);
+    await addChunk(out => slideToChunk(closeImg, SLIDE_DUR, out));
 
-    console.log(`[movie] ${segments.length} segments to render`);
+    console.log(`[movie] ${chunkPaths.length} chunks rendered`);
 
-    // ── 8. Render each segment to a fixed-duration MP4 chunk ─────────────────
-    const chunkPaths = [];
-
-    for (let i = 0; i < segments.length; i++) {
-      const seg     = segments[i];
-      const outPath = path.join(tmpDir, `chunk_${i}.mp4`);
-
-      // Build text overlay filter chain
-      const textFilter = seg.overlays
-        .filter(o => o.text?.trim())
-        .map(o => `drawtext=${FONT_FRAG}text='${o.text}':fontsize=${o.fs}:fontcolor=#${o.col}:x=(w-text_w)/2:y=${o.y}:shadowcolor=black@0.7:shadowx=2:shadowy=2`)
-        .join(',');
-
-      if (seg.type === 'video') {
-        const vf = [
-          `scale=${W}:${H}:force_original_aspect_ratio=decrease`,
-          `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black`,
-          textFilter,
-        ].filter(Boolean).join(',');
-
-        // Try with native audio, fall back to silent
-        try {
-          await ff([
-            '-y', '-i', seg.path,
-            '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-            '-t', String(seg.duration),
-            '-filter_complex',
-              `[0:v]${vf}[v];[0:a]anull[ca];[1:a]atrim=0:${seg.duration}[sil];[ca][sil]amix=inputs=2:duration=first[a]`,
-            '-map', '[v]', '-map', '[a]',
-            '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '30',
-            '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-ar', '44100',
-            '-r', String(FPS), '-pix_fmt', 'yuv420p',
-            outPath,
-          ], 60000, `chunk-${i}-video`);
-        } catch {
-          await ff([
-            '-y', '-i', seg.path,
-            '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-            '-t', String(seg.duration),
-            '-vf', vf,
-            '-map', '0:v:0', '-map', '1:a:0',
-            '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '30',
-            '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-ar', '44100',
-            '-r', String(FPS), '-pix_fmt', 'yuv420p', '-shortest',
-            outPath,
-          ], 60000, `chunk-${i}-video-fallback`);
-        }
-      } else {
-        // Image slide — simple scale+pad (NO zoompan — too slow on Railway)
-        const vf = [
-          `scale=${W}:${H}:force_original_aspect_ratio=decrease`,
-          `pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=black`,
-          textFilter,
-        ].filter(Boolean).join(',');
-
-        await ff([
-          '-y',
-          '-loop', '1', '-i', seg.path,
-          '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
-          '-t', String(seg.duration),
-          '-vf', vf,
-          '-map', '0:v:0', '-map', '1:a:0',
-          '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
-          '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-ar', '44100',
-          '-r', String(FPS), '-pix_fmt', 'yuv420p', '-shortest',
-          outPath,
-        ], 45000, `chunk-${i}-image`);
-      }
-
-      chunkPaths.push(outPath);
-      console.log(`[movie] Chunk ${i + 1}/${segments.length} done`);
-    }
-
-    // ── 9. Concatenate all chunks ─────────────────────────────────────────────
+    // ── 6. Concatenate all chunks ─────────────────────────────────────────────
     const concatList = path.join(tmpDir, 'concat.txt');
     fs.writeFileSync(concatList, chunkPaths.map(p => `file '${p}'`).join('\n'));
-
     const silentMovie = path.join(tmpDir, 'silent.mp4');
 
-    // Try stream copy first (fast), fall back to re-encode
     try {
       await ff([
         '-y', '-f', 'concat', '-safe', '0', '-i', concatList,
-        '-c', 'copy', '-movflags', '+faststart',
-        silentMovie,
+        '-c', 'copy', '-movflags', '+faststart', silentMovie,
       ], 300000, 'concat-copy');
     } catch {
-      console.warn('[movie] concat copy failed, re-encoding');
       await ff([
         '-y', '-f', 'concat', '-safe', '0', '-i', concatList,
         '-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28',
         '-c:a', 'aac', '-b:a', '96k', '-ac', '2', '-ar', '44100',
-        '-movflags', '+faststart',
-        silentMovie,
+        '-movflags', '+faststart', silentMovie,
       ], 300000, 'concat-reencode');
     }
     console.log('[movie] Concatenation done');
 
-    // ── 10. Mix background music + voice notes ────────────────────────────────
+    // ── 7. Mix background music + voice notes ────────────────────────────────
     const finalMovie = path.join(tmpDir, 'final.mp4');
 
     if (bgMusicPath || voicePaths.length > 0) {
-      // Get total video duration
       const probeOut = await execFileAsync('ffprobe', [
         '-v', 'quiet', '-print_format', 'json', '-show_format', silentMovie,
       ], { timeout: 15000 });
       const totalDur = parseFloat(JSON.parse(probeOut.stdout).format.duration) || 60;
-      console.log(`[movie] Total duration: ${totalDur}s`);
+      console.log(`[movie] Duration: ${totalDur}s`);
+
+      // Fade duration: 6s for movies > 60s, 4s for 30–60s, 3s for shorter
+      const fadeDur   = totalDur > 60 ? 6 : totalDur > 30 ? 4 : 3;
+      const fadeStart = Math.max(0, totalDur - fadeDur);
 
       const audioInputs = [];
       const filters     = [];
-      let audioIdx      = 1; // 0 = main video
+      let   inputIdx    = 1; // 0 = main video
 
+      // ── Video audio from assembled movie (includes native video clip sound) ──
+      // The silent movie's audio track carries video clip audio embedded during chunking.
+      // We use it as a full-volume foreground track and as the sidechain for ducking.
+      filters.push(`[0:a]volume=1.0[videoaudio]`);
+
+      // ── Background music ─────────────────────────────────────────────────────
+      let hasBg = false;
       if (bgMusicPath) {
-        audioInputs.push('-i', bgMusicPath);
+        audioInputs.push('-stream_loop', '-1', '-i', bgMusicPath);
+        // Set bg music at 0.18 — will be ducked further by sidechain below
         filters.push(
-          `[${audioIdx}:a]aloop=loop=-1:size=2e+09[bgloop]`,
-          `[bgloop]atrim=0:${totalDur},afade=t=out:st=${Math.max(0, totalDur - 3)}:d=3,volume=0.2[bgfinal]`,
+          `[${inputIdx}:a]atrim=0:${totalDur},asetpts=PTS-STARTPTS,volume=0.18[bgraw]`,
         );
-        audioIdx++;
+        inputIdx++;
+        hasBg = true;
       }
 
-      let voiceConcatPath = null;
+      // ── Voice notes ──────────────────────────────────────────────────────────
+      let hasVoice = false;
       if (voicePaths.length > 0) {
         const voiceList = path.join(tmpDir, 'voicelist.txt');
-        fs.writeFileSync(voiceList, voicePaths.map(v => `file '${v.path}'`).join('\n'));
-        voiceConcatPath = path.join(tmpDir, 'voices.wav');
+        fs.writeFileSync(voiceList, voicePaths.map(v => `file '${v}'`).join('\n'));
+        const voiceConcatPath = path.join(tmpDir, 'voices.wav');
         await ff([
           '-y', '-f', 'concat', '-safe', '0', '-i', voiceList,
-          '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le',
-          voiceConcatPath,
+          '-ac', '2', '-ar', '44100', '-c:a', 'pcm_s16le', voiceConcatPath,
         ], 60000, 'voice-concat');
         audioInputs.push('-i', voiceConcatPath);
-        filters.push(`[${audioIdx}:a]atrim=0:${totalDur},volume=0.85[voicefinal]`);
-        audioIdx++;
+        // loudnorm: bring voice to consistent -16 LUFS so quiet recordings are audible
+        // apad: pad with silence so voice aligns with full movie length
+        filters.push(
+          `[${inputIdx}:a]atrim=0:${totalDur},asetpts=PTS-STARTPTS,` +
+          `loudnorm=I=-16:TP=-1.5:LRA=11,apad=whole_dur=${totalDur}[voiceout]`,
+        );
+        inputIdx++;
+        hasVoice = true;
       }
 
+      // ── Sidechain ducking ─────────────────────────────────────────────────────
+      // Music automatically ducks when voice notes OR video audio is present.
+      // sidechaincompress: threshold=0.01 (-40dB), ratio=8:1 = aggressive duck
+      //   attack=20ms = fast response to speech, release=800ms = smooth recovery
+      //   makeup=1 = no makeup gain (we want music quiet under speech, not restored)
+      // Result: music drops from 0.18 to ~0.02 during speech/video, rises back between.
       let mixLabel;
-      if (bgMusicPath && voicePaths.length > 0) {
-        filters.push('[bgfinal][voicefinal]amix=inputs=2:duration=first:normalize=0[audiomix]');
-        mixLabel = '[audiomix]';
-      } else if (bgMusicPath) {
-        mixLabel = '[bgfinal]';
+
+      if (hasBg) {
+        // Each named output can only be read ONCE in ffmpeg filter_complex.
+        // Use asplit/acopy to make extra copies for the sidechain AND final mix.
+        if (hasVoice) {
+          // Split voiceout and videoaudio so each is used in sidechain AND final mix
+          filters.push(`[voiceout]asplit=2[voiceA][voiceB]`);
+          filters.push(`[videoaudio]asplit=2[vidA][vidB]`);
+          // Sidechain = voice + video audio combined
+          filters.push(`[vidA][voiceA]amix=inputs=2:normalize=0[sidechain]`);
+          // Duck music against sidechain
+          filters.push(
+            `[bgraw][sidechain]sidechaincompress=` +
+            `threshold=0.01:ratio=8:attack=20:release=800:makeup=1[bgducked]`,
+          );
+          // Final 3-way mix: ducked music + full voice + full video audio
+          filters.push(
+            `[bgducked][voiceB][vidB]amix=inputs=3:normalize=0,` +
+            `afade=t=out:st=${fadeStart}:d=${fadeDur},` +
+            `dynaudnorm=p=0.95:m=100[finalout]`,
+          );
+        } else {
+          // No voice — duck music against video audio only
+          filters.push(`[videoaudio]asplit=2[vidA][vidB]`);
+          filters.push(`[vidA]acopy[sidechain]`);
+          filters.push(
+            `[bgraw][sidechain]sidechaincompress=` +
+            `threshold=0.01:ratio=8:attack=20:release=800:makeup=1[bgducked]`,
+          );
+          // Final 2-way mix: ducked music + video audio
+          filters.push(
+            `[bgducked][vidB]amix=inputs=2:normalize=0,` +
+            `afade=t=out:st=${fadeStart}:d=${fadeDur},` +
+            `dynaudnorm=p=0.95:m=100[finalout]`,
+          );
+        }
+        mixLabel = '[finalout]';
+
+      } else if (hasVoice) {
+        // Voice + video audio, no background music
+        filters.push(
+          `[voiceout][videoaudio]amix=inputs=2:normalize=0,` +
+          `afade=t=out:st=${fadeStart}:d=${fadeDur}[finalout]`,
+        );
+        mixLabel = '[finalout]';
+
       } else {
-        mixLabel = '[voicefinal]';
+        // Only video audio (no bg music, no voice notes)
+        filters.push(
+          `[videoaudio]afade=t=out:st=${fadeStart}:d=${fadeDur}[finalout]`,
+        );
+        mixLabel = '[finalout]';
       }
 
       await ff([
@@ -493,62 +756,58 @@ async function renderMovie(card, msgs) {
         '-map', '0:v',
         '-map', mixLabel,
         '-c:v', 'copy',
-        '-c:a', 'aac', '-b:a', '128k', '-ac', '2', '-ar', '44100',
+        '-c:a', 'aac', '-b:a', '192k', '-ac', '2', '-ar', '44100',
         '-shortest', '-movflags', '+faststart',
         finalMovie,
       ], 300000, 'audio-mix');
       console.log('[movie] Audio mix done');
     } else {
       fs.copyFileSync(silentMovie, finalMovie);
-      console.log('[movie] No audio to mix — using silent movie');
+      console.log('[movie] Silent movie (no audio sources)');
     }
 
-    // ── 11. Extract thumbnail ─────────────────────────────────────────────────
+    // ── 8. Thumbnail ──────────────────────────────────────────────────────────
     const thumbPath = path.join(tmpDir, 'thumb.jpg');
     try {
       await ff([
         '-y', '-i', finalMovie,
-        '-ss', '00:00:03', '-vframes', '1',
-        '-vf', 'scale=1280:720',
-        thumbPath,
+        '-ss', '00:00:02', '-vframes', '1',
+        '-vf', 'scale=1280:720', thumbPath,
       ], 20000, 'thumbnail');
-    } catch (e) { console.warn('[movie] thumbnail failed (non-fatal):', e.message); }
+    } catch (e) { console.warn('[movie] thumbnail failed:', e.message); }
 
-    // ── 12. File stats ────────────────────────────────────────────────────────
+    // ── 9. Stats ───────────────────────────────────────────────────────────────
     const probeOut2 = await execFileAsync('ffprobe', [
       '-v', 'quiet', '-print_format', 'json', '-show_format', finalMovie,
     ], { timeout: 15000 });
-    const fmt        = JSON.parse(probeOut2.stdout).format;
+    const fmt           = JSON.parse(probeOut2.stdout).format;
     const durationSecs  = Math.round(parseFloat(fmt.duration) || 0);
     const fileSizeBytes = parseInt(fmt.size, 10) || fs.statSync(finalMovie).size;
     console.log(`[movie] Final: ${durationSecs}s, ${Math.round(fileSizeBytes / 1024 / 1024)}MB`);
 
-    // ── 13. Upload to Cloudinary ──────────────────────────────────────────────
+    // ── 10. Upload to Cloudinary ───────────────────────────────────────────────
     const publicId = `thankeeu/movies/card_${card.id}_${Date.now()}`;
-    console.log(`[movie] Uploading to Cloudinary as ${publicId}`);
-
+    console.log(`[movie] Uploading → ${publicId}`);
     const uploadResult = await cloudinary.uploader.upload(finalMovie, {
       resource_type: 'video',
       public_id:     publicId,
       overwrite:     true,
-      eager:         [{ format: 'mp4', transformation: [{ quality: 'auto:good' }] }],
-      eager_async:   false,
       timeout:       600000,
     });
 
     let thumbUrl = null;
     if (fs.existsSync(thumbPath)) {
       try {
-        const thumbUpload = await cloudinary.uploader.upload(thumbPath, {
+        const tu = await cloudinary.uploader.upload(thumbPath, {
           resource_type: 'image',
           public_id:     `${publicId}_thumb`,
           overwrite:     true,
         });
-        thumbUrl = thumbUpload.secure_url;
+        thumbUrl = tu.secure_url;
       } catch (e) { console.warn('[movie] thumb upload failed:', e.message); }
     }
 
-    console.log(`[movie] SUCCESS — ${uploadResult.secure_url}`);
+    console.log(`[movie] SUCCESS → ${uploadResult.secure_url}`);
     return {
       movie_url:       uploadResult.secure_url,
       movie_public_id: publicId,
@@ -560,6 +819,11 @@ async function renderMovie(card, msgs) {
   } finally {
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   }
+}
+
+/** Make a filesystem-safe name fragment */
+function escFileName(name) {
+  return String(name || 'unknown').replace(/[^a-zA-Z0-9]/g, '_').slice(0, 20);
 }
 
 module.exports = { renderMovie };

@@ -93,9 +93,11 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
     setTimeout(() => { win.focus(); win.print(); }, 400);
   }, [dataUrl, label, url]);
 
-  // Use visibility+pointer-events+display trick:
-  // - When closed: opacity 0, pointer-events none, still in DOM (no remount)
-  // - Added `display` guard via `visibility` to prevent any paint artifacts
+  // When closed: remove from paint entirely via display:none.
+  // This eliminates the backdrop-filter GPU layer flicker that visibility:hidden causes.
+  // The QR image is pre-generated and cached in state so re-opening is instant.
+  if (!open && !generated.current) return null;
+
   return (
     <div
       role="dialog"
@@ -106,16 +108,10 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
         background: 'rgba(10,0,30,0.8)',
         backdropFilter: 'blur(8px)',
         WebkitBackdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        display: open ? 'flex' : 'none',
+        alignItems: 'center', justifyContent: 'center',
         padding: '16px',
         overflowY: 'auto',
-        // Stable visibility control — opacity + visibility together prevents
-        // backdrop-filter flicker that opacity alone can cause in some browsers
-        opacity: open ? 1 : 0,
-        visibility: open ? 'visible' : 'hidden',
-        pointerEvents: open ? 'auto' : 'none',
-        transition: 'opacity 0.18s ease, visibility 0.18s ease',
-        willChange: 'opacity',
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}
     >
@@ -129,9 +125,6 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
           overflow: 'hidden',
           maxHeight: 'calc(100vh - 32px)',
           overflowY: 'auto',
-          transform: open ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
-          transition: 'transform 0.18s ease',
-          willChange: 'transform',
         }}
         onClick={e => e.stopPropagation()}
       >

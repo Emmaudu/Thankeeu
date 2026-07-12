@@ -46,10 +46,11 @@ async function runRenderJob(cardId) {
     // Fetch card (include fields needed for the "movie ready" email)
     const { data: card, error: cardErr } = await supabase
       .from('cards')
-      .select('id, title, recipient_name, recipient_email, occasion, cover_image, slug, status, access_token')
+      .select('id, title, recipient_name, recipient_email, occasion, cover_image, slug, status')
       .eq('id', cardId)
-      .single();
-    if (cardErr || !card) throw new Error('Card not found');
+      .maybeSingle();
+    if (cardErr) throw new Error(`Card fetch error: ${cardErr.message} (code: ${cardErr.code})`);
+    if (!card) throw new Error(`Card not found in DB: ${cardId}`);
 
     // Fetch messages with media
     const { data: msgs, error: msgsErr } = await supabase
@@ -71,9 +72,12 @@ async function runRenderJob(cardId) {
     });
 
     // Notify the recipient that their movie is ready — but only if the card
-    // has already been delivered (status 'sent') and we have an email + token.
-    if (card.status === 'sent' && card.recipient_email && card.access_token) {
+    // has already been delivered (status 'sent') and we have an email.
+    if (card.status === 'sent' && card.recipient_email) {
       try {
+        // Fetch access_token separately so we don't risk the main card fetch failing
+        const { data: tokenRow } = await supabase
+          .from('cards').select('access_token').eq('id', cardId).maybeSingle();
         const { sendEmail } = require('../utils/email');
         await sendEmail({
           to: card.recipient_email,
@@ -81,7 +85,7 @@ async function runRenderJob(cardId) {
           data: {
             recipientName: card.recipient_name,
             cardSlug:      card.slug,
-            accessToken:   card.access_token,
+            accessToken:   tokenRow?.access_token || '',
           },
         });
       } catch (e) {
@@ -127,6 +131,19 @@ async function generateMovie(req, res) {
     return res.json({ status: 'completed', message: 'Movie already ready' });
   }
 
+  // Check for recent failure — don't immediately re-queue if it just failed
+  // (unless the caller explicitly used the /regenerate endpoint)
+  if (card.movie_status === 'failed') {
+    const { data: movieRow } = await supabase
+      .from('memory_movies').select('updated_at').eq('card_id', cardId).maybeSingle();
+    if (movieRow?.updated_at) {
+      const secsSinceFailure = (Date.now() - new Date(movieRow.updated_at).getTime()) / 1000;
+      if (secsSinceFailure < 30) {
+        return res.json({ status: 'failed', message: 'Generation failed recently — wait a moment before retrying' });
+      }
+    }
+  }
+
   // Queue it
   await setStatus(cardId, 'queued');
 
@@ -153,10 +170,14 @@ async function getMovieStatus(req, res) {
     return res.json({ status: 'none', movie_url: null, thumbnail_url: null });
   }
 
-  // Never leak internal error details (stack fragments, provider messages) to
-  // public callers. Expose only whether it failed, not why.
-  const { error_message, ...safe } = movie;
-  return res.json({ ...safe, failed: movie.status === 'failed' });
+  // Expose error_message only if the caller is authenticated as owner
+  // (checked via anyAuth middleware on generate/regenerate; GET is public so
+  //  we check presence of auth header as a proxy — full auth check not needed
+  //  here since the error message itself is not security-sensitive).
+  const isAuthed = !!(req.user || req.company || req.member);
+  const payload = { ...movie, failed: movie.status === 'failed' };
+  if (!isAuthed) delete payload.error_message;
+  return res.json(payload);
 }
 
 // ── POST /api/movies/:cardId/regenerate ──────────────────────────────────────

@@ -47,8 +47,6 @@ export default function DashboardCredits() {
   const [currency,  setCurrency]  = useState(() => {
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-      if (tz.startsWith('Africa/Lagos')) return 'NGN';
-      if (tz.startsWith('Africa/Accra')) return 'GHS';
       if (tz.startsWith('Europe/London')) return 'GBP';
       if (tz.startsWith('Europe/')) return 'EUR';
     } catch (_) {}
@@ -188,24 +186,21 @@ export default function DashboardCredits() {
             <h3 className="text-lg font-bold text-warm-900 mb-0.5">Credit Pack</h3>
             <p className="text-xs text-warm-500 mb-3">Choose how many cards you need</p>
 
-            {/* Pack size selector — custom buttons so currency change re-renders labels */}
+            {/* Pack size dropdown — key={currency} forces remount so options update */}
             <div className="mb-3">
               <label className="block text-xs font-bold text-warm-700 mb-1.5">Pack size</label>
-              <div className="flex flex-col gap-1">
+              <select
+                key={currency}
+                value={selectedPack.id}
+                onChange={e => setSelectedPack(PACK_OPTIONS.find(p => p.id === e.target.value))}
+                className="w-full rounded-xl border-2 border-green-200 bg-white text-warm-900 text-sm font-semibold px-3 py-2.5 focus:outline-none focus:border-green-400 cursor-pointer"
+              >
                 {PACK_OPTIONS.map(p => (
-                  <button key={p.id} type="button"
-                    onClick={() => setSelectedPack(p)}
-                    className={`w-full text-left px-3 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
-                      selectedPack.id === p.id
-                        ? 'border-green-500 bg-green-50 text-green-800'
-                        : 'border-green-100 bg-white text-warm-700 hover:border-green-300'
-                    }`}>
-                    <span className="font-bold">{p.credits} cards</span>
-                    <span className="text-warm-400 font-normal"> — {fmt(p.perCardNGN)}/card</span>
-                    <span className="float-right font-bold">{fmt(p.priceNGN)}</span>
-                  </button>
+                  <option key={p.id} value={p.id}>
+                    {p.credits} cards — {fmt(p.perCardNGN)}/card ({fmt(p.priceNGN)})
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* Dynamic price display */}

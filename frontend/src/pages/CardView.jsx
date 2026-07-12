@@ -1311,29 +1311,7 @@ const CardView = () => {
             </div>
           )}
 
-          {/* QR Code buttons — always accessible for the card creator */}
-          {card.isCreator && (
-            <div className="flex flex-wrap gap-2 justify-center mt-3">
-              {card?.card_experience !== 'wall_only' && (
-                <QRButton
-                  url={`${window.location.origin}/sign/${slug}`}
-                  label="Scan to sign the group card"
-                  variant="ghost"
-                  className="text-xs">
-                  QR — Group Card
-                </QRButton>
-              )}
-              {['card_and_wall','wall_only'].includes(card?.card_experience) && (
-                <QRButton
-                  url={`${window.location.origin}/sign/${slug}?tab=wall`}
-                  label="Scan to add photos to the Live Photo Wall"
-                  variant="ghost"
-                  className="text-xs">
-                  QR — Photo Wall
-                </QRButton>
-              )}
-            </div>
-          )}
+
 
           {/* ── Tab navigation (Messages / Memory Wall / Movie) — always visible ── */}
           {(() => {
@@ -1341,6 +1319,10 @@ const CardView = () => {
             const movieSt  = card?.movie_status || 'none';
             const canGen   = Boolean(card?.isCreator || card?.isRecipient);
             const showMessages = card?.card_experience !== 'wall_only';
+            // If a non-owner landed on movie tab (e.g. via URL), redirect to messages
+            if (cardViewTab === 'movie' && !canGen && showMessages) {
+              setTimeout(() => setCardViewTab('messages'), 0);
+            }
             // Theme-aware inactive tab styling: on light-background themes we must NOT use
             // white text/borders (invisible). Use the theme ink colour instead.
             const activeCls   = 'shadow-lg scale-105';
@@ -1377,6 +1359,7 @@ const CardView = () => {
                     style={cardViewTab === 'wall' ? badgeActive : badgeInactive}>Live</span>
                 )}
               </button>
+              {canGen && (
               <button onClick={() => setCardViewTab('movie')}
                 className={`${tabBase} ${cardViewTab === 'movie' ? activeCls : ''}`}
                 style={cardViewTab === 'movie' ? activeStyle : inactiveStyle}>
@@ -1387,6 +1370,7 @@ const CardView = () => {
                     style={cardViewTab === 'movie' ? badgeActive : badgeInactive}>Ready</span>
                 )}
               </button>
+              )}
             </div>
             );
           })()}
@@ -1424,11 +1408,21 @@ const CardView = () => {
           {/* ── Memory Movie tab ── */}
           {cardViewTab === 'movie' && (
             <div className="max-w-2xl mx-auto px-4 py-8 w-full">
-              <MemoryMoviePlayer
-                cardId={card.id}
-                initialStatus={card.movie_status || 'none'}
-                canGenerate={Boolean(card.isCreator || card.isRecipient)}
-              />
+              {canViewPrivate ? (
+                <MemoryMoviePlayer
+                  cardId={card.id}
+                  initialStatus={card.movie_status || 'none'}
+                  canGenerate={Boolean(card.isCreator || card.isRecipient)}
+                />
+              ) : (
+                <div className="text-center py-16 px-6 rounded-3xl border-2 border-purple-100 bg-purple-50">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-100 flex items-center justify-center">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <h3 className="font-bold text-warm-900 mb-2">Private to the recipient</h3>
+                  <p className="text-warm-500 text-sm">The Memory Movie is only accessible to the card recipient and creator.</p>
+                </div>
+              )}
             </div>
           )}
 

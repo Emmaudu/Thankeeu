@@ -122,12 +122,8 @@ const Pricing = () => {
  if (tz.startsWith('Europe/London') || tz === 'Europe/Dublin' || lang.startsWith('en-gb')) return 'GBP';
  if (tz.startsWith('America/') && lang.startsWith('en-ca')) return 'CAD';
  if (tz.startsWith('Europe/')) return 'EUR';
- if (tz.startsWith('Africa/Lagos') || tz.startsWith('Africa/Abidjan') || lang.startsWith('pcm') || lang.startsWith('yo') || lang.startsWith('ig') || lang.startsWith('ha')) return 'NGN';
- if (tz.startsWith('Africa/Accra')) return 'GHS';
- if (tz.startsWith('Africa/Nairobi')) return 'KES';
- if (tz.startsWith('Africa/Johannesburg') || tz.startsWith('Africa/Harare')) return 'ZAR';
  } catch (_) {}
- return 'USD'; // default fallback — USD is the most globally understood
+ return 'USD'; // Always default USD — Nigerian/African users can switch manually
  });
  const [loadingPlan, setLoadingPlan] = useState(null);
  const [openFAQ, setOpenFAQ] = useState(null);
@@ -288,20 +284,21 @@ const Pricing = () => {
  <h3 className="text-xl font-bold text-warm-900 mb-1">Credit Pack</h3>
  <p className="text-warm-500 text-xs mb-4">Choose how many cards you need</p>
 
- {/* Pack size selector — custom buttons so currency change re-renders labels */}
+ {/* Pack size dropdown — key={currency} forces remount so options show correct currency */}
  <div className="mb-3">
  <label className="block text-xs font-bold text-warm-600 mb-1.5">Pack size</label>
- <div className="flex flex-col gap-1">
- {PACK_OPTIONS.map(p => (
- <button key={p.id} type="button"
-   onClick={() => setSelectedPack(p)}
-   className={`w-full text-left px-3 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${selectedPack.id === p.id ? 'border-green-500 bg-green-50 text-green-800' : 'border-green-100 bg-white text-warm-700 hover:border-green-300'}`}>
-   <span className="font-bold">{p.credits} cards</span>
-   <span className="text-warm-400 font-normal"> — {fmt(p.perCardNGN)}/card</span>
-   <span className="float-right font-bold">{fmt(p.priceNGN)}</span>
- </button>
- ))}
- </div>
+ <select
+   key={currency}
+   value={selectedPack.id}
+   onChange={e => setSelectedPack(PACK_OPTIONS.find(p => p.id === e.target.value))}
+   className="w-full rounded-xl border-2 border-green-200 bg-white text-warm-900 text-sm font-semibold px-3 py-2.5 focus:outline-none focus:border-green-500 cursor-pointer"
+ >
+   {PACK_OPTIONS.map(p => (
+     <option key={p.id} value={p.id}>
+       {p.credits} cards — {fmt(p.perCardNGN)}/card ({fmt(p.priceNGN)})
+     </option>
+   ))}
+ </select>
  </div>
 
  <div className="flex items-end gap-1 mb-1">

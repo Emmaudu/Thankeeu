@@ -35,6 +35,7 @@ export default function MemoryMoviePlayer({ cardId, initialStatus = 'none', canG
   const [loading,   setLoading]   = useState(false);
   const [playing,   setPlaying]   = useState(false);
   const [error,     setError]     = useState(null);
+  const [serverErr, setServerErr] = useState(null); // error_message from backend
 
   const meta = STATUS_META[status] || STATUS_META.none;
   const isActive = status === 'queued' || status === 'rendering' || status === 'pending';
@@ -46,9 +47,10 @@ export default function MemoryMoviePlayer({ cardId, initialStatus = 'none', canG
       if (!res.ok) return;
       const data = await res.json();
       setStatus(data.status || 'none');
-      if (data.movie_url)   setMovieUrl(data.movie_url);
+      if (data.movie_url)     setMovieUrl(data.movie_url);
       if (data.thumbnail_url) setThumbUrl(data.thumbnail_url);
       if (data.duration_secs) setDuration(data.duration_secs);
+      if (data.error_message) setServerErr(data.error_message);
     } catch { /* non-fatal */ }
   }, [cardId]);
 
@@ -197,9 +199,15 @@ export default function MemoryMoviePlayer({ cardId, initialStatus = 'none', canG
         {/* Failed state */}
         {status === 'failed' && (
           <div className="py-4 text-center">
-            <p className="text-sm text-red-300 mb-3">
+            <p className="text-sm text-red-300 mb-2">
               Generation failed. Please try again.
             </p>
+            {serverErr && (
+              <details className="mb-3">
+                <summary className="text-xs text-white/30 cursor-pointer hover:text-white/50 mb-1">Show error details</summary>
+                <p className="text-xs text-red-400/80 bg-black/30 rounded-xl px-3 py-2 text-left break-all leading-relaxed">{serverErr}</p>
+              </details>
+            )}
             {canGenerate && (
               <button onClick={() => handleGenerate(true)} disabled={loading}
                 className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-semibold

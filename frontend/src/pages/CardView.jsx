@@ -1209,16 +1209,16 @@ const CardView = () => {
         <div style={{ position:'absolute', bottom:'-40px', left:'-40px', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none', zIndex:0 }} />
         <div style={{ position:'absolute', top:'40%', left:'50%', transform:'translate(-50%,-50%)', width:340, height:340, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none', zIndex:0 }} />
 
-        <div className="relative max-w-5xl mx-auto px-4 py-14 sm:py-20 text-center" style={{ zIndex:1 }}>
+        <div className="relative max-w-5xl mx-auto px-4 py-7 sm:py-10 text-center" style={{ zIndex:1 }}>
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase mb-6"
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase mb-3"
             style={{ background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', color: design.dark ? 'rgba(255,255,255,0.9)' : design.accent, border:'1px solid rgba(255,255,255,0.25)' }}>
             ✨ Online Group Card
           </div>
 
           {/* Recipient photo — circular frame in hero center, or floating emoji if no photo */}
           {card.recipient_photo_url ? (
-            <div className="flex justify-center mb-5">
+            <div className="flex justify-center mb-3">
               <div style={{
                 position: 'relative',
                 width: 110,
@@ -1242,11 +1242,11 @@ const CardView = () => {
               </div>
             </div>
           ) : (
-            <div className="text-6xl sm:text-7xl mb-5 animate-float select-none">{design.icon}</div>
+            <div className="text-5xl sm:text-6xl mb-2 animate-float select-none">{design.icon}</div>
           )}
 
           {/* Big calligraphic title */}
-          <h1 className="mb-3 px-2" style={{
+          <h1 className="mb-1 px-2" style={{
             fontFamily: "'Great Vibes', cursive",
             fontSize: 'clamp(2.4rem, 8vw, 5rem)',
             lineHeight: 1.2,
@@ -1260,7 +1260,7 @@ const CardView = () => {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg max-w-xl mx-auto mb-7" style={{
+          <p className="text-base sm:text-lg max-w-xl mx-auto mb-3" style={{
             color: design.dark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.52)',
           }}>
             {(card.signed_count || messages.length)} {(card.signed_count || messages.length) === 1 ? 'person has' : 'people have'} filled this card with love, laughter and warmth just for you.
@@ -1376,55 +1376,6 @@ const CardView = () => {
           })()}
 
           {/* Signer avatar strip — up to 10 initials */}
-          {/* ── Memory Wall tab ── */}
-          {cardViewTab === 'wall' && (
-            <div className="max-w-4xl mx-auto px-4 py-8 w-full">
-              {['card_and_wall','wall_only'].includes(card?.card_experience) ? (
-                <LiveMemoryWall
-                  slug={card.slug}
-                  canUpload={true}
-                  defaultName={user?.full_name || ''}
-                  defaultEmail={user?.email || ''}
-                />
-              ) : (
-                <div className="text-center py-16 px-6 rounded-3xl border-2 border-dashed border-pink-200" style={{ background:'#FFF5FB' }}>
-                  
-                  <h3 className="font-extrabold text-warm-900 text-xl mb-2">Live Photo Wall™</h3>
-                  <p className="text-warm-500 text-sm max-w-sm mx-auto mb-6 leading-relaxed">
-                    Guests scan a QR code and upload photos in real time — no app needed. Display the wall live on a venue screen.
-                    This card was created as a Group Card only.
-                  </p>
-                  <p className="text-warm-400 text-xs mb-6">The card creator can enable the Photo Wall when creating a new card by choosing "Group Card + Live Photo Wall".</p>
-                  <a href="/card/new"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white transition-all hover:scale-105"
-                    style={{ background:'linear-gradient(135deg,#EC4899,#DB2777)' }}>
-                    Create a card with Photo Wall →
-                  </a>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Memory Movie tab ── */}
-          {cardViewTab === 'movie' && (
-            <div className="max-w-2xl mx-auto px-4 py-8 w-full">
-              {canViewPrivate ? (
-                <MemoryMoviePlayer
-                  cardId={card.id}
-                  initialStatus={card.movie_status || 'none'}
-                  canGenerate={Boolean(card.isCreator || card.isRecipient)}
-                />
-              ) : (
-                <div className="text-center py-16 px-6 rounded-3xl border-2 border-purple-100 bg-purple-50">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-100 flex items-center justify-center">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                  </div>
-                  <h3 className="font-bold text-warm-900 mb-2">Private to the recipient</h3>
-                  <p className="text-warm-500 text-sm">The Memory Movie is only accessible to the card recipient and creator.</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {messages.length > 0 && cardViewTab === 'messages' && (
             <div className="flex justify-center mt-7">
@@ -1587,6 +1538,58 @@ const CardView = () => {
           )}
         </div>
 
+        {/* Wall tab in main */}
+        {cardViewTab === 'wall' && (
+          <div className="mb-9">
+              {['card_and_wall','wall_only'].includes(card?.card_experience) ? (
+                <LiveMemoryWall
+                  slug={card.slug}
+                  canUpload={true}
+                  defaultName={user?.full_name || ''}
+                  defaultEmail={user?.email || ''}
+                />
+              ) : (
+                <div className="text-center py-16 px-6 rounded-3xl border-2 border-dashed border-pink-200" style={{ background:'#FFF5FB' }}>
+                  
+                  <h3 className="font-extrabold text-warm-900 text-xl mb-2">Live Photo Wall™</h3>
+                  <p className="text-warm-500 text-sm max-w-sm mx-auto mb-6 leading-relaxed">
+                    Guests scan a QR code and upload photos in real time — no app needed. Display the wall live on a venue screen.
+                    This card was created as a Group Card only.
+                  </p>
+                  <p className="text-warm-400 text-xs mb-6">The card creator can enable the Photo Wall when creating a new card by choosing "Group Card + Live Photo Wall".</p>
+                  <a href="/card/new"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white transition-all hover:scale-105"
+                    style={{ background:'linear-gradient(135deg,#EC4899,#DB2777)' }}>
+                    Create a card with Photo Wall →
+                  </a>
+                </div>
+              )}
+          </div>
+        )}
+
+        {/* Movie tab in main */}
+        {cardViewTab === 'movie' && (
+          <div className="mb-9 max-w-2xl mx-auto">
+              {canViewPrivate ? (
+                <MemoryMoviePlayer
+                  cardId={card.id}
+                  initialStatus={card.movie_status || 'none'}
+                  canGenerate={Boolean(card.isCreator || card.isRecipient)}
+                />
+              ) : (
+                <div className="text-center py-16 px-6 rounded-3xl border-2 border-purple-100 bg-purple-50">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary-100 flex items-center justify-center">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <h3 className="font-bold text-warm-900 mb-2">Private to the recipient</h3>
+                  <p className="text-warm-500 text-sm">The Memory Movie is only accessible to the card recipient and creator.</p>
+                </div>
+              )}
+          </div>
+        )}
+
+        {/* Messages tab */}
+        {cardViewTab === 'messages' && (
         <section>
           {/* ── Section header + magical search ── */}
           <div className="mb-8">
@@ -1658,7 +1661,9 @@ const CardView = () => {
               )}
             </>
           )}
+
         </section>
+        )}
 
         {/* Soft nudge for recipients without an account — save card & claim gift */}
         {token && !user && !member && !card.isRecipient && (

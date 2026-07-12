@@ -44,20 +44,20 @@ import { formatNGN, formatCurrency, CURRENCIES } from '../utils/currency';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const OCCASIONS = [
- { id: 'birthday', icon: '', label: 'Birthday' },
- { id: 'valentine', icon: '', label: "Valentine's" },
- { id: 'leaving', icon: '', label: 'Leaving job' },
- { id: 'anniversary', icon: '', label: 'Anniversary' },
- { id: 'wedding', icon: '', label: 'Wedding' },
- { id: 'baby_shower', icon: '', label: 'Baby shower' },
- { id: 'retirement', icon: '', label: 'Retirement' },
- { id: 'congratulations', icon: '', label: 'Congrats' },
- { id: 'graduation', icon: '', label: 'Graduation' },
- { id: 'promotion', icon: '', label: 'Promotion' },
- { id: 'christmas', icon: '', label: 'Christmas' },
- { id: 'get_well', icon: '', label: 'Get well' },
- { id: 'new_year', icon: '', label: 'New Year' },
- { id: 'other', icon: '', label: 'Other' },
+ { id: 'birthday',        icon: 'Cake',         label: 'Birthday' },
+ { id: 'valentine',       icon: 'Heart',        label: "Valentine's" },
+ { id: 'leaving',         icon: 'Briefcase',    label: 'Leaving job' },
+ { id: 'anniversary',     icon: 'Gift',         label: 'Anniversary' },
+ { id: 'wedding',         icon: 'Diamond',      label: 'Wedding' },
+ { id: 'baby_shower',     icon: 'Baby',         label: 'Baby shower' },
+ { id: 'retirement',      icon: 'Sun',          label: 'Retirement' },
+ { id: 'congratulations', icon: 'PartyPopper',  label: 'Congrats' },
+ { id: 'graduation',      icon: 'GraduationCap',label: 'Graduation' },
+ { id: 'promotion',       icon: 'TrendingUp',   label: 'Promotion' },
+ { id: 'christmas',       icon: 'Snowflake',    label: 'Christmas' },
+ { id: 'get_well',        icon: 'HeartPulse',   label: 'Get well' },
+ { id: 'new_year',        icon: 'Star',         label: 'New Year' },
+ { id: 'other',           icon: 'Sparkles',     label: 'Other' },
 ];
 
 const STEPS = ['Occasion', 'Design', 'Details', 'Your Message', 'Gift & Pay'];
@@ -502,7 +502,7 @@ const CardStart = () => {
  {OCCASIONS.map(o => (
  <button key={o.id} onClick={() => handleOccasionSelect(o)}
  className={`rounded-2xl p-4 text-center transition-all border-2 ${form.occasion === o.id ? 'border-primary-400 bg-primary-50 shadow-sm' : 'border-transparent bg-warm-100 hover:bg-purple-50'}`}>
- {o.icon && <div className="text-2xl mb-1">{o.icon}</div>}
+ {o.icon && <div className="mb-2 text-primary-500"><Icon name={o.icon} size={22}/></div>}
  <div className="text-xs font-semibold text-warm-700">{o.label}</div>
  </button>
  ))}
@@ -694,11 +694,11 @@ const CardStart = () => {
  <p className="text-xs text-warm-500 mb-4">Choose how contributors participate. Every option auto-generates a <strong>Memory Movie™</strong> keepsake.</p>
  <div className="space-y-3">
  {[
- { id: 'card_only', emoji: '', title: 'Group Card Only',
+ { id: 'card_only', emoji: 'Mail', title: 'Group Card Only',
  desc: 'Contributors send messages, photos, videos, voice notes and gifts. Auto-generates a Memory Movie™.' },
- { id: 'wall_only', emoji: '', title: 'Live Memory Wall™ Only',
+ { id: 'wall_only', emoji: 'Camera', title: 'Live Memory Wall™ Only',
  desc: 'Contributors upload photos and videos to a live timeline throughout the event. No traditional card.' },
- { id: 'card_and_wall', emoji: '', title: 'Group Card + Live Memory Wall™',
+ { id: 'card_and_wall', emoji: 'Sparkles', title: 'Group Card + Live Memory Wall™',
  desc: 'Best of both — heartfelt messages AND a live photo wall. Auto-generates one unforgettable Memory Movie™.', recommended: true },
  ].map(opt => (
  <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
@@ -902,12 +902,12 @@ const CardStart = () => {
  {/* Gift toggle */}
  <div className="grid grid-cols-2 gap-3 mb-4">
  {[
- { id: true, icon: '', title: 'Enable gift pot', desc: 'Everyone chips in, recipient redeems' },
- { id: false, icon: '', title: 'Card only', desc: 'Messages only, no gift' },
+ { id: true, icon: 'Gift', title: 'Enable gift pot', desc: 'Everyone chips in, recipient redeems' },
+ { id: false, icon: 'Mail', title: 'Card only', desc: 'Messages only, no gift' },
  ].map(o => (
  <button key={String(o.id)} onClick={() => set('is_gift_enabled', o.id)}
  className={`rounded-2xl p-4 text-left border-2 transition-all ${form.is_gift_enabled === o.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
- {o.icon && <div className="text-2xl mb-1">{o.icon}</div>}
+ {o.icon && <div className="mb-2 text-primary-500"><Icon name={o.icon} size={22}/></div>}
  <div className="text-sm font-bold text-warm-800">{o.title}</div>
  <div className="text-xs text-warm-500 mt-0.5">{o.desc}</div>
  </button>
@@ -1077,12 +1077,12 @@ const CardStart = () => {
 
  <div className="grid grid-cols-2 gap-3 mb-4">
  {[
- { id: true, icon: '', title: 'Enable gift pot', desc: 'Everyone chips in, recipient redeems' },
- { id: false, icon: '', title: 'Card only', desc: 'Messages only, no gift' },
+ { id: true, icon: 'Gift', title: 'Enable gift pot', desc: 'Everyone chips in, recipient redeems' },
+ { id: false, icon: 'Mail', title: 'Card only', desc: 'Messages only, no gift' },
  ].map(o => (
  <button key={String(o.id)} onClick={() => set('is_gift_enabled', o.id)}
  className={`rounded-2xl p-4 text-left border-2 transition-all ${form.is_gift_enabled === o.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
- {o.icon && <div className="text-2xl mb-1">{o.icon}</div>}
+ {o.icon && <div className="mb-2 text-primary-500"><Icon name={o.icon} size={22}/></div>}
  <div className="text-sm font-bold text-warm-800">{o.title}</div>
  <div className="text-xs text-warm-500 mt-0.5">{o.desc}</div>
  </button>

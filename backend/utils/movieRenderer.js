@@ -50,17 +50,18 @@ const BG_MUSIC_URL = process.env.MOVIE_BG_MUSIC_URL
 function resolveFontFile() {
   const candidates = [
     process.env.MOVIE_FONT_FILE,
-    // Nix/Railway
-    '/run/current-system/sw/share/X11/fonts/DejaVuSans-Bold.ttf',
-    // Ubuntu/Debian (nixpacks installs fontconfig)
+    // Alpine Linux (Dockerfile with apk add ttf-dejavu)
+    '/usr/share/fonts/ttf-dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/ttf-dejavu/DejaVuSans.ttf',
+    '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+    '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+    // Ubuntu/Debian (nixpacks)
     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf',
     '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
     '/usr/share/fonts/truetype/freefont/FreeSansBold.ttf',
     '/usr/share/fonts/truetype/freefont/FreeSans.ttf',
-    // Nix store patterns
-    '/nix/store',  // can't use directly, but will scan below
     // macOS dev
     '/System/Library/Fonts/Supplemental/Arial.ttf',
     '/System/Library/Fonts/Helvetica.ttc',
@@ -218,16 +219,8 @@ async function renderMovie(card, msgs) {
     const textMsgs  = msgs.filter(m => m.content?.trim()).slice(0, 15);
     console.log(`[movie] Assets: ${photoMsgs.length} photos, ${videoMsgs.length} videos, ${voiceMsgs.length} voice, ${textMsgs.length} text`);
 
-    // ── 2. Download cover ────────────────────────────────────────────────────
-    let coverPath = null;
-    if (card.cover_image) {
-      try {
-        const raw  = path.join(tmpDir, 'cover_raw.jpg');
-        await download(card.cover_image, raw);
-        coverPath = path.join(tmpDir, 'cover.png');
-        await normaliseImage(raw, coverPath);
-      } catch (e) { console.warn('[movie] cover download failed:', e.message); coverPath = null; }
-    }
+    // ── 2. Cover slide — use card design colour (no cover_image column on cards) ──
+    let coverPath = null; // no cover image available from cards table
 
     // ── 3. Download and normalise photos ────────────────────────────────────
     const photoPaths = [];

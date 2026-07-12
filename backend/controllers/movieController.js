@@ -46,7 +46,7 @@ async function runRenderJob(cardId) {
     // Fetch card (include fields needed for the "movie ready" email)
     const { data: card, error: cardErr } = await supabase
       .from('cards')
-      .select('id, title, recipient_name, recipient_email, occasion, cover_image, slug, status')
+      .select('id, title, recipient_name, recipient_email, occasion, slug, status')
       .eq('id', cardId)
       .maybeSingle();
     if (cardErr) throw new Error(`Card fetch error: ${cardErr.message} (code: ${cardErr.code})`);

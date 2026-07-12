@@ -1,19 +1,21 @@
 /**
  * QRCodeModal.jsx
- * Full-screen modal with QR code. Stable, mobile-responsive, download-ready.
- * Uses the `qrcode` npm package — no external API calls.
+ * Always mounted. Visibility controlled by `open` prop — no unmount flicker.
+ * QR is generated once on first open and cached.
  */
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import QRCode from 'qrcode';
 
-export default function QRCodeModal({ url, label = 'Scan to open', onClose }) {
-  const [dataUrl, setDataUrl] = useState(null);
-  const [copied,  setCopied]  = useState(false);
-  const [dlDone,  setDlDone]  = useState(false);
+export default function QRCodeModal({ url, label = 'Scan to open', open, onClose }) {
+  const [dataUrl,  setDataUrl]  = useState(null);
+  const [copied,   setCopied]   = useState(false);
+  const [dlDone,   setDlDone]   = useState(false);
+  const generated  = useRef(false);
 
-  // Generate QR once on mount
+  // Generate QR only once — cache it, don't regenerate on every open
   useEffect(() => {
-    if (!url) return;
+    if (!url || generated.current) return;
+    generated.current = true;
     QRCode.toDataURL(url, {
       width: 512,
       margin: 2,
@@ -22,18 +24,23 @@ export default function QRCodeModal({ url, label = 'Scan to open', onClose }) {
     }).then(setDataUrl).catch(console.error);
   }, [url]);
 
+  // Lock body scroll when open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [open]);
+
   // Close on Escape
   useEffect(() => {
+    if (!open) return;
     const handler = (e) => { if (e.key === 'Escape') onClose?.(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  // Lock body scroll while open
-  useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
-  }, []);
+  }, [open, onClose]);
 
   const handleDownload = useCallback(() => {
     if (!dataUrl) return;
@@ -50,19 +57,16 @@ export default function QRCodeModal({ url, label = 'Scan to open', onClose }) {
   const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback: select a hidden input
       const input = document.createElement('input');
       input.value = url;
       document.body.appendChild(input);
       input.select();
       document.execCommand('copy');
       document.body.removeChild(input);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }, [url]);
 
   const handlePrint = useCallback(() => {
@@ -81,6 +85,7 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
     setTimeout(() => { win.focus(); win.print(); }, 400);
   }, [dataUrl, label, url]);
 
+  // Hidden when not open — use visibility+pointer-events so DOM stays mounted (no remount flicker)
   return (
     <div
       style={{
@@ -90,6 +95,10 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px',
         overflowY: 'auto',
+        // Visibility control without unmounting
+        opacity: open ? 1 : 0,
+        pointerEvents: open ? 'auto' : 'none',
+        transition: 'opacity 0.15s ease',
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}
     >
@@ -101,10 +110,10 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
           width: '100%',
           maxWidth: 400,
           overflow: 'hidden',
-          // prevent content from being taller than viewport
           maxHeight: 'calc(100vh - 32px)',
           overflowY: 'auto',
-          position: 'relative',
+          transform: open ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
+          transition: 'transform 0.15s ease',
         }}
         onClick={e => e.stopPropagation()}
       >
@@ -113,103 +122,57 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
           background: 'linear-gradient(135deg,#1a0533,#2d1052)',
           padding: '16px 20px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          flexShrink: 0,
         }}>
           <div>
             <p style={{ color: '#fff', fontWeight: 700, fontSize: 15, margin: 0 }}>QR Code</p>
             <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, margin: '2px 0 0' }}>{label}</p>
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              width: 32, height: 32, borderRadius: 10, border: 'none',
-              background: 'rgba(255,255,255,0.12)', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff', flexShrink: 0,
-            }}
-          >
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: 10, border: 'none',
+            background: 'rgba(255,255,255,0.12)', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+          }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
         {/* Body */}
         <div style={{ padding: '24px 24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          {/* QR image */}
-          <div style={{
-            border: '3px solid #EDE9FE', borderRadius: 16, padding: 12,
-            background: '#fff', marginBottom: 16,
-            boxShadow: '0 4px 20px rgba(124,58,237,0.1)',
-          }}>
+          <div style={{ border: '3px solid #EDE9FE', borderRadius: 16, padding: 12, background: '#fff', marginBottom: 16, boxShadow: '0 4px 20px rgba(124,58,237,0.1)' }}>
             {dataUrl ? (
-              <img
-                src={dataUrl}
-                alt="QR code"
-                style={{ width: 220, height: 220, display: 'block', imageRendering: 'pixelated' }}
-              />
+              <img src={dataUrl} alt="QR code" style={{ width: 220, height: 220, display: 'block', imageRendering: 'pixelated' }} />
             ) : (
-              <div style={{
-                width: 220, height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  border: '3px solid #DDD6FE', borderTopColor: '#7C3AED',
-                  animation: 'spin 0.8s linear infinite',
-                }} />
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              <div style={{ width: 220, height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #DDD6FE', borderTopColor: '#7C3AED', animation: 'qrspin 0.8s linear infinite' }} />
+                <style>{`@keyframes qrspin{to{transform:rotate(360deg)}}`}</style>
               </div>
             )}
           </div>
 
-          {/* URL */}
-          <p style={{
-            fontSize: 11, color: '#9490C8', textAlign: 'center',
-            wordBreak: 'break-all', marginBottom: 20, lineHeight: 1.5,
-            maxWidth: 280,
-          }}>
+          <p style={{ fontSize: 11, color: '#9490C8', textAlign: 'center', wordBreak: 'break-all', marginBottom: 20, lineHeight: 1.5, maxWidth: 280 }}>
             {url}
           </p>
 
-          {/* Action buttons — 3 columns */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, width: '100%', marginBottom: 16 }}>
             {[
-              {
-                label: dlDone ? 'Saved!' : 'Save PNG',
+              { label: dlDone ? 'Saved!' : 'Save PNG', onClick: handleDownload, disabled: !dataUrl,
                 icon: dlDone
                   ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
-                onClick: handleDownload,
-                disabled: !dataUrl,
-              },
-              {
-                label: 'Print',
-                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>,
-                onClick: handlePrint,
-                disabled: !dataUrl,
-              },
-              {
-                label: copied ? 'Copied!' : 'Copy Link',
+                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> },
+              { label: 'Print', onClick: handlePrint, disabled: !dataUrl,
+                icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> },
+              { label: copied ? 'Copied!' : 'Copy Link', onClick: handleCopy, disabled: false,
                 icon: copied
                   ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
-                onClick: handleCopy,
-                disabled: false,
-              },
+                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> },
             ].map(({ label: btnLabel, icon, onClick, disabled }) => (
-              <button
-                key={btnLabel}
-                onClick={onClick}
-                disabled={disabled}
-                style={{
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  padding: '12px 8px', borderRadius: 14,
-                  border: '2px solid #EDE9FE', background: '#fff',
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  opacity: disabled ? 0.4 : 1,
-                  transition: 'border-color 0.15s, background 0.15s',
-                }}
-                onMouseOver={e => { if (!disabled) { e.currentTarget.style.borderColor = '#A78BFA'; e.currentTarget.style.background = '#F5F3FF'; }}}
-                onMouseOut={e => { e.currentTarget.style.borderColor = '#EDE9FE'; e.currentTarget.style.background = '#fff'; }}
-              >
+              <button key={btnLabel} onClick={onClick} disabled={disabled} style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                padding: '12px 8px', borderRadius: 14, border: '2px solid #EDE9FE', background: '#fff',
+                cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, transition: 'border-color 0.15s, background 0.15s',
+              }}
+              onMouseOver={e => { if (!disabled) { e.currentTarget.style.borderColor='#A78BFA'; e.currentTarget.style.background='#F5F3FF'; }}}
+              onMouseOut={e => { e.currentTarget.style.borderColor='#EDE9FE'; e.currentTarget.style.background='#fff'; }}>
                 {icon}
                 <span style={{ fontSize: 11, fontWeight: 600, color: '#4B3F72', whiteSpace: 'nowrap' }}>{btnLabel}</span>
               </button>
@@ -217,7 +180,7 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
           </div>
 
           <p style={{ fontSize: 11, color: '#C4B5FD', textAlign: 'center', lineHeight: 1.5 }}>
-            Display at your venue · Print on table cards · Share via WhatsApp
+            Display at venue · Print on table cards · Share via WhatsApp
           </p>
         </div>
       </div>

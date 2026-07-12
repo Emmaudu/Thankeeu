@@ -18,9 +18,9 @@ const HERO_FONT_INJECT = `
 `;
 
 const ROTATING_WORDS = [
- 'Birthday', 'Leaving', 'Thank You', 'Appreciation', 'Recognition', 'Farewell',
- 'Shout-Out', "Valentine's", 'Anniversary', 'Wedding', 'Baby Shower', 'Graduation',
- 'Promotion', 'Retirement', 'Christmas', 'Get Well',
+ 'Birthday', 'Wedding', 'Leaving', 'Farewell', 'Thank You',
+ "Valentine's", 'Anniversary', 'Baby Shower', 'Graduation',
+ 'Promotion', 'Retirement', 'Christmas', 'Get Well', 'Appreciation',
 ];
 
 const SAMPLE_MESSAGES = [
@@ -1038,12 +1038,12 @@ const Home = () => {
  More than a group card. More than Instagram Stories. One place for everyone.
  </p>
  </div>
- <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(3.5rem,9vw,7rem)', lineHeight:1.0, letterSpacing:'-0.03em' }}>
- <span style={{ display:'block', fontSize:'clamp(2.8rem,7vw,5.5rem)', color:'#1A1035' }}>Send a Group</span>
- <span style={{ display:'block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px', fontSize:'clamp(3.5rem,9vw,7rem)' }}>
+ <h1 className="font-extrabold text-warm-900 mb-6" style={{ fontSize:'clamp(2.2rem,5.5vw,4rem)', lineHeight:1.1, letterSpacing:'-0.02em' }}>
+ <span style={{ color:'#1A1035' }}>Send a Group{' '}</span>
+ <span style={{ display:'inline-block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px' }}>
  {ROTATING_WORDS[wordIndex]}
  </span>
- <span style={{ display:'block', fontSize:'clamp(2.8rem,7vw,5.5rem)', color:'#1A1035' }}>Card Online</span>
+ <span style={{ color:'#1A1035' }}>{' '}Card &amp; Real-time Album Online</span>
  </h1>
 
  <p className="text-warm-600 mb-6 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.1rem,2.4vw,1.3rem)', lineHeight:1.6 }}>

@@ -29,9 +29,11 @@ const SignCard = () => {
 
   const [card,        setCard]        = useState(null);
   const [loading,     setLoading]     = useState(true);
-  const [wallTab,     setWallTab]     = useState(
-    searchParams.get('tab') === 'wall' ? 'wall' : 'messages'
-  ); // 'messages' | 'wall'
+  const [wallTab,     setWallTab]     = useState(() => {
+    // wall_only cards go straight to wall; ?tab=wall also opens wall
+    if (searchParams.get('tab') === 'wall') return 'wall';
+    return 'messages';
+  }); // 'messages' | 'wall'
   const [submitting,  setSubmitting]  = useState(false);
   // 'idle' | 'sending' | 'paying' | 'verifying' | 'done'
   const [stage,       setStage]       = useState('idle');
@@ -639,7 +641,7 @@ const SignCard = () => {
         )}
 
         {/* Hero banner */}
-        <section className={`card-art ${cardArtClass(design)} px-4 py-10 sm:py-14`} style={{ background: design.background, color: design.ink }}>
+        <section className={`card-art ${cardArtClass(design)} px-4 py-5 sm:py-7`} style={{ background: design.background, color: design.ink }}>
           <div className="max-w-4xl mx-auto text-center relative z-10">
             {hoursLeft !== null && hoursLeft < 48 && card.status !== 'sent' && (
               <span className="inline-flex bg-white/80 text-amber-800 rounded-full px-4 py-2 text-sm font-extrabold mb-5 shadow-sm">
@@ -676,46 +678,50 @@ const SignCard = () => {
         {/* Form — two-column on large screens */}
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 grid lg:grid-cols-[1fr_.82fr] gap-7 items-start">
 
-          {/* ── Tabs — always visible, clearly labelled ── */}
-          <div className="lg:col-span-2 mb-4">
-            <div className="rounded-2xl border-2 border-purple-100 p-1 flex gap-1 bg-purple-50/50">
-              {card?.card_experience !== 'wall_only' && (
+          {/* ── Experience-aware navigation ── */}
+          <div className="lg:col-span-2 mb-6">
+            {card?.card_experience === 'wall_only' ? (
+              /* wall_only: no sign form at all — just a heading */
+              <div className="text-center pb-2">
+                <p className="text-sm font-bold text-warm-500">Upload your photos to the Live Memory Wall</p>
+              </div>
+            ) : card?.card_experience === 'card_and_wall' ? (
+              /* card_and_wall: two big choice buttons */
+              <div className="grid sm:grid-cols-2 gap-4">
                 <button onClick={() => setWallTab('messages')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+                  className={`flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${
                     wallTab === 'messages'
-                      ? 'bg-white border-2 border-primary-200 text-primary-700 shadow-sm'
-                      : 'text-warm-500 hover:text-warm-800 border-2 border-transparent'
+                      ? 'border-primary-400 bg-primary-50 shadow-md'
+                      : 'border-purple-100 bg-white hover:border-primary-200'
                   }`}>
-                  <span>❤️</span>
-                  <span>Sign Group Card</span>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${wallTab === 'messages' ? 'bg-primary-500' : 'bg-primary-100'}`}>
+                    <Icon name="Mail" size={22} className={wallTab === 'messages' ? 'text-white' : 'text-primary-600'}/>
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-warm-900 text-sm">Add Group Card Message</p>
+                    <p className="text-xs text-warm-500 mt-0.5">Write a message, add photos, voice note & gift</p>
+                  </div>
                 </button>
-              )}
-              <button onClick={() => setWallTab('wall')}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
-                  wallTab === 'wall'
-                    ? 'bg-white border-2 border-pink-200 text-pink-700 shadow-sm'
-                    : 'text-warm-500 hover:text-warm-800 border-2 border-transparent'
-                }`}>
-                <span>📸</span>
-                <span>Upload Photos</span>
-                {['card_and_wall','wall_only'].includes(card?.card_experience) && (
-                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-pink-100 text-pink-600 font-bold hidden sm:inline">Live</span>
-                )}
-              </button>
-            </div>
-            {/* Explain what each tab does */}
-            <div className="flex gap-1 mt-2 px-1">
-              {card?.card_experience !== 'wall_only' && (
-                <p className="flex-1 text-center text-xs text-warm-400">
-                  Write your message · add photos, GIFs, voice note & gift
-                </p>
-              )}
-              <p className="flex-1 text-center text-xs text-warm-400">
-                {['card_and_wall','wall_only'].includes(card?.card_experience)
-                  ? 'Upload event photos — they appear on the live wall in real time'
-                  : 'Live photo wall not enabled for this card'}
-              </p>
-            </div>
+                <button onClick={() => setWallTab('wall')}
+                  className={`flex items-center gap-4 p-5 rounded-2xl border-2 text-left transition-all ${
+                    wallTab === 'wall'
+                      ? 'border-pink-400 bg-pink-50 shadow-md'
+                      : 'border-purple-100 bg-white hover:border-pink-200'
+                  }`}>
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${wallTab === 'wall' ? 'bg-pink-500' : 'bg-pink-100'}`}>
+                    <Icon name="Camera" size={22} className={wallTab === 'wall' ? 'text-white' : 'text-pink-600'}/>
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-warm-900 text-sm">Upload Real-Time Photos</p>
+                    <p className="text-xs text-warm-500 mt-0.5">Photos appear live on the Memory Wall instantly</p>
+                    <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-lg bg-pink-100 text-pink-600 font-bold">Live</span>
+                  </div>
+                </button>
+              </div>
+            ) : (
+              /* card_only: no tabs needed — sign form shows directly */
+              null
+            )}
           </div>
 
           {/* Memory Wall tab */}
@@ -730,7 +736,7 @@ const SignCard = () => {
                 />
               ) : (
                 <div className="text-center py-14 px-6 rounded-3xl border-2 border-dashed border-pink-200" style={{ background:'#FFF5FB' }}>
-                  <div className="text-5xl mb-4">📸</div>
+                  <div className="w-14 h-14 rounded-2xl bg-pink-100 flex items-center justify-center mx-auto mb-4"><Icon name="Camera" size={26} className="text-pink-400"/></div>
                   <h3 className="font-extrabold text-warm-900 text-lg mb-2">Live Photo Wall™ not enabled for this card</h3>
                   <p className="text-warm-500 text-sm max-w-sm mx-auto leading-relaxed">
                     This card was created as a Group Card only. To collect guest photos in real time, the card creator needs to enable the Live Photo Wall when setting up the card.

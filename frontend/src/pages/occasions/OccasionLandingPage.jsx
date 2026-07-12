@@ -1,4 +1,5 @@
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
+import Icon from '../../components/ui/Icon';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -9,7 +10,7 @@ const OCCASIONS = {
  birthday: {
  title: 'Online Birthday Group Cards Nigeria',
  h1: 'Send a Group Birthday Card in Nigeria — Everyone Signs in Minutes',
- emoji: '',
+ emoji: 'Cake',
  tagline: 'Make their birthday unforgettable — the whole team, in one card',
  desc: 'Create an online birthday group card in Nigeria that everyone signs from their phone. Add photos, voice notes, and a pooled Naira gift. Delivered at the perfect moment.',
  keywords: 'online birthday card Nigeria, birthday card Lagos, buy birthday card Nigeria, where to buy birthday card in Nigeria, customised birthday card Nigeria, personalised birthday card Nigeria, birthday card delivery Lagos, send birthday card Nigeria, happy birthday card design Nigeria, birthday card for colleague Nigeria, group birthday card Nigeria, online birthday group card Nigeria, birthday card everyone signs Nigeria, group birthday gift pool Nigeria, virtual birthday card Lagos Abuja, office birthday card Nigeria',
@@ -33,10 +34,10 @@ const OCCASIONS = {
  whySection: {
  heading: 'Why Nigerians Choose Thankeeu for Birthday Group Cards',
  points: [
- { icon: '', title: 'Share via WhatsApp — No App Needed', body: 'One link does it all. Your colleague in Abuja and your friend in Port Harcourt can both sign the same card from their phone — no downloads, no login required.' },
- { icon: '', title: 'Pay in Naira with Nigerian Cards', body: 'Gift contributions are powered by Flutterwave and work with every Nigerian bank card, USSD, and mobile money. No dollar card headaches.' },
- { icon: '', title: 'Voice Notes That Give Goosebumps', body: 'This is what sets Thankeeu apart. A recorded voice message from a colleague or loved one lands differently. Nigerians are sending voice notes daily — now they can do it on a birthday card.' },
- { icon: '', title: 'Scheduled Delivery at Midnight', body: 'Be the first to wish them happy birthday. Set the card to deliver at 12:00am on their birthday, and they wake up to the most beautiful surprise of their day.' },
+ { icon: 'MessageCircle', title: 'Share via WhatsApp — No App Needed', body: 'One link does it all. Your colleague in Abuja and your friend in Port Harcourt can both sign the same card from their phone — no downloads, no login required.' },
+ { icon: 'CreditCard', title: 'Pay in Naira with Nigerian Cards', body: 'Gift contributions are powered by Flutterwave and work with every Nigerian bank card, USSD, and mobile money. No dollar card headaches.' },
+ { icon: 'Mic', title: 'Voice Notes That Give Goosebumps', body: 'This is what sets Thankeeu apart. A recorded voice message from a colleague or loved one lands differently. Nigerians are sending voice notes daily — now they can do it on a birthday card.' },
+ { icon: 'Clock', title: 'Scheduled Delivery at Midnight', body: 'Be the first to wish them happy birthday. Set the card to deliver at 12:00am on their birthday, and they wake up to the most beautiful surprise of their day.' },
  ],
  },
  useCases: ['Office birthday card for colleagues', 'Family birthday card that everyone signs', '30th or 40th milestone birthday surprise', 'Remote team birthday celebrations', 'Boss birthday card from the whole department'],
@@ -78,10 +79,10 @@ const OCCASIONS = {
  whySection: {
  heading: 'Why Nigerian Teams Use Thankeeu for Farewell Cards',
  points: [
- { icon: '', title: 'No More Chasing People to Sign', body: 'Share one link via WhatsApp or Slack and everyone signs at their own time. No more walking around the office with a card, asking people to write something.' },
- { icon: '', title: 'Works for Remote & Hybrid Teams', body: 'Your colleague in Portharcourt can sign. The one in Ibadan can add a voice note. The remote team in Abuja can contribute to the gift. Thankeeu brings the whole team together from anywhere.' },
- { icon: '', title: 'Collect the Going-Away Gift Digitally', body: 'Instead of a shared bank account or awkward cash contributions, Thankeeu\'s gift pot lets every team member contribute via Flutterwave. The leaver withdraws the money to their own account.' },
- { icon: '', title: 'A Farewell They\'ll Screenshot and Keep Forever', body: 'Nigerians share everything on WhatsApp. When they open a Thankeeu farewell card with 40+ messages, photos and voice notes from their team, they will screenshot it and share it for years.' },
+ { icon: 'Users', title: 'No More Chasing People to Sign', body: 'Share one link via WhatsApp or Slack and everyone signs at their own time. No more walking around the office with a card, asking people to write something.' },
+ { icon: 'Globe', title: 'Works for Remote & Hybrid Teams', body: 'Your colleague in Portharcourt can sign. The one in Ibadan can add a voice note. The remote team in Abuja can contribute to the gift. Thankeeu brings the whole team together from anywhere.' },
+ { icon: 'Gift', title: 'Collect the Going-Away Gift Digitally', body: 'Instead of a shared bank account or awkward cash contributions, Thankeeu\'s gift pot lets every team member contribute via Flutterwave. The leaver withdraws the money to their own account.' },
+ { icon: 'Heart', title: 'A Farewell They\'ll Screenshot and Keep Forever', body: 'Nigerians share everything on WhatsApp. When they open a Thankeeu farewell card with 40+ messages, photos and voice notes from their team, they will screenshot it and share it for years.' },
  ],
  },
  useCases: ['Employee resignation farewell', 'Relocation send-off card', 'End of internship farewell card', 'Colleague leaving for abroad (japa) going away card', 'Retirement farewell from the whole department'],
@@ -99,7 +100,7 @@ const OCCASIONS = {
  anniversary: {
  title: 'Work Anniversary Group Cards Nigeria',
  h1: 'Celebrate Work Anniversaries as a Team — Automated Group Cards in Nigeria',
- emoji: '',
+ emoji: 'Gift',
  tagline: 'Recognise loyalty and years of service — together',
  desc: 'Work anniversaries deserve more than a Slack message. Create an automatic work anniversary group card signed by the whole Nigerian team, with messages, photos, and a pooled gift.',
  keywords: 'work anniversary group card Nigeria, staff anniversary card Nigeria, employee years of service card Nigeria, work anniversary gift pool Nigeria, employee recognition Nigeria, staff appreciation card Nigeria, 1 year work anniversary Nigeria, 5 year work anniversary Nigeria, work anniversary message Nigeria, online anniversary card colleague Nigeria, employee milestone card Nigeria, HR anniversary automation Nigeria',
@@ -123,10 +124,10 @@ const OCCASIONS = {
  whySection: {
  heading: 'Why Nigerian Companies Use Thankeeu for Work Anniversary Cards',
  points: [
- { icon: '', title: 'Never Miss Another Anniversary', body: 'With Thankeeu for Teams, HR sets up anniversary automation once. The platform detects upcoming anniversaries from your employee data and triggers the group card automatically.' },
- { icon: '', title: 'Turn Loyalty into a Moment', body: 'Employees in Nigeria work hard. A 5-year anniversary is a big deal. A group card signed by colleagues and leadership — with personal messages and a gift — makes them feel truly seen.' },
- { icon: '', title: 'Improve Staff Retention', body: 'Recognised employees stay longer. Work anniversary cards are one of the simplest, highest-impact employee retention tools a Nigerian HR team can implement.' },
- { icon: '', title: 'Integrates with Nigerian HR Systems', body: 'Thankeeu connects with SeamlessHR, BambooHR, WorkPay, Zoho People, and SAP SuccessFactors — the HR tools already used by Nigerian companies.' },
+ { icon: 'Calendar', title: 'Never Miss Another Anniversary', body: 'With Thankeeu for Teams, HR sets up anniversary automation once. The platform detects upcoming anniversaries from your employee data and triggers the group card automatically.' },
+ { icon: 'Star', title: 'Turn Loyalty into a Moment', body: 'Employees in Nigeria work hard. A 5-year anniversary is a big deal. A group card signed by colleagues and leadership — with personal messages and a gift — makes them feel truly seen.' },
+ { icon: 'CheckCircle', title: 'Improve Staff Retention', body: 'Recognised employees stay longer. Work anniversary cards are one of the simplest, highest-impact employee retention tools a Nigerian HR team can implement.' },
+ { icon: 'CheckCircle', title: 'Integrates with Nigerian HR Systems', body: 'Thankeeu connects with SeamlessHR, BambooHR, WorkPay, Zoho People, and SAP SuccessFactors — the HR tools already used by Nigerian companies.' },
  ],
  },
  useCases: ['1-year staff anniversary recognition', '5-year loyalty milestone card', '10-year long service award card', 'Automated HR anniversary cards for large teams', 'MD appreciation card from the whole company'],
@@ -144,7 +145,7 @@ const OCCASIONS = {
  promotion: {
  title: 'Promotion Congratulations Group Cards Nigeria',
  h1: 'Group Promotion Congratulations Card Nigeria — Celebrate the Win Together',
- emoji: '',
+ emoji: 'PartyPopper',
  tagline: "Cheer their hard-earned promotion — the whole team, one card",
  desc: "A promotion is a big deal. Celebrate it properly with a Thankeeu group card signed by the entire Nigerian team — personal messages, photos, voice notes, and a pooled congratulations gift.",
  keywords: 'group promotion congratulations card Nigeria, congratulations card for promotion Nigeria, colleague promotion gift Nigeria, online promotion card Nigeria, congratulations on new role Nigeria, team congratulations card Nigeria, promotion celebration card Nigeria, staff promotion card Nigeria, promotion message colleague Nigeria, promotion group ecard Nigeria, promotion announcement card Nigeria, congrats card for promotion Nigeria',
@@ -168,10 +169,10 @@ const OCCASIONS = {
  whySection: {
  heading: 'Why Nigerian Teams Use Thankeeu for Promotion Celebrations',
  points: [
- { icon: '', title: 'Make the Moment Feel Real', body: 'Getting promoted is exciting. A card with 30+ personal messages from colleagues — including a voice note from the MD — turns an email announcement into a memory they will talk about for years.' },
- { icon: '', title: 'Leadership Sets the Culture', body: 'When the CEO contributes a personal message to a promotion card, it signals that achievement is celebrated at every level. Nigerian companies that do this consistently have stronger workplace cultures.' },
- { icon: '', title: 'Pool a Meaningful Gift Instantly', body: 'Instead of quietly hoping someone organises a celebration, Thankeeu lets the team chip in a Naira amount that adds up to a real, meaningful gift — no awkward organising required.' },
- { icon: '', title: 'A Card They\'ll Share on LinkedIn', body: 'Nigerians celebrate their wins online. A beautifully designed Thankeeu card with messages from the whole team is something they will screenshot and share on LinkedIn and WhatsApp — great for your employer brand too.' },
+ { icon: 'CheckCircle', title: 'Make the Moment Feel Real', body: 'Getting promoted is exciting. A card with 30+ personal messages from colleagues — including a voice note from the MD — turns an email announcement into a memory they will talk about for years.' },
+ { icon: 'CheckCircle', title: 'Leadership Sets the Culture', body: 'When the CEO contributes a personal message to a promotion card, it signals that achievement is celebrated at every level. Nigerian companies that do this consistently have stronger workplace cultures.' },
+ { icon: 'CheckCircle', title: 'Pool a Meaningful Gift Instantly', body: 'Instead of quietly hoping someone organises a celebration, Thankeeu lets the team chip in a Naira amount that adds up to a real, meaningful gift — no awkward organising required.' },
+ { icon: 'Linkedin', title: 'A Card They\'ll Share on LinkedIn', body: 'Nigerians celebrate their wins online. A beautifully designed Thankeeu card with messages from the whole team is something they will screenshot and share on LinkedIn and WhatsApp — great for your employer brand too.' },
  ],
  },
  useCases: ['New job title celebration', 'Senior role promotion card', 'Team lead or manager promotion', 'Director or VP appointment card', 'Congratulations on new job offer'],
@@ -189,7 +190,7 @@ const OCCASIONS = {
  wedding: {
  title: 'Wedding Congratulations Group Cards Nigeria',
  h1: 'Group Wedding Congratulations Card Nigeria — Sign as a Team, Gift in Naira',
- emoji: '',
+ emoji: 'PartyPopper',
  tagline: 'Celebrate love from the whole team — no awkward cash collection',
  desc: 'Send a beautiful wedding congratulations group card in Nigeria. Everyone on the team or in the family adds their warmest wishes, and you pool a Naira wedding gift — all in one place.',
  keywords: 'wedding congratulations group card Nigeria, group wedding gift pool Nigeria, online wedding card colleagues Nigeria, team wedding card Nigeria, wedding congratulations message Nigeria, wedding gift contribution Nigeria, congratulations on your wedding Nigeria, digital wedding card Nigeria, traditional wedding card Nigeria, group wedding ecard Nigeria, wedding card everyone signs Nigeria, nikkai or church wedding card Nigeria',
@@ -213,10 +214,10 @@ const OCCASIONS = {
  whySection: {
  heading: 'Why Nigerians Use Thankeeu for Wedding Congratulations Cards',
  points: [
- { icon: '', title: 'Prayers and Blessings in Their Voice', body: 'In Nigerian culture, a blessing from an elder means everything. Thankeeu\'s voice note feature lets grandparents, parents, and elders record their wedding prayers in their own voice — a keepsake for life.' },
- { icon: '', title: 'No More WhatsApp Cash Collection Drama', body: 'Collecting wedding contributions on WhatsApp is chaotic. Thankeeu\'s gift pot organises everything — everyone contributes via Flutterwave, and the couple sees the total and withdraws it cleanly.' },
- { icon: '', title: 'Covers All Nigerian Wedding Types', body: 'Whether it\'s a traditional introduction, Yoruba engagement, Igbo wine-carrying, court wedding, or church ceremony — a Thankeeu card covers every occasion with the right message.' },
- { icon: '', title: 'Family in Diaspora Can Sign Too', body: 'Uncle in London, auntie in Houston, cousin in Canada — they can all sign the card and contribute to the gift from anywhere in the world, while the couple receives in Naira.' },
+ { icon: 'CheckCircle', title: 'Prayers and Blessings in Their Voice', body: 'In Nigerian culture, a blessing from an elder means everything. Thankeeu\'s voice note feature lets grandparents, parents, and elders record their wedding prayers in their own voice — a keepsake for life.' },
+ { icon: 'CheckCircle', title: 'No More WhatsApp Cash Collection Drama', body: 'Collecting wedding contributions on WhatsApp is chaotic. Thankeeu\'s gift pot organises everything — everyone contributes via Flutterwave, and the couple sees the total and withdraws it cleanly.' },
+ { icon: 'CheckCircle', title: 'Covers All Nigerian Wedding Types', body: 'Whether it\'s a traditional introduction, Yoruba engagement, Igbo wine-carrying, court wedding, or church ceremony — a Thankeeu card covers every occasion with the right message.' },
+ { icon: 'CheckCircle', title: 'Family in Diaspora Can Sign Too', body: 'Uncle in London, auntie in Houston, cousin in Canada — they can all sign the card and contribute to the gift from anywhere in the world, while the couple receives in Naira.' },
  ],
  },
  useCases: ['Colleague wedding card from the office team', 'Traditional introduction congratulations card', 'Family wedding congratulations group card', 'Church or court wedding team card', 'Wedding gift pool from colleagues in Nigeria'],
@@ -234,7 +235,7 @@ const OCCASIONS = {
  graduation: {
  title: 'Graduation Congratulations Group Cards Nigeria',
  h1: 'Online Graduation Group Card Nigeria — Celebrate Their Degree Together',
- emoji: '',
+ emoji: 'PartyPopper',
  tagline: "Honour their greatest academic achievement — everyone cheers at once",
  desc: "Years of JAMB, WAEC, sleepless nights, and hard work led to this moment. A Thankeeu graduation group card in Nigeria lets family, friends and church community celebrate them together — with messages, photos, voice notes, and a cash gift.",
  keywords: 'graduation congratulations group card Nigeria, graduation card Nigeria, congratulations on your degree Nigeria, graduation gift pool Nigeria, university graduation card Nigeria, NYSC congratulations card Nigeria, first class degree congratulations Nigeria, convocation card Nigeria, graduation message Nigeria, family graduation card Nigeria, graduation celebration Nigeria, online graduation card Lagos Abuja',
@@ -258,10 +259,10 @@ const OCCASIONS = {
  whySection: {
  heading: 'Why Nigerian Families Use Thankeeu for Graduation Cards',
  points: [
- { icon: '', title: 'It Takes a Village — The Card Should Show It', body: 'In Nigeria, a child\'s graduation is a family victory. The whole extended family, church members, and family friends all celebrate. Thankeeu lets all of them sign one card and contribute to one gift — organised, beautiful, and meaningful.' },
- { icon: '', title: 'Mum\'s Voice. Grandpa\'s Prayer. Forever.', body: 'The voice note feature is the most emotional part of a Thankeeu graduation card. When parents, grandparents, and siblings record personal messages in their voice — that is a gift that cannot be bought in any store.' },
- { icon: '', title: 'Graduation Gift Collection Made Simple', body: 'Instead of relatives sending money to different accounts, Thankeeu\'s gift pot collects every contribution in one place via Flutterwave. The graduate withdraws a clean, combined gift to their bank account.' },
- { icon: '', title: 'Works for Every Nigerian Milestone', body: 'UNILAG, UNIABUJA, OAU, UNIBEN, Covenant University — wherever they graduated, Thankeeu celebrates it. NYSC completion, professional exams, HND, BSc, MSc, or PhD — every certificate deserves a moment.' },
+ { icon: 'CheckCircle', title: 'It Takes a Village — The Card Should Show It', body: 'In Nigeria, a child\'s graduation is a family victory. The whole extended family, church members, and family friends all celebrate. Thankeeu lets all of them sign one card and contribute to one gift — organised, beautiful, and meaningful.' },
+ { icon: 'Mic', title: 'Mum\'s Voice. Grandpa\'s Prayer. Forever.', body: 'The voice note feature is the most emotional part of a Thankeeu graduation card. When parents, grandparents, and siblings record personal messages in their voice — that is a gift that cannot be bought in any store.' },
+ { icon: 'CheckCircle', title: 'Graduation Gift Collection Made Simple', body: 'Instead of relatives sending money to different accounts, Thankeeu\'s gift pot collects every contribution in one place via Flutterwave. The graduate withdraws a clean, combined gift to their bank account.' },
+ { icon: 'CheckCircle', title: 'Works for Every Nigerian Milestone', body: 'UNILAG, UNIABUJA, OAU, UNIBEN, Covenant University — wherever they graduated, Thankeeu celebrates it. NYSC completion, professional exams, HND, BSc, MSc, or PhD — every certificate deserves a moment.' },
  ],
  },
  useCases: ['University graduation congratulations card', 'NYSC completion group card', 'First class degree celebration card', 'MBA graduation family card', 'Professional certification congratulations'],
@@ -279,7 +280,7 @@ const OCCASIONS = {
  'new-baby': {
  title: 'New Baby & Baby Shower Group Cards Nigeria',
  h1: 'Online New Baby Congratulations Group Card Nigeria — Welcome the Bundle of Joy',
- emoji: '',
+ emoji: 'PartyPopper',
  tagline: 'Welcome the newest blessing — the whole team celebrates together',
  desc: "A new baby is the greatest gift. Celebrate Nigerian parents with a beautiful group card full of love, prayers, and blessings — plus a pooled Naira baby gift from colleagues and family.",
  keywords: 'new baby congratulations group card Nigeria, baby shower card Nigeria, online baby shower card Nigeria, new baby gift pool Nigeria, congratulations new baby Nigeria, welcome baby card Nigeria, baby shower message colleague Nigeria, group baby card Nigeria, new baby card office Nigeria, maternity gift collection Nigeria, baby arrival card Nigeria, newborn congratulations Nigeria',
@@ -303,10 +304,10 @@ const OCCASIONS = {
  whySection: {
  heading: 'Why Nigerian Teams & Families Use Thankeeu for New Baby Cards',
  points: [
- { icon: '', title: 'Prayers in Every Signature', body: 'A new baby in a Nigerian family is a community celebration. Grandparents, aunties, pastors, and colleagues all have blessings to give. Thankeeu lets every single one of them add their prayer to one beautiful card.' },
- { icon: '', title: 'Organise the Baby Gift Without the WhatsApp Chaos', body: 'Collecting baby shower contributions on WhatsApp is stressful. Thankeeu\'s gift pot lets every colleague or family member contribute via Flutterwave — the new parents withdraw one clean total to their account.' },
- { icon: '', title: 'Perfect for Maternity Leave Send-Offs', body: 'When a colleague goes on maternity leave, send them off with a card signed by the whole office. It is warm, thoughtful, and tells them they are valued beyond their role.' },
- { icon: '', title: 'Baby Doesn\'t Wait — Cards Can Be Instant', body: 'Baby arrival timing is unpredictable. With Thankeeu, you can create and share a card the same day the news breaks. The team can sign in minutes and the parents receive it within hours.' },
+ { icon: 'CheckCircle', title: 'Prayers in Every Signature', body: 'A new baby in a Nigerian family is a community celebration. Grandparents, aunties, pastors, and colleagues all have blessings to give. Thankeeu lets every single one of them add their prayer to one beautiful card.' },
+ { icon: 'CheckCircle', title: 'Organise the Baby Gift Without the WhatsApp Chaos', body: 'Collecting baby shower contributions on WhatsApp is stressful. Thankeeu\'s gift pot lets every colleague or family member contribute via Flutterwave — the new parents withdraw one clean total to their account.' },
+ { icon: 'CheckCircle', title: 'Perfect for Maternity Leave Send-Offs', body: 'When a colleague goes on maternity leave, send them off with a card signed by the whole office. It is warm, thoughtful, and tells them they are valued beyond their role.' },
+ { icon: 'Zap', title: 'Baby Doesn\'t Wait — Cards Can Be Instant', body: 'Baby arrival timing is unpredictable. With Thankeeu, you can create and share a card the same day the news breaks. The team can sign in minutes and the parents receive it within hours.' },
  ],
  },
  useCases: ['Colleague maternity leave card from the office', 'Baby shower gift pool from colleagues', 'New baby welcome card from family', 'First baby congratulations group card', 'Newborn baby prayers and blessings card'],
@@ -324,7 +325,7 @@ const OCCASIONS = {
  'staff-appreciation': {
  title: 'Staff Appreciation & Employee Recognition Cards Nigeria',
  h1: 'Staff Appreciation Group Cards Nigeria — Recognise Your Team the Right Way',
- emoji: '',
+ emoji: 'Star',
  tagline: 'Show your team they matter — not just on one day, every day',
  desc: 'The most effective Nigerian HR teams use Thankeeu to send personalised staff appreciation cards — for Employee Appreciation Day, quarterly milestones, peer recognition, and spontaneous thank-yous that boost retention.',
  keywords: 'staff appreciation card Nigeria, employee recognition card Nigeria, employee appreciation card Nigeria, staff recognition Nigeria, team appreciation message Nigeria, employee appreciation day Nigeria, HR recognition tool Nigeria, thank you card for employee Nigeria, staff thank you card Nigeria, employee recognition software Nigeria, staff welfare card Nigeria, peer recognition card Nigeria, employee morale Nigeria, company appreciation card Nigeria, automated birthday card Nigeria HR, staff engagement Nigeria',
@@ -348,10 +349,10 @@ const OCCASIONS = {
  whySection: {
  heading: 'Why Nigerian HR Teams Use Thankeeu for Staff Recognition',
  points: [
- { icon: '', title: 'Recognition = Retention in Nigeria', body: 'Nigerian talent has options. Companies that consistently recognise employees — with personalised cards, not just cash bonuses — see lower turnover. A "thank you" with 30 colleagues\'names on it is priceless.' },
- { icon: '', title: 'Automate What HR Teams Don\'t Have Time For', body: 'Nigerian HR teams are stretched thin. Thankeeu for Teams automates birthday cards, work anniversary cards, and milestone recognitions — so your HR team focuses on strategy, not remembering dates.' },
- { icon: '', title: 'Works with Nigerian HR Systems', body: 'Thankeeu integrates with SeamlessHR, BambooHR, WorkPay, Zoho People, and SAP SuccessFactors. Plug in your employee data and every recognition moment is triggered automatically.' },
- { icon: '', title: 'Works for Distributed Nigerian Teams', body: 'Whether your team is in Lagos, Abuja, Enugu, remote, or hybrid — everyone signs the same digital card. Remote employees feel just as recognised as those in the office.' },
+ { icon: 'CheckCircle', title: 'Recognition = Retention in Nigeria', body: 'Nigerian talent has options. Companies that consistently recognise employees — with personalised cards, not just cash bonuses — see lower turnover. A "thank you" with 30 colleagues\'names on it is priceless.' },
+ { icon: 'Briefcase', title: 'Automate What HR Teams Don\'t Have Time For', body: 'Nigerian HR teams are stretched thin. Thankeeu for Teams automates birthday cards, work anniversary cards, and milestone recognitions — so your HR team focuses on strategy, not remembering dates.' },
+ { icon: 'CheckCircle', title: 'Works with Nigerian HR Systems', body: 'Thankeeu integrates with SeamlessHR, BambooHR, WorkPay, Zoho People, and SAP SuccessFactors. Plug in your employee data and every recognition moment is triggered automatically.' },
+ { icon: 'CheckCircle', title: 'Works for Distributed Nigerian Teams', body: 'Whether your team is in Lagos, Abuja, Enugu, remote, or hybrid — everyone signs the same digital card. Remote employees feel just as recognised as those in the office.' },
  ],
  },
  useCases: ['Employee Appreciation Day cards for the whole company', 'Monthly MVP recognition card', 'End-of-year staff appreciation from the CEO', 'Peer-to-peer thank you cards', 'Department-wide appreciation during tough projects'],
@@ -372,7 +373,7 @@ const MessageMiniCard = ({ msg, color }) => {
  return (
  <div className="rounded-2xl p-3 border flex flex-col gap-1.5 relative overflow-hidden"
  style={{ background: 'rgba(255,255,255,0.92)', borderColor: 'rgba(0,0,0,0.07)', minHeight: 80 }}>
- {msg.type === 'photo' && (
+ {msg.type === 'photo' && msg.emoji && (
  <div className="absolute inset-0 flex items-center justify-center opacity-10 text-5xl pointer-events-none select-none">
  {msg.emoji}
  </div>
@@ -554,7 +555,7 @@ export default function OccasionLandingPage({ occasion }) {
  ].map(([icon, title, desc], i) => (
  <div key={i} className="rounded-2xl p-5 border-2 transition-all hover:shadow-md"
  style={{ background: 'white', borderColor: `${d.color}20` }}>
- {icon && <div className="text-3xl mb-2">{icon}</div>}
+ {icon && <div className="mb-2 text-primary-500"><Icon name={icon} size={22}/></div>}
  <p className="font-bold text-gray-900 mb-1">{title}</p>
  <p className="text-gray-500 text-sm">{desc}</p>
  </div>
@@ -571,7 +572,7 @@ export default function OccasionLandingPage({ occasion }) {
  <div className="grid sm:grid-cols-2 gap-5">
  {d.whySection.points.map(({ icon, title, body }, i) => (
  <div key={i} className="rounded-2xl p-6 border-2" style={{ background: 'white', borderColor: `${d.color}20` }}>
- {icon && <div className="text-3xl mb-3">{icon}</div>}
+ {icon && <div className="mb-3 text-primary-500"><Icon name={icon} size={22}/></div>}
  <p className="font-bold text-gray-900 mb-2">{title}</p>
  <p className="text-gray-500 text-sm leading-relaxed">{body}</p>
  </div>
@@ -602,15 +603,15 @@ export default function OccasionLandingPage({ occasion }) {
  <p className="text-center text-warm-500 text-sm mb-8">No design skills needed. No WhatsApp group chasing.</p>
  <div className="grid sm:grid-cols-3 gap-6">
  {[
- { step: '1', icon: '', title: 'Create the card', body: 'Choose the occasion, add the recipient\'s name, and write your message. Takes 2 minutes.' },
- { step: '2', icon: '', title: 'Share the link', body: 'Send the signing link via WhatsApp, email, or Slack. Anyone can sign from their phone — no account needed.' },
- { step: '3', icon: '', title: 'It delivers itself', body: 'Set the delivery date and time. Thankeeu sends it automatically. You don\'t need to be online.' },
+ { step: '1', icon: 'Sparkles', title: 'Create the card', body: 'Choose the occasion, add the recipient\'s name, and write your message. Takes 2 minutes.' },
+ { step: '2', icon: 'Share2', title: 'Share the link', body: 'Send the signing link via WhatsApp, email, or Slack. Anyone can sign from their phone — no account needed.' },
+ { step: '3', icon: 'Clock', title: 'It delivers itself', body: 'Set the delivery date and time. Thankeeu sends it automatically. You don\'t need to be online.' },
  ].map(({ step, icon, title, body }) => (
  <div key={step} className="text-center rounded-2xl p-6 border-2"
  style={{ background: 'white', borderColor: `${d.color}20` }}>
  <div className="w-10 h-10 rounded-full flex items-center justify-center font-extrabold text-white mx-auto mb-3 text-lg"
  style={{ background: d.gradient }}>{step}</div>
- {icon && <div className="text-3xl mb-2">{icon}</div>}
+ {icon && <div className="mb-2 text-primary-500"><Icon name={icon} size={22}/></div>}
  <p className="font-bold text-gray-900 mb-1">{title}</p>
  <p className="text-gray-500 text-sm leading-relaxed">{body}</p>
  </div>

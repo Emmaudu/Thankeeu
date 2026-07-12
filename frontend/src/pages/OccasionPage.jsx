@@ -6,11 +6,12 @@
 import { useParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import Icon from '../components/ui/Icon';
 import { useSEO } from '../hooks/useSEO';
 
 const OCCASIONS = {
  birthday: {
- icon: '', accent: '#7C3AED', bg: '#F5F0FF',
+ icon: 'Cake', accent: '#7C3AED', bg: '#F5F0FF',
  title: 'Birthday Group Cards',
  headline: 'Make every birthday unforgettable',
  desc: 'Pool a group gift and collect heartfelt messages, photos, and voice notes. Delivered on the exact day.',
@@ -28,7 +29,7 @@ const OCCASIONS = {
  seo: { title: 'Online Group Birthday Card + Gift Pot | Thankeeu', desc: 'Create a beautiful online group birthday card everyone can sign. Pool a Naira birthday gift via Flutterwave. Messages, photos, voice notes. From ₦5,000.', keywords: 'online group birthday card Nigeria, birthday group card everyone signs, birthday gift pool Nigeria, happy birthday group card' },
  },
  farewell: {
- icon: '', accent: '#0EA5E9', bg: '#EFF6FF',
+ icon: 'Briefcase', accent: '#0EA5E9', bg: '#EFF6FF',
  title: 'Farewell Group Cards',
  headline: 'Send them off with love',
  desc: 'Create a farewell card with memories, inside jokes, voice notes, and a group gift to celebrate their journey.',
@@ -46,7 +47,7 @@ const OCCASIONS = {
  seo: { title: 'Online Group Farewell Card for Colleague | Thankeeu', desc: 'Send a heartfelt farewell card from the whole team. Collect messages, voice notes, photos and a pooled going-away gift in one beautiful card. For colleagues leaving.', keywords: 'online farewell card Nigeria, going away group card, colleague leaving card, group farewell gift Nigeria' },
  },
  graduation: {
- icon: '', accent: '#10B981', bg: '#F0FDF4',
+ icon: 'GraduationCap', accent: '#10B981', bg: '#F0FDF4',
  title: 'Graduation Group Cards',
  headline: 'Celebrate their greatest achievement',
  desc: 'Years of hard work, all-nighters, and resilience. Celebrate with a card full of pride and love.',
@@ -64,7 +65,7 @@ const OCCASIONS = {
  seo: { title: 'Online Group Graduation Card & Gift | Thankeeu', desc: 'Celebrate a graduation with a beautiful group card from family, friends and classmates. Pool a Naira graduation gift everyone contributes to. Makes them feel truly celebrated.', keywords: 'group graduation card Nigeria, graduation gift pool, online graduation card friends, NYSC graduation card' },
  },
  anniversary: {
- icon: '', accent: '#F43F5E', bg: '#FFF1F2',
+ icon: 'Gift', accent: '#F43F5E', bg: '#FFF1F2',
  title: 'Anniversary Group Cards',
  headline: 'Celebrate love and commitment',
  desc: 'Whether it\'s a wedding anniversary or a work milestone, make it unforgettable with messages from everyone who cares.',
@@ -82,7 +83,7 @@ const OCCASIONS = {
  seo: { title: 'Online Group Anniversary Card & Gift Pool | Thankeeu', desc: 'Celebrate a work or wedding anniversary with a group card from the whole team or family. Everyone adds a message. Pool a Naira anniversary gift. Delivered on the day.', keywords: 'work anniversary group card Nigeria, wedding anniversary card online, group anniversary gift pool, staff anniversary card' },
  },
  promotion: {
- icon: '', accent: '#F59E0B', bg: '#FFFBEB',
+ icon: 'TrendingUp', accent: '#F59E0B', bg: '#FFFBEB',
  title: 'Promotion Group Cards',
  headline: 'They earned it — celebrate them',
  desc: 'Hard work, late nights, and results — now it\'s time to celebrate their next level.',
@@ -100,7 +101,7 @@ const OCCASIONS = {
  seo: { title: 'Online Group Promotion Congratulations Card | Thankeeu', desc: 'Celebrate a colleague\'s promotion with a group card from the whole team. Everyone signs and chips in for a pooled gift. The perfect way to say congratulations.', keywords: 'promotion congratulations card Nigeria, group card for promotion, colleague promotion gift Nigeria, work promotion online card' },
  },
  'new-baby': {
- icon: '', accent: '#EC4899', bg: '#FDF2F8',
+ icon: 'Baby', accent: '#EC4899', bg: '#FDF2F8',
  title: 'Baby Shower & New Baby Cards',
  headline: 'Welcome the newest member of the family',
  desc: 'Celebrate the joy of a new arrival with a card full of warm wishes, memories, and a group gift for the new parents.',
@@ -151,7 +152,7 @@ export default function OccasionPage() {
  {/* Hero */}
  <section className="py-14 md:py-20 px-4 text-center" style={{ background: `linear-gradient(160deg,${data.bg},#FDFCFF 60%)` }}>
  <div className="max-w-2xl mx-auto">
- {data.icon && <div className="text-6xl mb-4">{data.icon}</div>}
+ {data.icon && <div className="mb-4 flex justify-center"><div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{background:data.bg}}><Icon name={data.icon} size={32} style={{color:data.accent}}/></div></div>}
  <div className="mx-auto mb-4" style={{ borderColor: `${data.accent}40`, color: data.accent }}>
  {data.title}
  </div>
@@ -179,7 +180,7 @@ export default function OccasionPage() {
  {/* Card header */}
  <div className="rounded-3xl overflow-hidden shadow-2xl" style={{ background: data.bg, border: `2px solid ${data.accent}30` }}>
  <div className="text-center px-6 py-10" style={{ background: `linear-gradient(135deg,${data.accent}15,${data.accent}05)` }}>
- {data.icon && <div className="text-5xl mb-3">{data.icon}</div>}
+ {data.icon && <div className="mb-3 flex justify-center"><div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{background:data.bg}}><Icon name={data.icon} size={24} style={{color:data.accent}}/></div></div>}
  <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:'1.75rem', color:'#1A1035' }}>
  {example.cardTitle}
  </h2>

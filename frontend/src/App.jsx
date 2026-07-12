@@ -12,6 +12,14 @@ import WeddingMemoryWall     from './pages/WeddingMemoryWall';
 import BirthdayMemoryWall    from './pages/BirthdayMemoryWall';
 import ChurchMemoryWall      from './pages/ChurchMemoryWall';
 import EmployeeMemoryWall    from './pages/EmployeeMemoryWall';
+import VsWedtrove            from './pages/VsWedtrove';
+import WedUploaderAlt        from './pages/WedUploaderAlternative';
+import GuestPixAlt           from './pages/GuestPixAlternative';
+import KululuAlt             from './pages/KululuAlternative';
+import POVAlt                from './pages/POVAlternative';
+import GuestCamAlt           from './pages/GuestCamAlternative';
+import VsThankbox            from './pages/VsThankbox';
+import VsKudoboard           from './pages/VsKudoboard';
 import HowItWorks       from './pages/HowItWorks';
 import FAQ              from './pages/FAQ';
 import Login            from './pages/Login';
@@ -198,11 +206,19 @@ const App = () => (
             <Route path="/"              element={<Home />} />
             <Route path="/pricing"       element={<Pricing />} />
             <Route path="/memory-movie"         element={<MemoryMoviePage />} />
-            <Route path="/live-memory-wall"      element={<LiveMemoryWallPage />} />
-            <Route path="/wedding-memory-wall"   element={<WeddingMemoryWall />} />
-            <Route path="/birthday-memory-wall"  element={<BirthdayMemoryWall />} />
-            <Route path="/church-memory-wall"    element={<ChurchMemoryWall />} />
-            <Route path="/employee-memory-wall"  element={<EmployeeMemoryWall />} />
+            <Route path="/live-memory-wall"          element={<LiveMemoryWallPage />} />
+            <Route path="/wedding-memory-wall"        element={<WeddingMemoryWall />} />
+            <Route path="/birthday-memory-wall"       element={<BirthdayMemoryWall />} />
+            <Route path="/church-memory-wall"         element={<ChurchMemoryWall />} />
+            <Route path="/employee-memory-wall"       element={<EmployeeMemoryWall />} />
+            <Route path="/thankeeu-vs-wedtrove"       element={<VsWedtrove />} />
+            <Route path="/weduploader-alternative"     element={<WedUploaderAlt />} />
+            <Route path="/guestpix-alternative"        element={<GuestPixAlt />} />
+            <Route path="/kululu-alternative"          element={<KululuAlt />} />
+            <Route path="/pov-alternative"             element={<POVAlt />} />
+            <Route path="/guestcam-alternative"        element={<GuestCamAlt />} />
+            <Route path="/thankeeu-vs-thankbox"       element={<VsThankbox />} />
+            <Route path="/thankeeu-vs-kudoboard"      element={<VsKudoboard />} />
             <Route path="/policy"        element={<Policy />} />
             <Route path="/how-it-works"  element={<HowItWorks />} />
             <Route path="/occasions/birthday"    element={<BirthdayPage />} />

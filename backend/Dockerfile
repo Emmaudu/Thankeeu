@@ -2,8 +2,8 @@
 # Uses Node 20 Alpine with ffmpeg installed explicitly
 FROM node:20-alpine
 
-# Install ffmpeg (required for Memory Movie generation)
-RUN apk add --no-cache ffmpeg
+# Install ffmpeg and DejaVu fonts (required for Memory Movie text overlays)
+RUN apk add --no-cache ffmpeg ttf-dejavu
 
 # Set working directory
 WORKDIR /app

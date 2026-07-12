@@ -17,6 +17,7 @@ import {
   Sun, Flower2, HeartPulse, Snowflake, Sunrise, ThumbsUp as ThumbsUpDup,
   TrendingDown, TrendingUp as TrendingUpIcon, LayoutGrid, Archive, AlertTriangle,
   Film, Loader2, Play, Video, Music, CheckCircle,
+  Diamond, QrCode, Radio, HeartHandshake, Monitor, Presentation, PenLine, LogIn,
 } from 'lucide-react';
 
 const ICONS = {
@@ -42,6 +43,7 @@ const ICONS = {
   Sun, Flower: Flower2, HeartPulse, Snowflake, Sunrise,
   TrendingDown, LayoutGrid, Archive, AlertTriangle,
   Film, Loader: Loader2, Play, Video, Music, CheckCircle,
+  Diamond, QrCode, Radio, HeartHandshake, Monitor, Presentation, PenLine, LogIn,
 };
 
 const SIZES = { xs: 12, sm: 14, md: 16, lg: 20, xl: 24, '2xl': 32 };

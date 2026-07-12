@@ -19,20 +19,20 @@ import { formatNGN, CURRENCIES, formatCurrency } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 
 const OCCASIONS = [
- { id: 'birthday', icon: '', label: 'Birthday' },
- { id: 'valentine', icon: '', label: "Valentine's" },
- { id: 'leaving', icon: '', label: 'Leaving job' },
- { id: 'anniversary', icon: '', label: 'Anniversary' },
- { id: 'wedding', icon: '', label: 'Wedding' },
- { id: 'baby_shower', icon: '', label: 'Baby shower' },
- { id: 'retirement', icon: '', label: 'Retirement' },
- { id: 'congratulations',icon: '', label: 'Congrats' },
- { id: 'graduation', icon: '', label: 'Graduation' },
- { id: 'promotion', icon: '', label: 'Promotion' },
- { id: 'christmas', icon: '', label: 'Christmas' },
- { id: 'get_well', icon: '', label: 'Get well' },
- { id: 'new_year', icon: '', label: 'New Year' },
- { id: 'other', icon: '', label: 'Other' },
+ { id: 'birthday',        icon: 'Cake',         label: 'Birthday' },
+ { id: 'valentine',       icon: 'Heart',        label: "Valentine's" },
+ { id: 'leaving',         icon: 'Briefcase',    label: 'Leaving job' },
+ { id: 'anniversary',     icon: 'Gift',         label: 'Anniversary' },
+ { id: 'wedding',         icon: 'Diamond',      label: 'Wedding' },
+ { id: 'baby_shower',     icon: 'Baby',         label: 'Baby shower' },
+ { id: 'retirement',      icon: 'Sun',          label: 'Retirement' },
+ { id: 'congratulations', icon: 'PartyPopper',  label: 'Congrats' },
+ { id: 'graduation',      icon: 'GraduationCap',label: 'Graduation' },
+ { id: 'promotion',       icon: 'TrendingUp',   label: 'Promotion' },
+ { id: 'christmas',       icon: 'Snowflake',    label: 'Christmas' },
+ { id: 'get_well',        icon: 'HeartPulse',   label: 'Get well' },
+ { id: 'new_year',        icon: 'Star',         label: 'New Year' },
+ { id: 'other',           icon: 'Sparkles',     label: 'Other' },
 ];
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000];
@@ -47,7 +47,9 @@ const StepIndicator = ({ current }) => (
  i < current ? 'bg-primary-500 text-white' :
  i === current? 'bg-primary-500 text-white ring-4 ring-primary-100' :
  'bg-purple-50 text-warm-400'}`}>
- {i < current ? '' : i + 1}
+ {i < current
+                ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                : i + 1}
  </div>
  <span className={`text-xs font-medium hidden sm:block ${i <= current ? 'text-warm-900' : 'text-warm-400'}`}>{s}</span>
  </div>
@@ -602,7 +604,7 @@ const CreateCard = () => {
  {OCCASIONS.map(o => (
  <button key={o.id} onClick={() => handleOccasionSelect(o)}
  className={`rounded-2xl p-4 text-center transition-all border-2 ${form.occasion === o.id ? 'border-primary-400 bg-primary-50 shadow-sm' : 'border-transparent bg-warm-100 hover:bg-purple-50'}`}>
- {o.icon && <div className="text-2xl mb-1">{o.icon}</div>}
+ {o.icon && <div className="mb-2 text-primary-500"><Icon name={o.icon} size={22}/></div>}
  <div className="text-xs font-semibold text-warm-700">{o.label}</div>
  </button>
  ))}
@@ -1159,12 +1161,12 @@ const CreateCard = () => {
  {/* Gift toggle */}
  <div className="grid grid-cols-2 gap-3 mb-4">
  {[
- {id:true, icon:'', title:'Enable gift pot', desc:'Everyone chips in, recipient redeems'},
- {id:false,icon:'', title:'Card only', desc:'Messages only, no gift'},
+ {id:true, icon:'Gift', title:'Enable gift pot', desc:'Everyone chips in, recipient redeems'},
+ {id:false,icon:'Mail', title:'Card only', desc:'Messages only, no gift'},
  ].map(o => (
  <button key={String(o.id)} onClick={() => set('is_gift_enabled', o.id)}
  className={`rounded-2xl p-4 text-left border-2 transition-all ${form.is_gift_enabled===o.id?'border-primary-400 bg-primary-50':'border-purple-100 hover:border-purple-200'}`}>
- {o.icon && <div className="text-2xl mb-1">{o.icon}</div>}
+ {o.icon && <div className="mb-2 text-primary-500"><Icon name={o.icon} size={22}/></div>}
  <div className="text-sm font-bold text-warm-800">{o.title}</div>
  <div className="text-xs text-warm-500 mt-0.5">{o.desc}</div>
  </button>
@@ -1388,10 +1390,10 @@ const CreateCard = () => {
 
  {/* Gift toggle */}
  <div className="grid grid-cols-2 gap-3 mb-4">
- {[{id:true,icon:'',title:'Enable gift pot',desc:'Everyone chips in, recipient redeems'},{id:false,icon:'',title:'Card only',desc:'Messages only, no gift'}].map(o => (
+ {[{id:true,icon:'Gift',title:'Enable gift pot',desc:'Everyone chips in, recipient redeems'},{id:false,icon:'Mail',title:'Card only',desc:'Messages only, no gift'}].map(o => (
  <button key={String(o.id)} onClick={() => set('is_gift_enabled', o.id)}
  className={`rounded-2xl p-4 text-left border-2 transition-all ${form.is_gift_enabled===o.id?'border-primary-400 bg-primary-50':'border-purple-100 hover:border-purple-200'}`}>
- {o.icon && <div className="text-2xl mb-1">{o.icon}</div>}
+ {o.icon && <div className="mb-2 text-primary-500"><Icon name={o.icon} size={22}/></div>}
  <div className="text-sm font-bold text-warm-800">{o.title}</div>
  <div className="text-xs text-warm-500 mt-0.5">{o.desc}</div>
  </button>

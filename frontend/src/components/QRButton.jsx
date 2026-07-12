@@ -1,11 +1,3 @@
-/**
- * QRButton.jsx — drop-in button that opens QRCodeModal
- * Props:
- *   url      — full URL to encode
- *   label    — modal subtitle (e.g. "Scan to sign the group card")
- *   variant  — "primary" | "secondary" | "ghost"
- *   children — button text (default "QR Code")
- */
 import { useState } from 'react';
 import QRCodeModal from './QRCodeModal';
 
@@ -28,7 +20,8 @@ export default function QRButton({ url, label, variant = 'secondary', children, 
         </svg>
         {children || 'QR Code'}
       </button>
-      {open && <QRCodeModal url={url} label={label} onClose={() => setOpen(false)} />}
+      {/* Always mounted — open prop controls visibility, prevents flicker from remount */}
+      <QRCodeModal url={url} label={label} open={open} onClose={() => setOpen(false)} />
     </>
   );
 }

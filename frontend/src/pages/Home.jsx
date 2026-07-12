@@ -949,10 +949,10 @@ const WhatsAppVsThankeeu = () => (
 
  {/* Feature 3 — Live Photo Wall */}
  <div className="rounded-3xl p-7 border-2 flex flex-col" style={{ background:'#FFF5FB', borderColor:'#FBCFE8' }}>
- <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center" style={{background:'#FBCFE8'}}><Icon name="Camera" size={22} className="text-pink-600"/></div>
+ <div className="w-12 h-12 rounded-2xl mb-4 flex items-center justify-center" style={{background:'#FBCFE8'}}><Icon name="QrCode" size={22} className="text-pink-600"/></div>
  <p className="font-extrabold text-warm-900 text-xl mb-2">Live Photo Wall™</p>
  <p className="text-warm-600 text-sm leading-relaxed flex-1 mb-5">
- Every guest at your event has a phone. Most of those photos will disappear into a WhatsApp chat. One QR code — printed on a table card or shown on screen — and every guest uploads in real time. No app. No account. Works on any phone.
+ Every guest at your event has a phone. Most of those photos never make it out of WhatsApp. Thankeeu generates a QR code for your occasion automatically — print it on table cards, display it on any screen, or share the link. Guests scan and upload in seconds. No app, no account.
  </p>
  <ul className="space-y-1.5 mb-6">
  {['QR code — scan & upload instantly','No app, no account for guests','Live display on venue screen','Full-quality, no compression','Works for any occasion'].map(f => (
@@ -1067,8 +1067,8 @@ const Home = () => {
  <Link to="/live-memory-wall" className="rounded-2xl p-4 text-left border-2 transition-all hover:shadow-md hover:-translate-y-0.5 group"
  style={{ background:'#FFF0F7', borderColor:'#FBCFE8' }}>
   <p className="font-extrabold text-warm-900 text-sm leading-tight mb-1">Live Photo Wall™</p>
- <p className="text-xs text-warm-500 leading-snug">Guests scan a QR code at the venue &amp; upload in real time. No app. Weddings, birthdays, corporate events, any celebration.</p>
- <p className="text-xs font-bold mt-2" style={{ color:'#DB2777' }}>Collect guest photos →</p>
+ <p className="text-xs text-warm-500 leading-snug">Thankeeu generates a QR code for your event — guests scan at the venue &amp; photos appear in real time. No app, no account needed.</p>
+ <p className="text-xs font-bold mt-2" style={{ color:'#DB2777' }}>Get your event QR code →</p>
  </Link>
  </div>
 

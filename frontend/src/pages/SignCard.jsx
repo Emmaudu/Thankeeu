@@ -1,4 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
+import Icon from '../components/ui/Icon';
 import AlbumSign from './AlbumSign';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';

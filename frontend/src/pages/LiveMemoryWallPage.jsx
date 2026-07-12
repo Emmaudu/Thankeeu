@@ -36,7 +36,33 @@ export default function LiveMemoryWallPage() { useSEO({ title: 'Live Memory Wall
 <p className="text-sm text-warm-500 leading-relaxed">{desc}</p>
 </div> ))} </div>
 </div>
-</section> {/* ── Comparison ── */} <section className="py-16 px-4 bg-white">
+</section> 
+      {/* QR code generation callout */}
+      <section className="py-10 px-4 bg-purple-50">
+        <div className="max-w-4xl mx-auto">
+          <div className="rounded-2xl border-2 border-pink-100 p-6 sm:p-8 bg-white flex flex-col sm:flex-row items-start gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-pink-100 flex items-center justify-center flex-shrink-0">
+              <Icon name="QrCode" size={32} className="text-pink-600"/>
+            </div>
+            <div>
+              <h3 className="font-extrabold text-warm-900 text-lg mb-2">Your QR code is ready instantly — no separate tool needed</h3>
+              <p className="text-warm-500 text-sm leading-relaxed mb-4">
+                Enable the Live Memory Wall when creating your card and Thankeeu generates a unique, high-resolution QR code for your event automatically. Download as PNG, print it at home, or display on any screen at the venue.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {['Download PNG', 'Print at home', 'Display on screen', 'Share on WhatsApp', 'Email to guests'].map(label => (
+                  <span key={label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-pink-200 text-xs font-semibold text-warm-700 bg-pink-50">
+                    <Icon name="Check" size={12} className="text-pink-500" strokeWidth={3}/>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Comparison ── */} <section className="py-16 px-4 bg-white">
 <div className="max-w-4xl mx-auto">
 <h2 className="text-2xl sm:text-3xl font-display font-bold text-center text-warm-900 mb-3">Not just a photo wall — a group card AND a photo wall </h2>
 <p className="text-center text-warm-500 text-sm mb-12 max-w-2xl mx-auto">Wedtrove, Chivent, and Warpbin collect photos only. Thankeeu does more: every guest writes a heartfelt message, uploads photos, adds a voice note — and chips into a gift. All delivered in one experience. </p>

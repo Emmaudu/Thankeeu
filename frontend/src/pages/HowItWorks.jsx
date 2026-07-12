@@ -5,8 +5,8 @@ import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 
 const STEPS = [
-  { num:'01', icon:'Sparkles', title:'Set up your card in 2 minutes', desc:'Choose from 14 occasions — birthday, farewell, graduation, promotion and more. Pick a beautiful design, add the recipient\'s name and set a delivery date. Enable the Live Photo Wall™ and Memory Movie™ in the same step.', tip:'Tip: You don\'t need the recipient\'s email yet. Just set it up and share the signing link first.' },
-  { num:'02', icon:'Share', title:'Share the signing link', desc:'You\'ll get a unique signing link. Drop it in your WhatsApp group, Slack channel, or email thread. Your signers click it — no app download, no login needed.', tip:'Tip: Set a deadline so everyone signs before the card is sent.' },
+  { num:'01', icon:'Sparkles', title:'Set up your card — 2 minutes', desc:'Choose from 14 occasions. Pick a design, add the recipient\'s name and set a delivery date. Enable the Live Photo Wall™ and a QR code is automatically generated for you — ready to print or display at the venue.', tip:'Tip: Your QR code is ready the moment you create the card. No extra setup needed.' },
+  { num:'02', icon:'Share', title:'Share the link — or print the QR code', desc:'You get a unique signing link AND a QR code. Drop the link in WhatsApp, email or Slack. For live events, print the QR on table cards or show it on screen — guests scan and contribute instantly.', tip:'Tip: For parties and weddings, QR codes on every table mean zero chasing.' },
   { num:'03', icon:'Message', title:'Everyone adds their message', desc:'Each person writes a heartfelt message. They can also attach a photo, video, voice note, or GIF. Private messages are only visible to the recipient.', tip:'Tip: Send reminders from your dashboard to nudge anyone who hasn\'t signed yet.' },
   { num:'04', icon:'Gift', title:'Pool a gift — no chasing, no awkwardness', desc:'Enable the gift pot and anyone can chip in whatever they can afford. Works in USD, GBP, EUR, NGN and 30+ currencies. No cash collection. No awkward messages. It all pools automatically.', tip:'Tip: Set a suggested gift amount during card creation to make it easy for contributors.' },
   { num:'05', icon:'Rocket', title:'Send it — scheduled or instantly', desc:'When you\'re ready, pay the one-time sending fee (from $3.99 / £2.99 / ₦5,000 depending on your currency) and send. Or schedule it for a specific date and time — even weeks in advance.', tip:'Tip: Schedule it for 8am on their birthday so they wake up to a surprise.' },
@@ -79,6 +79,57 @@ export default function HowItWorks() {
           </div>
         </div>
       </section>
+      {/* QR Code callout for live events */}
+      <section className="py-14 px-4 bg-white">
+        <div className="max-w-3xl mx-auto">
+          <div className="rounded-3xl border-2 border-pink-100 overflow-hidden" style={{background:'linear-gradient(135deg,#FFF0F7,#F5F0FF)'}}>
+            <div className="p-7 sm:p-10">
+              <div className="flex flex-col sm:flex-row gap-8 items-start">
+                <div className="flex-1">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-pink-100 text-pink-700 text-xs font-bold uppercase tracking-widest mb-4">
+                    <Icon name="QrCode" size={14}/> Live Events
+                  </div>
+                  <h3 className="text-2xl font-extrabold text-warm-900 mb-3">
+                    Your event QR code is generated automatically
+                  </h3>
+                  <p className="text-warm-600 text-base mb-5 leading-relaxed">
+                    Enable the Live Memory Wall when creating your card and Thankeeu generates a unique QR code for your event — instantly. No extra steps. Print it, display it on a venue screen, or share the link on WhatsApp. Guests scan and upload from any phone.
+                  </p>
+                  <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                    {[
+                      { icon: 'Printer', text: 'Print on table cards or welcome signs' },
+                      { icon: 'Monitor', text: 'Display on venue screen or projector' },
+                      { icon: 'MessageCircle', text: 'Share link on WhatsApp before the event' },
+                      { icon: 'Download', text: 'Download high-res PNG — print ready' },
+                    ].map(({ icon, text }) => (
+                      <div key={text} className="flex items-start gap-2 text-sm text-warm-600">
+                        <div className="w-7 h-7 rounded-lg bg-primary-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Icon name={icon} size={14} className="text-primary-600"/>
+                        </div>
+                        {text}
+                      </div>
+                    ))}
+                  </div>
+                  <Link to="/live-memory-wall" className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white transition-all hover:scale-105" style={{background:'linear-gradient(135deg,#EC4899,#DB2777)'}}>
+                    <Icon name="QrCode" size={16}/> See how the Live Memory Wall works
+                  </Link>
+                </div>
+                <div className="sm:w-48 flex-shrink-0 text-center">
+                  <div className="bg-white rounded-2xl p-5 border border-pink-100 shadow-sm mx-auto max-w-[180px]">
+                    <div className="w-20 h-20 mx-auto mb-3 rounded-xl bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center">
+                      <Icon name="QrCode" size={40} className="text-primary-500"/>
+                    </div>
+                    <p className="text-xs font-bold text-warm-700 mb-1">Auto-generated QR</p>
+                    <p className="text-xs text-warm-400 leading-snug">Ready to print or share the moment your card is created</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
       <Footer />
     </div>
   );

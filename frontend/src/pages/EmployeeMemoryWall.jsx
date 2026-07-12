@@ -24,6 +24,32 @@ import Footer from '../components/Footer'; export default function EmployeeMemor
 </div> ))} </div>
 </div>
 </section>
+<section className="py-12 px-4 bg-white">
+<div className="max-w-3xl mx-auto">
+<div className="rounded-2xl border-2 border-purple-100 p-6 sm:p-8 bg-gradient-to-br from-purple-50 to-white">
+<div className="flex flex-col sm:flex-row items-start gap-5">
+<div className="w-14 h-14 rounded-2xl bg-primary-100 flex items-center justify-center flex-shrink-0">
+<Icon name="QrCode" size={28} className="text-primary-600"/>
+</div>
+<div>
+<h3 className="font-extrabold text-warm-900 text-lg mb-2">QR code generated automatically for every team event</h3>
+<p className="text-warm-500 text-sm leading-relaxed mb-4">
+Enable the Live Memory Wall for team birthdays, farewells and corporate occasions — Thankeeu generates a unique QR code instantly. Display it on the office screen or print on table cards. Employees scan from any phone — no app, no account, no friction.
+</p>
+<div className="flex flex-wrap gap-2">
+{['Download PNG', 'Print ready', 'Display on screen', 'Share on Slack or WhatsApp'].map(label => (
+<span key={label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary-200 text-xs font-semibold text-warm-700 bg-white">
+<Icon name="Check" size={12} className="text-primary-500" strokeWidth={3}/>
+{label}
+</span>
+))}
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
 <Footer />
 </> );
 }

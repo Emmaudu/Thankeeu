@@ -217,54 +217,45 @@ const SEGMENTS = [
 
 // ── Settings Tab ─────────────────────────────────────────────────────────────
 const SettingsTab = () => {
-  const [currentUrl,  setCurrentUrl]  = React.useState(null);
-  const [loading,     setLoading]     = React.useState(true);
-  const [uploading,   setUploading]   = React.useState(false);
-  const [removing,    setRemoving]    = React.useState(false);
-  const [msg,         setMsg]         = React.useState(null);
-  const [dragOver,    setDragOver]    = React.useState(false);
+  const [currentUrl, setCurrentUrl] = React.useState(null);
+  const [loading,    setLoading]    = React.useState(true);
+  const [uploading,  setUploading]  = React.useState(false);
+  const [removing,   setRemoving]   = React.useState(false);
+  const [msg,        setMsg]        = React.useState(null);
+  const [dragOver,   setDragOver]   = React.useState(false);
   const fileInputRef = React.useRef(null);
 
-  const API = (window.location.hostname === 'localhost')
-    ? 'http://localhost:5000/api'
-    : 'https://api.thankeeu.com/api';
-
+  // Use the same adminAPI that the rest of the admin panel uses —
+  // it already has the correct base URL and attaches the auth token automatically.
   React.useEffect(() => {
-    const token = localStorage.getItem('admin_token');
-    fetch(`${API}/admin/settings`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.json())
-      .then(d => { setCurrentUrl(d.settings?.movie_bg_music_url || null); })
-      .catch(() => setMsg({ type:'err', text:'Failed to load settings' }))
+    adminAPI.getSettings()
+      .then(r => setCurrentUrl(r.data?.settings?.movie_bg_music_url || null))
+      .catch(e => setMsg({ type: 'err', text: e.response?.data?.error || e.message || 'Failed to load settings' }))
       .finally(() => setLoading(false));
   }, []);
 
   const handleUpload = async (file) => {
     if (!file) return;
-    if (!file.type.startsWith('audio/') && !['application/octet-stream'].includes(file.type)) {
-      setMsg({ type:'err', text: `Invalid file type. Upload an MP3, WAV, M4A or OGG file.` });
+    const validTypes = ['audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/m4a',
+                        'audio/mp4','audio/aac','audio/ogg','audio/x-m4a','audio/flac'];
+    if (!file.type.startsWith('audio/') && !validTypes.includes(file.type)) {
+      setMsg({ type: 'err', text: 'Invalid file type. Upload an MP3, WAV, M4A or OGG file.' });
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setMsg({ type:'err', text: 'File too large. Maximum 20 MB.' });
+      setMsg({ type: 'err', text: 'File too large. Maximum 20 MB.' });
       return;
     }
     setUploading(true);
     setMsg(null);
     try {
-      const token = localStorage.getItem('admin_token');
       const form = new FormData();
       form.append('music', file);
-      const res = await fetch(`${API}/admin/music-upload`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Upload failed');
-      setCurrentUrl(data.url);
-      setMsg({ type:'ok', text: `Uploaded successfully. All new Memory Movies will use this track.` });
+      const r = await adminAPI.uploadMusic(form);
+      setCurrentUrl(r.data.url);
+      setMsg({ type: 'ok', text: `Uploaded: ${file.name}. All new Memory Movies will use this track.` });
     } catch (e) {
-      setMsg({ type:'err', text: e.message });
+      setMsg({ type: 'err', text: e.response?.data?.error || e.message || 'Upload failed' });
     } finally {
       setUploading(false);
     }
@@ -275,14 +266,11 @@ const SettingsTab = () => {
     setRemoving(true);
     setMsg(null);
     try {
-      const token = localStorage.getItem('admin_token');
-      const res = await fetch(`${API}/admin/music`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Remove failed');
+      await adminAPI.removeMusic();
       setCurrentUrl(null);
-      setMsg({ type:'ok', text: 'Track removed. Movies will use generated ambient music.' });
+      setMsg({ type: 'ok', text: 'Track removed. Movies will use generated ambient music.' });
     } catch (e) {
-      setMsg({ type:'err', text: e.message });
+      setMsg({ type: 'err', text: e.response?.data?.error || e.message || 'Remove failed' });
     } finally {
       setRemoving(false);
     }
@@ -299,45 +287,58 @@ const SettingsTab = () => {
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 16px' }}>
       <h2 style={{ fontWeight: 800, fontSize: 22, color: '#1A1035', marginBottom: 6 }}>Platform Settings</h2>
       <p style={{ color: '#7A6CA8', fontSize: 14, marginBottom: 32 }}>Configure global settings for Thankeeu.</p>
+
       <div style={{ background: '#fff', border: '2px solid #EDE9FE', borderRadius: 20, overflow: 'hidden' }}>
+        {/* Header */}
         <div style={{ padding: '20px 24px', borderBottom: '1.5px solid #EDE9FE', background: '#F9F5FF', display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg,#7C3AED,#EC4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <span style={{ fontSize: 22 }}>🎵</span>
           </div>
           <div>
             <p style={{ fontWeight: 800, fontSize: 16, color: '#1A1035', margin: 0 }}>Memory Movie Background Music</p>
-            <p style={{ fontSize: 13, color: '#7A6CA8', margin: '3px 0 0' }}>Upload an MP3, WAV, M4A or OGG track. Every Memory Movie generated will use this song.</p>
+            <p style={{ fontSize: 13, color: '#7A6CA8', margin: '3px 0 0' }}>Upload an MP3, WAV, M4A or OGG track (max 20 MB). Every Memory Movie generated will use this song.</p>
           </div>
         </div>
+
         <div style={{ padding: 24 }}>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 32, color: '#A898CC', fontSize: 14 }}>Loading settings...</div>
+            <div style={{ textAlign: 'center', padding: 32, color: '#A898CC', fontSize: 14 }}>Loading settings…</div>
           ) : (
             <>
-              <div style={{ background: currentUrl ? '#F0FDF4' : '#F5F0FF', border: `2px solid ${currentUrl ? '#86EFAC' : '#DDD6FE'}`, borderRadius: 14, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              {/* Current track status */}
+              <div style={{
+                background: currentUrl ? '#F0FDF4' : '#F5F0FF',
+                border: `2px solid ${currentUrl ? '#86EFAC' : '#DDD6FE'}`,
+                borderRadius: 14, padding: '14px 18px', marginBottom: 20,
+                display: 'flex', alignItems: 'flex-start', gap: 12,
+              }}>
                 <span style={{ fontSize: 22, flexShrink: 0 }}>{currentUrl ? '🎶' : '🔕'}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontWeight: 700, fontSize: 14, color: currentUrl ? '#166534' : '#4B3F72', margin: '0 0 4px' }}>
                     {currentUrl ? 'Custom track active' : 'Using generated ambient music'}
                   </p>
-                  {currentUrl ? (
-                    <p style={{ fontSize: 11, color: '#5A7B6A', wordBreak: 'break-all', margin: 0, lineHeight: 1.5 }}>{currentUrl}</p>
-                  ) : (
-                    <p style={{ fontSize: 12, color: '#7A6CA8', margin: 0 }}>No custom track uploaded. Movies use layered ambient tones generated by ffmpeg.</p>
-                  )}
+                  {currentUrl
+                    ? <p style={{ fontSize: 11, color: '#5A7B6A', wordBreak: 'break-all', margin: 0, lineHeight: 1.5 }}>{currentUrl}</p>
+                    : <p style={{ fontSize: 12, color: '#7A6CA8', margin: 0 }}>No custom track uploaded. Movies use layered ambient tones generated by ffmpeg.</p>
+                  }
                 </div>
                 {currentUrl && (
-                  <button onClick={handleRemove} disabled={removing}
-                    style={{ flexShrink: 0, background: 'none', border: '1.5px solid #FCA5A5', borderRadius: 8, color: '#DC2626', fontSize: 12, fontWeight: 700, padding: '5px 12px', cursor: 'pointer' }}>
-                    {removing ? 'Removing...' : 'Remove'}
+                  <button onClick={handleRemove} disabled={removing} style={{
+                    flexShrink: 0, background: 'none', border: '1.5px solid #FCA5A5',
+                    borderRadius: 8, color: '#DC2626', fontSize: 12, fontWeight: 700,
+                    padding: '5px 12px', cursor: removing ? 'not-allowed' : 'pointer', opacity: removing ? 0.6 : 1,
+                  }}>
+                    {removing ? 'Removing…' : 'Remove'}
                   </button>
                 )}
               </div>
+
+              {/* Drop zone */}
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={onDrop}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => !uploading && fileInputRef.current?.click()}
                 style={{
                   border: `2px dashed ${dragOver ? '#7C3AED' : '#C4B5FD'}`,
                   borderRadius: 16, padding: '36px 24px', textAlign: 'center',
@@ -347,10 +348,10 @@ const SettingsTab = () => {
                 }}>
                 <div style={{ fontSize: 36, marginBottom: 10 }}>{uploading ? '⏳' : '🎵'}</div>
                 <p style={{ fontWeight: 700, fontSize: 15, color: '#4B3F72', margin: '0 0 6px' }}>
-                  {uploading ? 'Uploading to Cloudinary...' : 'Drop your music file here'}
+                  {uploading ? 'Uploading to Cloudinary…' : 'Drop your music file here'}
                 </p>
                 <p style={{ fontSize: 13, color: '#A898CC', margin: 0 }}>
-                  {uploading ? 'Please wait' : 'or click to browse — MP3, WAV, M4A, OGG up to 20 MB'}
+                  {uploading ? 'Please wait…' : 'or click to browse — MP3, WAV, M4A, OGG up to 20 MB'}
                 </p>
                 <input
                   ref={fileInputRef}
@@ -360,6 +361,8 @@ const SettingsTab = () => {
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }}
                 />
               </div>
+
+              {/* Feedback */}
               {msg && (
                 <div style={{
                   marginTop: 16, padding: '12px 16px', borderRadius: 12,
@@ -368,11 +371,12 @@ const SettingsTab = () => {
                   color: msg.type === 'ok' ? '#166534' : '#DC2626',
                   fontSize: 13, fontWeight: 600,
                 }}>
-                  {msg.type === 'ok' ? 'OK ' : 'Error '}{msg.text}
+                  {msg.type === 'ok' ? '✓ ' : '✕ '}{msg.text}
                 </div>
               )}
+
               <p style={{ marginTop: 16, fontSize: 12, color: '#C4B5FD', lineHeight: 1.6 }}>
-                The file is stored on Cloudinary. Every time a Memory Movie is generated, the renderer fetches this URL from the database. Uploading a new file replaces the previous one.
+                The file is stored on Cloudinary. Every Memory Movie generated fetches this URL from the database at render time. Uploading a new file replaces the previous one.
               </p>
             </>
           )}

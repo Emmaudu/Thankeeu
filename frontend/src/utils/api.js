@@ -230,6 +230,10 @@ export const adminAPI = {
   deleteCard:   (cardId)                => api.delete(`/admin/cards/${cardId}`),
   broadcastPreview: (segment)           => api.get(`/admin/broadcast/preview?segment=${segment}`),
   broadcast:    (data)                  => api.post('/admin/broadcast', data),
+  // Settings
+  getSettings:  ()                      => api.get('/admin/settings'),
+  uploadMusic:  (formData)              => api.post('/admin/music-upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  removeMusic:  ()                      => api.delete('/admin/music'),
 };
 
 export const adminCompanyAPI = {

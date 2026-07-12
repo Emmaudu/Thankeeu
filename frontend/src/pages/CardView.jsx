@@ -1547,6 +1547,7 @@ const CardView = () => {
                   canUpload={true}
                   defaultName={user?.full_name || ''}
                   defaultEmail={user?.email || ''}
+                  wallUrl={`${window.location.origin}/sign/${card.slug}?tab=wall`}
                 />
               ) : (
                 <div className="text-center py-16 px-6 rounded-3xl border-2 border-dashed border-pink-200" style={{ background:'#FFF5FB' }}>

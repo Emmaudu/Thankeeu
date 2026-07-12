@@ -37,7 +37,34 @@ import Footer from '../components/Footer'; const FAQS = [ { q: 'How do friends a
 </div>
 </div> ))} </div>
 </div>
-</section> {/* ── Why it beats the alternatives ── */} <section className="py-16 px-4 bg-white">
+</section>
+
+      {/* ── QR code callout ── */}
+      <section className="py-10 px-4 bg-purple-50">
+        <div className="max-w-3xl mx-auto">
+          <div className="rounded-2xl border-2 border-pink-100 p-6 sm:p-8 bg-white flex flex-col sm:flex-row items-start gap-6">
+            <div className="w-16 h-16 rounded-2xl bg-pink-100 flex items-center justify-center flex-shrink-0">
+              <Icon name="QrCode" size={32} className="text-pink-600"/>
+            </div>
+            <div>
+              <h3 className="font-extrabold text-warm-900 text-lg mb-2">Your birthday QR code is generated automatically</h3>
+              <p className="text-warm-500 text-sm leading-relaxed mb-4">
+                Enable the Live Memory Wall when creating the birthday card and Thankeeu instantly generates a unique, high-resolution QR code for the party. Download as PNG, print at home on table cards, or display on any screen at the venue — guests scan and start uploading within seconds.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {['Download PNG', 'Print table cards', 'Display on TV screen', 'Share via WhatsApp', 'Send in invite'].map(label => (
+                  <span key={label} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-pink-200 text-xs font-semibold text-warm-700 bg-pink-50">
+                    <Icon name="Check" size={12} className="text-pink-500" strokeWidth={3}/>
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Why it beats the alternatives ── */} <section className="py-16 px-4 bg-white">
 <div className="max-w-4xl mx-auto">
 <h2 className="text-2xl font-display font-bold text-warm-900 text-center mb-10">Why guests actually use Thankeeu (unlike Google Drive or group chats)</h2>
 <div className="grid sm:grid-cols-2 gap-6"> {[ { icon: 'Smartphone', title: 'No app. No account. No friction.', body: 'The reason photos die in people\'s camera rolls: nobody wants to download another app. Thankeeu works directly in any phone browser — one tap from the link and they\'re uploading. That\'s why participation is genuinely high.' }, { icon: 'Sparkles', title: 'Works on every phone and device', body: 'iPhone, Android, or any smartphone with a browser — Thankeeu works for every guest, every generation. One link, no compatibility issues.' }, { icon: 'Sparkles', title: 'Friends and family anywhere can contribute', body: 'Someone on the other side of the country can upload a throwback photo or send a video message. The Memory Wall collects every perspective, no matter the distance.' }, { icon: 'Camera', title: 'Photos + gift in the same link', body: 'Instead of a separate payment link for the birthday gift, Thankeeu collects photos and gift contributions together. One link does everything.' }, ].map(({ emoji, title, body }) => ( <div key={title} className="p-6 rounded-2xl bg-purple-50 border border-purple-100">

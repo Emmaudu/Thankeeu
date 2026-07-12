@@ -6,6 +6,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Icon from './ui/Icon';
+import QRButton from './QRButton';
 
 // Match the rest of the app: relative '/api' base so Vercel's rewrite proxies
 // to the Railway backend. A hardcoded domain would bypass the proxy.
@@ -159,7 +160,7 @@ function UploadForm({ slug, onPosted, defaultName = '', defaultEmail = '' }) {
  * @param {string}  [defaultName] — pre-fill from signed-in user
  * @param {string}  [defaultEmail]
  */
-export default function LiveMemoryWall({ slug, canUpload = true, defaultName = '', defaultEmail = '' }) {
+export default function LiveMemoryWall({ slug, canUpload = true, defaultName = '', defaultEmail = '', wallUrl = '' }) {
   const [posts,   setPosts]   = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -187,8 +188,33 @@ export default function LiveMemoryWall({ slug, canUpload = true, defaultName = '
     setPosts(prev => [newPost, ...prev]);
   };
 
+  const shareUrl = wallUrl || (typeof window !== 'undefined' ? `${window.location.origin}/sign/${slug}?tab=wall` : '');
+
   return (
     <div>
+      {/* QR code banner — share with guests at the venue */}
+      {canUpload && shareUrl && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 rounded-2xl border-2 border-purple-100 bg-purple-50 px-4 py-3 mb-5">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center flex-shrink-0">
+              <Icon name="QrCode" size={18} className="text-primary-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-bold text-warm-900 text-sm">Share with guests at the venue</p>
+              <p className="text-xs text-warm-500 leading-snug">Guests scan the QR code to upload photos — no app, no account needed.</p>
+            </div>
+          </div>
+          <QRButton
+            url={shareUrl}
+            label="Scan to add photos to the Memory Wall"
+            variant="primary"
+            className="flex-shrink-0 text-sm px-4 py-2"
+          >
+            Show QR Code
+          </QRButton>
+        </div>
+      )}
+
       {canUpload && (
         <UploadForm slug={slug} onPosted={handlePosted}
           defaultName={defaultName} defaultEmail={defaultEmail} />

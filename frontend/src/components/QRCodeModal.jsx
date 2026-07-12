@@ -2,19 +2,28 @@
  * QRCodeModal.jsx
  * Always mounted. Visibility controlled by `open` prop — no unmount flicker.
  * QR is generated once on first open and cached.
+ * Body-scroll lock uses a shared counter so multiple instances don't conflict.
  */
 import { useEffect, useState, useCallback, useRef } from 'react';
 import QRCode from 'qrcode';
+
+// Global counter so multiple modals sharing body-scroll lock don't clobber each other
+let _scrollLockCount = 0;
+function lockScroll()   { if (++_scrollLockCount === 1) document.body.style.overflow = 'hidden'; }
+function unlockScroll() { if (--_scrollLockCount <= 0) { _scrollLockCount = 0; document.body.style.overflow = ''; } }
 
 export default function QRCodeModal({ url, label = 'Scan to open', open, onClose }) {
   const [dataUrl,  setDataUrl]  = useState(null);
   const [copied,   setCopied]   = useState(false);
   const [dlDone,   setDlDone]   = useState(false);
+  // Track whether we've ever been opened so we generate QR lazily but only once
   const generated  = useRef(false);
+  // Track previous open state to manage scroll lock correctly
+  const wasOpen    = useRef(false);
 
-  // Generate QR only once — cache it, don't regenerate on every open
+  // Generate QR only once on first open — cache it
   useEffect(() => {
-    if (!url || generated.current) return;
+    if (!url || !open || generated.current) return;
     generated.current = true;
     QRCode.toDataURL(url, {
       width: 512,
@@ -22,16 +31,15 @@ export default function QRCodeModal({ url, label = 'Scan to open', open, onClose
       color: { dark: '#1a0533', light: '#ffffff' },
       errorCorrectionLevel: 'H',
     }).then(setDataUrl).catch(console.error);
-  }, [url]);
+  }, [url, open]);
 
-  // Lock body scroll when open
+  // Body scroll lock — use counter so multiple modals don't conflict
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => { document.body.style.overflow = ''; };
+    if (open && !wasOpen.current)  { lockScroll();   wasOpen.current = true;  }
+    if (!open && wasOpen.current)  { unlockScroll(); wasOpen.current = false; }
+    return () => {
+      if (wasOpen.current) { unlockScroll(); wasOpen.current = false; }
+    };
   }, [open]);
 
   // Close on Escape
@@ -85,20 +93,29 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
     setTimeout(() => { win.focus(); win.print(); }, 400);
   }, [dataUrl, label, url]);
 
-  // Hidden when not open — use visibility+pointer-events so DOM stays mounted (no remount flicker)
+  // Use visibility+pointer-events+display trick:
+  // - When closed: opacity 0, pointer-events none, still in DOM (no remount)
+  // - Added `display` guard via `visibility` to prevent any paint artifacts
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={label}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,
         background: 'rgba(10,0,30,0.8)',
         backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         padding: '16px',
         overflowY: 'auto',
-        // Visibility control without unmounting
+        // Stable visibility control — opacity + visibility together prevents
+        // backdrop-filter flicker that opacity alone can cause in some browsers
         opacity: open ? 1 : 0,
+        visibility: open ? 'visible' : 'hidden',
         pointerEvents: open ? 'auto' : 'none',
-        transition: 'opacity 0.15s ease',
+        transition: 'opacity 0.18s ease, visibility 0.18s ease',
+        willChange: 'opacity',
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}
     >
@@ -113,7 +130,8 @@ small{font-size:10px;color:#999;word-break:break-all;text-align:center;max-width
           maxHeight: 'calc(100vh - 32px)',
           overflowY: 'auto',
           transform: open ? 'scale(1) translateY(0)' : 'scale(0.96) translateY(8px)',
-          transition: 'transform 0.15s ease',
+          transition: 'transform 0.18s ease',
+          willChange: 'transform',
         }}
         onClick={e => e.stopPropagation()}
       >

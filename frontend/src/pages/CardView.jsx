@@ -10,6 +10,7 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
+import QRButton from '../components/QRButton';
 
 
 import toast from 'react-hot-toast';
@@ -200,7 +201,7 @@ function MagicSearch({ messages, query, setQuery, active, setActive, design, fou
                 color:'#fff', fontSize:11, fontWeight:800,
                 animation: resultCount > 0 ? 'sparkle-pop .4s cubic-bezier(.34,1.56,.64,1) forwards, none .4s' : 'none',
               }}>
-                {resultCount > 0 ? `✨ ${resultCount} found` : '0 found'}
+                {resultCount > 0 ? `${resultCount} found` : '0 found'}
               </div>
             )}
 
@@ -304,7 +305,6 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
     const returnTo = `/card/${slug}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     return (
       <div className="text-center py-2 space-y-3">
-        <div className="text-4xl">🔒</div>
         <p className="font-bold text-warm-900 text-base">Log in to claim your gift</p>
         <p className="text-sm text-warm-600 px-2">
           You're viewing this with your private link, but you'll need to sign in to add a bank account and withdraw {formatNGN(net)}.
@@ -325,9 +325,9 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
   }
 
   const COUNTRIES = [
-    { code:'NG', label:'🇳🇬 Nigeria (NGN)', currency:'NGN' },
-    { code:'GB', label:'🇬🇧 United Kingdom (GBP)', currency:'GBP' },
-    { code:'US', label:'🇺🇸 United States (USD)', currency:'USD' },
+    { code:'NG', label:'Nigeria (NGN)', currency:'NGN' },
+    { code:'GB', label:'United Kingdom (GBP)', currency:'GBP' },
+    { code:'US', label:'United States (USD)', currency:'USD' },
   ];
 
   const loadBankAccounts = async () => {
@@ -482,7 +482,7 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
       {!accounts?.length ? (
         <div className="space-y-3">
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
-            <p className="text-xs font-bold text-amber-800 mb-1">⚠️ No bank account saved yet</p>
+            <p className="text-xs font-bold text-amber-800 mb-1">No bank account saved yet</p>
             <p className="text-xs text-amber-700">Add your bank details below — only takes a moment, and you can withdraw right after.</p>
           </div>
           <BankAccountTab compact onSaved={(updated) => setAccounts(updated)} />
@@ -491,7 +491,7 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
         <div className="space-y-3">
           {accounts.map(acc => (
             <div key={acc.id} className="flex items-center gap-3 p-3 rounded-xl bg-green-50 border border-green-200">
-              <span className="text-xl">🏦</span>
+              <span className="inline-flex w-8 h-8 rounded-lg bg-blue-100 items-center justify-center flex-shrink-0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="22" x2="21" y2="22"/><line x1="6" y1="18" x2="6" y2="11"/><line x1="10" y1="18" x2="10" y2="11"/><line x1="14" y1="18" x2="14" y2="11"/><line x1="18" y1="18" x2="18" y2="11"/><polygon points="12 2 2 7 22 7"/></svg></span>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-bold text-warm-900 truncate">{acc.account_name}</p>
                 <p className="text-xs text-warm-500">{acc.bank_name} · ****{acc.account_number?.slice(-4)}</p>
@@ -1311,48 +1311,113 @@ const CardView = () => {
             </div>
           )}
 
-          {/* ── Tab navigation (Messages / Memory Wall / Movie) ── */}
+          {/* QR Code buttons — always accessible for the card creator */}
+          {card.isCreator && (
+            <div className="flex flex-wrap gap-2 justify-center mt-3">
+              {card?.card_experience !== 'wall_only' && (
+                <QRButton
+                  url={`${window.location.origin}/sign/${slug}`}
+                  label="Scan to sign the group card"
+                  variant="ghost"
+                  className="text-xs">
+                  QR — Group Card
+                </QRButton>
+              )}
+              {['card_and_wall','wall_only'].includes(card?.card_experience) && (
+                <QRButton
+                  url={`${window.location.origin}/sign/${slug}?tab=wall`}
+                  label="Scan to add photos to the Live Photo Wall"
+                  variant="ghost"
+                  className="text-xs">
+                  QR — Photo Wall
+                </QRButton>
+              )}
+            </div>
+          )}
+
+          {/* ── Tab navigation (Messages / Memory Wall / Movie) — always visible ── */}
           {(() => {
             const hasWall  = ['card_and_wall','wall_only'].includes(card?.card_experience);
             const movieSt  = card?.movie_status || 'none';
             const canGen   = Boolean(card?.isCreator || card?.isRecipient);
-            const showMovieTab = movieSt !== 'none' || canGen;
-            // Only render the tab bar if there's more than the default Messages view.
-            if (!hasWall && !showMovieTab) return null;
+            const showMessages = card?.card_experience !== 'wall_only';
+            // Theme-aware inactive tab styling: on light-background themes we must NOT use
+            // white text/borders (invisible). Use the theme ink colour instead.
+            const activeCls   = 'shadow-lg scale-105';
+            const activeStyle = { background: '#ffffff', borderColor: '#ffffff', color: '#1a1035' };
+            const inactiveStyle = design.dark
+              ? { background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.35)', color: 'rgba(255,255,255,0.85)' }
+              : { background: 'rgba(255,255,255,0.55)', borderColor: `${design.accent}55`, color: design.ink };
+            const badgeActive = { background: `${design.accent}1a`, color: design.accent };
+            const badgeInactive = design.dark
+              ? { background: 'rgba(255,255,255,0.2)', color: '#ffffff' }
+              : { background: `${design.accent}22`, color: design.accent };
+            const tabBase = 'flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold border-2 transition-all hover:opacity-90';
             return (
-            <div className="flex justify-center gap-1 mt-6 mb-2 flex-wrap">
-              {card?.card_experience !== 'wall_only' && (
+            <div className="flex justify-center gap-2 mt-6 mb-4 flex-wrap px-4">
+              {showMessages && (
                 <button onClick={() => setCardViewTab('messages')}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${cardViewTab === 'messages' ? 'bg-white border-white/80 text-warm-900 shadow-md' : 'border-white/30 text-white/70 hover:border-white/60'}`}>
-                  ❤️ Messages
+                  className={`${tabBase} ${cardViewTab === 'messages' ? activeCls : ''}`}
+                  style={cardViewTab === 'messages' ? activeStyle : inactiveStyle}>
+                  <span>Group Card</span>
+                  {messages?.length > 0 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-md font-extrabold"
+                      style={cardViewTab === 'messages' ? badgeActive : badgeInactive}>
+                      {messages.length}
+                    </span>
+                  )}
                 </button>
               )}
-              {hasWall && (
-                <button onClick={() => setCardViewTab('wall')}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${cardViewTab === 'wall' ? 'bg-white border-white/80 text-warm-900 shadow-md' : 'border-white/30 text-white/70 hover:border-white/60'}`}>
-                  📸 Memory Wall
-                </button>
-              )}
-              {showMovieTab && (
-                <button onClick={() => setCardViewTab('movie')}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold border-2 transition-all ${cardViewTab === 'movie' ? 'bg-white border-white/80 text-warm-900 shadow-md' : 'border-white/30 text-white/70 hover:border-white/60'}`}>
-                  🎥 Movie{movieSt === 'rendering' || movieSt === 'queued' ? ' •••' : ''}
-                </button>
-              )}
+              <button onClick={() => setCardViewTab('wall')}
+                className={`${tabBase} ${cardViewTab === 'wall' ? activeCls : ''}`}
+                style={cardViewTab === 'wall' ? activeStyle : inactiveStyle}>
+                <span>Photo Wall</span>
+                {hasWall && (
+                  <span className="text-xs px-1.5 py-0.5 rounded-md font-extrabold"
+                    style={cardViewTab === 'wall' ? badgeActive : badgeInactive}>Live</span>
+                )}
+              </button>
+              <button onClick={() => setCardViewTab('movie')}
+                className={`${tabBase} ${cardViewTab === 'movie' ? activeCls : ''}`}
+                style={cardViewTab === 'movie' ? activeStyle : inactiveStyle}>
+                <span>Movie</span>
+                {(movieSt === 'rendering' || movieSt === 'queued') && <span className="text-xs opacity-60 animate-pulse">•••</span>}
+                {(movieSt === 'completed' || movieSt === 'ready') && (
+                  <span className="text-xs px-1.5 py-0.5 rounded-md font-extrabold"
+                    style={cardViewTab === 'movie' ? badgeActive : badgeInactive}>Ready</span>
+                )}
+              </button>
             </div>
             );
           })()}
 
           {/* Signer avatar strip — up to 10 initials */}
           {/* ── Memory Wall tab ── */}
-          {cardViewTab === 'wall' && ['card_and_wall','wall_only'].includes(card?.card_experience) && (
+          {cardViewTab === 'wall' && (
             <div className="max-w-4xl mx-auto px-4 py-8 w-full">
-              <LiveMemoryWall
-                slug={card.slug}
-                canUpload={true}
-                defaultName={user?.full_name || ''}
-                defaultEmail={user?.email || ''}
-              />
+              {['card_and_wall','wall_only'].includes(card?.card_experience) ? (
+                <LiveMemoryWall
+                  slug={card.slug}
+                  canUpload={true}
+                  defaultName={user?.full_name || ''}
+                  defaultEmail={user?.email || ''}
+                />
+              ) : (
+                <div className="text-center py-16 px-6 rounded-3xl border-2 border-dashed border-pink-200" style={{ background:'#FFF5FB' }}>
+                  
+                  <h3 className="font-extrabold text-warm-900 text-xl mb-2">Live Photo Wall™</h3>
+                  <p className="text-warm-500 text-sm max-w-sm mx-auto mb-6 leading-relaxed">
+                    Guests scan a QR code and upload photos in real time — no app needed. Display the wall live on a venue screen.
+                    This card was created as a Group Card only.
+                  </p>
+                  <p className="text-warm-400 text-xs mb-6">The card creator can enable the Photo Wall when creating a new card by choosing "Group Card + Live Photo Wall".</p>
+                  <a href="/card/new"
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm text-white transition-all hover:scale-105"
+                    style={{ background:'linear-gradient(135deg,#EC4899,#DB2777)' }}>
+                    Create a card with Photo Wall →
+                  </a>
+                </div>
+              )}
             </div>
           )}
 
@@ -1368,7 +1433,7 @@ const CardView = () => {
           )}
 
           {messages.length > 0 && cardViewTab === 'messages' && (
-            <div className="flex justify-center mt-7" style={{ gap:'-8px' }}>
+            <div className="flex justify-center mt-7">
               <div style={{ display:'flex', marginLeft:0 }}>
                 {messages.slice(0, 10).map((msg, i) => (
                   <div key={i} style={{

@@ -10,12 +10,12 @@ import { format } from 'date-fns';
 
 // Pack of N options — plan_id, credits, priceNGN, per-card price, savings label
 const PACK_OPTIONS = [
-  { id: 'pack5',   credits: 5,   priceNGN: 20000,  perCard: 4000, savings: 'Save ₦5,000 vs 5 singles' },
-  { id: 'pack10',  credits: 10,  priceNGN: 40000,  perCard: 4000, savings: 'Save ₦10,000 vs 10 singles' },
-  { id: 'pack25',  credits: 25,  priceNGN: 100000, perCard: 4000, savings: 'Save ₦25,000 vs 25 singles' },
-  { id: 'pack50',  credits: 50,  priceNGN: 200000, perCard: 4000, savings: 'Save ₦50,000 vs 50 singles' },
-  { id: 'pack70',  credits: 70,  priceNGN: 280000, perCard: 4000, savings: 'Save ₦70,000 vs 70 singles' },
-  { id: 'pack100', credits: 100, priceNGN: 400000, perCard: 4000, savings: 'Save ₦100,000 vs 100 singles' },
+  { id: 'pack5',   credits: 5,   priceNGN: 20000,  perCardNGN: 4000, savingsNGN: 5000 },
+  { id: 'pack10',  credits: 10,  priceNGN: 40000,  perCardNGN: 4000, savingsNGN: 10000 },
+  { id: 'pack25',  credits: 25,  priceNGN: 100000, perCardNGN: 4000, savingsNGN: 25000 },
+  { id: 'pack50',  credits: 50,  priceNGN: 200000, perCardNGN: 4000, savingsNGN: 50000 },
+  { id: 'pack70',  credits: 70,  priceNGN: 280000, perCardNGN: 4000, savingsNGN: 70000 },
+  { id: 'pack100', credits: 100, priceNGN: 400000, perCardNGN: 4000, savingsNGN: 100000 },
 ];
 
 const PLANS = [
@@ -44,7 +44,16 @@ export default function DashboardCredits() {
   const [history,   setHistory]   = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [buying,    setBuying]    = useState(null);
-  const [currency,  setCurrency]  = useState('NGN');
+  const [currency,  setCurrency]  = useState(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+      if (tz.startsWith('Africa/Lagos')) return 'NGN';
+      if (tz.startsWith('Africa/Accra')) return 'GHS';
+      if (tz.startsWith('Europe/London')) return 'GBP';
+      if (tz.startsWith('Europe/')) return 'EUR';
+    } catch (_) {}
+    return 'USD';
+  });
   const [selectedPack, setSelectedPack] = useState(PACK_OPTIONS[0]); // default: pack of 5
 
   const fmt = (ngn) => formatCurrency(ngn, currency);
@@ -179,20 +188,24 @@ export default function DashboardCredits() {
             <h3 className="text-lg font-bold text-warm-900 mb-0.5">Credit Pack</h3>
             <p className="text-xs text-warm-500 mb-3">Choose how many cards you need</p>
 
-            {/* Pack size dropdown */}
+            {/* Pack size selector — custom buttons so currency change re-renders labels */}
             <div className="mb-3">
               <label className="block text-xs font-bold text-warm-700 mb-1.5">Pack size</label>
-              <select
-                value={selectedPack.id}
-                onChange={e => setSelectedPack(PACK_OPTIONS.find(p => p.id === e.target.value))}
-                className="w-full rounded-xl border-2 border-green-200 bg-white text-warm-900 text-sm font-semibold px-3 py-2.5 focus:outline-none focus:border-green-400 cursor-pointer"
-              >
+              <div className="flex flex-col gap-1">
                 {PACK_OPTIONS.map(p => (
-                  <option key={p.id} value={p.id}>
-                    Pack of {p.credits} — ₦4,000/card (₦{p.priceNGN.toLocaleString('en-NG')} total)
-                  </option>
+                  <button key={p.id} type="button"
+                    onClick={() => setSelectedPack(p)}
+                    className={`w-full text-left px-3 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
+                      selectedPack.id === p.id
+                        ? 'border-green-500 bg-green-50 text-green-800'
+                        : 'border-green-100 bg-white text-warm-700 hover:border-green-300'
+                    }`}>
+                    <span className="font-bold">{p.credits} cards</span>
+                    <span className="text-warm-400 font-normal"> — {fmt(p.perCardNGN)}/card</span>
+                    <span className="float-right font-bold">{fmt(p.priceNGN)}</span>
+                  </button>
                 ))}
-              </select>
+              </div>
             </div>
 
             {/* Dynamic price display */}
@@ -204,10 +217,10 @@ export default function DashboardCredits() {
               = {selectedPack.credits} card credits
             </p>
             <p className="text-green-700 text-xs font-semibold mb-0.5">
-              {fmt(4000)} per card · same price regardless of pack size
+              {fmt(selectedPack.perCardNGN)} per card · same price regardless of pack size
             </p>
-            {selectedPack.savings && (
-              <p className="text-green-600 text-xs font-bold mb-1">🎉 {selectedPack.savings}</p>
+            {selectedPack.savingsNGN > 0 && (
+              <p className="text-green-600 text-xs font-bold mb-1">Save {fmt(selectedPack.savingsNGN)} vs {selectedPack.credits} singles</p>
             )}
             {currency !== 'NGN' && (
               <p className="text-xs text-warm-400 mb-2">≈ ₦{selectedPack.priceNGN.toLocaleString('en-NG')}</p>
@@ -265,7 +278,7 @@ export default function DashboardCredits() {
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold" style={{color:'#1A1730'}}>₦{h.amount_paid?.toLocaleString('en-NG')}</p>
+                    <p className="text-sm font-bold" style={{color:'#1A1730'}}>{formatCurrency(h.amount_paid || 0, 'NGN')}</p>
                     <p className={`text-xs font-semibold capitalize ${
                       h.status === 'paid' ? 'text-green-600' : h.status === 'pending' ? 'text-amber-600' : 'text-red-500'
                     }`}>{h.status}</p>

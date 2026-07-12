@@ -469,7 +469,7 @@ const SignCard = () => {
   if (!card) return (
     <div className="min-h-screen grid place-items-center px-4">
       <div className="text-center max-w-sm">
-        <div className="text-6xl mb-4">💌</div>
+        
         <h2 className="text-2xl font-bold text-warm-900 mb-3">Card not found</h2>
         <p className="text-warm-500">This card may have expired or the link is incorrect.</p>
       </div>
@@ -495,7 +495,7 @@ const SignCard = () => {
         <div className={`card-art ${cardArtClass(design)} celebration-shell glass-panel max-w-lg w-full rounded-[2.25rem] p-8 text-center`}>
           <div className="w-20 h-20 bg-emerald-100 rounded-full grid place-items-center text-4xl mx-auto mb-5 animate-pop">✓</div>
           <p className="text-xs font-extrabold tracking-[.2em] uppercase mb-2" style={{ color: design.accent }}>Message delivered!</p>
-          <h2 className="text-3xl font-bold text-warm-900 mb-3">You are on {card.recipient_name}'s card! 🎉</h2>
+          <h2 className="text-3xl font-bold text-warm-900 mb-3">You are on {card.recipient_name}'s card!</h2>
           <p className="text-warm-600 mb-7">Your heartfelt note is now part of their special celebration.</p>
 
           {/* Only show "create account" promo if they signed as guest. */}
@@ -676,32 +676,68 @@ const SignCard = () => {
         {/* Form — two-column on large screens */}
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-12 grid lg:grid-cols-[1fr_.82fr] gap-7 items-start">
 
-          {/* ── Tabs for card_and_wall experience ── */}
-          {['card_and_wall','wall_only'].includes(card?.card_experience) && (
-            <div className="lg:col-span-2 flex border-b-2 border-purple-100 mb-2 gap-1">
+          {/* ── Tabs — always visible, clearly labelled ── */}
+          <div className="lg:col-span-2 mb-4">
+            <div className="rounded-2xl border-2 border-purple-100 p-1 flex gap-1 bg-purple-50/50">
               {card?.card_experience !== 'wall_only' && (
                 <button onClick={() => setWallTab('messages')}
-                  className={`flex items-center gap-2 px-5 py-3 font-bold text-sm border-b-2 -mb-0.5 transition-colors ${wallTab === 'messages' ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-400 hover:text-warm-700'}`}>
-                  ❤️ Messages
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+                    wallTab === 'messages'
+                      ? 'bg-white border-2 border-primary-200 text-primary-700 shadow-sm'
+                      : 'text-warm-500 hover:text-warm-800 border-2 border-transparent'
+                  }`}>
+                  <span>❤️</span>
+                  <span>Sign Group Card</span>
                 </button>
               )}
               <button onClick={() => setWallTab('wall')}
-                className={`flex items-center gap-2 px-5 py-3 font-bold text-sm border-b-2 -mb-0.5 transition-colors ${wallTab === 'wall' ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-400 hover:text-warm-700'}`}>
-                📸 Memory Wall
-                <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-600 font-bold">Live</span>
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
+                  wallTab === 'wall'
+                    ? 'bg-white border-2 border-pink-200 text-pink-700 shadow-sm'
+                    : 'text-warm-500 hover:text-warm-800 border-2 border-transparent'
+                }`}>
+                <span>📸</span>
+                <span>Upload Photos</span>
+                {['card_and_wall','wall_only'].includes(card?.card_experience) && (
+                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-pink-100 text-pink-600 font-bold hidden sm:inline">Live</span>
+                )}
               </button>
             </div>
-          )}
+            {/* Explain what each tab does */}
+            <div className="flex gap-1 mt-2 px-1">
+              {card?.card_experience !== 'wall_only' && (
+                <p className="flex-1 text-center text-xs text-warm-400">
+                  Write your message · add photos, GIFs, voice note & gift
+                </p>
+              )}
+              <p className="flex-1 text-center text-xs text-warm-400">
+                {['card_and_wall','wall_only'].includes(card?.card_experience)
+                  ? 'Upload event photos — they appear on the live wall in real time'
+                  : 'Live photo wall not enabled for this card'}
+              </p>
+            </div>
+          </div>
 
           {/* Memory Wall tab */}
-          {wallTab === 'wall' && ['card_and_wall','wall_only'].includes(card?.card_experience) && (
+          {wallTab === 'wall' && (
             <div className="lg:col-span-2">
-              <LiveMemoryWall
-                slug={slug}
-                canUpload={true}
-                defaultName={user?.full_name || member?.first_name || ''}
-                defaultEmail={user?.email || member?.email || ''}
-              />
+              {['card_and_wall','wall_only'].includes(card?.card_experience) ? (
+                <LiveMemoryWall
+                  slug={slug}
+                  canUpload={true}
+                  defaultName={user?.full_name || member?.first_name || ''}
+                  defaultEmail={user?.email || member?.email || ''}
+                />
+              ) : (
+                <div className="text-center py-14 px-6 rounded-3xl border-2 border-dashed border-pink-200" style={{ background:'#FFF5FB' }}>
+                  <div className="text-5xl mb-4">📸</div>
+                  <h3 className="font-extrabold text-warm-900 text-lg mb-2">Live Photo Wall™ not enabled for this card</h3>
+                  <p className="text-warm-500 text-sm max-w-sm mx-auto leading-relaxed">
+                    This card was created as a Group Card only. To collect guest photos in real time, the card creator needs to enable the Live Photo Wall when setting up the card.
+                  </p>
+                  <p className="text-warm-400 text-xs mt-4">Switch to the <strong>Sign Group Card</strong> tab to add your message.</p>
+                </div>
+              )}
             </div>
           )}
 

@@ -98,7 +98,10 @@ export default function MemberCardsPage() {
                 )}
               </div>
               <div className="border-t flex" style={{borderColor:'#EDE9FF'}}>
-                <Link to={`/card/${card.slug}`} className="flex-1 py-2.5 text-center text-sm font-bold hover:bg-purple-50" style={{color:'#5B4BDF'}}>👁 View</Link>
+                <Link to={`/card/${card.slug}`} className="flex-1 py-2.5 text-center text-sm font-bold hover:bg-purple-50" style={{color:'#5B4BDF'}}>View</Link>
+                {card.status === 'active' && (
+                  <QRButton url={`${window.location.origin}/sign/${card.slug}`} label="Scan to sign this group card" variant="ghost" className="text-xs py-2.5 text-center font-bold">QR</QRButton>
+                )}
                 {(card.status==='draft' || card.status==='active') && (
                   <Link to={`/create-card?edit=${card.slug}`} className="flex-1 py-2.5 text-center text-sm font-bold hover:bg-purple-50 border-l" style={{color:'#D97706',borderColor:'#EDE9FF'}}>✏️ Edit</Link>
                 )}

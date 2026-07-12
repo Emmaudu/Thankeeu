@@ -21,7 +21,7 @@ const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://www.thankeeu.com';
 // points to a URL that immediately redirects away from itself, which is
 // a documented cause of Google refusing to index pages.
 const SITE_NAME  = 'Thankeeu';
-const SITE_DESC  = "The world's group card and gift platform — birthdays, farewells, promotions, and more. Powered by Flutterwave.";
+const SITE_DESC  = "Group cards, Memory Movies and Live Photo Walls for every occasion — birthdays, weddings, farewells, promotions and more. Everyone signs one card, collect guest photos via QR code, and turn it all into a cinematic movie.";
 const OG_IMAGE   = `${BASE_URL}/og-image.png`;
 const TWITTER_HANDLE = '@thankeeu';
 
@@ -106,7 +106,7 @@ export function useSEO({
       ? (title.includes(SITE_NAME)
           ? title
           : `${title} | ${SITE_NAME}`)
-      : `${SITE_NAME} — Group Cards & Gifts for Every Occasion 💜`;
+      : `${SITE_NAME} — Group Cards & Gifts for Every Occasion`;
 
     const desc = (description || SITE_DESC).slice(0, 160);
 
@@ -245,20 +245,20 @@ export const SCHEMAS = {
     applicationSubCategory: 'Group Greeting Cards & Gift Collection',
     operatingSystem:        'Web, iOS, Android',
     url:                    BASE_URL,
-    description:            'Thankeeu is an online group card and gift collection platform. Groups co-sign one digital card for birthdays, leaving dos, retirements, get well soon, work anniversaries, maternity leave, sympathy and more. Everyone adds messages, photos, GIFs and voice notes. An optional gift pool collects money in GBP, NGN, USD, CAD and other currencies via Flutterwave. Cards deliver by email at a scheduled time.',
+    description:            'Thankeeu is an online group card, memory movie and event photo platform. Groups co-sign one digital card for birthdays, weddings, leaving dos, retirements, get well soon, work anniversaries and more — adding messages, photos, GIFs and voice notes. Every card can also become a cinematic Memory Movie slideshow, and a Live Photo Wall collects real-time guest photos at weddings and events via a QR code (no app needed). An optional gift pool collects money in USD, GBP, EUR, NGN, CAD and other currencies. Cards deliver by email at a scheduled time.',
     screenshot:             `${BASE_URL}/og-image.png`,
     featureList: [
+      'Group cards for any occasion — everyone signs one card from a single link',
+      'Memory Movie — automatically turns all card messages, photos and videos into a cinematic slideshow video the celebrant will love',
+      'Live Photo Wall — collect real-time wedding and event guest photos and videos via a QR code, no app or account needed',
       'Group e-cards with unlimited signers',
-      'Optional gift pool in GBP, NGN, USD, CAD, EUR and more',
-      'Flutterwave secure payment processing',
+      'Optional gift pool in USD, GBP, EUR, NGN, CAD and more',
       'Scheduled delivery — any date and time including midnight',
       'Photos, GIFs and voice notes in messages',
       'HRIS integration (SeamlessHR, BambooHR, Zoho People, WorkPay)',
-      '25+ occasion types — birthday, leaving, retirement, get well soon, sympathy, maternity leave, baby shower, work anniversary, engagement, new home, graduation, promotion',
+      '25+ occasion types — birthday, wedding, leaving, retirement, get well soon, sympathy, maternity leave, baby shower, work anniversary, engagement, new home, graduation, promotion',
       'Remote and hybrid team friendly — sign from any device',
-      'UK and Nigeria market support with local currency gift pools',
-      'Thankbox alternative with Flutterwave payments',
-      'Kudoboard alternative with NGN and GBP support',
+      'Worldwide support with local currency gift pools',
     ],
     offers: [
       { '@type': 'Offer', price: '4.99',  priceCurrency: 'GBP', description: 'Classic — 1 group card in GBP' },

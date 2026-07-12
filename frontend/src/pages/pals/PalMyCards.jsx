@@ -5,6 +5,8 @@ import Icon from '../../components/ui/Icon';
 import { palAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
 
+
+import QRButton from '../../components/QRButton';
 const OCCASION_ICON = { birthday: '🎂', farewell: '👋', graduation: '🎓', milestone: '🎉', promotion: '🎊' };
 const STATUS_COLOR = s => ({ active:'bg-green-100 text-green-700', sent:'bg-blue-100 text-blue-700', draft:'bg-gray-100 text-gray-600' }[s]||'bg-gray-100 text-gray-600');
 

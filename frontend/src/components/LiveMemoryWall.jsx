@@ -21,7 +21,7 @@ function timeAgo(iso) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
-const mediaIcon = { image: '📷', video: '🎥', gif: '🖼️' };
+const mediaIcon = { image: 'Photo', video: 'Video', gif: 'GIF' };
 
 // ── Single wall post card ─────────────────────────────────────────────────────
 function WallPost({ post }) {
@@ -46,7 +46,7 @@ function WallPost({ post }) {
             <p className="text-xs text-warm-400">{timeAgo(post.created_at)}</p>
           </div>
           {post.media_type && (
-            <span className="ml-auto text-lg flex-shrink-0">{mediaIcon[post.media_type] || ''}</span>
+            <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-lg bg-purple-100 text-primary-600 flex-shrink-0">{mediaIcon[post.media_type] || post.media_type}</span>
           )}
         </div>
         {post.caption && (

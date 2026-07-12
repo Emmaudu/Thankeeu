@@ -189,7 +189,7 @@ export default function MemoryMoviePlayer({ cardId, initialStatus = 'none', canG
               className="px-6 py-3 rounded-xl bg-gradient-to-r from-primary-500 to-purple-600
                 hover:from-primary-600 hover:to-purple-700 font-bold text-sm transition-all
                 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-              {loading ? 'Starting…' : '✨ Create Memory Movie'}
+              {loading ? 'Starting…' : 'Create Memory Movie'}
             </button>
           </div>
         )}

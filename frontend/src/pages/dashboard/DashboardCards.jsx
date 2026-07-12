@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import QRButton from '../../components/QRButton';
 import { Link } from 'react-router-dom';
 import { cardsAPI } from '../../utils/api';
 import DashboardLayout from '../../components/DashboardLayout';
@@ -115,6 +116,15 @@ export default function DashboardCards() {
                   </button>
                 )}
                 <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
+                {card.status === 'active' && (
+                  <QRButton
+                    url={`${window.location.origin}/sign/${card.slug}`}
+                    label="Scan to sign this group card"
+                    variant="ghost"
+                    className="db-card-item-action text-xs">
+                    QR
+                  </QRButton>
+                )}
                 {(card.status==='draft' || card.status==='active') && (
                   <Link to={`/create-card?edit=${card.slug}`} className="db-card-item-action"><Icon name="Edit" size={13}/>Edit</Link>
                 )}

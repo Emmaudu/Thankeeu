@@ -1181,7 +1181,7 @@ const CardView = () => {
     </div>
   );
 
-  const messages = card.messages || [];
+  const messages = (card.messages || []).filter(Boolean);
   const filteredMessages = searchQuery.trim().length > 0
     ? messages.filter(m =>
         m.author_name?.toLowerCase().includes(searchQuery.toLowerCase().trim()))

@@ -390,6 +390,7 @@ const SettingsTab = () => {
 const BroadcastTab = () => {
   const [subject,    setSubject]    = React.useState('');
   const [body,       setBody]       = React.useState('');
+  const [segment,    setSegment]    = React.useState('all');
   const [testEmail,  setTestEmail]  = React.useState('');
   const [preview,    setPreview]    = React.useState(null);
   const [previewing, setPreviewing] = React.useState(false);

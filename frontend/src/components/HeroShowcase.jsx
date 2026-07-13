@@ -339,23 +339,25 @@ const FeatureMiniCards = ({ ctaPath }) => (
 /* ─── Main export ─────────────────────────────────────────────────────── */
 export default function HeroShowcase({ sampleMessages, demoMessages, ctaPath, ctaLabel }) {
   return (
-    <div className="gc-font">
+    <section className="section-dots gc-font py-10 md:py-14 px-2 sm:px-4 overflow-visible"
+      style={{ background: 'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 100%)' }}>
       <style>{HERO_FONT_INJECT}</style>
+      <div className="relative max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
 
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
+          {/* Left column: sample card grid + feature mini-cards */}
+          <div className="text-center lg:text-left">
+            <SampleCardGrid messages={sampleMessages} />
+            <FeatureMiniCards ctaPath={ctaPath} />
+          </div>
 
-        {/* Left column: sample card grid + feature mini-cards */}
-        <div className="text-center lg:text-left">
-          <SampleCardGrid messages={sampleMessages} />
-          <FeatureMiniCards ctaPath={ctaPath} />
+          {/* Right column: interactive flipbook */}
+          <div className="lcp-outer-wrap" style={{ paddingTop:'0.5rem', paddingLeft:'1.5rem', paddingRight:'1.5rem' }}>
+            <LiveCardPreview demoMessages={demoMessages} ctaPath={ctaPath} ctaLabel={ctaLabel} />
+          </div>
+
         </div>
-
-        {/* Right column: interactive flipbook */}
-        <div className="lcp-outer-wrap" style={{ paddingTop:'0.5rem', paddingLeft:'1.5rem', paddingRight:'1.5rem' }}>
-          <LiveCardPreview demoMessages={demoMessages} ctaPath={ctaPath} ctaLabel={ctaLabel} />
-        </div>
-
       </div>
-    </div>
+    </section>
   );
 }

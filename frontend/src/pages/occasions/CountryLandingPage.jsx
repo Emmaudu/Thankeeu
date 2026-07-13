@@ -132,7 +132,7 @@ const COUNTRIES = {
 export default function CountryLandingPage({ country }) {
   const d = COUNTRIES[country];
 
-  useSEO({
+  useSEO(d ? {
     title: d.title,
     description: d.desc,
     keywords: d.keywords,
@@ -144,14 +144,16 @@ export default function CountryLandingPage({ country }) {
       SCHEMAS.webPage(d.title, d.desc, d.path),
       {
         '@type': 'FAQPage',
-        mainEntity: d.faqs.map(([q, a]) => ({
+        mainEntity: (d.faqs || []).map(([q, a]) => ({
           '@type': 'Question',
           name: q,
           acceptedAnswer: { '@type': 'Answer', text: a },
         })),
       },
     ],
-  });
+  } : { title: 'Group Cards — Thankeeu', description: 'Create a group card everyone signs.', canonical: '/', noIndex: true });
+
+  if (!d) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-50 to-white flex flex-col">
@@ -189,7 +191,7 @@ export default function CountryLandingPage({ country }) {
       <section className="max-w-4xl mx-auto px-4 py-10">
         <h2 className="text-2xl font-bold text-warm-900 mb-6 text-center">What teams use it for</h2>
         <div className="grid sm:grid-cols-2 gap-5">
-          {d.useCases.map(([title, body]) => (
+          {(d.useCases || []).map(([title, body]) => (
             <div key={title} className="bg-white rounded-2xl p-6 shadow-sm">
               <p className="font-bold text-warm-900 mb-2">{title}</p>
               <p className="text-sm text-warm-600">{body}</p>
@@ -202,7 +204,7 @@ export default function CountryLandingPage({ country }) {
       <section className="max-w-3xl mx-auto px-4 py-10">
         <h2 className="text-2xl font-bold text-warm-900 mb-6 text-center">Frequently asked questions</h2>
         <div className="space-y-4">
-          {d.faqs.map(([q, a]) => (
+          {(d.faqs || []).map(([q, a]) => (
             <details key={q} className="bg-white rounded-2xl p-5 shadow-sm">
               <summary className="font-semibold text-warm-900 cursor-pointer">{q}</summary>
               <p className="text-sm text-warm-600 mt-3">{a}</p>
@@ -215,7 +217,7 @@ export default function CountryLandingPage({ country }) {
       <section className="max-w-3xl mx-auto px-4 py-10">
         <h2 className="text-xl font-bold text-warm-900 mb-4 text-center">Guides &amp; comparisons</h2>
         <ul className="space-y-2 text-center">
-          {d.blogLinks.map(([href, label]) => (
+          {(d.blogLinks || []).map(([href, label]) => (
             <li key={href}><Link to={href} className="text-primary-600 hover:underline">{label}</Link></li>
           ))}
         </ul>

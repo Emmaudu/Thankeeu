@@ -17,6 +17,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useSEO } from '../hooks/useSEO';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 const api  = axios.create({ baseURL: BASE, timeout: 15000 });
@@ -301,6 +302,7 @@ function MemberClaimGate({ gateData, slug, onMarkClaimed }) {
 
 // ── Main component ─────────────────────────────────────────────────────────
 export default function RecipientClaimGate() {
+  useSEO({ title: 'Open your card', noIndex: true });
   const { slug }         = useParams();
   const [searchParams]   = useSearchParams();
   const claimToken       = searchParams.get('claim');

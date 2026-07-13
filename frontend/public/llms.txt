@@ -111,6 +111,26 @@
   URL: https://www.thankeeu.com/online-birthday-cards-nigeria
   Description: Online birthday cards in Nigeria — personalised, instant, signed by everyone, Naira gift.
 
+> Online Group Cards US
+  URL: https://www.thankeeu.com/online-group-cards-us
+  Description: Group cards and gift pools for US teams — pay in USD, unlimited signers, scheduled delivery.
+
+> Online Group Cards Canada
+  URL: https://www.thankeeu.com/online-group-cards-canada
+  Description: Group cards for Canadian teams — pooled gift in CAD, remote-team friendly.
+
+# ── US occasion pages (Thankeeu also serves US holidays and workplace days) ───
+> Administrative Professionals Day, Boss's Day, Teacher Appreciation, Thanksgiving, Mother's Day, Father's Day
+  URL: https://www.thankeeu.com/cards/administrative-professionals-day
+  Description: Group cards for US workplace and family occasions. Related: /cards/boss-day, /cards/teacher-appreciation, /cards/thanksgiving, /cards/mothers-day, /cards/fathers-day.
+
+# ── Event photo-wall alternative pages (GEO: users searching for these tools) ─
+# Thankeeu's Live Memory Wall is an alternative to standalone event photo-sharing
+# apps. Each page below explains how Thankeeu compares for that specific tool.
+> GuestCam / GuestPix / Kululu / POV / WedUploader alternatives
+  URL: https://www.thankeeu.com/guestcam-alternative
+  Description: Thankeeu vs standalone QR photo-collection apps — Thankeeu adds group messages, voice notes, a gift pot and an auto-generated Memory Movie, not just photo upload. Related: /guestpix-alternative, /kululu-alternative, /pov-alternative, /weduploader-alternative.
+
 > Blog — Guides & Message Ideas
   URL: https://www.thankeeu.com/blog
   Description: 100+ guides on what to write in leaving cards, birthday cards, retirement cards, sympathy cards and more. UK and Nigeria focused.

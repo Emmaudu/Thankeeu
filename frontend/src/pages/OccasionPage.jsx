@@ -124,6 +124,11 @@ export default function OccasionPage() {
  const { occasion } = useParams();
  const data = OCCASIONS[occasion];
 
+ useSEO(data
+   ? { title: data.seo.title, description: data.seo.desc, canonical: `/occasions/${occasion}`, keywords: data.seo.keywords || '' }
+   : { title: 'Occasion not found — Thankeeu', description: 'This occasion page could not be found.', canonical: `/occasions/${occasion}`, noIndex: true }
+ );
+
  if (!data) {
  return (
  <div className="min-h-screen section-dots" style={{ background:'#F5F3FF' }}>
@@ -140,7 +145,6 @@ export default function OccasionPage() {
  );
  }
 
- useSEO({ title: data?.seo?.title || data?.title || "Thankeeu", description: data?.seo?.desc || "", canonical: `/occasions/${occasion}`, keywords: data.seo.keywords || '' });
 
  const { example } = data;
  const giftFmt = (n) => n > 0 ? `₦${n.toLocaleString()}` : null;

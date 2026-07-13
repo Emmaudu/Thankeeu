@@ -4,8 +4,10 @@ import Icon from '../components/ui/Icon';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { blogAPI } from '../utils/api';
+import { useSEO } from '../hooks/useSEO';
 
 export default function BlogConfirmSubscription() {
+  useSEO({ title: 'Confirm subscription', canonical: '/blog/confirm-subscription', noIndex: true });
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('confirming');
 

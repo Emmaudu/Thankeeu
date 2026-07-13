@@ -1,4 +1,4 @@
-import { useSEO } from '../hooks/useSEO';
+import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -33,6 +33,14 @@ export default function FAQ() {
     description: 'Answers to the most common questions about Thankeeu. How to create a group card, pool a gift, pay securely with Flutterwave, withdraw money to your bank, and more.',
     keywords: 'Thankeeu FAQ, group card questions, how to withdraw gift money, Flutterwave group card',
     canonical: '/faq',
+    jsonLd: [
+      SCHEMAS.organization,
+      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'FAQ', url: '/faq' }]),
+      SCHEMAS.webPage('Thankeeu FAQ', 'Answers to common questions about Thankeeu group cards, gift pots and payments.', '/faq'),
+      // FAQPage schema generated from the real on-page Q&As — this is what powers
+      // Google's FAQ rich results and AI answer-engine (GEO) citations.
+      SCHEMAS.faqPage(FAQS.map(({ q, a }) => ({ q, a }))),
+    ],
   });
 
   const [activeCat, setActiveCat] = useState('All');

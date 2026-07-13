@@ -44,7 +44,7 @@ const FPS       = 25;
 const SLIDE_DUR = 4;       // seconds per text/name slide
 const MEDIA_DUR = 5;       // seconds for photo slides (slightly longer than text)
 const MAX_CONTRIBUTORS = 25;
-const MAX_TEXT  = 200;
+const MAX_TEXT  = 600; // messages beyond this are paginated across up to ~4 caption slides, not cut off
 
 // ── Music URL resolution ──────────────────────────────────────────────────────
 // Priority: 1) DB site_settings.movie_bg_music_url  2) MOVIE_BG_MUSIC_URL env  3) generated ambient
@@ -151,21 +151,57 @@ function download(url, destPath) {
   });
 }
 
-/** Escape text for FFmpeg drawtext */
-const escFF = s => String(s)
+/** Strip characters we never want to render (emoji, non-ASCII, control chars)
+ *  and collapse whitespace. Used before writing text to a drawtext textfile. */
+const cleanText = s => String(s)
   .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}]/gu, '')
   .replace(/[^\x00-\x7F]/g, '')
+  .replace(/[\r\n]+/g, ' ')
   .replace(/\s{2,}/g, ' ')
-  .trim()
-  .replace(/\\/g, '\\\\')
-  .replace(/'/g, "\\'")
-  .replace(/:/g, '\\:')
-  .replace(/\[/g, '\\[')
-  .replace(/\]/g, '\\]')
-  .replace(/,/g, '\\,')
-  .replace(/;/g, '\\;');
+  .trim();
 
-/** Wrap text to lines */
+// Monotonic counter so every textfile in a render has a unique name.
+let _textFileSeq = 0;
+
+/**
+ * Build a `drawtext` filter fragment that reads its text from a file via
+ * `textfile=`. This is the ONLY reliable way to render arbitrary user text
+ * in ffmpeg: the text can contain apostrophes, commas, colons, percent signs,
+ * backslashes, brackets — anything — and none of it can break the filtergraph,
+ * because ffmpeg reads the bytes literally from disk instead of parsing them
+ * as part of the filter string.
+ *
+ * @param {string} dir   temp directory to write the textfile into
+ * @param {string} text  raw text (will be cleaned of emoji/non-ASCII)
+ * @param {object} opts  { fontsize, fontcolor, x, y, shadow:{color,x,y} }
+ * @returns {string} a drawtext=... fragment (no leading/trailing comma)
+ */
+function drawtextFile(dir, text, opts) {
+  const { fontsize, fontcolor, x, y, shadow } = opts;
+  const cleaned = cleanText(text);
+  // ffmpeg errors on an empty textfile; render a single space instead.
+  const fileText = cleaned.length ? cleaned : ' ';
+  const fp = path.join(dir, `txt_${_textFileSeq++}.txt`);
+  fs.writeFileSync(fp, fileText, 'utf8');
+  // textfile path is a plain temp path (no spaces/quotes) so a bare
+  // textfile=/path works; still escape backslashes for safety on any OS.
+  const safePath = fp.replace(/\\/g, '\\\\');
+  const parts = [
+    `drawtext=${FONT_FRAG}textfile='${safePath}'`,
+    `fontsize=${fontsize}`,
+    `fontcolor=${fontcolor}`,
+    `x=${x}`,
+    `y=${y}`,
+  ];
+  if (shadow) {
+    parts.push(`shadowcolor=${shadow.color}`, `shadowx=${shadow.x}`, `shadowy=${shadow.y}`);
+  }
+  return parts.join(':');
+}
+
+/** Wrap text into lines of `maxChars`. Returns ALL lines — callers that only
+ *  have room for a few lines per slide should paginate with chunkLines()
+ *  rather than relying on this to silently drop overflow text. */
 function wrapLines(text, maxChars = 38) {
   const words = text.split(' ');
   const lines = [];
@@ -179,7 +215,14 @@ function wrapLines(text, maxChars = 38) {
     }
   }
   if (cur) lines.push(cur.trim());
-  return lines.slice(0, 4);
+  return lines;
+}
+
+/** Split an array of lines into pages of at most `perPage` lines each. */
+function chunkLines(lines, perPage = 4) {
+  const pages = [];
+  for (let i = 0; i < lines.length; i += perPage) pages.push(lines.slice(i, i + perPage));
+  return pages.length ? pages : [[]];
 }
 
 /** Run ffmpeg with timeout */
@@ -194,6 +237,37 @@ async function ff(args, timeoutMs = 90000, label = '') {
     console.error(`[movie] ffmpeg ${label || ''} FAILED: ${msg}`);
     throw new Error(`ffmpeg ${label}: ${msg.slice(0, 200)}`);
   }
+}
+
+/**
+ * Render a single 1-frame PNG from a solid-colour lavfi source with a chain of
+ * video filters, passing the filtergraph via a SCRIPT FILE (-filter_complex_script)
+ * rather than as a command-line argument.
+ *
+ * Why: the filtergraph contains many drawtext/drawbox filters joined by commas
+ * and can be several KB long. Passing that as a single -vf arg makes it subject
+ * to arg-length limits and (historically, in this codebase) fragile inline
+ * text quoting. Writing it to a file and pointing ffmpeg at the file removes
+ * both problems entirely.
+ *
+ * @param {string} dir        temp dir (also used for the script file)
+ * @param {string} baseColour hex colour without # (e.g. '1a0533')
+ * @param {string[]} filters  array of filter fragments (already comma-free at ends)
+ * @param {string} outPath    output PNG path
+ * @param {string} label      log label
+ */
+async function renderSlide(dir, baseColour, filters, outPath, label) {
+  const script = path.join(dir, `fg_${_textFileSeq++}.txt`);
+  // Single input [0:v] → chain of filters → output. filter_complex_script wants
+  // a full graph: label the input, apply the comma-joined chain, label output.
+  const graph = `[0:v]${filters.join(',')}[out]`;
+  fs.writeFileSync(script, graph, 'utf8');
+  await ff([
+    '-y', '-f', 'lavfi', '-i', `color=c=0x${baseColour}:s=${W}x${H}:r=1:d=1`,
+    '-filter_complex_script', script,
+    '-map', '[out]',
+    '-vframes', '1', '-update', '1', outPath,
+  ], 15000, label);
 }
 
 /** Normalise an image to 1920x1080 PNG with black letterbox */
@@ -218,8 +292,7 @@ async function normaliseImage(srcPath, outPath) {
  * @param {string} occasionWord  e.g. "Birthday" "Wedding"
  * @param {string} baseColour    hex without # e.g. "1a0533"
  */
-function buildDecoratedBg(occasionWord = 'Celebration', baseColour = '1a0533') {
-  const occ = escFF(occasionWord);
+function buildDecoratedBg(dir, occasionWord = 'Celebration', baseColour = '1a0533') {
 
   // Scattered decoration positions — fixed so every slide has same pattern
   const decorations = [
@@ -245,8 +318,10 @@ function buildDecoratedBg(occasionWord = 'Celebration', baseColour = '1a0533') {
     // Top accent bar
     `drawbox=x=0:y=0:w=1920:h=8:color=FFD700@0.6:t=fill`,
     `drawbox=x=0:y=1072:w=1920:h=8:color=9966CC@0.6:t=fill`,
-    // Ghosted occasion watermark
-    `drawtext=${FONT_FRAG}text='${occ}':fontsize=240:fontcolor=FFFFFF@0.04:x=(w-text_w)/2:y=(h-text_h)/2`,
+    // Ghosted occasion watermark (via textfile — occasion may be user-supplied)
+    drawtextFile(dir, occasionWord || 'Celebration', {
+      fontsize: 240, fontcolor: 'FFFFFF@0.04', x: '(w-text_w)/2', y: '(h-text_h)/2',
+    }),
     // Star/sparkle glyphs in corners using * and + characters
     `drawtext=${FONT_FRAG}text='*':fontsize=90:fontcolor=FFD700@0.5:x=55:y=50:shadowcolor=black@0.3:shadowx=2:shadowy=2`,
     `drawtext=${FONT_FRAG}text='*':fontsize=70:fontcolor=FF69B4@0.5:x=1790:y=50:shadowcolor=black@0.3:shadowx=2:shadowy=2`,
@@ -260,7 +335,7 @@ function buildDecoratedBg(occasionWord = 'Celebration', baseColour = '1a0533') {
     `drawtext=${FONT_FRAG}text='+':fontsize=35:fontcolor=9966CC@0.35:x=895:y=1010`,
   ];
 
-  return decorations.join(',');
+  return decorations; // array of filter fragments
 }
 
 /**
@@ -269,13 +344,14 @@ function buildDecoratedBg(occasionWord = 'Celebration', baseColour = '1a0533') {
  * Foreground shows: [occasion label] / name / message lines / — author
  */
 async function makeNameCaptionSlide(opts, outPath) {
-  const { name, caption, occasionWord, baseColour = '1a0533' } = opts;
+  const { name, lines = [], occasionWord, baseColour = '1a0533', page = 1, totalPages = 1 } = opts;
+  const dir = path.dirname(outPath);
 
-  const decoratedBg = buildDecoratedBg(occasionWord, baseColour);
+  const filters = [...buildDecoratedBg(dir, occasionWord, baseColour)];
 
   // Foreground text layers
-  const nameSafe    = escFF(name || 'A friend') || 'A friend';
-  const lines       = caption ? wrapLines(caption.slice(0, MAX_TEXT)) : [];
+  const cleanName   = cleanText(name || 'A friend') || 'A friend';
+  const nameLabel   = totalPages > 1 ? `${cleanName} (${page}/${totalPages})` : cleanName;
   const lineCount   = lines.length;
 
   // Vertical positioning — centre the text block
@@ -283,101 +359,107 @@ async function makeNameCaptionSlide(opts, outPath) {
   const blockH      = (lineCount > 0 ? lineCount * lineH + 20 : 0) + 110; // name + lines
   const blockTop    = Math.round((H - blockH) / 2) - 20;
 
-  const fgFilters = [];
-
-  // Name (large, gold)
-  fgFilters.push(
-    `drawtext=${FONT_FRAG}text='${nameSafe}':fontsize=82:fontcolor=FFD700:x=(w-text_w)/2:y=${blockTop}:shadowcolor=black@0.85:shadowx=4:shadowy=4`
-  );
+  // Name (large, gold) — shows a page indicator ("Jane (2/3)") when the
+  // message continues across multiple slides so it's clear it's the same person.
+  filters.push(drawtextFile(dir, nameLabel, {
+    fontsize: 82, fontcolor: 'FFD700', x: '(w-text_w)/2', y: blockTop,
+    shadow: { color: 'black@0.85', x: 4, y: 4 },
+  }));
 
   // Message lines (white)
   lines.forEach((line, i) => {
     const y = blockTop + 110 + i * lineH;
-    fgFilters.push(
-      `drawtext=${FONT_FRAG}text='${escFF(line)}':fontsize=54:fontcolor=FFFFFF:x=(w-text_w)/2:y=${y}:shadowcolor=black@0.7:shadowx=3:shadowy=3`
-    );
+    filters.push(drawtextFile(dir, line, {
+      fontsize: 54, fontcolor: 'FFFFFF', x: '(w-text_w)/2', y,
+      shadow: { color: 'black@0.7', x: 3, y: 3 },
+    }));
   });
 
-  const vf = `color=c=0x${baseColour}:s=${W}x${H}:r=1:d=1[base];[base]${decoratedBg},${fgFilters.join(',')}`;
-
-  await ff([
-    '-y', '-f', 'lavfi', '-i', `color=c=0x${baseColour}:s=${W}x${H}:r=1:d=1`,
-    '-vf', `${decoratedBg},${fgFilters.join(',')}`,
-    '-vframes', '1', '-update', '1', outPath,
-  ], 15000, 'name-caption-slide');
+  await renderSlide(dir, baseColour, filters, outPath, 'name-caption-slide');
 }
 
 /**
  * Build the opening title slide.
  */
 async function makeTitleSlide(occasionWord, recipientName, outPath) {
-  const decoratedBg = buildDecoratedBg(occasionWord, '0d0020');
-  const occ  = escFF(occasionWord) || 'Celebration';
-  const name = escFF(recipientName || '');
+  const dir  = path.dirname(outPath);
+  const occ  = cleanText(occasionWord) || 'Celebration';
+  const name = cleanText(recipientName || '');
 
-  await ff([
-    '-y', '-f', 'lavfi', '-i', `color=c=0x0d0020:s=${W}x${H}:r=1:d=1`,
-    '-vf', [
-      decoratedBg,
-      `drawtext=${FONT_FRAG}text='${occ}':fontsize=110:fontcolor=FFD700:x=(w-text_w)/2:y=(h/2)-160:shadowcolor=black@0.9:shadowx=5:shadowy=5`,
-      name ? `drawtext=${FONT_FRAG}text='for ${name}':fontsize=80:fontcolor=FFFFFF:x=(w-text_w)/2:y=(h/2)-30:shadowcolor=black@0.9:shadowx=4:shadowy=4` : null,
-      `drawtext=${FONT_FRAG}text='Made with love by everyone':fontsize=46:fontcolor=BB88FF:x=(w-text_w)/2:y=(h/2)+90:shadowcolor=black@0.7:shadowx=2:shadowy=2`,
-    ].filter(Boolean).join(','),
-    '-vframes', '1', '-update', '1', outPath,
-  ], 15000, 'title-slide');
+  const filters = [...buildDecoratedBg(dir, occasionWord, '0d0020')];
+  filters.push(drawtextFile(dir, occ, {
+    fontsize: 110, fontcolor: 'FFD700', x: '(w-text_w)/2', y: '(h/2)-160',
+    shadow: { color: 'black@0.9', x: 5, y: 5 },
+  }));
+  if (name) {
+    filters.push(drawtextFile(dir, `for ${name}`, {
+      fontsize: 80, fontcolor: 'FFFFFF', x: '(w-text_w)/2', y: '(h/2)-30',
+      shadow: { color: 'black@0.9', x: 4, y: 4 },
+    }));
+  }
+  filters.push(drawtextFile(dir, 'Made with love by everyone', {
+    fontsize: 46, fontcolor: 'BB88FF', x: '(w-text_w)/2', y: '(h/2)+90',
+    shadow: { color: 'black@0.7', x: 2, y: 2 },
+  }));
+
+  await renderSlide(dir, '0d0020', filters, outPath, 'title-slide');
 }
 
 /**
  * Build the signatures slide.
  */
 async function makeSignaturesSlide(names, occasionWord, outPath) {
-  const decoratedBg = buildDecoratedBg(occasionWord, '1a0533');
+  const dir = path.dirname(outPath);
+  const filters = [...buildDecoratedBg(dir, occasionWord, '1a0533')];
 
-  // Split names into rows of up to 4 to avoid very long drawtext strings
-  // that can overflow FFmpeg's filter string buffer on large cards.
-  const safeNames = names.slice(0, 16).map(n => escFF(n));
+  // Split names into rows of up to 4. Use ASCII " - " as separator (the old
+  // "·" is non-ASCII and would be stripped by cleanText anyway).
+  const safeNames = names.slice(0, 16).map(n => cleanText(n)).filter(Boolean);
   const rows = [];
   for (let i = 0; i < safeNames.length; i += 4) {
-    rows.push(safeNames.slice(i, i + 4).join('  ·  '));
+    rows.push(safeNames.slice(i, i + 4).join('   -   '));
   }
 
   const rowFontSize = 38;
-  const rowLineH   = 54;
-  // Centre rows below the heading
-  const headingY   = Math.round(H / 2) - 100;
-  const rowsStartY = headingY + 130;
+  const rowLineH    = 54;
+  const headingY    = Math.round(H / 2) - 100;
+  const rowsStartY  = headingY + 130;
 
-  const rowFilters = rows.map((row, i) =>
-    `drawtext=${FONT_FRAG}text='${row}':fontsize=${rowFontSize}:fontcolor=CCCCCC:x=(w-text_w)/2:y=${rowsStartY + i * rowLineH}:shadowcolor=black@0.7:shadowx=2:shadowy=2`
-  );
+  filters.push(drawtextFile(dir, 'Signed with love by', {
+    fontsize: 72, fontcolor: 'FFD700', x: '(w-text_w)/2', y: headingY,
+    shadow: { color: 'black@0.9', x: 4, y: 4 },
+  }));
+  rows.forEach((row, i) => {
+    filters.push(drawtextFile(dir, row, {
+      fontsize: rowFontSize, fontcolor: 'CCCCCC', x: '(w-text_w)/2', y: rowsStartY + i * rowLineH,
+      shadow: { color: 'black@0.7', x: 2, y: 2 },
+    }));
+  });
 
-  await ff([
-    '-y', '-f', 'lavfi', '-i', `color=c=0x1a0533:s=${W}x${H}:r=1:d=1`,
-    '-vf', [
-      decoratedBg,
-      `drawtext=${FONT_FRAG}text='Signed with love by':fontsize=72:fontcolor=FFD700:x=(w-text_w)/2:y=${headingY}:shadowcolor=black@0.9:shadowx=4:shadowy=4`,
-      ...rowFilters,
-    ].join(','),
-    '-vframes', '1', '-update', '1', outPath,
-  ], 15000, 'signatures-slide');
+  await renderSlide(dir, '1a0533', filters, outPath, 'signatures-slide');
 }
 
 /**
  * Build the closing slide.
  */
 async function makeClosingSlide(outPath) {
-  const decoratedBg = buildDecoratedBg('Thankeeu', '0d0020');
+  const dir = path.dirname(outPath);
+  const filters = [...buildDecoratedBg(dir, 'Thankeeu', '0d0020')];
 
-  await ff([
-    '-y', '-f', 'lavfi', '-i', `color=c=0x0d0020:s=${W}x${H}:r=1:d=1`,
-    '-vf', [
-      decoratedBg,
-      `drawtext=${FONT_FRAG}text='Made with love':fontsize=90:fontcolor=FFD700:x=(w-text_w)/2:y=(h/2)-90:shadowcolor=black@0.9:shadowx=5:shadowy=5`,
-      `drawtext=${FONT_FRAG}text='by everyone who cares about you':fontsize=52:fontcolor=FFFFFF:x=(w-text_w)/2:y=(h/2)+30:shadowcolor=black@0.8:shadowx=3:shadowy=3`,
-      `drawtext=${FONT_FRAG}text='-- Thankeeu':fontsize=40:fontcolor=9966CC:x=(w-text_w)/2:y=(h/2)+120:shadowcolor=black@0.7:shadowx=2:shadowy=2`,
-    ].join(','),
-    '-vframes', '1', '-update', '1', outPath,
-  ], 15000, 'closing-slide');
+  filters.push(drawtextFile(dir, 'Made with love', {
+    fontsize: 90, fontcolor: 'FFD700', x: '(w-text_w)/2', y: '(h/2)-90',
+    shadow: { color: 'black@0.9', x: 5, y: 5 },
+  }));
+  filters.push(drawtextFile(dir, 'by everyone who cares about you', {
+    fontsize: 52, fontcolor: 'FFFFFF', x: '(w-text_w)/2', y: '(h/2)+30',
+    shadow: { color: 'black@0.8', x: 3, y: 3 },
+  }));
+  filters.push(drawtextFile(dir, '-- Thankeeu', {
+    fontsize: 40, fontcolor: '9966CC', x: '(w-text_w)/2', y: '(h/2)+120',
+    shadow: { color: 'black@0.7', x: 2, y: 2 },
+  }));
+
+  await renderSlide(dir, '0d0020', filters, outPath, 'closing-slide');
 }
 
 /** Render an image PNG into a fixed-duration MP4 chunk with silent audio */
@@ -594,15 +676,22 @@ async function renderMovie(card, msgs) {
     for (let ci = 0; ci < contributors.length; ci++) {
       const contrib = contributors[ci];
 
-      // Name + caption decorated slide
-      const captionImg = path.join(tmpDir, `slide_caption_${ci}.png`);
-      await makeNameCaptionSlide({
-        name:         contrib.name,
-        caption:      contrib.content,
-        occasionWord,
-        baseColour:   ci % 2 === 0 ? '1a0533' : '2d0052',
-      }, captionImg);
-      await addChunk(out => slideToChunk(captionImg, SLIDE_DUR, out));
+      // Name + caption decorated slide(s) — a long message continues onto
+      // additional slides (up to 4 lines each) instead of being cut off.
+      const allLines  = contrib.content ? wrapLines(contrib.content.slice(0, MAX_TEXT)) : [];
+      const pages     = chunkLines(allLines, 4);
+      for (let pi = 0; pi < pages.length; pi++) {
+        const captionImg = path.join(tmpDir, `slide_caption_${ci}_${pi}.png`);
+        await makeNameCaptionSlide({
+          name:         contrib.name,
+          lines:        pages[pi],
+          occasionWord,
+          baseColour:   ci % 2 === 0 ? '1a0533' : '2d0052',
+          page:         pi + 1,
+          totalPages:   pages.length,
+        }, captionImg);
+        await addChunk(out => slideToChunk(captionImg, SLIDE_DUR, out));
+      }
 
       // Their media (images then videos)
       for (const media of contrib.resolvedMedia) {

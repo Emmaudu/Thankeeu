@@ -341,8 +341,14 @@ const getCard = async (req, res) => {
 
     if (error || !card) return res.status(404).json({ error: 'Card not found' });
 
-    const isCreator = req.user?.id === card.creator_id
-      || req.member?.id === card.created_by_member_id
+    // isCreatorPersonal: the actual person who created the card (not just
+    // "any logged-in member of the same company"). Used to gate sensitive,
+    // per-card actions like the private view link / Transfer card button —
+    // those should never be shown to a colleague who merely shares the
+    // company account but didn't personally create this specific card.
+    const isCreatorPersonal = req.user?.id === card.creator_id
+      || req.member?.id === card.created_by_member_id;
+    const isCreator = isCreatorPersonal
       || (req.company?.id && card.company_id === req.company.id);
     // isRecipient: valid access_token, email match, OR card was transferred to this user
     let isRecipient = (token && token === card.access_token)
@@ -395,7 +401,7 @@ const getCard = async (req, res) => {
       return rest;
     })();
 
-    res.json({ ...responseCard, isCreator, isRecipient });
+    res.json({ ...responseCard, isCreator, isCreatorPersonal, isRecipient });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch card' });
   }

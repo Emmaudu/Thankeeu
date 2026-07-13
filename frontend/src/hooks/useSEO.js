@@ -300,7 +300,10 @@ export const SCHEMAS = {
     };
   },
 
-  product(name, description, priceNGN, path = '/pricing') {
+  // price is the numeric amount already in `currency` units (not NGN).
+  // Defaults to USD — the site's primary marketed currency — so Google rich
+  // results match the "$" prices shown to most visitors and the page title.
+  product(name, description, price, currency = 'USD', path = '/pricing') {
     return {
       '@type':       'Product',
       '@id':         `${BASE_URL}${path}#${name.toLowerCase().replace(/\s+/g,'-')}`,
@@ -311,8 +314,8 @@ export const SCHEMAS = {
       url:     `${BASE_URL}${path}`,
       offers: {
         '@type':           'Offer',
-        price:             String(priceNGN),
-        priceCurrency:     'NGN',
+        price:             String(price),
+        priceCurrency:     currency,
         availability:      'https://schema.org/InStock',
         url:               `${BASE_URL}${path}`,
         priceValidUntil:   `${new Date().getFullYear() + 1}-12-31`,
@@ -328,6 +331,25 @@ export const SCHEMAS = {
         '@type': 'Question',
         name:    q,
         acceptedAnswer: { '@type': 'Answer', text: a },
+      })),
+    };
+  },
+
+  // HowTo rich result — steps must be an array of { name, text }.
+  // Powers Google's "how to" rich results and gives AI answer engines a
+  // clean, machine-readable procedure to cite.
+  howTo(name, description, steps, path = '/how-it-works') {
+    return {
+      '@type': 'HowTo',
+      '@id':   `${BASE_URL}${path}#howto`,
+      name,
+      description,
+      step: steps.map((s, i) => ({
+        '@type':    'HowToStep',
+        position:   i + 1,
+        name:       s.name,
+        text:       s.text,
+        url:        `${BASE_URL}${path}#step-${i + 1}`,
       })),
     };
   },

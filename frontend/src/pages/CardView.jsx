@@ -1517,8 +1517,11 @@ const CardView = () => {
             </div>
           )}
 
-          {/* Box 2 — Private view link (recipient + creator only) */}
-          {(card.isCreator || card.isRecipient) && (card.access_token || card.isCreator) && (
+          {/* Box 2 — Private view link (actual card creator, or a token-holding recipient, only).
+              Note: card.isCreator is intentionally broader (any teammate on the same company
+              account) for other permissions; this banner must stay narrow so a colleague who
+              didn't create this specific card never sees the private link / Transfer button. */}
+          {(card.isCreatorPersonal || (card.isRecipient && Boolean(token))) && (
             <div className="rounded-2xl border border-purple-100 bg-white p-4 sm:p-5">
               <p className="text-xs font-extrabold tracking-[.15em] uppercase text-warm-400 mb-1">👁 Private view link — for you and {card.recipient_name} only</p>
               <p className="text-sm text-warm-600 mb-3">
@@ -1538,7 +1541,7 @@ const CardView = () => {
                   Copy private link
                 </button>
                 <button onClick={() => window.print()} className="btn-secondary">Save or print</button>
-                {card.isCreator && <TransferCardButton slug={slug} />}
+                {card.isCreatorPersonal && <TransferCardButton slug={slug} />}
               </div>
             </div>
           )}

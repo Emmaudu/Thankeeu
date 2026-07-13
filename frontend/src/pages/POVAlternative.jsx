@@ -393,8 +393,8 @@ export default function POVAlternative() {
               { to: '/memory-movie',         label: 'Wedding Memory Book' },
               { to: '/pricing',              label: 'Wedding Registry Gift Pot' },
               { to: '/occasions/birthday',   label: 'Birthday Group Card' },
-              { to: '/occasions/baby_shower',label: 'Baby Shower Card' },
-              { to: '/occasions/leaving',    label: 'Farewell Card' },
+              { to: '/occasions/new-baby',  label: 'Baby Shower Card' },
+              { to: '/occasions/farewell',  label: 'Farewell Card' },
               { to: '/employee-memory-wall', label: 'Employee Appreciation' },
               { to: '/occasions/anniversary',label: 'Wedding Anniversary Card' },
             ].map(({ to, label }) => (

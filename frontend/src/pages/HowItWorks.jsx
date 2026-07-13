@@ -1,4 +1,4 @@
-import { useSEO } from '../hooks/useSEO';
+import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -19,6 +19,17 @@ export default function HowItWorks() {
     description: 'Create a group card, share one link, collect messages, photos and gifts, then deliver it automatically. Optionally add a Memory Movie slideshow and a Live Photo Wall to collect guest photos via QR code. No signup needed to sign. Free to start.',
     keywords: 'how to create group card online, how group cards work, WhatsApp group card, memory movie slideshow, collect guest photos QR code, live photo wall event',
     canonical: '/how-it-works',
+    jsonLd: [
+      SCHEMAS.organization,
+      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'How it works', url: '/how-it-works' }]),
+      SCHEMAS.webPage('How Thankeeu works', 'Create a group card in 2 minutes — share one link, collect messages and gifts, deliver automatically.', '/how-it-works'),
+      SCHEMAS.howTo(
+        'How to create and send an online group card with Thankeeu',
+        'Set up a group card, collect messages and a pooled gift from everyone via one link, then deliver it at a scheduled time.',
+        STEPS.map(s => ({ name: s.title, text: s.desc })),
+        '/how-it-works',
+      ),
+    ],
   });
 
   return (

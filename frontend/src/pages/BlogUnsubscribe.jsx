@@ -3,8 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import Icon from '../components/ui/Icon';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import { useSEO } from '../hooks/useSEO';
 
 export default function BlogUnsubscribe() {
+  useSEO({ title: 'Unsubscribe', canonical: '/blog/unsubscribe', noIndex: true });
   const [searchParams] = useSearchParams();
   const [status, setStatus] = useState('processing');
 

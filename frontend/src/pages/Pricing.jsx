@@ -1,4 +1,4 @@
-import { useSEO } from '../hooks/useSEO';
+import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -8,7 +8,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
-import { formatCurrency, getCurrency } from '../utils/currency';
+import { formatCurrency, getCurrency, convertFromNGN } from '../utils/currency';
 
 // ── Plans ─────────────────────────────────────────────────────────────────────
 // Pack-of-N options with progressive per-card discount
@@ -106,6 +106,27 @@ const Pricing = () => {
  description: 'Send a group card from $3.99 USD / £4.99 GBP. Every plan includes the Memory Movie slideshow and Live Photo Wall for collecting guest photos via QR code. Pool a gift in USD, GBP, EUR, NGN and more. Team plans with HR automation. Free to create — pay when you send.',
  keywords: 'group card price, online group card cost, Thankeeu pricing, team card subscription, memory movie included, live photo wall price, event photo sharing cost, birthday card price',
  canonical: '/pricing',
+ jsonLd: [
+   SCHEMAS.organization,
+   SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Pricing', url: '/pricing' }]),
+   SCHEMAS.webPage('Thankeeu Pricing', 'Group card pricing — free to create, pay only when you send. Memory Movie and Live Photo Wall included on every plan.', '/pricing'),
+   // Product/Offer schema for the two headline individual plans, priced in USD
+   // (the site's primary marketed currency, matching the page title/description).
+   // USD amounts are derived from the same NGN base + rate table the page uses
+   // to display prices, so the schema can never drift from what users actually see.
+   SCHEMAS.product(
+     'Thankeeu Classic Group Card',
+     'One group card everyone signs — messages, photos, GIFs and voice notes, a pooled gift, plus the Memory Movie and Live Photo Wall. Free to create; one-time fee to send.',
+     convertFromNGN(INDIVIDUAL_PLANS[0].priceNGN, 'USD').toFixed(2),
+     'USD',
+   ),
+   SCHEMAS.product(
+     'Thankeeu Standard (2 cards)',
+     'Two group card credits at a lower per-card price. Includes the Memory Movie slideshow, Live Photo Wall and gift collection on every card.',
+     convertFromNGN(INDIVIDUAL_PLANS[1].priceNGN, 'USD').toFixed(2),
+     'USD',
+   ),
+ ],
  });
 
  const { user } = useAuth();

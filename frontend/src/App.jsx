@@ -99,9 +99,11 @@ import PaymentCallback from './pages/PaymentCallback';
 import CardFeeVerify  from './pages/CardFeeVerify';
 import SampleCard from './pages/SampleCard';
 import NotFound         from './pages/NotFound';
-import BirthdayPage    from './pages/occasions/Birthday';
+import BirthdayPage    from './pages/occasions/BirthdayPage';
 import { GroupCardsUK, GroupCardsUS, GroupCardsCanada, GroupCardsNigeria } from './pages/occasions/CountryLandingPage';
-import { LeavingCardPage, RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, ChristmasCardPage, SympathyCardPage, WelcomeCardPage, GoodLuckCardPage, BabyShowerCardPage, TeacherThankYouPage, EngagementCardPage, NewHomeCardPage, AdminProfessionalsDayPage, BossDayPage, TeacherAppreciationPage, ThanksgivingCardPage, MothersDayCardPage, FathersDayCardPage, OnlineBirthdayNigeriaPage, LeavingCardUKPage, BirthdayCardUKPage, RetirementCardUKPage, GetWellSoonUKPage } from './pages/occasions/ExtraOccasionPage';
+import LeavingCardPage from './pages/LeavingCardPage';
+import BabyShowerPage from './pages/BabyShowerPage';
+import { RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, ChristmasCardPage, SympathyCardPage, WelcomeCardPage, GoodLuckCardPage, TeacherThankYouPage, EngagementCardPage, NewHomeCardPage, AdminProfessionalsDayPage, BossDayPage, TeacherAppreciationPage, ThanksgivingCardPage, MothersDayCardPage, FathersDayCardPage, OnlineBirthdayNigeriaPage, LeavingCardUKPage, BirthdayCardUKPage, RetirementCardUKPage, GetWellSoonUKPage } from './pages/occasions/ExtraOccasionPage';
 import FarewellPage    from './pages/occasions/Farewell';
 import AnniversaryPage from './pages/occasions/Anniversary';
 import PromotionPage   from './pages/occasions/Promotion';
@@ -273,7 +275,7 @@ const App = () => (
             <Route path="/cards/sympathy"                      element={<SympathyCardPage />} />
             <Route path="/cards/welcome"                       element={<WelcomeCardPage />} />
             <Route path="/cards/good-luck"                     element={<GoodLuckCardPage />} />
-            <Route path="/cards/baby-shower"                   element={<BabyShowerCardPage />} />
+            <Route path="/cards/baby-shower"                   element={<BabyShowerPage />} />
             <Route path="/cards/teacher-thank-you"             element={<TeacherThankYouPage />} />
             <Route path="/cards/engagement"                    element={<EngagementCardPage />} />
             <Route path="/cards/new-home"                      element={<NewHomeCardPage />} />

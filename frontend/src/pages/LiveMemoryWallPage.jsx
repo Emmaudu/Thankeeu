@@ -17,7 +17,6 @@ export default function LiveMemoryWallPage() { useSEO({ title: 'Live Memory Wall
 <p className="text-sm text-white/40 max-w-xl mx-auto mb-10">Unlike Wedtrove or Chivent — your photo wall lives inside your group card. Messages + photos + gift, all in one place. </p>
 <div className="flex flex-wrap gap-4 justify-center">
 <Link to="/card/new" className="px-8 py-4 rounded-2xl bg-gradient-to-r from-primary-500 to-purple-600 hover:from-primary-600 hover:to-purple-700 font-bold text-lg shadow-xl transition-all hover:scale-105">Create Memory Wall — Free → </Link>
-<Link to="/sample" className="px-8 py-4 rounded-2xl bg-white/10 hover:bg-white/20 font-bold text-lg border border-white/20 transition-all">See Live Demo </Link>
 </div>
 </div>
 </section> {/* ── The real problem ── */} <section className="py-16 px-4 bg-white">

@@ -151,14 +151,82 @@ function download(url, destPath) {
   });
 }
 
-/** Strip characters we never want to render (emoji, non-ASCII, control chars)
- *  and collapse whitespace. Used before writing text to a drawtext textfile. */
-const cleanText = s => String(s)
-  .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}]/gu, '')
-  .replace(/[^\x00-\x7F]/g, '')
-  .replace(/[\r\n]+/g, ' ')
-  .replace(/\s{2,}/g, ' ')
-  .trim();
+// Common emoji → short ASCII text. Covers the most frequent ones in birthday/
+// farewell/celebration messages. Unknown emoji are dropped (still non-ASCII
+// safe for ffmpeg drawtext). Keep this to single words or very short phrases
+// so wrapped lines still look natural at fontsize 54.
+const EMOJI_MAP = {
+  '😀':'grinning','😃':'grin','😄':'smile','😁':'beam','😆':'laugh',
+  '😅':'sweat-smile','🤣':'rofl','😂':'joy','🙂':'slight-smile','😊':'blush',
+  '😇':'innocent','🥰':'hearts','😍':'heart-eyes','🤩':'star-struck',
+  '😘':'kiss','😗':'kissing','😚':'kiss-closed','😙':'kiss-smile',
+  '😋':'yum','😛':'tongue','😜':'wink-tongue','😝':'squint-tongue',
+  '🤑':'money','🤗':'hug','🤭':'hand-mouth','😐':'neutral','😑':'expressionless',
+  '😶':'no-mouth','😏':'smirk','😒':'unamused','🙄':'eye-roll',
+  '😬':'grimace','🤥':'lying','😌':'relieved','😔':'pensive',
+  '😪':'sleepy','🤤':'drool','😴':'zzz','😷':'mask','🤒':'sick',
+  '🤕':'hurt','🤢':'nauseated','🤮':'vomit','🤧':'sneeze','🥵':'hot',
+  '🥶':'cold','🥴':'woozy','😵':'dizzy','🤯':'exploding','🤠':'cowboy',
+  '🥳':'party','😎':'cool','🥸':'disguised','🤓':'nerd','🧐':'monocle',
+  '😕':'confused','😟':'worried','🙁':'frown','☹':'sad','😮':'open-mouth',
+  '😯':'hushed','😲':'astonished','😳':'flushed','🥺':'pleading',
+  '😦':'frowning','😧':'anguish','😨':'fear','😰':'sweat','😥':'disappointed',
+  '😢':'cry','😭':'sob','😱':'scream','😖':'confound','😣':'persevere',
+  '😞':'disappointed','😓':'downcast','😩':'weary','😫':'tired',
+  '🥱':'yawn','😤':'steam','😡':'angry','😠':'angry','🤬':'swear',
+  '😈':'devil','👿':'angry-devil','💀':'skull','☠':'skull-cross',
+  '💩':'poop','🤡':'clown','👹':'ogre','👺':'goblin','👻':'ghost',
+  '👽':'alien','👾':'space-invader','🤖':'robot','😺':'cat-grin',
+  '❤':'love','🧡':'orange-heart','💛':'yellow-heart','💚':'green-heart',
+  '💙':'blue-heart','💜':'purple-heart','🖤':'black-heart','🤍':'white-heart',
+  '🤎':'brown-heart','💔':'broken-heart','❣':'heart-exclaim',
+  '💕':'two-hearts','💞':'revolving-hearts','💓':'beating-heart',
+  '💗':'growing-heart','💖':'sparkling-heart','💘':'cupid','💝':'gift-heart',
+  '💟':'heart-deco','🌹':'rose','🌷':'tulip','🌸':'blossom','💐':'bouquet',
+  '🎉':'party','🎊':'confetti','🥂':'cheers','🎂':'cake','🎁':'gift',
+  '🎈':'balloon','🎀':'ribbon','🏆':'trophy','🥇':'gold-medal',
+  '⭐':'star','🌟':'glowing-star','✨':'sparkles','💫':'dizzy-star',
+  '🔥':'fire','💯':'hundred','✅':'check','☑':'checked','💪':'muscle',
+  '👏':'clap','🙌':'raise-hands','👐':'open-hands','🤲':'palms-up',
+  '🤝':'handshake','👍':'thumbs-up','👎':'thumbs-down','👊':'fist',
+  '✊':'raised-fist','🤛':'left-fist','🤜':'right-fist','🤞':'fingers-crossed',
+  '✌':'peace','🤟':'love-you','🤙':'call-me','👋':'wave','🤚':'raised-back',
+  '🖐':'splayed-hand','✋':'raised-hand','🖖':'vulcan','💅':'nail-care',
+  '🙏':'praying','👶':'baby','🧒':'child','👦':'boy','👧':'girl',
+  '🧑':'person','👱':'blond','👨':'man','🧔':'beard','👩':'woman',
+  '🎓':'graduate','👨‍💼':'businessman','👩‍💼':'businesswoman',
+  '🌍':'globe','🌎':'globe','🌏':'globe','🌙':'moon','☀':'sun','🌈':'rainbow',
+  '⚡':'lightning','🌊':'wave','🌺':'hibiscus','🍀':'four-leaf',
+  '🙈':'see-no-evil','🙉':'hear-no-evil','🙊':'speak-no-evil',
+};
+
+/** Convert emoji in a string to short text labels, then strip any remaining
+ *  non-ASCII so ffmpeg drawtext gets clean safe bytes.
+ *  Emojis become e.g. "(party)" so the sentiment is preserved in the movie. */
+function emojiToText(str) {
+  let out = '';
+  // Iterate by Unicode code point to handle multi-codepoint emoji
+  for (const char of String(str)) {
+    if (EMOJI_MAP[char]) {
+      out += `(${EMOJI_MAP[char]})`;
+    } else if (char.charCodeAt(0) < 128) {
+      out += char; // plain ASCII — keep as-is
+    }
+    // else: non-ASCII non-mapped char (unknown emoji, accented letters, etc.) — dropped
+  }
+  return out;
+}
+
+/** Strip characters unsafe for ffmpeg drawtext, converting known emoji to
+ *  short text labels first, then collapsing whitespace.
+ *  Guards against null/undefined so they never render literally as "null". */
+const cleanText = s => {
+  if (s == null) return '';
+  return emojiToText(String(s))
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+};
 
 // Monotonic counter so every textfile in a render has a unique name.
 let _textFileSeq = 0;
@@ -560,17 +628,34 @@ async function renderMovie(card, msgs) {
     } catch (e) { console.warn('[movie] wall posts merge (non-fatal):', e.message); }
 
     // ── 1. Group messages by contributor ────────────────────────────────────
-    // Each contributor gets: one name+caption slide, then their media
-    const seen = new Map(); // author_name → { content, mediaItems[] }
+    // Each contributor gets: one or more name+text slides, then their media.
+    // Group by author_name. Collect ALL text segments (not just the first one)
+    // so every message the person wrote appears in the movie. Expand
+    // media_gallery (multi-photo per message) into individual mediaItems.
+    const seen = new Map(); // author_name → { name, textSegments[], mediaItems[] }
     for (const m of msgs) {
       const key = (m.author_name || 'Anonymous').trim();
-      if (!seen.has(key)) seen.set(key, { name: key, content: m.content, mediaItems: [] });
+      if (!seen.has(key)) seen.set(key, { name: key, textSegments: [], mediaItems: [] });
       const entry = seen.get(key);
-      // Use first non-null content as the caption for this person
-      if (!entry.content && m.content?.trim()) entry.content = m.content;
-      // Collect media (photos, videos) — voice notes handled separately
+
+      // Collect non-empty text segments; we'll paginate them all later
+      if (m.content?.trim()) entry.textSegments.push(m.content.trim());
+
+      // Primary media attachment
       if ((m.media_type === 'image' || m.media_type === 'video') && m.media_url) {
         entry.mediaItems.push({ type: m.media_type, url: m.media_url });
+      }
+      // Additional carousel photos from media_gallery JSONB column
+      // Format: [{url, media_type}, ...] or [url, ...] (handle both)
+      if (Array.isArray(m.media_gallery)) {
+        for (const item of m.media_gallery) {
+          if (!item) continue;
+          const url  = typeof item === 'string' ? item : item.url;
+          const type = typeof item === 'string' ? 'image' : (item.media_type || item.type || 'image');
+          if (url && (type === 'image' || type === 'video')) {
+            entry.mediaItems.push({ type, url });
+          }
+        }
       }
     }
 
@@ -676,9 +761,11 @@ async function renderMovie(card, msgs) {
     for (let ci = 0; ci < contributors.length; ci++) {
       const contrib = contributors[ci];
 
-      // Name + caption decorated slide(s) — a long message continues onto
-      // additional slides (up to 4 lines each) instead of being cut off.
-      const allLines  = contrib.content ? wrapLines(contrib.content.slice(0, MAX_TEXT)) : [];
+      // Name + caption decorated slide(s) — all text segments paginated across
+      // slides (4 lines each). Multiple messages from the same person are joined
+      // with " / " so each message is visually distinct on the slide.
+      const fullText  = (contrib.textSegments || []).join('  /  ');
+      const allLines  = fullText ? wrapLines(fullText.slice(0, MAX_TEXT)) : [];
       const pages     = chunkLines(allLines, 4);
       for (let pi = 0; pi < pages.length; pi++) {
         const captionImg = path.join(tmpDir, `slide_caption_${ci}_${pi}.png`);

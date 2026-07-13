@@ -52,10 +52,11 @@ async function runRenderJob(cardId) {
     if (cardErr) throw new Error(`Card fetch error: ${cardErr.message} (code: ${cardErr.code})`);
     if (!card) throw new Error(`Card not found in DB: ${cardId}`);
 
-    // Fetch messages with media
+    // Fetch messages with media — include media_gallery (JSONB array of additional
+    // media URLs per message) so carousel photos all make it into the movie.
     const { data: msgs, error: msgsErr } = await supabase
       .from('messages')
-      .select('id, author_name, content, media_url, media_type, is_private')
+      .select('id, author_name, content, media_url, media_type, media_gallery, is_private')
       .eq('card_id', cardId)
       .order('created_at', { ascending: true });
     if (msgsErr) throw new Error('Could not fetch messages');

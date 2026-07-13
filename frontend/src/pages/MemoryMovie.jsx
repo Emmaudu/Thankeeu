@@ -17,7 +17,6 @@ import Icon from '../components/ui/Icon'; const STEPS = [ { icon: 'Users', title
 <p className="text-lg sm:text-xl text-white/70 max-w-2xl mx-auto mb-10">Thankeeu automatically transforms every message, photo, video and voice note into a cinematic 1080p Memory Movie™ — a keepsake your loved ones will watch again and again. </p>
 <div className="flex flex-wrap gap-4 justify-center">
 <Link to="/card/new" className="px-8 py-4 rounded-2xl bg-gradient-to-r from-primary-500 to-purple-600 hover:from-primary-600 hover:to-purple-700 font-bold text-lg shadow-xl transition-all hover:scale-105">Create Your Memory → </Link>
-<Link to="/sample" className="px-8 py-4 rounded-2xl bg-white/10 hover:bg-white/20 font-bold text-lg border border-white/20 transition-all">Watch Sample Movie </Link>
 </div>
 </div>
 </section> {/* ── What it includes ── */} <section className="py-16 px-4 bg-white">

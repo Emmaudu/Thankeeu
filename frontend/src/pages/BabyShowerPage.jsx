@@ -1,6 +1,44 @@
 import { SCHEMAS } from '../hooks/useSEO';
 import OccasionHeroTemplate, { CHECK, CROSS, PAID, DEFAULT_COMP_CARDS } from './occasions/OccasionHeroTemplate';
 
+/* ─── HeroShowcase data — baby shower-specific ───────────────────────── */
+const BABY_SAMPLE_MESSAGES = [
+  { name:'Amara Thomas',  role:'Best friend',     font:'font-vibes',
+    media:'photo', photoUrl:'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=600&q=80',
+    text:"You're going to be the most incredible mum. We're all already so in love with this little one. Congratulations!",
+    avatar:'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=120&h=120&fit=crop&crop=face' },
+  { name:'Ngozi Adeleke', role:'Office colleague', font:'font-dancing',
+    media:'gif', gifUrl:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
+    text:'From the whole office — we cannot wait to meet the newest member of the team! So excited for you both.',
+    avatar:'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face' },
+  { name:'Sola Briggs',   role:'Family',           font:'font-dancing',
+    media:'voice',
+    text:"This baby is already the most loved person we know. You have got an entire village cheering for you.",
+    avatar:'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face' },
+  { name:'Kemi Ihejirika', role:'Friend',          font:'font-sacramento',
+    media:'gif', gifUrl:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif',
+    text:'Auntie Kemi is already practicing her babysitting skills. Cannot wait to meet them! 🍼',
+    avatar:'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face' },
+];
+
+const BABY_DEMO_MESSAGES = [
+  { initials:'AT', name:'Amara T.', color:'#DB2777', bg:'#FCE7F3',
+    text:"You're going to be the most incredible mum. We're all already so in love with this little one 💕",
+    gif:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
+  { initials:'NA', name:'Ngozi A.', color:'#7C3AED', bg:'#EDE9FE',
+    text:"From the whole office — we cannot wait to meet the newest member of the team! So excited 🎉",
+    gif:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
+  { initials:'SB', name:'Sola B.',  color:'#0D9488', bg:'#CCFBF1',
+    text:"This baby is already the most loved person we know. You have an entire village cheering for you 🙏",
+    gif:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
+  { initials:'KI', name:'Kemi I.',  color:'#92400E', bg:'#FEF3C7',
+    text:"Sending this from 5,000 miles away with all my heart. You and baby are going to be amazing ❤️",
+    gif:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
+  { initials:'BD', name:'Bolu D.',  color:'#1D4ED8', bg:'#DBEAFE',
+    text:"Every naira here is wrapped in so much love. Enjoy every bit of it — you deserve it all! 👶",
+    gif:'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
+];
+
 /* ─── Hero slides ───────────────────────────────────────────────────── */
 const SLIDES = [
   {
@@ -124,6 +162,8 @@ export default function BabyShowerPage() {
       finalCtaEmoji="👶"
       finalCtaHeadline={<>Celebrate the new arrival<br/>with everyone who loves her.</>}
       finalCtaSubline="Free to create. The whole group signs. Pooled gift collected automatically."
+      sampleMessages={BABY_SAMPLE_MESSAGES}
+      demoMessages={BABY_DEMO_MESSAGES}
     />
   );
 }

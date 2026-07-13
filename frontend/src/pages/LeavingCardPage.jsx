@@ -6,6 +6,45 @@ import { convertFromNGN, getCurrency } from '../utils/currency';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
+import HeroShowcase from '../components/HeroShowcase';
+
+/* ─── HeroShowcase data — farewell-specific ──────────────────────────── */
+const FAREWELL_SAMPLE_MESSAGES = [
+  { name:'Emma Clarke',   role:'Director of People',   font:'font-vibes',
+    media:'photo', photoUrl:'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80',
+    text:"You've been the glue holding this team together for three incredible years. Wishing you every success.",
+    avatar:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face' },
+  { name:'Tunde Bakare',  role:'Operations Lead',      font:'font-dancing',
+    media:'gif', gifUrl:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
+    text:"You are the reason the ops team runs as smoothly as it does. Wherever you go next is lucky to have you.",
+    avatar:'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face' },
+  { name:'Sarah Chen',    role:'Head of Design',       font:'font-dancing',
+    media:'voice',
+    text:"You have the rarest combination — impeccable taste and genuine humility. Going to miss you every single day.",
+    avatar:'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face' },
+  { name:'Marcus Williams',role:'Sales Director',      font:'font-sacramento',
+    media:'gif', gifUrl:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif',
+    text:"You made every room better just by being in it. Whatever's next — go get it. We'll be cheering.",
+    avatar:'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face' },
+];
+
+const FAREWELL_DEMO_MESSAGES = [
+  { initials:'NG', name:'Ngozi A.',  color:'#7C3AED', bg:'#EDE9FE',
+    text:"You built this team. The culture you created will outlive your time here. Thank you for everything. 👏",
+    gif:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
+  { initials:'SO', name:'Sola B.',   color:'#0D9488', bg:'#CCFBF1',
+    text:"Meetings will honestly never be the same without your energy. We'll miss you more than words can say.",
+    gif:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
+  { initials:'TN', name:'Tunde N.',  color:'#DB2777', bg:'#FCE7F3',
+    text:"Three years of the most fun, chaotic, brilliant projects I've ever worked on. Don't be a stranger.",
+    gif:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
+  { initials:'CM', name:'Chidi M.',  color:'#92400E', bg:'#FEF3C7',
+    text:"You were always the calmest person in every storm. Thank you for steadying us all. Good luck! 🙌",
+    gif:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
+  { initials:'BD', name:'Bolu D.',   color:'#1D4ED8', bg:'#DBEAFE',
+    text:"Whatever's next is lucky to have you. We are already jealous of them. Farewell and godspeed! 🚀",
+    gif:'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
+];
 
 /* ─── Hero card preview data (farewell-specific) ─────────────────────── */
 const FAREWELL_SLIDES = [
@@ -373,6 +412,14 @@ export default function LeavingCardPage() {
           <HeroSlideshow />
         </div>
       </section>
+
+      {/* ══ HERO SHOWCASE — sample cards + interactive demo + feature cards ══ */}
+      <HeroShowcase
+        sampleMessages={FAREWELL_SAMPLE_MESSAGES}
+        demoMessages={FAREWELL_DEMO_MESSAGES}
+        ctaPath="/card/new?occasion=farewell"
+        ctaLabel="Create Leaving Card — Free"
+      />
 
       {/* ══ COMPANY LOGOS ══ */}
       <section className="py-10 px-4 overflow-hidden" style={{ background: '#FDFCFF' }}>

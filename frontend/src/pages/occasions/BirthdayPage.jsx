@@ -1,6 +1,44 @@
 import { SCHEMAS } from '../../hooks/useSEO';
 import OccasionHeroTemplate, { CHECK, CROSS, PAID, DEFAULT_COMP_CARDS } from './OccasionHeroTemplate';
 
+/* ─── HeroShowcase data — birthday-specific ──────────────────────────── */
+const BIRTHDAY_SAMPLE_MESSAGES = [
+  { name:'Jessica Morgan', role:'VP of Product',  font:'font-vibes',
+    media:'photo', photoUrl:'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?w=600&q=80',
+    text:'Working across time zones with you has been one of the highlights of this role. Happy birthday — hope your day is as bright as the energy you bring!',
+    avatar:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face' },
+  { name:'Tunde Bakare',   role:'Operations Lead', font:'font-dancing',
+    media:'gif', gifUrl:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
+    text:'You are the reason the ops team runs as smoothly as it does. Have a fantastic celebration!',
+    avatar:'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face' },
+  { name:'Sarah Chen',     role:'Head of Design',  font:'font-dancing',
+    media:'voice',
+    text:"You have the rarest combination — impeccable taste and genuine humility. Happy birthday!",
+    avatar:'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face' },
+  { name:'Marcus Williams',role:'Sales Director',  font:'font-sacramento',
+    media:'gif', gifUrl:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif',
+    text:'You make everyone around you sharper. Happy birthday to the most quietly influential person!',
+    avatar:'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face' },
+];
+
+const BIRTHDAY_DEMO_MESSAGES = [
+  { initials:'AO', name:'Adaeze O.', color:'#7C3AED', bg:'#EDE9FE',
+    text:"Happy birthday!! You're the reason our whole team smiles every day 🎂",
+    gif:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
+  { initials:'EK', name:'Emeka K.', color:'#0D9488', bg:'#CCFBF1',
+    text:"Wishing you all the joy this year, boss! You deserve every single bit of it 🎉",
+    gif:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
+  { initials:'KI', name:'Kemi I.',  color:'#DB2777', bg:'#FCE7F3',
+    text:"Another year wiser and still the coolest person in the office. Happy birthday! 🥳",
+    gif:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
+  { initials:'BD', name:'Bolu D.', color:'#92400E', bg:'#FEF3C7',
+    text:"From the whole team — we are so lucky to have you. Keep shining! ✨",
+    gif:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
+  { initials:'TN', name:'Tunde N.', color:'#1D4ED8', bg:'#DBEAFE',
+    text:"You have no idea how much we appreciate everything you do. Have an amazing day! 💪",
+    gif:'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
+];
+
 /* ─── Hero slides ───────────────────────────────────────────────────── */
 const SLIDES = [
   {
@@ -124,6 +162,8 @@ export default function BirthdayPage() {
       finalCtaEmoji="🎂"
       finalCtaHeadline={<>Make their birthday<br/>one they'll never forget.</>}
       finalCtaSubline="Free to create. The whole team signs. Delivered at exactly the right moment."
+      sampleMessages={BIRTHDAY_SAMPLE_MESSAGES}
+      demoMessages={BIRTHDAY_DEMO_MESSAGES}
     />
   );
 }

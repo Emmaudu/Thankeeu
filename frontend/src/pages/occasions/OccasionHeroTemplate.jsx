@@ -35,6 +35,7 @@ import { convertFromNGN, getCurrency } from '../../utils/currency';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Icon from '../../components/ui/Icon';
+import HeroShowcase from '../../components/HeroShowcase';
 
 /* ─── Shared pricing plans ────────────────────────────────────────────── */
 export const SHARED_PLANS = [
@@ -403,6 +404,8 @@ export default function OccasionHeroTemplate({
   /* Final CTA */
   finalCtaEmoji = '🎉',
   finalCtaHeadline, finalCtaSubline,
+  /* Hero showcase (images 1-3 from screenshots) */
+  sampleMessages, demoMessages,
 }) {
   useSEO(seoProps);
 
@@ -449,6 +452,16 @@ export default function OccasionHeroTemplate({
           <HeroSlideshow slides={slides} ctaPath={ctaPath} ctaLabel={ctaLabel} />
         </div>
       </section>
+
+      {/* ══ HERO SHOWCASE — sample cards + interactive demo + feature cards ══ */}
+      {sampleMessages && demoMessages && (
+        <HeroShowcase
+          sampleMessages={sampleMessages}
+          demoMessages={demoMessages}
+          ctaPath={ctaPath}
+          ctaLabel={ctaLabel}
+        />
+      )}
 
       {/* ════ LOGOS ════ */}
       <LogosMarquee />

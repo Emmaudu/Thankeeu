@@ -71,26 +71,43 @@ async function runRenderJob(cardId) {
       error_message:       null,
     });
 
-    // Notify the recipient that their movie is ready — but only if the card
-    // has already been delivered (status 'sent') and we have an email.
-    if (card.status === 'sent' && card.recipient_email) {
-      try {
-        // Fetch access_token separately so we don't risk the main card fetch failing
-        const { data: tokenRow } = await supabase
-          .from('cards').select('access_token').eq('id', cardId).maybeSingle();
+    // Send "movie ready" email to the recipient — but ONLY if the card has
+    // already been delivered when the render finishes.
+    //
+    // Timeline A (pre-render): render finishes before delivery.
+    //   card.status is still 'active' here -> no movieReady email.
+    //   The delivery email will instead carry hasMovie:true ("watch now").
+    //
+    // Timeline B (render at delivery / slow renders): render finishes after
+    //   delivery email was already sent -> card.status is 'sent' -> send
+    //   the separate movieReady email so the recipient gets notified.
+    //
+    // Re-fetch status now (not the stale value from job start) so we get the
+    // correct answer even if delivery happened while we were rendering.
+    try {
+      const { data: cardNow } = await supabase
+        .from('cards')
+        .select('status, recipient_email, recipient_name, slug, access_token')
+        .eq('id', cardId)
+        .maybeSingle();
+
+      if (cardNow?.status === 'sent' && cardNow?.recipient_email) {
         const { sendEmail } = require('../utils/email');
         await sendEmail({
-          to: card.recipient_email,
+          to: cardNow.recipient_email,
           template: 'movieReady',
           data: {
-            recipientName: card.recipient_name,
-            cardSlug:      card.slug,
-            accessToken:   tokenRow?.access_token || '',
+            recipientName: cardNow.recipient_name,
+            cardSlug:      cardNow.slug,
+            accessToken:   cardNow.access_token || '',
           },
         });
-      } catch (e) {
-        console.warn(`[movie] movieReady email failed for ${card.slug}:`, e.message);
+        console.log(`[movie] movieReady email sent for ${cardNow.slug}`);
+      } else {
+        console.log(`[movie] Movie done for ${card.slug} — delivery email will carry hasMovie:true (status=${cardNow?.status})`);
       }
+    } catch (e) {
+      console.warn(`[movie] movieReady email failed for ${card.slug}:`, e.message);
     }
 
   } catch (err) {
@@ -213,4 +230,4 @@ async function regenerateMovie(req, res) {
   return res.json({ status: 'queued', message: 'Regenerating Memory Movie' });
 }
 
-module.exports = { generateMovie, getMovieStatus, regenerateMovie, runMovieJob: runRenderJob };
+module.exports = { generateMovie, getMovieStatus, regenerateMovie, runMovieJob: runRenderJob, activeJobs };

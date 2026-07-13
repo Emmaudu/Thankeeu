@@ -381,6 +381,12 @@ async function deliverCard(card) {
     const { count } = await supabase.from('messages')
       .select('*', { count: 'exact', head: true }).eq('card_id', fresh.id);
 
+    // 3b. Check if the movie was pre-rendered before delivery.
+    //     The pre-render cron fires ~45 min before send_date so the movie is
+    //     often already done by the time this delivery email goes out.
+    const movieAlreadyDone = fresh.movie_status === 'completed';
+    const hasMessages      = (count || 0) > 0;
+
     // 4. Send delivery email
     await sendEmail({
       to: fresh.recipient_email,
@@ -400,25 +406,34 @@ async function deliverCard(card) {
         giftAmount:    (fresh.total_collected || 0) > 0 ? fresh.total_collected : null,
         isCompanyCard: !!fresh.company_id,
         hasMemoryWall: ['card_and_wall','wall_only'].includes(fresh.card_experience),
-        // The movie renders AFTER this email (background job below), so at send
-        // time it is not yet ready. Signal that it's on its way instead; a
-        // separate "movie ready" email is sent when rendering completes.
-        movieComing:   (count || 0) > 0,
-        hasMovie:      false,
+        // If movie was pre-rendered before delivery -> show "Watch now" CTA.
+        // Otherwise signal it's on its way; a separate email fires when done.
+        hasMovie:    movieAlreadyDone,
+        movieComing: hasMessages && !movieAlreadyDone,
       },
     });
 
-    console.log(`[deliver] ✅ Delivered ${slug} → ${fresh.recipient_email}`);
+    console.log(`[deliver] Delivered ${slug} -> ${fresh.recipient_email}${movieAlreadyDone ? ' (movie ready)' : ''}`);
 
-    // ── Auto-generate Memory Movie in background ──────────────────────────────
-    // Fire-and-forget — never awaited, never blocks delivery, never throws.
-    // Only render when the card actually has messages to build a movie from.
+    // Trigger Memory Movie render if not already done/in-progress.
+    // Fire-and-forget: never awaited, never blocks delivery, never throws.
+    // The pre-render cron fires 45 min early so the movie is often already
+    // done here and this block just logs and returns.
     setImmediate(async () => {
       try {
-        const { count: msgCount } = await supabase.from('messages')
-          .select('*', { count: 'exact', head: true }).eq('card_id', fresh.id);
-        if (!msgCount || msgCount < 1) {
-          console.log(`[movie] Skipping auto-render for ${slug}: no messages`);
+        if (!hasMessages) {
+          console.log(`[movie] Skipping render for ${slug}: no messages`);
+          return;
+        }
+        if (movieAlreadyDone) {
+          console.log(`[movie] Skipping render for ${slug}: already completed by pre-render`);
+          return;
+        }
+        // Re-check live status in case pre-render cron fired since our fresh fetch
+        const { data: mmRow } = await supabase.from('memory_movies')
+          .select('status').eq('card_id', fresh.id).maybeSingle();
+        if (mmRow && ['completed','rendering','queued'].includes(mmRow.status)) {
+          console.log(`[movie] Skipping render for ${slug}: status=${mmRow.status}`);
           return;
         }
         const { runMovieJob } = require('./controllers/movieController');
@@ -505,6 +520,91 @@ cron.schedule('* * * * *', async () => {
   try { await autoSendDueCards(); }
   catch (err) { console.error('[auto-send cron] Unhandled error:', err.message); }
 });
+
+// ── Memory Movie pre-render cron ─────────────────────────────────────────────
+// Runs every 5 minutes. Finds cards delivering in the next 45 minutes that
+// have messages but haven't had their movie started yet. Kicks off the render
+// early so the movie is ready (or nearly so) by the time the card lands in the
+// recipient's inbox — no manual generate button needed, no "coming soon" email.
+cron.schedule('*/5 * * * *', async () => {
+  try { await preRenderUpcomingMovies(); }
+  catch (err) { console.error('[pre-render cron] Unhandled error:', err.message); }
+});
+
+async function preRenderUpcomingMovies() {
+  const now  = new Date();
+  const soon = new Date(now.getTime() + 45 * 60 * 1000); // 45 min window
+
+  // Find active, undelivered cards with a send_date in the next 45 minutes
+  // whose movie hasn't been started (movie_status is null, 'none', or 'failed').
+  // We exclude 'queued', 'rendering', 'completed' to avoid duplicate jobs.
+  const { data: cards, error } = await supabase
+    .from('cards')
+    .select('id, slug, movie_status, movie_pre_render_at, recipient_email')
+    .eq('status', 'active')
+    .eq('recipient_notified', false)
+    .not('recipient_email', 'is', null)
+    .not('send_date', 'is', null)
+    .gte('send_date', now.toISOString())
+    .lte('send_date', soon.toISOString());
+
+  if (error) {
+    console.error('[pre-render] Query error:', error.message);
+    return;
+  }
+
+  const eligible = (cards || []).filter(c => {
+    if (!c.movie_status || c.movie_status === 'none') return true;
+    if (c.movie_status === 'failed') {
+      // Only retry a previously failed card if it's been at least 10 minutes
+      // since the last attempt — avoids hammering a broken card every 5 min.
+      if (!c.movie_pre_render_at) return true;
+      const msSinceLast = Date.now() - new Date(c.movie_pre_render_at).getTime();
+      return msSinceLast > 10 * 60 * 1000;
+    }
+    return false; // queued/rendering/completed — skip
+  });
+
+  if (!eligible.length) return;
+  console.log(`[pre-render] ${eligible.length} card(s) due within 45 min, checking messages...`);
+
+  const { runMovieJob, activeJobs } = require('./controllers/movieController');
+
+  for (const card of eligible) {
+    try {
+      // Skip if already in the in-memory job queue (e.g. previous cron tick)
+      if (activeJobs && activeJobs.has(card.id)) {
+        console.log(`[pre-render] ${card.slug}: already queued in memory`);
+        continue;
+      }
+
+      // Only render if there are actual messages to build a movie from
+      const { count } = await supabase.from('messages')
+        .select('*', { count: 'exact', head: true }).eq('card_id', card.id);
+      if (!count || count < 1) {
+        console.log(`[pre-render] ${card.slug}: no messages, skipping`);
+        continue;
+      }
+
+      console.log(`[pre-render] Kicking off movie for ${card.slug} (${count} messages, delivers within 45 min)`);
+
+      // Stamp the attempt time before firing so repeated cron ticks don't
+      // re-queue a 'failed' card more than once every 10 minutes.
+      await supabase.from('cards')
+        .update({ movie_pre_render_at: new Date().toISOString() })
+        .eq('id', card.id)
+        .catch(() => {}); // non-fatal if column doesn't exist yet
+
+      // Fire-and-forget — don't await, cron must not block
+      runMovieJob(card.id).catch(e =>
+        console.warn(`[pre-render] render failed for ${card.slug}:`, e.message)
+      );
+    } catch (e) {
+      console.warn(`[pre-render] Error processing ${card.slug}:`, e.message);
+    }
+  }
+}
+
 
 cron.schedule('0 8 * * *', async () => {
   console.log('Running daily cron jobs...');

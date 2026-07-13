@@ -1024,9 +1024,9 @@ const Home = () => {
  <Navbar onBookDemo={() => setShowDemo(true)} />
 
  {/* ══ HERO ══ */}
- <section className="relative overflow-visible pt-4 pb-10 md:pt-6 md:pb-14 px-2 sm:px-4 gc-font section-dots">
+ <section className="relative overflow-visible pt-2 pb-10 md:pt-3 md:pb-14 px-2 sm:px-4 gc-font section-dots">
 
- <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-32 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
+ <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-16 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
 
  <div className="relative max-w-6xl mx-auto">
  <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
@@ -1045,7 +1045,7 @@ const Home = () => {
  {ROTATING_WORDS[wordIndex]}
  </span>
  <br />
- <span style={{ color:'#1A1035' }}>Card &amp; Get Real-time Guest Shots Online</span>
+ <span style={{ color:'#1A1035' }}>Card &amp; Collect Real-time Guests Shots Online</span>
  </h1>
 
  <p className="text-warm-600 mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.1rem,2.4vw,1.3rem)', lineHeight:1.6 }}>

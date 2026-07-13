@@ -274,7 +274,7 @@ async function makeNameCaptionSlide(opts, outPath) {
   const decoratedBg = buildDecoratedBg(occasionWord, baseColour);
 
   // Foreground text layers
-  const nameSafe    = escFF(name || 'A friend');
+  const nameSafe    = escFF(name || 'A friend') || 'A friend';
   const lines       = caption ? wrapLines(caption.slice(0, MAX_TEXT)) : [];
   const lineCount   = lines.length;
 
@@ -312,7 +312,7 @@ async function makeNameCaptionSlide(opts, outPath) {
  */
 async function makeTitleSlide(occasionWord, recipientName, outPath) {
   const decoratedBg = buildDecoratedBg(occasionWord, '0d0020');
-  const occ  = escFF(occasionWord);
+  const occ  = escFF(occasionWord) || 'Celebration';
   const name = escFF(recipientName || '');
 
   await ff([
@@ -332,15 +332,32 @@ async function makeTitleSlide(occasionWord, recipientName, outPath) {
  */
 async function makeSignaturesSlide(names, occasionWord, outPath) {
   const decoratedBg = buildDecoratedBg(occasionWord, '1a0533');
-  const nameList    = escFF(names.slice(0, 12).join('  ·  '));
+
+  // Split names into rows of up to 4 to avoid very long drawtext strings
+  // that can overflow FFmpeg's filter string buffer on large cards.
+  const safeNames = names.slice(0, 16).map(n => escFF(n));
+  const rows = [];
+  for (let i = 0; i < safeNames.length; i += 4) {
+    rows.push(safeNames.slice(i, i + 4).join('  ·  '));
+  }
+
+  const rowFontSize = 38;
+  const rowLineH   = 54;
+  // Centre rows below the heading
+  const headingY   = Math.round(H / 2) - 100;
+  const rowsStartY = headingY + 130;
+
+  const rowFilters = rows.map((row, i) =>
+    `drawtext=${FONT_FRAG}text='${row}':fontsize=${rowFontSize}:fontcolor=CCCCCC:x=(w-text_w)/2:y=${rowsStartY + i * rowLineH}:shadowcolor=black@0.7:shadowx=2:shadowy=2`
+  );
 
   await ff([
     '-y', '-f', 'lavfi', '-i', `color=c=0x1a0533:s=${W}x${H}:r=1:d=1`,
     '-vf', [
       decoratedBg,
-      `drawtext=${FONT_FRAG}text='Signed with love by':fontsize=72:fontcolor=FFD700:x=(w-text_w)/2:y=(h/2)-100:shadowcolor=black@0.9:shadowx=4:shadowy=4`,
-      names.length ? `drawtext=${FONT_FRAG}text='${nameList}':fontsize=38:fontcolor=CCCCCC:x=(w-text_w)/2:y=(h/2)+20:shadowcolor=black@0.7:shadowx=2:shadowy=2` : null,
-    ].filter(Boolean).join(','),
+      `drawtext=${FONT_FRAG}text='Signed with love by':fontsize=72:fontcolor=FFD700:x=(w-text_w)/2:y=${headingY}:shadowcolor=black@0.9:shadowx=4:shadowy=4`,
+      ...rowFilters,
+    ].join(','),
     '-vframes', '1', '-update', '1', outPath,
   ], 15000, 'signatures-slide');
 }

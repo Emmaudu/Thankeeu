@@ -1518,7 +1518,7 @@ const CardView = () => {
           )}
 
           {/* Box 2 — Private view link (recipient + creator only) */}
-          {(canViewPrivate && (card.access_token || card.isCreator)) && (
+          {(card.isCreator || card.isRecipient) && (card.access_token || card.isCreator) && (
             <div className="rounded-2xl border border-purple-100 bg-white p-4 sm:p-5">
               <p className="text-xs font-extrabold tracking-[.15em] uppercase text-warm-400 mb-1">👁 Private view link — for you and {card.recipient_name} only</p>
               <p className="text-sm text-warm-600 mb-3">

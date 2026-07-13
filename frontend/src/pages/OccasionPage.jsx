@@ -140,7 +140,7 @@ export default function OccasionPage() {
  );
  }
 
- useSEO({ title: data.seo.title, description: data.seo.desc, canonical: `/occasions/${occasion}`, keywords: data.seo.keywords || '' });
+ useSEO({ title: data?.seo?.title || data?.title || "Thankeeu", description: data?.seo?.desc || "", canonical: `/occasions/${occasion}`, keywords: data.seo.keywords || '' });
 
  const { example } = data;
  const giftFmt = (n) => n > 0 ? `₦${n.toLocaleString()}` : null;

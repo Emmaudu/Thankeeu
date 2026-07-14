@@ -10,15 +10,15 @@ import { format, differenceInDays } from 'date-fns';
 import { companyPath, getWorkspaceUrl } from '../../utils/workspace';
 
 const statCard = (icon, label, value, sub, accent) => (
-  <div key={label} className="rounded-2xl p-5 border-2"
+  <div key={label} className="rounded-2xl p-4 border-2 min-w-0"
     style={{ background: accent ? 'rgba(124,110,255,0.06)' : '#fff', borderColor: accent ? 'rgba(124,110,255,0.22)' : '#EDE9FF' }}>
-    <div className="flex items-start justify-between mb-2">
-      <div>
-        <p className="text-xs font-medium mb-1" style={{ color: '#7A7898' }}>{label}</p>
-        <p className="text-2xl font-bold" style={{ fontFamily: 'Space Grotesk,sans-serif', color: accent ? '#5B4BDF' : '#1A1730' }}>{value}</p>
-        {sub && <p className="text-xs mt-0.5" style={{ color: '#9490C8' }}>{sub}</p>}
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium mb-1 leading-tight break-words" style={{ color: '#7A7898' }}>{label}</p>
+        <p className="text-lg sm:text-xl font-bold leading-tight break-words" style={{ fontFamily: 'Space Grotesk,sans-serif', color: accent ? '#5B4BDF' : '#1A1730' }}>{value}</p>
+        {sub && <p className="text-[11px] mt-1 leading-tight break-words" style={{ color: '#9490C8' }}>{sub}</p>}
       </div>
-      <span className="text-2xl">{icon}</span>
+      <span className="text-xs font-bold rounded-lg px-2 py-1 flex-shrink-0" style={{ background: '#F5F3FF', color: '#5B4BDF' }}>{icon}</span>
     </div>
   </div>
 );
@@ -111,7 +111,7 @@ const CompanyDashboard = () => {
         <div className="mb-5 space-y-2">
           {scopeApprovals.map(card => (
             <div key={card.id} className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-              <span className="text-2xl flex-shrink-0">Company</span>
+              <span className="text-xs font-bold rounded-lg px-2 py-1 flex-shrink-0" style={{ background: '#FEF3C7', color: '#92400E' }}>Company</span>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-amber-800 text-sm">Approval needed: Company-wide notification</p>
                 <p className="text-xs text-amber-600 mt-0.5">
@@ -207,7 +207,7 @@ const CompanyDashboard = () => {
       )}
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 mb-6">
         {loading
           ? [...Array(4)].map((_,i) => <div key={i} className="rounded-2xl h-24 animate-pulse" style={{ background: '#EDE9FF' }} />)
           : [
@@ -233,7 +233,7 @@ const CompanyDashboard = () => {
             <div className="p-4 space-y-3">{[...Array(4)].map((_,i) => <div key={i} className="h-12 rounded-xl animate-pulse" style={{ background: '#F5F3FF' }} />)}</div>
           ) : upcoming.length === 0 ? (
             <div className="p-8 text-center">
-              <div className="text-4xl mb-2">Calendar</div>
+              <div className="text-base font-bold mb-2" style={{ color: '#7A7898' }}>Calendar</div>
               <p className="text-sm" style={{ color: '#7A7898' }}>No upcoming occasions in the next 30 days</p>
             </div>
           ) : (
@@ -243,14 +243,14 @@ const CompanyDashboard = () => {
                 const days = occ.days_until ?? occ.daysUntil ?? 0;
                 const urgent = days <= 3;
                 return (
-                  <div key={i} className="flex items-center gap-3 px-5 py-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                  <div key={i} className="flex items-center gap-3 px-4 sm:px-5 py-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-bold leading-tight text-center px-1 flex-shrink-0"
                       style={{ background: urgent ? 'rgba(239,68,68,0.08)' : '#F5F3FF' }}>
                       {occ.occasion_type === 'birthday' ? 'Birthday' : occ.occasion_type === 'leaving' ? 'Farewell' : occ.occasion_type === 'promotion' ? 'Promotion' : occ.occasion_type === 'fathers_day' ? 'Fathers Day' : occ.occasion_type === 'womens_day' ? 'Womens Day' : 'Occasion'}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold truncate" style={{ color: '#1A1730' }}>{occ.name || `${occ.first_name||''} ${occ.last_name||''}`.trim()}</p>
-                      <p className="text-xs" style={{ color: '#7A7898' }}>{occ.label || occ.occasion_type?.replace(/_/g,' ')} - {occ.department}</p>
+                      <p className="text-xs truncate" style={{ color: '#7A7898' }}>{occ.label || occ.occasion_type?.replace(/_/g,' ')} - {occ.department}</p>
                     </div>
                     <span className="text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0"
                       style={{ background: urgent ? 'rgba(239,68,68,0.1)' : 'rgba(124,110,255,0.1)', color: urgent ? '#dc2626' : '#5B4BDF' }}>
@@ -284,18 +284,18 @@ const CompanyDashboard = () => {
           </div>
 
           {/* Quick links */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {[
               { to: companyPath('/teams'), icon: 'Event', label: 'Manage occasions', sub: 'Add birthday dates' },
               { to: companyPath('/members'), icon: 'Team', label: 'Team members', sub: 'Import & approve' },
               { to: companyPath('/hris'), icon: 'Sync', label: 'HRIS sync', sub: 'Connect SeamlessHR' },
               { to: companyPath('/subscription'), icon: 'Billing', label: 'Subscription', sub: isSubscribed ? (neverExpires ? 'Active - No expiry' : `${daysLeft}d remaining`) : 'Not active' },
             ].map(({ to, icon, label, sub }) => (
-              <Link key={to} to={to} className="rounded-2xl p-4 border-2 hover:shadow-sm transition-all block"
+              <Link key={to} to={to} className="rounded-2xl p-4 border-2 hover:shadow-sm transition-all block min-w-0"
                 style={{ background: '#fff', borderColor: '#EDE9FF' }}>
-                <span className="text-2xl block mb-2">{icon}</span>
-                <p className="text-xs font-semibold" style={{ color: '#1A1730' }}>{label}</p>
-                <p className="text-xs mt-0.5" style={{ color: '#9490C8' }}>{sub}</p>
+                <span className="inline-flex max-w-full rounded-lg px-2 py-1 text-[11px] font-bold leading-tight" style={{ background: '#F5F3FF', color: '#5B4BDF' }}>{icon}</span>
+                <p className="text-xs font-semibold mt-2 leading-tight break-words" style={{ color: '#1A1730' }}>{label}</p>
+                <p className="text-[11px] mt-1 leading-tight break-words" style={{ color: '#9490C8' }}>{sub}</p>
               </Link>
             ))}
           </div>

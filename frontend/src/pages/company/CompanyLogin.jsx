@@ -9,7 +9,7 @@ import { companyPath } from '../../utils/workspace';
 
 const CompanyLogin = () => {
   useSEO({
-    title:       'Company Sign In — Thankeeu for Teams',
+    title:       'Company Sign In - Thankeeu for Teams',
     description: 'Sign in to your Thankeeu for Teams HR dashboard to manage employee occasion cards.',
     canonical:   '/company/login',
     jsonLd:      [SCHEMAS.organization, SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Company Sign In', url: '/company/login' }])],
@@ -48,17 +48,17 @@ const CompanyLogin = () => {
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
-              🏢 For Teams
+              For Teams
             </div>
-            <h1 className="text-3xl font-semibold text-warm-900 mb-2">Company sign in</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold text-warm-900 mb-2 leading-tight">Company sign in</h1>
             <p className="text-warm-500 text-sm">Access your HR dashboard</p>
           </div>
 
-        <div className="bg-white rounded-3xl shadow-xl p-8 border border-purple-100">
+        <div className="bg-white rounded-3xl shadow-xl p-5 sm:p-8 border border-purple-100">
           <form onSubmit={handleSubmit} className="space-y-5">
           {searchParams.get('reason') === 'session_expired' && (
             <div className="mb-4 px-4 py-3 rounded-xl text-sm font-medium bg-amber-50 border border-amber-200 text-amber-800">
-              ⏱️ Your session expired due to inactivity. Please sign in again.
+              Your session expired due to inactivity. Please sign in again.
             </div>
           )}
 
@@ -92,7 +92,7 @@ const CompanyLogin = () => {
           </p>
           <p className="text-center text-xs text-warm-700 mt-2">
             Personal account?{' '}
-            <Link to="/login" className="text-primary-400 font-medium">Sign in here →</Link>
+            <Link to="/login" className="text-primary-400 font-medium">Sign in here</Link>
           </p>
         </div>
       </div>

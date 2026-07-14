@@ -11,8 +11,8 @@ const INDUSTRIES = ['Technology','Finance & Banking','Healthcare','Education','M
 
 const CompanySignup = () => {
   useSEO({
-    title:       'Thankeeu for Teams — Automate Employee Recognition Cards',
-    description: 'Group cards for every employee milestone — birthdays, farewells, work anniversaries, promotions. Automated, beautiful, and pooled gifts. HRIS integration included. Free trial.',
+    title:       'Thankeeu for Teams - Automate Employee Recognition Cards',
+    description: 'Group cards for every employee milestone - birthdays, farewells, work anniversaries, promotions. Automated, beautiful, and pooled gifts. HRIS integration included. Free trial.',
     keywords:    'employee recognition cards Nigeria, HR group card platform, birthday card automation employees, team farewell card Nigeria, HRIS group card',
     canonical:   '/company/signup',
     jsonLd:      [
@@ -42,7 +42,7 @@ const CompanySignup = () => {
     setLoading(true);
     try {
       const data = await signup(form);
-      toast.success('Company account created! Welcome to Thankeeu for Teams 🎉');
+      toast.success('Company account created! Welcome to Thankeeu for Teams');
       if (data.workspace_url && window.location.origin !== data.workspace_url) return;
       navigate(companyPath('/dashboard'));
     } catch (err) {
@@ -55,9 +55,9 @@ const CompanySignup = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
-            🏢 For Teams
+            For Teams
           </div>
-          <h1 className="text-3xl font-semibold text-warm-900 mb-2">Create a company account</h1>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-warm-900 mb-2 leading-tight">Create a company account</h1>
           <p className="text-warm-500 text-sm">Automate birthday celebrations for your entire team</p>
         </div>
 
@@ -68,7 +68,7 @@ const CompanySignup = () => {
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                 s < step ? 'bg-primary-400 text-white' : s === step ? 'bg-primary-400 text-white ring-4 ring-primary-100' : 'bg-gray-200 text-warm-500'
               }`}>
-                {s < step ? '✓' : s}
+                {s < step ? 'OK' : s}
               </div>
               <span className={`text-xs font-medium ${s <= step ? 'text-warm-800' : 'text-warm-700'}`}>
                 {s === 1 ? 'Company info' : 'Account setup'}
@@ -78,7 +78,7 @@ const CompanySignup = () => {
           ))}
         </div>
 
-        <div className="bg-white rounded-3xl shadow-xl p-8 border border-purple-100">
+        <div className="bg-white rounded-3xl shadow-xl p-5 sm:p-8 border border-purple-100">
           {step === 1 ? (
             <div className="space-y-4">
               <div>
@@ -100,7 +100,7 @@ const CompanySignup = () => {
                 <label className="block text-sm font-medium text-warm-700 mb-1.5">Phone number</label>
                 <input className="input" placeholder="+234 800 000 0000" value={form.phone} onChange={e => set('phone', e.target.value)} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-warm-700 mb-1.5">City</label>
                   <input className="input" placeholder="e.g. Lagos, Abuja" value={form.city} onChange={e => set('city', e.target.value)} />
@@ -116,7 +116,7 @@ const CompanySignup = () => {
                 <p className="text-xs text-warm-700 mt-1">You can add more branches later from Settings</p>
               </div>
               <button onClick={handleNext} className="btn-primary w-full py-3.5">
-                Continue →
+                Continue
               </button>
             </div>
           ) : (
@@ -133,7 +133,7 @@ const CompanySignup = () => {
                 </div>
               </div>
               <div className="bg-primary-50 rounded-xl p-3 text-xs text-primary-700">
-                <p className="font-semibold mb-1">📋 What happens next:</p>
+                <p className="font-semibold mb-1">What happens next:</p>
                 <ul className="space-y-1 list-disc pl-4">
                   <li>Download the team data template</li>
                   <li>Fill in employee details and upload</li>
@@ -141,9 +141,9 @@ const CompanySignup = () => {
                 </ul>
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setStep(1)} className="btn-secondary px-4">← Back</button>
+                <button type="button" onClick={() => setStep(1)} className="btn-secondary px-4">Back</button>
                 <button type="submit" disabled={loading} className="btn-primary flex-1 py-3.5">
-                  {loading ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creating...</span> : 'Create company account 🏢'}
+                  {loading ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creating...</span> : 'Create company account'}
                 </button>
               </div>
             </form>
@@ -155,7 +155,7 @@ const CompanySignup = () => {
           </p>
           <p className="text-center text-xs text-warm-700 mt-2">
             Individual user?{' '}
-            <Link to="/signup" className="text-primary-400 font-medium">Personal account →</Link>
+            <Link to="/signup" className="text-primary-400 font-medium">Personal account</Link>
           </p>
         </div>
       </div>

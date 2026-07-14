@@ -43,7 +43,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
 
   const handleLogout = () => {
     if (isViaCoreTeam) {
-      // This is a temporary HR session for a core team member — clear just
+      // This is a temporary HR session for a core team member - clear just
       // the temporary company token and return to their own dashboard,
       // rather than the full company logout (they don't have HR credentials
       // to log back in with at /company/login).
@@ -95,7 +95,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
         </div>
       </div>
 
-      {/* ─── Core team: switch back to own member dashboard ─── */}
+      {/* Core team: switch back to own member dashboard */}
       {isViaCoreTeam && (
         <div className="px-3 pb-1 flex-shrink-0">
           <button
@@ -106,7 +106,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
             }}
             className="w-full flex items-center gap-2.5 py-2.5 px-3 rounded-xl text-sm font-semibold transition-all cursor-pointer"
             style={{ background:'rgba(124,110,255,0.12)', color:'#9D95FF', border:'1.5px solid rgba(124,110,255,0.25)' }}>
-            <span className="text-base">👤</span>
+            <span className="text-xs font-bold">HR</span>
             <span>Switch back to my dashboard</span>
           </button>
         </div>
@@ -115,14 +115,14 @@ const CompanyLayout = ({ children, title, subtitle }) => {
       {/* Nav */}
       
 
-      {/* ─── Sign Out — above nav for easy access ─── */}
+      {/* Sign out - above nav for easy access */}
       <div className="px-3 pt-1 pb-2 flex-shrink-0">
         <button onClick={handleLogout}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all"
           style={{ fontSize:15, color:'#FF8A80', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)' }}
           onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
           onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}>
-          <span style={{fontSize:18}}>🚪</span>
+          <span className="text-xs font-bold">Exit</span>
           <span>{isViaCoreTeam ? 'Exit HR view' : 'Sign out'}</span>
         </button>
       </div>
@@ -159,13 +159,13 @@ const CompanyLayout = ({ children, title, subtitle }) => {
           return isPilot ? (
             <div className="w-full py-2.5 rounded-xl text-sm font-semibold text-center"
               style={{ background: 'linear-gradient(135deg,#059669,#10B981)', color: '#fff' }}>
-              🧪 Pilot — {pilotDays}d left
+              Pilot - {pilotDays}d left
             </div>
           ) : (
             <Link to={companyPath('/subscription')}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold"
               style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff', boxShadow: '0 2px 10px rgba(92,75,223,0.35)' }}>
-              💳 Manage subscription
+              Manage subscription
             </Link>
           );
         })()}
@@ -203,7 +203,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
           style={{ background:'rgba(245,243,255,0.98)', backdropFilter:'blur(8px)', borderBottom:'1px solid #EDE9FF', height:56 }}>
           <button onClick={() => setMobileOpen(true)}
             style={{ width:44, height:44, borderRadius:12, border:'none', background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', boxShadow:'0 2px 8px rgba(92,75,223,0.3)' }}>
-            ☰
+            Menu
           </button>
           <span style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, color:'#1A1730', fontSize:15 }}>
             Thank<span style={{ color:'#7C6EFF' }}>eeu</span> <span style={{ color:'#9CA3AF', fontWeight:500, fontSize:12 }}>HR</span>
@@ -215,8 +215,8 @@ const CompanyLayout = ({ children, title, subtitle }) => {
         <div className="px-4 md:px-8 py-4 md:py-8">
           {(title || subtitle) && (
             <div className="mb-6">
-              {title && <h1 style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, fontSize: 'clamp(1.1rem,4vw,1.5rem)', color: '#1A1730' }}>{title}</h1>}
-              {subtitle && <p className="text-sm mt-1" style={{ color: '#7A7898' }}>{subtitle}</p>}
+              {title && <h1 className="break-words leading-tight" style={{ fontFamily: 'Space Grotesk,sans-serif', fontWeight: 700, fontSize: 'clamp(1.1rem,4vw,1.5rem)', color: '#1A1730' }}>{title}</h1>}
+              {subtitle && <p className="text-sm mt-1 break-words max-w-3xl" style={{ color: '#7A7898' }}>{subtitle}</p>}
             </div>
           )}
           {children}

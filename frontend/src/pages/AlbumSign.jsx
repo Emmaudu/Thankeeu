@@ -17,7 +17,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
-import { cardsAPI, messagesAPI, paymentsAPI, visitorsAPI } from '../utils/api';
+import { cardsAPI, messagesAPI, paymentsAPI, visitorsAPI, vendorAPI } from '../utils/api';
 import { FONT_STYLES, getFontStyle, getCardDesign } from '../utils/cardDesigns';
 import VoiceRecorder from '../components/VoiceRecorder';
 import EmojiPicker from '../components/EmojiPicker';
@@ -405,6 +405,15 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [customAmount,   setCustomAmount]   = useState('');
   const [giftCurrency,   setGiftCurrency]   = useState('NGN');
+  const [giftMode,       setGiftMode]       = useState('money'); // 'money' | 'product'
+  const [vendors,        setVendors]        = useState([]);
+  const [vendorFilter,   setVendorFilter]   = useState({ country: '', category: '' });
+  const [selectedVendor, setSelectedVendor] = useState(null);
+  const [vendorProducts, setVendorProducts] = useState([]);
+  const [selectedProduct,setSelectedProduct]= useState(null);
+  const [productSubmitting, setProductSubmitting] = useState(false);
+  const [productImgIdx,  setProductImgIdx]  = useState(0);
+  const [allSignersOpen, setAllSignersOpen] = useState(true);
 
   const signedInName  = user?.full_name||(member?`${member.first_name} ${member.last_name}`.trim():null)||company?.contact_person||'';
   const signedInEmail = user?.email||member?.email||company?.email||'';
@@ -541,6 +550,74 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     }else{setForm(p=>({...p,content:p.content+emoji}));}
     setShowEmoji(false);
   },[]);
+
+  // ─ Load vendors for product gifting ─
+  const loadVendors = async (country = '', category = '') => {
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const params = new URLSearchParams();
+      if (country)  params.set('country', country);
+      if (category) params.set('category', category);
+      const res = await fetch(`${base}/vendor/public?${params}`);
+      const d   = await res.json();
+      setVendors(d || []);
+    } catch { toast.error('Could not load gift vendors'); }
+  };
+
+  // ─ Product gift submit ─
+  const handleProductGift = async () => {
+    if (!selectedProduct) return toast.error('Please select a product');
+    if (!selectedVendor)  return toast.error('Please select a vendor');
+    if (!form.author_name.trim())  return toast.error('Please add your name');
+    if (!form.author_email.trim()) return toast.error('Email is required');
+    if (!form.content.trim())      return toast.error('Please write a message');
+    setProductSubmitting(true);
+    try {
+      const newPageNum = isNewStyle ? messages.length + 1 : Math.ceil((messages.length + 1) / MSGS_PER_PAGE);
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      fd.append('position_x', isNewStyle ? 50 : defaultPosition(messages.length).x);
+      fd.append('position_y', isNewStyle ? 50 : defaultPosition(messages.length).y);
+      fd.append('rotation',   defaultPosition(messages.length).rot);
+      fd.append('page_number', newPageNum);
+      fd.append('gift_type', 'product');
+      fd.append('product_vendor_id',   selectedVendor.id);
+      fd.append('product_vendor_name', selectedVendor.business_name);
+      fd.append('product_id',    selectedProduct.id);
+      fd.append('product_name',  selectedProduct.name);
+      fd.append('product_price', selectedProduct.price);
+      if (!isSignedIn) fd.append('is_guest', 'true');
+      mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
+      const msgRes = await messagesAPI.add(slug, fd);
+      const messageId = msgRes.data?.id;
+      if (messageId) setMyMsgIds(prev => [...prev, messageId]);
+      const refreshed = await cardsAPI.getPublic(slug);
+      setCard(refreshed.data);
+
+      // Place order + FLW payment
+      const orderRes = await vendorAPI.checkout(selectedVendor.slug, {
+        items: [{ product_id: selectedProduct.id, quantity: 1 }],
+        customer_name:  form.author_name.trim(),
+        customer_email: form.author_email.trim(),
+        card_slug:      slug,
+      });
+      const { payment_link } = orderRes.data;
+      if (payment_link) {
+        toast.success('Redirecting to pay for your gift...');
+        window.location.href = payment_link;
+      } else {
+        toast.success('Gift order placed! The vendor will contact you to arrange delivery. 🎁');
+        const newMsgs = (refreshed.data?.messages || []).filter(Boolean);
+        flipTo(newMsgs.length, 'forward');
+        setShowEditor(false);
+        setForm(p => ({ ...p, content: '' }));
+        setMediaFiles([]);
+        setSubmitted(true);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send product gift');
+    } finally { setProductSubmitting(false); }
+  };
 
   // ─ Submit ─
   const handleSubmit = async()=>{
@@ -743,6 +820,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
         <div className="hidden md:block" style={{paddingLeft:24}}>
           <SidebarContent card={card} slug={slug} myMsgIds={myMsgIds}
             signaturesOpen={signaturesOpen} setSignaturesOpen={setSignaturesOpen}
+            allSignersOpen={allSignersOpen} setAllSignersOpen={setAllSignersOpen}
             onContribute={()=>setShowEditor(true)}
             selectedAmount={selectedAmount} setSelectedAmount={setSelectedAmount}
             customAmount={customAmount} setCustomAmount={setCustomAmount}
@@ -758,6 +836,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
             <button onClick={()=>setMobileSidebar(false)} style={{float:'right',background:'none',border:'none',cursor:'pointer',fontSize:20,color:'#6B7280'}}>✕</button>
             <SidebarContent card={card} slug={slug} myMsgIds={myMsgIds}
               signaturesOpen={signaturesOpen} setSignaturesOpen={setSignaturesOpen}
+              allSignersOpen={allSignersOpen} setAllSignersOpen={setAllSignersOpen}
               onContribute={()=>{setMobileSidebar(false);setShowEditor(true);}}
               selectedAmount={selectedAmount} setSelectedAmount={setSelectedAmount}
               customAmount={customAmount} setCustomAmount={setCustomAmount}
@@ -837,20 +916,112 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                     {card.total_collected>0&&!card.hide_amounts&&<p style={{fontSize:12,color:'#059669',fontWeight:700,margin:'2px 0 0'}}>Gift pot so far: {formatNGN(card.total_collected)} 🎉</p>}
                   </div>
                 </div>
-                <button type="button" onClick={()=>{setSelectedAmount(null);setCustomAmount('');}}
-                  style={{width:'100%',marginBottom:8,padding:8,borderRadius:10,border:`2px solid ${!selectedAmount&&!customAmount?'#92400E':'#FDE68A'}`,background:!selectedAmount&&!customAmount?'#92400E':'#fff',color:!selectedAmount&&!customAmount?'#fff':'#92400E',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                  No gift this time
-                </button>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:8}}>
-                  {AMOUNTS_NGN.map(a=>(
-                    <button key={a} type="button" onClick={()=>{setSelectedAmount(a);setCustomAmount('');}}
-                      style={{padding:'8px 4px',borderRadius:10,border:`2px solid ${selectedAmount===a&&!customAmount?'#F59E0B':'#FDE68A'}`,background:selectedAmount===a&&!customAmount?'#F59E0B':'#fff',color:selectedAmount===a&&!customAmount?'#fff':'#92400E',fontWeight:700,fontSize:12,cursor:'pointer'}}>
-                      {formatNGN(a)}
-                    </button>
-                  ))}
+
+                {/* Gift mode toggle */}
+                <div style={{display:'flex',gap:8,marginBottom:14}}>
+                  <button type="button" onClick={()=>setGiftMode('money')}
+                    style={{flex:1,padding:'9px 4px',borderRadius:12,fontWeight:700,fontSize:13,cursor:'pointer',
+                      border:`2px solid ${giftMode==='money'?'#7C3AED':'#FDE68A'}`,
+                      background:giftMode==='money'?'#EDE9FE':'#fff',
+                      color:giftMode==='money'?'#5B21B6':'#92400E'}}>
+                    💳 Money Gift
+                  </button>
+                  <button type="button" onClick={()=>{setGiftMode('product');if(!vendors.length)loadVendors();}}
+                    style={{flex:1,padding:'9px 4px',borderRadius:12,fontWeight:700,fontSize:13,cursor:'pointer',
+                      border:`2px solid ${giftMode==='product'?'#EC4899':'#FDE68A'}`,
+                      background:giftMode==='product'?'#FDF2F8':'#fff',
+                      color:giftMode==='product'?'#9D174D':'#92400E'}}>
+                    🎁 Send a Gift
+                  </button>
                 </div>
-                <input type="number" min={2500} className="input" placeholder="Custom amount (NGN)"
-                  value={customAmount} onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}} style={{fontSize:14}}/>
+
+                {/* Money gift */}
+                {giftMode==='money'&&(
+                  <>
+                    <button type="button" onClick={()=>{setSelectedAmount(null);setCustomAmount('');}}
+                      style={{width:'100%',marginBottom:8,padding:8,borderRadius:10,border:`2px solid ${!selectedAmount&&!customAmount?'#92400E':'#FDE68A'}`,background:!selectedAmount&&!customAmount?'#92400E':'#fff',color:!selectedAmount&&!customAmount?'#fff':'#92400E',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                      No gift this time
+                    </button>
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:8}}>
+                      {AMOUNTS_NGN.map(a=>(
+                        <button key={a} type="button" onClick={()=>{setSelectedAmount(a);setCustomAmount('');}}
+                          style={{padding:'8px 4px',borderRadius:10,border:`2px solid ${selectedAmount===a&&!customAmount?'#F59E0B':'#FDE68A'}`,background:selectedAmount===a&&!customAmount?'#F59E0B':'#fff',color:selectedAmount===a&&!customAmount?'#fff':'#92400E',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                          {formatNGN(a)}
+                        </button>
+                      ))}
+                    </div>
+                    <input type="number" min={2500} className="input" placeholder="Custom amount (NGN)"
+                      value={customAmount} onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}} style={{fontSize:14}}/>
+                  </>
+                )}
+
+                {/* Product gift vendor picker */}
+                {giftMode==='product'&&(
+                  <div style={{background:'rgba(255,255,255,0.7)',borderRadius:12,padding:'12px',border:'1.5px solid #FBCFE8'}}>
+                    <p style={{fontSize:12,fontWeight:700,color:'#9D174D',marginBottom:10}}>Choose a gift from a vendor near the recipient</p>
+                    <div style={{display:'flex',gap:6,marginBottom:10}}>
+                      <select value={vendorFilter.country}
+                        onChange={e=>{setVendorFilter(p=>({...p,country:e.target.value}));loadVendors(e.target.value,vendorFilter.category);}}
+                        className="input" style={{flex:1,fontSize:12,padding:'6px 8px'}}>
+                        <option value="">All countries</option>
+                        {['Nigeria','Ghana','Kenya','South Africa','UK','USA','Canada'].map(c=><option key={c}>{c}</option>)}
+                      </select>
+                      <select value={vendorFilter.category}
+                        onChange={e=>{setVendorFilter(p=>({...p,category:e.target.value}));loadVendors(vendorFilter.country,e.target.value);}}
+                        className="input" style={{flex:1,fontSize:12,padding:'6px 8px'}}>
+                        <option value="">All types</option>
+                        {['cakes','flowers','chocolates','jewellery','hampers','balloons'].map(c=><option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    {vendors.length===0
+                      ?<p style={{fontSize:12,color:'#9CA3AF',textAlign:'center',padding:'8px 0'}}>No vendors found. Try a different filter.</p>
+                      :<div style={{maxHeight:150,overflowY:'auto',display:'flex',flexDirection:'column',gap:6}}>
+                        {vendors.map(v=>(
+                          <button key={v.id} type="button"
+                            onClick={()=>{setSelectedVendor(v);setVendorProducts([]);setSelectedProduct(null);
+                              fetch(`${import.meta.env.VITE_API_URL||'/api'}/vendor/store/${v.slug}`).then(r=>r.json()).then(d=>setVendorProducts(d.products||[]));}}
+                            style={{textAlign:'left',padding:'8px 10px',borderRadius:10,border:`2px solid ${selectedVendor?.id===v.id?'#EC4899':'transparent'}`,background:selectedVendor?.id===v.id?'#FDF2F8':'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:8}}>
+                            {v.logo_url?<img src={v.logo_url} style={{width:28,height:28,borderRadius:6,objectFit:'cover'}}/>:<div style={{width:28,height:28,borderRadius:6,background:'#FCE7F3',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>🎁</div>}
+                            <div>
+                              <p style={{fontSize:13,fontWeight:700,color:'#1A1035',margin:0}}>{v.business_name}</p>
+                              <p style={{fontSize:10,color:'#9CA3AF',margin:0,textTransform:'capitalize'}}>{v.category} · {v.country||'International'}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    }
+                    {selectedVendor&&vendorProducts.length>0&&(
+                      <div style={{marginTop:10,borderTop:'1px solid #FBCFE8',paddingTop:10,maxHeight:130,overflowY:'auto',display:'flex',flexDirection:'column',gap:5}}>
+                        <p style={{fontSize:11,fontWeight:700,color:'#9D174D',marginBottom:4}}>Products from {selectedVendor.business_name}</p>
+                        {vendorProducts.map(p=>(
+                          <button key={p.id} type="button"
+                            onClick={()=>{setSelectedProduct(p);setProductImgIdx(0);}}
+                            style={{textAlign:'left',padding:'7px 10px',borderRadius:10,border:`2px solid ${selectedProduct?.id===p.id?'#EC4899':'transparent'}`,background:selectedProduct?.id===p.id?'#FDF2F8':'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:8}}>
+                            {p.images?.[0]&&<img src={p.images[0]} style={{width:32,height:32,borderRadius:6,objectFit:'cover'}}/>}
+                            <div style={{flex:1}}><p style={{fontSize:12,fontWeight:600,color:'#1A1035',margin:0}}>{p.name}</p><p style={{fontSize:11,fontWeight:800,color:'#EC4899',margin:0}}>{formatNGN(p.price)}</p></div>
+                            {selectedProduct?.id===p.id&&<span style={{color:'#EC4899',fontWeight:900}}>✓</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {selectedProduct?.images?.length>0&&(
+                      <div style={{marginTop:10,borderTop:'1px solid #FBCFE8',paddingTop:10,textAlign:'center'}}>
+                        <div style={{position:'relative',width:100,height:100,margin:'0 auto',borderRadius:12,overflow:'hidden',background:'#fff'}}>
+                          <img src={selectedProduct.images[productImgIdx%selectedProduct.images.length]} style={{width:'100%',height:'100%',objectFit:'cover'}} alt={selectedProduct.name}/>
+                          {selectedProduct.images.length>1&&(
+                            <>
+                              <button type="button" onClick={()=>setProductImgIdx(i=>(i-1+selectedProduct.images.length)%selectedProduct.images.length)}
+                                style={{position:'absolute',left:2,top:'50%',transform:'translateY(-50%)',width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.45)',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
+                              <button type="button" onClick={()=>setProductImgIdx(i=>(i+1)%selectedProduct.images.length)}
+                                style={{position:'absolute',right:2,top:'50%',transform:'translateY(-50%)',width:20,height:20,borderRadius:'50%',background:'rgba(0,0,0,0.45)',color:'#fff',border:'none',cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
+                            </>
+                          )}
+                        </div>
+                        <p style={{fontSize:10,fontWeight:700,color:'#9D174D',marginTop:5}}>{selectedProduct.name} — {formatNGN(selectedProduct.price)}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
@@ -861,13 +1032,22 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               </label>
             )}
 
-            <button onClick={handleSubmit} disabled={submitting}
-              style={{width:'100%',padding:16,borderRadius:22,border:'none',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',fontWeight:800,fontSize:16,cursor:submitting?'not-allowed':'pointer',opacity:submitting?0.7:1,boxShadow:submitting?'none':'0 4px 20px rgba(124,58,237,0.4)'}}>
-              {submitting
-                ?<span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><span style={{width:18,height:18,border:'3px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'albumSpin 0.8s linear infinite'}}/>{stage==='paying'?'Opening payment…':stage==='sending'?'Adding to card…':'Please wait…'}</span>
-                :(()=>{const amt=Number(customAmount||selectedAmount||0);return card.is_gift_enabled&&amt>=2500?`✍️ Sign card + send ${formatNGN(amt)} gift`:'✍️ Sign the card';})()
-              }
-            </button>
+            {card.is_gift_enabled&&giftMode==='product'
+              ? <button onClick={handleProductGift} disabled={productSubmitting||!selectedProduct}
+                  style={{width:'100%',padding:16,borderRadius:22,border:'none',background:'linear-gradient(135deg,#EC4899,#DB2777)',color:'#fff',fontWeight:800,fontSize:16,cursor:(productSubmitting||!selectedProduct)?'not-allowed':'pointer',opacity:(productSubmitting||!selectedProduct)?0.65:1,boxShadow:(productSubmitting||!selectedProduct)?'none':'0 4px 20px rgba(236,72,153,0.4)'}}>
+                  {productSubmitting
+                    ?<span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><span style={{width:18,height:18,border:'3px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'albumSpin 0.8s linear infinite'}}/>Processing...</span>
+                    :selectedProduct?`🎁 Sign + send ${selectedProduct.name} (${formatNGN(selectedProduct.price)})`:'🎁 Sign + Send Gift'
+                  }
+                </button>
+              : <button onClick={handleSubmit} disabled={submitting}
+                  style={{width:'100%',padding:16,borderRadius:22,border:'none',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',fontWeight:800,fontSize:16,cursor:submitting?'not-allowed':'pointer',opacity:submitting?0.7:1,boxShadow:submitting?'none':'0 4px 20px rgba(124,58,237,0.4)'}}>
+                  {submitting
+                    ?<span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><span style={{width:18,height:18,border:'3px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'albumSpin 0.8s linear infinite'}}/>{stage==='paying'?'Opening payment…':stage==='sending'?'Adding to card…':'Please wait…'}</span>
+                    :(()=>{const amt=Number(customAmount||selectedAmount||0);return card.is_gift_enabled&&amt>=2500?`✍️ Sign card + send ${formatNGN(amt)} gift`:'✍️ Sign the card';})()
+                  }
+                </button>
+            }
             <p style={{textAlign:'center',fontSize:11,color:'#9CA3AF',marginTop:8}}>Secured by Flutterwave · Message private until delivery</p>
           </div>
         </div>
@@ -877,14 +1057,17 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 };
 
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
-const SidebarContent = ({card,slug,myMsgIds,signaturesOpen,setSignaturesOpen,onContribute,selectedAmount,setSelectedAmount,customAmount,setCustomAmount,showHelp,setShowHelp,isDark,accent})=>{
+const SidebarContent = ({card,slug,myMsgIds,signaturesOpen,setSignaturesOpen,allSignersOpen,setAllSignersOpen,onContribute,selectedAmount,setSelectedAmount,customAmount,setCustomAmount,showHelp,setShowHelp,isDark,accent})=>{
   const bg=isDark?'#1a1535':'#fff';
   const border=isDark?'rgba(255,255,255,0.1)':'#EDE9FE';
   const text=isDark?'#E9D5FF':'#1A1035';
   const sub=isDark?'#A78BFA':'#9CA3AF';
   const panel={background:bg,borderRadius:18,border:`1.5px solid ${border}`,overflow:'hidden',marginBottom:12};
   const head={display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderBottom:`1.5px solid ${isDark?'rgba(255,255,255,0.06)':'#F5F0FF'}`,cursor:'pointer'};
-  const myMessages=(card?.messages||[]).filter(Boolean).filter(m=>myMsgIds.includes(m.id));
+  const allMessages=(card?.messages||[]).filter(Boolean);
+  const myMessages=allMessages.filter(m=>myMsgIds.includes(m.id));
+  // Other signers = not mine and not private
+  const otherMessages=allMessages.filter(m=>!myMsgIds.includes(m.id)&&!m.is_private);
   return(
     <div>
       <div style={panel}>
@@ -908,6 +1091,41 @@ const SidebarContent = ({card,slug,myMsgIds,signaturesOpen,setSignaturesOpen,onC
           </div>
         )}
       </div>
+
+      {/* ── All other signers' messages (public only) ── */}
+      {otherMessages.length>0&&(
+        <div style={panel}>
+          <div style={head} onClick={()=>setAllSignersOpen(s=>!s)}>
+            <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:700,fontSize:15,color:text,margin:0,display:'flex',alignItems:'center',gap:6}}>
+              <Icon name="Users" size={15} style={{color:accent}}/> From others ({otherMessages.length})
+            </p>
+            <Icon name={allSignersOpen?'ChevronUp':'ChevronDown'} size={15} style={{color:sub}}/>
+          </div>
+          {allSignersOpen&&(
+            <div style={{padding:'12px 16px',maxHeight:260,overflowY:'auto'}}>
+              {otherMessages.map(m=>(
+                <div key={m.id} style={{padding:'9px 0',borderBottom:`1px solid ${isDark?'rgba(255,255,255,0.06)':'#F5F0FF'}`}}>
+                  <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
+                    <div style={{width:24,height:24,borderRadius:'50%',background:accent,color:'#fff',fontSize:9,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      {m.author_name?.slice(0,2).toUpperCase()||'??'}
+                    </div>
+                    <span style={{fontWeight:700,fontSize:12,color:text}}>{m.author_name}</span>
+                    {m.contributed_amount>0&&(
+                      <span style={{fontSize:10,fontWeight:800,color:'#92400E',background:'#FEF3C7',padding:'1px 6px',borderRadius:10,marginLeft:'auto'}}>🎁 {formatNGN(m.contributed_amount)}</span>
+                    )}
+                  </div>
+                  {m.media_url&&(m.media_type==='image'||m.media_type==='gif')&&(
+                    <img src={m.media_url} alt="" style={{width:'100%',height:80,objectFit:'cover',borderRadius:8,marginBottom:5}}/>
+                  )}
+                  <p style={{fontFamily:"'Caveat',cursive",fontSize:14,color:isDark?'#E9D5FF':'#374151',margin:0,lineHeight:1.45,wordBreak:'break-word'}}>
+                    {m.content&&m.content.length>120?m.content.slice(0,120)+'…':m.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {card.is_gift_enabled&&(
         <div style={{...panel,padding:18,textAlign:'center'}}>
           <div style={{width:68,height:68,background:'linear-gradient(135deg,#FBBF24,#F59E0B)',borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',fontSize:32,boxShadow:'0 4px 16px rgba(245,158,11,0.35)'}}>🎁</div>

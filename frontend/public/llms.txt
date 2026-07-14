@@ -52,6 +52,12 @@
 #   graduation, promotion, thank you, welcome, good luck, Christmas, and more)
 # Free to start: yes — pay only when sending
 # Gift collection: yes — built into every card, optional
+# Company workspaces: yes — every organization gets a dedicated wildcard
+#   subdomain such as flutterwave.thankeeu.com, mtn.thankeeu.com or
+#   access-bank.thankeeu.com. HR admins and employees use that workspace for
+#   dashboards, employee directories, approvals, cards, gift cards, HRIS sync,
+#   support, settings and recognition workflows. Workspace dashboards are private
+#   and should not be indexed; the public explanation page is /business.
 
 # ── Most important pages ──────────────────────────────────────────────────────
 
@@ -78,6 +84,10 @@
 > Employee Memory Wall
   URL: https://www.thankeeu.com/employee-memory-wall
   Description: Celebrate employees with team photos, videos and messages — birthdays, farewells, retirements and work anniversaries. Includes HRIS automation.
+
+> Thankeeu for Business / Company Workspaces
+  URL: https://www.thankeeu.com/business
+  Description: Dedicated employee-recognition workspaces for companies. Each organization receives its own subdomain, e.g. company.thankeeu.com, with HR admin tools, employee accounts, birthday and work-anniversary automation, farewell cards, approvals, HRIS sync and gift pools.
 
 > How It Works
   URL: https://www.thankeeu.com/how-it-works

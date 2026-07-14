@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../ui/Icon';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
+import { companyPath } from '../../utils/workspace';
 
 const MemberLayout = ({ children, title, subtitle }) => {
   const { member, logout } = useMemberAuth();
@@ -118,7 +119,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
                   // Store the temporary company token so CompanyProtectedRoute passes
                   localStorage.setItem('thankeeu_company_token', d.token);
                   localStorage.setItem('thankeeu_company',       JSON.stringify(d.company));
-                  window.location.href = '/company/dashboard';
+                  window.location.href = companyPath('/dashboard');
                 } catch {
                   import('react-hot-toast').then(m => m.default.error('Could not switch to HR view'));
                 }

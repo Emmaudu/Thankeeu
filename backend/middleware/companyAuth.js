@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
+const { requireTenantMatch } = require('./tenant');
 
 const companyAuth = async (req, res, next) => {
   try {
@@ -11,11 +12,17 @@ const companyAuth = async (req, res, next) => {
 
     const { data: company, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_person, role, theme, logo_url, country')
+      .select('id, name, email, contact_person, role, theme, logo_url, country, slug')
       .eq('id', decoded.companyId)
       .maybeSingle();
 
     if (error || !company) return res.status(401).json({ error: 'Invalid token' });
+    if (!requireTenantMatch(req, company.id)) {
+      return res.status(403).json({
+        error: 'This account does not belong to this workspace',
+        code: 'WORKSPACE_MISMATCH',
+      });
+    }
     req.company = company;
 
     // If this token was issued to a core team member acting on the

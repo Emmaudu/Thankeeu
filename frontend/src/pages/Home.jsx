@@ -1002,10 +1002,10 @@ const WhatsAppVsThankeeu = () => (
 /* ─── Main Home ──────────────────────────────────────────────────────── */
 const Home = () => {
  useSEO({
- title:'Group Cards, Memory Movies & Live Photo Walls for Any Occasion — Thankeeu',
- description:'Three ways to celebrate in one place: group cards everyone signs for any occasion, an automatic Memory Movie slideshow the celebrant will love, and real-time wedding & event guest photo collection via QR code. No app needed. Free to start — works worldwide in USD, GBP, EUR and 30+ currencies.',
+ title:'Group Cards, Gift Pools & Company Workspaces — Thankeeu',
+ description:'Create online group cards, gift pools, Memory Movies and company workspaces on your own Thankeeu subdomain. Automate employee birthdays, farewells, anniversaries and team celebrations while still making personal cards for any occasion.',
  canonical:'/',
- keywords:'online group card, group card any occasion, group birthday card, farewell card online, group gift collection, memory movie slideshow, turn photos into video, collect wedding guest photos, event photo sharing QR code, live photo wall, guest photo sharing no app, wedding photo sharing, digital group card, team birthday card, group card app',
+ keywords:'online group card, company workspace, employee recognition workspace, HR birthday automation, wildcard subdomain workspace, group birthday card, farewell card online, group gift collection, memory movie slideshow, collect wedding guest photos, event photo sharing QR code, live photo wall, digital group card, team birthday card, group card app',
  jsonLd:[SCHEMAS.organization, SCHEMAS.website, SCHEMAS.softwareApp, ...SCHEMAS.siteNavigation()],
  });
 
@@ -1522,6 +1522,7 @@ const Home = () => {
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
  {[
+ { icon:'Building2', title:'Your own company workspace', desc:'Every organisation gets a dedicated subdomain like acme.thankeeu.com for HR admins and employees.' },
  { icon:'Link', title:'HRIS Integration', desc:'SeamlessHR, BambooHR, Zoho People, WorkPay — one sync and your whole org is in.' },
  { icon:'Party', title:'12 Occasions Automated', desc:"Birthdays, farewells, promotions, new hires, Women's Day — zero manual effort." },
  { icon:'Mail', title:'Whole-dept Notifications', desc:'Every department member gets an email to sign. No one left out.' },

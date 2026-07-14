@@ -153,6 +153,7 @@ import MemberFinancesPage    from './pages/member/MemberFinancesPage';
 import MemberRemindersPage   from './pages/member/MemberRemindersPage';
 import { usePageTracker } from './hooks/usePageTracker';
 import ScrollToTop from './components/ScrollToTop';
+import { companyPath, isWorkspaceHost } from './utils/workspace';
 
 const PageTracker = () => { usePageTracker(); return null; };
 
@@ -182,9 +183,18 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 const CompanyProtectedRoute = ({ children }) => {
   const { company, loading } = useCompanyAuth();
   if (loading) return <Spinner />;
-  if (!company) return <Navigate to="/company/login" replace />;
+  if (!company) return <Navigate to={companyPath('/login')} replace />;
   return children;
 };
+
+const WorkspaceLogin = () => isWorkspaceHost() ? <CompanyLogin /> : <Login />;
+const WorkspaceForgotPassword = () => isWorkspaceHost() ? <CompanyForgotPassword /> : <ForgotPassword />;
+const WorkspaceResetPassword = () => isWorkspaceHost() ? <CompanyResetPassword /> : <ResetPassword />;
+const WorkspaceDashboard = () => (
+  isWorkspaceHost()
+    ? <CompanyProtectedRoute><CompanyDashboard /></CompanyProtectedRoute>
+    : <ProtectedRoute><DashboardHome /></ProtectedRoute>
+);
 
 // Allows any logged-in user: regular user, HR company, or team member
 const AnyAuthRoute = ({ children }) => {
@@ -342,14 +352,14 @@ const App = () => (
             <Route path="/card/:slug"    element={<CardViewGate />} />
 
             {/* ── Individual auth ─────────────────────────── */}
-            <Route path="/login"             element={<Login />} />
+            <Route path="/login"             element={<WorkspaceLogin />} />
             <Route path="/signup"            element={<Signup />} />
-            <Route path="/forgot-password"   element={<ForgotPassword />} />
-            <Route path="/reset-password"    element={<ResetPassword />} />
+            <Route path="/forgot-password"   element={<WorkspaceForgotPassword />} />
+            <Route path="/reset-password"    element={<WorkspaceResetPassword />} />
             <Route path="/admin/login"       element={<AdminLogin />} />
 
             {/* ── Individual protected ────────────────────── */}
-            <Route path="/dashboard"            element={<ProtectedRoute><DashboardHome /></ProtectedRoute>} />
+            <Route path="/dashboard"            element={<WorkspaceDashboard />} />
             <Route path="/dashboard/credits"     element={<ProtectedRoute><DashboardCredits /></ProtectedRoute>} />
             <Route path="/dashboard/gift-cards"  element={<ProtectedRoute><DashboardGiftCards /></ProtectedRoute>} />
             <Route path="/dashboard/cards"       element={<ProtectedRoute><DashboardCards /></ProtectedRoute>} />
@@ -362,6 +372,22 @@ const App = () => (
             <Route path="/card/new" element={<CardStart />} />
             <Route path="/create-card" element={<AnyAuthRoute><CreateCard /></AnyAuthRoute>} />
             <Route path="/admin"     element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+
+            {/* Clean company workspace aliases for *.thankeeu.com and *.localhost */}
+            <Route path="/teams"        element={<CompanyProtectedRoute><TeamsPage /></CompanyProtectedRoute>} />
+            <Route path="/members"      element={<CompanyProtectedRoute><MembersApprovalPage /></CompanyProtectedRoute>} />
+            <Route path="/employees"    element={<CompanyProtectedRoute><TeamMembersPage /></CompanyProtectedRoute>} />
+            <Route path="/deductions"   element={<CompanyProtectedRoute><DeductionRequestsPage /></CompanyProtectedRoute>} />
+            <Route path="/subscription" element={<CompanyProtectedRoute><SubscriptionPage /></CompanyProtectedRoute>} />
+            <Route path="/cards"        element={<CompanyProtectedRoute><CompanyMyCardsPage /></CompanyProtectedRoute>} />
+            <Route path="/activity"     element={<CompanyProtectedRoute><ActivityLogPage /></CompanyProtectedRoute>} />
+            <Route path="/settings"     element={<CompanyProtectedRoute><SettingsPage /></CompanyProtectedRoute>} />
+            <Route path="/support"      element={<CompanyProtectedRoute><SupportPage /></CompanyProtectedRoute>} />
+            <Route path="/gift-cards"   element={<CompanyProtectedRoute><CompanyGiftCardsPage /></CompanyProtectedRoute>} />
+            <Route path="/hris"         element={<CompanyProtectedRoute><HRISPage /></CompanyProtectedRoute>} />
+            <Route path="/occasions"    element={<CompanyProtectedRoute><OccasionsPage /></CompanyProtectedRoute>} />
+            <Route path="/team-members" element={<CompanyProtectedRoute><TeamMembersPage /></CompanyProtectedRoute>} />
+            <Route path="/core-team"    element={<CompanyProtectedRoute><CoreTeamPage /></CompanyProtectedRoute>} />
 
             {/* ── Company (HR) auth ────────────────────────── */}
             <Route path="/company/signup"           element={<CompanySignup />} />

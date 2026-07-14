@@ -5,6 +5,7 @@ import Navbar from '../../components/Navbar';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { memberAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { getWorkspaceSlug } from '../../utils/workspace';
 
 const DEFAULT_DEPTS = [
   'Engineering','Product Management','Design','Data Science','DevOps',
@@ -25,8 +26,9 @@ const JoinCompanySignup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const prefillCode = searchParams.get('code') || '';
+  const workspaceSlug = getWorkspaceSlug();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(workspaceSlug ? 2 : 1);
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
   const [departments, setDepartments] = useState(DEFAULT_DEPTS);
@@ -40,14 +42,19 @@ const JoinCompanySignup = () => {
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   useEffect(() => {
-    if (form.company_code?.length === 36) {
+    if (workspaceSlug) {
+      memberAPI.getDepartments()
+        .then(res => setDepartments(res.data?.length ? res.data : DEFAULT_DEPTS))
+        .catch(() => {});
+    } else if (form.company_code?.length === 36) {
       memberAPI.getDepartments(form.company_code)
         .then(res => setDepartments(res.data?.length ? res.data : DEFAULT_DEPTS))
         .catch(() => {});
     }
-  }, [form.company_code]);
+  }, [form.company_code, workspaceSlug]);
 
   const handleNext = () => {
+    if (workspaceSlug) return setStep(2);
     if (!form.company_code) return toast.error('Enter your company code');
     if (form.company_code.length < 10) return toast.error('Company code looks invalid');
     setStep(2);
@@ -90,7 +97,7 @@ const JoinCompanySignup = () => {
                 s < step ? 'bg-primary-400 text-white' : s === step ? 'bg-primary-400 text-white ring-4 ring-primary-100' : 'bg-gray-200 text-warm-500'
               }`}>{s < step ? '✓' : s}</div>
               <span className={`text-xs font-medium ${s <= step ? 'text-warm-700' : 'text-warm-700'}`}>
-                {s === 1 ? 'Company code' : 'Your details'}
+                {s === 1 ? (workspaceSlug ? 'Workspace' : 'Company code') : 'Your details'}
               </span>
               {s < 2 && <div className={`w-6 h-0.5 ${step > 1 ? 'bg-primary-400' : 'bg-gray-200'}`} />}
             </div>
@@ -131,6 +138,24 @@ const JoinCompanySignup = () => {
 
           {step === 2 && (
             <form onSubmit={handleSubmit} className="space-y-4">
+              {workspaceSlug && (
+                <div>
+                  <label className="block text-sm font-medium text-warm-700 mb-1.5">I am joining as</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: 'team_member', icon: 'ðŸ‘¤', label: 'Team Member', desc: 'Celebrate colleagues' },
+                      { id: 'team_leader', icon: 'ðŸ‘‘', label: 'Team Leader', desc: 'Manage department' },
+                    ].map(r => (
+                      <button key={r.id} type="button" onClick={() => set('role', r.id)}
+                        className={`rounded-3xl p-3 text-left border-2 transition-all ${form.role === r.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
+                        <div className="text-xl mb-1">{r.icon}</div>
+                        <p className="text-sm font-semibold text-warm-900">{r.label}</p>
+                        <p className="text-xs text-warm-500">{r.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-warm-700 mb-1">First name *</label>
@@ -179,7 +204,7 @@ const JoinCompanySignup = () => {
                 </span>
               </div>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setStep(1)} className="btn-secondary px-4">← Back</button>
+                {!workspaceSlug && <button type="button" onClick={() => setStep(1)} className="btn-secondary px-4">← Back</button>}
                 <button type="submit" disabled={loading} className="btn-primary flex-1 py-3">
                   {loading
                     ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting...</span>

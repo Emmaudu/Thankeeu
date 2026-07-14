@@ -2,22 +2,23 @@ import { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../ui/Icon';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
+import { companyPath, isWorkspaceHost } from '../../utils/workspace';
 
 const NAV = [
-  { path: '/company/dashboard',    icon: 'Home',     label: 'Dashboard'         },
-  { path: '/company/occasions',    icon: 'Cake',     label: 'Occasions Manager' },
+  { path: companyPath('/dashboard'),    icon: 'Home',     label: 'Dashboard'         },
+  { path: companyPath('/occasions'),    icon: 'Cake',     label: 'Occasions Manager' },
   { path: '/create-card',          icon: 'Heart',    label: 'Create Card'       },
-  { path: '/company/my-cards',     icon: 'Gift',     label: 'My Cards'          },
-  { path: '/company/activity',     icon: 'File',     label: 'Activity Log'      },
-  { path: '/company/team-members', icon: 'Users',    label: 'Team Members'      },
-  { path: '/company/core-team',    icon: 'Building', label: 'Core Team'         },
-  { path: '/company/members',      icon: 'Check',    label: 'Approvals'         },
-  { path: '/company/deductions',   icon: 'Wallet',   label: 'Deductions'        },
-  { path: '/company/subscription', icon: 'Card',     label: 'Subscription'      },
-  { path: '/company/gift-cards',   icon: 'Gift',     label: 'Gift Cards'        },
-  { path: '/company/hris',         icon: 'Link',     label: 'HRIS Sync'         },
-  { path: '/company/settings',     icon: 'Settings', label: 'Settings'          },
-  { path: '/company/support',      icon: 'Message',  label: 'Support'           },
+  { path: isWorkspaceHost() ? '/cards' : '/company/my-cards', icon: 'Gift', label: 'My Cards' },
+  { path: companyPath('/activity'),     icon: 'File',     label: 'Activity Log'      },
+  { path: isWorkspaceHost() ? '/employees' : '/company/team-members', icon: 'Users', label: 'Team Members' },
+  { path: companyPath('/core-team'),    icon: 'Building', label: 'Core Team'         },
+  { path: companyPath('/members'),      icon: 'Check',    label: 'Approvals'         },
+  { path: companyPath('/deductions'),   icon: 'Wallet',   label: 'Deductions'        },
+  { path: companyPath('/subscription'), icon: 'Card',     label: 'Subscription'      },
+  { path: companyPath('/gift-cards'),   icon: 'Gift',     label: 'Gift Cards'        },
+  { path: companyPath('/hris'),         icon: 'Link',     label: 'HRIS Sync'         },
+  { path: companyPath('/settings'),     icon: 'Settings', label: 'Settings'          },
+  { path: companyPath('/support'),      icon: 'Message',  label: 'Support'           },
 ];
 
 const CompanyLayout = ({ children, title, subtitle }) => {
@@ -51,7 +52,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
       navigate('/member/dashboard');
       return;
     }
-    logout(); navigate('/company/login');
+    logout(); navigate(companyPath('/login'));
   };
 
   const initials = company?.name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'CO';
@@ -153,7 +154,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
               🧪 Pilot — {pilotDays}d left
             </div>
           ) : (
-            <Link to="/company/subscription"
+            <Link to={companyPath('/subscription')}
               className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold"
               style={{ background: 'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color: '#fff', boxShadow: '0 2px 10px rgba(92,75,223,0.35)' }}>
               💳 Manage subscription

@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { companyAPI } from '../utils/api';
+import { companyPath } from '../utils/workspace';
 
 
 const _SESSION_MS = 30 * 60 * 1000; // 30 min inactivity
 let _actTimer = null;
-const _resetTimer = (logoutFn, loginPath = '/company/login') => {
+const _resetTimer = (logoutFn, loginPath = companyPath('/login')) => {
   clearTimeout(_actTimer);
   _actTimer = setTimeout(() => {
     logoutFn();
@@ -59,6 +60,9 @@ export const CompanyAuthProvider = ({ children }) => {
     localStorage.setItem('thankeeu_company_token', res.data.token);
     localStorage.setItem('thankeeu_company', JSON.stringify(res.data.company));
     setCompany(res.data.company);
+    if (res.data.workspace_url && window.location.origin !== res.data.workspace_url) {
+      window.location.href = `${res.data.workspace_url}/dashboard`;
+    }
     return res.data;
   };
 

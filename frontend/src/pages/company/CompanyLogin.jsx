@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 import Navbar from '../../components/Navbar';
 import toast from 'react-hot-toast';
+import { companyPath } from '../../utils/workspace';
 
 const CompanyLogin = () => {
   useSEO({
@@ -28,9 +29,13 @@ const CompanyLogin = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(form.email, form.password);
+      const data = await login(form.email, form.password);
       toast.success('Welcome back!');
-      navigate(returnTo || '/company/dashboard');
+      if (data.workspace_url && window.location.origin !== data.workspace_url) {
+        window.location.href = `${data.workspace_url}/dashboard`;
+        return;
+      }
+      navigate(returnTo || companyPath('/dashboard'));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Invalid email or password');
     } finally { setLoading(false); }
@@ -65,7 +70,7 @@ const CompanyLogin = () => {
             <div>
               <div className="flex justify-between mb-1.5">
                 <label className="text-sm font-medium text-warm-700">Password</label>
-                <Link to="/company/forgot-password" className="text-xs text-primary-400 hover:text-primary-600">Forgot password?</Link>
+                <Link to={companyPath('/forgot-password')} className="text-xs text-primary-400 hover:text-primary-600">Forgot password?</Link>
               </div>
               <div className="relative">
                 <input type={show ? 'text' : 'password'} className="input pr-10" placeholder="Your password" required

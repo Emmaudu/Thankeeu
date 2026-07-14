@@ -17,6 +17,7 @@ const rehashIfLegacy = async (id, plain, stored, table, supabase) => {
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
+const { generateUniqueCompanySlug } = require('../utils/companySlug');
 
 const setCookie = (res, name, token, expiresIn = '7d') => {
   const maxAge = expiresIn.endsWith('d')
@@ -39,6 +40,20 @@ const { sendEmail } = require('../utils/email');
 const generateToken = (companyId) =>
   jwt.sign({ companyId, type: 'company' }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 
+const buildWorkspaceUrl = (slug) => {
+  const rawBase = process.env.WORKSPACE_BASE_URL || process.env.FRONTEND_URL || process.env.APP_URL || 'https://thankeeu.com';
+  try {
+    const url = new URL(rawBase.startsWith('http') ? rawBase : `https://${rawBase}`);
+    const protocol = url.protocol || 'https:';
+    const port = url.port ? `:${url.port}` : '';
+    const host = url.hostname.replace(/^www\./, '');
+    if (host === 'localhost' || host.endsWith('.localhost')) return `${protocol}//${slug}.localhost${port}`;
+    return `${protocol}//${slug}.${host}${port}`;
+  } catch {
+    return `https://${slug}.thankeeu.com`;
+  }
+};
+
 const companySignup = async (req, res) => {
   try {
     const raw = req.body;
@@ -60,15 +75,16 @@ const companySignup = async (req, res) => {
     if (existing) return res.status(400).json({ error: 'Email already registered as a company' });
 
     const password_hash = await hashPassword(cleanPassword, 12);
+    const slug = await generateUniqueCompanySlug(supabase, cleanName);
     const { data: company, error } = await supabase
       .from('companies')
       .insert({
-        name: cleanName, email: cleanEmail, password_hash,
+        name: cleanName, email: cleanEmail, password_hash, slug,
         contact_person: cleanContact, phone: cleanPhone,
         industry: cleanIndustry, city: cleanCity,
         state: cleanState, country: cleanCountry || '',
       })
-      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country')
+      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country, slug')
       .maybeSingle();
 
     if (error) throw error;
@@ -110,7 +126,8 @@ const companySignup = async (req, res) => {
     }
 
     const token = generateToken(company.id);
-    res.status(201).json({ token, company });
+    const workspace_url = buildWorkspaceUrl(company.slug);
+    res.status(201).json({ token, company: { ...company, workspace_url }, workspace_url });
   } catch (err) {
     if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error(err);
@@ -128,6 +145,12 @@ const companyLogin = async (req, res) => {
 
     const valid = await verifyPassword(cleanPassword, company.password_hash);
     if (!valid) return res.status(401).json({ error: 'Invalid email or password' });
+    if (req.tenantCompany && req.tenantCompany.id !== company.id) {
+      return res.status(403).json({
+        error: 'This account does not belong to this workspace',
+        code: 'WORKSPACE_MISMATCH',
+      });
+    }
 
     // Get subscription status
     const { data: sub } = await supabase
@@ -141,7 +164,8 @@ const companyLogin = async (req, res) => {
     const token = generateToken(company.id);
     const { password_hash, reset_token, ...safeCompany } = company;
     setCookie(res, 'tk_company', token);
-    res.json({token, company: { ...safeCompany, subscription: sub || null } });
+    const workspace_url = buildWorkspaceUrl(safeCompany.slug);
+    res.json({token, company: { ...safeCompany, subscription: sub || null, workspace_url }, workspace_url });
   } catch (err) {
     if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     res.status(500).json({ error: 'Server error during login' });
@@ -152,7 +176,7 @@ const getCompanyMe = async (req, res) => {
   try {
     const { data: company, error } = await supabase
       .from('companies')
-      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country, created_at')
+      .select('id, name, email, contact_person, phone, industry, logo_url, theme, role, country, slug, created_at')
       .eq('id', req.company.id)
       .maybeSingle();
     if (error) throw error;
@@ -171,7 +195,7 @@ const getCompanyMe = async (req, res) => {
       .eq('company_id', company.id)
       .eq('is_active', true);
 
-    res.json({ ...company, subscription: sub || null, member_count: memberCount?.[0]?.count || 0 });
+    res.json({ ...company, workspace_url: buildWorkspaceUrl(company.slug), subscription: sub || null, member_count: memberCount?.[0]?.count || 0 });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch company' });
   }
@@ -201,7 +225,7 @@ const updateCompanyProfile = async (req, res) => {
       .from('companies')
       .update(updates)
       .eq('id', req.company.id)
-      .select('id, name, email, contact_person, phone, industry, logo_url, theme, country')
+      .select('id, name, email, contact_person, phone, industry, logo_url, theme, country, slug')
       .maybeSingle();
     if (error) throw error;
 

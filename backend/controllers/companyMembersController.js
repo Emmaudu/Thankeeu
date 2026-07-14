@@ -83,7 +83,14 @@ const memberSignup = async (req, res) => {
     const raw = req.body;
 
     // ── Sanitize & validate ───────────────────────────────────────────────
-    const cleanCompanyCode = validateUUID(raw.company_code, 'Company code');
+    const requestedCompanyCode = raw.company_code || raw.company_id || req.tenantCompany?.id;
+    const cleanCompanyCode = validateUUID(requestedCompanyCode, 'Company code');
+    if (req.tenantCompany && cleanCompanyCode !== req.tenantCompany.id) {
+      return res.status(403).json({
+        error: 'This signup link does not belong to this workspace',
+        code: 'WORKSPACE_MISMATCH',
+      });
+    }
     const cleanEmail       = validateEmail(raw.email);
     const cleanPassword    = validatePassword(raw.password);
     const cleanFirstName   = sanitizeName(raw.first_name, 'First name', { maxLen: 60 });
@@ -93,10 +100,12 @@ const memberSignup = async (req, res) => {
     // gender: restrict to known values only
     const rawGender = raw.gender ? String(raw.gender).toLowerCase().trim() : null;
     const cleanGender = ['male','female','other'].includes(rawGender) ? rawGender : null;
+    const rawRole = raw.role ? String(raw.role).toLowerCase().trim() : 'team_member';
+    const cleanRole = rawRole === 'team_leader' ? 'team_leader' : 'team_member';
     // ─────────────────────────────────────────────────────────────────────
 
     // Find company by code (we use company ID as the code)
-    const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', cleanCompanyCode).maybeSingle();
+    const { data: company } = await supabase.from('companies').select('id, name, email, slug').eq('id', cleanCompanyCode).maybeSingle();
     if (!company) return res.status(404).json({ error: 'Company not found. Check your company code.' });
 
     // Check if employee was pre-imported by HR (skip domain validation for pre-seeded members)
@@ -147,7 +156,7 @@ const memberSignup = async (req, res) => {
           .from('company_members')
           .update({
             first_name: cleanFirstName, last_name: cleanLastName,
-            password_hash, ...occasionFields,
+            password_hash, role: cleanRole, ...occasionFields,
           })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
@@ -159,7 +168,7 @@ const memberSignup = async (req, res) => {
           .from('company_members')
           .update({
             first_name: cleanFirstName, last_name: cleanLastName,
-            password_hash, status: 'pending', ...occasionFields,
+            password_hash, role: cleanRole, status: 'pending', ...occasionFields,
           })
           .eq('id', preImported.id)
           .select('id, first_name, last_name, email, role, department, status, company_id')
@@ -176,7 +185,7 @@ const memberSignup = async (req, res) => {
         .from('company_members')
         .insert({
           company_id: company.id, first_name: cleanFirstName, last_name: cleanLastName,
-          email: cleanEmail, password_hash, status: 'pending',
+          email: cleanEmail, password_hash, role: cleanRole, status: 'pending',
           gender: cleanGender, resumption_date: cleanResumption, date_of_birth: cleanDOB,
         })
         .select('id, first_name, last_name, email, role, department, status, company_id')
@@ -216,7 +225,7 @@ const memberLogin = async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
 
     // If the client passed a company_code hint, prefer that company's row first
-    const hintId = req.body.company_id || req.body.company_code || null;
+    const hintId = req.tenantCompany?.id || req.body.company_id || req.body.company_code || null;
     const ordered = hintId
       ? [...members.filter(m => m.company_id === hintId), ...members.filter(m => m.company_id !== hintId)]
       : members;
@@ -242,12 +251,18 @@ const memberLogin = async (req, res) => {
     if (member.status === 'pending')    return res.status(403).json({ error: 'Your account is pending approval. You will be notified by email.' });
     if (member.status === 'rejected')   return res.status(403).json({ error: 'Your account was not approved. Contact your HR.' });
     if (member.status === 'deactivated') return res.status(403).json({ error: 'Your account has been deactivated. Contact your HR.' });
+    if (req.tenantCompany && member.company_id !== req.tenantCompany.id) {
+      return res.status(403).json({
+        error: 'This account does not belong to this workspace',
+        code: 'WORKSPACE_MISMATCH',
+      });
+    }
 
     // Upgrade bcrypt → argon2 transparently on next login
     await rehashIfLegacy(member.id, cleanPassword, member.password_hash, 'company_members', supabase);
 
     // Get company info
-    const { data: company } = await supabase.from('companies').select('id, name, email').eq('id', member.company_id).maybeSingle();
+    const { data: company } = await supabase.from('companies').select('id, name, email, slug, logo_url').eq('id', member.company_id).maybeSingle();
     const token = generateToken(member.id, member.company_id);
     const { password_hash, reset_token, invite_token, ...safeMember } = member;
     setCookie(res, 'tk_member', token);
@@ -266,7 +281,7 @@ const getMemberMe = async (req, res) => {
       .select('id, first_name, last_name, email, role, department, status, profile_picture_url, company_id, created_at, is_core_team')
       .eq('id', req.member.id).maybeSingle();
     if (error) throw error;
-    const { data: company } = await supabase.from('companies').select('id, name, email, logo_url').eq('id', member.company_id).maybeSingle();
+    const { data: company } = await supabase.from('companies').select('id, name, email, logo_url, slug').eq('id', member.company_id).maybeSingle();
     res.json({ ...member, company });
   } catch (err) {
     const { isSanitizeError } = require('../utils/sanitize');
@@ -280,7 +295,7 @@ const getMemberMe = async (req, res) => {
 // GET /api/members/departments?companyId=xxx — for signup dropdown
 const getDepartmentOptions = async (req, res) => {
   try {
-    const { companyId } = req.query;
+    const companyId = req.tenantCompany?.id || req.query.companyId;
     let uploadedDepts = [];
     if (companyId) {
       // company_members is the single source of truth for HR-imported data

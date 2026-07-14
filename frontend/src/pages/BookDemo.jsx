@@ -10,6 +10,7 @@ import Icon from '../components/ui/Icon';
 const TEAM_SIZE_OPTIONS = ['1–10', '11–50', '51–200', '201–500', '500+'];
 
 const FEATURES = [
+ { icon: 'Building2', title: 'A workspace for every company', desc: 'Every organisation gets a dedicated subdomain like company.thankeeu.com where HR admins and employees manage celebrations in one place.' },
  { icon: 'Zap', title: 'Zero setup per occasion', desc: 'Connect your HR system once. Every birthday, work anniversary and farewell is detected and a card is created automatically. You never think about it again.' },
  { icon: 'Link', title: 'One link. Everyone signs.', desc: 'No app download. No forced signups. Your team opens the link, adds their message, photo or voice note in 30 seconds, and moves on with their day.' },
  { icon: 'Gift', title: 'Gift collection built in', desc: 'Team members contribute whatever they can. Thankeeu pools it, holds it safely, and pays it out to the recipient\'s bank account via Flutterwave — automatically.' },
@@ -36,9 +37,9 @@ const TK_WINS = [
 
 export default function BookDemo() {
  useSEO({
- title: 'Employee Recognition That Runs Itself | Thankeeu for Business',
- description: 'Never miss another employee birthday, work anniversary or recognition moment. Thankeeu automatically tracks milestones, collects team messages, and delivers celebration cards. Book a 15-minute demo.',
- keywords: 'employee recognition Nigeria, employee engagement platform, birthday automation HR, work anniversary automation, employee experience software Nigeria, HR admin automation, recognition reporting, workplace culture tool',
+ title: 'Employee Recognition Workspaces | Thankeeu for Business',
+ description: 'Give your company a dedicated Thankeeu workspace on its own subdomain. Automate birthdays, work anniversaries, farewells, team cards and gift pools for every employee milestone.',
+ keywords: 'employee recognition Nigeria, company workspace, HR workspace subdomain, employee engagement platform, birthday automation HR, work anniversary automation, employee experience software Nigeria, HR admin automation, recognition reporting, workplace culture tool',
  canonical: '/business',
  });
 
@@ -90,7 +91,7 @@ export default function BookDemo() {
  </p>
 
  <p className="text-warm-500 mb-7 leading-relaxed text-base">
- Thankeeu is the end-to-end employee recognition infrastructure that fixes this automatically. Every birthday, work anniversary and farewell — detected, carded, signed by the team, and delivered on time. Without HR lifting a finger.
+ Thankeeu gives every company its own recognition workspace, such as flutterwave.thankeeu.com. Every birthday, work anniversary and farewell is detected, carded, signed by the team, and delivered on time without HR lifting a finger.
  </p>
 
  {/* Before / After */}

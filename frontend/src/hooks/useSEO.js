@@ -21,7 +21,7 @@ const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://www.thankeeu.com';
 // points to a URL that immediately redirects away from itself, which is
 // a documented cause of Google refusing to index pages.
 const SITE_NAME  = 'Thankeeu';
-const SITE_DESC  = "Group cards, Memory Movies and Live Photo Walls for every occasion — birthdays, weddings, farewells, promotions and more. Everyone signs one card, collect guest photos via QR code, and turn it all into a cinematic movie.";
+const SITE_DESC  = "Group cards, gift pools, Memory Movies, Live Photo Walls and dedicated company workspaces for every occasion. Companies get their own Thankeeu subdomain to automate employee birthdays, farewells, anniversaries and recognition moments.";
 const OG_IMAGE   = `${BASE_URL}/og-image.png`;
 const TWITTER_HANDLE = '@thankeeu';
 
@@ -245,10 +245,12 @@ export const SCHEMAS = {
     applicationSubCategory: 'Group Greeting Cards & Gift Collection',
     operatingSystem:        'Web, iOS, Android',
     url:                    BASE_URL,
-    description:            'Thankeeu is an online group card, memory movie and event photo platform. Groups co-sign one digital card for birthdays, weddings, leaving dos, retirements, get well soon, work anniversaries and more — adding messages, photos, GIFs and voice notes. Every card can also become a cinematic Memory Movie slideshow, and a Live Photo Wall collects real-time guest photos at weddings and events via a QR code (no app needed). An optional gift pool collects money in USD, GBP, EUR, NGN, CAD and other currencies. Cards deliver by email at a scheduled time.',
+    description:            'Thankeeu is an online group card, memory movie, event photo and company workspace platform. Groups co-sign one digital card for birthdays, weddings, leaving dos, retirements, get well soon, work anniversaries and more. Companies get dedicated wildcard-subdomain workspaces such as company.thankeeu.com for HR admins and employees, with automated milestone recognition, HRIS import, messages, photos, GIFs, voice notes and optional gift pools in USD, GBP, EUR, NGN, CAD and other currencies.',
     screenshot:             `${BASE_URL}/og-image.png`,
     featureList: [
       'Group cards for any occasion — everyone signs one card from a single link',
+      'Dedicated company workspaces on wildcard subdomains such as flutterwave.thankeeu.com',
+      'Employee recognition automation for birthdays, farewells, work anniversaries, promotions and new hires',
       'Memory Movie — automatically turns all card messages, photos and videos into a cinematic slideshow video the celebrant will love',
       'Live Photo Wall — collect real-time wedding and event guest photos and videos via a QR code, no app or account needed',
       'Group e-cards with unlimited signers',
@@ -421,7 +423,7 @@ export const SCHEMAS = {
       { name: 'Group Cards UK',             url: '/online-group-cards-uk' },
       { name: 'Group Cards Nigeria',        url: '/online-group-cards-nigeria' },
       { name: 'Blog',                       url: '/blog' },
-      { name: 'For Teams',                  url: '/company/signup' },
+      { name: 'Company Workspaces',         url: '/business' },
       { name: 'Retirement Cards',           url: '/cards/retirement' },
     ];
     return links.map(({ name, url }) => ({

@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 import Navbar from '../../components/Navbar';
 import toast from 'react-hot-toast';
+import { companyPath } from '../../utils/workspace';
 
 const INDUSTRIES = ['Technology','Finance & Banking','Healthcare','Education','Manufacturing','Retail & FMCG','Oil & Gas','Telecoms','Media & Entertainment','Construction','Logistics','Hospitality','Other'];
 
@@ -40,9 +41,10 @@ const CompanySignup = () => {
     if (form.password.length < 8) return toast.error('Password must be at least 8 characters');
     setLoading(true);
     try {
-      await signup(form);
+      const data = await signup(form);
       toast.success('Company account created! Welcome to Thankeeu for Teams 🎉');
-      navigate('/company/dashboard');
+      if (data.workspace_url && window.location.origin !== data.workspace_url) return;
+      navigate(companyPath('/dashboard'));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to create account');
     } finally { setLoading(false); }
@@ -149,7 +151,7 @@ const CompanySignup = () => {
 
           <p className="text-center text-xs text-warm-700 mt-5">
             Already have a company account?{' '}
-            <Link to="/company/login" className="text-primary-400 font-medium hover:text-primary-600">Sign in</Link>
+            <Link to={companyPath('/login')} className="text-primary-400 font-medium hover:text-primary-600">Sign in</Link>
           </p>
           <p className="text-center text-xs text-warm-700 mt-2">
             Individual user?{' '}

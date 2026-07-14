@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const supabase = require('../utils/supabase');
+const { requireTenantMatch } = require('./tenant');
 
 // Auth middleware for company members (team leaders + team members)
 const memberAuth = async (req, res, next) => {
@@ -18,6 +19,12 @@ const memberAuth = async (req, res, next) => {
 
     if (error || !member) return res.status(401).json({ error: 'Invalid token' });
     if (member.status !== 'approved') return res.status(403).json({ error: 'Account not yet approved' });
+    if (!requireTenantMatch(req, member.company_id)) {
+      return res.status(403).json({
+        error: 'This account does not belong to this workspace',
+        code: 'WORKSPACE_MISMATCH',
+      });
+    }
 
     req.member = member;
     next();
@@ -44,10 +51,16 @@ const hrOrMemberAuth = async (req, res, next) => {
     if (decoded.type === 'company') {
       const { data: company } = await supabase
         .from('companies')
-        .select('id, name, email, contact_person, role')
+        .select('id, name, email, contact_person, role, slug')
         .eq('id', decoded.companyId)
         .maybeSingle();
       if (!company) return res.status(401).json({ error: 'Invalid token' });
+      if (!requireTenantMatch(req, company.id)) {
+        return res.status(403).json({
+          error: 'This account does not belong to this workspace',
+          code: 'WORKSPACE_MISMATCH',
+        });
+      }
       req.company = company;
     } else if (decoded.type === 'company_member') {
       const { data: member } = await supabase
@@ -56,6 +69,12 @@ const hrOrMemberAuth = async (req, res, next) => {
         .eq('id', decoded.memberId)
         .maybeSingle();
       if (!member || member.status !== 'approved') return res.status(403).json({ error: 'Not authorized' });
+      if (!requireTenantMatch(req, member.company_id)) {
+        return res.status(403).json({
+          error: 'This account does not belong to this workspace',
+          code: 'WORKSPACE_MISMATCH',
+        });
+      }
       req.member = member;
     } else {
       return res.status(401).json({ error: 'Invalid token type' });

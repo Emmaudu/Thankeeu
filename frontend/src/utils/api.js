@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getWorkspaceSlug } from './workspace';
 
 const BASE     = import.meta.env.VITE_API_URL || '/api';
 const BASE_URL = BASE;  // alias so both names work
@@ -30,11 +31,19 @@ const axiosOptions = {
   headers: { 'Content-Type': 'application/json' },
 };
 
+const attachWorkspace = (cfg) => {
+  const slug = getWorkspaceSlug();
+  cfg.headers = cfg.headers || {};
+  if (slug) cfg.headers['X-Workspace-Slug'] = slug;
+  return cfg;
+};
+
 // ─── Axios instances ──────────────────────────────────────────────────────────
 
 // 1. Regular user
 const api = axios.create(axiosOptions);
 api.interceptors.request.use(cfg => {
+  attachWorkspace(cfg);
   const t = localStorage.getItem('thankeeu_token');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;
@@ -50,10 +59,12 @@ api.interceptors.response.use(res => res, err => {
 
 // 2. Public — no auth, no 401 redirect
 const publicAxios = axios.create(axiosOptions);
+publicAxios.interceptors.request.use(attachWorkspace);
 
 // 3. Company / HR
 export const companyAxios = axios.create(axiosOptions);
 companyAxios.interceptors.request.use(cfg => {
+  attachWorkspace(cfg);
   const t = localStorage.getItem('thankeeu_company_token');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;
@@ -70,6 +81,7 @@ companyAxios.interceptors.response.use(res => res, err => {
 // 4. Team member
 const memberAxios = axios.create(axiosOptions);
 memberAxios.interceptors.request.use(cfg => {
+  attachWorkspace(cfg);
   const t = localStorage.getItem('thankeeu_member_token');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;
@@ -86,6 +98,7 @@ memberAxios.interceptors.response.use(res => res, err => {
 // 5. Smart — uses member token if present, falls back to user token (no forced redirect)
 const smartAxios = axios.create(axiosOptions);
 smartAxios.interceptors.request.use(cfg => {
+  attachWorkspace(cfg);
   const t = localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_token');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;
@@ -95,6 +108,7 @@ smartAxios.interceptors.request.use(cfg => {
 // 6. Any-auth — tries company token, then member token, then user token. No forced redirect.
 const anyAxios = axios.create(axiosOptions);
 anyAxios.interceptors.request.use(cfg => {
+  attachWorkspace(cfg);
   const t =
     localStorage.getItem('thankeeu_company_token') ||
     localStorage.getItem('thankeeu_member_token') ||
@@ -251,6 +265,7 @@ export const adminSupportAPI = {
 export const companyAPI = {
   signup:         (data)  => companyAxios.post('/company/signup', data),
   login:          (data)  => companyAxios.post('/company/login', data),
+  getWorkspace:   ()      => publicAxios.get('/company/workspace'),
   getMe:          ()      => companyAxios.get('/company/me'),
   updateProfile:  (data)  => companyAxios.put('/company/profile', data),
   changePassword: (data)  => companyAxios.put('/company/password', data),
@@ -333,7 +348,7 @@ export const memberAPI = {
   createReminder:      (data)      => memberAxios.post('/members/reminders', data),
   deleteReminder:      (id)        => memberAxios.delete(`/members/reminders/${id}`),
   getFinances:         ()          => memberAxios.get('/members/finances'),
-  getDepartments:      (companyId) => publicAxios.get(`/members/departments?companyId=${companyId}`),
+  getDepartments:      (companyId) => publicAxios.get('/members/departments', { params: companyId ? { companyId } : {} }),
   getFinancialHistory: ()          => memberAxios.get('/members/financial-history'),
 };
 
@@ -430,6 +445,7 @@ export const visitorsAPI = {
 // ── Vendor API (marketplace) ─────────────────────────────────────────────────
 const vendorAxios = axios.create({ baseURL: BASE_URL, withCredentials: true });
 vendorAxios.interceptors.request.use(cfg => {
+  attachWorkspace(cfg);
   const t = localStorage.getItem('tk_vendor');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;
@@ -473,6 +489,7 @@ export const vendorAPI = {
 // ── Pals API (group accounts) ────────────────────────────────────────────────
 const palAxios = axios.create({ baseURL: BASE_URL, withCredentials: true });
 palAxios.interceptors.request.use(cfg => {
+  attachWorkspace(cfg);
   const t = localStorage.getItem('tk_pal');
   if (t) cfg.headers.Authorization = `Bearer ${t}`;
   return cfg;

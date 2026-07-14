@@ -6,6 +6,7 @@ const rateLimit = require('express-rate-limit');
 const cron         = require('node-cron');
 const cookieParser = require('cookie-parser');
 const supabase      = require('./utils/supabase');
+const { tenantResolver } = require('./middleware/tenant');
 const FRONTEND_URL = (() => {
   const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
   let s = raw.trim();
@@ -66,6 +67,7 @@ app.use(cors({
       allowed.includes(origin) ||
       origin.endsWith('.vercel.app') ||
       origin.endsWith('.thankeeu.com') ||
+      /^https?:\/\/[a-z0-9-]+\.localhost(?::\d+)?$/i.test(origin) ||
       origin.includes('thankeeu')
     ) {
       return callback(null, true);
@@ -90,6 +92,7 @@ app.use('/webhook', require('./routes/webhook'));
 
 // Body parsing (all other routes)
 app.use(express.json({ limit: '1mb' }));   // 1mb is plenty for JSON APIs
+app.use(tenantResolver);
 // Note: file uploads use multipart/form-data (multer), not JSON body — unaffected
 
 // ── Startup env validation ────────────────────────────────────────────────────

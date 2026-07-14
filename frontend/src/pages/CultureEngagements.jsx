@@ -55,7 +55,7 @@ export default function CultureEngagements() {
           <div className="mt-6 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
               <h1 className="text-4xl font-black leading-tight md:text-6xl">Turn employee engagement into a weekly company championship.</h1>
-              <p className="mt-6 max-w-3xl text-lg leading-8 text-white/72">
+              <p className="mt-6 max-w-3xl text-lg leading-8 text-white">
                 Thankeeu Games is an inter-company employee engagement league where departments compete every Friday,
                 employees build pride in their craft, and winners are celebrated with automatic congratulations group cards that players and visitors can sign with messages, GIFs, photos, videos and voice notes.
               </p>
@@ -120,7 +120,7 @@ export default function CultureEngagements() {
               {['Employees register with company email', 'Two players per company join each department game', 'Players compete Friday at 2pm', 'Leaderboard ranks score and speed', 'Players and visitors sign the winner card'].map((step, index) => (
                 <li key={step} className="flex gap-4">
                   <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-white text-sm font-black text-[#120b24]">{index + 1}</span>
-                  <span className="pt-1 text-white/78">{step}</span>
+                    <span className="pt-1 text-white/90">{step}</span>
                 </li>
               ))}
             </ol>

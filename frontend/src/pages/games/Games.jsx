@@ -66,26 +66,29 @@ const GameArtwork = ({ game }) => {
   return (
     <div className={`relative h-40 overflow-hidden bg-gradient-to-br ${themes[game.image_theme] || themes.indigo} p-4 text-white`}>
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_15%,rgba(255,255,255,0.28),transparent_24%),radial-gradient(circle_at_82%_22%,rgba(255,255,255,0.18),transparent_22%)]" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/20 to-transparent" />
       <span className="absolute left-5 top-5 h-2 w-2 rounded-full bg-white/80" />
       <span className="absolute left-20 top-9 h-2 w-7 rotate-12 rounded-full bg-amber-200/90" />
       <span className="absolute right-24 top-6 h-2 w-2 rounded-full bg-fuchsia-200/90" />
       <span className="absolute right-8 top-12 h-2 w-8 -rotate-12 rounded-full bg-cyan-200/90" />
-      <div className="relative z-10 flex h-full justify-between gap-3">
-        <div className="min-w-0 max-w-[62%]">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-white/90">{game.category}</p>
-          <p className="mt-3 line-clamp-3 text-lg font-black leading-tight text-white drop-shadow-sm">{game.name}</p>
-        </div>
-        <div className="relative flex min-w-[110px] items-end justify-end">
-          <div className="absolute right-8 top-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm">
+      <div className="absolute inset-y-0 right-0 z-0 flex w-[58%] items-end justify-end opacity-40">
+        <div className="relative h-full w-full">
+          <div className="absolute right-7 top-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm">
             <Icon name={icon} size={30} strokeWidth={2.25} />
           </div>
-          <div className="absolute bottom-0 right-0 flex items-end gap-1">
+          <div className="absolute bottom-5 right-3 flex items-end gap-1">
             <GameCharacter side="left" />
             <GameCharacter side="right" />
           </div>
-          <div className="absolute bottom-2 right-16 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#120b24] shadow-md">
+          <div className="absolute bottom-7 right-20 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#120b24] shadow-md">
             Hurray
           </div>
+        </div>
+      </div>
+      <div className="relative z-10 flex h-full items-start">
+        <div className="min-w-0 max-w-[88%] rounded-2xl bg-black/20 p-2 backdrop-blur-[1px]">
+          <p className="truncate text-[10px] font-black uppercase tracking-[0.16em] text-white/95">{game.category}</p>
+          <p className="mt-2 line-clamp-3 text-base font-black leading-tight text-white drop-shadow-md">{game.name}</p>
         </div>
       </div>
     </div>
@@ -110,6 +113,7 @@ const gamesPath = (path = '') => {
 const GamesNav = () => {
   const player = getPlayer();
   const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const section = (() => {
     const path = location.pathname.replace(/^\/games/, '').replace(/^\/+/, '');
     if (!path) return 'Games';
@@ -125,68 +129,99 @@ const GamesNav = () => {
     localStorage.removeItem('thankeeu_games_player');
     window.location.href = gamesPath();
   };
+  const linkBase = 'rounded-xl px-3 py-2 text-sm font-bold transition-colors';
+  const linkActive = 'bg-white text-[#120b24]';
+  const linkIdle = 'text-white/90 hover:bg-white/10 hover:text-white';
+  const navItems = [
+    { label: 'Games', to: gamesPath() },
+    { label: 'Leaderboard', to: gamesPath('leaderboard') },
+    ...(player ? [{ label: 'Dashboard', to: gamesPath('dashboard'), primary: true }] : []),
+  ];
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#120b24]/95 text-white backdrop-blur">
-      <div className="mx-auto flex min-h-16 max-w-7xl flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between md:py-0">
-        <Link to={gamesPath()} className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-white/20">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#120b24]/95 text-white shadow-[0_10px_32px_rgba(18,11,36,0.22)] backdrop-blur">
+      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-3">
+        <Link to={gamesPath()} className="flex min-w-0 items-center gap-3" onClick={() => setMobileOpen(false)}>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm ring-1 ring-white/20">
             <img src="/android-chrome-192x192.png" alt="Thankeeu" className="h-full w-full rounded-lg object-cover" />
           </span>
           <div className="min-w-0">
-            <p className="font-black leading-none">thank<span className="text-primary-300">eeu</span> games</p>
-            <p className="text-[11px] text-white/90">Inter-company league championship</p>
+            <p className="truncate text-sm font-black leading-none sm:text-base">thank<span className="text-primary-300">eeu</span> games</p>
+            <p className="hidden truncate text-[11px] text-white/85 sm:block">Inter-company league</p>
           </div>
         </Link>
-        <nav className="hidden w-full flex-wrap items-center gap-2 text-sm font-semibold md:flex md:w-auto md:justify-end">
-          <Link to={gamesPath('leaderboard')} className="rounded-lg px-3 py-2 text-white/85 hover:bg-white/10 hover:text-white">Leaderboard</Link>
+        <nav className="hidden items-center gap-2 md:flex">
+          {navItems.map(item => (
+            <Link
+              key={item.label}
+              to={item.to}
+              className={`${linkBase} ${item.primary ? linkActive : linkIdle}`}
+            >
+              {item.label}
+            </Link>
+          ))}
           {player ? (
-            <>
-              <Link to={gamesPath('dashboard')} className="rounded-lg bg-white px-4 py-2 text-[#1a1035]">Dashboard</Link>
-              <button onClick={logout} className="rounded-lg px-3 py-2 text-white/80 hover:text-white">Logout</button>
-            </>
+            <button onClick={logout} className={`${linkBase} ${linkIdle}`}>Logout</button>
           ) : (
             <>
-              <Link to={gamesPath('login')} className="rounded-lg px-3 py-2 text-white/85 hover:bg-white/10 hover:text-white">Login</Link>
-              <Link to={gamesPath('signup')} className="rounded-lg bg-primary-500 px-4 py-2 text-white">Signup</Link>
+              <Link to={gamesPath('login')} className={`${linkBase} ${linkIdle}`}>Login</Link>
+              <Link to={gamesPath('signup')} className="rounded-xl bg-primary-500 px-4 py-2 text-sm font-bold text-white shadow-lg shadow-primary-900/20 transition-colors hover:bg-primary-400">Signup</Link>
             </>
           )}
         </nav>
-        <nav className="flex w-full items-center gap-2 overflow-x-auto rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white md:hidden" aria-label="Games breadcrumb menu">
-          <Link to={gamesPath()} className="shrink-0 text-white">Games</Link>
-          <span className="shrink-0 text-white/80">/</span>
-          <span className="shrink-0 text-white/90">{section}</span>
-          <span className="mx-1 h-4 w-px shrink-0 bg-white/15" />
-          <Link to={gamesPath('leaderboard')} className="shrink-0 text-white/90">Leaderboard</Link>
-          {player ? (
-            <>
-              <Link to={gamesPath('dashboard')} className="shrink-0 rounded-lg bg-white px-2.5 py-1.5 text-[#120b24]">Dashboard</Link>
-              <button onClick={logout} className="shrink-0 text-white/90">Logout</button>
-            </>
-          ) : (
-            <>
-              <Link to={gamesPath('login')} className="shrink-0 text-white/90">Login</Link>
-              <Link to={gamesPath('signup')} className="shrink-0 rounded-lg bg-primary-500 px-2.5 py-1.5 text-white">Signup</Link>
-            </>
-          )}
-        </nav>
+        <div className="flex items-center gap-2 md:hidden">
+          <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white">{section}</span>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(v => !v)}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white"
+            aria-label={mobileOpen ? 'Close games menu' : 'Open games menu'}
+            aria-expanded={mobileOpen}
+          >
+            <Icon name={mobileOpen ? 'Close' : 'Menu'} size={19} />
+          </button>
+        </div>
       </div>
+      {mobileOpen && (
+        <div className="border-t border-white/10 bg-[#120b24] px-4 pb-4 md:hidden">
+          <nav className="mx-auto grid max-w-7xl gap-2 pt-3" aria-label="Games mobile menu">
+            {navItems.map(item => (
+              <Link
+                key={item.label}
+                to={item.to}
+                onClick={() => setMobileOpen(false)}
+                className={`rounded-2xl px-4 py-3 text-sm font-bold ${item.primary ? 'bg-white text-[#120b24]' : 'bg-white/10 text-white hover:bg-white/20'}`}
+              >
+                {item.label}
+              </Link>
+            ))}
+            {player ? (
+              <button onClick={logout} className="rounded-2xl bg-white/10 px-4 py-3 text-left text-sm font-bold text-white">Logout</button>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <Link to={gamesPath('login')} onClick={() => setMobileOpen(false)} className="rounded-2xl bg-white/10 px-4 py-3 text-center text-sm font-bold text-white">Login</Link>
+                <Link to={gamesPath('signup')} onClick={() => setMobileOpen(false)} className="rounded-2xl bg-primary-500 px-4 py-3 text-center text-sm font-bold text-white">Signup</Link>
+              </div>
+            )}
+          </nav>
+        </div>
+      )}
     </header>
   );
 };
 
 const GamesFooter = () => (
-  <footer className="mt-auto bg-[#0c0718] px-4 py-8 text-white sm:py-10">
-    <div className="mx-auto grid max-w-7xl gap-6 text-center sm:text-left md:grid-cols-3">
+  <footer className="mt-auto bg-[#0c0718] px-4 py-7 text-white sm:py-8">
+    <div className="mx-auto grid max-w-7xl gap-5 text-center sm:text-left md:grid-cols-3">
       <div>
-        <p className="font-black">Thankeeu Games</p>
-        <p className="mt-2 text-sm leading-6 text-white/85">Friday 2pm department games for employee engagement, recognition and friendly inter-company competition.</p>
+        <p className="text-sm font-black">Thankeeu Games</p>
+        <p className="mt-2 text-xs leading-5 text-white sm:text-sm">Friday 2pm department games for employee engagement, recognition and friendly inter-company competition.</p>
       </div>
-      <div className="text-sm leading-6 text-white/85">
-        <p className="font-semibold text-white">Rules</p>
+      <div className="text-xs leading-5 text-white sm:text-sm">
+        <p className="font-bold text-white">Rules</p>
         <p className="mt-2">Unlimited companies can join each game. Only 2 employees per company can play a department game each week.</p>
       </div>
-      <div className="text-sm leading-6 text-white/85">
-        <p className="font-semibold text-white">Managed by Thankeeu</p>
+      <div className="text-xs leading-5 text-white sm:text-sm">
+        <p className="font-bold text-white">Managed by Thankeeu</p>
         <p className="mt-2">Questions reset every Sunday. The normal Thankeeu admin controls games from the admin dashboard.</p>
       </div>
     </div>
@@ -194,16 +229,58 @@ const GamesFooter = () => (
 );
 
 const GameCard = ({ game }) => (
-  <Link to={gamesPath(game.slug)} className="group overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+  <Link to={gamesPath(game.slug)} className="group overflow-hidden rounded-3xl border border-purple-100 bg-white shadow-sm ring-1 ring-white/70 transition duration-200 hover:-translate-y-1 hover:border-primary-200 hover:shadow-2xl">
     <GameArtwork game={game} />
     <div className="p-4">
       <p className="line-clamp-3 min-h-[60px] text-sm leading-5 text-[#4c435f]">{game.description}</p>
       <div className="mt-4 flex items-center justify-between gap-3 text-xs font-bold text-[#4f46e5]">
-        <span>Friday 2pm</span>
-        <span>Open game</span>
+        <span className="rounded-full bg-primary-50 px-2.5 py-1">Friday 2pm</span>
+        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">Open game</span>
       </div>
     </div>
   </Link>
+);
+
+const GamesHeroShowcase = () => (
+  <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white/10 p-4 shadow-2xl shadow-black/20 backdrop-blur">
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,0.28),transparent_26%),radial-gradient(circle_at_90%_15%,rgba(251,191,36,0.22),transparent_24%)]" />
+    <div className="relative">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-white/80">Live Friday Arena</p>
+          <p className="mt-1 text-base font-black text-white sm:text-lg">Department League</p>
+        </div>
+        <span className="rounded-full bg-emerald-300 px-3 py-1 text-xs font-black text-[#052e1b]">2pm</span>
+      </div>
+      <div className="mt-5 grid gap-3">
+        {[
+          ['Data Science', '92%', 'BarChart'],
+          ['Cloud Engineering', '88%', 'Rocket'],
+          ['People Ops', '84%', 'Users'],
+        ].map(([name, score, icon], idx) => (
+          <div key={name} className="flex items-center gap-3 rounded-2xl bg-white/10 p-3 ring-1 ring-white/10">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-[#120b24]">
+              <Icon name={icon} size={18} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-black text-white">{name}</p>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/15">
+                <div className="h-full rounded-full bg-gradient-to-r from-amber-200 to-emerald-200" style={{ width: score }} />
+              </div>
+            </div>
+            <span className="text-sm font-black text-white">{idx + 1}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 flex items-end justify-between rounded-2xl bg-[#0c0718]/60 p-4 ring-1 ring-white/10">
+        <div>
+          <p className="text-xs font-bold text-white/80">Weekly winners get</p>
+          <p className="mt-1 text-base font-black text-white">Auto congratulations cards</p>
+        </div>
+        <Icon name="Party" size={30} className="text-amber-200" />
+      </div>
+    </div>
+  </div>
 );
 
 export const GamesHome = () => {
@@ -211,6 +288,7 @@ export const GamesHome = () => {
   const [week, setWeek] = useState(null);
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
+  const [loadingGames, setLoadingGames] = useState(true);
   useSEO({
     title: 'Thankeeu Games - Employee Engagement League',
     description: 'Thankeeu Games is an inter-company employee engagement league with Friday 2pm department games, public leaderboards and company teams.',
@@ -219,33 +297,50 @@ export const GamesHome = () => {
   });
 
   useEffect(() => {
+    let active = true;
     const t = setTimeout(() => {
-      gamesAPI.listDepartments(q ? { q } : {}).then(res => {
+      const search = q.trim();
+      setLoadingGames(true);
+      gamesAPI.listDepartments(search ? { q: search } : {}).then(res => {
+        if (!active) return;
         setDepartments(res.data.departments || []);
         setWeek(res.data.week);
-        setPage(1);
-      }).catch(() => toast.error('Could not load games'));
+      }).catch(() => {
+        if (active) {
+          setDepartments([]);
+          toast.error('Could not load games');
+        }
+      }).finally(() => {
+        if (active) setLoadingGames(false);
+      });
     }, 180);
-    return () => clearTimeout(t);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
   }, [q]);
 
-  const pageSize = 50;
+  const pageSize = 12;
   const totalPages = Math.max(1, Math.ceil(departments.length / pageSize));
   const visible = departments.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <div className={lightPageClass}>
       <GamesNav />
-      <section className="bg-[#120b24] px-4 py-10 text-white sm:py-14">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-100 sm:text-sm sm:tracking-[0.2em]">Employee engagement league</p>
-          <h1 className="mt-4 max-w-4xl text-3xl font-black leading-tight sm:text-4xl md:text-6xl">Department games for companies that want smarter employee engagement.</h1>
-          <p className="mt-5 max-w-3xl text-base leading-7 text-white/90 sm:text-lg">Every Friday at 2pm, employees compete in brainy department-specific games. Teams form automatically when two players share the same company email domain.</p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {['10 questions per game', '2 players max per company', 'Public weekly leaderboard'].map(item => (
-              <div key={item} className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white">{item}</div>
-            ))}
+      <section className="relative overflow-hidden bg-[#120b24] px-4 py-8 text-white sm:py-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_15%,rgba(124,110,255,0.34),transparent_30%),radial-gradient(circle_at_82%_12%,rgba(236,72,153,0.22),transparent_28%)]" />
+        <div className="relative mx-auto grid max-w-7xl gap-7 lg:grid-cols-[minmax(0,1fr)_390px] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary-100 sm:text-sm sm:tracking-[0.2em]">Employee engagement league</p>
+            <h1 className="mt-3 max-w-3xl text-2xl font-black leading-tight text-white sm:text-3xl lg:text-4xl">Inter-company department games employees actually want to play.</h1>
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-white/90 sm:text-base">Every Friday at 2pm, teams compete in brainy department games with public leaderboards, automatic scoring, and winner celebration cards.</p>
+            <div className="mt-6 grid gap-2 sm:grid-cols-3">
+              {['10 questions', '2 players/company', 'Public leaderboard'].map(item => (
+                <div key={item} className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-xs font-bold text-white sm:text-sm">{item}</div>
+              ))}
+            </div>
           </div>
+          <GamesHeroShowcase />
         </div>
       </section>
       <main className={`${mainClass} mx-auto w-full max-w-7xl px-4 py-8 sm:py-10`}>
@@ -254,16 +349,62 @@ export const GamesHome = () => {
             <h2 className="text-xl font-black leading-tight text-[#201a33] sm:text-2xl">Choose your department game</h2>
             <p className="text-sm text-[#5f5672]">This week: {week?.week_key || 'loading'} - play day is Friday 2pm.</p>
           </div>
-          <input value={q} onChange={e => setQ(e.target.value)} className={`input max-w-md ${inputContrastClass}`} placeholder="Search games, departments or roles..." />
+          <div className="relative w-full md:max-w-md">
+            <Icon name="Search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#6b607d]" />
+            <input
+              value={q}
+              onChange={e => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              className={`input w-full pl-10 pr-10 ${inputContrastClass}`}
+              placeholder="Search games, departments or roles..."
+              aria-label="Search department games"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQ('');
+                  setPage(1);
+                }}
+                className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-[#6b607d] hover:bg-purple-50 hover:text-[#201a33]"
+                aria-label="Clear games search"
+              >
+                <Icon name="Close" size={15} />
+              </button>
+            )}
+          </div>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {visible.map(game => <GameCard key={game.id} game={game} />)}
+        <div className="mb-4 flex items-center justify-between gap-3 text-sm text-[#5f5672]">
+          <p>{loadingGames ? 'Searching games...' : `${departments.length} game${departments.length === 1 ? '' : 's'} found`}</p>
+          {q.trim() && <p className="truncate text-right">Search: <span className="font-bold text-[#201a33]">{q.trim()}</span></p>}
         </div>
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <button className="btn-secondary px-4 py-2" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</button>
-          <span className="text-sm font-semibold text-[#4c435f]">Page {page} of {totalPages}</span>
-          <button className="btn-secondary px-4 py-2" disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next</button>
-        </div>
+        {loadingGames ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-72 animate-pulse rounded-3xl bg-white shadow-sm" />)}
+          </div>
+        ) : departments.length ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {visible.map(game => <GameCard key={game.id} game={game} />)}
+            </div>
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <button className="btn-secondary px-4 py-2" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>Previous</button>
+              <span className="text-sm font-semibold text-[#4c435f]">Page {page} of {totalPages}</span>
+              <button className="btn-secondary px-4 py-2" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>Next</button>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-3xl border border-purple-100 bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-600">
+              <Icon name="Search" size={22} />
+            </div>
+            <p className="mt-4 font-black text-[#201a33]">No department games found</p>
+            <p className="mt-2 text-sm text-[#5f5672]">Try another department, role, skill, or field name.</p>
+            <button type="button" onClick={() => setQ('')} className="btn-secondary mt-5 px-4 py-2">Clear search</button>
+          </div>
+        )}
       </main>
       <GamesFooter />
     </div>
@@ -334,7 +475,7 @@ export const GamesProfile = () => {
         <section className="overflow-hidden rounded-3xl bg-white shadow-sm">
           <div className={`bg-gradient-to-br ${themes[department.image_theme] || themes.indigo} p-5 text-white sm:p-10`}>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/90 sm:text-sm sm:tracking-[0.2em]">{department.category}</p>
-            <h1 className="mt-3 text-2xl font-black leading-tight sm:text-4xl">{department.name} Games</h1>
+            <h1 className="mt-3 text-2xl font-black leading-tight sm:text-3xl">{department.name} Games</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-white/90 sm:text-base">{department.description}</p>
           </div>
           <div className="p-5 sm:p-8">
@@ -566,7 +707,7 @@ export const GamesDashboard = () => {
           <div className="flex items-center gap-4">
             <img src={data.player.avatar_url} alt="" className="h-14 w-14 rounded-2xl object-cover sm:h-16 sm:w-16" />
             <div className="min-w-0">
-              <h1 className="break-words text-xl font-black leading-tight text-white sm:text-2xl">{data.player.full_name}</h1>
+              <h1 className="break-words text-lg font-black leading-tight text-white sm:text-xl">{data.player.full_name}</h1>
               <p className="break-words text-sm text-white/90 sm:text-base">{data.player.company_name} - {data.player.job_title || 'Employee player'}</p>
             </div>
           </div>
@@ -703,7 +844,7 @@ const ResultsPosters = ({ registrations, player }) => {
                 <p className="text-sm text-white/90">{registration.week_key}</p>
                 <p className="text-sm text-white/90">Friday 2pm championship</p>
               </div>
-              <p className="text-4xl font-black text-white sm:text-5xl">{attempt.score}<span className="text-xl text-white/80 sm:text-2xl">/{attempt.total}</span></p>
+              <p className="text-3xl font-black text-white sm:text-4xl">{attempt.score}<span className="text-lg text-white/80 sm:text-xl">/{attempt.total}</span></p>
             </div>
             <button
               type="button"

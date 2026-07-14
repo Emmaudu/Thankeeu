@@ -351,9 +351,17 @@ async function sendDueCongratulationWork() {
 const listDepartments = async (req, res) => {
   await seedDepartments();
   const week = await ensureWeek();
-  const q = String(req.query.q || '').trim();
+  const q = String(req.query.q || '')
+    .trim()
+    .slice(0, 80)
+    .replace(/[,%]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   let query = supabase.from('games_departments').select('*').eq('is_active', true).order('name');
-  if (q) query = query.or(`name.ilike.%${q}%,category.ilike.%${q}%,description.ilike.%${q}%`);
+  if (q) {
+    const pattern = `%${q}%`;
+    query = query.or(`name.ilike.${pattern},category.ilike.${pattern},description.ilike.${pattern},slug.ilike.${pattern}`);
+  }
   const { data, error } = await query;
   if (error) return res.status(500).json({ error: error.message });
   res.json({ departments: data || [], week });

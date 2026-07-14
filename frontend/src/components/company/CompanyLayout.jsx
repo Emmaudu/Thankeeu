@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../ui/Icon';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
-import { companyPath, isWorkspaceHost } from '../../utils/workspace';
+import { companyPath, getWorkspaceUrl, isWorkspaceHost } from '../../utils/workspace';
 
 const NAV = [
   { path: companyPath('/dashboard'),    icon: 'Home',     label: 'Dashboard'         },
@@ -56,6 +56,14 @@ const CompanyLayout = ({ children, title, subtitle }) => {
   };
 
   const initials = company?.name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'CO';
+  const workspaceUrl = company?.workspace_url || (company?.slug ? getWorkspaceUrl(company.slug) : '');
+  const workspaceHost = (() => {
+    try {
+      return workspaceUrl ? new URL(workspaceUrl).host : '';
+    } catch {
+      return company?.slug ? `${company.slug}.thankeeu.com` : '';
+    }
+  })();
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full" style={{ background: 'linear-gradient(180deg,#1E1438 0%,#14102E 100%)' }}>
@@ -82,7 +90,7 @@ const CompanyLayout = ({ children, title, subtitle }) => {
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold truncate" style={{ color: '#E4E2F6' }}>{company?.name || 'Company'}</p>
-            <p className="text-xs" style={{ color: '#6B678A' }}>{isViaCoreTeam ? 'Core Team Access' : 'HR Admin'}</p>
+            <p className="text-xs truncate" style={{ color: '#6B678A' }}>{workspaceHost || (isViaCoreTeam ? 'Core Team Access' : 'HR Admin')}</p>
           </div>
         </div>
       </div>

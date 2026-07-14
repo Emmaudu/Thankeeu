@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useSearchParams, useParams } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth }               from './context/AuthContext';
@@ -20,6 +21,7 @@ import POVAlt                from './pages/POVAlternative';
 import GuestCamAlt           from './pages/GuestCamAlternative';
 import VsThankbox            from './pages/VsThankbox';
 import VsKudoboard           from './pages/VsKudoboard';
+import VsThankboxKudoboard   from './pages/VsThankboxKudoboard';
 import WeddingPhotoSharingApp      from './pages/WeddingPhotoSharingApp';
 import WeddingPhotoUploadApp       from './pages/WeddingPhotoUploadApp';
 import QRCodeForWeddingPhotos      from './pages/QRCodeForWeddingPhotos';
@@ -117,6 +119,8 @@ import VerifyEmail      from './pages/VerifyEmail';
 import CompanySignup          from './pages/company/CompanySignup';
 import CompanyLogin           from './pages/company/CompanyLogin';
 import CompanyForgotPassword  from './pages/company/CompanyForgotPassword';
+import WorkspaceFinder        from './pages/company/WorkspaceFinder';
+import WorkspacePortal        from './pages/company/WorkspacePortal';
 import BookDemo               from './pages/BookDemo';
 import CompanyResetPassword   from './pages/company/CompanyResetPassword';
 import CompanyDashboard       from './pages/company/CompanyDashboard';
@@ -153,7 +157,8 @@ import MemberFinancesPage    from './pages/member/MemberFinancesPage';
 import MemberRemindersPage   from './pages/member/MemberRemindersPage';
 import { usePageTracker } from './hooks/usePageTracker';
 import ScrollToTop from './components/ScrollToTop';
-import { companyPath, isWorkspaceHost } from './utils/workspace';
+import { companyAPI } from './utils/api';
+import { companyPath, getWorkspaceSlug, isWorkspaceFinderHost, isWorkspaceHost } from './utils/workspace';
 
 const PageTracker = () => { usePageTracker(); return null; };
 
@@ -162,6 +167,76 @@ const Spinner = () => (
     <div className="w-8 h-8 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
   </div>
 );
+
+const WorkspaceNotFound = ({ slug }) => (
+  <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
+    <section className="w-full max-w-lg text-center">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary-300">404 workspace</p>
+      <h1 className="mt-4 text-4xl font-bold">Workspace not found</h1>
+      <p className="mt-4 text-slate-300">
+        {slug ? `${slug}.thankeeu.com` : 'This workspace'} is not registered on Thankeeu.
+      </p>
+      <a
+        href="https://thankeeu.com"
+        className="mt-8 inline-flex items-center justify-center rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white hover:bg-primary-600"
+      >
+        Go to Thankeeu
+      </a>
+    </section>
+  </main>
+);
+
+const WorkspaceUnavailable = () => (
+  <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
+    <section className="w-full max-w-lg text-center">
+      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-amber-300">Workspace check failed</p>
+      <h1 className="mt-4 text-4xl font-bold">Unable to verify this workspace</h1>
+      <p className="mt-4 text-slate-300">
+        Please refresh in a moment. If this continues, the API may not be reachable from this domain.
+      </p>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="mt-8 inline-flex items-center justify-center rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white hover:bg-primary-600"
+      >
+        Retry
+      </button>
+    </section>
+  </main>
+);
+
+const WorkspaceGate = ({ children }) => {
+  const slug = getWorkspaceSlug();
+  const [status, setStatus] = useState(slug ? 'loading' : 'ready');
+
+  useEffect(() => {
+    if (!slug) {
+      setStatus('ready');
+      return undefined;
+    }
+
+    let active = true;
+    setStatus('loading');
+
+    companyAPI.getWorkspace()
+      .then(() => {
+        if (active) setStatus('ready');
+      })
+      .catch((error) => {
+        if (!active) return;
+        setStatus(error.response?.status === 404 ? 'not-found' : 'error');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  if (status === 'loading') return <Spinner />;
+  if (status === 'not-found') return <WorkspaceNotFound slug={slug} />;
+  if (status === 'error') return <WorkspaceUnavailable />;
+  return children;
+};
 
 // CardViewGate — everyone goes straight to CardView, no login required.
 // If the URL has ?claim=TOKEN (recipient email link), CardView itself resolves
@@ -187,7 +262,24 @@ const CompanyProtectedRoute = ({ children }) => {
   return children;
 };
 
-const WorkspaceLogin = () => isWorkspaceHost() ? <CompanyLogin /> : <Login />;
+const RootPage = () => (
+  isWorkspaceHost() || isWorkspaceFinderHost()
+    ? <Navigate to="/login" replace />
+    : <Home />
+);
+
+const WorkspaceLogin = () => {
+  if (isWorkspaceHost()) return <WorkspacePortal />;
+  if (isWorkspaceFinderHost()) return <WorkspaceFinder />;
+  return <Login />;
+};
+
+const WorkspaceSignup = () => {
+  if (isWorkspaceHost()) return <JoinCompanySignup />;
+  if (isWorkspaceFinderHost()) return <WorkspaceFinder />;
+  return <Signup />;
+};
+
 const WorkspaceForgotPassword = () => isWorkspaceHost() ? <CompanyForgotPassword /> : <ForgotPassword />;
 const WorkspaceResetPassword = () => isWorkspaceHost() ? <CompanyResetPassword /> : <ResetPassword />;
 const WorkspaceDashboard = () => (
@@ -195,6 +287,10 @@ const WorkspaceDashboard = () => (
     ? <CompanyProtectedRoute><CompanyDashboard /></CompanyProtectedRoute>
     : <ProtectedRoute><DashboardHome /></ProtectedRoute>
 );
+const CompanyLoginRoute = () => isWorkspaceHost() ? <Navigate to="/login" replace /> : <CompanyLogin />;
+const CompanySignupRoute = () => isWorkspaceHost() ? <Navigate to="/login" replace /> : <CompanySignup />;
+const MemberLoginRoute = () => isWorkspaceHost() ? <Navigate to="/login?role=member" replace /> : <JoinCompanyLogin />;
+const MemberSignupRoute = () => isWorkspaceHost() ? <Navigate to="/signup" replace /> : <JoinCompanySignup />;
 
 // Allows any logged-in user: regular user, HR company, or team member
 const AnyAuthRoute = ({ children }) => {
@@ -221,19 +317,20 @@ const App = () => (
     <CompanyAuthProvider>
       <MemberAuthProvider>
         <BrowserRouter>
-          <Toaster
-            position="top-center"
-            toastOptions={{
-              className: 'font-sans text-sm',
-              success: { iconTheme: { primary: '#7F77DD', secondary: '#fff' } },
-              duration: 4000,
-            }}
-          />
-          <PageTracker />
-          <ScrollToTop />
-          <Routes>
+          <WorkspaceGate>
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                className: 'font-sans text-sm',
+                success: { iconTheme: { primary: '#7F77DD', secondary: '#fff' } },
+                duration: 4000,
+              }}
+            />
+            <PageTracker />
+            <ScrollToTop />
+            <Routes>
             {/* ── Public (no auth required) ─────────────────── */}
-            <Route path="/"              element={<Home />} />
+            <Route path="/"              element={<RootPage />} />
             <Route path="/pricing"       element={<Pricing />} />
             <Route path="/memory-movie"         element={<MemoryMoviePage />} />
             <Route path="/live-memory-wall"          element={<LiveMemoryWallPage />} />
@@ -268,6 +365,7 @@ const App = () => (
             <Route path="/guestcam-alternative"        element={<GuestCamAlt />} />
             <Route path="/thankeeu-vs-thankbox"       element={<VsThankbox />} />
             <Route path="/thankeeu-vs-kudoboard"      element={<VsKudoboard />} />
+            <Route path="/thankeeu-vs-thankbox-vs-kudoboard" element={<VsThankboxKudoboard />} />
             <Route path="/policy"        element={<Policy />} />
             <Route path="/how-it-works"  element={<HowItWorks />} />
             <Route path="/occasions/birthday"    element={<BirthdayPage />} />
@@ -353,7 +451,7 @@ const App = () => (
 
             {/* ── Individual auth ─────────────────────────── */}
             <Route path="/login"             element={<WorkspaceLogin />} />
-            <Route path="/signup"            element={<Signup />} />
+            <Route path="/signup"            element={<WorkspaceSignup />} />
             <Route path="/forgot-password"   element={<WorkspaceForgotPassword />} />
             <Route path="/reset-password"    element={<WorkspaceResetPassword />} />
             <Route path="/admin/login"       element={<AdminLogin />} />
@@ -390,9 +488,9 @@ const App = () => (
             <Route path="/core-team"    element={<CompanyProtectedRoute><CoreTeamPage /></CompanyProtectedRoute>} />
 
             {/* ── Company (HR) auth ────────────────────────── */}
-            <Route path="/company/signup"           element={<CompanySignup />} />
+            <Route path="/company/signup"           element={<CompanySignupRoute />} />
             <Route path="/business"                 element={<BookDemo />} />
-            <Route path="/company/login"            element={<CompanyLogin />} />
+            <Route path="/company/login"            element={<CompanyLoginRoute />} />
             <Route path="/company/forgot-password"  element={<CompanyForgotPassword />} />
             <Route path="/company/reset-password"   element={<CompanyResetPassword />} />
 
@@ -415,8 +513,8 @@ const App = () => (
           <Route path="/company/core-team"    element={<CompanyProtectedRoute><CoreTeamPage /></CompanyProtectedRoute>} />
 
             {/* ── Team member / leader auth ────────────────── */}
-            <Route path="/member/signup"          element={<JoinCompanySignup />} />
-            <Route path="/member/login"           element={<JoinCompanyLogin />} />
+            <Route path="/member/signup"          element={<MemberSignupRoute />} />
+            <Route path="/member/login"           element={<MemberLoginRoute />} />
             <Route path="/member/forgot-password" element={<JoinForgotPassword />} />
             <Route path="/member/reset-password"  element={<JoinResetPassword />} />
 
@@ -436,7 +534,8 @@ const App = () => (
 
             {/* ── 404 ─────────────────────────────────────── */}
             <Route path="*" element={<NotFound />} />
-          </Routes>
+            </Routes>
+          </WorkspaceGate>
         </BrowserRouter>
       </MemberAuthProvider>
     </CompanyAuthProvider>

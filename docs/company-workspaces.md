@@ -10,6 +10,8 @@ Examples:
 
 The public marketing site remains on `thankeeu.com` / `www.thankeeu.com`. Workspace dashboards are private and resolved from the company slug.
 
+The literal `company.thankeeu.com` subdomain is reserved as a workspace finder. It lets HR or employees enter a company domain such as `flutterwave.com` and redirects them to `flutterwave.thankeeu.com/login` when a registered workspace is found.
+
 ## Database Migration
 
 Run this Supabase migration before deploying the code:
@@ -46,6 +48,12 @@ Add both domains to the Vercel project:
 - `*.thankeeu.com`
 
 The existing SPA rewrite to `/index.html` supports arbitrary workspace paths such as `/dashboard`, `/members`, `/employees`, `/cards`, `/settings`, and `/hris`.
+
+Workspace auth uses clean paths:
+
+- `company-slug.thankeeu.com/login` for the HR/member sign-in portal
+- `company-slug.thankeeu.com/signup` for member signup
+- legacy `/company/login`, `/company/signup`, `/member/login`, and `/member/signup` redirect or continue to work for compatibility
 
 Frontend environment variables:
 

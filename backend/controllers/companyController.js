@@ -17,7 +17,7 @@ const rehashIfLegacy = async (id, plain, stored, table, supabase) => {
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const supabase = require('../utils/supabase');
-const { generateUniqueCompanySlug } = require('../utils/companySlug');
+const { generateUniqueCompanySlug, normalizeCompanySlug } = require('../utils/companySlug');
 
 const setCookie = (res, name, token, expiresIn = '7d') => {
   const maxAge = expiresIn.endsWith('d')
@@ -51,6 +51,64 @@ const buildWorkspaceUrl = (slug) => {
     return `${protocol}//${slug}.${host}${port}`;
   } catch {
     return `https://${slug}.thankeeu.com`;
+  }
+};
+
+const normalizeLookupDomain = (value) => {
+  const cleaned = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0]
+    .split('?')[0]
+    .replace(/:\d+$/, '');
+
+  if (!cleaned || cleaned.length > 253 || !/^[a-z0-9.-]+$/.test(cleaned)) return null;
+  return cleaned.replace(/\.+$/, '');
+};
+
+const companyWorkspaceLookup = async (req, res) => {
+  try {
+    const domain = normalizeLookupDomain((req.body && req.body.domain) || req.query.domain);
+    if (!domain) return res.status(400).json({ error: 'Enter a valid company domain' });
+
+    const rootLabel = domain.split('.')[0];
+    const domainSlug = normalizeCompanySlug(rootLabel);
+
+    let company = null;
+    let error = null;
+
+    ({ data: company, error } = await supabase
+      .from('companies')
+      .select('id, name, email, logo_url, slug')
+      .eq('slug', domainSlug)
+      .maybeSingle());
+
+    if (error) throw error;
+
+    if (!company && domain.includes('.')) {
+      ({ data: company, error } = await supabase
+        .from('companies')
+        .select('id, name, email, logo_url, slug')
+        .ilike('email', `%@${domain}`)
+        .limit(1)
+        .maybeSingle());
+      if (error) throw error;
+    }
+
+    if (!company) {
+      return res.status(404).json({
+        error: 'No company workspace found for that domain',
+        code: 'WORKSPACE_NOT_FOUND',
+      });
+    }
+
+    const workspace_url = buildWorkspaceUrl(company.slug);
+    res.json({ company: { ...company, workspace_url }, workspace_url });
+  } catch (err) {
+    console.error('[companyWorkspaceLookup]', err.message);
+    res.status(500).json({ error: 'Failed to find workspace' });
   }
 };
 
@@ -334,4 +392,6 @@ const uploadCompanyLogo = async (req, res) => {
 };
 
 module.exports = {
-  uploadCompanyLogo, companySignup, companyLogin, getCompanyMe, updateCompanyProfile, changeCompanyPassword, companyForgotPassword, companyResetPassword };
+  uploadCompanyLogo, companySignup, companyLogin, getCompanyMe, updateCompanyProfile, changeCompanyPassword, companyForgotPassword, companyResetPassword,
+  companyWorkspaceLookup,
+};

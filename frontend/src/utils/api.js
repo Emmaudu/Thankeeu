@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getWorkspaceSlug } from './workspace';
+import { companyPath, getWorkspaceSlug, isWorkspaceHost } from './workspace';
 
 const BASE     = import.meta.env.VITE_API_URL || '/api';
 const BASE_URL = BASE;  // alias so both names work
@@ -73,7 +73,7 @@ companyAxios.interceptors.response.use(res => res, err => {
   if (err.response?.status === 401 && localStorage.getItem('thankeeu_company_token')) {
     localStorage.removeItem('thankeeu_company_token');
     localStorage.removeItem('thankeeu_company');
-    window.location.href = '/company/login';
+    window.location.href = companyPath('/login');
   }
   return Promise.reject(err);
 });
@@ -90,7 +90,7 @@ memberAxios.interceptors.response.use(res => res, err => {
   if (err.response?.status === 401 && localStorage.getItem('thankeeu_member_token')) {
     localStorage.removeItem('thankeeu_member_token');
     localStorage.removeItem('thankeeu_member');
-    window.location.href = '/member/login';
+    window.location.href = isWorkspaceHost() ? '/login?role=member' : '/member/login';
   }
   return Promise.reject(err);
 });
@@ -266,6 +266,7 @@ export const companyAPI = {
   signup:         (data)  => companyAxios.post('/company/signup', data),
   login:          (data)  => companyAxios.post('/company/login', data),
   getWorkspace:   ()      => publicAxios.get('/company/workspace'),
+  lookupWorkspace:(domain)=> publicAxios.post('/company/workspace-lookup', { domain }),
   getMe:          ()      => companyAxios.get('/company/me'),
   updateProfile:  (data)  => companyAxios.put('/company/profile', data),
   changePassword: (data)  => companyAxios.put('/company/password', data),

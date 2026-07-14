@@ -434,6 +434,23 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const fileInputRef = useRef();
   const textareaRef  = useRef();
 
+  const openEditorFor = useCallback((action = 'message') => {
+    setShowEditor(true);
+    setShowEmoji(false);
+    setShowGif(false);
+
+    window.setTimeout(() => {
+      if (action === 'media') fileInputRef.current?.click();
+      if (action === 'gif') setShowGif(true);
+      if (action === 'message') textareaRef.current?.focus();
+      if (action === 'voice') document.getElementById('album-voice-tools')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (action === 'gift') {
+        setGiftMode('money');
+        document.getElementById('album-gift-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 120);
+  }, []);
+
   // ─ Derived ─
   const messages = (card?.messages||[]).filter(Boolean);
   const design   = getCardDesign(card?.design_theme);
@@ -732,7 +749,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
       {/* ── Toolbar (hidden on cover) ── */}
       {!showingCover && (
         <div style={{background:isDark?'#1a1535':'#fff',borderBottom:`1.5px solid ${isDark?'rgba(255,255,255,0.08)':'#EDE9FE'}`,display:'flex',alignItems:'center',gap:8,padding:'10px 1.25rem',flexWrap:'wrap'}}>
-          <button onClick={()=>{setShowEditor(true);setShowEmoji(false);setShowGif(false);}}
+          <button onClick={()=>openEditorFor('message')}
             style={{background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',border:'none',borderRadius:22,padding:'10px 22px',fontWeight:800,fontSize:14,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(124,58,237,0.35)'}}>
             <Icon name="PenLine" size={15} style={{color:'#fff'}}/> Sign this card
           </button>
@@ -748,7 +765,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               setPageThemes(prev=>{const n=[...prev];while(n.length<clampedPage)n.push('lavender');n[clampedPage-1]=themeId;return n;});
             }}/>
           </div>
-          <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={e=>addMedia(e.target.files)}/>
+            <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={e=>{addMedia(e.target.files);e.target.value='';}}/>
         </div>
       )}
 
@@ -779,14 +796,39 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 
             {/* Active page */}
             <div style={{position:'relative',zIndex:1}}>
-              {showingCover
-                ? <CoverPage card={card} design={design} flipClass={flipClass}/>
-                : pageDef?.type==='legacy'
-                  ? <LegacyAlbumPage pageRef={pageRef} pageNum={pageDef.pageNum} messages={pageDef.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass={flipClass} onDragStart={startDrag}/>
-                  : <NewSignerPage msg={pageDef?.msg||null} theme={currentTheme} isOwn={pageDef?.msg&&myMsgIds.includes(pageDef.msg.id)} flipClass={flipClass}/>
-              }
+                {showingCover
+                  ? <CoverPage card={card} design={design} flipClass={flipClass}/>
+                  : pageDef?.type==='legacy'
+                    ? <LegacyAlbumPage pageRef={pageRef} pageNum={pageDef.pageNum} messages={pageDef.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass={flipClass} onDragStart={startDrag}/>
+                    : <NewSignerPage msg={pageDef?.msg||null} theme={currentTheme} isOwn={pageDef?.msg&&myMsgIds.includes(pageDef.msg.id)} flipClass={flipClass}/>
+                }
+                {!showingCover && pageDef?.type === 'blank' && (
+                  <div style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none'}}>
+                    <div style={{position:'absolute',top:24,left:24,right:24,height:190,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,pointerEvents:'auto'}}>
+                      <button type="button" onClick={()=>openEditorFor('media')} style={{border:'2px dashed rgba(124,58,237,0.45)',background:'rgba(255,255,255,0.72)',borderRadius:14,fontWeight:800,color:accentC,cursor:'pointer'}}>
+                        Add photos or videos
+                      </button>
+                      <button type="button" onClick={()=>openEditorFor('gif')} style={{border:'2px dashed rgba(124,58,237,0.45)',background:'rgba(255,255,255,0.72)',borderRadius:14,fontWeight:800,color:accentC,cursor:'pointer'}}>
+                        Add GIF
+                      </button>
+                    </div>
+                    <button type="button" onClick={()=>openEditorFor('message')} style={{position:'absolute',top:232,left:24,right:24,bottom:78,pointerEvents:'auto',border:'2px dashed rgba(124,58,237,0.32)',background:'rgba(255,255,255,0.5)',borderRadius:14,fontWeight:800,color:accentC,cursor:'pointer'}}>
+                      Write a message
+                    </button>
+                    <div style={{position:'absolute',left:24,right:24,bottom:18,display:'flex',justifyContent:'space-between',gap:10,pointerEvents:'auto'}}>
+                      <button type="button" onClick={()=>openEditorFor('voice')} style={{flex:1,border:'2px dashed rgba(124,58,237,0.35)',background:'rgba(255,255,255,0.72)',borderRadius:999,padding:'9px 12px',fontWeight:800,color:accentC,cursor:'pointer'}}>
+                        Add voice note
+                      </button>
+                      {card.is_gift_enabled && (
+                        <button type="button" onClick={()=>openEditorFor('gift')} style={{flex:1,border:'2px dashed rgba(245,158,11,0.65)',background:'rgba(254,243,199,0.86)',borderRadius:999,padding:'9px 12px',fontWeight:800,color:'#92400E',cursor:'pointer'}}>
+                          Add gift
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
           {/* ── Page navigation ── */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginTop:22,flexWrap:'wrap'}}>
@@ -821,7 +863,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
           <SidebarContent card={card} slug={slug} myMsgIds={myMsgIds}
             signaturesOpen={signaturesOpen} setSignaturesOpen={setSignaturesOpen}
             allSignersOpen={allSignersOpen} setAllSignersOpen={setAllSignersOpen}
-            onContribute={()=>setShowEditor(true)}
+              onContribute={()=>openEditorFor('gift')}
             selectedAmount={selectedAmount} setSelectedAmount={setSelectedAmount}
             customAmount={customAmount} setCustomAmount={setCustomAmount}
             showHelp={showHelp} setShowHelp={setShowHelp}
@@ -837,7 +879,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
             <SidebarContent card={card} slug={slug} myMsgIds={myMsgIds}
               signaturesOpen={signaturesOpen} setSignaturesOpen={setSignaturesOpen}
               allSignersOpen={allSignersOpen} setAllSignersOpen={setAllSignersOpen}
-              onContribute={()=>{setMobileSidebar(false);setShowEditor(true);}}
+                onContribute={()=>{setMobileSidebar(false);openEditorFor('gift');}}
               selectedAmount={selectedAmount} setSelectedAmount={setSelectedAmount}
               customAmount={customAmount} setCustomAmount={setCustomAmount}
               showHelp={showHelp} setShowHelp={setShowHelp}
@@ -860,7 +902,22 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               </button>
             </div>
 
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:18}}>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:18}}>
+                {[
+                  { label:'Message', action:'message' },
+                  { label:'Photo/video', action:'media' },
+                  { label:'GIF', action:'gif' },
+                  { label:'Voice note', action:'voice' },
+                  ...(card.is_gift_enabled ? [{ label:'Gift', action:'gift' }] : []),
+                ].map(item => (
+                  <button key={item.action} type="button" onClick={()=>openEditorFor(item.action)}
+                    style={{border:'1.5px solid #EDE9FE',background:'#F8F5FF',borderRadius:14,padding:'10px 8px',fontSize:12,fontWeight:800,color:'#5B21B6',cursor:'pointer'}}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:18}}>
               <div><label className="auth-label">Your name *</label><input className="input" placeholder="Your name" value={form.author_name} onChange={e=>setForm(p=>({...p,author_name:e.target.value}))}/></div>
               <div><label className="auth-label">Email *</label><input type="email" className="input" placeholder="you@email.com" value={form.author_email} onChange={e=>setForm(p=>({...p,author_email:e.target.value}))}/></div>
             </div>
@@ -892,10 +949,22 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               <button type="button" onClick={()=>{setShowEmoji(s=>!s);setShowGif(false);}}
                 style={{position:'absolute',bottom:8,right:8,width:34,height:34,border:'1.5px solid #EDE9FE',background:'#fff',borderRadius:'50%',cursor:'pointer',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center'}}>😊</button>
               {showEmoji&&<EmojiPicker onSelect={insertEmoji} onClose={()=>setShowEmoji(false)}/>}
-            </div>
-            <p style={{fontSize:11,color:'#9CA3AF',textAlign:'right',marginBottom:14}}>{form.content.length}/1200</p>
+              </div>
+              <p style={{fontSize:11,color:'#9CA3AF',textAlign:'right',marginBottom:14}}>{form.content.length}/1200</p>
 
-            {showGif&&<GifPicker onSelect={f=>{addMedia([f]);setShowGif(false);}} onClose={()=>setShowGif(false)}/>}
+              <div id="album-voice-tools" style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap',marginBottom:14}}>
+                <VoiceRecorder onRecorded={f=>addMedia([f])} disabled={submitting}/>
+                <button type="button" onClick={()=>fileInputRef.current?.click()}
+                  style={{border:'1.5px solid #EDE9FE',background:'#fff',borderRadius:999,padding:'9px 13px',fontSize:12,fontWeight:800,color:'#5B21B6',cursor:'pointer'}}>
+                  Add photo/video
+                </button>
+                <button type="button" onClick={()=>setShowGif(s=>!s)}
+                  style={{border:'1.5px solid #EDE9FE',background:'#fff',borderRadius:999,padding:'9px 13px',fontSize:12,fontWeight:800,color:'#5B21B6',cursor:'pointer'}}>
+                  Add GIF
+                </button>
+              </div>
+
+              {showGif&&<GifPicker onSelect={f=>{addMedia([f]);setShowGif(false);}} onClose={()=>setShowGif(false)}/>}
 
             {mediaFiles.length>0&&(
               <div style={{marginBottom:18,border:'1.5px solid #EDE9FE',borderRadius:16,overflow:'hidden'}}>
@@ -908,7 +977,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
             )}
 
             {card.is_gift_enabled&&(
-              <div style={{background:'linear-gradient(135deg,#FFF7ED,#FEF3C7)',border:'1.5px solid #FDE68A',borderRadius:18,padding:'16px 18px',marginBottom:18}}>
+                <div id="album-gift-section" style={{background:'linear-gradient(135deg,#FFF7ED,#FEF3C7)',border:'1.5px solid #FDE68A',borderRadius:18,padding:'16px 18px',marginBottom:18}}>
                 <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:12}}>
                   <span style={{fontSize:22}}>🎁</span>
                   <div>

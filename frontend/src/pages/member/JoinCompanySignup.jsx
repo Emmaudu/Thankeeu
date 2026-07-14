@@ -1,4 +1,4 @@
-import { useSEO, SCHEMAS } from '../../hooks/useSEO';
+﻿import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 import { useState, useEffect } from 'react';
 import ThankeeuLogo from '../../components/ThankeeuLogo';
 import Navbar from '../../components/Navbar';
@@ -16,7 +16,7 @@ const DEFAULT_DEPTS = [
 
 const JoinCompanySignup = () => {
   useSEO({
-    title:       'Join Your Company Workspace — Thankeeu for Teams',
+    title:       'Join Your Company Workspace â€” Thankeeu for Teams',
     description: 'Join your company on Thankeeu for Teams to celebrate your colleagues and receive updates on team occasions like birthdays, farewells and promotions.',
     canonical:   '/member/signup',
     jsonLd:      [SCHEMAS.organization, SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Join Company', url: '/member/signup' }])],
@@ -27,6 +27,8 @@ const JoinCompanySignup = () => {
   const [searchParams] = useSearchParams();
   const prefillCode = searchParams.get('code') || '';
   const workspaceSlug = getWorkspaceSlug();
+  const memberLoginPath = workspaceSlug ? '/login?role=member' : '/member/login';
+  const hrLoginPath = workspaceSlug ? '/login?role=hr' : '/company/login';
 
   const [step, setStep] = useState(workspaceSlug ? 2 : 1);
   const [loading, setLoading] = useState(false);
@@ -72,18 +74,18 @@ const JoinCompanySignup = () => {
     try {
       await memberAPI.signup({ ...form, department: dept });
       toast.success('Account submitted! Awaiting HR/Team Leader approval. Check your email.');
-      navigate('/member/login');
+      navigate(memberLoginPath);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Signup failed');
     } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen"><Navbar /><div className="flex items-center justify-center p-4 py-12 md:py-20">
+    <div className="min-h-screen">{!workspaceSlug && <Navbar />}<div className="flex items-center justify-center p-4 py-12 md:py-20">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 bg-primary-50 text-primary-600 text-xs font-medium px-3 py-1.5 rounded-full mb-3">
-            👥 Join your company
+            ðŸ‘¥ Join your company
           </div>
           <h1 className="font-display text-2xl font-semibold text-warm-900 mb-1">Create team account</h1>
           <p className="text-warm-500 text-sm">Join your company's Thankeeu workspace</p>
@@ -95,7 +97,7 @@ const JoinCompanySignup = () => {
             <div key={s} className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all ${
                 s < step ? 'bg-primary-400 text-white' : s === step ? 'bg-primary-400 text-white ring-4 ring-primary-100' : 'bg-gray-200 text-warm-500'
-              }`}>{s < step ? '✓' : s}</div>
+              }`}>{s < step ? 'âœ“' : s}</div>
               <span className={`text-xs font-medium ${s <= step ? 'text-warm-700' : 'text-warm-700'}`}>
                 {s === 1 ? (workspaceSlug ? 'Workspace' : 'Company code') : 'Your details'}
               </span>
@@ -108,7 +110,7 @@ const JoinCompanySignup = () => {
           {step === 1 && (
             <div className="space-y-5">
               <div className="bg-primary-50 rounded-3xl p-4 text-sm text-primary-700">
-                <p className="font-semibold mb-1">📋 How to find your company code</p>
+                <p className="font-semibold mb-1">ðŸ“‹ How to find your company code</p>
                 <p className="text-xs leading-relaxed">Ask your HR manager for the company code. It's the company's account ID, available in the HR dashboard under Settings.</p>
               </div>
               <div>
@@ -120,8 +122,8 @@ const JoinCompanySignup = () => {
                 <label className="block text-sm font-medium text-warm-700 mb-1.5">I am joining as</label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { id: 'team_member', icon: '👤', label: 'Team Member', desc: 'Celebrate colleagues' },
-                    { id: 'team_leader', icon: '👑', label: 'Team Leader', desc: 'Manage department' },
+                    { id: 'team_member', icon: 'ðŸ‘¤', label: 'Team Member', desc: 'Celebrate colleagues' },
+                    { id: 'team_leader', icon: 'ðŸ‘‘', label: 'Team Leader', desc: 'Manage department' },
                   ].map(r => (
                     <button key={r.id} type="button" onClick={() => set('role', r.id)}
                       className={`rounded-3xl p-3 text-left border-2 transition-all ${form.role === r.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
@@ -132,7 +134,7 @@ const JoinCompanySignup = () => {
                   ))}
                 </div>
               </div>
-              <button onClick={handleNext} className="btn-primary w-full py-3.5">Continue →</button>
+              <button onClick={handleNext} className="btn-primary w-full py-3.5">Continue â†’</button>
             </div>
           )}
 
@@ -143,8 +145,8 @@ const JoinCompanySignup = () => {
                   <label className="block text-sm font-medium text-warm-700 mb-1.5">I am joining as</label>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { id: 'team_member', icon: 'ðŸ‘¤', label: 'Team Member', desc: 'Celebrate colleagues' },
-                      { id: 'team_leader', icon: 'ðŸ‘‘', label: 'Team Leader', desc: 'Manage department' },
+                      { id: 'team_member', icon: 'Ã°Å¸â€˜Â¤', label: 'Team Member', desc: 'Celebrate colleagues' },
+                      { id: 'team_leader', icon: 'Ã°Å¸â€˜â€˜', label: 'Team Leader', desc: 'Manage department' },
                     ].map(r => (
                       <button key={r.id} type="button" onClick={() => set('role', r.id)}
                         className={`rounded-3xl p-3 text-left border-2 transition-all ${form.role === r.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
@@ -196,7 +198,7 @@ const JoinCompanySignup = () => {
                 </div>
               </div>
               <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700 flex items-start gap-2">
-                <span className="flex-shrink-0 mt-0.5">⏳</span>
+                <span className="flex-shrink-0 mt-0.5">â³</span>
                 <span>
                   {form.role === 'team_leader'
                     ? 'Team leader accounts are approved by HR. You will be notified by email once approved.'
@@ -204,19 +206,19 @@ const JoinCompanySignup = () => {
                 </span>
               </div>
               <div className="flex gap-3">
-                {!workspaceSlug && <button type="button" onClick={() => setStep(1)} className="btn-secondary px-4">← Back</button>}
+                {!workspaceSlug && <button type="button" onClick={() => setStep(1)} className="btn-secondary px-4">â† Back</button>}
                 <button type="submit" disabled={loading} className="btn-primary flex-1 py-3">
                   {loading
                     ? <span className="flex items-center justify-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting...</span>
-                    : 'Submit for approval 👥'}
+                    : 'Submit for approval ðŸ‘¥'}
                 </button>
               </div>
             </form>
           )}
 
           <div className="mt-5 text-center space-y-1.5">
-            <p className="text-xs text-warm-500">Already have a team account? <Link to="/member/login" className="text-primary-400 font-medium">Sign in</Link></p>
-            <p className="text-xs text-warm-700">HR? <Link to="/company/login" className="text-primary-400">Company login →</Link></p>
+            <p className="text-xs text-warm-500">Already have a team account? <Link to={memberLoginPath} className="text-primary-400 font-medium">Sign in</Link></p>
+            <p className="text-xs text-warm-700">HR? <Link to={hrLoginPath} className="text-primary-400">Company login â†’</Link></p>
           </div>
         </div>
       </div>
@@ -226,3 +228,5 @@ const JoinCompanySignup = () => {
 };
 
 export default JoinCompanySignup;
+
+

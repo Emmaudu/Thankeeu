@@ -35,7 +35,7 @@ const ICONS = {
   ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Refresh: RefreshCw,
   Zap, Award, Flag, Briefcase, Book: BookOpen,
   Package, Store, Cart: ShoppingCart, MapPin,
-  Dollar: DollarSign, Percent, Dashboard: LayoutDashboard, Layers, Repeat, Camera,
+  Dollar: DollarSign, Percent, Dashboard: LayoutDashboard, LayoutDashboard, Layers, Repeat, Camera,
   Sparkles, Wand: Wand2, MessageCircle, Smartphone, ShieldCheck, Banknote,
   Rocket, Target, Compass, Layout, Click: MousePointerClick, HandHeart, Sticker,
   Lightbulb, Menu, Party: PartyPopper, ThumbsUp, Quote,

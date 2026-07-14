@@ -64,6 +64,11 @@ const STATIC_LASTMOD = {
   '/faq':                   '2026-06-27',
   '/policy':                '2026-06-27',
   '/blog':                  TODAY, // blog index changes frequently
+  '/business':              '2026-07-14',
+  '/employee-memory-wall':  '2026-07-14',
+  '/thankeeu-vs-thankbox':  '2026-07-14',
+  '/thankeeu-vs-kudoboard': '2026-07-14',
+  '/thankeeu-vs-thankbox-vs-kudoboard': '2026-07-14',
   '/signup':                '2026-06-27',
   '/company/signup':        '2026-06-27',
   '/member/signup':         '2026-06-27',
@@ -113,10 +118,11 @@ const STATIC_PAGES = [
   { loc: '/wedding-memory-wall', changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/birthday-memory-wall',changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/church-memory-wall',  changefreq: 'monthly', priority: '0.7', hreflang: true },
-  { loc: '/employee-memory-wall',changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/employee-memory-wall',changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/thankeeu-vs-wedtrove', changefreq: 'monthly', priority: '0.9', hreflang: true },
-  { loc: '/thankeeu-vs-thankbox', changefreq: 'monthly', priority: '0.9', hreflang: true },
-  { loc: '/thankeeu-vs-kudoboard',changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/thankeeu-vs-thankbox', changefreq: 'monthly', priority: '0.85', hreflang: true },
+  { loc: '/thankeeu-vs-kudoboard',changefreq: 'monthly', priority: '0.85', hreflang: true },
+  { loc: '/thankeeu-vs-thankbox-vs-kudoboard', changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/weduploader-alternative',changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/guestpix-alternative',   changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/kululu-alternative',     changefreq: 'monthly', priority: '0.9', hreflang: true },
@@ -163,6 +169,7 @@ const STATIC_PAGES = [
 
   // ── Company / Teams auth pages ─────────────────────────────────────────────
   // /company/login and /company/forgot-password are noIndex:true — excluded.
+  { loc: '/business',                changefreq: 'weekly', priority: '0.95', hreflang: true },
   { loc: '/company/signup',          changefreq: 'yearly', priority: '0.8', hreflang: true },
 
   // ── Team member pages ───────────────────────────────────────────────────────

@@ -37,7 +37,7 @@ WHERE c.id = numbered.id;
 
 UPDATE companies
 SET slug = slug || '-company'
-WHERE slug IN ('admin', 'api', 'app', 'assets', 'blog', 'cdn', 'help', 'mail', 'support', 'www');
+WHERE slug IN ('admin', 'api', 'app', 'assets', 'blog', 'cdn', 'company', 'help', 'mail', 'support', 'www');
 
 ALTER TABLE companies
   ALTER COLUMN slug SET NOT NULL;

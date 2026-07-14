@@ -245,7 +245,7 @@ export const SCHEMAS = {
     applicationSubCategory: 'Group Greeting Cards & Gift Collection',
     operatingSystem:        'Web, iOS, Android',
     url:                    BASE_URL,
-    description:            'Thankeeu is an online group card, memory movie, event photo and company workspace platform. Groups co-sign one digital card for birthdays, weddings, leaving dos, retirements, get well soon, work anniversaries and more. Companies get dedicated wildcard-subdomain workspaces such as company.thankeeu.com for HR admins and employees, with automated milestone recognition, HRIS import, messages, photos, GIFs, voice notes and optional gift pools in USD, GBP, EUR, NGN, CAD and other currencies.',
+    description:            'Thankeeu is an online group card, memory movie, event photo and company workspace platform. Groups co-sign one digital card for birthdays, weddings, leaving dos, retirements, get well soon, work anniversaries and more. Companies get dedicated workspace subdomains such as flutterwave.thankeeu.com, mtn.thankeeu.com or access-bank.thankeeu.com for HR admins and employees, with automated milestone recognition, HRIS import, messages, photos, GIFs, voice notes and optional gift pools in USD, GBP, EUR, NGN, CAD and other currencies.',
     screenshot:             `${BASE_URL}/og-image.png`,
     featureList: [
       'Group cards for any occasion — everyone signs one card from a single link',

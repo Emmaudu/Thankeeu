@@ -5,6 +5,7 @@ const RESERVED_SUBDOMAINS = new Set([
   'assets',
   'blog',
   'cdn',
+  'company',
   'help',
   'mail',
   'support',
@@ -13,8 +14,12 @@ const RESERVED_SUBDOMAINS = new Set([
 
 const APP_DOMAIN = (import.meta.env.VITE_APP_DOMAIN || 'thankeeu.com').toLowerCase();
 
+const cleanHost = (hostname = window.location.hostname) => (
+  String(hostname || '').toLowerCase().replace(/:\d+$/, '')
+);
+
 export const getWorkspaceSlug = (hostname = window.location.hostname) => {
-  const host = String(hostname || '').toLowerCase().replace(/:\d+$/, '');
+  const host = cleanHost(hostname);
 
   if (host.endsWith('.localhost')) {
     const slug = host.slice(0, -'.localhost'.length).split('.').pop();
@@ -30,6 +35,11 @@ export const getWorkspaceSlug = (hostname = window.location.hostname) => {
 };
 
 export const isWorkspaceHost = () => Boolean(getWorkspaceSlug());
+
+export const isWorkspaceFinderHost = (hostname = window.location.hostname) => {
+  const host = cleanHost(hostname);
+  return host === `company.${APP_DOMAIN}` || host === 'company.localhost';
+};
 
 export const getWorkspaceUrl = (slug) => {
   const base = import.meta.env.VITE_WORKSPACE_BASE_URL || window.location.origin;

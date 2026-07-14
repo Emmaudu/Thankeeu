@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { memberAPI } from '../utils/api';
+import { isWorkspaceHost } from '../utils/workspace';
 
 
 const _SESSION_MS = 30 * 60 * 1000; // 30 min inactivity
@@ -26,7 +27,7 @@ export const MemberAuthProvider = ({ children }) => {
   // 30-min inactivity logout
   useEffect(() => {
     const isLoggedIn = () => !!localStorage.getItem('thankeeu_member_token');
-    const h = () => { if (isLoggedIn()) _resetTimer(() => { logout?.(); }); };
+    const h = () => { if (isLoggedIn()) _resetTimer(() => { logout?.(); }, isWorkspaceHost() ? '/login?role=member' : '/member/login'); };
     _EVENTS.forEach(e => window.addEventListener(e, h, { passive: true }));
     return () => _EVENTS.forEach(e => window.removeEventListener(e, h));
   }, []);

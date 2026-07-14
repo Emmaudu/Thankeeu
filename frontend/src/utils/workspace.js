@@ -7,6 +7,7 @@ const RESERVED_SUBDOMAINS = new Set([
   'cdn',
   'company',
   'help',
+  'games',
   'mail',
   'support',
   'www',
@@ -39,6 +40,16 @@ export const isWorkspaceHost = () => Boolean(getWorkspaceSlug());
 export const isWorkspaceFinderHost = (hostname = window.location.hostname) => {
   const host = cleanHost(hostname);
   return host === `company.${APP_DOMAIN}` || host === 'company.localhost';
+};
+
+export const isGamesHost = (hostname = window.location.hostname) => {
+  const host = cleanHost(hostname);
+  return host === `games.${APP_DOMAIN}` || host === 'games.localhost';
+};
+
+export const isAdminHost = (hostname = window.location.hostname) => {
+  const host = cleanHost(hostname);
+  return host === `admin.${APP_DOMAIN}` || host === 'admin.localhost';
 };
 
 export const getWorkspaceUrl = (slug) => {

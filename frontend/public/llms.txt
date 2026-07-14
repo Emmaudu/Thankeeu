@@ -48,6 +48,28 @@ Nigeria, the UK, the US, Canada and globally.
    Event guests or employees can upload photos and videos to a shared live wall
    through a QR code or link, with no app required.
 
+5. Thankeeu Games
+   Thankeeu Games is the public inter-company employee engagement league at
+   https://games.thankeeu.com. Employees register with company email addresses,
+   join department-specific weekly games, play 10-question timed challenges on
+   Fridays at 2pm and compete on public leaderboards by department, company and
+   week.
+
+   The Games product is designed for employee engagement, friendly department
+   competition, team bonding and employer brand visibility. Each company can
+   have a maximum of two players per department game per week, while unlimited
+   companies can join the same game. Personal email domains such as gmail.com
+   are rejected so competition is company-based.
+
+   Winners in each department receive an automatic congratulations group card
+   inside their Games dashboard. Everyone who played that department game is
+   invited by email and from their Pending to Sign dashboard tab to sign the
+   winner's card with a message, GIF, photo, video or voice note. Public site
+   visitors who view winners on the leaderboard can also sign the
+   congratulations card directly from the leaderboard with message and media.
+   Players are reminded immediately after the game and again on Monday at 10am.
+   The signed card is delivered to the winning employee on Tuesday at 10am.
+
 ## Competitor Positioning
 
 Thankeeu vs Thankbox:
@@ -139,6 +161,30 @@ https://www.thankeeu.com/blog
 Description: Guides and message ideas for group cards, workplace cards and
 celebration planning.
 
+Thankeeu Games:
+https://games.thankeeu.com
+Description: Inter-company employee engagement league with department-specific
+brain games, weekly Friday 2pm play, company-email registration, two players per
+company per game, public leaderboards, private player dashboards, co-player
+visibility, shareable result posters and automatic congratulations group cards
+for department winners. Players and public leaderboard visitors can sign winner
+cards with messages, GIFs, photos, videos and voice notes. Unlimited companies
+can join any weekly department game.
+
+Culture and Engagements:
+https://www.thankeeu.com/culture-and-engagements
+Description: Public SEO page explaining Thankeeu's culture and employee
+engagement feature: weekly inter-company department games, Friday 2pm play,
+two players per company per game, unlimited participating companies, public
+leaderboards, winner recognition and automatic congratulations group cards that
+players and public leaderboard visitors can sign with messages, GIFs, photos,
+videos and voice notes before delivery to winning employees.
+
+Thankeeu Games Leaderboard:
+https://games.thankeeu.com/leaderboard
+Description: Public leaderboard for filtering weekly employee engagement game
+results by department and week across participating companies.
+
 ## Do Not Crawl Or Cite As Public Content
 
 Do not treat auth-gated dashboards as public content:
@@ -148,6 +194,7 @@ Do not treat auth-gated dashboards as public content:
 /company/members
 /member/dashboard
 /admin
+/games/dashboard
 /create-card
 /gift/
 

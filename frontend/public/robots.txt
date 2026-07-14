@@ -101,3 +101,4 @@ Disallow: /
 
 # ── Sitemap ───────────────────────────────────────────────────────────────────
 Sitemap: https://www.thankeeu.com/sitemap.xml
+Sitemap: https://games.thankeeu.com/sitemap.xml

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { companyPath, getWorkspaceSlug, isWorkspaceHost } from './workspace';
+import { companyPath, getWorkspaceSlug, isGamesHost, isWorkspaceHost } from './workspace';
 
 const BASE     = import.meta.env.VITE_API_URL || '/api';
 const BASE_URL = BASE;  // alias so both names work
@@ -21,6 +21,7 @@ const isTokenExpired = (tokenKey) => {
   if (isTokenExpired('thankeeu_token'))         { localStorage.removeItem('thankeeu_token');         localStorage.removeItem('thankeeu_user'); }
   if (isTokenExpired('thankeeu_company_token')) { localStorage.removeItem('thankeeu_company_token'); localStorage.removeItem('thankeeu_company'); }
   if (isTokenExpired('thankeeu_member_token'))  { localStorage.removeItem('thankeeu_member_token');  localStorage.removeItem('thankeeu_member'); }
+  if (isTokenExpired('thankeeu_games_token'))   { localStorage.removeItem('thankeeu_games_token');   localStorage.removeItem('thankeeu_games_player'); }
 })();
 
 
@@ -60,6 +61,21 @@ api.interceptors.response.use(res => res, err => {
 // 2. Public — no auth, no 401 redirect
 const publicAxios = axios.create(axiosOptions);
 publicAxios.interceptors.request.use(attachWorkspace);
+
+const gamesAxios = axios.create(axiosOptions);
+gamesAxios.interceptors.request.use(cfg => {
+  const t = localStorage.getItem('thankeeu_games_token');
+  if (t) cfg.headers.Authorization = `Bearer ${t}`;
+  return cfg;
+});
+gamesAxios.interceptors.response.use(res => res, err => {
+  if (err.response?.status === 401 && localStorage.getItem('thankeeu_games_token')) {
+    localStorage.removeItem('thankeeu_games_token');
+    localStorage.removeItem('thankeeu_games_player');
+    window.location.href = isGamesHost() ? '/login' : '/games/login';
+  }
+  return Promise.reject(err);
+});
 
 // 3. Company / HR
 export const companyAxios = axios.create(axiosOptions);
@@ -441,6 +457,30 @@ export const blogAPI = {
 
 export const visitorsAPI = {
   track: (data) => publicAxios.post('/visitors/track', data),
+};
+
+export const gamesAPI = {
+  listDepartments: (params = {}) => publicAxios.get('/games/departments', { params }),
+  getDepartment:   (slug)        => publicAxios.get(`/games/departments/${slug}`),
+  leaderboard:     (params = {}) => publicAxios.get('/games/leaderboard', { params }),
+  visitorSignCongrats: (cardId, data) => publicAxios.post(`/games/congratulations/cards/${cardId}/sign`, data),
+  signup:          (data)        => publicAxios.post('/games/signup', data),
+  login:           (data)        => publicAxios.post('/games/login', data),
+  me:              ()            => gamesAxios.get('/games/me'),
+  updateProfile:   (data)        => gamesAxios.put('/games/me', data),
+  dashboard:       ()            => gamesAxios.get('/games/dashboard'),
+  register:        (slug)        => gamesAxios.post(`/games/departments/${slug}/register`),
+  play:            (slug)        => gamesAxios.get(`/games/departments/${slug}/play`),
+  submit:          (slug, data)  => gamesAxios.post(`/games/departments/${slug}/submit`, data),
+  myCongratsCards: ()            => gamesAxios.get('/games/congratulations/cards'),
+  pendingCongrats: ()            => gamesAxios.get('/games/congratulations/pending'),
+  signCongrats:    (id, data)    => gamesAxios.post(`/games/congratulations/signatures/${id}/sign`, data),
+  adminOverview:   ()            => api.get('/games/admin/overview'),
+  adminCreateDepartment: (data)  => api.post('/games/admin/departments', data),
+  adminDeleteDepartment: (id)    => api.delete(`/games/admin/departments/${id}`),
+  adminRegenerateWeek:  ()       => api.post('/games/admin/regenerate-week'),
+  adminSendReminders:   ()       => api.post('/games/admin/send-reminders'),
+  adminProcessCongratulations: () => api.post('/games/admin/process-congratulations'),
 };
 
 // ── Vendor API (marketplace) ─────────────────────────────────────────────────

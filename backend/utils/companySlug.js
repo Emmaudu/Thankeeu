@@ -8,6 +8,7 @@ const RESERVED_SLUGS = new Set([
   'blog',
   'cdn',
   'company',
+  'games',
   'help',
   'mail',
   'support',

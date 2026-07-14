@@ -65,8 +65,10 @@ import RecipientClaimGate   from './pages/RecipientClaimGate';
 import SignCard         from './pages/SignCard';
 import Pricing          from './pages/Pricing';
 import Policy           from './pages/Policy';
+import CultureEngagements from './pages/CultureEngagements';
 import Admin            from './pages/Admin';
 import AdminLogin       from './pages/AdminLogin';
+import AdminGames       from './pages/AdminGames';
 import GiftCheckout     from './pages/GiftCheckout';
 import VendorDashboard         from './pages/vendor/VendorDashboard';
 import VendorProducts          from './pages/vendor/VendorProducts';
@@ -114,6 +116,7 @@ import GraduationPage  from './pages/occasions/Graduation';
 import NewBabyPage           from './pages/occasions/NewBaby';
 import StaffAppreciationPage from './pages/occasions/StaffAppreciation';
 import VerifyEmail      from './pages/VerifyEmail';
+import { GamesAuth, GamesDashboard, GamesHome, GamesLeaderboard, GamesPlay, GamesProfile } from './pages/games/Games';
 
 // Company (HR) pages
 import CompanySignup          from './pages/company/CompanySignup';
@@ -158,7 +161,7 @@ import MemberRemindersPage   from './pages/member/MemberRemindersPage';
 import { usePageTracker } from './hooks/usePageTracker';
 import ScrollToTop from './components/ScrollToTop';
 import { companyAPI } from './utils/api';
-import { companyPath, getWorkspaceSlug, isWorkspaceFinderHost, isWorkspaceHost } from './utils/workspace';
+import { companyPath, getWorkspaceSlug, isAdminHost, isGamesHost, isWorkspaceFinderHost, isWorkspaceHost } from './utils/workspace';
 
 const PageTracker = () => { usePageTracker(); return null; };
 
@@ -250,7 +253,7 @@ const CardViewGate = () => {
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth();
   if (loading) return <Spinner />;
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to={adminOnly ? '/admin/login' : '/login'} replace />;
   if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return children;
 };
@@ -263,18 +266,24 @@ const CompanyProtectedRoute = ({ children }) => {
 };
 
 const RootPage = () => (
-  isWorkspaceHost() || isWorkspaceFinderHost()
+  isGamesHost()
+    ? <GamesHome />
+    : isAdminHost()
+    ? <Navigate to="/admin" replace />
+    : isWorkspaceHost() || isWorkspaceFinderHost()
     ? <Navigate to="/login" replace />
     : <Home />
 );
 
 const WorkspaceLogin = () => {
+  if (isGamesHost()) return <GamesAuth mode="login" />;
   if (isWorkspaceHost()) return <WorkspacePortal />;
   if (isWorkspaceFinderHost()) return <WorkspaceFinder />;
   return <Login />;
 };
 
 const WorkspaceSignup = () => {
+  if (isGamesHost()) return <GamesAuth mode="signup" />;
   if (isWorkspaceHost()) return <JoinCompanySignup />;
   if (isWorkspaceFinderHost()) return <WorkspaceFinder />;
   return <Signup />;
@@ -283,10 +292,19 @@ const WorkspaceSignup = () => {
 const WorkspaceForgotPassword = () => isWorkspaceHost() ? <CompanyForgotPassword /> : <ForgotPassword />;
 const WorkspaceResetPassword = () => isWorkspaceHost() ? <CompanyResetPassword /> : <ResetPassword />;
 const WorkspaceDashboard = () => (
-  isWorkspaceHost()
+  isGamesHost()
+    ? <GamesDashboard />
+    : isWorkspaceHost()
     ? <CompanyProtectedRoute><CompanyDashboard /></CompanyProtectedRoute>
     : <ProtectedRoute><DashboardHome /></ProtectedRoute>
 );
+const GamesLeaderboardRoute = () => isGamesHost() ? <GamesLeaderboard /> : <NotFound />;
+const GamesProfileRoute = () => {
+  const { slug } = useParams();
+  if (!isGamesHost()) return <NotFound />;
+  if (['login', 'signup', 'dashboard', 'leaderboard', 'admin'].includes(slug)) return <NotFound />;
+  return <GamesProfile />;
+};
 const CompanyLoginRoute = () => isWorkspaceHost() ? <Navigate to="/login" replace /> : <CompanyLogin />;
 const CompanySignupRoute = () => isWorkspaceHost() ? <Navigate to="/login" replace /> : <CompanySignup />;
 const MemberLoginRoute = () => isWorkspaceHost() ? <Navigate to="/login?role=member" replace /> : <JoinCompanyLogin />;
@@ -332,6 +350,17 @@ const App = () => (
             {/* ── Public (no auth required) ─────────────────── */}
             <Route path="/"              element={<RootPage />} />
             <Route path="/pricing"       element={<Pricing />} />
+            <Route path="/culture-and-engagements" element={<CultureEngagements />} />
+            <Route path="/games"         element={<GamesHome />} />
+            <Route path="/games/signup"  element={<GamesAuth mode="signup" />} />
+            <Route path="/games/login"   element={<GamesAuth mode="login" />} />
+            <Route path="/games/dashboard" element={<GamesDashboard />} />
+            <Route path="/games/leaderboard" element={<GamesLeaderboard />} />
+            <Route path="/games/:slug"   element={<GamesProfile />} />
+            <Route path="/games/:slug/play" element={<GamesPlay />} />
+            <Route path="/leaderboard"   element={<GamesLeaderboardRoute />} />
+            <Route path="/:slug"         element={<GamesProfileRoute />} />
+            <Route path="/:slug/play"    element={isGamesHost() ? <GamesPlay /> : <NotFound />} />
             <Route path="/memory-movie"         element={<MemoryMoviePage />} />
             <Route path="/live-memory-wall"          element={<LiveMemoryWallPage />} />
             <Route path="/wedding-memory-wall"        element={<WeddingMemoryWall />} />
@@ -470,6 +499,7 @@ const App = () => (
             <Route path="/card/new" element={<CardStart />} />
             <Route path="/create-card" element={<AnyAuthRoute><CreateCard /></AnyAuthRoute>} />
             <Route path="/admin"     element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
+            <Route path="/admin/games" element={<ProtectedRoute adminOnly><AdminGames /></ProtectedRoute>} />
 
             {/* Clean company workspace aliases for *.thankeeu.com and *.localhost */}
             <Route path="/teams"        element={<CompanyProtectedRoute><TeamsPage /></CompanyProtectedRoute>} />

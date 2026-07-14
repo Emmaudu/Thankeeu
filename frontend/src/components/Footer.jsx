@@ -275,6 +275,7 @@ const Footer = () => (
               { to:'/',                   label:'Home' },
               { to:'/create-card',        label:'Create a card' },
               { to:'/pricing',            label:'Pricing' },
+              { to:'/culture-and-engagements', label:'Culture and Engagements' },
               { to:'/memory-movie',       label:'Memory Movie™' },
               { to:'/live-memory-wall',   label:'Live Memory Wall™' },
               { to:'/faq',               label:'FAQ' },

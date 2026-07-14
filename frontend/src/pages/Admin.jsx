@@ -864,6 +864,7 @@ const Admin = () => {
     { id:'users',     label:`Users (${users.length})` },
     { id:'cards',     label:`Cards (${cards.length})` },
     { id:'companies', label:'Companies' },
+    { id:'games',     label:'Games League' },
     { id:'support',   label:`Support${openTickets.length ? ` · ${openTickets.length}` : ''}` },
     { id:'demos',     label:`Demos${newDemos.length ? ` · ${newDemos.length} new` : ''}` },
     { id:'analytics', label:'📊 Analytics' },
@@ -900,6 +901,7 @@ const Admin = () => {
             { id:'users',     icon:'👥', label:'Users',         badge:users.length||null },
             { id:'cards',     icon:'🃏', label:'Cards',         badge:cards.length||null },
             { id:'companies', icon:'🏢', label:'Companies',     badge:null },
+            { id:'games',     icon:'GL', label:'Games League',  badge:null },
             { id:'support',   icon:'🎧', label:'Support',       badge:openTickets.length||null },
             { id:'broadcast', icon:'📣', label:'Broadcast',     badge:null },
             { id:'demos',     icon:'🚀', label:'Demo Requests', badge:newDemos.length||null },
@@ -912,7 +914,7 @@ const Admin = () => {
             const active = tab === item.id;
             const isAlert = (item.id==='support'||item.id==='demos') && item.badge > 0;
             return (
-              <button key={item.id} onClick={() => setTab(item.id)}
+              <button key={item.id} onClick={() => item.id === 'games' ? (window.location.href = '/admin/games') : setTab(item.id)}
                 style={{
                   width:'100%', display:'flex', alignItems:'center', gap:10,
                   padding:'9px 12px', borderRadius:10, border:'none', cursor:'pointer', marginBottom:2,
@@ -961,6 +963,7 @@ const Admin = () => {
             { id:'users',     icon:'👥', label:'Users',         badge:users.length||null },
             { id:'cards',     icon:'🃏', label:'Cards',         badge:cards.length||null },
             { id:'companies', icon:'🏢', label:'Companies',     badge:null },
+            { id:'games',     icon:'GL', label:'Games League',  badge:null },
             { id:'support',   icon:'🎧', label:'Support',       badge:openTickets.length||null },
             { id:'broadcast', icon:'📣', label:'Broadcast',     badge:null },
             { id:'demos',     icon:'🚀', label:'Demo Requests', badge:newDemos.length||null },
@@ -973,7 +976,7 @@ const Admin = () => {
             const active = tab === item.id;
             const isAlert = (item.id==='support'||item.id==='demos') && item.badge > 0;
             return (
-              <button key={item.id} onClick={() => { setTab(item.id); setMobileSidebarOpen(false); }}
+              <button key={item.id} onClick={() => { if (item.id === 'games') { window.location.href = '/admin/games'; return; } setTab(item.id); setMobileSidebarOpen(false); }}
                 style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, border:'none', cursor:'pointer', marginBottom:2, background:active?'rgba(124,58,237,0.25)':'transparent', color:active?'#C4B5FD':'rgba(255,255,255,0.55)', textAlign:'left', position:'relative' }}>
                 {active && <div style={{ position:'absolute', left:0, top:'20%', bottom:'20%', width:3, borderRadius:'0 3px 3px 0', background:'linear-gradient(180deg,#7C3AED,#EC4899)' }} />}
                 <span style={{ fontSize:16 }}>{item.icon}</span>

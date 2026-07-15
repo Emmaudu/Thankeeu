@@ -93,6 +93,31 @@ export default function AdminGames() {
         </div>
 
         <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
+          <h2 className="font-black text-warm-900">Weekly sponsorships</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {(data.sponsorships || []).map(sponsor => (
+              <div key={sponsor.id} className="rounded-2xl border border-purple-100 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-warm-900">{sponsor.sponsor_company}</p>
+                    <p className="text-xs text-warm-500">{sponsor.contact_email} - {sponsor.status}</p>
+                  </div>
+                  <p className="font-black text-primary-700">NGN {Number(sponsor.amount || 0).toLocaleString()}</p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(sponsor.games_sponsorship_allocations || []).map(allocation => (
+                    <span key={allocation.games_departments?.slug || allocation.amount} className="rounded-full bg-primary-50 px-3 py-1 text-xs font-bold text-primary-700">
+                      {allocation.games_departments?.name}: {allocation.percentage}%
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {!(data.sponsorships || []).length && <p className="text-warm-500">No sponsorships for this week yet.</p>}
+          </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
           <h2 className="font-black text-warm-900">Weekly participants</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-sm">

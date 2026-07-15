@@ -15,6 +15,10 @@
 const express  = require('express');
 const router   = express.Router();
 const supabase = require('../utils/supabase');
+const emailUtil = require('../utils/email');
+const sendEmail = emailUtil.sendEmail || emailUtil;
+const GAMES_URL = (process.env.GAMES_URL || 'https://games.thankeeu.com').replace(/\/$/, '');
+const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 router.post('/flutterwave', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
@@ -136,6 +140,35 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
       }
 
       console.log('Webhook: gift contribution processed, cardId:', cardId, 'amount:', amountNaira);
+      return;
+    }
+
+    // ── 5b. games_sponsorship: mark sponsor pledge paid ─────────────────────
+    if (type === 'games_sponsorship' && txRef) {
+      const { data: sponsorship } = await supabase
+        .from('games_sponsorships')
+        .select('id, amount, status, contact_email, contact_name, sponsor_company, week_key')
+        .eq('flw_reference', txRef)
+        .maybeSingle();
+      if (sponsorship && sponsorship.status !== 'paid' && Number(txn.amount || 0) >= Number(sponsorship.amount || 0) * 0.9) {
+        await supabase
+          .from('games_sponsorships')
+          .update({
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+            flw_transaction_id: String(txn.id || ''),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', sponsorship.id);
+        if (sponsorship.contact_email) {
+          await sendEmail({
+            to: sponsorship.contact_email,
+            subject: 'Thank you for sponsoring Thankeeu Games',
+            html: `<p>Hi ${escapeHtml(sponsorship.contact_name)},</p><p>Thank you to ${escapeHtml(sponsorship.sponsor_company)} for sponsoring ${escapeHtml(sponsorship.week_key)} with NGN ${Number(sponsorship.amount).toLocaleString()}.</p><p>Your brand will be promoted across the Thankeeu Games experience and Thankeeu culture channels.</p><p><a href="${GAMES_URL}/gifts">View sponsorship gift page</a></p>`,
+          }).catch(() => {});
+        }
+        console.log('Webhook: games sponsorship paid:', txRef);
+      }
       return;
     }
 

@@ -276,14 +276,19 @@ const Footer = () => (
               { to:'/create-card',        label:'Create a card' },
               { to:'/pricing',            label:'Pricing' },
               { to:'/culture-and-engagements', label:'Culture and Engagements' },
+              { to:'https://games.thankeeu.com/gifts', label:'Games Gift Sponsors' },
+              { to:'https://games.thankeeu.com/sponsor', label:'Sponsor Games' },
               { to:'/memory-movie',       label:'Memory Movie™' },
               { to:'/live-memory-wall',   label:'Live Memory Wall™' },
               { to:'/faq',               label:'FAQ' },
               { to:'/company/signup',    label:'For Business' },
               { to:'/sample',            label:'Demo card' },
             ].map(({ to, label }) => (
-              <li key={to}><Link to={to} onClick={scrollTop}
-                className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link></li>
+              <li key={to}>{to.startsWith('http') ? (
+                <a href={to} className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</a>
+              ) : (
+                <Link to={to} onClick={scrollTop} className="text-xs text-warm-600 hover:text-primary-600 font-medium transition-colors">{label}</Link>
+              )}</li>
             ))}
           </ul>
         </div>

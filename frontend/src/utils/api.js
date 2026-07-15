@@ -22,6 +22,7 @@ const isTokenExpired = (tokenKey) => {
   if (isTokenExpired('thankeeu_company_token')) { localStorage.removeItem('thankeeu_company_token'); localStorage.removeItem('thankeeu_company'); }
   if (isTokenExpired('thankeeu_member_token'))  { localStorage.removeItem('thankeeu_member_token');  localStorage.removeItem('thankeeu_member'); }
   if (isTokenExpired('thankeeu_games_token'))   { localStorage.removeItem('thankeeu_games_token');   localStorage.removeItem('thankeeu_games_player'); }
+  if (isTokenExpired('thankeeu_games_company_token')) { localStorage.removeItem('thankeeu_games_company_token'); localStorage.removeItem('thankeeu_games_company'); }
 })();
 
 
@@ -73,6 +74,21 @@ gamesAxios.interceptors.response.use(res => res, err => {
     localStorage.removeItem('thankeeu_games_token');
     localStorage.removeItem('thankeeu_games_player');
     window.location.href = isGamesHost() ? '/login' : '/games/login';
+  }
+  return Promise.reject(err);
+});
+
+const gamesCompanyAxios = axios.create(axiosOptions);
+gamesCompanyAxios.interceptors.request.use(cfg => {
+  const t = localStorage.getItem('thankeeu_games_company_token');
+  if (t) cfg.headers.Authorization = `Bearer ${t}`;
+  return cfg;
+});
+gamesCompanyAxios.interceptors.response.use(res => res, err => {
+  if (err.response?.status === 401 && localStorage.getItem('thankeeu_games_company_token')) {
+    localStorage.removeItem('thankeeu_games_company_token');
+    localStorage.removeItem('thankeeu_games_company');
+    window.location.href = isGamesHost() ? '/company/login' : '/games/company/login';
   }
   return Promise.reject(err);
 });
@@ -460,18 +476,34 @@ export const visitorsAPI = {
 };
 
 export const gamesAPI = {
-  listDepartments: (params = {}) => publicAxios.get('/games/departments', { params }),
-  getDepartment:   (slug)        => publicAxios.get(`/games/departments/${slug}`),
-  leaderboard:     (params = {}) => publicAxios.get('/games/leaderboard', { params }),
-  visitorSignCongrats: (cardId, data) => publicAxios.post(`/games/congratulations/cards/${cardId}/sign`, data),
+    listDepartments: (params = {}) => publicAxios.get('/games/departments', { params }),
+    getDepartment:   (slug)        => publicAxios.get(`/games/departments/${slug}`),
+    leaderboard:     (params = {}) => publicAxios.get('/games/leaderboard', { params }),
+    sponsorships:    (params = {}) => publicAxios.get('/games/sponsorships', { params }),
+    visitorSignCongrats: (cardId, data) => publicAxios.post(`/games/congratulations/cards/${cardId}/sign`, data),
   uploadAvatar:    (file)        => {
     const fd = new FormData();
     fd.append('file', file);
     return publicAxios.post('/games/upload-avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
+  uploadCongratsMedia: (file)     => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return publicAxios.post('/games/congratulations/media', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
   signup:          (data)        => publicAxios.post('/games/signup', data),
-  login:           (data)        => publicAxios.post('/games/login', data),
-  me:              ()            => gamesAxios.get('/games/me'),
+    login:           (data)        => publicAxios.post('/games/login', data),
+    companySignup:   (data)        => publicAxios.post('/games/company/signup', data),
+    companyLogin:    (data)        => publicAxios.post('/games/company/login', data),
+    companyMe:       ()            => gamesCompanyAxios.get('/games/company/me'),
+    updateCompany:   (data)        => gamesCompanyAxios.put('/games/company/me', data),
+    companyDashboard:()            => gamesCompanyAxios.get('/games/company/dashboard'),
+    initializeSponsorship: (data)   => gamesCompanyAxios.post('/games/company/sponsorships/initialize', data),
+    verifySponsorship:     (data)   => gamesCompanyAxios.post('/games/company/sponsorships/verify', data),
+    companyListBanks:()            => gamesCompanyAxios.get('/games/company/banks'),
+    verifyCompanyBank: (data)      => gamesCompanyAxios.post('/games/company/banks/verify', data),
+    saveCompanyBank: (data)        => gamesCompanyAxios.put('/games/company/banks', data),
+    me:              ()            => gamesAxios.get('/games/me'),
   updateProfile:   (data)        => gamesAxios.put('/games/me', data),
   dashboard:       ()            => gamesAxios.get('/games/dashboard'),
   register:        (slug)        => gamesAxios.post(`/games/departments/${slug}/register`),
@@ -480,6 +512,12 @@ export const gamesAPI = {
   myCongratsCards: ()            => gamesAxios.get('/games/congratulations/cards'),
   pendingCongrats: ()            => gamesAxios.get('/games/congratulations/pending'),
   signCongrats:    (id, data)    => gamesAxios.post(`/games/congratulations/signatures/${id}/sign`, data),
+  rewards:         ()            => gamesAxios.get('/games/rewards'),
+  listBanks:       ()            => gamesAxios.get('/games/banks'),
+  verifyBank:      (data)        => gamesAxios.post('/games/banks/verify', data),
+    saveBank:        (data)        => gamesAxios.put('/games/banks', data),
+    forum:           (slug, params = {}) => publicAxios.get(`/games/departments/${slug}/forum`, { params }),
+    postForum:       (slug, data)  => gamesAxios.post(`/games/departments/${slug}/forum`, data),
   adminOverview:   ()            => api.get('/games/admin/overview'),
   adminCreateDepartment: (data)  => api.post('/games/admin/departments', data),
   adminDeleteDepartment: (id)    => api.delete(`/games/admin/departments/${id}`),

@@ -116,7 +116,7 @@ import GraduationPage  from './pages/occasions/Graduation';
 import NewBabyPage           from './pages/occasions/NewBaby';
 import StaffAppreciationPage from './pages/occasions/StaffAppreciation';
 import VerifyEmail      from './pages/VerifyEmail';
-import { GamesAuth, GamesDashboard, GamesHome, GamesLeaderboard, GamesPlay, GamesProfile } from './pages/games/Games';
+import { GamesAuth, GamesCompanyAuth, GamesCompanyDashboard, GamesDashboard, GamesGifts, GamesHome, GamesLeaderboard, GamesPlay, GamesProfile, GamesSponsor } from './pages/games/Games';
 
 // Company (HR) pages
 import CompanySignup          from './pages/company/CompanySignup';
@@ -299,14 +299,17 @@ const WorkspaceDashboard = () => (
     : <ProtectedRoute><DashboardHome /></ProtectedRoute>
 );
 const GamesLeaderboardRoute = () => isGamesHost() ? <GamesLeaderboard /> : <NotFound />;
+const GamesSponsorRoute = () => isGamesHost() ? <GamesSponsor /> : <NotFound />;
+const GamesGiftsRoute = () => isGamesHost() ? <GamesGifts /> : <NotFound />;
+const GamesCompanyDashboardRoute = () => isGamesHost() ? <GamesCompanyDashboard /> : <NotFound />;
 const GamesProfileRoute = () => {
   const { slug } = useParams();
   if (!isGamesHost()) return <NotFound />;
-  if (['login', 'signup', 'dashboard', 'leaderboard', 'admin'].includes(slug)) return <NotFound />;
+  if (['login', 'signup', 'dashboard', 'leaderboard', 'sponsor', 'gifts', 'company', 'admin'].includes(slug)) return <NotFound />;
   return <GamesProfile />;
 };
-const CompanyLoginRoute = () => isWorkspaceHost() ? <Navigate to="/login" replace /> : <CompanyLogin />;
-const CompanySignupRoute = () => isWorkspaceHost() ? <Navigate to="/login" replace /> : <CompanySignup />;
+const CompanyLoginRoute = () => isGamesHost() ? <GamesCompanyAuth mode="login" /> : isWorkspaceHost() ? <Navigate to="/login" replace /> : <CompanyLogin />;
+const CompanySignupRoute = () => isGamesHost() ? <GamesCompanyAuth mode="signup" /> : isWorkspaceHost() ? <Navigate to="/login" replace /> : <CompanySignup />;
 const MemberLoginRoute = () => isWorkspaceHost() ? <Navigate to="/login?role=member" replace /> : <JoinCompanyLogin />;
 const MemberSignupRoute = () => isWorkspaceHost() ? <Navigate to="/signup" replace /> : <JoinCompanySignup />;
 
@@ -356,9 +359,17 @@ const App = () => (
             <Route path="/games/login"   element={<GamesAuth mode="login" />} />
             <Route path="/games/dashboard" element={<GamesDashboard />} />
             <Route path="/games/leaderboard" element={<GamesLeaderboard />} />
+            <Route path="/games/sponsor" element={<GamesSponsor />} />
+            <Route path="/games/gifts" element={<GamesGifts />} />
+            <Route path="/games/company/signup" element={<GamesCompanyAuth mode="signup" />} />
+            <Route path="/games/company/login" element={<GamesCompanyAuth mode="login" />} />
+            <Route path="/games/company/:slug" element={<GamesCompanyDashboard />} />
             <Route path="/games/:slug"   element={<GamesProfile />} />
             <Route path="/games/:slug/play" element={<GamesPlay />} />
             <Route path="/leaderboard"   element={<GamesLeaderboardRoute />} />
+            <Route path="/sponsor"       element={<GamesSponsorRoute />} />
+            <Route path="/gifts"         element={<GamesGiftsRoute />} />
+            <Route path="/company/:slug" element={<GamesCompanyDashboardRoute />} />
             <Route path="/:slug"         element={<GamesProfileRoute />} />
             <Route path="/:slug/play"    element={isGamesHost() ? <GamesPlay /> : <NotFound />} />
             <Route path="/memory-movie"         element={<MemoryMoviePage />} />

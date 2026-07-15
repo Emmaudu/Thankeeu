@@ -88,8 +88,10 @@ const CardStart = () => {
  useSEO({
  title: 'Create a Free Online Group Card | Thankeeu',
  description: 'Make a stunning group card for any occasion — birthday, farewell, promotion, and more. Add a gift pot, invite everyone via WhatsApp, schedule delivery. Free to start.',
- keywords: 'create group card online free, make birthday group card, farewell group card Nigeria, online group card with gift',
- });
+  keywords: 'create group card online free, make birthday group card, farewell group card Nigeria, online group card with gift',
+  canonical: '/card/new',
+  noIndex: false,
+});
 
  const { user } = useAuth();
  const { member } = useMemberAuth();

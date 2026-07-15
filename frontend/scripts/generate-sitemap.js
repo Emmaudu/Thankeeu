@@ -59,7 +59,8 @@ const TODAY = new Date().toISOString().slice(0, 10);
 const STATIC_LASTMOD = {
   '/':                      '2026-07-08',
   '/pricing':               '2026-07-01',
-  '/how-it-works':          '2026-06-27',
+  '/how-it-works':          '2026-07-15',
+  '/card/new':              '2026-07-15',
   '/sample':                '2026-06-27',
   '/faq':                   '2026-06-27',
   '/policy':                '2026-06-27',
@@ -85,6 +86,7 @@ const STATIC_PAGES = [
     } },
   { loc: '/pricing',         changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/how-it-works',    changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/card/new',        changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/sample',          changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/faq',             changefreq: 'monthly', priority: '0.6', hreflang: true },
 
@@ -183,6 +185,24 @@ const STATIC_PAGES = [
   { loc: '/blog', changefreq: 'daily', priority: '0.9', hreflang: true },
 ];
 
+// Critical published blog posts that must stay in the sitemap even when the
+// blog API is unavailable during build. The API response still wins for all
+// matching slugs so updated timestamps from production are preserved.
+const FALLBACK_BLOG_POSTS = [
+  {
+    slug: 'birthday-wishes-for-colleague-nigeria-prayers-pidgin',
+    updated_at: '2026-07-15',
+    published_at: '2026-07-15',
+    is_featured: false,
+  },
+  {
+    slug: 'condolence-messages-loss-of-pet',
+    updated_at: '2026-07-15',
+    published_at: '2026-07-15',
+    is_featured: false,
+  },
+];
+
 // ── Fetch published blog posts from the API ─────────────────────────────────
 function fetchJSON(url) {
   return new Promise((resolve, reject) => {
@@ -277,8 +297,11 @@ async function main() {
     console.warn(`[generate-sitemap] could not fetch blog posts (${err.message}) — writing static pages only`);
   }
 
+  const postsBySlug = new Map(FALLBACK_BLOG_POSTS.map(post => [post.slug, post]));
+  posts.filter(p => p && p.slug).forEach(post => postsBySlug.set(post.slug, post));
+
   const staticBlocks = STATIC_PAGES.map(renderUrl);
-  const blogBlocks   = posts.filter(p => p && p.slug).map(renderBlogPostUrl);
+  const blogBlocks   = [...postsBySlug.values()].map(renderBlogPostUrl);
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>

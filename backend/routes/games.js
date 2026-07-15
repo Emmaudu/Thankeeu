@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { adminAuth } = require('../middleware/auth');
+const { upload } = require('../utils/cloudinary');
 const {
   gameAuth,
   listDepartments,
@@ -26,10 +27,24 @@ const {
   adminProcessCongratulationCards,
 } = require('../controllers/gamesController');
 
+const uploadGameAvatar = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      const status = err.code === 'LIMIT_FILE_SIZE' ? 400 : 502;
+      return res.status(status).json({ error: err.message || 'Profile photo upload failed' });
+    }
+    next();
+  });
+};
+
 router.get('/departments', listDepartments);
 router.get('/departments/:slug', getDepartmentGame);
 router.get('/leaderboard', leaderboard);
 router.post('/congratulations/cards/:cardId/sign', visitorSignCongratulationCard);
+router.post('/upload-avatar', uploadGameAvatar, (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No profile photo uploaded' });
+  res.json({ url: req.file.path });
+});
 
 router.post('/signup', signup);
 router.post('/login', login);

@@ -464,6 +464,11 @@ export const gamesAPI = {
   getDepartment:   (slug)        => publicAxios.get(`/games/departments/${slug}`),
   leaderboard:     (params = {}) => publicAxios.get('/games/leaderboard', { params }),
   visitorSignCongrats: (cardId, data) => publicAxios.post(`/games/congratulations/cards/${cardId}/sign`, data),
+  uploadAvatar:    (file)        => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return publicAxios.post('/games/upload-avatar', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
   signup:          (data)        => publicAxios.post('/games/signup', data),
   login:           (data)        => publicAxios.post('/games/login', data),
   me:              ()            => gamesAxios.get('/games/me'),

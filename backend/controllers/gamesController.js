@@ -388,7 +388,7 @@ const signup = async (req, res) => {
   if (validation) return res.status(400).json({ error: validation });
   if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   if (!full_name?.trim()) return res.status(400).json({ error: 'Full name is required' });
-  if (!avatar_url?.trim()) return res.status(400).json({ error: 'Profile picture URL is required for leaderboard and result posters' });
+  if (!avatar_url?.trim()) return res.status(400).json({ error: 'Profile photo is required for leaderboard and result posters' });
   const domain = emailDomain(cleanEmail);
   const password_hash = await argon2.hash(password);
   const payload = {
@@ -425,7 +425,7 @@ const updateProfile = async (req, res) => {
   ['full_name', 'job_title', 'avatar_url'].forEach(k => {
     if (req.body[k] !== undefined) updates[k] = String(req.body[k] || '').trim();
   });
-  if (updates.avatar_url === '') return res.status(400).json({ error: 'Profile picture URL is required' });
+  if (updates.avatar_url === '') return res.status(400).json({ error: 'Profile photo is required' });
   updates.updated_at = new Date().toISOString();
   const { data, error } = await supabase.from('games_players').update(updates).eq('id', req.gamePlayer.id).select().maybeSingle();
   if (error) return res.status(500).json({ error: error.message });

@@ -414,10 +414,32 @@ export const GamesHome = () => {
 export const GamesAuth = ({ mode }) => {
   const navigate = useNavigate();
   const [form, setForm] = useState({ full_name: '', email: '', password: '', job_title: '', avatar_url: '' });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const isSignup = mode === 'signup';
   useSEO({ title: `${isSignup ? 'Signup' : 'Login'} - Thankeeu Games`, noIndex: true });
+  const uploadAvatar = async (file) => {
+    if (!file) return;
+    if (!file.type?.startsWith('image/')) {
+      toast.error('Upload an image file for your profile photo');
+      return;
+    }
+    try {
+      setUploadingAvatar(true);
+      const res = await gamesAPI.uploadAvatar(file);
+      setForm(prev => ({ ...prev, avatar_url: res.data.url }));
+      toast.success('Profile photo uploaded');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not upload profile photo');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   const submit = async (e) => {
     e.preventDefault();
+    if (isSignup && !form.avatar_url) {
+      toast.error('Upload a profile photo before joining the league');
+      return;
+    }
     try {
       const res = isSignup ? await gamesAPI.signup(form) : await gamesAPI.login({ email: form.email, password: form.password });
       setSession(res.data);
@@ -438,10 +460,33 @@ export const GamesAuth = ({ mode }) => {
             {isSignup && <input className={`input ${inputContrastClass}`} required placeholder="Full name" value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />}
             <input type="email" className={`input ${inputContrastClass}`} required placeholder="you@company.com" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
             {isSignup && <input className={`input ${inputContrastClass}`} placeholder="Job title" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />}
-            {isSignup && <input className={`input ${inputContrastClass}`} required placeholder="Profile picture URL" value={form.avatar_url} onChange={e => setForm({ ...form, avatar_url: e.target.value })} />}
+            {isSignup && (
+              <div className="rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-primary-600 ring-1 ring-purple-100">
+                    {form.avatar_url ? <img src={form.avatar_url} alt="" className="h-full w-full object-cover" /> : <Icon name="Camera" size="lg" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-black text-[#201a33]">Profile photo</p>
+                    <p className="mt-1 text-xs leading-5 text-[#5f5672]">Required for leaderboards and result posters.</p>
+                  </div>
+                </div>
+                <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-black text-[#4f46e5] ring-1 ring-purple-100 transition hover:bg-primary-50">
+                  <Icon name="Upload" size="sm" />
+                  {uploadingAvatar ? 'Uploading...' : form.avatar_url ? 'Change photo' : 'Upload photo'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    disabled={uploadingAvatar}
+                    onChange={e => uploadAvatar(e.target.files?.[0])}
+                  />
+                </label>
+              </div>
+            )}
             <input type="password" className={`input ${inputContrastClass}`} required minLength={8} placeholder="Password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} />
           </div>
-          <button className="btn-primary mt-6 w-full py-3">{isSignup ? 'Join the league' : 'Login'}</button>
+          <button className="btn-primary mt-6 w-full py-3" disabled={uploadingAvatar}>{uploadingAvatar ? 'Uploading photo...' : isSignup ? 'Join the league' : 'Login'}</button>
           <p className="mt-4 text-center text-sm text-[#5f5672]">
             {isSignup ? 'Already registered?' : 'New to Thankeeu Games?'}{' '}
             <Link className="font-bold text-[#4f46e5]" to={isSignup ? gamesPath('login') : gamesPath('signup')}>{isSignup ? 'Login' : 'Signup'}</Link>
@@ -678,6 +723,115 @@ const SignatureMediaPreview = ({ signature }) => {
   );
 };
 
+const dashboardTabs = [
+  { id: 'games', label: 'Games', icon: 'LayoutDashboard' },
+  { id: 'co-players', label: 'Co-players', icon: 'Users' },
+  { id: 'cards', label: 'Cards', icon: 'Card' },
+  { id: 'pending-to-sign', label: 'Pending to sign', icon: 'PenLine' },
+  { id: 'results', label: 'Results', icon: 'Award' },
+  { id: 'leaderboard', label: 'Leaderboard', icon: 'BarChart' },
+  { id: 'profile', label: 'Profile settings', icon: 'Settings' },
+];
+
+const GamesDashboardShell = ({ player, tab, onTabChange, children }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const logout = () => {
+    localStorage.removeItem('thankeeu_games_token');
+    localStorage.removeItem('thankeeu_games_player');
+    navigate(gamesPath('login'));
+  };
+  const navButton = (item) => (
+    <button
+      key={item.id}
+      type="button"
+      onClick={() => {
+        onTabChange(item.id);
+        setSidebarOpen(false);
+      }}
+      className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-bold transition ${tab === item.id ? 'bg-white text-[#120b24] shadow-lg shadow-black/10' : 'text-white/85 hover:bg-white/10 hover:text-white'}`}
+    >
+      <Icon name={item.icon} size="sm" />
+      <span>{item.label}</span>
+    </button>
+  );
+  const sidebar = (
+    <aside className="flex h-full w-72 flex-col bg-[#120b24] p-4 text-white shadow-2xl lg:w-64">
+      <Link to={gamesPath()} className="flex items-center gap-3 rounded-2xl px-2 py-2">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-1 ring-1 ring-white/20">
+          <img src="/android-chrome-192x192.png" alt="Thankeeu" className="h-full w-full rounded-lg object-cover" />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black leading-none text-white">thank<span className="text-primary-300">eeu</span> games</p>
+          <p className="mt-1 truncate text-[11px] text-white/75">Employee engagement league</p>
+        </div>
+      </Link>
+
+      <div className="mt-6 rounded-3xl bg-white/10 p-3 ring-1 ring-white/10">
+        <div className="flex items-center gap-3">
+          <img src={player.avatar_url} alt="" className="h-12 w-12 rounded-2xl object-cover ring-2 ring-white/20" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-black text-white">{player.full_name}</p>
+            <p className="truncate text-xs text-white/75">{player.company_name}</p>
+          </div>
+        </div>
+      </div>
+
+      <nav className="mt-6 flex-1 space-y-1" aria-label="Games dashboard">
+        {dashboardTabs.map(navButton)}
+      </nav>
+
+      <div className="space-y-2 border-t border-white/10 pt-4">
+        <Link to={gamesPath()} className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-bold text-white/85 hover:bg-white/10 hover:text-white">
+          <Icon name="Home" size="sm" />
+          <span>Games home</span>
+        </Link>
+        <button type="button" onClick={logout} className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-bold text-white/85 hover:bg-white/10 hover:text-white">
+          <Icon name="LogOut" size="sm" />
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+  );
+
+  return (
+    <div className="min-h-screen bg-[#f6f1ff] text-[#201a33] lg:flex">
+      <div className="fixed inset-y-0 left-0 z-30 hidden lg:block">
+        {sidebar}
+      </div>
+      <button
+        type="button"
+        onClick={() => setSidebarOpen(true)}
+        className="fixed left-4 top-4 z-40 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#120b24] text-white shadow-xl lg:hidden"
+        aria-label="Open dashboard menu"
+      >
+        <Icon name="Menu" size="lg" />
+      </button>
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button type="button" className="absolute inset-0 bg-black/50" aria-label="Close dashboard menu" onClick={() => setSidebarOpen(false)} />
+          <div className="relative h-full">
+            {sidebar}
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white"
+              aria-label="Close dashboard menu"
+            >
+              <Icon name="Close" size="md" />
+            </button>
+          </div>
+        </div>
+      )}
+      <main className="min-h-screen w-full px-4 pb-8 pt-20 sm:px-6 lg:ml-64 lg:px-8 lg:pt-8">
+        <div className="mx-auto w-full max-w-7xl">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+};
+
 export const GamesDashboard = () => {
   const [params, setParams] = useSearchParams();
   const [data, setData] = useState(null);
@@ -697,23 +851,22 @@ export const GamesDashboard = () => {
     }).catch(() => {});
   }, []);
   if (!localStorage.getItem('thankeeu_games_token')) return <Navigate to={gamesPath('login')} replace />;
-  if (!data) return <div className={lightPageClass}><GamesNav /><div className={`${mainClass} p-10 text-center text-[#201a33]`}>Loading dashboard...</div><GamesFooter /></div>;
-  const tabs = ['games', 'co-players', 'cards', 'pending-to-sign', 'results', 'leaderboard', 'profile'];
+  if (!data) return <div className="flex min-h-screen items-center justify-center bg-[#f6f1ff] p-8 text-center text-[#201a33]">Loading dashboard...</div>;
   return (
-    <div className={lightPageClass}>
-      <GamesNav />
-      <main className={`${mainClass} mx-auto w-full max-w-7xl px-4 py-6 sm:py-8`}>
+    <GamesDashboardShell player={data.player} tab={tab} onTabChange={(nextTab) => setParams({ tab: nextTab })}>
         <div className="rounded-3xl bg-[#120b24] p-4 text-white sm:p-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
             <img src={data.player.avatar_url} alt="" className="h-14 w-14 rounded-2xl object-cover sm:h-16 sm:w-16" />
             <div className="min-w-0">
               <h1 className="break-words text-lg font-black leading-tight text-white sm:text-xl">{data.player.full_name}</h1>
               <p className="break-words text-sm text-white/90 sm:text-base">{data.player.company_name} - {data.player.job_title || 'Employee player'}</p>
             </div>
+            </div>
+            <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-bold text-white ring-1 ring-white/10">
+              {data.week?.week_key || 'Current week'} - Friday 2pm
+            </div>
           </div>
-        </div>
-        <div className="mt-5 flex gap-2 overflow-x-auto pb-1 sm:mt-6 sm:flex-wrap sm:overflow-visible sm:pb-0">
-          {tabs.map(t => <button key={t} onClick={() => setParams({ tab: t })} className={`shrink-0 rounded-xl px-3 py-2 text-xs font-bold sm:px-4 sm:text-sm ${tab === t ? 'bg-primary-600 text-white' : 'bg-white text-[#4c435f]'}`}>{t.replace('-', ' ')}</button>)}
         </div>
         <section className="mt-6 rounded-3xl bg-white p-4 shadow-sm sm:p-6">
           {tab === 'games' && (
@@ -733,9 +886,7 @@ export const GamesDashboard = () => {
           {tab === 'leaderboard' && <GamesLeaderboardInner />}
           {tab === 'profile' && <ProfileEditor player={data.player} onUpdate={p => setData({ ...data, player: p })} />}
         </section>
-      </main>
-      <GamesFooter />
-    </div>
+    </GamesDashboardShell>
   );
 };
 
@@ -872,7 +1023,29 @@ const GamesLeaderboardInner = () => {
 
 const ProfileEditor = ({ player, onUpdate }) => {
   const [form, setForm] = useState({ full_name: player.full_name, job_title: player.job_title || '', avatar_url: player.avatar_url });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const uploadAvatar = async (file) => {
+    if (!file) return;
+    if (!file.type?.startsWith('image/')) {
+      toast.error('Upload an image file for your profile photo');
+      return;
+    }
+    try {
+      setUploadingAvatar(true);
+      const res = await gamesAPI.uploadAvatar(file);
+      setForm(prev => ({ ...prev, avatar_url: res.data.url }));
+      toast.success('Profile photo uploaded');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not upload profile photo');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
   const save = async () => {
+    if (!form.avatar_url) {
+      toast.error('Upload a profile photo before saving');
+      return;
+    }
     try {
       const res = await gamesAPI.updateProfile(form);
       localStorage.setItem('thankeeu_games_player', JSON.stringify(res.data));
@@ -880,5 +1053,33 @@ const ProfileEditor = ({ player, onUpdate }) => {
       toast.success('Profile updated');
     } catch (err) { toast.error(err.response?.data?.error || 'Could not update profile'); }
   };
-  return <div className="max-w-xl space-y-4"><input className={`input ${inputContrastClass}`} value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} /><input className={`input ${inputContrastClass}`} value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} /><input className={`input ${inputContrastClass}`} value={form.avatar_url} onChange={e => setForm({ ...form, avatar_url: e.target.value })} /><button onClick={save} className="btn-primary px-5 py-3">Save profile</button></div>;
+  return (
+    <div className="max-w-xl space-y-4">
+      <div className="rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white text-primary-600 ring-1 ring-purple-100">
+            {form.avatar_url ? <img src={form.avatar_url} alt="" className="h-full w-full object-cover" /> : <Icon name="Camera" size="lg" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black text-[#201a33]">Profile photo</p>
+            <p className="mt-1 text-xs leading-5 text-[#5f5672]">Shown on leaderboards, result posters and congratulations cards.</p>
+          </div>
+        </div>
+        <label className="mt-4 flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-black text-[#4f46e5] ring-1 ring-purple-100 transition hover:bg-primary-50">
+          <Icon name="Upload" size="sm" />
+          {uploadingAvatar ? 'Uploading...' : form.avatar_url ? 'Change photo' : 'Upload photo'}
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={uploadingAvatar}
+            onChange={e => uploadAvatar(e.target.files?.[0])}
+          />
+        </label>
+      </div>
+      <input className={`input ${inputContrastClass}`} value={form.full_name} onChange={e => setForm({ ...form, full_name: e.target.value })} />
+      <input className={`input ${inputContrastClass}`} value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+      <button onClick={save} className="btn-primary px-5 py-3" disabled={uploadingAvatar}>{uploadingAvatar ? 'Uploading photo...' : 'Save profile'}</button>
+    </div>
+  );
 };

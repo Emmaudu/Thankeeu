@@ -61,7 +61,7 @@ const createCard = async (req, res) => {
       recipient_name, recipient_email, occasion, title, design_theme,
       background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
       send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts, card_experience,
-      custom_occasion,
+      custom_occasion, cover_sender,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus
     } = req.body;
@@ -80,6 +80,9 @@ const createCard = async (req, res) => {
     // Sanitize custom occasion label (only meaningful when occasion === 'other')
     const cleanCustomOccasion = (occasion === 'other' && custom_occasion?.trim())
       ? sanitizeText(custom_occasion, 'Custom occasion', { maxLen: 80 })
+      : null;
+    const cleanCoverSender = cover_sender?.trim()
+      ? sanitizeText(cover_sender, 'Cover sender', { maxLen: 100 })
       : null;
 
     // Validate numeric fields
@@ -116,6 +119,7 @@ const createCard = async (req, res) => {
       occasion,
       title: cleanTitle || `${cleanRecipientName}'s Card`,
       design_theme, background_color, is_gift_enabled,
+      cover_sender: cleanCoverSender,
       gift_type, suggested_amount,
       // Store send_date as the FULL combined UTC datetime (date + time) so the
       // cron can do a single TIMESTAMPTZ comparison without reconstructing from
@@ -140,37 +144,30 @@ const createCard = async (req, res) => {
       ...(isAnonymousDraft && { draft_edit_token: draftEditToken, is_draft: true }),
     };
 
-    // Try inserting with all optional columns, falling back gracefully.
-    // Each attempt strips one more unknown column until the insert succeeds.
+    // Try all optional columns first, then remove only the column an older
+    // database reports as missing. This preserves every supported setting.
     const isMissingCol = (e) => !!e && (e.code === '42703' || /column .* does not exist/i.test(e.message || ''));
 
     let card, error;
+    let insertCandidate = {
+      ...insertData,
+      font_style: font_style || 'elegant',
+      card_layout: cleanCardLayout,
+    };
+    const optionalColumns = ['card_layout', 'font_style', 'custom_occasion', 'cover_sender'];
 
-    // Attempt 1: all columns including font_style + card_layout + custom_occasion
-    ({ data: card, error } = await supabase.from('cards')
-      .insert({ ...insertData, font_style: font_style || 'elegant', card_layout: cleanCardLayout })
-      .select().maybeSingle());
-
-    // Attempt 2: card_layout column missing
-    if (error && isMissingCol(error) && error.message?.includes('card_layout')) {
+    for (let attempt = 0; attempt <= optionalColumns.length; attempt += 1) {
       ({ data: card, error } = await supabase.from('cards')
-        .insert({ ...insertData, font_style: font_style || 'elegant' })
+        .insert(insertCandidate)
         .select().maybeSingle());
-    }
 
-    // Attempt 3: font_style column also missing
-    if (error && isMissingCol(error) && error.message?.includes('font_style')) {
-      ({ data: card, error } = await supabase.from('cards')
-        .insert(insertData)
-        .select().maybeSingle());
-    }
+      if (!error || !isMissingCol(error)) break;
+      const missingColumn = optionalColumns.find(column => error.message?.includes(column));
+      if (!missingColumn || !(missingColumn in insertCandidate)) break;
 
-    // Attempt 4: custom_occasion column not yet added (migration not run yet)
-    if (error && isMissingCol(error) && error.message?.includes('custom_occasion')) {
-      const { custom_occasion: _co, ...insertWithoutCustom } = insertData;
-      ({ data: card, error } = await supabase.from('cards')
-        .insert(insertWithoutCustom)
-        .select().maybeSingle());
+      const nextCandidate = { ...insertCandidate };
+      delete nextCandidate[missingColumn];
+      insertCandidate = nextCandidate;
     }
 
     if (error) throw error;
@@ -468,7 +465,7 @@ const updateCard = async (req, res) => {
 
     if (error && (error.code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
       // Unknown column — retry without it
-      const { card_layout: _cl, font_style: _fs, ...saferUpdates } = safeUpdates;
+      const { card_layout: _cl, font_style: _fs, cover_sender: _coverSender, ...saferUpdates } = safeUpdates;
       ({ data: updated, error } = await supabase
         .from('cards').update({ ...saferUpdates, updated_at: new Date() })
         .eq('slug', slug).select().maybeSingle());

@@ -1191,6 +1191,9 @@ const CardView = () => {
     : showAll ? messages : messages.slice(0, 8);   // normal paginated view
   const totalCollected = card.total_collected || 0;
   const design = getCardDesign(card.design_theme);
+  const coverBackground = card.background_color?.startsWith('#')
+    ? `linear-gradient(145deg, ${card.background_color}26, transparent 68%), ${design.background}`
+    : (card.background_color || design.background);
   const titleFont = getFontStyle(card.font_style);
   const canViewPrivate = Boolean(token || card.isCreator || card.isRecipient);
 
@@ -1205,7 +1208,7 @@ const CardView = () => {
       {/* Confetti runs forever — never stops */}
       <Confetti />
       {/* ── HERO BANNER — Sample-page style ───────────────────────── */}
-      <header className="relative overflow-hidden" style={{ background: design.background, color: design.ink }}>
+      <header className="relative overflow-hidden" style={{ background: coverBackground, color: design.ink }}>
         {/* Decorative blurred circles */}
         <div style={{ position:'absolute', top:'-60px', right:'-60px', width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,0.08)', pointerEvents:'none', zIndex:0 }} />
         <div style={{ position:'absolute', bottom:'-40px', left:'-40px', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none', zIndex:0 }} />
@@ -1260,6 +1263,12 @@ const CardView = () => {
           }}>
             {card.title || `Happy ${card.occasion === 'other' && card.custom_occasion ? card.custom_occasion : (card.occasion||'').replace(/_/g,' ')}, ${card.recipient_name}!`}
           </h1>
+
+          {card.cover_sender && (
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.16em] mb-3" style={{ color: design.dark ? 'rgba(255,255,255,0.78)' : design.accent }}>
+              From {card.cover_sender}
+            </p>
+          )}
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg max-w-xl mx-auto mb-3" style={{

@@ -39,8 +39,10 @@ import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI } from '../utils/api';
-import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
+import { CARD_DESIGNS, FONT_STYLES, getFontStyle } from '../utils/cardDesigns';
+import { getOccasionLabel } from '../utils/occasionCardDesigns';
 import { formatNGN, formatCurrency, CURRENCIES } from '../utils/currency';
+import CardCoverPreview from '../components/CardCoverPreview';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const OCCASIONS = [
@@ -57,6 +59,9 @@ const OCCASIONS = [
  { id: 'christmas',       icon: 'Snowflake',    label: 'Christmas' },
  { id: 'get_well',        icon: 'HeartPulse',   label: 'Get well' },
  { id: 'new_year',        icon: 'Star',         label: 'New Year' },
+ { id: 'thank_you',       icon: 'Heart',        label: 'Thank you' },
+ { id: 'sympathy',        icon: 'Flower',       label: 'Sympathy' },
+ { id: 'good_luck',       icon: 'Sparkles',     label: 'Good luck' },
  { id: 'other',           icon: 'Sparkles',     label: 'Other' },
 ];
 
@@ -89,7 +94,7 @@ const CardStart = () => {
  title: 'Create a Free Online Group Card | Thankeeu',
  description: 'Make a stunning group card for any occasion — birthday, farewell, promotion, and more. Add a gift pot, invite everyone via WhatsApp, schedule delivery. Free to start.',
   keywords: 'create group card online free, make birthday group card, farewell group card Nigeria, online group card with gift',
-  canonical: '/card/new',
+  canonical: '/card/customize',
   noIndex: false,
 });
 
@@ -120,6 +125,7 @@ const CardStart = () => {
  occasion: 'birthday', design_theme: 'rose_love',
  background_color: '#FBEAF0', font_style: 'elegant', card_layout: 'form',
  title: "Someone's Birthday Card",
+ cover_sender: creatorName === 'You' ? '' : creatorName,
  recipient_name: '', recipient_email: '',
  send_date: '', send_time: '09:00',
  deadline: '', deadline_time: '23:59',
@@ -158,6 +164,12 @@ const CardStart = () => {
  const textareaRef = useRef();
 
  const selectedDesign = CARD_DESIGNS.find(d => d.id === form.design_theme);
+ const availableDesigns = CARD_DESIGNS.filter(design =>
+  design.occasion ? design.occasion === form.occasion : form.occasion !== 'leaving'
+ );
+ const occasionLabel = form.occasion === 'other' && form.custom_occasion
+  ? form.custom_occasion
+  : getOccasionLabel(form.occasion);
 
  // ── Load credits for logged-in users ────────────────────────────────────
  useEffect(() => {
@@ -190,39 +202,33 @@ const CardStart = () => {
  window.history.replaceState({}, '', url.toString());
  }, [searchParams, user]);
 
+ // Start from a catalogue selection while keeping every editor control available.
+ useEffect(() => {
+  if (searchParams.get('resumed') === '1') return;
+  const requestedOccasion = searchParams.get('occasion');
+  const requestedDesign = searchParams.get('design');
+  if (!requestedOccasion && !requestedDesign) return;
 
-  // ── Pre-fill from gallery URL params (?occasion=X&design=Y&recipient=Z) ────
-  useEffect(() => {
-    if (searchParams.get('resumed') === '1') return;
-    const occasionParam  = searchParams.get('occasion');
-    const designParam    = searchParams.get('design');
-    const recipientParam = searchParams.get('recipient');
-    const layoutParam    = searchParams.get('layout');
-    if (!occasionParam && !designParam && !recipientParam) return;
+  const normalizedOccasion = requestedOccasion === 'farewell' ? 'leaving' : requestedOccasion;
+  const matchedOccasion = OCCASIONS.find(item => item.id === normalizedOccasion);
+  const matchedDesign = CARD_DESIGNS.find(item => item.id === requestedDesign);
 
-    import('../utils/cardDesigns').then(({ CARD_DESIGNS: CD }) => {
-      import('../utils/leavingCardDesigns').then(({ LEAVING_CARD_DESIGNS: LCD }) => {
-        const matchedOcc    = OCCASIONS.find(o => o.id === (occasionParam === 'farewell' ? 'leaving' : occasionParam));
-        const matchedDesign = CD.find(d => d.id === designParam) || LCD.find(d => d.id === designParam);
-        const name          = recipientParam || '';
-        const occLabel      = matchedOcc?.id === 'other' ? 'Special' : (matchedOcc?.label || 'Birthday');
-
-        setForm(prev => ({
-          ...prev,
-          occasion:         matchedOcc?.id       || prev.occasion,
-          recipient_name:   name                 || prev.recipient_name,
-          title:            name ? `${name}'s ${occLabel} Card` : prev.title,
-          design_theme:     matchedDesign ? designParam : prev.design_theme,
-          background_color: matchedDesign?.background || matchedDesign?.image || prev.background_color,
-          card_layout:      layoutParam === 'album' ? 'album' : prev.card_layout,
-        }));
-
-        if (matchedDesign && matchedOcc) setStep(2);
-        else if (matchedOcc)             setStep(1);
-      });
-    });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  setForm(previous => {
+   const nextOccasion = matchedOccasion?.id || matchedDesign?.occasion || previous.occasion;
+   const nextLabel = getOccasionLabel(nextOccasion);
+   return {
+    ...previous,
+    occasion: nextOccasion,
+    design_theme: matchedDesign?.id || previous.design_theme,
+    background_color: matchedDesign?.background || previous.background_color,
+    card_layout: searchParams.get('layout') === 'album' ? 'album' : previous.card_layout,
+    title: previous.recipient_name
+     ? `${previous.recipient_name}'s ${nextLabel} Card`
+     : `A ${nextLabel} card made together`,
+   };
+  });
+  setStep(matchedDesign ? 1 : 0);
+ }, [searchParams]);
 
  // ── Occasion helper ──────────────────────────────────────────────────────
  const handleOccasionSelect = (occ) => {
@@ -472,6 +478,7 @@ const CardStart = () => {
  setForm({
  occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0',
  font_style: 'elegant', card_layout: 'form', title: "Someone's Birthday Card",
+ cover_sender: creatorName === 'You' ? '' : creatorName,
  recipient_name: '', recipient_email: '', send_date: '', send_time: '09:00',
  deadline: '', deadline_time: '23:59', is_gift_enabled: true, gift_type: 'pot',
  suggested_amount: 2500, allow_private_messages: true, send_reminders: true,
@@ -517,7 +524,7 @@ const CardStart = () => {
 
  // ── Inner wizard ─────────────────────────────────────────────────────────
  const inner = (
- <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10">
+ <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
  {!company && !member && (
  <div className="mb-8">
  <h1 className="text-3xl font-bold text-warm-900 mb-1">Create a group card</h1>
@@ -528,6 +535,9 @@ const CardStart = () => {
  )}
 
  <StepIndicator current={step} />
+
+ <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-7 items-start">
+ <div className="min-w-0">
 
  {/* ══ STEP 0: Occasion ════════════════════════════════════════════════ */}
  {step === 0 && (
@@ -572,7 +582,7 @@ const CardStart = () => {
  .ccg { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
  @media(max-width:640px){.ccg{grid-template-columns:repeat(3,1fr);}}
  @media(max-width:380px){.ccg{grid-template-columns:repeat(2,1fr);}}
- .ccg-item{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;aspect-ratio:3/4;}
+ .ccg-item{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;aspect-ratio:210/297;background:#fff;}
  .ccg-item:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.14);}
  .ccg-item.sel{outline:3px solid #7C3AED;outline-offset:2px;}
  .ccg-badge{position:absolute;top:7px;left:7px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;z-index:2;}
@@ -591,17 +601,40 @@ const CardStart = () => {
  <input id="cs-bg-upload" type="file" accept="image/*" className="hidden"
  onChange={e => { const f = e.target.files?.[0]; if (!f) return; set('background_color', URL.createObjectURL(f)); set('design_theme', 'custom_upload'); }}/>
  </button>
- {CARD_DESIGNS.map((d, idx) => (
+ {availableDesigns.map((d, idx) => (
  <button key={d.id} type="button" className={`ccg-item ${form.design_theme === d.id ? 'sel' : ''}`} onClick={() => handleDesignSelect(d)}>
- <div className={`card-art ${cardArtClass(d)} w-full h-full flex flex-col items-center justify-center`} style={{ background: d.background }}>
- <span style={{ fontSize: 30 }}>{d.icon}</span>
- <p style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 700, fontSize: 10, color: d.ink, marginTop: 4, textAlign: 'center', padding: '0 4px', textShadow: d.dark ? '0 1px 4px rgba(0,0,0,0.5)' : 'none' }}>{d.name}</p>
- </div>
+ <CardCoverPreview
+  design={d}
+  occasionLabel={occasionLabel}
+  recipientName={form.recipient_name}
+  title={form.title}
+  senderName={form.cover_sender || creatorName}
+  compact
+ />
  {idx < 3 && <span className="ccg-badge ccg-new">New</span>}
  {idx >= 3 && idx < 7 && <span className="ccg-badge ccg-more">More</span>}
  </button>
  ))}
  </div>
+
+ {selectedDesign && (
+  <div className="mb-5">
+   <p className="text-sm font-bold text-warm-700 mb-2">Cover colour</p>
+   <div className="flex flex-wrap gap-2">
+    {(selectedDesign.palette || ['#102a43', '#7c3aed', '#0f766e', '#be123c', '#ca8a04']).map(color => (
+     <button
+      key={color}
+      type="button"
+      onClick={() => set('background_color', color)}
+      className={`w-10 h-10 rounded-full border-2 transition-transform hover:scale-105 ${form.background_color === color ? 'ring-4 ring-primary-100 border-primary-500' : 'border-white shadow-sm'}`}
+      style={{ backgroundColor: color }}
+      aria-label={`Use ${color} as the cover colour`}
+      title={color}
+     />
+    ))}
+   </div>
+  </div>
+ )}
 
  <p className="text-sm font-bold text-warm-700 mb-2">Card lettering</p>
  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
@@ -613,16 +646,6 @@ const CardStart = () => {
  </button>
  ))}
  </div>
-
- {selectedDesign && (
- <div className={`card-art ${cardArtClass(selectedDesign)} celebration-shell rounded-2xl p-5 mb-5 text-center min-h-[160px] flex flex-col justify-center`}
- style={{ background: selectedDesign.background, color: selectedDesign.ink }}>
- <span className="text-3xl mb-2">{selectedDesign.icon}</span>
- <h3 className="text-xl" style={{ color: selectedDesign.ink, fontFamily: getFontStyle(form.font_style).family }}>
- {form.title || `A card for ${form.recipient_name || 'someone special'}`}
- </h3>
- </div>
- )}
 
  <div className="mb-5">
  <p className="text-sm font-bold text-warm-700 mb-2">How should people sign?</p>
@@ -669,7 +692,7 @@ const CardStart = () => {
  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:12, color:'#7A6CA8', margin:0 }}>Sign in to save this card to your dashboard.</p>
  </div>
  </div>
- <Link to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+ <Link to={`/login?returnTo=${encodeURIComponent('/card/customize?resumed=1')}`}
  onClick={() => saveSnapshot()}
  style={{ background:'#7C3AED', color:'#fff', borderRadius:12, padding:'8px 18px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, textDecoration:'none', whiteSpace:'nowrap', flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
  <Icon name="LogIn" size={14}/>Sign in
@@ -681,6 +704,10 @@ const CardStart = () => {
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Card title</label>
  <input className="input" placeholder="e.g. Amaka's Birthday Card " value={form.title} onChange={e => set('title', e.target.value)}/>
+ </div>
+ <div>
+  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Sender name on cover</label>
+  <input className="input" placeholder="e.g. Tola and the whole team" value={form.cover_sender || ''} onChange={e => set('cover_sender', e.target.value)}/>
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
  <div>
@@ -816,7 +843,7 @@ const CardStart = () => {
  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:12, color:'#7A6CA8', margin:0 }}>Sign in to save your card.</p>
  </div>
  </div>
- <Link to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+ <Link to={`/login?returnTo=${encodeURIComponent('/card/customize?resumed=1')}`}
  onClick={() => saveSnapshot()}
  style={{ background:'#7C3AED', color:'#fff', borderRadius:12, padding:'8px 18px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, textDecoration:'none', whiteSpace:'nowrap', flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
  <Icon name="LogIn" size={14}/>Sign in
@@ -1074,13 +1101,13 @@ const CardStart = () => {
 
  <div className="flex flex-col gap-3 mb-4">
  <Link
- to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+  to={`/login?returnTo=${encodeURIComponent('/card/customize?resumed=1')}`}
  onClick={() => saveSnapshot({ resumeStep: 4 })}
  className="btn-primary w-full py-3.5 text-base font-bold text-center block">
  Sign in &amp; complete payment
  </Link>
  <Link
- to={`/signup?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
+  to={`/signup?returnTo=${encodeURIComponent('/card/customize?resumed=1')}`}
  onClick={() => saveSnapshot({ resumeStep: 4 })}
  className="btn-secondary w-full py-3.5 text-base font-bold text-center block">
  Create free account &amp; continue
@@ -1210,6 +1237,32 @@ const CardStart = () => {
 
  </div>
  )}
+ </div>
+
+ <aside className="order-first lg:order-none lg:sticky lg:top-24">
+  <div className="rounded-lg border border-purple-100 bg-white p-4 sm:p-5">
+   <div className="flex items-center justify-between gap-3 mb-4">
+    <div>
+     <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary-600">Live preview</p>
+     <p className="mt-1 text-xs text-warm-500">Updates as you type</p>
+    </div>
+    <span className="rounded-lg bg-warm-100 px-2 py-1 text-[10px] font-extrabold text-warm-600">A4 cover</span>
+   </div>
+   <CardCoverPreview
+    design={selectedDesign}
+    occasionLabel={occasionLabel}
+    recipientName={form.recipient_name}
+    title={form.title}
+    senderName={form.cover_sender || creatorName}
+    coverColor={form.background_color?.startsWith('#') ? form.background_color : undefined}
+   />
+   <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
+    <button type="button" onClick={() => setStep(0)} className="h-10 rounded-lg border border-purple-100 bg-white font-bold text-warm-700 hover:border-primary-300">Change occasion</button>
+    <button type="button" onClick={() => setStep(1)} className="h-10 rounded-lg border border-purple-100 bg-white font-bold text-warm-700 hover:border-primary-300">Change design</button>
+   </div>
+  </div>
+ </aside>
+ </div>
  </div>
  );
 

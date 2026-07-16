@@ -60,7 +60,6 @@ import MemberGiftCardsPage from './pages/member/MemberGiftCardsPage';
 import CompanyGiftCardsPage from './pages/company/CompanyGiftCardsPage';
 import CreateCard       from './pages/CreateCard';
 import CardStart        from './pages/CardStart';
-import CardDesignGallery from './pages/CardDesignGallery';
 import CardView              from './pages/CardView';
 import RecipientClaimGate   from './pages/RecipientClaimGate';
 import SignCard         from './pages/SignCard';
@@ -108,6 +107,7 @@ import BirthdayPage    from './pages/occasions/BirthdayPage';
 import { GroupCardsUK, GroupCardsUS, GroupCardsCanada, GroupCardsNigeria } from './pages/occasions/CountryLandingPage';
 import LeavingCardPage from './pages/LeavingCardPage';
 import LeavingCardGallery from './pages/LeavingCardGallery';
+import CardGallery from './pages/CardGallery';
 import BabyShowerPage from './pages/BabyShowerPage';
 import { RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, ChristmasCardPage, SympathyCardPage, WelcomeCardPage, GoodLuckCardPage, TeacherThankYouPage, EngagementCardPage, NewHomeCardPage, AdminProfessionalsDayPage, BossDayPage, TeacherAppreciationPage, ThanksgivingCardPage, MothersDayCardPage, FathersDayCardPage, OnlineBirthdayNigeriaPage, LeavingCardUKPage, BirthdayCardUKPage, RetirementCardUKPage, GetWellSoonUKPage } from './pages/occasions/ExtraOccasionPage';
 import FarewellPage    from './pages/occasions/Farewell';
@@ -417,6 +417,7 @@ const App = () => (
             <Route path="/online-group-cards-nigeria" element={<GroupCardsNigeria />} />
             <Route path="/cards/leaving-card"    element={<LeavingCardPage />} />
             <Route path="/cards/leaving-card/gallery" element={<LeavingCardGallery />} />
+            <Route path="/cards/create" element={<CardGallery />} />
             <Route path="/cards/retirement"      element={<RetirementPage />} />
             <Route path="/cards/get-well-soon"   element={<GetWellSoonPage />} />
             <Route path="/cards/thank-you"       element={<ThankYouCardPage />} />
@@ -510,8 +511,8 @@ const App = () => (
             <Route path="/dashboard/finances"    element={<ProtectedRoute><DashboardFinances /></ProtectedRoute>} />
             <Route path="/dashboard/reminders"   element={<ProtectedRoute><DashboardReminders /></ProtectedRoute>} />
             <Route path="/dashboard/settings"    element={<ProtectedRoute><DashboardSettings /></ProtectedRoute>} />
-            <Route path="/design" element={<CardDesignGallery />} />
-            <Route path="/card/new" element={<CardStart />} />
+            <Route path="/card/new" element={<CardGallery />} />
+            <Route path="/card/customize" element={<CardStart />} />
             <Route path="/create-card" element={<AnyAuthRoute><CreateCard /></AnyAuthRoute>} />
             <Route path="/admin"     element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
             <Route path="/admin/games" element={<ProtectedRoute adminOnly><AdminGames /></ProtectedRoute>} />

@@ -1,4 +1,5 @@
 import { LEAVING_CARD_DESIGNS } from './leavingCardDesigns';
+import { OCCASION_CARD_DESIGNS } from './occasionCardDesigns';
 
 export const CARD_DESIGNS = [
   {
@@ -128,8 +129,10 @@ export const CARD_DESIGNS = [
     background: 'linear-gradient(145deg, #fff9c4 0%, #fff176 30%, #a5d6a7 65%, #80cbc4 100%)',
     ink: '#1a4734', accent: '#00897b', soft: '#fff9c4', art: 'leaves',
   },
+  ...OCCASION_CARD_DESIGNS,
   ...LEAVING_CARD_DESIGNS.map(design => ({
     id: design.id,
+    occasion: 'leaving',
     name: design.name,
     icon: '\uD83D\uDCBC',
     background: `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(15,23,42,0.08)), url("${design.image}") center/cover no-repeat`,
@@ -138,6 +141,7 @@ export const CARD_DESIGNS = [
     soft: '#f5f0ff',
     art: 'confetti',
     image: design.image,
+    palette: ['#102a43', '#7c3aed', '#0f766e', '#be123c', '#ca8a04'],
   })),
 ];
 

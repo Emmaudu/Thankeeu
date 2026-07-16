@@ -25,4 +25,4 @@ export const LEAVING_CARD_DESIGNS = [
 ];
 
 export const createLeavingCardUrl = (designId) =>
-  `/card/new?occasion=leaving&design=${encodeURIComponent(designId)}&layout=album&source=leaving-gallery`;
+  `/card/customize?occasion=leaving&design=${encodeURIComponent(designId)}&layout=album&source=leaving-gallery`;

@@ -983,7 +983,7 @@ const WhatsAppVsThankeeu = () => (
  Set it up in under a minute. Share one link. Everyone joins. The celebration handles itself.
  </p>
  <div className="flex flex-col sm:flex-row gap-3 justify-center">
- <Link to="/design"
+ <Link to="/card/new"
  className="gc-btn-primary inline-flex items-center justify-center gap-2 px-8 py-4 text-base">
  <Icon name="Plus" size={18}/>Create Free Card
  </Link>
@@ -1075,7 +1075,7 @@ const Home = () => {
  </div>
 
  <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
- <Link to="/design" className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+ <Link to="/card/new" className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
  <Icon name="Sparkles" size={18}/>Create a card
  </Link>
  <Link to="/sample" className="gc-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2">
@@ -1456,7 +1456,7 @@ const Home = () => {
  </div>
  ))}
  </div>
- <Link to="/design" className="gc-btn-primary px-7 py-3.5 text-sm w-full sm:w-auto inline-flex items-center justify-center gap-2">
+ <Link to="/card/new" className="gc-btn-primary px-7 py-3.5 text-sm w-full sm:w-auto inline-flex items-center justify-center gap-2">
  <Icon name="Sparkles" size={15}/>Create your first card <Icon name="ArrowRight" size={15}/>
  </Link>
  </div>
@@ -1737,7 +1737,7 @@ const Home = () => {
  </h2>
  <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={5000}/> per card · Pay only when you send · Works worldwide</p>
  <div className="flex flex-col sm:flex-row gap-3 justify-center">
- <Link to="/design" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/>Get started — takes 1 min</Link>
+ <Link to="/card/new" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/>Get started — takes 1 min</Link>
  <Link to="/pricing" className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Card" size={16}/>See pricing</Link>
  </div>
  <p className="text-xs text-warm-400 mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">

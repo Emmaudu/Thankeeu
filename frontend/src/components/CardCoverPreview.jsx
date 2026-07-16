@@ -1,4 +1,7 @@
+import { useRef, useCallback, useState } from 'react';
 import Icon from './ui/Icon';
+import { CoverArtwork } from '../utils/coverArtwork.jsx';
+import { normalizeCoverLayout, COVER_FIELDS } from '../utils/coverLayout';
 
 const withTint = (design, coverColor) => {
   if (!coverColor || !coverColor.startsWith('#')) return design?.background || '#f5f0ff';
@@ -6,6 +9,22 @@ const withTint = (design, coverColor) => {
   return `linear-gradient(145deg, ${overlay}, transparent 62%), ${design?.background || coverColor}`;
 };
 
+const FIELD_LABEL = { title: 'Title', recipient: 'Name', sender: 'Sender' };
+
+/**
+ * CardCoverPreview
+ *
+ * Static rendering (preview / recipient view) and an interactive editor share
+ * the exact same layout maths, so what the creator arranges is what everyone
+ * sees.
+ *
+ * New props:
+ *   layout      cover-text layout object (title/recipient/sender)
+ *   editable    when true, texts are draggable + selectable; emits onLayoutChange
+ *   selected    currently-selected field id (editor)
+ *   onSelect    (field) => void
+ *   onLayoutChange (nextLayout) => void
+ */
 const CardCoverPreview = ({
   design,
   occasionLabel,
@@ -13,74 +32,195 @@ const CardCoverPreview = ({
   title,
   senderName,
   coverColor,
+  textColor,
+  fontFamily,
   compact = false,
+  layout,
+  editable = false,
+  selected = null,
+  onSelect,
+  onLayoutChange,
 }) => {
+  const boxRef = useRef(null);
+  const dragRef = useRef(null);
+  const [, force] = useState(0);
+
   if (!design) return null;
 
-  const hasArtwork = Boolean(design.image);
-  const ink = design.ink || '#172033';
+  const hasArtwork = Boolean(design.artwork);
+  const hasImage = Boolean(design.image);
+  const ink = textColor || design.ink || '#172033';
   const accent = design.accent || '#7c3aed';
   const displayRecipient = recipientName?.trim() || 'Recipient name';
   const displayTitle = title?.trim() || design.coverTitle || 'A card made together';
   const displaySender = senderName?.trim() || 'Your name';
 
+  const L = normalizeCoverLayout(layout);
+  const values = {
+    recipient: displayRecipient,
+    title: displayTitle,
+    sender: L.sender ? `From ${displaySender}` : displaySender,
+  };
+
+  const resolveColor = (c) => (!c || c === 'auto' ? (textColor || ink) : c);
+
+  // ── Drag handling (editor only) ────────────────────────────────────────────
+  const onPointerDown = useCallback((e, field) => {
+    if (!editable) return;
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect?.(field);
+    const rect = boxRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    dragRef.current = { field, rect };
+  }, [editable, onSelect]);
+
+  const onPointerMove = useCallback((e) => {
+    const d = dragRef.current;
+    if (!d) return;
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const nx = Math.min(96, Math.max(4, ((cx - d.rect.left) / d.rect.width) * 100));
+    const ny = Math.min(96, Math.max(4, ((cy - d.rect.top) / d.rect.height) * 100));
+    const next = { ...L, [d.field]: { ...L[d.field], x: nx, y: ny } };
+    onLayoutChange?.(next);
+    force((n) => n + 1);
+  }, [L, onLayoutChange]);
+
+  const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
+
+  // Reference width for responsive font sizing: the cover renders at whatever
+  // width the container gives it; sizes are expressed relative to a 210u board.
+  const fontScale = compact ? 0.9 : 1;
+
+  const renderText = (field) => {
+    const cfg = L[field];
+    if (!cfg.show) return null;
+    const isSel = editable && selected === field;
+    const col = resolveColor(cfg.color);
+    return (
+      <div
+        key={field}
+        onMouseDown={(e) => onPointerDown(e, field)}
+        onTouchStart={(e) => onPointerDown(e, field)}
+        style={{
+          position: 'absolute',
+          left: `${cfg.x}%`,
+          top: `${cfg.y}%`,
+          transform: 'translate(-50%, -50%)',
+          width: '86%',
+          textAlign: 'center',
+          color: col,
+          fontFamily,
+          fontWeight: field === 'sender' ? 600 : 800,
+          fontSize: `calc(${cfg.size * fontScale} * (100% / 210) * 2.1)`,
+          lineHeight: 1.08,
+          letterSpacing: field === 'sender' ? '0.04em' : '-0.01em',
+          wordBreak: 'break-word',
+          textShadow: hasImage || hasArtwork
+            ? (col.toLowerCase() === '#ffffff'
+              ? '0 2px 12px rgba(0,0,0,0.45)'
+              : '0 1px 8px rgba(255,255,255,0.55)')
+            : 'none',
+          cursor: editable ? 'grab' : 'default',
+          userSelect: 'none',
+          padding: '2px 4px',
+          borderRadius: 6,
+          outline: isSel ? `1.5px dashed ${accent}` : 'none',
+          outlineOffset: 3,
+          background: isSel ? 'rgba(124,58,237,0.06)' : 'transparent',
+          zIndex: isSel ? 5 : 3,
+          touchAction: 'none',
+        }}
+      >
+        {values[field]}
+        {isSel && (
+          <span
+            style={{
+              position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)',
+              background: accent, color: '#fff', fontSize: 8, fontWeight: 800,
+              padding: '1px 6px', borderRadius: 20, whiteSpace: 'nowrap',
+              fontFamily: 'Plus Jakarta Sans, sans-serif', letterSpacing: 0,
+            }}
+          >
+            {FIELD_LABEL[field]}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div
+      ref={boxRef}
       className="relative overflow-hidden w-full shadow-[0_24px_65px_rgba(31,23,62,0.18)]"
       style={{
         aspectRatio: '210 / 297',
         maxHeight: compact ? undefined : '70vh',
         borderRadius: 6,
-        background: withTint(design, coverColor),
+        background: hasArtwork ? design.background : withTint(design, coverColor),
         color: ink,
         border: `1px solid ${design.dark ? 'rgba(255,255,255,0.18)' : 'rgba(23,32,51,0.12)'}`,
       }}
+      onMouseMove={editable ? onPointerMove : undefined}
+      onMouseUp={editable ? onPointerUp : undefined}
+      onMouseLeave={editable ? onPointerUp : undefined}
+      onTouchMove={editable ? onPointerMove : undefined}
+      onTouchEnd={editable ? onPointerUp : undefined}
     >
-      {hasArtwork ? (
-        <>
-          <img src={design.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0" style={{ background: coverColor ? `linear-gradient(180deg, transparent 48%, ${coverColor}d9 100%)` : 'linear-gradient(180deg, transparent 45%, rgba(7,17,30,0.88) 100%)' }} />
-          {!compact && (
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 text-white">
-              <p className="text-[10px] sm:text-xs font-extrabold uppercase tracking-[0.2em] opacity-80">{occasionLabel}</p>
-              <p className="mt-2 text-2xl sm:text-4xl font-extrabold leading-tight break-words">{displayRecipient}</p>
-              <p className="mt-1 text-sm sm:text-base font-semibold opacity-95 break-words">{displayTitle}</p>
-              <p className="mt-4 text-xs sm:text-sm opacity-80">From {displaySender}</p>
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="absolute inset-0 p-5 sm:p-8 flex flex-col text-center">
-          <div className="flex items-center justify-between text-[9px] sm:text-[11px] font-extrabold uppercase tracking-[0.18em]" style={{ color: accent }}>
-            <span>Thankeeu</span>
-            <span>{occasionLabel}</span>
-          </div>
-          <div className="mt-5 sm:mt-8 mx-auto w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-full border" style={{ borderColor: `${accent}66`, background: design.dark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.72)', color: accent }}>
-            <Icon name={design.icon || 'Sparkles'} size={compact ? 20 : 28} />
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center min-h-0">
-            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.22em] mb-3 opacity-70">Made especially for</p>
-            <p className={`${compact ? 'text-lg' : 'text-3xl sm:text-5xl'} font-extrabold leading-[1.05] break-words w-full`} style={{ color: accent }}>
-              {compact ? design.coverTitle : displayRecipient}
-            </p>
-            {!compact && (
-              <>
-                <div className="w-12 h-px my-4" style={{ background: `${accent}88` }} />
-                <p className="text-base sm:text-2xl font-bold leading-tight break-words w-full">{displayTitle}</p>
-              </>
-            )}
-            <p className={`${compact ? 'mt-3 text-[9px]' : 'mt-4 text-xs sm:text-sm'} leading-relaxed opacity-75 max-w-[85%]`}>
-              {design.coverSubtitle}
-            </p>
-          </div>
-          <div className="pt-4 border-t text-[10px] sm:text-xs font-semibold" style={{ borderColor: `${accent}44` }}>
-            {compact ? design.name : `From ${displaySender}`}
-          </div>
+      {/* Artwork layer */}
+      {hasArtwork && (
+        <div className="absolute inset-0">
+          <CoverArtwork scene={design.artwork.scene} palette={design.artwork.palette} seed={design.artwork.seed} />
         </div>
       )}
+      {hasImage && !hasArtwork && (
+        <>
+          <img src={design.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0" style={{ background: ink === '#ffffff' ? 'linear-gradient(180deg, transparent 34%, rgba(7,17,30,0.55) 100%)' : 'linear-gradient(180deg, transparent 30%, rgba(255,255,255,0.5) 100%)' }} />
+        </>
+      )}
+
+      {/* Occasion chip (kept subtle, not part of movable texts) */}
+      {!compact && (
+        <div
+          className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] sm:text-[11px] font-extrabold uppercase tracking-[0.2em] z-[2]"
+          style={{
+            color: hasArtwork && design.dark ? design.soft : accent,
+            background: design.dark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.72)',
+            backdropFilter: 'blur(6px)',
+          }}
+        >
+          {occasionLabel}
+        </div>
+      )}
+
+      {/* Decorative icon medallion for non-artwork, non-image covers */}
+      {!hasArtwork && !hasImage && !compact && (
+        <div
+          className="absolute top-[14%] left-1/2 -translate-x-1/2 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-full border z-[2]"
+          style={{ borderColor: `${accent}66`, background: design.dark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.72)', color: accent }}
+        >
+          <Icon name={design.icon || 'Sparkles'} size={compact ? 20 : 28} />
+        </div>
+      )}
+
+      {/* Movable text fields */}
+      {compact
+        ? (
+          // Compact thumbnails: show a lightweight static title only so the grid stays legible
+          <div className="absolute inset-0 flex items-end justify-center p-2 pointer-events-none">
+            <p
+              className="text-[10px] font-extrabold text-center leading-tight break-words w-full"
+              style={{ color: resolveColor(L.recipient.color), fontFamily, textShadow: hasArtwork || hasImage ? '0 1px 6px rgba(0,0,0,0.35)' : 'none' }}
+            >
+              {design.name || displayRecipient}
+            </p>
+          </div>
+        )
+        : COVER_FIELDS.map(renderText)}
     </div>
   );
 };
 
 export default CardCoverPreview;
-

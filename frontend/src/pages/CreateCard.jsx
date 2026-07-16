@@ -17,6 +17,8 @@ import QRButton from '../components/QRButton';
 import toast from 'react-hot-toast';
 import { formatNGN, CURRENCIES, formatCurrency } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
+import { getOccasionLabel } from '../utils/occasionCardDesigns';
+import CoverTextStudio from '../components/CoverTextStudio';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 
 const OCCASIONS = [
@@ -100,8 +102,12 @@ const CreateCard = () => {
  allow_private_messages: true, send_reminders: true, hide_amounts: false,
  notification_scope: 'department',
  custom_occasion: '',
+ cover_sender: creatorName === 'You' ? '' : creatorName,
+ cover_text_color: 'auto',
+ cover_layout: null,
  card_experience: 'card_and_wall', // default: Group Card + Live Memory Wall
  });
+ const [selectedCoverField, setSelectedCoverField] = useState('recipient');
 
  // Creator's own first message (Step 3)
  const [msgForm, setMsgForm] = useState({ content: '', font_style: 'handwritten', is_private: false });
@@ -550,7 +556,8 @@ const CreateCard = () => {
  setForm({ occasion:'birthday', design_theme:'rose_love', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
  title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
  send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
- allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department' });
+ allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department',
+ cover_sender: creatorName === 'You' ? '' : creatorName, cover_text_color:'auto', cover_layout:null, card_experience:'card_and_wall' });
  };
 
  // ── LIVE screen ──────────────────────────────────────────────────────────
@@ -716,13 +723,20 @@ const CreateCard = () => {
  </div>
 
  {selectedDesign && (
- <div className={`card-art ${cardArtClass(selectedDesign)} celebration-shell rounded-2xl p-5 mb-5 text-center min-h-[160px] flex flex-col justify-center`}
- style={{ background:selectedDesign.background, color:selectedDesign.ink }}>
- <span className="text-3xl mb-2">{selectedDesign.icon}</span>
- <h3 className="text-xl" style={{ color:selectedDesign.ink, fontFamily:getFontStyle(form.font_style).family }}>
- {form.title || `A beautiful card for ${form.recipient_name || 'someone special'}`}
- </h3>
- </div>
+ <CoverTextStudio
+  design={selectedDesign}
+  occasionLabel={form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : getOccasionLabel(form.occasion)}
+  recipientName={form.recipient_name}
+  title={form.title}
+  senderName={form.cover_sender || creatorName}
+  coverColor={form.background_color}
+  textColor={form.cover_text_color === 'auto' ? undefined : form.cover_text_color}
+  fontFamily={getFontStyle(form.font_style).family}
+  layout={form.cover_layout}
+  onChange={(next) => set('cover_layout', next)}
+  selected={selectedCoverField}
+  onSelect={setSelectedCoverField}
+ />
  )}
 
  <div className="mb-5">
@@ -938,17 +952,19 @@ const CreateCard = () => {
  <p className="text-xs text-warm-500 mb-4">Choose how contributors participate in the celebration.</p>
  <div className="space-y-3">
  {[
- { id:'card_only', emoji:'', title:'Group Card Only',
+ { id:'card_only', emoji:'Mail', title:'Group Card Only',
  desc:'Contributors send messages, photos, videos, voice notes and gifts. Auto-generates a Memory Movie™ keepsake.' },
- { id:'wall_only', emoji:'', title:'Live Memory Wall™ Only',
+ { id:'wall_only', emoji:'Camera', title:'Live Memory Wall™ Only',
  desc:'Contributors upload photos and videos to a live timeline throughout the event. No traditional card.' },
- { id:'card_and_wall', emoji:'', title:'Group Card + Live Memory Wall™',
+ { id:'card_and_wall', emoji:'Sparkles', title:'Group Card + Live Memory Wall™',
  desc:'Best of both — heartfelt messages AND a live photo wall. Auto-generates one unforgettable Memory Movie™.', recommended: true },
  ].map(opt => (
  <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
  className={`w-full text-left rounded-xl p-4 border-2 transition-all ${form.card_experience === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
  <div className="flex items-start gap-3">
- <span className="text-xl mt-0.5">{opt.emoji}</span>
+ <span className={`mt-0.5 flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${form.card_experience === opt.id ? 'bg-primary-500 text-white' : 'bg-purple-50 text-primary-500'}`}>
+   <Icon name={opt.emoji} size={18} />
+ </span>
  <div className="flex-1 min-w-0">
  <div className="flex items-center gap-2 flex-wrap">
  <span className="font-bold text-warm-900 text-sm">{opt.title}</span>

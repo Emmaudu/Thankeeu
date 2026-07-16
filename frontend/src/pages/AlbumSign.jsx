@@ -19,6 +19,8 @@ import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, visitorsAPI, vendorAPI } from '../utils/api';
 import { FONT_STYLES, getFontStyle, getCardDesign } from '../utils/cardDesigns';
+import { CoverArtwork } from '../utils/coverArtwork.jsx';
+import { normalizeCoverLayout } from '../utils/coverLayout';
 import VoiceRecorder from '../components/VoiceRecorder';
 import EmojiPicker from '../components/EmojiPicker';
 import GifPicker from '../components/GifPicker';
@@ -60,19 +62,46 @@ const defaultPosition = i => ({
 
 // ─── CSS injected once ───────────────────────────────────────────────────────
 const ALBUM_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@700&family=Caveat:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@600;700&family=Caveat:wght@400;500;600;700&family=Kalam:wght@300;400;700&display=swap');
 @keyframes albumSpin { to { transform: rotate(360deg); } }
 @keyframes albumPop  { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
-@keyframes flipOut   { 0%{transform:perspective(1200px) rotateY(0deg)} 100%{transform:perspective(1200px) rotateY(-90deg)} }
-@keyframes flipIn    { 0%{transform:perspective(1200px) rotateY(90deg)} 100%{transform:perspective(1200px) rotateY(0deg)} }
-@keyframes flipOutB  { 0%{transform:perspective(1200px) rotateY(0deg)} 100%{transform:perspective(1200px) rotateY(90deg)} }
-@keyframes flipInB   { 0%{transform:perspective(1200px) rotateY(-90deg)} 100%{transform:perspective(1200px) rotateY(0deg)} }
-.album-flip-out  { animation: flipOut  0.22s ease-in  both; }
-.album-flip-in   { animation: flipIn   0.22s ease-out both; }
-.album-flip-outB { animation: flipOutB 0.22s ease-in  both; }
-.album-flip-inB  { animation: flipInB  0.22s ease-out both; }
-@media(max-width:768px){ .album-layout{ grid-template-columns:1fr !important; } }
-@media(max-width:520px){ .album-page{ width:100% !important; height:460px !important; max-width:96vw !important; } }
+@keyframes flipOut   { 0%{transform:perspective(1600px) rotateY(0deg);opacity:1} 100%{transform:perspective(1600px) rotateY(-88deg);opacity:0.35} }
+@keyframes flipIn    { 0%{transform:perspective(1600px) rotateY(88deg);opacity:0.35} 100%{transform:perspective(1600px) rotateY(0deg);opacity:1} }
+@keyframes flipOutB  { 0%{transform:perspective(1600px) rotateY(0deg);opacity:1} 100%{transform:perspective(1600px) rotateY(88deg);opacity:0.35} }
+@keyframes flipInB   { 0%{transform:perspective(1600px) rotateY(-88deg);opacity:0.35} 100%{transform:perspective(1600px) rotateY(0deg);opacity:1} }
+.album-flip-out  { animation: flipOut  0.34s cubic-bezier(.4,0,.2,1) both; transform-origin:left center; }
+.album-flip-in   { animation: flipIn   0.34s cubic-bezier(.4,0,.2,1) both; transform-origin:left center; }
+.album-flip-outB { animation: flipOutB 0.34s cubic-bezier(.4,0,.2,1) both; transform-origin:right center; }
+.album-flip-inB  { animation: flipInB  0.34s cubic-bezier(.4,0,.2,1) both; transform-origin:right center; }
+.album-page{ position:relative; }
+/* subtle inner shadow toward the spine to sell the "bound book" look */
+.album-page::before{
+  content:''; position:absolute; top:0; bottom:0; left:0; width:34px; pointer-events:none; z-index:6;
+  background:linear-gradient(90deg, rgba(0,0,0,0.14), rgba(0,0,0,0.04) 40%, transparent);
+  border-radius:14px 0 0 14px;
+}
+/* soft page-curl bottom-right corner */
+.album-page::after{
+  content:''; position:absolute; right:0; bottom:0; width:46px; height:46px; pointer-events:none; z-index:6;
+  background:linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.06) 50%, rgba(0,0,0,0.12));
+  border-radius:0 0 14px 0;
+}
+.album-inline-input{
+  width:100%; background:transparent; border:none; outline:none; resize:none;
+  font-family:inherit; color:inherit; line-height:inherit; letter-spacing:inherit;
+}
+.album-inline-input::placeholder{ color:currentColor; opacity:0.35; }
+.album-edit-chip{
+  position:absolute; top:10px; right:12px; z-index:8; display:inline-flex; align-items:center; gap:5px;
+  background:rgba(124,58,237,0.95); color:#fff; border:none; border-radius:999px;
+  padding:5px 11px; font-size:11px; font-weight:800; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif;
+  box-shadow:0 4px 14px rgba(124,58,237,0.4); backdrop-filter:blur(4px);
+}
+@media(max-width:900px){ .album-layout{ grid-template-columns:1fr !important; } }
+@media(max-width:560px){
+  .album-page{ width:100% !important; max-width:94vw !important; height:auto !important; min-height:520px !important; aspect-ratio:5/6; }
+  .album-page::before{ width:22px; }
+}
 `;
 
 // ─── Cover Page ──────────────────────────────────────────────────────────────
@@ -88,43 +117,30 @@ const CoverPage = ({ card, design, flipClass }) => {
   const occ = card.occasion || 'birthday';
   const emoji = occasions[occ] || '🎉';
   const cardTitle = card.title || `${card.recipient_name}'s Card`;
+  const coverArt = design?.artwork;
+  const CL = normalizeCoverLayout(card.cover_layout);
+  const clColor = (field, fallback) => {
+    const c = CL[field]?.color;
+    return !c || c === 'auto' ? fallback : c;
+  };
 
   return (
     <div className={`album-page ${flipClass}`} style={{
-      position:'relative', width:500, maxWidth:'90vw', height:600,
-      borderRadius:20, overflow:'hidden',
+      position:'relative', width:500, maxWidth:'92vw', height:600,
+      borderRadius:14, overflow:'hidden',
       background: design?.background || 'linear-gradient(145deg,#F5F0FF,#EDE9FE)',
-      boxShadow:'0 16px 64px rgba(0,0,0,0.22), 0 2px 0 rgba(255,255,255,0.6) inset',
-      border:`1.5px solid ${design?.accent || '#C4B5FD'}44`,
+      boxShadow:'0 22px 74px rgba(0,0,0,0.26), 0 2px 0 rgba(255,255,255,0.6) inset',
+      border:`1px solid ${design?.accent || '#C4B5FD'}44`,
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
       userSelect:'none',
     }}>
-      {/* Decorative SVG confetti */}
-      <svg style={{position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none',opacity:0.35}} viewBox="0 0 500 600">
-        {[
-          {cx:60,cy:80,r:18,fill:'#FBBF24'},{cx:440,cy:60,r:12,fill:'#EC4899'},
-          {cx:30,cy:200,r:8,fill:'#8B5CF6'},{cx:470,cy:180,r:14,fill:'#10B981'},
-          {cx:80,cy:520,r:10,fill:'#3B82F6'},{cx:420,cy:540,r:16,fill:'#F59E0B'},
-          {cx:250,cy:30,r:6,fill:'#EF4444'},{cx:200,cy:580,r:8,fill:'#8B5CF6'},
-          {cx:340,cy:120,r:5,fill:'#10B981'},{cx:150,cy:470,r:6,fill:'#EC4899'},
-        ].map((c,i)=>(
-          <circle key={i} cx={c.cx} cy={c.cy} r={c.r} fill={c.fill} opacity={0.7}/>
-        ))}
-        {/* Streamers */}
-        {[
-          {x1:0,y1:0,x2:120,y2:100,color:'#FBBF24'},
-          {x1:500,y1:0,x2:380,y2:120,color:'#EC4899'},
-          {x1:0,y1:600,x2:100,y2:480,color:'#8B5CF6'},
-          {x1:500,y1:600,x2:400,y2:500,color:'#3B82F6'},
-        ].map((l,i)=>(
-          <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2}
-            stroke={l.color} strokeWidth="2.5" strokeDasharray="6 4" opacity={0.6}/>
-        ))}
-        {/* Stars */}
-        {[[70,300],[430,350],[250,550],[100,420],[390,430]].map(([x,y],i)=>(
-          <text key={i} x={x} y={y} fontSize={i%2===0?18:12} textAnchor="middle" fill={TAPE_COLORS[i%TAPE_COLORS.length]} opacity={0.6}>★</text>
-        ))}
-      </svg>
+      {/* SVG artwork backdrop for artwork designs */}
+      {coverArt && (
+        <div style={{position:'absolute',inset:0,zIndex:0}}>
+          <CoverArtwork scene={coverArt.scene} palette={coverArt.palette} seed={coverArt.seed} style={{width:'100%',height:'100%'}}/>
+          <div style={{position:'absolute',inset:0,background:design.dark?'linear-gradient(180deg,rgba(8,6,20,0.28),rgba(8,6,20,0.1))':'linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0.05))'}}/>
+        </div>
+      )}
 
       {/* Top ribbon accent */}
       <div style={{position:'absolute',top:0,left:0,right:0,height:8,
@@ -137,34 +153,51 @@ const CoverPage = ({ card, design, flipClass }) => {
         <div style={{fontSize:72,marginBottom:16,lineHeight:1,filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.15))'}}>{emoji}</div>
 
         {/* Card title */}
+        {CL.title.show && (
         <h1 style={{
           fontFamily:"'Great Vibes', cursive",
           fontSize:'clamp(2.2rem,8vw,3.4rem)',
-          color: isDark ? '#fff' : (design?.ink || '#1A1035'),
+          color: clColor('title', isDark ? '#fff' : (design?.ink || '#1A1035')),
           margin:'0 0 10px', lineHeight:1.15,
-          textShadow: isDark ? '0 2px 20px rgba(0,0,0,0.5)' : '0 2px 12px rgba(0,0,0,0.08)',
+          textShadow: isDark ? '0 2px 20px rgba(0,0,0,0.5)' : '0 2px 12px rgba(0,0,0,0.15)',
         }}>
           {cardTitle}
         </h1>
+        )}
 
         {/* Divider */}
         <div style={{width:80,height:3,background:`linear-gradient(90deg,transparent,${design?.accent||'#7C3AED'},transparent)`,margin:'0 auto 16px',borderRadius:2}}/>
 
         {/* Recipient name */}
+        {CL.recipient.show && (
         <p style={{
           fontFamily:"'Dancing Script', cursive",
           fontSize:'clamp(1.3rem,4vw,1.8rem)',
-          color: isDark ? 'rgba(255,255,255,0.85)' : (design?.accent || '#7C3AED'),
+          color: clColor('recipient', isDark ? 'rgba(255,255,255,0.9)' : (design?.accent || '#7C3AED')),
           margin:'0 0 8px', fontWeight:700,
+          textShadow: coverArt ? (isDark?'0 1px 8px rgba(0,0,0,0.4)':'0 1px 6px rgba(255,255,255,0.5)') : 'none',
         }}>
           For {card.recipient_name}
         </p>
+        )}
+
+        {/* Sender line */}
+        {card.cover_sender && CL.sender.show && (
+        <p style={{
+          fontFamily:"'Caveat', cursive",
+          fontSize:15, fontWeight:600,
+          color: clColor('sender', isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)'),
+          margin:'0 0 6px',
+        }}>
+          From {card.cover_sender}
+        </p>
+        )}
 
         {/* Occasion label */}
         <p style={{
           fontFamily:"'Caveat', cursive",
           fontSize:16,
-          color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)',
+          color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.45)',
           margin:0, letterSpacing:1,
         }}>
           {occ.replace(/_/g,' ')} card
@@ -238,114 +271,158 @@ const LegacySticker = ({ msg, globalIdx, isOwn, theme, onDragStart }) => {
   );
 };
 
-// ─── New-style signer page ───────────────────────────────────────────────────
-const NewSignerPage = ({ msg, theme, isOwn, flipClass }) => {
+// ─── Spiral binding (rendered once at the book's left edge) ───────────────────
+const SpiralBinding = ({ dark }) => (
+  <div style={{ position:'absolute', left:-9, top:26, bottom:26, width:20, zIndex:20, display:'flex', flexDirection:'column', justifyContent:'space-between', pointerEvents:'none' }}>
+    {[...Array(13)].map((_,i)=>(
+      <div key={i} style={{ position:'relative', height:10 }}>
+        <div style={{ position:'absolute', left:0, width:20, height:4, borderRadius:4,
+          background:dark?'linear-gradient(90deg,#6b7280,#9ca3af,#4b5563)':'linear-gradient(90deg,#c7ccd6,#eef1f6,#aab0bd)',
+          boxShadow:'0 1px 2px rgba(0,0,0,0.28)' }}/>
+        <div style={{ position:'absolute', left:15, top:-2, width:8, height:8, borderRadius:'50%',
+          background:dark?'#1f2937':'#e7e2f0', boxShadow:'inset 0 1px 2px rgba(0,0,0,0.4)' }}/>
+      </div>
+    ))}
+  </div>
+);
+
+// ─── New-style signer page (notebook leaf) ───────────────────────────────────
+// When `editing` is true the content + author become inline inputs so a signer
+// can type directly on the page (notebook-style) and the creator can edit any page.
+const NewSignerPage = ({
+  msg, theme, isOwn, flipClass, canEdit, editing,
+  draft, onDraftChange, onStartEdit, onSaveEdit, onCancelEdit, saving,
+}) => {
   const isDark = theme?.id === 'charcoal';
-  const ink    = isDark ? '#E9D5FF' : '#1A1035';
-  const sub    = isDark ? '#A78BFA' : '#6B7280';
+  const ink    = isDark ? '#F3E8FF' : '#2a2140';
+  const sub    = isDark ? '#A78BFA' : '#8b8299';
   const accentC= theme?.accent || '#7C3AED';
-  const fStyle = getFontStyle(msg?.font_style);
+  const paper  = theme?.bg || '#FFFDF8';
+  const rule   = isDark ? 'rgba(167,139,250,0.16)' : 'rgba(120,90,200,0.14)';
+  const fStyle = getFontStyle(editing ? (draft?.font_style || msg?.font_style) : msg?.font_style);
+  const content = editing ? (draft?.content ?? '') : (msg?.content ?? '');
+  const author  = editing ? (draft?.author_name ?? '') : (msg?.author_name ?? '');
+  const fontColor = editing ? (draft?.font_color || msg?.font_color || ink) : (msg?.font_color || ink);
 
   return (
     <div className={`album-page ${flipClass}`} style={{
-      position:'relative',width:500,maxWidth:'90vw',height:600,
-      background:theme?.bg||'#F5F3FF',
-      backgroundImage:`repeating-linear-gradient(0deg,transparent,transparent 30px,${theme?.lines||'rgba(150,120,220,0.13)'} 30px,${theme?.lines||'rgba(150,120,220,0.13)'} 31px)`,
-      borderRadius:20,
-      border:`1.5px solid ${isDark?'rgba(255,255,255,0.1)':accentC+'30'}`,
-      boxShadow:isDark?'0 12px 60px rgba(0,0,0,0.4)':'0 8px 48px rgba(0,0,0,0.10)',
-      overflow:'hidden',display:'flex',flexDirection:'column',
+      position:'relative', width:500, maxWidth:'92vw', height:600,
+      background:paper,
+      // ruled notebook lines + a margin rule near the spine
+      backgroundImage:`repeating-linear-gradient(0deg, transparent, transparent 33px, ${rule} 33px, ${rule} 34px)`,
+      backgroundPosition:'0 78px',
+      borderRadius:14,
+      border:`1px solid ${isDark?'rgba(255,255,255,0.08)':'rgba(120,90,200,0.16)'}`,
+      boxShadow:isDark
+        ? '0 22px 70px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04)'
+        : '0 22px 70px rgba(76,29,149,0.16), inset 0 1px 0 rgba(255,255,255,0.7)',
+      overflow:'hidden', display:'flex', flexDirection:'column',
       transition:'background 0.4s,border-color 0.4s',
     }}>
-      {/* Top accent stripe */}
-      <div style={{height:6,background:`linear-gradient(90deg,${accentC}55,${accentC}22,${accentC}55)`,flexShrink:0,borderRadius:'20px 20px 0 0'}}/>
+      {/* red margin rule like a real notebook */}
+      <div style={{ position:'absolute', left:52, top:0, bottom:0, width:1.5, background:isDark?'rgba(248,113,113,0.28)':'rgba(230,90,110,0.4)', zIndex:1 }}/>
 
-      {/* Photo area */}
-      <div style={{margin:'18px 24px 0',height:190,borderRadius:14,overflow:'hidden',flexShrink:0,
-        background:isDark?'rgba(255,255,255,0.06)':accentC+'11',
-        border:`1.5px dashed ${msg?.media_url?'transparent':accentC+'44'}`,
-        display:'flex',alignItems:'center',justifyContent:'center',position:'relative'}}>
-        {msg?.media_url&&(msg.media_type==='image'||msg.media_type==='gif') ? (
-          <img src={msg.media_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-        ) : msg?.media_url&&msg.media_type==='video' ? (
-          <video src={msg.media_url} style={{width:'100%',height:'100%',objectFit:'cover'}} controls/>
-        ) : (
-          <div style={{textAlign:'center',opacity:0.4}}>
-            <div style={{fontSize:36,marginBottom:6}}>📷</div>
-            <p style={{fontFamily:"'Caveat',cursive",fontSize:14,color:sub,margin:0}}>photo / GIF here</p>
-          </div>
-        )}
-        {/* Polaroid border overlay when photo exists */}
-        {msg?.media_url && (
-          <div style={{position:'absolute',inset:0,border:`4px solid ${isDark?'rgba(255,255,255,0.12)':'rgba(255,255,255,0.6)'}`,borderRadius:14,pointerEvents:'none'}}/>
-        )}
+      {/* Header band */}
+      <div style={{ padding:'16px 24px 10px 60px', flexShrink:0, position:'relative', zIndex:2 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ width:9, height:9, borderRadius:'50%', background:accentC, opacity:0.7 }}/>
+          <span style={{ fontFamily:"'Kalam',cursive", fontSize:13, color:sub, fontWeight:700 }}>
+            {msg?.created_at ? new Date(msg.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : 'A note for you'}
+          </span>
+        </div>
       </div>
 
-      {/* Message content area */}
-      <div style={{flex:1,margin:'14px 24px 0',display:'flex',flexDirection:'column'}}>
-        {msg?.content ? (
+      {/* Photo (kept if present) */}
+      {msg?.media_url && (msg.media_type==='image'||msg.media_type==='gif'||msg.media_type==='video') && (
+        <div style={{ margin:'0 24px 8px 60px', borderRadius:10, overflow:'hidden', flexShrink:0,
+          boxShadow:'0 6px 18px rgba(0,0,0,0.16)', transform:'rotate(-1.2deg)', border:'5px solid #fff' }}>
+          {msg.media_type==='video'
+            ? <video src={msg.media_url} style={{ width:'100%', maxHeight:200, objectFit:'cover', display:'block' }} controls/>
+            : <img src={msg.media_url} alt="" style={{ width:'100%', maxHeight:200, objectFit:'cover', display:'block' }}/>}
+        </div>
+      )}
+
+      {/* Message body — inline editable */}
+      <div style={{ flex:1, margin:'6px 24px 0 60px', display:'flex', flexDirection:'column', minHeight:0, position:'relative', zIndex:2 }}>
+        {editing ? (
+          <textarea
+            className="album-inline-input"
+            autoFocus
+            value={content}
+            onChange={e=>onDraftChange({ content:e.target.value })}
+            placeholder="Write your message right here…"
+            style={{
+              fontFamily:fStyle?.family||"'Caveat',cursive",
+              fontSize:22, color:fontColor, lineHeight:'34px', flex:1, minHeight:180,
+              paddingTop:2,
+            }}
+          />
+        ) : content ? (
           <p style={{
             fontFamily:fStyle?.family||"'Caveat',cursive",
-            fontSize:Math.min(22,Math.max(13,22-Math.floor((msg.content.length||0)/40))),
-            color:msg.font_color||ink, lineHeight:1.5,
-            margin:0, wordBreak:'break-word',
-            flex:1, overflow:'hidden',
+            fontSize:Math.min(24,Math.max(15,24-Math.floor((content.length||0)/48))),
+            color:fontColor, lineHeight:'34px', margin:0, wordBreak:'break-word',
+            flex:1, overflow:'hidden', whiteSpace:'pre-wrap',
           }}>
-            {msg.content}
+            {content}
           </p>
         ) : (
-          <div style={{flex:1,display:'flex',flexDirection:'column',gap:8,justifyContent:'center'}}>
-            {[65,80,50].map((w,i)=>(
-              <div key={i} style={{height:14,borderRadius:4,background:isDark?'rgba(255,255,255,0.08)':accentC+'18',width:`${w}%`}}/>
-            ))}
-            <p style={{fontFamily:"'Caveat',cursive",fontSize:14,color:sub,marginTop:4,opacity:0.5}}>message goes here…</p>
+          <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'flex-start' }}>
+            <p style={{ fontFamily:"'Caveat',cursive", fontSize:20, color:sub, opacity:0.55, margin:0 }}>
+              This page is waiting for a message…
+            </p>
           </div>
         )}
       </div>
 
-      {/* Author + gift footer */}
-      <div style={{margin:'10px 24px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0}}>
-        {msg?.author_name ? (
-          <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <div style={{width:32,height:32,borderRadius:'50%',background:accentC,color:'#fff',fontSize:11,fontWeight:800,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-              {msg.author_name.slice(0,2).toUpperCase()}
-            </div>
-            <div>
-              <p style={{fontFamily:"'Dancing Script',cursive",fontWeight:700,fontSize:15,color:isDark?'#E9D5FF':ink,margin:0}}>
-                {msg.author_name}
-              </p>
-              {msg.created_at && (
-                <p style={{fontSize:10,color:sub,margin:'1px 0 0'}}>
-                  {new Date(msg.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}
-                </p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <div style={{width:32,height:32,borderRadius:'50%',background:isDark?'rgba(255,255,255,0.1)':accentC+'22',border:`1.5px dashed ${accentC}55`}}/>
-            <div>
-              <div style={{width:70,height:12,borderRadius:3,background:isDark?'rgba(255,255,255,0.08)':accentC+'18',marginBottom:4}}/>
-              <div style={{width:45,height:9,borderRadius:3,background:isDark?'rgba(255,255,255,0.05)':accentC+'12'}}/>
-            </div>
-          </div>
-        )}
-
-        {/* Gift badge */}
-        {msg?.contributed_amount>0 ? (
-          <div style={{display:'flex',alignItems:'center',gap:4,background:'#FEF3C7',border:'1.5px solid #FDE68A',borderRadius:20,padding:'4px 10px'}}>
-            <span style={{fontSize:14}}>🎁</span>
-            <span style={{fontSize:11,fontWeight:800,color:'#92400E'}}>{formatNGN(msg.contributed_amount)}</span>
-          </div>
-        ) : msg ? null : (
-          <div style={{width:60,height:26,borderRadius:20,background:isDark?'rgba(255,255,255,0.06)':'#FEF3C7',border:`1.5px dashed ${isDark?'rgba(255,255,255,0.15)':'#FDE68A'}`,opacity:0.5,display:'flex',alignItems:'center',justifyContent:'center'}}>
-            <span style={{fontSize:12}}>🎁</span>
+      {/* Signature footer */}
+      <div style={{ margin:'8px 24px 20px 60px', flexShrink:0, position:'relative', zIndex:2, borderTop:`1px dashed ${accentC}33`, paddingTop:12, display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:12 }}>
+        <div style={{ flex:1, minWidth:0 }}>
+          <span style={{ fontFamily:"'Kalam',cursive", fontSize:12, color:sub }}>with love,</span>
+          {editing ? (
+            <input
+              className="album-inline-input"
+              value={author}
+              onChange={e=>onDraftChange({ author_name:e.target.value })}
+              placeholder="your name"
+              style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:24, color:accentC, marginTop:2 }}
+            />
+          ) : (
+            <p style={{ fontFamily:"'Dancing Script',cursive", fontWeight:700, fontSize:24, color:accentC, margin:'2px 0 0', wordBreak:'break-word' }}>
+              {author || '—'}
+            </p>
+          )}
+        </div>
+        {msg?.contributed_amount>0 && (
+          <div style={{ display:'flex', alignItems:'center', gap:5, background:'#FEF3C7', border:'1.5px solid #FDE68A', borderRadius:20, padding:'5px 11px', flexShrink:0 }}>
+            <span style={{ fontSize:14 }}>🎁</span>
+            <span style={{ fontSize:11, fontWeight:800, color:'#92400E' }}>{formatNGN(msg.contributed_amount)}</span>
           </div>
         )}
       </div>
 
-      {/* Page colour bar bottom */}
-      <div style={{height:5,background:`linear-gradient(90deg,${accentC}55,${accentC}22,${accentC}55)`,flexShrink:0,borderRadius:'0 0 20px 20px'}}/>
+      {/* Editing controls */}
+      {editing ? (
+        <div style={{ position:'absolute', top:10, right:12, zIndex:9, display:'flex', gap:6 }}>
+          <button onClick={onCancelEdit} disabled={saving}
+            style={{ background:'#fff', color:'#6B7280', border:'1px solid #E5E7EB', borderRadius:999, padding:'5px 12px', fontSize:11, fontWeight:800, cursor:'pointer', fontFamily:'Plus Jakarta Sans,sans-serif' }}>
+            Cancel
+          </button>
+          <button onClick={onSaveEdit} disabled={saving}
+            style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', border:'none', borderRadius:999, padding:'5px 14px', fontSize:11, fontWeight:800, cursor:'pointer', fontFamily:'Plus Jakarta Sans,sans-serif', display:'inline-flex', alignItems:'center', gap:5 }}>
+            {saving ? 'Saving…' : <><Icon name="Check" size={12} style={{color:'#fff'}}/> Save</>}
+          </button>
+        </div>
+      ) : canEdit && msg ? (
+        <button className="album-edit-chip" onClick={onStartEdit}>
+          <Icon name="PenLine" size={12} style={{color:'#fff'}}/> {isOwn ? 'Edit my note' : 'Edit'}
+        </button>
+      ) : null}
+
+      {/* page number */}
+      <div style={{ position:'absolute', bottom:10, right:18, fontFamily:"'Caveat',cursive", fontSize:14, color:accentC, opacity:0.4, zIndex:2 }}>
+        {msg?._pageLabel || ''}
+      </div>
     </div>
   );
 };
@@ -414,6 +491,13 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const [productSubmitting, setProductSubmitting] = useState(false);
   const [productImgIdx,  setProductImgIdx]  = useState(0);
   const [allSignersOpen, setAllSignersOpen] = useState(true);
+
+  // ── Inline page editing (notebook direct typing) ──────────────────────────
+  const [editingMsgId, setEditingMsgId] = useState(null);
+  const [editDraft, setEditDraft] = useState(null); // {content, author_name, font_style, font_color}
+  const [savingEdit, setSavingEdit] = useState(false);
+  // Direct-on-page compose for the blank leaf
+  const [inlineCompose, setInlineCompose] = useState(false);
 
   const signedInName  = user?.full_name||(member?`${member.first_name} ${member.last_name}`.trim():null)||company?.contact_person||'';
   const signedInEmail = user?.email||member?.email||company?.email||'';
@@ -542,6 +626,55 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     }
     dragging.current=null;
   },[card,form.author_email]);
+
+  // ─ Inline edit handlers ─
+  const canEditMsg = useCallback((m) => {
+    if (!m) return false;
+    if (card?.isCreator) return true;              // creator edits all pages
+    if (myMsgIds.includes(m.id)) return true;      // signer edits own page (this session)
+    // author email match (returning signer)
+    if (form.author_email && m.author_email &&
+        form.author_email.toLowerCase().trim() === m.author_email.toLowerCase().trim()) return true;
+    return false;
+  }, [card?.isCreator, myMsgIds, form.author_email]);
+
+  const startEdit = useCallback((m) => {
+    if (!m) return;
+    setEditingMsgId(m.id);
+    setEditDraft({
+      content: m.content || '',
+      author_name: m.author_name || '',
+      font_style: m.font_style || 'handwritten',
+      font_color: m.font_color || null,
+    });
+  }, []);
+
+  const cancelEdit = useCallback(() => { setEditingMsgId(null); setEditDraft(null); }, []);
+
+  const saveEdit = useCallback(async () => {
+    if (!editingMsgId || !editDraft) return;
+    if (!editDraft.content.trim()) return toast.error('Message cannot be empty');
+    setSavingEdit(true);
+    try {
+      await messagesAPI.updateMessage(editingMsgId, {
+        content: editDraft.content.trim(),
+        author_name: editDraft.author_name?.trim() || undefined,
+        font_style: editDraft.font_style,
+        ...(editDraft.font_color ? { font_color: editDraft.font_color } : {}),
+        author_email: form.author_email || undefined,
+      });
+      // optimistic local update
+      setCard(prev => ({
+        ...prev,
+        messages: (prev.messages || []).map(m =>
+          m.id === editingMsgId ? { ...m, content: editDraft.content.trim(), author_name: editDraft.author_name?.trim() || m.author_name, font_style: editDraft.font_style, font_color: editDraft.font_color || m.font_color } : m),
+      }));
+      toast.success('Saved ✓');
+      setEditingMsgId(null); setEditDraft(null);
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not save your edits');
+    } finally { setSavingEdit(false); }
+  }, [editingMsgId, editDraft, form.author_email]);
 
   // ─ Media ─
   const addMedia = useCallback((files)=>{
@@ -800,31 +933,92 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                   ? <CoverPage card={card} design={design} flipClass={flipClass}/>
                   : pageDef?.type==='legacy'
                     ? <LegacyAlbumPage pageRef={pageRef} pageNum={pageDef.pageNum} messages={pageDef.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass={flipClass} onDragStart={startDrag}/>
-                    : <NewSignerPage msg={pageDef?.msg||null} theme={currentTheme} isOwn={pageDef?.msg&&myMsgIds.includes(pageDef.msg.id)} flipClass={flipClass}/>
+                    : <NewSignerPage
+                        msg={pageDef?.msg||null}
+                        theme={currentTheme}
+                        isOwn={pageDef?.msg&&myMsgIds.includes(pageDef.msg.id)}
+                        flipClass={flipClass}
+                        canEdit={canEditMsg(pageDef?.msg)}
+                        editing={!!pageDef?.msg && editingMsgId===pageDef.msg.id}
+                        draft={editDraft}
+                        saving={savingEdit}
+                        onDraftChange={(patch)=>setEditDraft(d=>({...d,...patch}))}
+                        onStartEdit={()=>startEdit(pageDef?.msg)}
+                        onSaveEdit={saveEdit}
+                        onCancelEdit={cancelEdit}
+                      />
                 }
                 {!showingCover && pageDef?.type === 'blank' && (
                   <div style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none'}}>
-                    <div style={{position:'absolute',top:24,left:24,right:24,height:190,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,pointerEvents:'auto'}}>
-                      <button type="button" onClick={()=>openEditorFor('media')} style={{border:'2px dashed rgba(124,58,237,0.45)',background:'rgba(255,255,255,0.72)',borderRadius:14,fontWeight:800,color:accentC,cursor:'pointer'}}>
-                        Add photos or videos
-                      </button>
-                      <button type="button" onClick={()=>openEditorFor('gif')} style={{border:'2px dashed rgba(124,58,237,0.45)',background:'rgba(255,255,255,0.72)',borderRadius:14,fontWeight:800,color:accentC,cursor:'pointer'}}>
-                        Add GIF
-                      </button>
-                    </div>
-                    <button type="button" onClick={()=>openEditorFor('message')} style={{position:'absolute',top:232,left:24,right:24,bottom:78,pointerEvents:'auto',border:'2px dashed rgba(124,58,237,0.32)',background:'rgba(255,255,255,0.5)',borderRadius:14,fontWeight:800,color:accentC,cursor:'pointer'}}>
-                      Write a message
-                    </button>
-                    <div style={{position:'absolute',left:24,right:24,bottom:18,display:'flex',justifyContent:'space-between',gap:10,pointerEvents:'auto'}}>
-                      <button type="button" onClick={()=>openEditorFor('voice')} style={{flex:1,border:'2px dashed rgba(124,58,237,0.35)',background:'rgba(255,255,255,0.72)',borderRadius:999,padding:'9px 12px',fontWeight:800,color:accentC,cursor:'pointer'}}>
-                        Add voice note
-                      </button>
-                      {card.is_gift_enabled && (
-                        <button type="button" onClick={()=>openEditorFor('gift')} style={{flex:1,border:'2px dashed rgba(245,158,11,0.65)',background:'rgba(254,243,199,0.86)',borderRadius:999,padding:'9px 12px',fontWeight:800,color:'#92400E',cursor:'pointer'}}>
-                          Add gift
+                    {inlineCompose ? (
+                      /* Direct-on-page notebook compose */
+                      <div style={{position:'absolute',inset:0,pointerEvents:'auto',display:'flex',flexDirection:'column',padding:'22px 24px 20px 60px'}}>
+                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+                          <span style={{width:9,height:9,borderRadius:'50%',background:accentC,opacity:0.7}}/>
+                          <span style={{fontFamily:"'Kalam',cursive",fontSize:13,color:accentC,fontWeight:700}}>Your page — write freely</span>
+                        </div>
+                        <textarea
+                          ref={textareaRef}
+                          autoFocus
+                          className="album-inline-input"
+                          value={form.content}
+                          onChange={e=>setForm(p=>({...p,content:e.target.value}))}
+                          placeholder="Dear friend…"
+                          style={{flex:1,fontFamily:getFontStyle(form.font_style).family,fontSize:22,color:form.font_color,lineHeight:'34px',minHeight:150}}
+                        />
+                        <div style={{borderTop:`1px dashed ${accentC}33`,paddingTop:10,marginTop:6}}>
+                          <span style={{fontFamily:"'Kalam',cursive",fontSize:12,color:accentC,opacity:0.7}}>with love,</span>
+                          <input
+                            className="album-inline-input"
+                            value={form.author_name}
+                            onChange={e=>setForm(p=>({...p,author_name:e.target.value}))}
+                            placeholder="your name"
+                            style={{fontFamily:"'Dancing Script',cursive",fontWeight:700,fontSize:24,color:accentC,marginTop:2}}
+                          />
+                        </div>
+                        <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
+                          <button type="button" onClick={handleSubmit} disabled={submitting}
+                            style={{flex:'1 1 auto',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',border:'none',borderRadius:12,padding:'11px 16px',fontWeight:800,fontSize:14,cursor:'pointer',boxShadow:'0 4px 16px rgba(124,58,237,0.35)'}}>
+                            {submitting ? 'Signing…' : (card.is_gift_enabled ? 'Sign & add gift →' : 'Add to card ✓')}
+                          </button>
+                          <button type="button" onClick={()=>fileInputRef.current?.click()} title="Add photo"
+                            style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontSize:17}}>🖼️</button>
+                          <button type="button" onClick={()=>setShowGif(s=>!s)} title="Add GIF"
+                            style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontWeight:800,fontSize:11,color:accentC}}>GIF</button>
+                          <button type="button" onClick={()=>setInlineCompose(false)}
+                            style={{width:44,height:44,borderRadius:12,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',color:'#9CA3AF'}}>✕</button>
+                        </div>
+                        {mediaFiles.length>0 && (
+                          <p style={{fontSize:11,color:accentC,fontWeight:700,marginTop:8}}>{mediaFiles.length} attachment{mediaFiles.length>1?'s':''} ready ✓</p>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <button type="button" onClick={()=>setInlineCompose(true)}
+                          style={{position:'absolute',top:24,left:60,right:24,bottom:150,pointerEvents:'auto',border:'2px dashed rgba(124,58,237,0.32)',background:'rgba(255,255,255,0.35)',borderRadius:14,fontWeight:800,fontSize:16,color:accentC,cursor:'text',fontFamily:"'Caveat',cursive",display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8}}>
+                          <Icon name="PenLine" size={26}/>
+                          <span style={{fontSize:20}}>Tap to write your message right here</span>
                         </button>
-                      )}
-                    </div>
+                        <div style={{position:'absolute',left:60,right:24,bottom:64,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,pointerEvents:'auto'}}>
+                          <button type="button" onClick={()=>openEditorFor('media')} style={{border:'2px dashed rgba(124,58,237,0.45)',background:'rgba(255,255,255,0.72)',borderRadius:12,padding:'9px',fontWeight:800,color:accentC,cursor:'pointer'}}>
+                            Add photo / video
+                          </button>
+                          <button type="button" onClick={()=>openEditorFor('gif')} style={{border:'2px dashed rgba(124,58,237,0.45)',background:'rgba(255,255,255,0.72)',borderRadius:12,padding:'9px',fontWeight:800,color:accentC,cursor:'pointer'}}>
+                            Add GIF
+                          </button>
+                        </div>
+                        <div style={{position:'absolute',left:60,right:24,bottom:18,display:'flex',justifyContent:'space-between',gap:10,pointerEvents:'auto'}}>
+                          <button type="button" onClick={()=>openEditorFor('voice')} style={{flex:1,border:'2px dashed rgba(124,58,237,0.35)',background:'rgba(255,255,255,0.72)',borderRadius:999,padding:'9px 12px',fontWeight:800,color:accentC,cursor:'pointer'}}>
+                            Add voice note
+                          </button>
+                          {card.is_gift_enabled && (
+                            <button type="button" onClick={()=>openEditorFor('gift')} style={{flex:1,border:'2px dashed rgba(245,158,11,0.65)',background:'rgba(254,243,199,0.86)',borderRadius:999,padding:'9px 12px',fontWeight:800,color:'#92400E',cursor:'pointer'}}>
+                              Add gift
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

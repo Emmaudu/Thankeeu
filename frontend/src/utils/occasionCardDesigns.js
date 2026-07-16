@@ -1,3 +1,5 @@
+import { buildOccasionArtCovers } from './coverArtwork.jsx';
+
 const OCCASION_BLUEPRINTS = [
   { id: 'birthday', label: 'Birthday', icon: 'Cake', title: 'Happy Birthday', subtitle: 'A brilliant year starts here' },
   { id: 'valentine', label: "Valentine's", icon: 'Heart', title: 'With All My Love', subtitle: 'For my favourite person' },
@@ -56,8 +58,11 @@ export const OCCASION_FILTERS = [
   ...OCCASION_BLUEPRINTS.map(({ id, label, icon }) => ({ id, label, icon })),
 ];
 
-export const OCCASION_CARD_DESIGNS = OCCASION_BLUEPRINTS.flatMap((occasion, occasionIndex) =>
-  VISUAL_STYLES.map((visual, visualIndex) => ({
+export const OCCASION_CARD_DESIGNS = OCCASION_BLUEPRINTS.flatMap((occasion, occasionIndex) => [
+  // 10 senior-designer SVG artwork covers first (the "wow" A4 covers)
+  ...buildOccasionArtCovers(occasion.id, occasion),
+  // then the original gradient visual variants
+  ...VISUAL_STYLES.map((visual, visualIndex) => ({
     id: `${occasion.id}-${visual.key}`,
     occasion: occasion.id,
     name: `${occasion.label} ${visual.name}`,
@@ -72,8 +77,15 @@ export const OCCASION_CARD_DESIGNS = OCCASION_BLUEPRINTS.flatMap((occasion, occa
     dark: visual.dark,
     palette: visual.palette,
     badge: visualIndex === 0 ? (occasionIndex % 2 ? 'New' : 'Popular') : null,
-  }))
-);
+  })),
+]);
+
+// Also build art covers for the "leaving" occasion (not in blueprints above but
+// used as its own filter/occasion across the app).
+export const LEAVING_ART_COVERS = buildOccasionArtCovers('leaving', {
+  id: 'leaving', label: 'Leaving', icon: 'Briefcase',
+  title: 'Farewell & Thank You', subtitle: 'For everything you gave us',
+});
 
 export const getOccasionLabel = occasionId =>
   OCCASION_FILTERS.find(occasion => occasion.id === occasionId)?.label || 'Special occasion';

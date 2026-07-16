@@ -219,6 +219,9 @@ export const messagesAPI = {
   }),
   react:          (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
   updatePosition: (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data),
+  // Inline content/style edit (notebook direct typing). Same endpoint as position;
+  // author proves identity via author_email, card owner via JWT.
+  updateMessage:  (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data),
   delete: (messageId)       => api.delete(`/messages/${messageId}`),
   // reply is authenticated — uses smart axios so both users and members can reply
   reply:  (cardSlug, data)  => smartAxios.post(`/messages/${cardSlug}/reply`, data),

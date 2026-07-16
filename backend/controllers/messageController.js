@@ -395,25 +395,33 @@ const sendReply = async (req, res) => {
 const updatePosition = async (req, res) => {
   try {
     const { message_id } = req.params;
-    const { position_x, position_y, rotation, font_color, font_size, page_number, author_email } = req.body;
+    const {
+      position_x, position_y, rotation, font_color, font_size, page_number, author_email,
+      content, is_private, font_style,
+    } = req.body;
 
-    // Authorization: original author (email match) OR authenticated card creator
+    // Authorization: original author (email match) OR authenticated card creator/member
     const { data: msg } = await supabase
       .from('messages').select('id, card_id, author_email').eq('id', message_id).maybeSingle();
     if (!msg) return res.status(404).json({ error: 'Message not found' });
 
     let authorized = false;
-    // 1. Authenticated card creator
-    if (req.user) {
-      const { data: card } = await supabase.from('cards').select('creator_id').eq('id', msg.card_id).maybeSingle();
-      if (card?.creator_id === req.user.id) authorized = true;
+    let isCardOwner = false;
+    // 1. Authenticated card creator (user) or company/member who owns the card
+    if (req.user || req.member) {
+      const { data: card } = await supabase.from('cards')
+        .select('creator_id, created_by_member_id, company_id').eq('id', msg.card_id).maybeSingle();
+      if (req.user && card?.creator_id === req.user.id) { authorized = true; isCardOwner = true; }
+      if (req.member && (card?.created_by_member_id === req.member.id || card?.company_id === req.member.company_id)) {
+        authorized = true; isCardOwner = true;
+      }
     }
     // 2. Original author email match (guest signers prove identity this way)
     if (!authorized && author_email && msg.author_email &&
         author_email.toLowerCase().trim() === msg.author_email.toLowerCase().trim()) {
       authorized = true;
     }
-    if (!authorized) return res.status(403).json({ error: 'Not authorized to move this signature' });
+    if (!authorized) return res.status(403).json({ error: 'Not authorized to edit this signature' });
 
     const updateData = {};
     if (position_x  != null) updateData.position_x  = parseFloat(position_x);
@@ -423,20 +431,38 @@ const updatePosition = async (req, res) => {
     if (font_size   != null) updateData.font_size   = parseInt(font_size);
     if (page_number != null) updateData.page_number = parseInt(page_number);
 
+    // Inline content editing (notebook-style direct typing on the page).
+    // Both the author and the card owner may rewrite the message text.
+    if (content != null) {
+      const { sanitizeText } = require('../utils/sanitize');
+      try {
+        updateData.content = sanitizeText(String(content), 'Message', { maxLen: 3000, required: true });
+      } catch (e) {
+        return res.status(400).json({ error: 'Message text is not valid' });
+      }
+    }
+    if (font_style != null) updateData.font_style = String(font_style).slice(0, 40);
+    if (is_private != null) updateData.is_private = (is_private === true || is_private === 'true');
+
     if (Object.keys(updateData).length === 0)
       return res.status(400).json({ error: 'No fields to update' });
 
-    // Gracefully handle migration-not-run case
-    const { error } = await supabase.from('messages').update(updateData).eq('id', message_id);
+    // Gracefully handle migration-not-run case for placement columns
+    let { error } = await supabase.from('messages').update(updateData).eq('id', message_id);
     if (error && (error.code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
-      return res.status(422).json({ error: 'Placement columns not yet available — run migration first' });
+      // Retry without optional placement columns
+      const { position_x: _a, position_y: _b, rotation: _c, font_color: _d, font_size: _e, page_number: _f, font_style: _g, ...core } = updateData;
+      if (Object.keys(core).length === 0) {
+        return res.status(422).json({ error: 'Placement columns not yet available — run migration first' });
+      }
+      ({ error } = await supabase.from('messages').update(core).eq('id', message_id));
     }
     if (error) throw error;
 
     res.json({ ok: true });
   } catch (err) {
     console.error('[updatePosition]', err.message);
-    res.status(500).json({ error: 'Failed to update position' });
+    res.status(500).json({ error: 'Failed to update message' });
   }
 };
 

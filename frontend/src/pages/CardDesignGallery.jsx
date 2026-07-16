@@ -13,6 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useSEO } from '../hooks/useSEO';
 import { CARD_DESIGNS } from '../utils/cardDesigns';
+import { CoverArtwork } from '../utils/coverArtwork.jsx';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 
 // ─── Occasion list ────────────────────────────────────────────────────────────
@@ -53,7 +54,7 @@ const OCCASION_GREETING = {
 };
 
 // Occasion → which CARD_DESIGN ids to show (leaving uses its own list)
-const OCCASION_DESIGN_IDS = {
+const OCCASION_DESIGN_IDS_BASE = {
   birthday:        ['rose_love','cherry_blossom','neon_party','minimal_chic','tropical_paradise','starry_night','warm_ember'],
   valentine:       ['rose_love','cherry_blossom','rose_gold','lavender_dream','sunset_vibes'],
   anniversary:     ['rose_gold','golden_glow','garden_bloom','lavender_dream','starry_night','rose_love'],
@@ -68,6 +69,15 @@ const OCCASION_DESIGN_IDS = {
   new_year:        ['starry_night','cosmic_joy','neon_party','midnight_blue','golden_glow'],
   other:           ['rose_love','minimal_chic','garden_bloom','midnight_blue','warm_ember','rose_gold'],
 };
+
+// Prepend the 10 senior-designer SVG artwork covers for each occasion so they
+// lead the gallery, then fall back to the curated generic templates.
+const OCCASION_DESIGN_IDS = Object.fromEntries(
+  Object.entries(OCCASION_DESIGN_IDS_BASE).map(([occ, ids]) => {
+    const artIds = CARD_DESIGNS.filter(d => d.artwork && d.occasion === occ).map(d => d.id);
+    return [occ, [...artIds, ...ids]];
+  })
+);
 
 // Badge labels for selected generic designs
 const DESIGN_BADGES = {
@@ -200,6 +210,27 @@ const CardCoverPreview = ({
 
   const ink = design.ink || '#1f2937';
   const art = ART_SVG[design.art] ? ART_SVG[design.art](ink) : null;
+
+  // New SVG artwork designs render their full scene as the backdrop.
+  if (design.artwork) {
+    return (
+      <div style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', borderRadius: 'inherit' }}>
+        <CoverArtwork scene={design.artwork.scene} palette={design.artwork.palette} seed={design.artwork.seed}
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: '10% 8% 8%', textAlign: 'center' }}>
+          <div style={{ color: design.dark ? '#fff' : ink, fontSize: 'clamp(15px,3.4vw,30px)', fontFamily: "'Great Vibes', cursive", lineHeight: 1.1, textShadow: design.dark ? '0 2px 12px rgba(0,0,0,0.5)' : '0 1px 8px rgba(255,255,255,0.6)' }}>
+            {displayName}
+          </div>
+          <div style={{ color: design.dark ? 'rgba(255,255,255,0.9)' : (design.accent || ink), fontSize: 'clamp(10px,2vw,16px)', fontFamily: "'Dancing Script', cursive", fontWeight: 700, marginTop: '2%', textShadow: design.dark ? '0 1px 8px rgba(0,0,0,0.4)' : 'none' }}>
+            {displayTitle}
+          </div>
+          <div style={{ color: design.dark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.5)', fontSize: 'clamp(8px,1.6vw,13px)', fontFamily: "'Caveat', cursive", marginTop: '3%' }}>
+            From {displayFrom} 💛
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <svg

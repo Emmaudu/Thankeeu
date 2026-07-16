@@ -136,11 +136,12 @@ export const CARD_DESIGNS = [
     name: design.name,
     icon: '\uD83D\uDCBC',
     background: `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(15,23,42,0.08)), url("${design.image}") center/cover no-repeat`,
-    ink: '#111827',
+    ink: '#ffffff',
     accent: '#7c3aed',
     soft: '#f5f0ff',
     art: 'confetti',
     image: design.image,
+    dark: true,
     palette: ['#102a43', '#7c3aed', '#0f766e', '#be123c', '#ca8a04'],
   })),
 ];

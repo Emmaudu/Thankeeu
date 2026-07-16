@@ -88,7 +88,7 @@ router.get('/:slug/login-type',  validateSlugParam('slug'), getCardLoginType);
 router.post('/:slug/mark-claimed', validateSlugParam('slug'), optionalAuth, markClaimed);
 router.post('/:slug/claim-member-password', validateSlugParam('slug'), claimMemberPassword);
 
-router.get('/public/:slug',           validateSlugParam('slug'), getPublicCard);
+router.get('/public/:slug',           validateSlugParam('slug'), optionalAuth, getPublicCard);
 router.get('/recipient/:slug',        validateSlugParam('slug'), getRecipientCard);
 router.get('/:slug/og-image',         validateSlugParam('slug'), getOgImage);
 router.get('/:slug/og-meta',          validateSlugParam('slug'), getOgMeta);

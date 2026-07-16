@@ -61,7 +61,7 @@ const createCard = async (req, res) => {
       recipient_name, recipient_email, occasion, title, design_theme,
       background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
       send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts, card_experience,
-      custom_occasion, cover_sender,
+      custom_occasion, cover_sender, cover_text_color, album_background_theme, cover_layout,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus
     } = req.body;
@@ -84,6 +84,43 @@ const createCard = async (req, res) => {
     const cleanCoverSender = cover_sender?.trim()
       ? sanitizeText(cover_sender, 'Cover sender', { maxLen: 100 })
       : null;
+    const cleanCoverTextColor = cover_text_color === 'auto' || /^#[0-9a-f]{6}$/i.test(cover_text_color || '')
+      ? cover_text_color
+      : 'auto';
+    const allowedAlbumThemes = ['cover_blur', 'soft_linen', 'garden', 'midnight', 'celebration'];
+    const cleanAlbumTheme = allowedAlbumThemes.includes(album_background_theme)
+      ? album_background_theme
+      : 'cover_blur';
+
+    // Cover text layout (movable/resizable/recolourable title, recipient, sender).
+    // Stored as JSONB. Accept an object or a JSON string; guard size + shape.
+    const cleanCoverLayout = (() => {
+      if (cover_layout == null) return null;
+      let obj = cover_layout;
+      if (typeof cover_layout === 'string') {
+        try { obj = JSON.parse(cover_layout); } catch { return null; }
+      }
+      if (typeof obj !== 'object' || Array.isArray(obj)) return null;
+      const pickField = (f) => {
+        if (typeof f !== 'object' || f == null) return undefined;
+        const num = (v, lo, hi, dflt) => {
+          const n = Number(v);
+          return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
+        };
+        const colour = typeof f.color === 'string' && (f.color === 'auto' || /^#[0-9a-f]{6}$/i.test(f.color))
+          ? f.color : 'auto';
+        return {
+          x: num(f.x, 0, 100, 50), y: num(f.y, 0, 100, 50),
+          size: num(f.size, 6, 72, 18), color: colour, show: !!f.show,
+        };
+      };
+      const out = {};
+      for (const key of ['title', 'recipient', 'sender']) {
+        const v = pickField(obj[key]);
+        if (v) out[key] = v;
+      }
+      return Object.keys(out).length ? out : null;
+    })();
 
     // Validate numeric fields
     const cleanSuggestedAmount = suggested_amount != null ? parseFloat(suggested_amount) : null;
@@ -120,6 +157,9 @@ const createCard = async (req, res) => {
       title: cleanTitle || `${cleanRecipientName}'s Card`,
       design_theme, background_color, is_gift_enabled,
       cover_sender: cleanCoverSender,
+      cover_text_color: cleanCoverTextColor,
+      album_background_theme: cleanAlbumTheme,
+      ...(cleanCoverLayout && { cover_layout: cleanCoverLayout }),
       gift_type, suggested_amount,
       // Store send_date as the FULL combined UTC datetime (date + time) so the
       // cron can do a single TIMESTAMPTZ comparison without reconstructing from
@@ -154,7 +194,7 @@ const createCard = async (req, res) => {
       font_style: font_style || 'elegant',
       card_layout: cleanCardLayout,
     };
-    const optionalColumns = ['card_layout', 'font_style', 'custom_occasion', 'cover_sender'];
+    const optionalColumns = ['card_layout', 'font_style', 'custom_occasion', 'cover_sender', 'cover_text_color', 'album_background_theme', 'cover_layout'];
 
     for (let attempt = 0; attempt <= optionalColumns.length; attempt += 1) {
       ({ data: card, error } = await supabase.from('cards')
@@ -431,6 +471,26 @@ const updateCard = async (req, res) => {
       }
     }
 
+    // Guard cover_layout shape on update (same rules as create)
+    if ('cover_layout' in safeUpdates) {
+      let obj = safeUpdates.cover_layout;
+      if (typeof obj === 'string') { try { obj = JSON.parse(obj); } catch { obj = null; } }
+      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
+        const num = (v, lo, hi, d) => { const n = Number(v); return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+        const out = {};
+        for (const key of ['title', 'recipient', 'sender']) {
+          const f = obj[key];
+          if (f && typeof f === 'object') {
+            const colour = typeof f.color === 'string' && (f.color === 'auto' || /^#[0-9a-f]{6}$/i.test(f.color)) ? f.color : 'auto';
+            out[key] = { x: num(f.x, 0, 100, 50), y: num(f.y, 0, 100, 50), size: num(f.size, 6, 72, 18), color: colour, show: !!f.show };
+          }
+        }
+        safeUpdates.cover_layout = Object.keys(out).length ? out : null;
+      } else {
+        safeUpdates.cover_layout = null;
+      }
+    }
+
     // If send_date is being updated, combine with send_time into a full UTC TIMESTAMPTZ
     // so the cron can do a single column comparison instead of reconstructing two fields.
     if (safeUpdates.send_date) {
@@ -465,7 +525,15 @@ const updateCard = async (req, res) => {
 
     if (error && (error.code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
       // Unknown column — retry without it
-      const { card_layout: _cl, font_style: _fs, cover_sender: _coverSender, ...saferUpdates } = safeUpdates;
+      const {
+        card_layout: _cl,
+        font_style: _fs,
+        cover_sender: _coverSender,
+        cover_text_color: _coverTextColor,
+        album_background_theme: _albumTheme,
+        cover_layout: _coverLayout,
+        ...saferUpdates
+      } = safeUpdates;
       ({ data: updated, error } = await supabase
         .from('cards').update({ ...saferUpdates, updated_at: new Date() })
         .eq('slug', slug).select().maybeSingle());
@@ -679,8 +747,20 @@ const getPublicCard = async (req, res) => {
     // Strip contributions array from public response (not needed by frontend)
     const { contributions: _contribs, ...cardWithoutContribs } = safeCard;
 
+    // Creator recognition (optionalAuth): lets the card owner edit any page
+    // inline on the sign screen. Falsy for anonymous/guest signers.
+    const isCreator = Boolean(
+      (req.user && card.creator_id && req.user.id === card.creator_id) ||
+      (req.member && (
+        (card.created_by_member_id && req.member.id === card.created_by_member_id) ||
+        (card.company_id && req.member.company_id === card.company_id)
+      )) ||
+      (req.company && card.company_id && req.company.id === card.company_id)
+    );
+
     res.json({
       ...cardWithoutContribs,
+      isCreator,
       messages:        publicMessages,
       signed_count:    realSignedCount,   // real count including private messages
       total_collected: publicTotal,

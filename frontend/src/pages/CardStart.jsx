@@ -41,8 +41,11 @@ import toast from 'react-hot-toast';
 import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI } from '../utils/api';
 import { CARD_DESIGNS, FONT_STYLES, getFontStyle } from '../utils/cardDesigns';
 import { getOccasionLabel } from '../utils/occasionCardDesigns';
+import { ALBUM_THEMES, getContrastTextColor } from '../utils/albumThemes';
 import { formatNGN, formatCurrency, CURRENCIES } from '../utils/currency';
 import CardCoverPreview from '../components/CardCoverPreview';
+import AlbumStudioPreview from '../components/AlbumStudioPreview';
+import CoverTextStudio from '../components/CoverTextStudio';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const OCCASIONS = [
@@ -65,7 +68,7 @@ const OCCASIONS = [
  { id: 'other',           icon: 'Sparkles',     label: 'Other' },
 ];
 
-const STEPS = ['Occasion', 'Design', 'Details', 'Your Message', 'Gift & Pay'];
+const STEPS = ['Occasion', 'Design', 'Details', 'Message', 'Finalise'];
 const PENDING_KEY = 'thankeeu_pending_card';
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
@@ -123,7 +126,8 @@ const CardStart = () => {
  // ── Card form ────────────────────────────────────────────────────────────
  const [form, setForm] = useState({
  occasion: 'birthday', design_theme: 'rose_love',
- background_color: '#FBEAF0', font_style: 'elegant', card_layout: 'form',
+ background_color: '#FBEAF0', font_style: 'elegant', card_layout: 'album',
+ cover_text_color: 'auto', album_background_theme: 'cover_blur',
  title: "Someone's Birthday Card",
  cover_sender: creatorName === 'You' ? '' : creatorName,
  recipient_name: '', recipient_email: '',
@@ -134,8 +138,10 @@ const CardStart = () => {
  notification_scope: 'department',
  card_experience: 'card_and_wall',
  custom_occasion: '',
+ cover_layout: null, // {title,recipient,sender} positions/size/colour/show — null = defaults
  });
  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+ const [selectedCoverField, setSelectedCoverField] = useState('recipient');
 
  // ── Message form ─────────────────────────────────────────────────────────
  const [msgForm, setMsgForm] = useState({ content: '', font_style: 'handwritten', is_private: false });
@@ -170,6 +176,7 @@ const CardStart = () => {
  const occasionLabel = form.occasion === 'other' && form.custom_occasion
   ? form.custom_occasion
   : getOccasionLabel(form.occasion);
+ const autoCoverTextColor = getContrastTextColor(form.background_color, selectedDesign);
 
  // ── Load credits for logged-in users ────────────────────────────────────
  useEffect(() => {
@@ -477,12 +484,14 @@ const CardStart = () => {
  setMediaFiles([]); setInviteEmails('');
  setForm({
  occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0',
- font_style: 'elegant', card_layout: 'form', title: "Someone's Birthday Card",
+ font_style: 'elegant', card_layout: 'album', title: "Someone's Birthday Card",
+ cover_text_color: 'auto', album_background_theme: 'cover_blur',
  cover_sender: creatorName === 'You' ? '' : creatorName,
  recipient_name: '', recipient_email: '', send_date: '', send_time: '09:00',
  deadline: '', deadline_time: '23:59', is_gift_enabled: true, gift_type: 'pot',
  suggested_amount: 2500, allow_private_messages: true, send_reminders: true,
  hide_amounts: false, notification_scope: 'department', card_experience: 'card_and_wall',
+ cover_layout: null,
  });
  };
 
@@ -524,10 +533,13 @@ const CardStart = () => {
 
  // ── Inner wizard ─────────────────────────────────────────────────────────
  const inner = (
- <div className="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+ <div className="min-h-[calc(100vh-72px)] bg-white">
+ <div className="grid min-h-[calc(100vh-72px)] grid-cols-1 lg:grid-cols-[minmax(430px,42%)_minmax(0,58%)]">
+ <section className="bg-[#f3f6f9] px-4 py-7 sm:px-8 lg:px-10 lg:py-9">
  {!company && !member && (
- <div className="mb-8">
- <h1 className="text-3xl font-bold text-warm-900 mb-1">Create a group card</h1>
+ <div className="mb-7">
+ <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-primary-600">Thankeeu album studio</p>
+ <h1 className="mt-2 text-3xl font-bold text-warm-900 mb-1">Create a group card</h1>
  <p className="text-warm-500 text-sm">
  {user ? 'Takes less than 3 minutes' : 'No account needed until you\'re ready to pay — explore freely!'}
  </p>
@@ -536,12 +548,11 @@ const CardStart = () => {
 
  <StepIndicator current={step} />
 
- <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-7 items-start">
  <div className="min-w-0">
 
  {/* ══ STEP 0: Occasion ════════════════════════════════════════════════ */}
  {step === 0 && (
- <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+ <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
  <h2 className="text-xl font-bold text-warm-900 mb-1">What's the occasion?</h2>
  <p className="text-warm-500 text-sm mb-6">Pick the type of card you're creating</p>
  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
@@ -574,7 +585,7 @@ const CardStart = () => {
 
  {/* ══ STEP 1: Design ══════════════════════════════════════════════════ */}
  {step === 1 && (
- <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+ <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
  <h2 className="text-xl font-bold text-warm-900 mb-1">Pick a design</h2>
  <p className="text-warm-500 text-sm mb-5">Choose from our templates</p>
 
@@ -636,6 +647,53 @@ const CardStart = () => {
   </div>
  )}
 
+ {selectedDesign && (
+  <CoverTextStudio
+   design={selectedDesign}
+   occasionLabel={occasionLabel}
+   recipientName={form.recipient_name}
+   title={form.title}
+   senderName={form.cover_sender || creatorName}
+   coverColor={form.background_color}
+   textColor={form.cover_text_color === 'auto' ? autoCoverTextColor : form.cover_text_color}
+   fontFamily={getFontStyle(form.font_style).family}
+   layout={form.cover_layout}
+   onChange={(next) => set('cover_layout', next)}
+   selected={selectedCoverField}
+   onSelect={setSelectedCoverField}
+  />
+ )}
+
+ <div className="mb-5 border-t border-purple-100 pt-5">
+  <div className="flex items-center justify-between gap-3">
+   <div>
+    <p className="text-sm font-bold text-warm-700">Default cover text colour</p>
+    <p className="mt-0.5 text-xs text-warm-500">Applies to any cover text set to “Auto” in the studio above.</p>
+   </div>
+   <span className="h-6 w-6 rounded-full border border-black/10" style={{ backgroundColor: form.cover_text_color === 'auto' ? autoCoverTextColor : form.cover_text_color }} />
+  </div>
+  <div className="mt-3 flex flex-wrap gap-2">
+   <button type="button" onClick={() => set('cover_text_color', 'auto')} className={`h-10 rounded-lg border px-3 text-xs font-extrabold ${form.cover_text_color === 'auto' ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-purple-100 bg-white text-warm-600'}`}>Auto</button>
+   {['#ffffff', '#172033', '#4c1d95', '#9f1239', '#14532d', '#92400e'].map(color => (
+    <button key={color} type="button" onClick={() => set('cover_text_color', color)} className={`h-10 w-10 rounded-full border-2 ${form.cover_text_color === color ? 'ring-4 ring-primary-100 border-primary-500' : 'border-white shadow-sm'}`} style={{ backgroundColor: color }} aria-label={`Use ${color} for cover text`} />
+   ))}
+  </div>
+ </div>
+
+ <div className="mb-5 border-t border-purple-100 pt-5">
+  <p className="text-sm font-bold text-warm-700">Album background</p>
+  <p className="mt-0.5 text-xs text-warm-500">Choose the setting around the flipbook pages.</p>
+  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+   {ALBUM_THEMES.map(theme => (
+    <button key={theme.id} type="button" onClick={() => set('album_background_theme', theme.id)} className={`rounded-lg border-2 p-2.5 text-left ${form.album_background_theme === theme.id ? 'border-primary-500 bg-primary-50' : 'border-purple-100 bg-white hover:border-primary-200'}`}>
+     <span className="block h-10 rounded-md border border-black/5" style={{ background: theme.stage }} />
+     <span className="mt-2 block text-xs font-bold text-warm-800">{theme.name}</span>
+     <span className="mt-0.5 block text-[10px] text-warm-500">{theme.description}</span>
+    </button>
+   ))}
+  </div>
+ </div>
+
  <p className="text-sm font-bold text-warm-700 mb-2">Card lettering</p>
  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
  {FONT_STYLES.map(font => (
@@ -651,8 +709,8 @@ const CardStart = () => {
  <p className="text-sm font-bold text-warm-700 mb-2">How should people sign?</p>
  <div className="grid grid-cols-2 gap-3">
  {[
-  { id: 'form',  title: 'Classic form',  desc: 'Easiest for signers — messages in a tidy list', recommended: true },
-  { id: 'album', title: 'Photo album',   desc: 'Flipbook pages with free placement' },
+  { id: 'album', title: 'Album flipbook', desc: 'Messages become keepsake pages that turn like a real book', recommended: true },
+  { id: 'form',  title: 'Message board', desc: 'Messages appear together on a scrollable board' },
 ].map(opt => (
   <button key={opt.id} type="button" onClick={() => set('card_layout', opt.id)}
     className={`rounded-2xl border-2 p-3 text-left transition-all ${form.card_layout === opt.id ? 'border-primary-500 bg-primary-50' : 'border-purple-100 bg-white hover:border-primary-200'}`}>
@@ -678,7 +736,7 @@ const CardStart = () => {
 
  {/* ══ STEP 2: Details ═════════════════════════════════════════════════ */}
  {step === 2 && (
- <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+ <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
  <h2 className="text-xl font-bold text-warm-900 mb-1">Card details</h2>
  <p className="text-warm-500 text-sm mb-5">Tell us who this is for</p>
 
@@ -767,7 +825,9 @@ const CardStart = () => {
  <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
  className={`w-full text-left rounded-xl p-4 border-2 transition-all ${form.card_experience === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
  <div className="flex items-start gap-3">
- <span className="text-xl mt-0.5">{opt.emoji}</span>
+ <span className={`mt-0.5 flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${form.card_experience === opt.id ? 'bg-primary-500 text-white' : 'bg-purple-50 text-primary-500'}`}>
+   <Icon name={opt.emoji} size={18} />
+ </span>
  <div className="flex-1 min-w-0">
  <div className="flex items-center gap-2 flex-wrap">
  <span className="font-bold text-warm-900 text-sm">{opt.title}</span>
@@ -827,7 +887,7 @@ const CardStart = () => {
 
  {/* ══ STEP 3: Your Message ════════════════════════════════════════════ */}
  {step === 3 && (
- <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+ <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
  <h2 className="text-xl font-bold text-warm-900 mb-1">Add your message </h2>
  <p className="text-warm-500 text-sm mb-4">
  You're the card creator — add your own message first. Others will sign once you share the link.
@@ -953,7 +1013,7 @@ const CardStart = () => {
 
  {/* ══ STEP 4: Gift & Pay ══════════════════════════════════════════════ */}
  {step === 4 && (
- <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
+ <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
 
  {/* ── GUEST: Configure gift (before draft saved) ── */}
  {!user && !isCompanyUser && !guestSaved && (<>
@@ -1239,28 +1299,17 @@ const CardStart = () => {
  )}
  </div>
 
- <aside className="order-first lg:order-none lg:sticky lg:top-24">
-  <div className="rounded-lg border border-purple-100 bg-white p-4 sm:p-5">
-   <div className="flex items-center justify-between gap-3 mb-4">
-    <div>
-     <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-primary-600">Live preview</p>
-     <p className="mt-1 text-xs text-warm-500">Updates as you type</p>
-    </div>
-    <span className="rounded-lg bg-warm-100 px-2 py-1 text-[10px] font-extrabold text-warm-600">A4 cover</span>
-   </div>
-   <CardCoverPreview
-    design={selectedDesign}
-    occasionLabel={occasionLabel}
-    recipientName={form.recipient_name}
-    title={form.title}
-    senderName={form.cover_sender || creatorName}
-    coverColor={form.background_color?.startsWith('#') ? form.background_color : undefined}
-   />
-   <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-    <button type="button" onClick={() => setStep(0)} className="h-10 rounded-lg border border-purple-100 bg-white font-bold text-warm-700 hover:border-primary-300">Change occasion</button>
-    <button type="button" onClick={() => setStep(1)} className="h-10 rounded-lg border border-purple-100 bg-white font-bold text-warm-700 hover:border-primary-300">Change design</button>
-   </div>
-  </div>
+ </section>
+
+ <aside className="order-first border-b border-purple-100 bg-white px-4 py-6 sm:px-8 lg:order-none lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-l lg:px-10 lg:py-8">
+  <AlbumStudioPreview
+   design={selectedDesign}
+   form={form}
+   message={msgForm}
+   occasionLabel={occasionLabel}
+   activeStep={step}
+   creatorName={creatorName}
+  />
  </aside>
  </div>
  </div>

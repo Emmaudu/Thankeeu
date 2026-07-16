@@ -8,6 +8,9 @@ import MemoryMoviePlayer from '../components/MemoryMoviePlayer';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
+import { CoverArtwork } from '../utils/coverArtwork.jsx';
+import { normalizeCoverLayout } from '../utils/coverLayout';
+import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
 import QRButton from '../components/QRButton';
@@ -1194,6 +1197,24 @@ const CardView = () => {
   const coverBackground = card.background_color?.startsWith('#')
     ? `linear-gradient(145deg, ${card.background_color}26, transparent 68%), ${design.background}`
     : (card.background_color || design.background);
+  const coverTextColor = card.cover_text_color && card.cover_text_color !== 'auto'
+    ? card.cover_text_color
+    : getContrastTextColor(card.background_color, design);
+  // Movable/recolourable cover text layout (show/hide + per-field colour)
+  const coverLayout = normalizeCoverLayout(card.cover_layout);
+  const fieldColor = (field) => {
+    const c = coverLayout[field]?.color;
+    return !c || c === 'auto' ? coverTextColor : c;
+  };
+  const coverArt = design.artwork;
+  const albumTheme = getAlbumTheme(card.album_background_theme);
+  const albumPageDesign = {
+    ...design,
+    background: albumTheme.page,
+    ink: albumTheme.ink,
+    soft: albumTheme.page,
+    dark: false,
+  };
   const titleFont = getFontStyle(card.font_style);
   const canViewPrivate = Boolean(token || card.isCreator || card.isRecipient);
 
@@ -1208,7 +1229,15 @@ const CardView = () => {
       {/* Confetti runs forever — never stops */}
       <Confetti />
       {/* ── HERO BANNER — Sample-page style ───────────────────────── */}
-      <header className="relative overflow-hidden" style={{ background: coverBackground, color: design.ink }}>
+      <header className="relative overflow-hidden" style={{ background: coverBackground, color: coverTextColor }}>
+        {/* SVG artwork backdrop for artwork designs */}
+        {coverArt && (
+          <div className="absolute inset-0" style={{ zIndex: 0, opacity: 0.9 }}>
+            <CoverArtwork scene={coverArt.scene} palette={coverArt.palette} seed={coverArt.seed}
+              style={{ width: '100%', height: '100%' }} />
+            <div className="absolute inset-0" style={{ background: design.dark ? 'linear-gradient(180deg, rgba(8,6,20,0.35), rgba(8,6,20,0.15))' : 'linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08))' }} />
+          </div>
+        )}
         {/* Decorative blurred circles */}
         <div style={{ position:'absolute', top:'-60px', right:'-60px', width:280, height:280, borderRadius:'50%', background:'rgba(255,255,255,0.08)', pointerEvents:'none', zIndex:0 }} />
         <div style={{ position:'absolute', bottom:'-40px', left:'-40px', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none', zIndex:0 }} />
@@ -1217,7 +1246,7 @@ const CardView = () => {
         <div className="relative max-w-5xl mx-auto px-4 py-7 sm:py-10 text-center" style={{ zIndex:1 }}>
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase mb-3"
-            style={{ background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', color: design.dark ? 'rgba(255,255,255,0.9)' : design.accent, border:'1px solid rgba(255,255,255,0.25)' }}>
+            style={{ background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', color: coverTextColor, border:'1px solid rgba(255,255,255,0.25)' }}>
             ✨ Online Group Card
           </div>
 
@@ -1251,28 +1280,31 @@ const CardView = () => {
           )}
 
           {/* Big calligraphic title */}
-          <h1 className="mb-1 px-2" style={{
-            fontFamily: "'Great Vibes', cursive",
-            fontSize: 'clamp(2.4rem, 8vw, 5rem)',
-            lineHeight: 1.2,
-            color: design.dark ? '#ffffff' : design.accent,
-            textShadow: design.dark ? '0 2px 24px rgba(0,0,0,0.25)' : 'none',
-            overflowWrap: 'break-word',
-            wordBreak: 'break-word',
-            maxWidth: '100%',
-          }}>
-            {card.title || `Happy ${card.occasion === 'other' && card.custom_occasion ? card.custom_occasion : (card.occasion||'').replace(/_/g,' ')}, ${card.recipient_name}!`}
-          </h1>
+          {coverLayout.title.show && (
+            <h1 className="mb-1 px-2" style={{
+              fontFamily: "'Great Vibes', cursive",
+              fontSize: 'clamp(2.4rem, 8vw, 5rem)',
+              lineHeight: 1.2,
+              color: fieldColor('title'),
+              textShadow: fieldColor('title') === '#ffffff' ? '0 2px 24px rgba(0,0,0,0.35)' : '0 1px 18px rgba(255,255,255,0.32)',
+              overflowWrap: 'break-word',
+              wordBreak: 'break-word',
+              maxWidth: '100%',
+            }}>
+              {card.title || `Happy ${card.occasion === 'other' && card.custom_occasion ? card.custom_occasion : (card.occasion||'').replace(/_/g,' ')}, ${card.recipient_name}!`}
+            </h1>
+          )}
 
-          {card.cover_sender && (
-            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.16em] mb-3" style={{ color: design.dark ? 'rgba(255,255,255,0.78)' : design.accent }}>
+          {card.cover_sender && coverLayout.sender.show && (
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.16em] mb-3" style={{ color: fieldColor('sender'), opacity: 0.9 }}>
               From {card.cover_sender}
             </p>
           )}
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg max-w-xl mx-auto mb-3" style={{
-            color: design.dark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.52)',
+            color: coverTextColor,
+            opacity: 0.72,
           }}>
             {(card.signed_count || messages.length)} {(card.signed_count || messages.length) === 1 ? 'person has' : 'people have'} filled this card with love, laughter and warmth just for you.
           </p>
@@ -1655,20 +1687,20 @@ const CardView = () => {
                 </div>
               )}
               {card?.card_layout === 'album' ? (
-                <div className="overflow-x-auto pb-4 -mx-4 px-4" style={{ scrollSnapType: 'x mandatory' }}>
+                <div className="overflow-x-auto rounded-lg p-5 sm:p-7" style={{ scrollSnapType: 'x mandatory', background: albumTheme.stage }}>
                   <div className="flex gap-5 min-w-max">
                     <div
                       className={`card-art ${cardArtClass(design)} celebration-shell rounded-[2rem] p-7 w-[280px] sm:w-[340px] min-h-[430px] flex flex-col justify-between flex-shrink-0`}
-                      style={{ background: design.background, color: design.ink, scrollSnapAlign: 'start' }}
+                      style={{ background: coverBackground, color: coverTextColor, scrollSnapAlign: 'start' }}
                     >
                       <div>
                         <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-white/75" style={{ color: design.accent }}>
                           Album flipbook
                         </span>
-                        <h3 className="text-3xl font-extrabold mt-8 leading-tight" style={{ color: design.ink }}>
+                        <h3 className="text-3xl font-extrabold mt-8 leading-tight" style={{ color: coverTextColor }}>
                           {card.title || `${card.recipient_name}'s card`}
                         </h3>
-                        <p className="text-sm mt-4 leading-relaxed opacity-75" style={{ color: design.ink }}>
+                        <p className="text-sm mt-4 leading-relaxed opacity-75" style={{ color: coverTextColor }}>
                           A page-by-page keepsake from everyone who signed.
                         </p>
                       </div>
@@ -1685,7 +1717,7 @@ const CardView = () => {
                         <MessageCard
                           message={message}
                           index={index}
-                          design={design}
+                          design={albumPageDesign}
                           canViewPrivate={canViewPrivate}
                           onOpen={setOpenMessage}
                           onReact={id => messagesAPI.react(id, { emoji: 'heart' })}

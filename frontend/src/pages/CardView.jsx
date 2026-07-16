@@ -1645,25 +1645,68 @@ const CardView = () => {
                   </button>
                 </div>
               )}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
-                {displayMessages.map((message, index) => (
-                  <div key={message.id}
-                    style={{
-                      animation: searchQuery && filteredMessages.includes(message)
-                        ? 'msg-found .5s ease forwards' : 'none',
-                    }}>
-                    <MessageCard
-                      message={message}
-                      index={index}
-                      design={design}
-                      canViewPrivate={canViewPrivate}
-                      onOpen={setOpenMessage}
-                      onReact={id => messagesAPI.react(id, { emoji: 'heart' })}
-                      highlighted={!!searchQuery && filteredMessages.includes(message)}
-                    />
+              {card?.card_layout === 'album' ? (
+                <div className="overflow-x-auto pb-4 -mx-4 px-4" style={{ scrollSnapType: 'x mandatory' }}>
+                  <div className="flex gap-5 min-w-max">
+                    <div
+                      className={`card-art ${cardArtClass(design)} celebration-shell rounded-[2rem] p-7 w-[280px] sm:w-[340px] min-h-[430px] flex flex-col justify-between flex-shrink-0`}
+                      style={{ background: design.background, color: design.ink, scrollSnapAlign: 'start' }}
+                    >
+                      <div>
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-white/75" style={{ color: design.accent }}>
+                          Album flipbook
+                        </span>
+                        <h3 className="text-3xl font-extrabold mt-8 leading-tight" style={{ color: design.ink }}>
+                          {card.title || `${card.recipient_name}'s card`}
+                        </h3>
+                        <p className="text-sm mt-4 leading-relaxed opacity-75" style={{ color: design.ink }}>
+                          A page-by-page keepsake from everyone who signed.
+                        </p>
+                      </div>
+                      <div className="text-sm font-bold opacity-70">{messages.length} notes inside</div>
+                    </div>
+                    {displayMessages.map((message, index) => (
+                      <div key={message.id}
+                        className="w-[280px] sm:w-[340px] flex-shrink-0"
+                        style={{
+                          scrollSnapAlign: 'start',
+                          animation: searchQuery && filteredMessages.includes(message)
+                            ? 'msg-found .5s ease forwards' : 'none',
+                        }}>
+                        <MessageCard
+                          message={message}
+                          index={index}
+                          design={design}
+                          canViewPrivate={canViewPrivate}
+                          onOpen={setOpenMessage}
+                          onReact={id => messagesAPI.react(id, { emoji: 'heart' })}
+                          highlighted={!!searchQuery && filteredMessages.includes(message)}
+                        />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
+                  {displayMessages.map((message, index) => (
+                    <div key={message.id}
+                      style={{
+                        animation: searchQuery && filteredMessages.includes(message)
+                          ? 'msg-found .5s ease forwards' : 'none',
+                      }}>
+                      <MessageCard
+                        message={message}
+                        index={index}
+                        design={design}
+                        canViewPrivate={canViewPrivate}
+                        onOpen={setOpenMessage}
+                        onReact={id => messagesAPI.react(id, { emoji: 'heart' })}
+                        highlighted={!!searchQuery && filteredMessages.includes(message)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
               {messages.length > 8 && !showAll && !searchQuery.trim() && (
                 <div className="text-center mt-8">
                   <button onClick={() => setShowAll(true)} className="btn-primary">See all {messages.length} messages</button>

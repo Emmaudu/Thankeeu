@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import HeroShowcase from '../components/HeroShowcase';
+import { LEAVING_CARD_DESIGNS, createLeavingCardUrl } from '../utils/leavingCardDesigns';
 
 /* ─── HeroShowcase data — farewell-specific ──────────────────────────── */
 const FAREWELL_SAMPLE_MESSAGES = [
@@ -329,7 +330,7 @@ const PricingSection = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/card/new?occasion=farewell"
+              <Link to="/cards/leaving-card/gallery"
                 className={`w-full py-3.5 rounded-2xl font-bold text-sm text-center transition-all ${plan.btnStyle}`}>
                 {plan.btn}
               </Link>
@@ -346,6 +347,57 @@ const PricingSection = () => {
 };
 
 /* ─── Main page ──────────────────────────────────────────────────────── */
+const LeavingDesignPreviewSection = () => {
+  const featured = LEAVING_CARD_DESIGNS.slice(0, 10);
+
+  return (
+    <section className="py-16 md:py-20 px-4 bg-white" id="designs">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
+          <div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary-500 mb-3">
+              <Icon name="Images" size={13}/>Leave card designs
+            </div>
+            <h2 className="font-extrabold text-warm-900 leading-tight"
+              style={{ fontSize: 'clamp(1.85rem,5vw,2.75rem)' }}>
+              Choose a design before you create
+            </h2>
+            <p className="text-warm-500 mt-3 max-w-2xl">
+              Start from a real leaving-card cover, then build an album-style group card with pages, messages, photos, voice notes and a gift collection.
+            </p>
+          </div>
+          <Link to="/cards/leaving-card/gallery"
+            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-primary-600 border-2 border-primary-200 hover:bg-primary-50 transition-all">
+            View full catalogue <Icon name="ArrowRight" size={16} />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {featured.map(design => (
+            <article key={design.id} className="rounded-lg overflow-hidden border border-purple-100 bg-white shadow-sm hover:shadow-xl hover:border-primary-200 transition-all">
+              <Link to={createLeavingCardUrl(design.id)} className="block group">
+                <div className="relative">
+                  <img src={design.image} alt={`${design.name} card design`} className="w-full aspect-[3/4] object-cover group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" />
+                  <span className="absolute top-2 left-2 px-2 py-1 rounded-full text-[10px] font-extrabold text-white bg-primary-600 shadow-sm">
+                    {design.badge}
+                  </span>
+                </div>
+                <div className="p-3">
+                  <h3 className="font-extrabold text-warm-900 text-sm leading-tight">{design.name}</h3>
+                  <p className="text-xs text-warm-400 mt-1">{design.style}</p>
+                  <span className="mt-3 inline-flex items-center justify-center gap-1.5 w-full rounded-xl bg-primary-600 px-3 py-2 text-xs font-bold text-white group-hover:bg-primary-700 transition-colors">
+                    Select to create <Icon name="ArrowRight" size={13} />
+                  </span>
+                </div>
+              </Link>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 export default function LeavingCardPage() {
   useSEO({
     title: 'Online Leaving Card — Group Farewell Cards Everyone Signs | Thankeeu',
@@ -389,7 +441,7 @@ export default function LeavingCardPage() {
               One link. The whole team signs from anywhere — messages, photos, GIFs, voice notes and a pooled leaving gift. Delivered on their last day.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
-              <Link to="/card/new?occasion=farewell"
+              <Link to="/cards/leaving-card/gallery"
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-white text-base transition-all hover:scale-105 hover:shadow-xl"
                 style={{ background: 'linear-gradient(135deg,#7C3AED,#9333EA)', boxShadow: '0 8px 24px rgba(124,58,237,0.35)' }}>
                 <Icon name="Sparkles" size={17} />
@@ -406,6 +458,15 @@ export default function LeavingCardPage() {
               <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-green-500"/>Gift collection included</span>
               <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-green-500"/>Works for remote teams</span>
             </div>
+            <div className="hidden md:flex justify-center gap-4 mt-8">
+              {LEAVING_CARD_DESIGNS.slice(0, 4).map((design, index) => (
+                <Link key={design.id} to={createLeavingCardUrl(design.id)}
+                  className="block w-24 lg:w-32 rounded-2xl overflow-hidden shadow-lg border-4 border-white hover:-translate-y-1 hover:shadow-xl transition-all"
+                  style={{ transform: `rotate(${index % 2 ? 3 : -3}deg)` }}>
+                  <img src={design.image} alt={`${design.name} preview`} className="w-full aspect-[3/4] object-cover" loading="eager" />
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Slideshow */}
@@ -417,8 +478,8 @@ export default function LeavingCardPage() {
       <HeroShowcase
         sampleMessages={FAREWELL_SAMPLE_MESSAGES}
         demoMessages={FAREWELL_DEMO_MESSAGES}
-        ctaPath="/card/new?occasion=farewell"
-        ctaLabel="Create Leaving Card — Free"
+        ctaPath="/cards/leaving-card/gallery"
+        ctaLabel="Create Leaving Card - Free"
       />
 
       {/* ══ COMPANY LOGOS ══ */}
@@ -521,6 +582,8 @@ export default function LeavingCardPage() {
       </section>
 
       {/* ══ PRICING ══ */}
+      <LeavingDesignPreviewSection />
+
       <PricingSection />
 
       <div className="h-px mx-4" style={{ background: 'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />

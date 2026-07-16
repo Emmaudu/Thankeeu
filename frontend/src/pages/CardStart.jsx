@@ -190,6 +190,40 @@ const CardStart = () => {
  window.history.replaceState({}, '', url.toString());
  }, [searchParams, user]);
 
+
+  // ── Pre-fill from gallery URL params (?occasion=X&design=Y&recipient=Z) ────
+  useEffect(() => {
+    if (searchParams.get('resumed') === '1') return;
+    const occasionParam  = searchParams.get('occasion');
+    const designParam    = searchParams.get('design');
+    const recipientParam = searchParams.get('recipient');
+    const layoutParam    = searchParams.get('layout');
+    if (!occasionParam && !designParam && !recipientParam) return;
+
+    import('../utils/cardDesigns').then(({ CARD_DESIGNS: CD }) => {
+      import('../utils/leavingCardDesigns').then(({ LEAVING_CARD_DESIGNS: LCD }) => {
+        const matchedOcc    = OCCASIONS.find(o => o.id === (occasionParam === 'farewell' ? 'leaving' : occasionParam));
+        const matchedDesign = CD.find(d => d.id === designParam) || LCD.find(d => d.id === designParam);
+        const name          = recipientParam || '';
+        const occLabel      = matchedOcc?.id === 'other' ? 'Special' : (matchedOcc?.label || 'Birthday');
+
+        setForm(prev => ({
+          ...prev,
+          occasion:         matchedOcc?.id       || prev.occasion,
+          recipient_name:   name                 || prev.recipient_name,
+          title:            name ? `${name}'s ${occLabel} Card` : prev.title,
+          design_theme:     matchedDesign ? designParam : prev.design_theme,
+          background_color: matchedDesign?.background || matchedDesign?.image || prev.background_color,
+          card_layout:      layoutParam === 'album' ? 'album' : prev.card_layout,
+        }));
+
+        if (matchedDesign && matchedOcc) setStep(2);
+        else if (matchedOcc)             setStep(1);
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
  // ── Occasion helper ──────────────────────────────────────────────────────
  const handleOccasionSelect = (occ) => {
  set('occasion', occ.id);

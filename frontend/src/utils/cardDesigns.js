@@ -1,3 +1,5 @@
+import { LEAVING_CARD_DESIGNS } from './leavingCardDesigns';
+
 export const CARD_DESIGNS = [
   {
     id: 'rose_love',
@@ -126,6 +128,17 @@ export const CARD_DESIGNS = [
     background: 'linear-gradient(145deg, #fff9c4 0%, #fff176 30%, #a5d6a7 65%, #80cbc4 100%)',
     ink: '#1a4734', accent: '#00897b', soft: '#fff9c4', art: 'leaves',
   },
+  ...LEAVING_CARD_DESIGNS.map(design => ({
+    id: design.id,
+    name: design.name,
+    icon: '\uD83D\uDCBC',
+    background: `linear-gradient(180deg, rgba(255,255,255,0.04), rgba(15,23,42,0.08)), url("${design.image}") center/cover no-repeat`,
+    ink: '#111827',
+    accent: '#7c3aed',
+    soft: '#f5f0ff',
+    art: 'confetti',
+    image: design.image,
+  })),
 ];
 
 export const FONT_STYLES = [

@@ -17,6 +17,7 @@ import QRButton from '../components/QRButton';
 import toast from 'react-hot-toast';
 import { formatNGN, CURRENCIES, formatCurrency } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
+import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 
 const OCCASIONS = [
  { id: 'birthday',        icon: 'Cake',         label: 'Birthday' },
@@ -162,6 +163,40 @@ const CreateCard = () => {
  const url = new URL(window.location.href);
  url.searchParams.delete('resumed');
  window.history.replaceState({}, '', url.toString());
+ }, [searchParams]);
+
+ useEffect(() => {
+ const editSlug = searchParams.get('edit');
+ const isResumed = searchParams.get('resumed') === '1';
+ if (editSlug || isResumed) return;
+
+ const occasionParam = searchParams.get('occasion');
+ const designParam = searchParams.get('design');
+ const layoutParam = searchParams.get('layout');
+ const sourceParam = searchParams.get('source');
+ if (!occasionParam && !designParam && !layoutParam) return;
+
+ const normalizedOccasion = occasionParam === 'farewell' ? 'leaving' : occasionParam;
+ const matchedOccasion = OCCASIONS.find(o => o.id === normalizedOccasion);
+ const matchedLeavingDesign = LEAVING_CARD_DESIGNS.find(d => d.id === designParam);
+ const matchedCardDesign = CARD_DESIGNS.find(d => d.id === designParam);
+
+ setForm(prev => ({
+ ...prev,
+ occasion: matchedOccasion?.id || prev.occasion,
+ title: matchedOccasion?.id === 'leaving' ? `${creatorName.split(' ')[0]}'s Leaving Card` : prev.title,
+ design_theme: matchedCardDesign || matchedLeavingDesign ? designParam : prev.design_theme,
+ background_color: matchedCardDesign?.background || matchedLeavingDesign?.image || prev.background_color,
+ card_layout: layoutParam === 'album' ? 'album' : prev.card_layout,
+ }));
+
+ if (matchedOccasion?.id === 'leaving' && sourceParam === 'leaving-gallery') {
+ toast.success('Design selected. Album flipbook layout is ready.');
+ setStep(2);
+ } else if (matchedOccasion) {
+ setStep(designParam ? 2 : 1);
+ }
+ // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [searchParams]);
 
  // ── Resume editing an existing draft ──────────────────────────────

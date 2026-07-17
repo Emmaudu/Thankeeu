@@ -97,6 +97,15 @@
   </url>
 
   <url>
+    <loc>https://www.thankeeu.com/cards/pet-loss-card</loc>
+    <lastmod>2026-07-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/pet-loss-card"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/pet-loss-card"/>
+  </url>
+
+  <url>
     <loc>https://www.thankeeu.com/cards/retirement</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
@@ -801,15 +810,6 @@
     <priority>0.7</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/blog/condolence-messages-loss-of-pet"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/blog/condolence-messages-loss-of-pet"/>
-  </url>
-
-  <url>
-    <loc>https://www.thankeeu.com/card/new</loc>
-    <lastmod>2026-07-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/card/new"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/card/new"/>
   </url>
 
 </urlset>

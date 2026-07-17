@@ -175,7 +175,7 @@ const createCard = async (req, res) => {
       send_time: send_time || null,
       deadline: deadline || null,
       allow_private_messages, send_reminders, hide_amounts,
-      card_experience: card_experience || 'card_and_wall',
+      card_experience: card_experience || 'card_only',
       ...(cleanCustomOccasion && { custom_occasion: cleanCustomOccasion }),
       status: reqStatus || 'draft',
       ...(effectiveCompanyId && { company_id: effectiveCompanyId }),

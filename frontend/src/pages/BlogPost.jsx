@@ -218,6 +218,17 @@ const BlogPost = () => {
   const updatedDate   = post.updated_at   ? format(new Date(post.updated_at),   'MMM d, yyyy')   : '';
   const postUrl       = `${BASE_URL}/blog/${post.slug}`;
 
+  // ── Occasion-aware CTA — route sympathy/pet-loss readers to the right landing
+  // page (e.g. the pet-loss blog should funnel to the pet memorial card page).
+  const blogText = `${post.slug || ''} ${(post.tags || []).join(' ')} ${post.title || ''} ${post.category || ''}`.toLowerCase();
+  const isPetPost = /\bpet\b|pet-loss|pet loss|dog|cat|puppy|kitten|rainbow bridge|animal/.test(blogText);
+  const isSympathyPost = /sympathy|condolence|bereavement|grief|loss of|passed away|funeral|memorial/.test(blogText);
+  const ctaTarget = isPetPost
+    ? { to: '/cards/pet-loss-card', title: 'Create a pet memorial card', body: 'Gather everyone who loved them into one online pet memorial card — messages, photos and a Rainbow Bridge keepsake.', btn: 'Create a pet loss card →' }
+    : isSympathyPost
+      ? { to: '/cards/sympathy', title: 'Send a group sympathy card', body: 'Bring everyone together in one heartfelt condolence card — messages, memories and support, from one link.', btn: 'Create a sympathy card →' }
+      : { to: '/card/new', title: 'Try Thankeeu', body: 'Create a beautiful group card and gift pot for your next team occasion.', btn: 'Create a card →' };
+
   return (
     <div className="min-h-screen bg-warm-100">
       <Navbar />
@@ -332,13 +343,13 @@ const BlogPost = () => {
               {/* CTA card */}
               <div className="bg-primary-400 rounded-3xl p-5 text-white sticky top-20">
                 <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mb-2"><Icon name="Heart" size={22} className="text-white"/></div>
-                <p className="font-semibold text-lg mb-2">Try Thankeeu</p>
+                <p className="font-semibold text-lg mb-2">{ctaTarget.title}</p>
                 <p className="text-primary-100 text-sm mb-4 leading-relaxed">
-                  Create a beautiful group card and Flutterwave gift pot for your next team occasion.
+                  {ctaTarget.body}
                 </p>
-                <Link to="/card/new"
+                <Link to={ctaTarget.to}
                   className="block bg-white text-primary-600 font-semibold text-sm px-4 py-3 rounded-xl text-center hover:bg-primary-50 transition-colors mb-2">
-                  Create a card →
+                  {ctaTarget.btn}
                 </Link>
                 <Link to="/company/signup"
                   className="block border border-white/40 text-white font-medium text-sm px-4 py-3 rounded-xl text-center hover:bg-white/10 transition-colors">

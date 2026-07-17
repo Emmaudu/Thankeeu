@@ -111,6 +111,9 @@ const CardStart = () => {
 
  // ── Wizard state ────────────────────────────────────────────────────────
  const [step, setStep] = useState(0);
+ // Step 1 has two sub-pages: 'design' then 'experience' (Group Card vs Live Wall).
+ // This avoids renumbering all steps while giving Experience its own screen.
+ const [designSubStep, setDesignSubStep] = useState('design'); // 'design' | 'experience'
  // Scroll to top whenever the user advances or goes back a step
  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
 
@@ -137,7 +140,7 @@ const CardStart = () => {
  is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
  allow_private_messages: true, send_reminders: true, hide_amounts: false,
  notification_scope: 'department',
- card_experience: 'card_and_wall',
+ card_experience: 'card_only',
  custom_occasion: '',
  cover_layout: null, // {title,recipient,sender} positions/size/colour/show — null = defaults
  });
@@ -554,7 +557,7 @@ const CardStart = () => {
  recipient_name: '', recipient_email: '', send_date: '', send_time: '09:00',
  deadline: '', deadline_time: '23:59', is_gift_enabled: true, gift_type: 'pot',
  suggested_amount: 2500, allow_private_messages: true, send_reminders: true,
- hide_amounts: false, notification_scope: 'department', card_experience: 'card_and_wall',
+ hide_amounts: false, notification_scope: 'department', card_experience: 'card_only',
  cover_layout: null,
  });
  };
@@ -647,15 +650,51 @@ const CardStart = () => {
  </div>
  )}
 
- {/* ══ STEP 1: Design ══════════════════════════════════════════════════ */}
+ {/* ══ STEP 1: Design + Experience ════════════════════════════════════ */}
  {step === 1 && (
  <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
- <h2 className="text-xl font-bold text-warm-900 mb-1">Pick a design</h2>
- <p className="text-warm-500 text-sm mb-5">Choose from our templates</p>
+ {designSubStep === 'experience' ? (
+  <>
+   <button onClick={() => setDesignSubStep('design')} className="mb-4 text-xs font-bold text-primary-500 flex items-center gap-1"><Icon name="ChevronLeft" size={14}/> Back to design</button>
+   <h2 className="text-xl font-bold text-warm-900 mb-1">Card experience</h2>
+   <p className="text-warm-500 text-sm mb-5">How do you want contributors to participate?</p>
+   <div className="space-y-3 mb-6">
+    {[
+     { id: 'card_only', icon: 'Mail', title: 'Group Card', badge: null,
+       desc: 'Everyone signs one beautiful card — messages, photos, GIFs, voice notes and a group gift. A Memory Movie™ is auto-generated.' },
+     { id: 'wall_only', icon: 'Camera', title: 'Live Memory Wall™',
+       desc: 'Guests upload photos and videos to a shared live wall throughout the event. Perfect for weddings, owambes and parties.', badge: null },
+    ].map(opt => (
+     <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
+      className={`w-full text-left rounded-2xl p-5 border-2 transition-all ${form.card_experience === opt.id || (opt.id === 'card_only' && form.card_experience === 'card_and_wall') ? 'border-primary-400 bg-primary-50 shadow-sm' : 'border-purple-100 hover:border-purple-200'}`}>
+      <div className="flex items-start gap-4">
+       <span className={`mt-0.5 flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-2xl ${form.card_experience === opt.id || (opt.id === 'card_only' && form.card_experience === 'card_and_wall') ? 'bg-primary-500 text-white' : 'bg-purple-50 text-primary-500'}`}>
+        <Icon name={opt.icon} size={20} />
+       </span>
+       <div className="flex-1">
+        <p className="font-extrabold text-warm-900">{opt.title}</p>
+        <p className="text-xs text-warm-500 mt-1 leading-relaxed">{opt.desc}</p>
+       </div>
+       <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${form.card_experience === opt.id || (opt.id === 'card_only' && form.card_experience === 'card_and_wall') ? 'border-primary-500 bg-primary-500' : 'border-gray-300'}`}>
+        {(form.card_experience === opt.id || (opt.id === 'card_only' && form.card_experience === 'card_and_wall')) && <span className="w-2 h-2 rounded-full bg-white block"/>}
+       </div>
+      </div>
+     </button>
+    ))}
+   </div>
+  </>
+ ) : (
+  <>
+   <h2 className="text-xl font-bold text-warm-900 mb-1">Pick a design</h2>
+   <p className="text-warm-500 text-sm mb-5">Choose from our templates</p>
 
  <style>{`
- .ccg { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
+ .ccg { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; max-height:none; }
  @media(max-width:640px){.ccg{grid-template-columns:repeat(3,1fr);}}
+ .ccg-wrap { overflow:hidden; max-height:calc(2 * (56vw/5 * 297/210) + 10px); }
+ .ccg-wrap.expanded { max-height:none; }
+ @media(max-width:640px){.ccg-wrap{max-height:calc(2 * (33vw * 297/210) + 10px);}}
+ @media(max-width:640px){.ccg-wrap.expanded{max-height:none;}}
  @media(max-width:380px){.ccg{grid-template-columns:repeat(2,1fr);}}
  .ccg-item{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;aspect-ratio:210/297;background:#fff;}
  .ccg-item:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.14);}
@@ -667,8 +706,13 @@ const CardStart = () => {
  .ccg-upload p{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#fff;margin:0;text-align:center;line-height:1.2;}
  `}</style>
 
- <div className="ccg">
- <button type="button" className="ccg-item ccg-upload" onClick={() => document.getElementById('cs-bg-upload')?.click()}>
+ {(() => {
+   const [designsExpanded, setDesignsExpanded] = React.useState(false);
+   return (
+   <>
+   <div className={`ccg-wrap ${designsExpanded ? 'expanded' : ''}`}>
+   <div className="ccg">
+   <button type="button" className="ccg-item ccg-upload" onClick={() => document.getElementById('cs-bg-upload')?.click()}>
  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
  </svg>
@@ -707,6 +751,17 @@ const CardStart = () => {
  </button>
  ))}
  </div>
+ </div>
+ {availableDesigns.length > 10 && (
+   <button type="button" onClick={() => setDesignsExpanded(e => !e)}
+     className="w-full mt-1 mb-4 text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center justify-center gap-1.5 py-2 rounded-xl hover:bg-primary-50 transition-colors">
+     <Icon name={designsExpanded ? 'ChevronUp' : 'ChevronDown'} size={14}/>
+     {designsExpanded ? 'Show fewer designs' : `Show all ${availableDesigns.length} designs`}
+   </button>
+ )}
+ </>
+ );
+ })()}
 
  {selectedDesign && (
   <div className="mb-5">
@@ -785,31 +840,18 @@ const CardStart = () => {
  ))}
  </div>
 
- <div className="mb-5">
- <p className="text-sm font-bold text-warm-700 mb-2">How should people sign?</p>
- <div className="grid grid-cols-2 gap-3">
- {[
-  { id: 'album', title: 'Album flipbook', desc: 'Messages become keepsake pages that turn like a real book', recommended: true },
-  { id: 'form',  title: 'Message board', desc: 'Messages appear together on a scrollable board' },
-].map(opt => (
-  <button key={opt.id} type="button" onClick={() => set('card_layout', opt.id)}
-    className={`rounded-2xl border-2 p-3 text-left transition-all ${form.card_layout === opt.id ? 'border-primary-500 bg-primary-50' : 'border-purple-100 bg-white hover:border-primary-200'}`}>
-    <div className="flex items-center gap-2 mb-1 flex-wrap">
-      <p className="font-bold text-sm text-warm-900">{opt.title}</p>
-      {opt.recommended && <span className="text-xs px-2 py-0.5 rounded-xl bg-primary-100 text-primary-600 font-bold">Recommended</span>}
-    </div>
-    <p className="text-xs text-warm-500">{opt.desc}</p>
-  </button>
-))}
- </div>
- </div>
+
+  </>
+ )}
 
  <div className="flex justify-between">
- <button onClick={() => setStep(0)} className="btn-secondary">← Back</button>
+ <button onClick={() => { if (designSubStep === 'experience') { setDesignSubStep('design'); } else { setStep(0); } }} className="btn-secondary">← Back</button>
  <button onClick={() => {
- saveSnapshot();
- setStep(2);
- }} className="btn-primary">Add details →</button>
+  if (designSubStep === 'design') { setDesignSubStep('experience'); return; }
+  saveSnapshot();
+  setStep(2);
+  setDesignSubStep('design');
+ }} className="btn-primary">{designSubStep === 'design' ? 'Choose experience →' : 'Add details →'}</button>
  </div>
  </div>
  )}
@@ -889,40 +931,6 @@ const CardStart = () => {
  </div>
  </div>
  )}
- {/* ── Celebration Experience ── */}
- <div className="rounded-2xl border-2 border-purple-100 p-5">
- <h3 className="font-bold text-warm-900 text-sm mb-1">Celebration Experience</h3>
- <p className="text-xs text-warm-500 mb-4">Choose how contributors participate. Every option auto-generates a <strong>Memory Movie™</strong> keepsake.</p>
- <div className="space-y-3">
- {[
- { id: 'card_only', emoji: 'Mail', title: 'Group Card Only',
- desc: 'Contributors send messages, photos, videos, voice notes and gifts. Auto-generates a Memory Movie™.' },
- { id: 'wall_only', emoji: 'Camera', title: 'Live Memory Wall™ Only',
- desc: 'Contributors upload photos and videos to a live timeline throughout the event. No traditional card.' },
- { id: 'card_and_wall', emoji: 'Sparkles', title: 'Group Card + Live Memory Wall™',
- desc: 'Best of both — heartfelt messages AND a live photo wall. Auto-generates one unforgettable Memory Movie™.', recommended: true },
- ].map(opt => (
- <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
- className={`w-full text-left rounded-xl p-4 border-2 transition-all ${form.card_experience === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
- <div className="flex items-start gap-3">
- <span className={`mt-0.5 flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${form.card_experience === opt.id ? 'bg-primary-500 text-white' : 'bg-purple-50 text-primary-500'}`}>
-   <Icon name={opt.emoji} size={18} />
- </span>
- <div className="flex-1 min-w-0">
- <div className="flex items-center gap-2 flex-wrap">
- <span className="font-bold text-warm-900 text-sm">{opt.title}</span>
- {opt.recommended && <span className="text-xs px-2 py-0.5 rounded-xl bg-primary-100 text-primary-600 font-bold">Recommended</span>}
- </div>
- <p className="text-xs text-warm-500 mt-0.5 leading-relaxed">{opt.desc}</p>
- </div>
- <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5 transition-colors ${form.card_experience === opt.id ? 'border-primary-500 bg-primary-500' : 'border-gray-300'}`}>
- {form.card_experience === opt.id && <span className="w-2 h-2 rounded-full bg-white block"/>}
- </div>
- </div>
- </button>
- ))}
- </div>
- </div>
 
  <div className="rounded-2xl border border-purple-100 divide-y divide-gray-100">
  {[
@@ -1400,6 +1408,7 @@ const CardStart = () => {
    creatorName={creatorName}
    layout={form.cover_layout}
    onLayoutChange={(next) => set('cover_layout', next)}
+   onCardLayoutChange={(layout) => set('card_layout', layout)}
    selectedField={selectedCoverField}
    onSelectField={setSelectedCoverField}
    media={mediaFiles}

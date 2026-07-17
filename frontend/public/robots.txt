@@ -20,6 +20,8 @@ Disallow: /create-card
 Disallow: /reset-password
 Disallow: /forgot-password
 Disallow: /gift/
+Disallow: /card/
+Disallow: /sign/
 Disallow: /admin
 Disallow: /company/dashboard
 Disallow: /company/teams

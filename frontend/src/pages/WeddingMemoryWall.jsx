@@ -40,8 +40,8 @@ export default function WeddingMemoryWallPage() { useSEO({ title: 'Wedding Guest
 </section> {/* ── Features ── */} <section className="py-14 px-4 bg-white">
 <div className="max-w-4xl mx-auto">
 <h2 className="text-2xl font-display font-bold text-warm-900 text-center mb-10">Why couples choose Thankeeu for wedding photo sharing</h2>
-<div className="grid sm:grid-cols-2 gap-6"> {[ { icon: 'Smartphone', title: 'No app. No account. No friction.', body: 'The #1 reason guests don\'t share photos is that they can\'t be bothered with sign-ups. Thankeeu removes every barrier — guests scan the QR code and are uploading in under 10 seconds. Works on every phone, for guests of every age.' }, { icon: 'Camera', title: 'Messages + photos + gift, not just photos', body: 'Wedtrove only collects photos. Thankeeu collects photos AND heartfelt messages, voice notes, and wedding gift contributions — all in one card, all delivered to the couple together.' }, { icon: 'Camera', title: 'Live photo wall on your venue screens', body: 'Open the Memory Wall on a TV or projector at your reception. Guest photos appear the moment they\'re uploaded — a live slideshow your whole wedding watches together in real time.' }, { icon: 'Film', title: 'Automatic Wedding Memory Movie™', body: 'After the celebration, Thankeeu assembles every message, photo and video into a cinematic Memory Movie. A wedding film made by everyone who loves you — not just the videographer.' }, { icon: 'Sparkles', title: 'Full quality, permanently preserved', body: 'Every photo uploads at original resolution. No compression. No 30-day expiry. The wall lives forever — open it on your first anniversary and relive every moment.' }, { icon: 'Users', title: 'Works for guests anywhere in the world', body: 'Friends across the country or overseas can upload photos and write messages from anywhere. The Memory Wall captures every perspective, no matter the distance.' }, ].map(({ emoji, title, body }) => ( <div key={title} className="p-6 rounded-2xl bg-purple-50 border border-purple-100">
-{emoji && <span className="text-3xl mb-3 block">{emoji}</span>}
+<div className="grid sm:grid-cols-2 gap-6"> {[ { icon: 'Smartphone', title: 'No app. No account. No friction.', body: 'The #1 reason guests don\'t share photos is that they can\'t be bothered with sign-ups. Thankeeu removes every barrier — guests scan the QR code and are uploading in under 10 seconds. Works on every phone, for guests of every age.' }, { icon: 'Camera', title: 'Messages + photos + gift, not just photos', body: 'Wedtrove only collects photos. Thankeeu collects photos AND heartfelt messages, voice notes, and wedding gift contributions — all in one card, all delivered to the couple together.' }, { icon: 'Camera', title: 'Live photo wall on your venue screens', body: 'Open the Memory Wall on a TV or projector at your reception. Guest photos appear the moment they\'re uploaded — a live slideshow your whole wedding watches together in real time.' }, { icon: 'Film', title: 'Automatic Wedding Memory Movie™', body: 'After the celebration, Thankeeu assembles every message, photo and video into a cinematic Memory Movie. A wedding film made by everyone who loves you — not just the videographer.' }, { icon: 'Sparkles', title: 'Full quality, permanently preserved', body: 'Every photo uploads at original resolution. No compression. No 30-day expiry. The wall lives forever — open it on your first anniversary and relive every moment.' }, { icon: 'Users', title: 'Works for guests anywhere in the world', body: 'Friends across the country or overseas can upload photos and write messages from anywhere. The Memory Wall captures every perspective, no matter the distance.' }, ].map(({ icon, title, body }) => ( <div key={title} className="p-6 rounded-2xl bg-purple-50 border border-purple-100">
+{icon && <span className="inline-flex w-10 h-10 rounded-xl bg-white items-center justify-center text-primary-500 mb-3"><Icon name={icon} size={20}/></span>}
 <h3 className="font-bold text-warm-900 mb-2">{title}</h3>
 <p className="text-sm text-warm-500 leading-relaxed">{body}</p>
 </div> ))} </div>
@@ -82,22 +82,22 @@ export default function WeddingMemoryWallPage() { useSEO({ title: 'Wedding Guest
 <p className="text-sm text-warm-500 mb-8">Everything you need for wedding memories — photos, messages, gifts, and more.</p>
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 {[
-  { to:'/wedding-photo-sharing-app',     emoji:'📸', title:'Wedding Photo Sharing App',      desc:'The easiest way for guests to share photos. One QR code at the venue.' },
-  { to:'/qr-code-for-wedding-photos',    emoji:'📷', title:'QR Code for Wedding Photos',     desc:'Auto-generated, print-ready QR code for your table cards and welcome sign.' },
-  { to:'/collect-wedding-guest-photos',  emoji:'🗂️', title:'Collect Wedding Guest Photos',   desc:'Gather every guest\'s best shots automatically — no chasing required.' },
-  { to:'/digital-wedding-guest-book',    emoji:'📖', title:'Digital Wedding Guest Book',     desc:'Messages, photos, voice notes and videos — all in one digital keepsake.' },
-  { to:'/online-wedding-guestbook',      emoji:'✍️', title:'Online Wedding Guestbook',       desc:'Replace the paper book with one that captures far more than signatures.' },
-  { to:'/wedding-group-card',            emoji:'💌', title:'Wedding Group Card',             desc:'Everyone signs one card — messages, photos, voice notes and a gift.' },
-  { to:'/wedding-memory-book',           emoji:'🎞️', title:'Wedding Memory Book',            desc:'A cinematic Memory Movie™ assembled from every guest\'s contribution.' },
-  { to:'/wedding-video-message-book',    emoji:'🎥', title:'Wedding Video Messages',         desc:'Guests record short video clips — assembled into a keepsake film.' },
-  { to:'/wedding-voice-note-guest-book', emoji:'🎙️', title:'Wedding Voice Note Book',        desc:'Hear every blessing and prayer in your guests\' own voices.' },
-  { to:'/wedding-cash-gift-platform',    emoji:'💳', title:'Wedding Cash Gift Platform',     desc:'Pool cash gifts in NGN, GBP, USD alongside messages and photos.' },
-  { to:'/best-wedding-photo-sharing-app',emoji:'🏆', title:'Best Wedding Photo App',        desc:'Honest 2025 comparison of GuestPix, WedUploader, Wedtrove & Thankeeu.' },
-  { to:'/wedding-photo-album-online',    emoji:'🖼️', title:'Online Wedding Photo Album',     desc:'A shared album every guest contributes to — full quality, permanent.' },
-].map(({ to, emoji, title, desc }) => (
+  { to:'/wedding-photo-sharing-app',     icon:'Camera', title:'Wedding Photo Sharing App',      desc:'The easiest way for guests to share photos. One QR code at the venue.' },
+  { to:'/qr-code-for-wedding-photos',    icon:'Camera', title:'QR Code for Wedding Photos',     desc:'Auto-generated, print-ready QR code for your table cards and welcome sign.' },
+  { to:'/collect-wedding-guest-photos',  icon:'Images', title:'Collect Wedding Guest Photos',   desc:'Gather every guest\'s best shots automatically — no chasing required.' },
+  { to:'/digital-wedding-guest-book',    icon:'BookOpen', title:'Digital Wedding Guest Book',     desc:'Messages, photos, voice notes and videos — all in one digital keepsake.' },
+  { to:'/online-wedding-guestbook',      icon:'Edit', title:'Online Wedding Guestbook',       desc:'Replace the paper book with one that captures far more than signatures.' },
+  { to:'/wedding-group-card',            icon:'Mail', title:'Wedding Group Card',             desc:'Everyone signs one card — messages, photos, voice notes and a gift.' },
+  { to:'/wedding-memory-book',           icon:'Film', title:'Wedding Memory Book',            desc:'A cinematic Memory Movie™ assembled from every guest\'s contribution.' },
+  { to:'/wedding-video-message-book',    icon:'Video', title:'Wedding Video Messages',         desc:'Guests record short video clips — assembled into a keepsake film.' },
+  { to:'/wedding-voice-note-guest-book', icon:'Mic', title:'Wedding Voice Note Book',        desc:'Hear every blessing and prayer in your guests\' own voices.' },
+  { to:'/wedding-cash-gift-platform',    icon:'CreditCard', title:'Wedding Cash Gift Platform',     desc:'Pool cash gifts in NGN, GBP, USD alongside messages and photos.' },
+  { to:'/best-wedding-photo-sharing-app',icon:'Star', title:'Best Wedding Photo App',        desc:'Honest 2025 comparison of GuestPix, WedUploader, Wedtrove & Thankeeu.' },
+  { to:'/wedding-photo-album-online',    icon:'Image', title:'Online Wedding Photo Album',     desc:'A shared album every guest contributes to — full quality, permanent.' },
+].map(({ to, icon, title, desc }) => (
   <Link key={to} to={to} onClick={() => window.scrollTo({ top:0, behavior:'instant' })}
     className="flex gap-3 p-4 rounded-2xl border-2 border-purple-100 bg-white hover:border-primary-300 hover:bg-primary-50 transition-all group">
-    <span className="text-2xl flex-shrink-0 mt-0.5">{emoji}</span>
+    <span className="flex-shrink-0 mt-0.5 w-8 h-8 rounded-xl bg-primary-50 flex items-center justify-center text-primary-500 group-hover:bg-primary-100 transition-colors"><Icon name={icon} size={16}/></span>
     <div>
       <p className="font-bold text-warm-900 text-sm leading-tight mb-1 group-hover:text-primary-700 transition-colors">{title}</p>
       <p className="text-xs text-warm-500 leading-snug">{desc}</p>

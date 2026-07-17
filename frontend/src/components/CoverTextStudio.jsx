@@ -169,6 +169,62 @@ const CoverTextStudio = ({
 
               {/* Fine nudge pad */}
               <div className="flex items-center justify-between">
+
+              {/* ── Text shadow ─────────────────────────────────────── */}
+              <div className="mb-3 rounded-xl bg-purple-50/70 p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-warm-600">Text shadow</span>
+                  <button
+                    type="button"
+                    onClick={() => update(active, { shadow: !cfg.shadow })}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${cfg.shadow ? 'bg-primary-500' : 'bg-gray-300'}`}
+                    aria-pressed={cfg.shadow}
+                  >
+                    <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${cfg.shadow ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+                {cfg.shadow && (
+                  <div className="space-y-2">
+                    {/* Shadow colour */}
+                    <div>
+                      <span className="text-[11px] font-bold text-warm-500 block mb-1">Shadow colour</span>
+                      <div className="flex items-center gap-2">
+                        {['#000000', '#1a1035', '#7c3aed', '#be123c', '#ffffff', '#14532d'].map(c => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => update(active, { shadowColor: c })}
+                            className={`h-7 w-7 rounded-full border-2 ${cfg.shadowColor === c ? 'ring-2 ring-primary-300 border-primary-500' : 'border-white shadow-sm'}`}
+                            style={{ backgroundColor: c }}
+                            aria-label={`Shadow colour ${c}`}
+                          />
+                        ))}
+                        <label className="h-7 w-7 rounded-full border-2 border-white shadow-sm overflow-hidden relative cursor-pointer"
+                          title="Custom shadow colour"
+                          style={{ background: 'conic-gradient(from 0deg,#f87171,#fbbf24,#34d399,#60a5fa,#a78bfa,#f472b6,#f87171)' }}>
+                          <input type="color" value={cfg.shadowColor || '#000000'}
+                            onChange={(e) => update(active, { shadowColor: e.target.value })}
+                            className="absolute inset-0 opacity-0 cursor-pointer" />
+                        </label>
+                      </div>
+                    </div>
+                    {/* Shadow opacity */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[11px] font-bold text-warm-500">Shadow strength</span>
+                        <span className="text-[11px] font-extrabold text-primary-600">{Math.round((cfg.shadowOpacity ?? 0.55) * 100)}%</span>
+                      </div>
+                      <input
+                        type="range" min={0} max={1} step={0.05}
+                        value={cfg.shadowOpacity ?? 0.55}
+                        onChange={(e) => update(active, { shadowOpacity: Number(e.target.value) })}
+                        className="w-full accent-primary-500"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
                 <span className="text-xs font-bold text-warm-600">Nudge position</span>
                 <div className="grid grid-cols-3 gap-1">
                   <span />

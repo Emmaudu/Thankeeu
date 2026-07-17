@@ -1,5 +1,6 @@
 import { SCHEMAS } from '../hooks/useSEO';
 import OccasionHeroTemplate, { CHECK, CROSS, PAID, DEFAULT_COMP_CARDS } from './occasions/OccasionHeroTemplate';
+import { BABY_SHOWER_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
 
 /* ─── HeroShowcase data — baby shower-specific ───────────────────────── */
 const BABY_SAMPLE_MESSAGES = [
@@ -23,19 +24,19 @@ const BABY_SAMPLE_MESSAGES = [
 
 const BABY_DEMO_MESSAGES = [
   { initials:'AT', name:'Amara T.', color:'#DB2777', bg:'#FCE7F3',
-    text:"You're going to be the most incredible mum. We're all already so in love with this little one 💕",
+    text:"You're going to be the most incredible mum. We're all already so in love with this little one ",
     gif:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
   { initials:'NA', name:'Ngozi A.', color:'#7C3AED', bg:'#EDE9FE',
-    text:"From the whole office — we cannot wait to meet the newest member of the team! So excited 🎉",
+    text:"From the whole office — we cannot wait to meet the newest member of the team! So excited ",
     gif:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
   { initials:'SB', name:'Sola B.',  color:'#0D9488', bg:'#CCFBF1',
-    text:"This baby is already the most loved person we know. You have an entire village cheering for you 🙏",
+    text:"This baby is already the most loved person we know. You have an entire village cheering for you ",
     gif:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
   { initials:'KI', name:'Kemi I.',  color:'#92400E', bg:'#FEF3C7',
-    text:"Sending this from 5,000 miles away with all my heart. You and baby are going to be amazing ❤️",
+    text:"Sending this from 5,000 miles away with all my heart. You and baby are going to be amazing ️",
     gif:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
   { initials:'BD', name:'Bolu D.',  color:'#1D4ED8', bg:'#DBEAFE',
-    text:"Every naira here is wrapped in so much love. Enjoy every bit of it — you deserve it all! 👶",
+    text:"Every naira here is wrapped in so much love. Enjoy every bit of it — you deserve it all! ",
     gif:'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
 ];
 
@@ -140,7 +141,7 @@ export default function BabyShowerPage() {
           SCHEMAS.faqPage(FAQS.map(({ q, a }) => ({ q, a }))),
         ],
       }}
-      heroEyebrow="👶 Online Baby Shower Cards"
+      heroEyebrow="Online Baby Shower Cards"
       heroHeadline={<>The baby shower card<br/><span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg,#DB2777,#7C3AED)' }}>everyone can join.</span></>}
       heroSubline="One link. Friends, family and colleagues sign from anywhere — warm messages, photos, voice notes and a pooled baby shower gift. Perfect for virtual showers too."
       ctaPath="/card/new?occasion=baby-shower"
@@ -159,11 +160,16 @@ export default function BabyShowerPage() {
       comparisonRows={COMPARISON_ROWS}
       testimonialsHeadline={<>People who made<br/><span className="text-primary-500">a mum-to-be feel truly celebrated</span></>}
       faqs={FAQS}
-      finalCtaEmoji="👶"
+      finalCtaEmoji=""
       finalCtaHeadline={<>Celebrate the new arrival<br/>with everyone who loves her.</>}
       finalCtaSubline="Free to create. The whole group signs. Pooled gift collected automatically."
       sampleMessages={BABY_SAMPLE_MESSAGES}
       demoMessages={BABY_DEMO_MESSAGES}
+      priorityDesigns={BABY_SHOWER_PRIORITY_DESIGNS}
+      priorityDesignOccasion="baby_shower"
+      priorityDesignEyebrow="Baby shower cover designs"
+      priorityDesignTitle="Choose a cover for the new arrival"
+      priorityDesignDescription="Five new A4 covers made for baby showers, ready to personalise with messages, photos, voice notes and a group gift."
     />
   );
 }

@@ -13,7 +13,8 @@ const createDesignCollection = ({
   accent,
   soft,
   ink = '#ffffff',
-}) => Array.from({ length: 20 }, (_, index) => {
+  count = 20,
+}) => Array.from({ length: count }, (_, index) => {
   const number = index + 1;
   const suffix = pad(number);
   const image = `/cards/priority/${assetFolder}/${assetPrefix}_${suffix}.avif`;
@@ -80,10 +81,78 @@ export const RETIREMENT_PRIORITY_DESIGNS = createDesignCollection({
   soft: '#fffaf0',
 });
 
+export const BABY_SHOWER_PRIORITY_DESIGNS = createDesignCollection({
+  occasion: 'baby_shower',
+  idPrefix: 'baby-shower-featured',
+  namePrefix: 'Baby Shower Welcome',
+  coverTitle: 'A Little Joy Is Coming',
+  coverSubtitle: 'Tiny moments, enormous love',
+  icon: 'Baby',
+  assetFolder: 'baby-shower',
+  assetPrefix: 'baby_shower',
+  style: 'Premium A4 baby shower cover',
+  accent: '#db2777',
+  soft: '#fdf2f8',
+  ink: '#831843',
+  count: 5,
+});
+
+export const VALENTINE_PRIORITY_DESIGNS = createDesignCollection({
+  occasion: 'valentine',
+  idPrefix: 'valentine-featured',
+  namePrefix: 'Valentine Love',
+  coverTitle: 'With All My Love',
+  coverSubtitle: 'For my favourite person',
+  icon: 'Heart',
+  assetFolder: 'valentine',
+  assetPrefix: 'valentine',
+  style: 'Premium A4 Valentine cover',
+  accent: '#e11d48',
+  soft: '#fff1f2',
+  ink: '#881337',
+  count: 5,
+});
+
+export const PET_LOSS_PRIORITY_DESIGNS = createDesignCollection({
+  occasion: 'sympathy',
+  idPrefix: 'pet-loss-featured',
+  namePrefix: 'Pet Memorial',
+  coverTitle: 'Forever In Our Hearts',
+  coverSubtitle: 'Until we meet again',
+  icon: 'Heart',
+  assetFolder: 'pet-loss',
+  assetPrefix: 'pet_loss',
+  style: 'Premium A4 pet memorial cover',
+  accent: '#7c3aed',
+  soft: '#faf5ff',
+  ink: '#4c1d95',
+  count: 5,
+});
+
+export const LOVED_ONE_SPOUSE_SYMPATHY_PRIORITY_DESIGNS = createDesignCollection({
+  occasion: 'sympathy',
+  idPrefix: 'sympathy-featured',
+  namePrefix: 'In Loving Memory',
+  coverTitle: 'In Loving Memory',
+  coverSubtitle: 'Always loved, never forgotten',
+  icon: 'Flower',
+  assetFolder: 'sympathy',
+  assetPrefix: 'sympathy',
+  style: 'Premium A4 sympathy cover',
+  accent: '#6d5f8d',
+  soft: '#f7f5fa',
+  ink: '#3f3552',
+  count: 5,
+});
+
 export const PRIORITY_CARD_DESIGNS = [
   ...BIRTHDAY_PRIORITY_DESIGNS,
   ...FAREWELL_PRIORITY_DESIGNS,
   ...RETIREMENT_PRIORITY_DESIGNS,
+  ...BABY_SHOWER_PRIORITY_DESIGNS,
+  ...VALENTINE_PRIORITY_DESIGNS,
+  ...LOVED_ONE_SPOUSE_SYMPATHY_PRIORITY_DESIGNS,
+  ...PET_LOSS_PRIORITY_DESIGNS,
 ];
 
 export const createPriorityCardUrl = (occasion, designId) =>

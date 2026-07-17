@@ -9,7 +9,7 @@
  *   howItWorks       STEP[]             — 4 how-it-works steps
  *   faqs             FAQ[]              — FAQ accordion items
  *   seoProps         object             — passed to useSEO()
- *   heroEyebrow      string             — e.g. "🎂 Online Birthday Cards"
+ *   heroEyebrow      string             — e.g. "Online Birthday Cards"
  *   heroHeadline     JSX                — big H1 with gradient span
  *   heroSubline      string
  *   ctaPath          string             — e.g. "/card/new?occasion=birthday"
@@ -35,6 +35,10 @@ import { convertFromNGN, getCurrency } from '../../utils/currency';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Icon from '../../components/ui/Icon';
+
+// Strip emoji characters from eyebrow labels so they render as clean uppercase text
+const stripEmoji = (str = '') =>
+  String(str).replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, '').trim();
 import HeroShowcase from '../../components/HeroShowcase';
 import PriorityDesignGallery from '../../components/PriorityDesignGallery';
 
@@ -87,7 +91,7 @@ const CardPreview = ({ slide }) => (
         <div>
           <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: slide.color, opacity: 0.7 }}>{slide.cardLabel || 'group card'}</p>
           <h3 className="font-extrabold text-warm-900 text-base leading-tight">
-            {slide.emoji} For {slide.messages[0].name.split(' ')[0]}
+            For {slide.messages[0].name.split(' ')[0]}
           </h3>
         </div>
         <div className="text-right">
@@ -133,9 +137,9 @@ const CardPreview = ({ slide }) => (
         <div style={{ fontSize: '10px' }} className="font-semibold text-warm-400">thankeeu.com</div>
       </div>
     </div>
-    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-2xl shadow-lg flex items-center justify-center text-xl"
+    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-2xl shadow-lg flex items-center justify-center"
       style={{ background: slide.color }}>
-      {slide.emoji}
+      <Icon name="Heart" size={18} className="text-white" />
     </div>
   </div>
 );
@@ -175,10 +179,8 @@ const HeroSlideshow = ({ slides, ctaPath, ctaLabel }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center rounded-3xl px-6 py-8 sm:px-10 sm:py-10"
           style={{ background: `linear-gradient(135deg,${slide.accent}cc,white)`, border: `1.5px solid ${slide.accent}` }}>
           <div className="text-center lg:text-left order-2 lg:order-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold mb-5"
-              style={{ background: slide.color, color: '#fff' }}>
-              {slide.emoji} {slide.tag}
-            </div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] mb-5"
+              style={{ color: slide.color }}>{slide.tag}</p>
             <h2 className="font-extrabold text-warm-900 mb-4 leading-tight"
               style={{ fontSize: 'clamp(1.6rem,4vw,2.4rem)', letterSpacing: '-0.025em' }}>
               {slide.title}
@@ -425,26 +427,23 @@ export default function OccasionHeroTemplate({
       <section className="relative overflow-hidden" style={{minHeight:'min(760px,82vh)',backgroundImage:`linear-gradient(90deg,rgba(22,10,40,0.97) 0%,rgba(47,20,68,0.88) 37%,rgba(40,15,54,0.3) 67%,rgba(20,8,30,0.08) 100%),url(${heroImage})`,backgroundSize:'cover',backgroundPosition:'center'}}>
         <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24 relative z-10 flex items-center" style={{minHeight:'min(760px,82vh)'}}>
           <div className="max-w-2xl text-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-6" style={{background:'rgba(255,255,255,0.14)',color:'#fff',border:'1px solid rgba(255,255,255,0.22)',backdropFilter:'blur(10px)'}}>{heroEyebrow}</div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] mb-5" style={{color:'rgba(255,255,255,0.65)',letterSpacing:'0.2em'}}>{stripEmoji(heroEyebrow)}</p>
             <h1 className="font-extrabold text-white leading-[0.96] mb-6" style={{fontSize:'clamp(2.8rem,7vw,5.25rem)',letterSpacing:'-0.045em',textShadow:'0 3px 28px rgba(0,0,0,0.3)'}}>{heroHeadline}</h1>
             <p className="text-lg sm:text-xl max-w-xl mb-8 leading-relaxed" style={{color:'rgba(255,255,255,0.84)'}}>{heroSubline}</p>
             <div className="flex flex-wrap items-center gap-3 mb-7">
               <Link to={ctaPath} className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl font-extrabold text-warm-900 text-base transition-all hover:-translate-y-0.5 hover:shadow-2xl" style={{background:'linear-gradient(135deg,#FDE68A,#F9A8D4)',boxShadow:'0 12px 35px rgba(249,168,212,0.28)'}}><Icon name="Sparkles" size={18}/>{ctaLabel}</Link>
               <a href="#how-it-works" className="inline-flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-white text-base border border-white/30 hover:bg-white/10 transition-all">See how it works <span aria-hidden="true">↓</span></a>
             </div>
-            {trustBadges && <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold" style={{color:'rgba(255,255,255,0.8)'}}>{trustBadges.map(t=><span key={t} className="flex items-center gap-1.5"><span className="w-5 h-5 rounded-full bg-emerald-400/20 flex items-center justify-center"><Icon name="Check" size={12} className="text-emerald-300"/></span>{t}</span>)}</div>}
+            {trustBadges && <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold" style={{color:'rgba(255,255,255,0.75)'}}>{trustBadges.map(t=><span key={t} className="flex items-center gap-2"><Icon name="Check" size={13} className="text-emerald-300 flex-shrink-0"/>{t}</span>)}</div>}
           </div>
         </div>
-        <div className="absolute bottom-5 right-5 sm:right-8 z-10 px-4 py-2 rounded-full text-xs font-bold text-white" style={{background:'rgba(20,8,30,0.55)',backdropFilter:'blur(10px)',border:'1px solid rgba(255,255,255,0.18)'}}>One link · everyone contributes · one unforgettable reveal</div>
+        <div className="absolute bottom-5 right-5 sm:right-8 z-10 text-xs font-semibold text-white/60">One link · everyone contributes · one unforgettable reveal</div>
       </section>
       ) : (
       <section className="pt-10 pb-4 px-4" style={{ background: 'linear-gradient(180deg,#F5F0FF 0%,#fff 100%)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold mb-5"
-              style={{ background: '#EDE9FE', color: '#7C3AED' }}>
-              {heroEyebrow}
-            </div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-primary-500 mb-5">{stripEmoji(heroEyebrow)}</p>
             <h1 className="font-extrabold text-warm-900 leading-none mb-4"
               style={{ fontSize: 'clamp(2.4rem,7vw,4.5rem)', letterSpacing: '-0.03em' }}>
               {heroHeadline}
@@ -638,7 +637,6 @@ export default function OccasionHeroTemplate({
       <section className="py-16 px-4 text-center"
         style={{ background: 'linear-gradient(135deg,#0d0020,#2d1052)' }}>
         <div className="max-w-xl mx-auto">
-          <div className="text-5xl mb-5">{finalCtaEmoji}</div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-4 leading-tight">
             {finalCtaHeadline}
           </h2>

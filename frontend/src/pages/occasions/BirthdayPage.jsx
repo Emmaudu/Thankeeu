@@ -24,19 +24,19 @@ const BIRTHDAY_SAMPLE_MESSAGES = [
 
 const BIRTHDAY_DEMO_MESSAGES = [
   { initials:'AO', name:'Adaeze O.', color:'#7C3AED', bg:'#EDE9FE',
-    text:"Happy birthday!! You're the reason our whole team smiles every day 🎂",
+    text:"Happy birthday!! You're the reason our whole team smiles every day ",
     gif:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
   { initials:'EK', name:'Emeka K.', color:'#0D9488', bg:'#CCFBF1',
-    text:"Wishing you all the joy this year, boss! You deserve every single bit of it 🎉",
+    text:"Wishing you all the joy this year, boss! You deserve every single bit of it ",
     gif:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
   { initials:'KI', name:'Kemi I.',  color:'#DB2777', bg:'#FCE7F3',
-    text:"Another year wiser and still the coolest person in the office. Happy birthday! 🥳",
+    text:"Another year wiser and still the coolest person in the office. Happy birthday! ",
     gif:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
   { initials:'BD', name:'Bolu D.', color:'#92400E', bg:'#FEF3C7',
-    text:"From the whole team — we are so lucky to have you. Keep shining! ✨",
+    text:"From the whole team — we are so lucky to have you. Keep shining! ",
     gif:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
   { initials:'TN', name:'Tunde N.', color:'#1D4ED8', bg:'#DBEAFE',
-    text:"You have no idea how much we appreciate everything you do. Have an amazing day! 💪",
+    text:"You have no idea how much we appreciate everything you do. Have an amazing day! ",
     gif:'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
 ];
 
@@ -141,7 +141,7 @@ export default function BirthdayPage() {
           SCHEMAS.faqPage(FAQS.map(({ q, a }) => ({ q, a }))),
         ],
       }}
-      heroEyebrow="🎂 Online Birthday Cards"
+      heroEyebrow="Online Birthday Cards"
       heroHeadline={<>Give them more than<br/><span style={{color:'#FDE68A'}}>another birthday message.</span></>}
       heroSubline="Bring every message, photo, GIF and voice note into one beautiful keepsake — then deliver it at exactly the right moment. No chasing. Nobody left out."
       heroImage="/images/heroes/birthday-hero.jpg"
@@ -161,7 +161,7 @@ export default function BirthdayPage() {
       comparisonRows={COMPARISON_ROWS}
       testimonialsHeadline={<>People who made<br/><span className="text-primary-500">someone's birthday unforgettable</span></>}
       faqs={FAQS}
-      finalCtaEmoji="🎂"
+      finalCtaEmoji=""
       finalCtaHeadline={<>Make their birthday<br/>one they'll never forget.</>}
       finalCtaSubline="Free to create. The whole team signs. Delivered at exactly the right moment."
       sampleMessages={BIRTHDAY_SAMPLE_MESSAGES}

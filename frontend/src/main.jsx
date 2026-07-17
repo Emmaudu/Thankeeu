@@ -51,3 +51,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     </ErrorBoundary>
   </React.StrictMode>
 )
+
+// Remove the loading class immediately — this hides the shell spinner
+// and reveals the React-rendered page without a blank flash.
+document.body.classList.remove('loading');

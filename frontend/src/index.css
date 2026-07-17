@@ -35,6 +35,25 @@
   }
 }
 
+/* ── FOUC (Flash Of Unstyled / Blank Content) prevention ────────────────── */
+/* The body gets class="loading" until React mounts. During that window we   */
+/* show a clean instant spinner so there's never a blank white flash.        */
+body.loading #root { opacity: 0; }
+#app-shell-loader {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  background: #FDFCFF;
+  transition: opacity 0.18s ease;
+}
+body:not(.loading) #app-shell-loader { opacity: 0; pointer-events: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#app-shell-loader-inner {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 3px solid #ede9fe;
+  border-top-color: #7c3aed;
+  animation: spin 0.75s linear infinite;
+}
+
 /* ── Component classes ───────────────────────────────────────────── */
 @layer components {
 

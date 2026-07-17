@@ -1002,7 +1002,7 @@ const WhatsAppVsThankeeu = () => (
 /* ─── Main Home ──────────────────────────────────────────────────────── */
 const Home = () => {
  useSEO({
- title:'Group Cards, Gift Pools & Company Workspaces — Thankeeu',
+ title:'Thankeeu — Group Cards, Gift Pools & Company Workspaces',
  description:'Create online group cards, gift pools, Memory Movies and company workspaces on your own Thankeeu subdomain. Automate employee birthdays, farewells, anniversaries and team celebrations while still making personal cards for any occasion.',
  canonical:'/',
  keywords:'online group card, company workspace, employee recognition workspace, HR birthday automation, wildcard subdomain workspace, group birthday card, farewell card online, group gift collection, memory movie slideshow, collect wedding guest photos, event photo sharing QR code, live photo wall, digital group card, team birthday card, group card app',

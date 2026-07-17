@@ -167,10 +167,8 @@ export default function LeavingCardPage() {
         <div className="max-w-6xl mx-auto flex items-center py-16 sm:py-24" style={{minHeight:'min(760px,82vh)'}}>
           {/* eyebrow */}
           <div className="text-left max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold mb-5"
-              style={{ background:'rgba(255,255,255,0.14)',color:'#fff',border:'1px solid rgba(255,255,255,0.22)',backdropFilter:'blur(10px)' }}>
-              👋 Online Leaving Cards
-            </div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] mb-5"
+              style={{ color: 'rgba(255,255,255,0.65)' }}>Online Leaving Cards</p>
             <h1 className="font-extrabold text-white leading-none mb-5"
               style={{ fontSize: 'clamp(2.4rem,7vw,4.5rem)', letterSpacing: '-0.03em' }}>
               Their last day deserves<br />
@@ -491,7 +489,6 @@ export default function LeavingCardPage() {
       <section className="py-16 px-4 text-center"
         style={{ background: 'linear-gradient(135deg,#0d0020,#2d1052)' }}>
         <div className="max-w-xl mx-auto">
-          <div className="text-5xl mb-5">👋</div>
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-4 leading-tight">
             Give them the farewell<br />they actually deserve.
           </h2>

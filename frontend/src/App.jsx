@@ -106,6 +106,7 @@ import NotFound         from './pages/NotFound';
 import BirthdayPage    from './pages/occasions/BirthdayPage';
 import { GroupCardsUK, GroupCardsUS, GroupCardsCanada, GroupCardsNigeria } from './pages/occasions/CountryLandingPage';
 import LeavingCardPage from './pages/LeavingCardPage';
+import PetLossCardPage from './pages/PetLossCardPage';
 import LeavingCardGallery from './pages/LeavingCardGallery';
 import CardGallery from './pages/CardGallery';
 import BabyShowerPage from './pages/BabyShowerPage';
@@ -416,6 +417,9 @@ const App = () => (
             <Route path="/online-group-cards-canada"  element={<GroupCardsCanada />} />
             <Route path="/online-group-cards-nigeria" element={<GroupCardsNigeria />} />
             <Route path="/cards/leaving-card"    element={<LeavingCardPage />} />
+            <Route path="/cards/pet-loss-card"   element={<PetLossCardPage />} />
+            <Route path="/cards/pet-sympathy-card" element={<PetLossCardPage />} />
+            <Route path="/cards/pet-memorial-card" element={<PetLossCardPage />} />
             <Route path="/cards/leaving-card/gallery" element={<LeavingCardGallery />} />
             <Route path="/cards/create" element={<CardGallery />} />
             <Route path="/cards/retirement"      element={<RetirementPage />} />

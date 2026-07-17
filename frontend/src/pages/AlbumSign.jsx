@@ -405,18 +405,25 @@ const NewSignerPage = ({
       )}
 
       {/* Message body — inline editable */}
-      <div style={{ flex:1, margin:'6px 24px 0 60px', display:'flex', flexDirection:'column', minHeight:0, position:'relative', zIndex:2 }}>
+      <div style={{ margin:'6px 24px 0 60px', position:'relative', zIndex:2 }}>
         {editing ? (
           <textarea
             className="album-inline-input"
             autoFocus
             value={content}
-            onChange={e=>onDraftChange({ content:e.target.value })}
+            onChange={e=>{
+              onDraftChange({ content:e.target.value });
+              // Auto-expand: grow with content, never show scrollbar
+              e.target.style.height='auto';
+              e.target.style.height=(e.target.scrollHeight)+'px';
+            }}
             placeholder="Write your message right here…"
             style={{
               fontFamily:fStyle?.family||"'Caveat',cursive",
-              fontSize:22, color:fontColor, lineHeight:'34px', flex:1, minHeight:180,
-              paddingTop:2,
+              fontSize:22, color:fontColor, lineHeight:'34px',
+              minHeight:180, height:'auto', width:'100%',
+              overflowY:'hidden', resize:'none', display:'block',
+              paddingTop:2, boxSizing:'border-box',
             }}
           />
         ) : content ? (
@@ -424,7 +431,7 @@ const NewSignerPage = ({
             fontFamily:fStyle?.family||"'Caveat',cursive",
             fontSize:Math.min(24,Math.max(15,24-Math.floor((content.length||0)/48))),
             color:fontColor, lineHeight:'34px', margin:0, wordBreak:'break-word',
-            flex:1, overflow:'hidden', whiteSpace:'pre-wrap',
+            whiteSpace:'pre-wrap',
           }}>
             {content}
           </p>

@@ -117,11 +117,22 @@ const CardCoverPreview = ({
           lineHeight: 1.08,
           letterSpacing: field === 'sender' ? '0.04em' : '-0.01em',
           wordBreak: 'break-word',
-          textShadow: hasImage || hasArtwork
-            ? (col.toLowerCase() === '#ffffff'
-              ? '0 2px 12px rgba(0,0,0,0.45)'
-              : '0 1px 8px rgba(255,255,255,0.55)')
-            : 'none',
+          textShadow: (() => {
+            // Per-field shadow from cover_layout takes priority
+            if (cfg.shadow) {
+              const color = cfg.shadowColor || '#000000';
+              const op = cfg.shadowOpacity ?? 0.55;
+              const r = parseInt(color.slice(1,3),16), g = parseInt(color.slice(3,5),16), b = parseInt(color.slice(5,7),16);
+              return `0 2px 8px rgba(${r},${g},${b},${op}), 0 1px 3px rgba(${r},${g},${b},${Math.min(1,op+0.2)})`;
+            }
+            // Fallback: subtle auto-shadow on image/artwork covers for readability
+            if (hasImage || hasArtwork) {
+              return col.toLowerCase() === '#ffffff'
+                ? '0 2px 12px rgba(0,0,0,0.45)'
+                : '0 1px 8px rgba(255,255,255,0.45)';
+            }
+            return 'none';
+          })(),
           cursor: editable ? 'grab' : 'default',
           userSelect: 'none',
           padding: '2px 4px',

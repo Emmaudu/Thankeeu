@@ -174,8 +174,8 @@ function writeStatic(relPath, html) {
 const STATIC_PAGES = [
   {
     path: '/',
-    title: 'Thankeeu — Online Group Cards & Gift Collection | Everyone Signs',
-    description: 'Create an online group card for birthdays, leaving dos, retirements and more. Everyone signs from one link. Optional gift pool in GBP, NGN, USD and more. Free to start.',
+    title: 'Thankeeu — Group Cards, Gift Pools & Company Workspaces',
+    description: 'Create online group cards, gift pools, Memory Movies and company workspaces on your own Thankeeu subdomain. Automate employee birthdays, farewells, anniversaries and team celebrations while still making personal cards for any occasion.',
   },
   {
     path: '/pricing',
@@ -241,6 +241,11 @@ const STATIC_PAGES = [
     path: '/cards/leaving-card',
     title: 'Online Leaving Card — Group Leaving Cards for Colleagues | Thankeeu',
     description: "Create an online leaving card the whole team signs from one link. Messages, photos, GIFs and voice notes, plus an optional gift collection. Free to start — no signup needed to sign.",
+  },
+  {
+    path: '/cards/pet-loss-card',
+    title: 'Online Pet Loss & Pet Sympathy Card — Group Memorial Cards Everyone Signs | Thankeeu',
+    description: 'Create an online pet loss card the whole family and friends sign from one link. A group pet sympathy & memorial card for the loss of a dog, cat, bird or any beloved pet — messages, photos, voice notes and a Rainbow Bridge keepsake. Free to start, no signup to sign.',
   },
   {
     path: '/cards/retirement',

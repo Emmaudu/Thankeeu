@@ -234,6 +234,14 @@ export const SCHEMAS = {
     description: SITE_DESC,
     publisher:  { '@id': `${BASE_URL}/#organization` },
     inLanguage: 'en',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${BASE_URL}/blog?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
   },
 
   softwareApp: {

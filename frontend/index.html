@@ -18,7 +18,7 @@
     <meta name="msapplication-TileImage" content="/android-chrome-192x192.png" />
 
     <!-- ── Primary SEO (pre-hydration fallback) ──────────────────────── -->
-    <title>Thankeeu - Group Cards, Gifts & Company Workspaces</title>
+    <title>Thankeeu — Group Cards, Gift Pools & Company Workspaces</title>
     <meta name="description" content="Thankeeu creates online group cards, gift pools, memory movies and dedicated company workspaces on your own subdomain. Automate employee birthdays, farewells, anniversaries and team celebrations." />
     <meta name="msvalidate.01" content="2F2D04C986CE92E80F60D0D18CDB61C0" />
     <meta name="robots"   content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
@@ -151,7 +151,13 @@
     }
     </script>
   </head>
-  <body>
+  <body class="loading">
+    <!-- App-shell loading spinner — hidden immediately once React mounts.
+         Prevents the blank white flash that occurs between HTML parse and
+         first React paint. CSS in index.css controls .loading / not(.loading). -->
+    <div id="app-shell-loader" aria-hidden="true">
+      <div id="app-shell-loader-inner"></div>
+    </div>
     <div id="root"><nav aria-label="Thankeeu services"><a href="/occasions/birthday">Birthday group cards</a> <a href="/cards/leaving-card">Leaving cards</a> <a href="/cards/retirement">Retirement cards</a> <a href="/live-memory-wall">Live Memory Wall</a> <a href="/pricing">Pricing</a> <a href="/how-it-works">How it works</a></nav><main><h1>Thankeeu online group cards, gifts and Live Memory Walls</h1><p>Create a beautiful group card everyone signs from one link. Add messages, photos, GIFs, voice notes, a group gift, or a live two-column memory wall for birthdays, farewells and retirements.</p><p><a href="/create-card">Create a group card</a> or <a href="/sample">view a sample card</a>.</p></main></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

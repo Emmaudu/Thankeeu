@@ -94,7 +94,7 @@ function EditableWallCard({ card, index, onChange, onRemove, canRemove }) {
   );
 }
 
-function LiveWallStudioPreview({ cards = [], onChange, creatorName }) {
+function LiveWallStudioPreview({ cards = [], onChange, creatorName, design, form }) {
   const [wallPage, setWallPage] = useState(0);
   const cardsPerPage = 6;
   const pageCount = Math.max(1, Math.ceil(cards.length / cardsPerPage));
@@ -119,39 +119,261 @@ function LiveWallStudioPreview({ cards = [], onChange, creatorName }) {
     onChange?.(next);
     setWallPage(Math.ceil(next.length / cardsPerPage) - 1);
   };
+  useEffect(() => { if (wallPage >= pageCount) setWallPage(pageCount - 1); }, [pageCount, wallPage]);
 
-  useEffect(() => {
-    if (wallPage >= pageCount) setWallPage(pageCount - 1);
-  }, [pageCount, wallPage]);
+  // Reflect the cover design colors into the wall preview header
+  const heroBg = design?.background || form?.background_color || 'linear-gradient(135deg,#7c3aed,#5b21b6)';
+  const accent = design?.accent || '#7c3aed';
+  const isCustomUrl = typeof form?.background_color === 'string' && /^https?:\/\//.test(form?.background_color);
+  const headerBg = isCustomUrl
+    ? `linear-gradient(180deg,rgba(0,0,0,0.25),rgba(0,0,0,0.55)),url("${form.background_color}") center/cover no-repeat`
+    : heroBg;
 
   return (
     <div className="w-full">
-      <style>{`
-        .live-wall-preview-scroll::-webkit-scrollbar{width:11px}
-        .live-wall-preview-scroll::-webkit-scrollbar-track{background:#ede9fe;border-radius:999px}
-        .live-wall-preview-scroll::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#7c3aed,#ec4899,#f59e0b);border:2px solid #ede9fe;border-radius:999px}
-      `}</style>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div><p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-warm-500">Live wall preview</p><p className="mt-1 text-sm font-bold text-warm-900">Edit every two-column carousel card</p></div>
-        <span className="rounded-md border border-fuchsia-100 bg-white px-2.5 py-1 text-[10px] font-extrabold text-fuchsia-600">Updates live</span>
-      </div>
-      <div className="overflow-hidden rounded-2xl border border-purple-100 bg-gradient-to-br from-violet-50 via-pink-50 to-amber-50 shadow-[0_24px_70px_rgba(27,34,48,0.16)]">
-        <div className="border-b border-white/70 px-4 py-4 text-center"><p className="text-lg font-black text-warm-900">Live Memory Wall</p><p className="text-[10px] font-semibold text-warm-500">Six cards per page · two columns × three rows · each card holds a five-item carousel</p></div>
-        <div className="live-wall-preview-scroll max-h-[760px] overflow-y-auto p-3" style={{ scrollbarColor: '#ec4899 #ede9fe', scrollbarWidth: 'thin' }}>
-          <div className="grid grid-cols-2 gap-3">{visible.map((card, index) => <EditableWallCard key={card.id} card={card} index={wallPage * cardsPerPage + index} onChange={patch => updateCard(index, patch)} onRemove={() => removeCard(index)} canRemove={cards.length > 1} />)}</div>
-        </div>
-        <div className="border-t border-white/70 bg-white/70 px-3 py-3">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <button type="button" onClick={() => go(0)} disabled={wallPage === 0} className="rounded-lg border border-purple-100 bg-white px-2 py-1 text-[10px] font-extrabold text-primary-600 disabled:opacity-30">First</button>
-            <button type="button" onClick={() => go(wallPage - 1)} disabled={wallPage === 0} className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary-600 disabled:opacity-30"><Icon name="ChevronLeft" size={14} /></button>
-            <label className="rounded-lg border border-purple-100 bg-white px-2 py-1 text-[10px] font-extrabold text-warm-600">Page <select value={wallPage} onChange={event => go(Number(event.target.value))} className="bg-transparent font-black text-primary-600 outline-none">{Array.from({ length: pageCount }, (_, index) => <option key={index} value={index}>{index + 1} of {pageCount}</option>)}</select></label>
-            <button type="button" onClick={() => go(wallPage + 1)} disabled={wallPage === pageCount - 1} className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-primary-600 disabled:opacity-30"><Icon name="ChevronRight" size={14} /></button>
-            <button type="button" onClick={() => go(pageCount - 1)} disabled={wallPage === pageCount - 1} className="rounded-lg border border-purple-100 bg-white px-2 py-1 text-[10px] font-extrabold text-primary-600 disabled:opacity-30">Last</button>
+      <div className="overflow-hidden rounded-2xl border border-purple-100 shadow-[0_24px_70px_rgba(27,34,48,0.16)]">
+        {/* Header — reflects chosen cover design color */}
+        <div className="relative overflow-hidden px-4 py-6 text-center" style={{ background: headerBg }}>
+          {design?.artwork && (
+            <div className="absolute inset-0 opacity-60 pointer-events-none">
+              <CardCoverPreview design={design} occasionLabel="" recipientName="" title="" senderName="" compact
+                layout={{ recipient: { show: false }, title: { show: false }, sender: { show: false } }} />
+            </div>
+          )}
+          <div className="relative z-10">
+            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-[10px] font-extrabold text-white uppercase tracking-widest">
+              <Icon name="Camera" size={11}/> Live Memory Wall™
+            </span>
+            <h3 className="text-xl font-black text-white drop-shadow-lg mt-2">
+              {form?.recipient_name ? `For ${form.recipient_name}` : 'Memory Wall Preview'}
+            </h3>
+            <p className="text-white/75 text-xs mt-1">Guests upload photos & videos from one QR link</p>
+            <div className="mt-3 flex justify-center gap-3">
+              {['📸 Photos', '🎥 Videos', '💬 Messages'].map(label => (
+                <span key={label} className="rounded-full bg-white/20 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-white">{label}</span>
+              ))}
+            </div>
           </div>
-          <button type="button" onClick={addRow} className="mx-auto mt-3 flex w-full max-w-sm items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-500 to-pink-500 px-4 py-3 text-xs font-extrabold text-white shadow-lg"><Icon name="Plus" size={15} />Add another row (2 cards)</button>
-          <p className="mt-2 text-center text-[9px] font-semibold text-warm-400">Rows are unlimited. Pagination appears after every third row.</p>
+        </div>
+
+        <div className="bg-gradient-to-b from-purple-50 to-white px-3 py-3">
+          <div className="grid grid-cols-2 gap-3">
+            {visible.map((card, index) => (
+              <EditableWallCard key={card.id} card={card} index={wallPage * cardsPerPage + index}
+                onChange={patch => updateCard(index, patch)} onRemove={() => removeCard(index)}
+                canRemove={cards.length > 1} accentColor={accent} />
+            ))}
+          </div>
+        </div>
+
+        <div className="border-t border-purple-50 bg-white px-3 py-3">
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-2">
+            <button type="button" onClick={() => go(wallPage - 1)} disabled={wallPage === 0}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-100 bg-white text-primary-600 disabled:opacity-30">
+              <Icon name="ChevronLeft" size={14} />
+            </button>
+            <span className="text-[10px] font-extrabold text-warm-600">Page {wallPage + 1} of {pageCount}</span>
+            <button type="button" onClick={() => go(wallPage + 1)} disabled={wallPage === pageCount - 1}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-100 bg-white text-primary-600 disabled:opacity-30">
+              <Icon name="ChevronRight" size={14} />
+            </button>
+          </div>
+          <button type="button" onClick={addRow}
+            className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-extrabold text-white shadow-sm"
+            style={{ background: `linear-gradient(135deg,${accent},${accent}cc)` }}>
+            <Icon name="Plus" size={15}/>Add another row (2 cards)
+          </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** BoardPreview — interactive live preview of the message-board card style */
+function BoardPreview({ design, form, message, creatorName, onMessageChange, onAddMedia, media = [], onRemoveMedia }) {
+  const accent = design?.accent || '#7c3aed';
+  const heroBg = design?.background || form?.background_color || `linear-gradient(135deg,${accent},${accent}cc)`;
+  const isCustomUrl = typeof form?.background_color === 'string' && /^https?:\/\//.test(form?.background_color);
+  const headerBg = isCustomUrl
+    ? `linear-gradient(180deg,rgba(0,0,0,0.22),rgba(0,0,0,0.52)),url("${form.background_color}") center/cover no-repeat`
+    : heroBg;
+  const recipient = form?.recipient_name?.trim() || 'Recipient';
+  const sender = form?.cover_sender?.trim() || creatorName || 'You';
+
+  const [giftPickerOpen, setGiftPickerOpen] = useState(false);
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const boardPhotoRef = useRef(null);
+
+  const allPhotos = media.filter(m => m.type === 'image' || m.type === 'gif');
+  const allVideos = media.filter(m => m.type === 'video');
+  const voiceMedia = media.find(m => m.type === 'voice');
+  const [boardPhotoIdx, setBoardPhotoIdx] = useState(0);
+  const [boardVideoIdx, setBoardVideoIdx] = useState(0);
+  const activePhoto = allPhotos[Math.min(boardPhotoIdx, allPhotos.length - 1)];
+  const activeVideo = allVideos[Math.min(boardVideoIdx, allVideos.length - 1)];
+
+  const handleBoardFiles = (e) => { const fs = e.target.files; if (fs?.length && onAddMedia) onAddMedia(fs); e.target.value = ''; };
+
+  const giftActive = form?.is_gift_enabled;
+  const isFlowerGift = ['flower', 'flowers'].includes(form?.gift_type);
+  const isProductGift = ['product', 'gift'].includes(form?.gift_type);
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-purple-100 shadow-[0_24px_70px_rgba(27,34,48,0.16)]">
+
+      {/* Hero header */}
+      <div className="relative px-5 pt-7 pb-8 text-center" style={{ background: headerBg, color: '#fff' }}>
+        {design?.artwork && !isCustomUrl && (
+          <div className="absolute inset-0 opacity-65 pointer-events-none">
+            <CardCoverPreview design={design} occasionLabel="" recipientName="" title="" senderName="" compact
+              layout={{ recipient:{show:false}, title:{show:false}, sender:{show:false} }} />
+          </div>
+        )}
+        <div className="relative z-10">
+          <h2 style={{ fontFamily:"'Great Vibes',cursive", fontSize:'clamp(1.7rem,6vw,2.4rem)', lineHeight:1.1 }}>
+            {form?.title || `Happy ${(form?.occasion||'').replace(/_/g,' ')||'Celebration'}, ${recipient}!`}
+          </h2>
+          <p className="mt-1 text-[11px] font-bold uppercase tracking-widest" style={{opacity:.8}}>From {sender}</p>
+        </div>
+      </div>
+
+      {/* Creator's message tile */}
+      <div className="bg-white px-4 pt-4 pb-2 space-y-3">
+        <div className="rounded-2xl border-2 border-purple-100 bg-purple-50/40 p-3">
+          <p className="text-[10px] font-extrabold text-primary-500 uppercase tracking-wider mb-1.5">Your message</p>
+          <textarea
+            className="w-full bg-transparent text-sm text-warm-800 leading-relaxed resize-none outline-none placeholder:text-warm-400"
+            rows={3}
+            placeholder="Write your message here — or skip and add one later…"
+            value={message?.content || ''}
+            onChange={e => onMessageChange?.(e.target.value)}
+            style={{ minHeight: 64 }}
+          />
+          {/* Media strip */}
+          {(allPhotos.length > 0 || allVideos.length > 0 || voiceMedia) && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {activePhoto && (
+                <div className="relative h-14 w-14 rounded-xl overflow-hidden border-2 border-primary-200">
+                  <img src={activePhoto.preview} alt="" className="h-full w-full object-cover"/>
+                  {allPhotos.length > 1 && <span className="absolute bottom-0.5 right-0.5 rounded bg-black/60 px-1 text-[8px] font-bold text-white">{boardPhotoIdx+1}/{allPhotos.length}</span>}
+                  <button type="button" onClick={() => onRemoveMedia?.(media.indexOf(activePhoto))}
+                    className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[8px]">×</button>
+                </div>
+              )}
+              {activeVideo && (
+                <div className="relative h-14 w-14 rounded-xl overflow-hidden border-2 border-blue-200 bg-blue-50 flex items-center justify-center">
+                  <Icon name="Film" size={18} className="text-blue-400"/>
+                  <button type="button" onClick={() => onRemoveMedia?.(media.indexOf(activeVideo))}
+                    className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[8px]">×</button>
+                </div>
+              )}
+              {voiceMedia && (
+                <div className="flex h-14 items-center gap-1.5 rounded-xl border-2 border-purple-200 bg-purple-50 px-2">
+                  <Icon name="Mic" size={14} className="text-primary-500"/>
+                  <span className="text-[10px] font-bold text-primary-600">Voice ✓</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Media action buttons */}
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <button type="button" onClick={() => setMediaPickerOpen(true)}
+              className="inline-flex items-center gap-1 rounded-lg bg-purple-50 px-2.5 py-1.5 text-[10px] font-extrabold text-primary-600 hover:bg-primary-50 transition-colors">
+              <Icon name="Image" size={12}/> Photo / GIF
+            </button>
+            <button type="button" onClick={() => { boardPhotoRef.current.accept='video/*'; boardPhotoRef.current.click(); }}
+              className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-[10px] font-extrabold text-blue-600 hover:bg-blue-100 transition-colors">
+              <Icon name="Film" size={12}/> Video
+            </button>
+            <button type="button" onClick={() => setGiftPickerOpen(true)}
+              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-extrabold transition-colors ${giftActive ? 'bg-amber-100 text-amber-700' : 'bg-gray-50 text-warm-500 hover:bg-amber-50 hover:text-amber-600'}`}>
+              {giftActive ? (isFlowerGift ? '💐' : isProductGift ? '🎁' : '💸') : <Icon name="Gift" size={12}/>}
+              {giftActive ? (isFlowerGift ? 'Flowers' : isProductGift ? 'Gift' : 'Money gift') : ' Add gift'}
+            </button>
+          </div>
+        </div>
+
+        {/* Hidden inputs */}
+        <input ref={boardPhotoRef} type="file" accept="image/*" className="hidden" onChange={handleBoardFiles}/>
+
+        {/* Contributors placeholder tiles */}
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: 'Ada O.', color: accent },
+            { label: 'Chidi M.', color: '#0ea5e9' },
+          ].map((n, i) => (
+            <div key={n.label} className="rounded-xl border border-dashed border-purple-200 bg-purple-50/30 p-2.5">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-extrabold text-white" style={{background:n.color}}>{n.label[0]}</span>
+                <span className="text-[10px] font-bold text-warm-400">{n.label}</span>
+              </div>
+              <div className="space-y-1"><div className="h-1.5 w-full rounded bg-purple-100"/><div className="h-1.5 w-2/3 rounded bg-purple-100"/></div>
+            </div>
+          ))}
+        </div>
+
+        <p className="pb-2 text-center text-[10px] text-warm-400">
+          Each person who joins adds their own message, photos &amp; voice note
+        </p>
+      </div>
+
+      {/* Media picker sheet */}
+      {mediaPickerOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={() => setMediaPickerOpen(false)}>
+          <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <p className="mb-3 text-center text-sm font-extrabold text-warm-800">Add to your message</p>
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => { setMediaPickerOpen(false); boardPhotoRef.current.accept='image/*'; boardPhotoRef.current.click(); }}
+                className="flex flex-col items-center gap-2 rounded-xl border-2 border-purple-100 p-4 hover:border-primary-300">
+                <Icon name="Image" size={22} className="text-primary-500"/>
+                <span className="text-xs font-bold text-warm-700">Upload Photo</span>
+              </button>
+              <button type="button" onClick={() => { setMediaPickerOpen(false); boardPhotoRef.current.accept='image/gif'; boardPhotoRef.current.click(); }}
+                className="flex flex-col items-center gap-2 rounded-xl border-2 border-purple-100 p-4 hover:border-primary-300">
+                <span className="text-lg font-extrabold text-primary-500">GIF</span>
+                <span className="text-xs font-bold text-warm-700">Upload GIF</span>
+              </button>
+            </div>
+            <button type="button" onClick={() => setMediaPickerOpen(false)}
+              className="mt-3 w-full rounded-xl bg-gray-100 py-2 text-xs font-bold text-warm-500">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Gift picker sheet */}
+      {giftPickerOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={() => setGiftPickerOpen(false)}>
+          <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <p className="mb-3 text-center text-sm font-extrabold text-warm-800">Add a gift option</p>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { id: 'money', emoji: '💸', label: 'Money gift', desc: 'Pool cash together' },
+                { id: 'product', emoji: '🎁', label: 'Gift / other', desc: 'Voucher, item…' },
+                { id: 'flower', emoji: '💐', label: 'Flowers', desc: 'Arrange a bouquet' },
+              ].slice(0, giftActive ? 3 : 3).map(g => (
+                <button key={g.id} type="button"
+                  onClick={() => { /* signals to parent — for preview only we just show feedback */ setGiftPickerOpen(false); }}
+                  className="flex flex-col items-center gap-1.5 rounded-xl border-2 border-purple-100 p-3 hover:border-primary-300">
+                  <span className="text-2xl">{g.emoji}</span>
+                  <span className="text-[10px] font-extrabold text-warm-800">{g.label}</span>
+                  <span className="text-[9px] text-warm-400">{g.desc}</span>
+                </button>
+              ))}
+              {giftActive && (
+                <button type="button"
+                  onClick={() => setGiftPickerOpen(false)}
+                  className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border-2 border-red-100 p-3 hover:border-red-200 text-[11px] font-bold text-red-400">
+                  <Icon name="X" size={12}/> Remove gift
+                </button>
+              )}
+            </div>
+            <p className="mt-3 text-center text-[10px] text-warm-400">Gift options are configured in the Gift &amp; Pay step</p>
+            <button type="button" onClick={() => setGiftPickerOpen(false)}
+              className="mt-2 w-full rounded-xl bg-gray-100 py-2 text-xs font-bold text-warm-500">Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -175,7 +397,7 @@ export function makeWallPreviewCard(sender = '', index = 0) {
  */
 const AlbumStudioPreview = ({
   design, form, message, occasionLabel, activeStep, creatorName,
-  layout, onLayoutChange, selectedField, onSelectField,
+  layout, onLayoutChange, onCardLayoutChange, selectedField, onSelectField,
   media = [], onAddMedia, onRemoveMedia, onMessageChange, recipientPhoto, onRecipientPhoto,
   wallDrafts = [], onWallDraftsChange,
 }) => {
@@ -183,6 +405,8 @@ const AlbumStudioPreview = ({
   const [lightbox, setLightbox] = useState(null);
   const [gifPickerFor, setGifPickerFor] = useState(false);
   const [flipDirection, setFlipDirection] = useState('');
+  // 3-tab preview switcher — default is 'group' (Group Card)
+  const [previewTab, setPreviewTab] = useState('group');
   const audioCtxRef = useRef(null);
   const flipTimerRef = useRef(null);
   const photoInputRef = useRef(null);
@@ -248,6 +472,13 @@ const AlbumStudioPreview = ({
   const photoMedia = media.find(m => m.type === 'image' || m.type === 'gif');
   const videoMedia = media.find(m => m.type === 'video');
   const voiceMedia = media.find(m => m.type === 'voice');
+  // Carousel: all photos/GIFs and all videos as separate arrays
+  const allPhotos = media.filter(m => m.type === 'image' || m.type === 'gif');
+  const allVideos = media.filter(m => m.type === 'video');
+  const [photoCarouselIdx, setPhotoCarouselIdx] = useState(0);
+  const [videoCarouselIdx, setVideoCarouselIdx] = useState(0);
+  const activePhoto = allPhotos[Math.min(photoCarouselIdx, allPhotos.length - 1)];
+  const activeVideo = allVideos[Math.min(videoCarouselIdx, allVideos.length - 1)];
   const giftActive = form.is_gift_enabled;
   const isFlowerGift = ['flower', 'flowers'].includes(form.gift_type);
   const isProductGift = ['product', 'gift'].includes(form.gift_type);
@@ -263,67 +494,6 @@ const AlbumStudioPreview = ({
     return <LiveWallStudioPreview cards={wallDrafts} onChange={onWallDraftsChange} creatorName={sender} />;
   }
 
-  // ── Board-style preview ─────────────────────────────────────────────────────
-  if (isBoard) {
-    return (
-      <div className="w-full">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-warm-500">Live board preview</p>
-            <p className="mt-1 text-sm font-bold text-warm-900">Message board</p>
-          </div>
-          <span className="rounded-md border border-purple-100 bg-white px-2.5 py-1 text-[10px] font-extrabold text-warm-500">Updates live</span>
-        </div>
-
-        <div className="relative overflow-hidden rounded-2xl border border-black/5 shadow-[0_24px_70px_rgba(27,34,48,0.16)]" style={{ minHeight: 'clamp(430px,69vh,710px)', background: '#f7f5ff' }}>
-          <div className="relative px-5 pt-8 pb-10 text-center" style={{ background: design?.background || 'linear-gradient(160deg,#7c3aed,#5b21b6)', color: coverTextColor }}>
-            {design?.artwork && (
-              <div className="absolute inset-0 opacity-90">
-                <CardCoverPreview design={design} occasionLabel="" recipientName="" title="" senderName="" compact
-                  layout={{ recipient: { show: false }, title: { show: false }, sender: { show: false } }} />
-              </div>
-            )}
-            <div className="relative z-10 flex flex-col items-center">
-              <button type="button" onClick={() => recipientInputRef.current?.click()}
-                className="group relative mb-3 h-20 w-20 overflow-hidden rounded-full border-4 border-white/70 shadow-lg" style={{ background: 'rgba(255,255,255,0.25)' }}>
-                {recipientPhoto?.preview
-                  ? <img src={recipientPhoto.preview} alt="" className="h-full w-full object-cover" />
-                  : <span className="flex h-full w-full flex-col items-center justify-center text-white"><Icon name="Camera" size={20} /><span className="mt-0.5 text-[8px] font-bold">Add photo</span></span>}
-              </button>
-              <input ref={recipientInputRef} type="file" accept="image/*" className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f && onRecipientPhoto) onRecipientPhoto(f); e.target.value = ''; }} />
-              <h1 style={{ fontFamily: "'Great Vibes', cursive", fontSize: 'clamp(1.8rem,7vw,2.8rem)', lineHeight: 1.1 }}>
-                {form.title || `Happy ${occasionLabel}, ${recipient}!`}
-              </h1>
-              {form.cover_sender && <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em]" style={{ opacity: 0.85 }}>From {sender}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 p-4">
-            <div className="col-span-2 rounded-xl border border-purple-100 bg-white p-4 shadow-sm">
-              <p className="break-words" style={{ fontFamily: messageFont.family, fontSize: '1.05rem', color: '#2a2140' }}>{messageText}</p>
-              <div className="mt-3 flex items-center gap-2">
-                {photoMedia && <img src={photoMedia.preview} alt="" className="h-12 w-12 cursor-pointer rounded-lg object-cover" onClick={() => setLightbox({ type: photoMedia.type, src: photoMedia.preview })} />}
-                <span className="text-[11px] font-bold text-warm-400">— {sender}</span>
-              </div>
-            </div>
-            {['Ada O.', 'Chidi M.', 'Sola B.'].map((n, i) => (
-              <div key={n} className="rounded-xl border border-dashed border-purple-200 bg-white/60 p-3">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-extrabold text-white" style={{ background: ['#7c3aed', '#0ea5e9', '#ec4899'][i] }}>{n[0]}</span>
-                  <span className="text-[11px] font-bold text-warm-500">{n}</span>
-                </div>
-                <div className="mt-2 space-y-1.5"><div className="h-2 w-full rounded bg-purple-100" /><div className="h-2 w-3/4 rounded bg-purple-100" /></div>
-              </div>
-            ))}
-          </div>
-          <p className="pb-4 text-center text-[11px] font-bold text-warm-400">Everyone's messages appear together on one scrollable board</p>
-        </div>
-        {lightbox && <Lightbox lightbox={lightbox} onClose={() => setLightbox(null)} />}
-      </div>
-    );
-  }
-
   // ── Album-style preview ─────────────────────────────────────────────────────
   return (
     <div className="w-full">
@@ -334,15 +504,91 @@ const AlbumStudioPreview = ({
         .album-page-turn.forward { animation:album-leaf-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; }
         .album-page-turn.back { animation:album-leaf-back .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; }
       `}</style>
+
+      {/* ── 2-tab preview switcher: Group Card | Live Wall ── */}
+      <div className="mb-3 flex items-center gap-2 rounded-2xl bg-purple-50 p-1">
+        {[
+          { id: 'group', label: 'Group Card', icon: 'Mail' },
+          { id: 'wall',  label: 'Live Wall',  icon: 'Camera' },
+        ].map(tab => (
+          <button key={tab.id} type="button" onClick={() => {
+            setPreviewTab(tab.id);
+            // Switching to group card resets layout to album so the flipbook preview shows
+            if (tab.id === 'group' && previewTab === 'wall') {
+              // don't force a layout change here — just switch the view tab
+            }
+          }}
+            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-extrabold transition-all ${previewTab === tab.id ? 'bg-white text-primary-700 shadow-sm' : 'text-warm-500 hover:text-warm-700'}`}>
+            <Icon name={tab.icon} size={13}/>{tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Sub-options under Group Card: Album Flipbook | Message Board */}
+      {previewTab === 'group' && (
+        <div className="mb-3 flex items-center gap-2 px-1">
+          {[
+            { id: 'album', label: 'Album flipbook', recommended: true },
+            { id: 'form',  label: 'Message board', recommended: false },
+          ].map(sub => (
+            <button key={sub.id} type="button"
+              onClick={() => onCardLayoutChange?.(sub.id)}
+              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-extrabold transition-all ${
+                (form.card_layout === sub.id || (!form.card_layout && sub.id === 'album'))
+                  ? 'border-primary-400 bg-primary-50 text-primary-700'
+                  : 'border-purple-100 bg-white text-warm-500 hover:border-purple-200'
+              }`}>
+              {sub.label}
+              {sub.recommended && <span className="rounded-full bg-primary-100 px-1.5 py-0.5 text-[9px] font-extrabold text-primary-600">Rec</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-warm-500">Live album preview</p>
-          <p className="mt-1 text-sm font-bold text-warm-900">{PAGE_LABELS[page]}{page === 0 ? ' · drag & edit texts' : page === 1 ? ' · tap to add media' : ''}</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-warm-500">
+            Live {previewTab === 'wall' ? 'wall' : isBoard ? 'board' : 'album'} preview
+          </p>
+          <p className="mt-1 text-sm font-bold text-warm-900">
+            {previewTab === 'wall'
+              ? 'Contributors upload photos & videos'
+              : isBoard
+                ? 'Messages appear as a scrollable board'
+                : (PAGE_LABELS[page] + (page === 0 ? ' · drag & edit texts' : page === 1 ? ' · tap to add media' : ''))}
+          </p>
         </div>
         <span className="rounded-md border border-purple-100 bg-white px-2.5 py-1 text-[10px] font-extrabold text-warm-500">Editable</span>
       </div>
 
-      <div className="relative overflow-hidden border border-black/5 shadow-[0_24px_70px_rgba(27,34,48,0.16)]"
+      {/* Multi-page hint — tells creator signers will add their own pages */}
+      {previewTab === 'group' && page === 1 && (
+        <div className="mb-3 flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
+          <Icon name="Users" size={15} className="text-amber-600 flex-shrink-0"/>
+          <p className="text-xs text-amber-700 font-semibold leading-snug">
+            Each person who signs gets their own page. Swipe right to see more pages added as people sign →
+          </p>
+        </div>
+      )}
+
+      {/* ── Conditional preview content ── */}
+      {previewTab === 'wall' && (
+        <LiveWallStudioPreview
+          cards={wallDrafts}
+          onChange={onWallDraftsChange}
+          creatorName={creatorName}
+          design={design}
+          form={form}
+        />
+      )}
+
+      {/* Group Card tab — shows board or album based on card_layout sub-option */}
+      {previewTab === 'group' && isBoard && (
+        <BoardPreview design={design} form={form} message={message} creatorName={creatorName}
+          onMessageChange={onMessageChange} onAddMedia={onAddMedia} media={media} onRemoveMedia={onRemoveMedia} />
+      )}
+
+      {previewTab === 'group' && !isBoard && <div className="relative overflow-hidden border border-black/5 shadow-[0_24px_70px_rgba(27,34,48,0.16)]"
         style={{ minHeight: 'clamp(430px, 69vh, 710px)', borderRadius: 8, background: stageBackground }}>
         {theme.id === 'cover_blur' && !design?.artwork && <div className="absolute inset-0 bg-white/20 backdrop-blur-xl" />}
         <div className="absolute inset-0 bg-black/5" />
@@ -395,19 +641,53 @@ const AlbumStudioPreview = ({
                   <span className="text-right text-[9px] font-extrabold uppercase tracking-[0.18em] opacity-45">Thankeeu</span>
                   {page === 1 ? (
                     <div className="flex flex-1 flex-col gap-3 py-4">
-                      <MediaTile big filled={!!photoMedia} accent={design?.accent}
-                        onClick={() => photoMedia ? setLightbox({ type: photoMedia.type, src: photoMedia.preview }) : setGifPickerFor(true)}
-                        onRemove={photoMedia ? () => onRemoveMedia?.(media.indexOf(photoMedia)) : null}>
-                        {photoMedia
-                          ? (photoMedia.type === 'video' ? <video src={photoMedia.preview} className="h-full w-full object-cover" /> : <img src={photoMedia.preview} alt="" className="h-full w-full object-cover" />)
-                          : <><Icon name="Image" size={22} className="opacity-45" /><span className="mt-1.5 text-[10px] font-bold opacity-55">Photo / GIF</span><span className="text-[8px] opacity-40">tap to add</span></>}
+                      <MediaTile big filled={!!activePhoto} accent={design?.accent}
+                        onClick={() => activePhoto ? setLightbox({ type: activePhoto.type, src: activePhoto.preview }) : setGifPickerFor(true)}
+                        onRemove={activePhoto ? () => { onRemoveMedia?.(media.indexOf(activePhoto)); setPhotoCarouselIdx(0); } : null}>
+                        {activePhoto ? (
+                          <div className="relative h-full w-full">
+                            {activePhoto.type === 'video'
+                              ? <video src={activePhoto.preview} className="h-full w-full object-cover" />
+                              : <img src={activePhoto.preview} alt="" className="h-full w-full object-cover" />}
+                            {allPhotos.length > 1 && (
+                              <div className="absolute inset-x-0 bottom-1 flex items-center justify-center gap-1">
+                                <button type="button" onClick={e => { e.stopPropagation(); setPhotoCarouselIdx(i => Math.max(0, i - 1)); }}
+                                  className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white" disabled={photoCarouselIdx === 0}>
+                                  <Icon name="ChevronLeft" size={10}/>
+                                </button>
+                                <span className="rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-bold text-white">{photoCarouselIdx + 1}/{allPhotos.length}</span>
+                                <button type="button" onClick={e => { e.stopPropagation(); setPhotoCarouselIdx(i => Math.min(allPhotos.length - 1, i + 1)); }}
+                                  className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white" disabled={photoCarouselIdx >= allPhotos.length - 1}>
+                                  <Icon name="ChevronRight" size={10}/>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : <><Icon name="Image" size={22} className="opacity-45" /><span className="mt-1.5 text-[10px] font-bold opacity-55">Photo / GIF</span><span className="text-[8px] opacity-40">tap to add · add multiple</span></>}
                       </MediaTile>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <MediaTile filled={!!videoMedia} accent={design?.accent}
-                          onClick={() => videoMedia ? setLightbox({ type: 'video', src: videoMedia.preview }) : pick(videoInputRef)}
-                          onRemove={videoMedia ? () => onRemoveMedia?.(media.indexOf(videoMedia)) : null}>
-                          {videoMedia ? <video src={videoMedia.preview} className="h-full w-full object-cover" /> : <><Icon name="Film" size={18} className="opacity-45" /><span className="mt-1 text-[9px] font-bold opacity-50">Video</span></>}
+                        <MediaTile filled={!!activeVideo} accent={design?.accent}
+                          onClick={() => activeVideo ? setLightbox({ type: 'video', src: activeVideo.preview }) : pick(videoInputRef)}
+                          onRemove={activeVideo ? () => { onRemoveMedia?.(media.indexOf(activeVideo)); setVideoCarouselIdx(0); } : null}>
+                          {activeVideo ? (
+                            <div className="relative h-full w-full">
+                              <video src={activeVideo.preview} className="h-full w-full object-cover" />
+                              {allVideos.length > 1 && (
+                                <div className="absolute inset-x-0 bottom-0.5 flex items-center justify-center gap-0.5">
+                                  <button type="button" onClick={e => { e.stopPropagation(); setVideoCarouselIdx(i => Math.max(0, i - 1)); }}
+                                    className="flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white" disabled={videoCarouselIdx === 0}>
+                                    <Icon name="ChevronLeft" size={8}/>
+                                  </button>
+                                  <span className="rounded-full bg-black/60 px-1 py-0 text-[7px] font-bold text-white">{videoCarouselIdx + 1}/{allVideos.length}</span>
+                                  <button type="button" onClick={e => { e.stopPropagation(); setVideoCarouselIdx(i => Math.min(allVideos.length - 1, i + 1)); }}
+                                    className="flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white" disabled={videoCarouselIdx >= allVideos.length - 1}>
+                                    <Icon name="ChevronRight" size={8}/>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ) : <><Icon name="Film" size={18} className="opacity-45" /><span className="mt-1 text-[9px] font-bold opacity-50">Video</span></>}
                         </MediaTile>
                         <MediaTile filled={!!voiceMedia} accent={design?.accent}
                           onClick={() => voiceMedia ? setLightbox({ type: 'voice', src: voiceMedia.preview }) : pick(voiceInputRef)}
@@ -438,12 +718,14 @@ const AlbumStudioPreview = ({
             </div>
           )}
         </div>
-      </div>
+      </div>}
 
       <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFiles} />
       <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleFiles} />
       <input ref={voiceInputRef} type="file" accept="audio/*" className="hidden" onChange={handleFiles} />
 
+      {/* Pager dots — only for album flipbook */}
+      {previewTab === 'group' && !isBoard && (
       <div className="mx-auto mt-4 flex w-fit items-center gap-3 rounded-full border border-purple-100 bg-white px-3 py-2 shadow-sm">
         <button type="button" onClick={() => movePage(-1)} disabled={page === 0} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronLeft" size={17} /></button>
         <div className="flex items-center gap-1.5">
@@ -451,6 +733,7 @@ const AlbumStudioPreview = ({
         </div>
         <button type="button" onClick={() => movePage(1)} disabled={page === 2} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronRight" size={17} /></button>
       </div>
+      )}
 
       {gifPickerFor && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={() => setGifPickerFor(false)}>

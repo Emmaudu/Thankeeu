@@ -19,8 +19,18 @@ const ASSETS_BASE = BASE_URL; // Vite assets live here
 
 const CRAWLER_RE = /facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|slackbot|telegrambot|discordbot|applebot|googlebot|adsbot-google|google-inspectiontool|mediapartners-google|bingbot|bingpreview|duckduckbot|yandex(bot)?|baiduspider|pinterest|vkshare|xing-contenttabreceiver|mattermost|rocket\.chat|iframely|opengraph|preview|embedly|quora/i;
 
+// Search-index crawlers (as opposed to social link-preview crawlers). Individual
+// cards are private, user-generated pages that must NOT be indexed — they'd be
+// thin/near-duplicate content that dilutes the site's overall quality signal and
+// can suppress the brand in search. We still return rich OG tags (so social
+// previews work) but add noindex for these engines.
+const SEARCH_CRAWLER_RE = /googlebot|google-inspectiontool|adsbot-google|mediapartners-google|bingbot|bingpreview|duckduckbot|yandex(bot)?|baiduspider|applebot/i;
+
 function isCrawler(ua) {
   return CRAWLER_RE.test(ua || '');
+}
+function isSearchCrawler(ua) {
+  return SEARCH_CRAWLER_RE.test(ua || '');
 }
 
 function esc(str) {
@@ -45,14 +55,15 @@ async function fetchCardMeta(slug) {
   }
 }
 
-function ogHtml({ title, description, ogImage, canonicalUrl, forBrowser }) {
+function ogHtml({ title, description, ogImage, canonicalUrl, forBrowser, noindex }) {
   const t   = esc(title);
   const d   = esc(description);
   const img = esc(ogImage);
   const u   = esc(canonicalUrl);
+  const robotsMeta = noindex ? '\n  <meta name="robots" content="noindex,follow"/>' : '';
 
   // Common meta block
-  const meta = `
+  const meta = `${robotsMeta}
   <title>${t}</title>
   <meta name="description"          content="${d}"/>
   <meta property="og:type"          content="website"/>
@@ -67,7 +78,7 @@ function ogHtml({ title, description, ogImage, canonicalUrl, forBrowser }) {
   <meta property="og:image:alt"     content="${t}"/>
   <meta property="og:site_name"     content="Thankeeu"/>
   <meta name="twitter:card"         content="summary_large_image"/>
-  <meta name="twitter:site"         content="@thankeeu_ng"/>
+  <meta name="twitter:site"         content="@thankeeu"/>
   <meta name="twitter:title"        content="${t}"/>
   <meta name="twitter:description"  content="${d}"/>
   <meta name="twitter:image"        content="${img}"/>
@@ -135,7 +146,8 @@ export default async function handler(req) {
 
   const slug       = match[2];
   const canonicalUrl = `${BASE_URL}${url.pathname}${url.search}`;
-  const crawler    = isCrawler(ua);
+  const crawler       = isCrawler(ua);
+  const searchCrawler = isSearchCrawler(ua);
 
   // Fetch card meta from backend (needed for both crawlers and browser OG tags)
   const meta   = await fetchCardMeta(slug);
@@ -146,17 +158,17 @@ export default async function handler(req) {
   const description = meta?.description
     || 'Add your message to a beautiful group card on Thankeeu — takes 60 seconds, no account needed.';
 
-  const html = ogHtml({ title, description, ogImage, canonicalUrl, forBrowser: !crawler });
+  // Individual cards are private/user-generated — never index them, but keep OG
+  // tags so WhatsApp/Facebook/Twitter previews still render.
+  const html = ogHtml({ title, description, ogImage, canonicalUrl, forBrowser: !crawler, noindex: searchCrawler });
 
-  return new Response(html, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/html; charset=utf-8',
-      'Cache-Control': crawler
-        ? 'public, max-age=60, s-maxage=60'
-        : 'no-store',
-    },
-  });
+  const headers = {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': crawler ? 'public, max-age=60, s-maxage=60' : 'no-store',
+  };
+  if (searchCrawler) headers['X-Robots-Tag'] = 'noindex, follow';
+
+  return new Response(html, { status: 200, headers });
 }
 
 export const config = { runtime: 'edge' };

@@ -62,7 +62,7 @@ const STATIC_LASTMOD = {
   '/':                      '2026-07-17',
   '/pricing':               '2026-07-01',
   '/how-it-works':          '2026-07-15',
-  '/card/new':              '2026-07-15',
+  '/cards/pet-loss-card':   '2026-07-17',
   '/sample':                '2026-06-27',
   '/faq':                   '2026-06-27',
   '/policy':                '2026-06-27',
@@ -88,7 +88,7 @@ const STATIC_PAGES = [
     } },
   { loc: '/pricing',         changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/how-it-works',    changefreq: 'monthly', priority: '0.8', hreflang: true },
-  { loc: '/card/new',        changefreq: 'monthly', priority: '0.9', hreflang: true },
+
   { loc: '/sample',          changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/faq',             changefreq: 'monthly', priority: '0.6', hreflang: true },
 
@@ -98,6 +98,7 @@ const STATIC_PAGES = [
   { loc: '/online-group-cards-canada',  changefreq: 'monthly', priority: '0.9', hreflang: 'en-CA' },
   { loc: '/online-group-cards-nigeria', changefreq: 'monthly', priority: '0.9', hreflang: 'en-NG' },
   { loc: '/cards/leaving-card',    changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/cards/pet-loss-card',   changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/cards/retirement',      changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/cards/get-well-soon',   changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/cards/thank-you',       changefreq: 'monthly', priority: '0.8', hreflang: true },

@@ -388,6 +388,278 @@ const SettingsTab = () => {
 };
 
 
+const CoverDesignTab = () => {
+  const [occasions,      setOccasions]      = React.useState([]);
+  const [occasion,       setOccasion]       = React.useState('');
+  const [designs,        setDesigns]        = React.useState([]);
+  const [loadingOccasions, setLoadingOccasions] = React.useState(true);
+  const [loadingDesigns, setLoadingDesigns] = React.useState(false);
+  const [uploading,      setUploading]      = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState(null); // { done, total } while uploading
+  const [dragOver,       setDragOver]       = React.useState(false);
+  const [deletingId,     setDeletingId]     = React.useState(null);
+  const [msg,            setMsg]            = React.useState(null);
+  const [pendingFiles,   setPendingFiles]   = React.useState([]); // previewed before confirming upload
+  const fileInputRef = React.useRef(null);
+
+  // Load occasion list once
+  React.useEffect(() => {
+    adminAPI.getCoverDesignOccasions()
+      .then(r => {
+        const list = r.data?.occasions || [];
+        setOccasions(list);
+        if (list.length) setOccasion(list[0].id);
+      })
+      .catch(e => setMsg({ type: 'err', text: e.response?.data?.error || 'Could not load occasions' }))
+      .finally(() => setLoadingOccasions(false));
+  }, []);
+
+  const fetchDesigns = React.useCallback((occ) => {
+    if (!occ) return;
+    setLoadingDesigns(true);
+    adminAPI.getCoverDesigns(occ)
+      .then(r => setDesigns(r.data?.designs || []))
+      .catch(e => setMsg({ type: 'err', text: e.response?.data?.error || 'Could not load designs' }))
+      .finally(() => setLoadingDesigns(false));
+  }, []);
+
+  React.useEffect(() => { fetchDesigns(occasion); }, [occasion, fetchDesigns]);
+
+  const revokeAll = (files) => files.forEach(f => { try { URL.revokeObjectURL(f.preview); } catch {} });
+
+  const handleFilesSelected = (fileList) => {
+    setMsg(null);
+    const files = Array.from(fileList || []);
+    const accepted = [];
+    for (const f of files) {
+      if (!f.type.startsWith('image/')) {
+        setMsg({ type: 'err', text: `${f.name} is not an image — skipped.` });
+        continue;
+      }
+      if (f.size > 9 * 1024 * 1024) {
+        setMsg({ type: 'err', text: `${f.name} is over 9MB — skipped.` });
+        continue;
+      }
+      accepted.push({ file: f, preview: URL.createObjectURL(f) });
+    }
+    if (accepted.length) setPendingFiles(prev => [...prev, ...accepted]);
+  };
+
+  const removePending = (idx) => {
+    setPendingFiles(prev => {
+      const copy = [...prev];
+      const [removed] = copy.splice(idx, 1);
+      if (removed) URL.revokeObjectURL(removed.preview);
+      return copy;
+    });
+  };
+
+  const clearPending = () => { revokeAll(pendingFiles); setPendingFiles([]); };
+
+  const confirmUpload = async () => {
+    if (!occasion) return setMsg({ type: 'err', text: 'Choose an occasion first' });
+    if (!pendingFiles.length) return setMsg({ type: 'err', text: 'Add at least one image first' });
+    setUploading(true);
+    setUploadProgress({ done: 0, total: pendingFiles.length });
+    setMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append('occasion', occasion);
+      // Order matters: file[0] here becomes the newest/top-most design, so
+      // the order the admin arranged them in (selection/drop order) is
+      // exactly the order they'll queue at the top of the live picker.
+      pendingFiles.forEach(p => fd.append('designs', p.file));
+      const r = await adminAPI.uploadCoverDesigns(fd);
+      setMsg({ type: 'ok', text: r.data?.message || `${pendingFiles.length} design(s) uploaded.` });
+      clearPending();
+      fetchDesigns(occasion);
+    } catch (e) {
+      setMsg({ type: 'err', text: e.response?.data?.error || e.message || 'Upload failed' });
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+    }
+  };
+
+  const handleDelete = async (design) => {
+    if (!window.confirm(`Remove "${design.name || 'this design'}"? It will disappear from the live design picker immediately.`)) return;
+    setDeletingId(design.id);
+    try {
+      await adminAPI.deleteCoverDesign(design.id);
+      setDesigns(prev => prev.filter(d => d.id !== design.id));
+      setMsg({ type: 'ok', text: 'Design deleted.' });
+    } catch (e) {
+      setMsg({ type: 'err', text: e.response?.data?.error || 'Delete failed' });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    handleFilesSelected(e.dataTransfer.files);
+  };
+
+  const occasionLabel = occasions.find(o => o.id === occasion)?.label || occasion;
+
+  return (
+    <div style={{ maxWidth: 980, margin: '0 auto', padding: '32px 16px' }}>
+      <h2 style={{ fontWeight: 800, fontSize: 22, color: '#1A1035', marginBottom: 6 }}>Cover Design</h2>
+      <p style={{ color: '#7A6CA8', fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>
+        Bulk-upload cover designs per occasion. New uploads appear <strong>first</strong> in the design picker
+        wherever covers are shown — older uploads and the built-in designs simply queue behind them, none are lost.
+      </p>
+
+      {/* Occasion selector */}
+      <div style={{ background: '#fff', border: '2px solid #EDE9FE', borderRadius: 20, padding: 24, marginBottom: 20 }}>
+        <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: '#1A1035', marginBottom: 8 }}>Occasion</label>
+        {loadingOccasions ? (
+          <div style={{ color: '#A898CC', fontSize: 13 }}>Loading occasions…</div>
+        ) : (
+          <select
+            value={occasion}
+            onChange={e => { setOccasion(e.target.value); clearPending(); setMsg(null); }}
+            style={{
+              width: '100%', maxWidth: 360, padding: '10px 14px', borderRadius: 12,
+              border: '1.5px solid #DDD6FE', fontSize: 14, fontWeight: 700, color: '#1A1035',
+              background: '#FDFCFF', cursor: 'pointer',
+            }}>
+            {occasions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
+        )}
+        <p style={{ fontSize: 12, color: '#A898CC', marginTop: 8 }}>
+          Uploads are scoped to this occasion — designs uploaded here only ever appear when someone is
+          creating a card for "{occasionLabel}".
+        </p>
+      </div>
+
+      {/* Bulk upload zone */}
+      <div style={{ background: '#fff', border: '2px solid #EDE9FE', borderRadius: 20, padding: 24, marginBottom: 20 }}>
+        <p style={{ fontWeight: 800, fontSize: 15, color: '#1A1035', margin: '0 0 4px' }}>Bulk upload designs</p>
+        <p style={{ fontSize: 13, color: '#7A6CA8', margin: '0 0 16px' }}>
+          JPG, PNG or WEBP, up to 9MB each. Select or drop multiple files at once — they'll queue in the order
+          you add them, with the first file becoming the newest (top) design.
+        </p>
+
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          onClick={() => !uploading && fileInputRef.current?.click()}
+          style={{
+            border: `2px dashed ${dragOver ? '#7C3AED' : '#C4B5FD'}`,
+            borderRadius: 16, padding: '32px 24px', textAlign: 'center',
+            cursor: uploading ? 'not-allowed' : 'pointer',
+            background: dragOver ? '#F5F0FF' : '#FDFCFF',
+            transition: 'all 0.15s', opacity: uploading ? 0.7 : 1,
+          }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>🎨</div>
+          <p style={{ fontWeight: 700, fontSize: 14, color: '#4B3F72', margin: '0 0 4px' }}>
+            Drop cover images here, or click to browse
+          </p>
+          <p style={{ fontSize: 12, color: '#A898CC', margin: 0 }}>You can select multiple files at once</p>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            style={{ display: 'none' }}
+            onChange={(e) => { handleFilesSelected(e.target.files); e.target.value = ''; }}
+          />
+        </div>
+
+        {/* Pending preview grid — nothing is uploaded until Confirm is pressed */}
+        {pendingFiles.length > 0 && (
+          <div style={{ marginTop: 18 }}>
+            <p style={{ fontSize: 12, fontWeight: 800, color: '#1A1035', marginBottom: 10 }}>
+              {pendingFiles.length} design{pendingFiles.length === 1 ? '' : 's'} ready to upload — order shown is upload order (first = newest)
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
+              {pendingFiles.map((p, idx) => (
+                <div key={idx} style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '2px solid #EDE9FE', aspectRatio: '3/4', background: '#F5F0FF' }}>
+                  {idx === 0 && (
+                    <span style={{ position: 'absolute', top: 5, left: 5, zIndex: 2, background: '#7C3AED', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 6px', borderRadius: 999 }}>TOP</span>
+                  )}
+                  <img src={p.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button type="button" onClick={() => removePending(idx)} disabled={uploading}
+                    style={{ position: 'absolute', top: 5, right: 5, width: 22, height: 22, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.65)', color: '#fff', fontSize: 13, cursor: uploading ? 'not-allowed' : 'pointer', lineHeight: '22px' }}>×</button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+              <button type="button" onClick={confirmUpload} disabled={uploading}
+                style={{ flex: 1, background: 'linear-gradient(135deg,#7C3AED,#EC4899)', color: '#fff', border: 'none', borderRadius: 12, padding: '11px 18px', fontWeight: 800, fontSize: 14, cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.7 : 1 }}>
+                {uploading ? `Uploading ${uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : '…'}` : `Upload ${pendingFiles.length} design${pendingFiles.length === 1 ? '' : 's'} to "${occasionLabel}"`}
+              </button>
+              <button type="button" onClick={clearPending} disabled={uploading}
+                style={{ background: '#F5F0FF', color: '#7A6CA8', border: '1.5px solid #EDE9FE', borderRadius: 12, padding: '11px 18px', fontWeight: 700, fontSize: 13, cursor: uploading ? 'not-allowed' : 'pointer' }}>
+                Clear
+              </button>
+            </div>
+          </div>
+        )}
+
+        {msg && (
+          <div style={{
+            marginTop: 16, padding: '12px 16px', borderRadius: 12,
+            background: msg.type === 'ok' ? '#F0FDF4' : '#FEF2F2',
+            border: `1.5px solid ${msg.type === 'ok' ? '#86EFAC' : '#FCA5A5'}`,
+            color: msg.type === 'ok' ? '#166534' : '#DC2626',
+            fontSize: 13, fontWeight: 600,
+          }}>
+            {msg.type === 'ok' ? '✓ ' : '✕ '}{msg.text}
+          </div>
+        )}
+      </div>
+
+      {/* Existing designs for this occasion — the actual live queue */}
+      <div style={{ background: '#fff', border: '2px solid #EDE9FE', borderRadius: 20, padding: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <p style={{ fontWeight: 800, fontSize: 15, color: '#1A1035', margin: 0 }}>
+            Live queue for "{occasionLabel}" {designs.length > 0 && <span style={{ color: '#A898CC', fontWeight: 600 }}>({designs.length})</span>}
+          </p>
+          <button type="button" onClick={() => fetchDesigns(occasion)} disabled={loadingDesigns}
+            style={{ background: 'none', border: '1px solid #DDD6FE', borderRadius: 8, color: '#7C3AED', fontSize: 12, fontWeight: 700, padding: '5px 12px', cursor: 'pointer' }}>
+            {loadingDesigns ? 'Refreshing…' : 'Refresh'}
+          </button>
+        </div>
+
+        {loadingDesigns ? (
+          <div style={{ textAlign: 'center', padding: 32, color: '#A898CC', fontSize: 14 }}>Loading…</div>
+        ) : designs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 32, color: '#A898CC', fontSize: 13 }}>
+            No admin-uploaded designs for this occasion yet. The design picker is showing only the built-in
+            designs — upload some above and they'll appear here and on the live site immediately.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 12 }}>
+            {designs.map((d, idx) => (
+              <div key={d.id} style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', border: '2px solid #EDE9FE', background: '#F5F0FF' }}>
+                {idx === 0 && (
+                  <span style={{ position: 'absolute', top: 6, left: 6, zIndex: 2, background: '#7C3AED', color: '#fff', fontSize: 9, fontWeight: 800, padding: '2px 7px', borderRadius: 999 }}>NEWEST · TOP OF QUEUE</span>
+                )}
+                <div style={{ aspectRatio: '3/4', overflow: 'hidden' }}>
+                  <img src={d.image_url} alt={d.name || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ padding: '8px 10px' }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#1A1035', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.name || 'Untitled'}</p>
+                  <p style={{ fontSize: 9, color: '#A898CC', margin: '2px 0 0' }}>{new Date(d.created_at).toLocaleDateString()}</p>
+                </div>
+                <button type="button" onClick={() => handleDelete(d)} disabled={deletingId === d.id}
+                  style={{ position: 'absolute', top: 6, right: 6, width: 24, height: 24, borderRadius: '50%', border: 'none', background: 'rgba(220,38,38,0.9)', color: '#fff', fontSize: 13, cursor: deletingId === d.id ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {deletingId === d.id ? '…' : '×'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+
 const BroadcastTab = () => {
   const [subject,    setSubject]    = React.useState('');
   const [body,       setBody]       = React.useState('');
@@ -910,6 +1182,7 @@ const Admin = () => {
             { id:'blog',      icon:'✍️', label:'Blog',          badge:null },
             { id:'vendors',   icon:'🏪', label:'Vendors',       badge:null },
             { id:'pals',      icon:'🤝', label:'Pals',          badge:palApplications.filter(p=>p.status==='pending').length||null },
+            { id:'coverdesigns', icon:'🎨', label:'Cover Design', badge:null },
             { id:'settings',  icon:'🎵', label:'Settings',       badge:null },
           ].map(item => {
             const active = tab === item.id;
@@ -972,6 +1245,7 @@ const Admin = () => {
             { id:'blog',      icon:'PenLine', label:'Blog', badge:null },
             { id:'vendors',   icon:'Store', label:'Vendors', badge:null },
             { id:'pals',      icon:'HeartHandshake', label:'Pals', badge:palApplications.filter(p=>p.status==='pending').length||null },
+            { id:'coverdesigns', icon:'Image', label:'Cover Design', badge:null },
             { id:'settings',  icon:'Settings', label:'Settings', badge:null },
           ].map(item => {
             const active = tab === item.id;
@@ -1003,7 +1277,7 @@ const Admin = () => {
         <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <div>
             <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
-              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','settings':'Settings'})[tab] || tab}
+              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
             </h1>
             <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
           </div>
@@ -2088,6 +2362,7 @@ const Admin = () => {
         )}
 
         {/* ── SETTINGS TAB ── */}
+        {tab === 'coverdesigns' && <CoverDesignTab />}
         {tab === 'settings' && <SettingsTab />}
 
         </div>

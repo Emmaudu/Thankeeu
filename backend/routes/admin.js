@@ -110,6 +110,120 @@ router.delete('/music', async (req, res) => {
 });
 
 
+// ── Cover designs (bulk upload per occasion) ──────────────────────────────
+const { uploadCoverDesigns, deleteFile: deleteCloudinaryFile } = require('../utils/cloudinary');
+
+// Canonical occasion list — kept in sync with frontend's OCCASION_BLUEPRINTS
+// in occasionCardDesigns.js. Validated server-side so a typo or unexpected
+// value can never silently create an orphan occasion no page will ever query.
+const COVER_DESIGN_OCCASIONS = [
+  { id: 'birthday', label: 'Birthday' },
+  { id: 'valentine', label: "Valentine's" },
+  { id: 'anniversary', label: 'Anniversary' },
+  { id: 'wedding', label: 'Wedding' },
+  { id: 'baby_shower', label: 'Baby shower' },
+  { id: 'retirement', label: 'Retirement' },
+  { id: 'congratulations', label: 'Congratulations' },
+  { id: 'graduation', label: 'Graduation' },
+  { id: 'promotion', label: 'Promotion' },
+  { id: 'christmas', label: 'Christmas' },
+  { id: 'get_well', label: 'Get well' },
+  { id: 'new_year', label: 'New Year' },
+  { id: 'thank_you', label: 'Thank you' },
+  { id: 'sympathy', label: 'Sympathy' },
+  { id: 'good_luck', label: 'Good luck' },
+  { id: 'leaving', label: 'Leaving' },
+];
+const VALID_COVER_OCCASION_IDS = new Set(COVER_DESIGN_OCCASIONS.map(o => o.id));
+
+// GET /admin/cover-designs/occasions — the list to populate the dropdown
+router.get('/cover-designs/occasions', (req, res) => {
+  res.json({ ok: true, occasions: COVER_DESIGN_OCCASIONS });
+});
+
+// GET /admin/cover-designs?occasion=birthday — newest first (the "queue")
+router.get('/cover-designs', async (req, res) => {
+  try {
+    const { occasion } = req.query;
+    let query = supabase.from('cover_designs').select('*').order('created_at', { ascending: false });
+    if (occasion) {
+      if (!VALID_COVER_OCCASION_IDS.has(occasion)) return res.status(400).json({ error: 'Unknown occasion' });
+      query = query.eq('occasion', occasion);
+    }
+    const { data, error } = await query;
+    if (error) throw new Error(error.message);
+    res.json({ ok: true, designs: data || [] });
+  } catch (err) {
+    console.error('[admin/cover-designs GET] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /admin/cover-designs — bulk upload. Field: occasion (text) + designs (files[]).
+// Ordering guarantee: file[0] in the batch ends up newest (created_at is stamped
+// in reverse so it sorts first), and the whole batch sorts above every design
+// uploaded before it, because "now" is always later than any past created_at.
+router.post('/cover-designs', uploadCoverDesigns.array('designs', 40), async (req, res) => {
+  try {
+    const { occasion } = req.body;
+    if (!occasion || !VALID_COVER_OCCASION_IDS.has(occasion)) {
+      return res.status(400).json({ error: 'A valid occasion is required' });
+    }
+    const files = req.files || [];
+    if (!files.length) return res.status(400).json({ error: 'No design images were uploaded' });
+
+    const baseTime = Date.now();
+    const rows = files.map((file, i) => {
+      const imageUrl = file.path || file.secure_url;
+      return {
+        occasion,
+        name: (file.originalname || `Design ${i + 1}`).replace(/\.[a-z0-9]+$/i, '').slice(0, 100),
+        image_url: imageUrl,
+        cloudinary_public_id: file.filename || file.public_id || null,
+        is_active: true,
+        uploaded_by_admin_id: req.user?.id || null,
+        // Stamp so file[0] sorts newest within this batch, all of them newer
+        // than baseTime so the whole batch sorts above prior uploads too.
+        created_at: new Date(baseTime + (files.length - i)).toISOString(),
+      };
+    });
+
+    const { data, error } = await supabase.from('cover_designs').insert(rows).select();
+    if (error) throw new Error(error.message);
+
+    console.log(`[admin] Uploaded ${data.length} cover design(s) for occasion "${occasion}"`);
+    res.status(201).json({
+      ok: true,
+      designs: data,
+      message: `${data.length} design${data.length === 1 ? '' : 's'} uploaded and now showing first for ${occasion}.`,
+    });
+  } catch (err) {
+    console.error('[admin/cover-designs POST] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE /admin/cover-designs/:id — remove one design (Cloudinary + DB)
+router.delete('/cover-designs/:id', validateUUIDParam('id'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { data: design } = await supabase.from('cover_designs').select('cloudinary_public_id').eq('id', id).maybeSingle();
+    if (!design) return res.status(404).json({ error: 'Design not found' });
+
+    const { error } = await supabase.from('cover_designs').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+
+    if (design.cloudinary_public_id) {
+      deleteCloudinaryFile(design.cloudinary_public_id, 'image').catch(() => {}); // best-effort, non-blocking
+    }
+    res.json({ ok: true, message: 'Design deleted' });
+  } catch (err) {
+    console.error('[admin/cover-designs DELETE] error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 const supabase      = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
 const FRONTEND_URL  = process.env.FRONTEND_URL || 'https://thankeeu.com';

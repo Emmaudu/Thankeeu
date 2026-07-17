@@ -178,6 +178,43 @@ const CardStart = () => {
 
  const [customCoverUrl, setCustomCoverUrl] = useState(null); // Cloudinary URL for uploaded cover
  const [uploadingCover, setUploadingCover] = useState(false);
+
+ // Admin-uploaded cover designs for the current occasion (via the Cover Design
+ // admin tab). Newest-first from the backend; merged ahead of the built-in
+ // static designs below so a fresh upload appears first without displacing
+ // older uploads — they queue behind it.
+ const [adminDesigns, setAdminDesigns] = useState([]);
+ useEffect(() => {
+  if (!form.occasion) { setAdminDesigns([]); return; }
+  let cancelled = false;
+  cardsAPI.getCoverDesigns(form.occasion)
+   .then(r => {
+    if (cancelled) return;
+    const rows = r.data?.designs || [];
+    // Wrap each uploaded row into the same shape CARD_DESIGNS entries use
+    // (matches the LEAVING_CARD_DESIGNS wrapper pattern in cardDesigns.js)
+    // so every existing consumer (CardCoverPreview, gallery, etc.) renders
+    // it with zero special-casing.
+    setAdminDesigns(rows.map(row => ({
+     id: `admin-${row.id}`,
+     occasion: row.occasion,
+     name: row.name || 'Uploaded design',
+     icon: 'Image',
+     image: row.image_url,
+     background: '#1a1035',
+     ink: '#ffffff',
+     accent: '#7c3aed',
+     soft: '#f5f0ff',
+     art: 'confetti',
+     dark: true,
+     palette: ['#102a43', '#7c3aed', '#0f766e', '#be123c', '#ca8a04'],
+     badge: 'New',
+    })));
+   })
+   .catch(() => { if (!cancelled) setAdminDesigns([]); }); // never block card creation on this
+  return () => { cancelled = true; };
+ }, [form.occasion]);
+
  const selectedDesign = form.design_theme === 'custom_upload'
    ? {
        id: 'custom_upload', occasion: form.occasion, name: 'Your design',
@@ -185,11 +222,16 @@ const CardStart = () => {
        background: '#1a1035', ink: '#ffffff', accent: '#7c3aed', dark: true,
        coverTitle: form.title, icon: 'Image',
      }
-   : CARD_DESIGNS.find(d => d.id === form.design_theme);
+   : (adminDesigns.find(d => d.id === form.design_theme) || CARD_DESIGNS.find(d => d.id === form.design_theme));
   // Show only real image/artwork covers; retire the old plain gradient templates.
+  // Admin-uploaded designs go first (already newest-first from the API), the
+  // static catalogue follows — this is the "queue" behaviour: a fresh upload
+  // is visible immediately at the front, older uploads and static designs
+  // simply shift down rather than being displaced or lost.
   const availableDesigns = (() => {
     const realCovers = CARD_DESIGNS.filter(d => (d.artwork || d.image) && d.occasion === form.occasion);
-    return realCovers.length ? realCovers : CARD_DESIGNS.filter(d => d.artwork || d.image).slice(0, 10);
+    const staticPool = realCovers.length ? realCovers : CARD_DESIGNS.filter(d => d.artwork || d.image).slice(0, 10);
+    return [...adminDesigns, ...staticPool];
  })();
  const occasionLabel = form.occasion === 'other' && form.custom_occasion
   ? form.custom_occasion
@@ -1411,6 +1453,7 @@ const CardStart = () => {
    onAddMedia={addMedia}
    onRemoveMedia={removeMedia}
    onMessageChange={(content) => setMsg('content', content)}
+   onFormChange={set}
    wallDrafts={wallDrafts}
    onWallDraftsChange={setWallDrafts}
    recipientPhoto={recipientPhoto}

@@ -100,6 +100,7 @@ const addMessage = async (req, res) => {
       author_name: cleanAuthorName,
       author_email: author_email ? author_email.toLowerCase().trim().slice(0, 254) : null,
       signer_user_id: req.user?.id || null,
+      edit_token: require('crypto').randomBytes(24).toString('hex'),
       content: cleanContent,
       is_private: card.allow_private_messages ? parseBoolean(is_private) : false,
       media_url,
@@ -136,9 +137,10 @@ const addMessage = async (req, res) => {
             media_gallery: m_gallery, font_style: f_style,
             position_x: p_x, position_y: p_y, rotation: p_rot, font_color: p_fc,
             font_size: p_fs, page_number: p_pg,
-            signer_user_id: s_uid,
+            signer_user_id: s_uid, edit_token: e_tok,
             ...coreData } = msgData;
     const signerField = s_uid ? { signer_user_id: s_uid } : {};
+    const tokenField = e_tok ? { edit_token: e_tok } : {};
 
     const placementFields = {
       ...(p_x   != null && { position_x: p_x }),
@@ -154,26 +156,29 @@ const addMessage = async (req, res) => {
     const galleryField = m_gallery ? { media_gallery: m_gallery } : {};
 
     const attempts = [
-      // Full: font_style + placement + gift + gallery + signer_user_id
+      // Full: font_style + placement + gift + gallery + signer_user_id + edit_token
+      { ...coreData, ...signerField, ...tokenField, ...galleryField, font_style: font_style || 'handwritten', ...placementFields, ...giftFields },
+      // Without edit_token (migration not run yet)
       { ...coreData, ...signerField, ...galleryField, font_style: font_style || 'handwritten', ...placementFields, ...giftFields },
       // Without signer_user_id (migration not run yet)
+      { ...coreData, ...tokenField, ...galleryField, font_style: font_style || 'handwritten', ...placementFields, ...giftFields },
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...placementFields, ...giftFields },
       // Without placement columns
-      { ...coreData, ...signerField, ...galleryField, font_style: font_style || 'handwritten', ...giftFields },
+      { ...coreData, ...signerField, ...tokenField, ...galleryField, font_style: font_style || 'handwritten', ...giftFields },
       // Without placement + signer
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...giftFields },
       // Without gift columns
-      { ...coreData, ...signerField, ...galleryField, font_style: font_style || 'handwritten', ...placementFields },
+      { ...coreData, ...signerField, ...tokenField, ...galleryField, font_style: font_style || 'handwritten', ...placementFields },
       // Without gift + signer
       { ...coreData, ...galleryField, font_style: font_style || 'handwritten', ...placementFields },
       // Without font_style
-      { ...coreData, ...signerField, ...galleryField, ...placementFields, ...giftFields },
+      { ...coreData, ...signerField, ...tokenField, ...galleryField, ...placementFields, ...giftFields },
       { ...coreData, ...galleryField, ...placementFields, ...giftFields },
       // Without gallery (media_gallery column may not exist)
-      { ...coreData, ...signerField, font_style: font_style || 'handwritten' },
+      { ...coreData, ...signerField, ...tokenField, font_style: font_style || 'handwritten' },
       { ...coreData, font_style: font_style || 'handwritten' },
       // Without gallery and without font_style
-      { ...coreData, ...signerField },
+      { ...coreData, ...signerField, ...tokenField },
       { ...coreData },
       // Core data only — absolute minimum fallback
       coreData,
@@ -399,10 +404,11 @@ const updatePosition = async (req, res) => {
       position_x, position_y, rotation, font_color, font_size, page_number, author_email,
       content, is_private, font_style, author_name, remove_media,
     } = req.body;
+    const presentedToken = req.headers['x-message-edit-token'] || req.body.edit_token;
 
-    // Authorization: original author (email match) OR authenticated card creator/member
+    // Authorization: original author (edit_token match) OR authenticated card creator/member
     const { data: msg } = await supabase
-      .from('messages').select('id, card_id, author_email').eq('id', message_id).maybeSingle();
+      .from('messages').select('id, card_id, author_email, edit_token').eq('id', message_id).maybeSingle();
     if (!msg) return res.status(404).json({ error: 'Message not found' });
 
     let authorized = false;
@@ -416,8 +422,15 @@ const updatePosition = async (req, res) => {
         authorized = true; isCardOwner = true;
       }
     }
-    // 2. Original author email match (guest signers prove identity this way)
-    if (!authorized && author_email && msg.author_email &&
+    // 2. Original author proves identity with the opaque edit_token issued at creation —
+    // NOT by email match, since a client-supplied email is trivially guessable/spoofable.
+    if (!authorized && presentedToken && msg.edit_token && presentedToken === msg.edit_token) {
+      authorized = true;
+    }
+    // 3. Legacy fallback: messages created before the edit_token column existed have
+    // no token to check against. For those (and only those), fall back to the old
+    // email-match behaviour so existing cards aren't permanently locked out of editing.
+    if (!authorized && !msg.edit_token && author_email && msg.author_email &&
         author_email.toLowerCase().trim() === msg.author_email.toLowerCase().trim()) {
       authorized = true;
     }

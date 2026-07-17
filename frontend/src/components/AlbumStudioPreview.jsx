@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CardCoverPreview from './CardCoverPreview';
 import GifPicker from './GifPicker';
+import VoiceRecorder from './VoiceRecorder';
 import Icon from './ui/Icon';
-import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
+import { ALBUM_THEMES, getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
 import { getFontStyle } from '../utils/cardDesigns';
 
 const PAGE_LABELS = ['Cover', 'Message', 'Review'];
@@ -189,46 +190,71 @@ function LiveWallStudioPreview({ cards = [], onChange, creatorName, design, form
   );
 }
 
-/** BoardPreview — interactive live preview of the message-board card style */
-function BoardPreview({ design, form, message, creatorName, onMessageChange, onAddMedia, media = [], onRemoveMedia }) {
+/** BoardPreview — interactive live preview of the message-board card style,
+ * structured as a grid of large clickable tiles (message / photo / voice / video)
+ * so tapping a tile directly opens the 4-way media picker, rather than needing
+ * to hunt for small buttons under a single textarea. */
+function BoardPreview({ design, form, message, creatorName, onMessageChange, onAddMedia, media = [], onRemoveMedia, onFormChange }) {
   const accent = design?.accent || '#7c3aed';
-  const heroBg = design?.background || form?.background_color || `linear-gradient(135deg,${accent},${accent}cc)`;
+  const boardTheme = getAlbumTheme(form?.board_background_theme || form?.album_background_theme);
   const isCustomUrl = typeof form?.background_color === 'string' && /^https?:\/\//.test(form?.background_color);
-  const headerBg = isCustomUrl
-    ? `linear-gradient(180deg,rgba(0,0,0,0.22),rgba(0,0,0,0.52)),url("${form.background_color}") center/cover no-repeat`
-    : heroBg;
+  const heroBg = boardTheme.id !== 'cover_blur'
+    ? boardTheme.stage
+    : isCustomUrl
+      ? `linear-gradient(180deg,rgba(0,0,0,0.22),rgba(0,0,0,0.52)),url("${form.background_color}") center/cover no-repeat`
+      : design?.image ? `url("${design.image}") center / cover no-repeat`
+        : design?.background || `linear-gradient(135deg,${accent},${accent}cc)`;
   const recipient = form?.recipient_name?.trim() || 'Recipient';
   const sender = form?.cover_sender?.trim() || creatorName || 'You';
 
-  const [giftPickerOpen, setGiftPickerOpen] = useState(false);
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [themePickerOpen, setThemePickerOpen] = useState(false);
   const boardPhotoRef = useRef(null);
 
-  const allPhotos = media.filter(m => m.type === 'image' || m.type === 'gif');
-  const allVideos = media.filter(m => m.type === 'video');
-  const voiceMedia = media.find(m => m.type === 'voice');
-  const [boardPhotoIdx, setBoardPhotoIdx] = useState(0);
-  const [boardVideoIdx, setBoardVideoIdx] = useState(0);
-  const activePhoto = allPhotos[Math.min(boardPhotoIdx, allPhotos.length - 1)];
-  const activeVideo = allVideos[Math.min(boardVideoIdx, allVideos.length - 1)];
+  const [boardMediaIdx, setBoardMediaIdx] = useState(0);
+  const activeBoardMedia = media[Math.min(boardMediaIdx, Math.max(0, media.length - 1))];
+
+  useEffect(() => {
+    if (boardMediaIdx >= media.length) setBoardMediaIdx(Math.max(0, media.length - 1));
+  }, [boardMediaIdx, media.length]);
 
   const handleBoardFiles = (e) => { const fs = e.target.files; if (fs?.length && onAddMedia) onAddMedia(fs); e.target.value = ''; };
+  const openPickerFor = (accept) => { boardPhotoRef.current.accept = accept; boardPhotoRef.current.click(); };
 
-  const giftActive = form?.is_gift_enabled;
+  const giftActive = !!form?.is_gift_enabled;
   const isFlowerGift = ['flower', 'flowers'].includes(form?.gift_type);
   const isProductGift = ['product', 'gift'].includes(form?.gift_type);
+
+  const [messageTileOpen, setMessageTileOpen] = useState(true);
+  const [voiceTileOpen, setVoiceTileOpen] = useState(false);
+
+  const TileIcon = ({ name, label, sub, onClick, filled }) => (
+    <button type="button" onClick={onClick}
+      className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-purple-200 bg-purple-50/40 p-4 text-center transition-colors hover:border-primary-300 hover:bg-primary-50/60"
+      style={{ minHeight: 118 }}>
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: accent + '18' }}>
+        <Icon name={name} size={19} style={{ color: accent }}/>
+      </span>
+      <span className="text-[11px] font-extrabold text-warm-700">{label}</span>
+      {sub && <span className="text-[9px] font-semibold text-warm-400">{sub}</span>}
+    </button>
+  );
 
   return (
     <div className="overflow-hidden rounded-2xl border border-purple-100 shadow-[0_24px_70px_rgba(27,34,48,0.16)]">
 
       {/* Hero header */}
-      <div className="relative px-5 pt-7 pb-8 text-center" style={{ background: headerBg, color: '#fff' }}>
-        {design?.artwork && !isCustomUrl && (
+      <div className="relative px-5 pt-7 pb-8 text-center" style={{ background: heroBg, color: '#fff' }}>
+        {design?.artwork && !isCustomUrl && boardTheme.id === 'cover_blur' && (
           <div className="absolute inset-0 opacity-65 pointer-events-none">
             <CardCoverPreview design={design} occasionLabel="" recipientName="" title="" senderName="" compact
               layout={{ recipient:{show:false}, title:{show:false}, sender:{show:false} }} />
           </div>
         )}
+        <button type="button" onClick={() => setThemePickerOpen(true)}
+          className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-full bg-black/25 px-2.5 py-1.5 text-[10px] font-extrabold text-white backdrop-blur-sm hover:bg-black/40">
+          <Icon name="Layers" size={11}/> Theme
+        </button>
         <div className="relative z-10">
           <h2 style={{ fontFamily:"'Great Vibes',cursive", fontSize:'clamp(1.7rem,6vw,2.4rem)', lineHeight:1.1 }}>
             {form?.title || `Happy ${(form?.occasion||'').replace(/_/g,' ')||'Celebration'}, ${recipient}!`}
@@ -237,140 +263,156 @@ function BoardPreview({ design, form, message, creatorName, onMessageChange, onA
         </div>
       </div>
 
-      {/* Creator's message tile */}
+      {/* Board body */}
       <div className="bg-white px-4 pt-4 pb-2 space-y-3">
-        <div className="rounded-2xl border-2 border-purple-100 bg-purple-50/40 p-3">
-          <p className="text-[10px] font-extrabold text-primary-500 uppercase tracking-wider mb-1.5">Your message</p>
-          <textarea
-            className="w-full bg-transparent text-sm text-warm-800 leading-relaxed resize-none outline-none placeholder:text-warm-400"
-            rows={3}
-            placeholder="Write your message here — or skip and add one later…"
-            value={message?.content || ''}
-            onChange={e => onMessageChange?.(e.target.value)}
-            style={{ minHeight: 64 }}
-          />
-          {/* Media strip */}
-          {(allPhotos.length > 0 || allVideos.length > 0 || voiceMedia) && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {activePhoto && (
-                <div className="relative h-14 w-14 rounded-xl overflow-hidden border-2 border-primary-200">
-                  <img src={activePhoto.preview} alt="" className="h-full w-full object-cover"/>
-                  {allPhotos.length > 1 && <span className="absolute bottom-0.5 right-0.5 rounded bg-black/60 px-1 text-[8px] font-bold text-white">{boardPhotoIdx+1}/{allPhotos.length}</span>}
-                  <button type="button" onClick={() => onRemoveMedia?.(media.indexOf(activePhoto))}
-                    className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[8px]">×</button>
-                </div>
-              )}
-              {activeVideo && (
-                <div className="relative h-14 w-14 rounded-xl overflow-hidden border-2 border-blue-200 bg-blue-50 flex items-center justify-center">
-                  <Icon name="Film" size={18} className="text-blue-400"/>
-                  <button type="button" onClick={() => onRemoveMedia?.(media.indexOf(activeVideo))}
-                    className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white text-[8px]">×</button>
-                </div>
-              )}
-              {voiceMedia && (
-                <div className="flex h-14 items-center gap-1.5 rounded-xl border-2 border-purple-200 bg-purple-50 px-2">
-                  <Icon name="Mic" size={14} className="text-primary-500"/>
-                  <span className="text-[10px] font-bold text-primary-600">Voice ✓</span>
-                </div>
-              )}
+
+        {/* If media already attached, show it large with carousel controls up top */}
+        {activeBoardMedia && (
+          <div className="relative overflow-hidden rounded-2xl border-2 border-primary-200 bg-warm-900" style={{ aspectRatio: '16/9' }}>
+            {activeBoardMedia.type === 'video' ? (
+              <video src={activeBoardMedia.preview} controls className="h-full w-full object-contain"/>
+            ) : activeBoardMedia.type === 'voice' ? (
+              <div className="flex h-full flex-col items-center justify-center gap-2 bg-purple-50 px-4">
+                <Icon name="Mic" size={26} className="text-primary-500"/>
+                <audio src={activeBoardMedia.preview} controls className="w-full"/>
+              </div>
+            ) : (
+              <img src={activeBoardMedia.preview} alt="Message attachment" className="h-full w-full object-contain"/>
+            )}
+            <button type="button" aria-label="Remove current attachment" onClick={() => onRemoveMedia?.(boardMediaIdx)}
+              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white">
+              <Icon name="X" size={12}/>
+            </button>
+            <button type="button" onClick={() => setMediaPickerOpen(true)}
+              className="absolute left-2 top-2 flex h-7 items-center gap-1 rounded-full bg-black/70 px-2.5 text-[10px] font-extrabold text-white">
+              <Icon name="Plus" size={11}/> Add more
+            </button>
+            {media.length > 1 && (
+              <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-2">
+                <button type="button" aria-label="Previous attachment" onClick={() => setBoardMediaIdx(i => (i - 1 + media.length) % media.length)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white"><Icon name="ChevronLeft" size={13}/></button>
+                <span className="rounded-full bg-black/65 px-2 py-1 text-[9px] font-extrabold text-white">{boardMediaIdx + 1} / {media.length}</span>
+                <button type="button" aria-label="Next attachment" onClick={() => setBoardMediaIdx(i => (i + 1) % media.length)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white"><Icon name="ChevronRight" size={13}/></button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Tile grid — tap any tile to act on it directly */}
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Message tile — spans full width, expands to a textarea when open */}
+          <div className="col-span-2 rounded-2xl border-2 border-purple-100 bg-purple-50/40 p-3">
+            <button type="button" onClick={() => setMessageTileOpen(o => !o)}
+              className="mb-1.5 flex w-full items-center justify-between text-left">
+              <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-primary-500">
+                <Icon name="PenLine" size={12}/> Your message
+              </span>
+              <Icon name={messageTileOpen ? 'ChevronUp' : 'ChevronDown'} size={13} className="text-primary-400"/>
+            </button>
+            {messageTileOpen && (
+              <textarea
+                className="w-full bg-transparent text-sm text-warm-800 leading-relaxed resize-none outline-none placeholder:text-warm-400"
+                rows={3}
+                placeholder="Write your message here — or skip and add one later…"
+                value={message?.content || ''}
+                onChange={e => onMessageChange?.(e.target.value)}
+                style={{ minHeight: 64 }}
+              />
+            )}
+          </div>
+
+          {/* Photo/video/GIF tile — tap opens the 4-way picker directly */}
+          <TileIcon name="Camera" label="Photo / Video" sub={media.length ? `${media.length} added` : 'Tap to add'} onClick={() => setMediaPickerOpen(true)}/>
+
+          {/* Voice tile — tap reveals the recorder inline */}
+          {voiceTileOpen ? (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-primary-200 bg-primary-50/60 p-3" style={{ minHeight: 118 }}>
+              <VoiceRecorder onRecorded={file => { onAddMedia?.([file]); setVoiceTileOpen(false); }} disabled={media.length >= 5}/>
+              <button type="button" onClick={() => setVoiceTileOpen(false)} className="text-[9px] font-bold text-warm-400">Cancel</button>
             </div>
+          ) : (
+            <TileIcon name="Mic" label="Voice note" sub="Record live" onClick={() => setVoiceTileOpen(true)}/>
           )}
 
-          {/* Media action buttons */}
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            <button type="button" onClick={() => setMediaPickerOpen(true)}
-              className="inline-flex items-center gap-1 rounded-lg bg-purple-50 px-2.5 py-1.5 text-[10px] font-extrabold text-primary-600 hover:bg-primary-50 transition-colors">
-              <Icon name="Image" size={12}/> Photo / GIF
-            </button>
-            <button type="button" onClick={() => { boardPhotoRef.current.accept='video/*'; boardPhotoRef.current.click(); }}
-              className="inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2.5 py-1.5 text-[10px] font-extrabold text-blue-600 hover:bg-blue-100 transition-colors">
-              <Icon name="Film" size={12}/> Video
-            </button>
-            <button type="button" onClick={() => setGiftPickerOpen(true)}
-              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-extrabold transition-colors ${giftActive ? 'bg-amber-100 text-amber-700' : 'bg-gray-50 text-warm-500 hover:bg-amber-50 hover:text-amber-600'}`}>
-              {giftActive ? (isFlowerGift ? '💐' : isProductGift ? '🎁' : '💸') : <Icon name="Gift" size={12}/>}
-              {giftActive ? (isFlowerGift ? 'Flowers' : isProductGift ? 'Gift' : 'Money gift') : ' Add gift'}
-            </button>
-          </div>
+          {/* Gift tile — actually toggles form.is_gift_enabled now, not a decorative stub */}
+          <button type="button"
+            onClick={() => onFormChange?.('is_gift_enabled', !giftActive)}
+            className={`col-span-2 flex items-center justify-between rounded-2xl border-2 p-3.5 transition-colors ${giftActive ? 'border-amber-300 bg-amber-50' : 'border-dashed border-purple-200 bg-purple-50/40 hover:border-amber-200'}`}>
+            <span className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: giftActive ? '#FDE68A' : accent + '18' }}>
+                {giftActive ? (isFlowerGift ? '💐' : isProductGift ? '🎁' : '💸') : <Icon name="Gift" size={17} style={{color:accent}}/>}
+              </span>
+              <span className="text-left">
+                <span className="block text-[12px] font-extrabold text-warm-800">{giftActive ? 'Gift pot enabled' : 'Enable a gift pot'}</span>
+                <span className="block text-[10px] font-semibold text-warm-400">{giftActive ? 'Signers can contribute when they sign' : 'Let signers chip in a gift'}</span>
+              </span>
+            </span>
+            <span className={`relative h-6 w-11 rounded-full transition-colors ${giftActive ? 'bg-amber-400' : 'bg-gray-200'}`}>
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${giftActive ? 'translate-x-5' : 'translate-x-0.5'}`}/>
+            </span>
+          </button>
         </div>
 
-        {/* Hidden inputs */}
-        <input ref={boardPhotoRef} type="file" accept="image/*" className="hidden" onChange={handleBoardFiles}/>
-
-        {/* Contributors placeholder tiles */}
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { label: 'Ada O.', color: accent },
-            { label: 'Chidi M.', color: '#0ea5e9' },
-          ].map((n, i) => (
-            <div key={n.label} className="rounded-xl border border-dashed border-purple-200 bg-purple-50/30 p-2.5">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-extrabold text-white" style={{background:n.color}}>{n.label[0]}</span>
-                <span className="text-[10px] font-bold text-warm-400">{n.label}</span>
-              </div>
-              <div className="space-y-1"><div className="h-1.5 w-full rounded bg-purple-100"/><div className="h-1.5 w-2/3 rounded bg-purple-100"/></div>
-            </div>
-          ))}
-        </div>
+        {/* Hidden input driving all tile uploads */}
+        <input ref={boardPhotoRef} type="file" accept="image/*" multiple className="hidden" onChange={handleBoardFiles}/>
 
         <p className="pb-2 text-center text-[10px] text-warm-400">
-          Each person who joins adds their own message, photos &amp; voice note
+          Each person who joins gets their own tile with a message, photo &amp; voice note
         </p>
       </div>
 
-      {/* Media picker sheet */}
+      {/* Media picker sheet — Photo / GIF / Video / Voice, all four, one place */}
       {mediaPickerOpen && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={() => setMediaPickerOpen(false)}>
           <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
             <p className="mb-3 text-center text-sm font-extrabold text-warm-800">Add to your message</p>
             <div className="grid grid-cols-2 gap-3">
-              <button type="button" onClick={() => { setMediaPickerOpen(false); boardPhotoRef.current.accept='image/*'; boardPhotoRef.current.click(); }}
+              <button type="button" onClick={() => { setMediaPickerOpen(false); openPickerFor('image/*'); }}
                 className="flex flex-col items-center gap-2 rounded-xl border-2 border-purple-100 p-4 hover:border-primary-300">
                 <Icon name="Image" size={22} className="text-primary-500"/>
-                <span className="text-xs font-bold text-warm-700">Upload Photo</span>
+                <span className="text-xs font-bold text-warm-700">Photo</span>
               </button>
-              <button type="button" onClick={() => { setMediaPickerOpen(false); boardPhotoRef.current.accept='image/gif'; boardPhotoRef.current.click(); }}
+              <button type="button" onClick={() => { setMediaPickerOpen(false); openPickerFor('image/gif'); }}
                 className="flex flex-col items-center gap-2 rounded-xl border-2 border-purple-100 p-4 hover:border-primary-300">
-                <span className="text-lg font-extrabold text-primary-500">GIF</span>
-                <span className="text-xs font-bold text-warm-700">Upload GIF</span>
+                <Icon name="Sparkles" size={22} className="text-primary-500"/>
+                <span className="text-xs font-bold text-warm-700">GIF</span>
+              </button>
+              <button type="button" onClick={() => { setMediaPickerOpen(false); openPickerFor('video/*'); }}
+                className="flex flex-col items-center gap-2 rounded-xl border-2 border-purple-100 p-4 hover:border-primary-300">
+                <Icon name="Film" size={22} className="text-primary-500"/>
+                <span className="text-xs font-bold text-warm-700">Video</span>
+              </button>
+              <button type="button" onClick={() => { setMediaPickerOpen(false); setVoiceTileOpen(true); }}
+                className="flex flex-col items-center gap-2 rounded-xl border-2 border-purple-100 p-4 hover:border-primary-300">
+                <Icon name="Mic" size={22} className="text-primary-500"/>
+                <span className="text-xs font-bold text-warm-700">Voice note</span>
               </button>
             </div>
+            <p className="mt-2.5 text-center text-[9px] text-warm-400">Add as many as you like — they'll show as a carousel</p>
             <button type="button" onClick={() => setMediaPickerOpen(false)}
               className="mt-3 w-full rounded-xl bg-gray-100 py-2 text-xs font-bold text-warm-500">Cancel</button>
           </div>
         </div>
       )}
 
-      {/* Gift picker sheet */}
-      {giftPickerOpen && (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={() => setGiftPickerOpen(false)}>
+      {/* Theme picker sheet */}
+      {themePickerOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={() => setThemePickerOpen(false)}>
           <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
-            <p className="mb-3 text-center text-sm font-extrabold text-warm-800">Add a gift option</p>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { id: 'money', emoji: '💸', label: 'Money gift', desc: 'Pool cash together' },
-                { id: 'product', emoji: '🎁', label: 'Gift / other', desc: 'Voucher, item…' },
-                { id: 'flower', emoji: '💐', label: 'Flowers', desc: 'Arrange a bouquet' },
-              ].slice(0, giftActive ? 3 : 3).map(g => (
-                <button key={g.id} type="button"
-                  onClick={() => { /* signals to parent — for preview only we just show feedback */ setGiftPickerOpen(false); }}
-                  className="flex flex-col items-center gap-1.5 rounded-xl border-2 border-purple-100 p-3 hover:border-primary-300">
-                  <span className="text-2xl">{g.emoji}</span>
-                  <span className="text-[10px] font-extrabold text-warm-800">{g.label}</span>
-                  <span className="text-[9px] text-warm-400">{g.desc}</span>
+            <p className="mb-3 text-center text-sm font-extrabold text-warm-800">Board background theme</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {ALBUM_THEMES.map(t => (
+                <button key={t.id} type="button"
+                  onClick={() => { onFormChange?.('board_background_theme', t.id); setThemePickerOpen(false); }}
+                  className={`rounded-xl border-2 p-3 text-left transition-colors ${(form?.board_background_theme||form?.album_background_theme||'cover_blur')===t.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
+                  <span className="mb-1.5 block h-8 w-full rounded-lg" style={{ background: t.id==='cover_blur' ? `linear-gradient(135deg,${accent},${accent}cc)` : t.stage }}/>
+                  <span className="text-[11px] font-extrabold text-warm-800">{t.name}</span>
                 </button>
               ))}
-              {giftActive && (
-                <button type="button"
-                  onClick={() => setGiftPickerOpen(false)}
-                  className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl border-2 border-red-100 p-3 hover:border-red-200 text-[11px] font-bold text-red-400">
-                  <Icon name="X" size={12}/> Remove gift
-                </button>
-              )}
             </div>
-            <p className="mt-3 text-center text-[10px] text-warm-400">Gift options are configured in the Gift &amp; Pay step</p>
-            <button type="button" onClick={() => setGiftPickerOpen(false)}
-              className="mt-2 w-full rounded-xl bg-gray-100 py-2 text-xs font-bold text-warm-500">Close</button>
+            <button type="button" onClick={() => setThemePickerOpen(false)}
+              className="mt-3 w-full rounded-xl bg-gray-100 py-2 text-xs font-bold text-warm-500">Done</button>
           </div>
         </div>
       )}
@@ -398,20 +440,18 @@ export function makeWallPreviewCard(sender = '', index = 0) {
 const AlbumStudioPreview = ({
   design, form, message, occasionLabel, activeStep, creatorName,
   layout, onLayoutChange, onCardLayoutChange, selectedField, onSelectField,
-  media = [], onAddMedia, onRemoveMedia, onMessageChange, recipientPhoto, onRecipientPhoto,
+  media = [], onAddMedia, onRemoveMedia, onMessageChange, recipientPhoto, onRecipientPhoto, onFormChange,
   wallDrafts = [], onWallDraftsChange,
 }) => {
   const [page, setPage] = useState(0);
   const [lightbox, setLightbox] = useState(null);
   const [gifPickerFor, setGifPickerFor] = useState(false);
+  const [voiceRecorderOpen, setVoiceRecorderOpen] = useState(false);
   const [flipDirection, setFlipDirection] = useState('');
-  // 3-tab preview switcher — default is 'group' (Group Card)
-  const [previewTab, setPreviewTab] = useState('group');
   const audioCtxRef = useRef(null);
   const flipTimerRef = useRef(null);
   const photoInputRef = useRef(null);
   const videoInputRef = useRef(null);
-  const voiceInputRef = useRef(null);
   const recipientInputRef = useRef(null);
 
   const isLiveWall = ['wall_only', 'card_and_wall'].includes(form.card_experience);
@@ -431,10 +471,13 @@ const AlbumStudioPreview = ({
 
   const stageBackground = useMemo(() => {
     if (theme.id !== 'cover_blur') return theme.stage;
+    if (typeof form.background_color === 'string' && /^https?:\/\//.test(form.background_color)) {
+      return `url("${form.background_color}") center / cover no-repeat`;
+    }
     if (design?.artwork) return design?.background || theme.stage;
     if (design?.image) return `url("${design.image}") center / cover no-repeat`;
     return design?.background || theme.stage;
-  }, [design, theme]);
+  }, [design, theme, form.background_color]);
 
   const playFlipSound = useCallback(() => {
     try {
@@ -505,55 +548,40 @@ const AlbumStudioPreview = ({
         .album-page-turn.back { animation:album-leaf-back .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; }
       `}</style>
 
-      {/* ── 2-tab preview switcher: Group Card | Live Wall ── */}
-      <div className="mb-3 flex items-center gap-2 rounded-2xl bg-purple-50 p-1">
-        {[
-          { id: 'group', label: 'Group Card', icon: 'Mail' },
-          { id: 'wall',  label: 'Live Wall',  icon: 'Camera' },
-        ].map(tab => (
-          <button key={tab.id} type="button" onClick={() => {
-            setPreviewTab(tab.id);
-            // Switching to group card resets layout to album so the flipbook preview shows
-            if (tab.id === 'group' && previewTab === 'wall') {
-              // don't force a layout change here — just switch the view tab
-            }
-          }}
-            className={`flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-extrabold transition-all ${previewTab === tab.id ? 'bg-white text-primary-700 shadow-sm' : 'text-warm-500 hover:text-warm-700'}`}>
-            <Icon name={tab.icon} size={13}/>{tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Sub-options under Group Card: Album Flipbook | Message Board */}
-      {previewTab === 'group' && (
-        <div className="mb-3 flex items-center gap-2 px-1">
+      {/* Group-card layout options. Card experience already decides Group Card vs Live Wall. */}
+      <div className="mb-5 grid grid-cols-2 gap-3 rounded-2xl bg-gradient-to-r from-purple-50 via-fuchsia-50 to-sky-50 p-2">
           {[
-            { id: 'album', label: 'Album flipbook', recommended: true },
-            { id: 'form',  label: 'Message board', recommended: false },
+            { id: 'album', label: 'Album flipbook', icon: 'BookOpen', description: 'Turn pages like a real keepsake', recommended: true },
+            { id: 'form',  label: 'Message board', icon: 'LayoutGrid', description: 'See every message in one board', recommended: false },
           ].map(sub => (
             <button key={sub.id} type="button"
               onClick={() => onCardLayoutChange?.(sub.id)}
-              className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] font-extrabold transition-all ${
+              className={`flex min-h-[82px] items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
                 (form.card_layout === sub.id || (!form.card_layout && sub.id === 'album'))
-                  ? 'border-primary-400 bg-primary-50 text-primary-700'
-                  : 'border-purple-100 bg-white text-warm-500 hover:border-purple-200'
+                  ? sub.id === 'album'
+                    ? 'border-primary-500 bg-gradient-to-br from-primary-600 to-fuchsia-600 text-white shadow-lg shadow-primary-200'
+                    : 'border-sky-500 bg-gradient-to-br from-sky-500 to-cyan-600 text-white shadow-lg shadow-sky-200'
+                  : 'border-white bg-white/90 text-warm-700 shadow-sm hover:-translate-y-0.5 hover:border-purple-200'
               }`}>
-              {sub.label}
-              {sub.recommended && <span className="rounded-full bg-primary-100 px-1.5 py-0.5 text-[9px] font-extrabold text-primary-600">Rec</span>}
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/20"><Icon name={sub.icon} size={21}/></span>
+              <span>
+                <span className="flex items-center gap-2 text-sm font-extrabold sm:text-base">
+                  {sub.label}
+                  {sub.recommended && <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-extrabold">Recommended</span>}
+                </span>
+                <span className="mt-1 block text-[10px] font-semibold opacity-80 sm:text-xs">{sub.description}</span>
+              </span>
             </button>
           ))}
-        </div>
-      )}
+      </div>
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-warm-500">
-            Live {previewTab === 'wall' ? 'wall' : isBoard ? 'board' : 'album'} preview
+            Live {isBoard ? 'board' : 'album'} preview
           </p>
           <p className="mt-1 text-sm font-bold text-warm-900">
-            {previewTab === 'wall'
-              ? 'Contributors upload photos & videos'
-              : isBoard
+            {isBoard
                 ? 'Messages appear as a scrollable board'
                 : (PAGE_LABELS[page] + (page === 0 ? ' · drag & edit texts' : page === 1 ? ' · tap to add media' : ''))}
           </p>
@@ -562,7 +590,7 @@ const AlbumStudioPreview = ({
       </div>
 
       {/* Multi-page hint — tells creator signers will add their own pages */}
-      {previewTab === 'group' && page === 1 && (
+      {!isBoard && page === 1 && (
         <div className="mb-3 flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
           <Icon name="Users" size={15} className="text-amber-600 flex-shrink-0"/>
           <p className="text-xs text-amber-700 font-semibold leading-snug">
@@ -571,24 +599,12 @@ const AlbumStudioPreview = ({
         </div>
       )}
 
-      {/* ── Conditional preview content ── */}
-      {previewTab === 'wall' && (
-        <LiveWallStudioPreview
-          cards={wallDrafts}
-          onChange={onWallDraftsChange}
-          creatorName={creatorName}
-          design={design}
-          form={form}
-        />
-      )}
-
-      {/* Group Card tab — shows board or album based on card_layout sub-option */}
-      {previewTab === 'group' && isBoard && (
+      {isBoard && (
         <BoardPreview design={design} form={form} message={message} creatorName={creatorName}
-          onMessageChange={onMessageChange} onAddMedia={onAddMedia} media={media} onRemoveMedia={onRemoveMedia} />
+          onMessageChange={onMessageChange} onAddMedia={onAddMedia} media={media} onRemoveMedia={onRemoveMedia} onFormChange={onFormChange} />
       )}
 
-      {previewTab === 'group' && !isBoard && <div className="relative overflow-hidden border border-black/5 shadow-[0_24px_70px_rgba(27,34,48,0.16)]"
+      {!isBoard && <div className="relative overflow-hidden border border-black/5 shadow-[0_24px_70px_rgba(27,34,48,0.16)]"
         style={{ minHeight: 'clamp(430px, 69vh, 710px)', borderRadius: 8, background: stageBackground }}>
         {theme.id === 'cover_blur' && !design?.artwork && <div className="absolute inset-0 bg-white/20 backdrop-blur-xl" />}
         <div className="absolute inset-0 bg-black/5" />
@@ -630,7 +646,16 @@ const AlbumStudioPreview = ({
                       <p className="mt-3 text-2xl font-extrabold leading-tight sm:text-4xl">{form.title || `${recipient}'s card`}</p>
                       <div className="mt-7 space-y-3 text-xs sm:text-sm">
                         <p className="flex items-center gap-2"><Icon name="Calendar" size={14} /> {form.send_date || 'Send whenever you are ready'}</p>
-                        <p className="flex items-center gap-2"><Icon name="Gift" size={14} /> {form.is_gift_enabled ? 'Gift collection included' : 'Messages only'}</p>
+                        <button type="button" onClick={() => onFormChange?.('is_gift_enabled', !form.is_gift_enabled)}
+                          className={`flex w-full items-center justify-between gap-2 rounded-xl border-2 px-3 py-2 text-left transition-colors ${form.is_gift_enabled ? 'border-amber-300 bg-amber-50' : 'border-dashed border-black/15 bg-white/40 hover:border-primary-300'}`}>
+                          <span className="flex items-center gap-2">
+                            <Icon name="Gift" size={14} />
+                            <span className="font-bold">{form.is_gift_enabled ? 'Gift collection included' : 'Messages only — tap to add a gift pot'}</span>
+                          </span>
+                          <span className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${form.is_gift_enabled ? 'bg-amber-400' : 'bg-gray-300'}`}>
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form.is_gift_enabled ? 'translate-x-4' : 'translate-x-0.5'}`}/>
+                          </span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -690,7 +715,7 @@ const AlbumStudioPreview = ({
                           ) : <><Icon name="Film" size={18} className="opacity-45" /><span className="mt-1 text-[9px] font-bold opacity-50">Video</span></>}
                         </MediaTile>
                         <MediaTile filled={!!voiceMedia} accent={design?.accent}
-                          onClick={() => voiceMedia ? setLightbox({ type: 'voice', src: voiceMedia.preview }) : pick(voiceInputRef)}
+                          onClick={() => voiceMedia ? setLightbox({ type: 'voice', src: voiceMedia.preview }) : setVoiceRecorderOpen(true)}
                           onRemove={voiceMedia ? () => onRemoveMedia?.(media.indexOf(voiceMedia)) : null}>
                         {voiceMedia ? <><Icon name="Mic" size={18} style={{ color: design?.accent || '#7c3aed' }} /><span className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold" style={{ color: design?.accent || '#7c3aed' }}>Voice added <Icon name="Check" size={9} /></span></> : <><Icon name="Mic" size={18} className="opacity-45" /><span className="mt-1 text-[9px] font-bold opacity-50">Voice note</span></>}
                         </MediaTile>
@@ -722,10 +747,9 @@ const AlbumStudioPreview = ({
 
       <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFiles} />
       <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleFiles} />
-      <input ref={voiceInputRef} type="file" accept="audio/*" className="hidden" onChange={handleFiles} />
 
       {/* Pager dots — only for album flipbook */}
-      {previewTab === 'group' && !isBoard && (
+      {!isBoard && (
       <div className="mx-auto mt-4 flex w-fit items-center gap-3 rounded-full border border-purple-100 bg-white px-3 py-2 shadow-sm">
         <button type="button" onClick={() => movePage(-1)} disabled={page === 0} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronLeft" size={17} /></button>
         <div className="flex items-center gap-1.5">
@@ -752,6 +776,20 @@ const AlbumStudioPreview = ({
             </div>
             <button type="button" onClick={() => setGifPickerFor(false)} className="mt-3 w-full rounded-xl bg-gray-100 py-2 text-xs font-bold text-warm-500">Cancel</button>
             </>}
+          </div>
+        </div>
+      )}
+
+      {voiceRecorderOpen && (
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={() => setVoiceRecorderOpen(false)}>
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl" onClick={e => e.stopPropagation()}>
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-100 text-primary-600"><Icon name="Mic" size={24}/></span>
+            <h3 className="mt-3 text-base font-extrabold text-warm-900">Record a voice note</h3>
+            <p className="mt-1 text-xs leading-relaxed text-warm-500">Use your microphone to record now. Thankeeu does not ask you to upload an audio file.</p>
+            <div className="mt-5 flex justify-center">
+              <VoiceRecorder onRecorded={file => { onAddMedia?.([file]); setVoiceRecorderOpen(false); }}/>
+            </div>
+            <button type="button" onClick={() => setVoiceRecorderOpen(false)} className="mt-4 w-full rounded-xl bg-gray-100 py-2.5 text-xs font-bold text-warm-600">Cancel</button>
           </div>
         </div>
       )}

@@ -61,7 +61,7 @@ const createCard = async (req, res) => {
       recipient_name, recipient_email, occasion, title, design_theme,
       background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
       send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts, card_experience,
-      custom_occasion, cover_sender, cover_text_color, album_background_theme, cover_layout,
+      custom_occasion, cover_sender, cover_text_color, album_background_theme, board_background_theme, cover_layout,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus
     } = req.body;
@@ -91,6 +91,9 @@ const createCard = async (req, res) => {
     const cleanAlbumTheme = allowedAlbumThemes.includes(album_background_theme)
       ? album_background_theme
       : 'cover_blur';
+    const cleanBoardTheme = allowedAlbumThemes.includes(board_background_theme)
+      ? board_background_theme
+      : null; // null → frontend falls back to album_background_theme
 
     // Cover text layout (movable/resizable/recolourable title, recipient, sender).
     // Stored as JSONB. Accept an object or a JSON string; guard size + shape.
@@ -159,6 +162,7 @@ const createCard = async (req, res) => {
       cover_sender: cleanCoverSender,
       cover_text_color: cleanCoverTextColor,
       album_background_theme: cleanAlbumTheme,
+      ...(cleanBoardTheme && { board_background_theme: cleanBoardTheme }),
       ...(cleanCoverLayout && { cover_layout: cleanCoverLayout }),
       gift_type, suggested_amount,
       // Store send_date as the FULL combined UTC datetime (date + time) so the
@@ -198,7 +202,7 @@ const createCard = async (req, res) => {
       card_layout: cleanCardLayout,
     };
     // Longest names first so 'cover_layout' isn't shadowed by 'card_layout' etc.
-    const optionalColumns = ['album_background_theme', 'cover_text_color', 'custom_occasion',
+    const optionalColumns = ['board_background_theme', 'album_background_theme', 'cover_text_color', 'custom_occasion',
       'cover_layout', 'card_layout', 'cover_sender', 'card_experience', 'font_style']
       .sort((a, b) => b.length - a.length);
 
@@ -559,6 +563,7 @@ const updateCard = async (req, res) => {
         cover_sender: _coverSender,
         cover_text_color: _coverTextColor,
         album_background_theme: _albumTheme,
+        board_background_theme: _boardTheme,
         cover_layout: _coverLayout,
         ...saferUpdates
       } = safeUpdates;
@@ -749,7 +754,7 @@ const getPublicCard = async (req, res) => {
     const { slug } = req.params;
     const { data: card, error } = await supabase
       .from('cards')
-      .select('*, messages(id, author_name, content, is_private, font_style, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at, gift_type, product_id, product_name, product_price, product_vendor_id, product_vendor_name, product_vendor_slug), contributions(amount, contributor_name, status)')
+      .select('*, messages(id, author_name, content, is_private, font_style, font_color, position_x, position_y, rotation, page_number, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at, gift_type, product_id, product_name, product_price, product_vendor_id, product_vendor_name, product_vendor_slug), contributions(amount, contributor_name, status)')
       .eq('slug', slug)
       .in('status', ['active', 'sent'])
       .maybeSingle();

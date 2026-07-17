@@ -19,8 +19,8 @@ import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, visitorsAPI, vendorAPI } from '../utils/api';
 import { FONT_STYLES, getFontStyle, getCardDesign } from '../utils/cardDesigns';
-import { CoverArtwork } from '../utils/coverArtwork.jsx';
-import { normalizeCoverLayout } from '../utils/coverLayout';
+import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
+import CardCoverPreview from '../components/CardCoverPreview';
 import VoiceRecorder from '../components/VoiceRecorder';
 import EmojiPicker from '../components/EmojiPicker';
 import GifPicker from '../components/GifPicker';
@@ -41,17 +41,6 @@ const FONT_COLORS = [
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
 
-const PAGE_THEMES = [
-  { id:'ivory',    label:'Ivory',    bg:'#FEFCE8', lines:'rgba(200,190,130,0.13)', accent:'#92400E' },
-  { id:'blush',    label:'Blush',    bg:'#FFF1F2', lines:'rgba(230,160,180,0.13)', accent:'#BE185D' },
-  { id:'lavender', label:'Lavender', bg:'#F5F3FF', lines:'rgba(150,120,220,0.13)', accent:'#7C3AED' },
-  { id:'mint',     label:'Mint',     bg:'#F0FDF4', lines:'rgba(100,180,140,0.13)', accent:'#065F46' },
-  { id:'sky',      label:'Sky',      bg:'#F0F9FF', lines:'rgba(100,160,220,0.13)', accent:'#0369A1' },
-  { id:'peach',    label:'Peach',    bg:'#FFF7ED', lines:'rgba(220,150,100,0.13)', accent:'#92400E' },
-  { id:'rose',     label:'Rose',     bg:'#FDF2F8', lines:'rgba(210,140,180,0.11)', accent:'#9D174D' },
-  { id:'charcoal', label:'Dark',     bg:'#1E1B2E', lines:'rgba(255,255,255,0.05)', accent:'#A78BFA' },
-];
-
 const TAPE_COLORS = ['#F59E0B','#EC4899','#8B5CF6','#10B981','#3B82F6','#EF4444'];
 
 const defaultPosition = i => ({
@@ -60,26 +49,33 @@ const defaultPosition = i => ({
   rot: [-5,2,-3,4,-1,5,-2,3][i % 8],
 });
 
+// ─── Anonymous-signer edit tokens (localStorage) ────────────────────────────
+// Ownership of a message is proven by an opaque token issued when the signer
+// creates it — never by email, which is visible to anyone viewing the card.
+const EDIT_TOKENS_KEY = 'thankeeu_msg_edit_tokens';
+const getStoredEditTokens = () => {
+  try { return JSON.parse(localStorage.getItem(EDIT_TOKENS_KEY) || '{}'); }
+  catch { return {}; }
+};
+const storeEditToken = (messageId, token) => {
+  if (!messageId || !token) return;
+  try {
+    const all = getStoredEditTokens();
+    all[messageId] = token;
+    localStorage.setItem(EDIT_TOKENS_KEY, JSON.stringify(all));
+  } catch { /* localStorage unavailable — edit-after-refresh just won't be offered */ }
+};
+const getEditToken = (messageId) => getStoredEditTokens()[messageId] || null;
+
 // ─── CSS injected once ───────────────────────────────────────────────────────
 const ALBUM_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@600;700&family=Caveat:wght@400;500;600;700&family=Kalam:wght@300;400;700&display=swap');
 @keyframes albumSpin { to { transform: rotate(360deg); } }
 @keyframes albumPop  { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
-@keyframes flipOut   { 0%{transform:perspective(1800px) rotateY(0deg) scale(1);box-shadow:0 22px 70px rgba(0,0,0,.2);filter:brightness(1)} 100%{transform:perspective(1800px) rotateY(-105deg) scale(.97);box-shadow:40px 30px 80px rgba(0,0,0,.35);filter:brightness(.82)} }
-@keyframes flipIn    { 0%{transform:perspective(1800px) rotateY(105deg) scale(.97);filter:brightness(.82)} 60%{filter:brightness(1.03)} 100%{transform:perspective(1800px) rotateY(0deg) scale(1);filter:brightness(1)} }
-@keyframes flipOutB  { 0%{transform:perspective(1800px) rotateY(0deg) scale(1);box-shadow:0 22px 70px rgba(0,0,0,.2);filter:brightness(1)} 100%{transform:perspective(1800px) rotateY(105deg) scale(.97);box-shadow:-40px 30px 80px rgba(0,0,0,.35);filter:brightness(.82)} }
-@keyframes flipInB   { 0%{transform:perspective(1800px) rotateY(-105deg) scale(.97);filter:brightness(.82)} 60%{filter:brightness(1.03)} 100%{transform:perspective(1800px) rotateY(0deg) scale(1);filter:brightness(1)} }
-.album-flip-out  { animation: flipOut  0.32s cubic-bezier(.42,0,.35,1) both; transform-origin:left center; will-change:transform; }
-.album-flip-in   { animation: flipIn   0.34s cubic-bezier(.4,.1,.2,1) both; transform-origin:left center; will-change:transform; }
-.album-flip-outB { animation: flipOutB 0.32s cubic-bezier(.42,0,.35,1) both; transform-origin:right center; will-change:transform; }
-.album-flip-inB  { animation: flipInB  0.34s cubic-bezier(.4,.1,.2,1) both; transform-origin:right center; will-change:transform; }
-/* animated sheen that sweeps across the leaf as it turns */
-.album-flip-out::after,.album-flip-outB::after,.album-flip-in::after,.album-flip-inB::after{
-  content:''; position:absolute; inset:0; pointer-events:none; z-index:12; border-radius:14px;
-  background:linear-gradient(105deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.35) 50%, rgba(255,255,255,0) 70%);
-  animation:sheen .34s ease-out both;
-}
-@keyframes sheen{ 0%{transform:translateX(-60%);opacity:0} 40%{opacity:.9} 100%{transform:translateX(60%);opacity:0} }
+@keyframes album-leaf-forward { 0% { opacity:.2; transform:rotateY(-96deg) skewY(-1.5deg); filter:brightness(.72); } 58% { opacity:1; transform:rotateY(8deg) skewY(.3deg); } 100% { transform:rotateY(0); filter:brightness(1); } }
+@keyframes album-leaf-back { 0% { opacity:.2; transform:rotateY(96deg) skewY(1.5deg); filter:brightness(.72); } 58% { opacity:1; transform:rotateY(-8deg) skewY(-.3deg); } 100% { transform:rotateY(0); filter:brightness(1); } }
+.album-flip-forward { animation:album-leaf-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
+.album-flip-back { animation:album-leaf-back .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
 .album-page{ position:relative; }
 /* subtle inner shadow toward the spine to sell the "bound book" look */
 .album-page::before{
@@ -113,152 +109,35 @@ const ALBUM_CSS = `
 
 // ─── Cover Page ──────────────────────────────────────────────────────────────
 const CoverPage = ({ card, design, flipClass }) => {
-  const hasCustomCover = typeof card.background_color === 'string' && /^https?:\/\//.test(card.background_color);
-  const isDark = design?.dark || hasCustomCover;
-  const occasions = {
-    birthday:'🎂', farewell:'👋', leaving:'👋', retirement:'🌟',
-    wedding:'💍', anniversary:'💕', baby_shower:'👶', graduation:'🎓',
-    thank_you:'🙏', get_well:'💊', christmas:'🎄', promotion:'🚀',
-    welcome:'👐', sympathy:'🕊️', engagement:'💍', mothers_day:'💐',
-    fathers_day:'👔', teachers_day:'🍎', other:'🎉',
-  };
-  const occ = card.occasion || 'birthday';
-  const emoji = occasions[occ] || '🎉';
-  const cardTitle = card.title || `${card.recipient_name}'s Card`;
-  const coverArt = design?.artwork;
-  const CL = normalizeCoverLayout(card.cover_layout);
-  const clColor = (field, fallback) => {
-    const c = CL[field]?.color;
-    return !c || c === 'auto' ? fallback : c;
-  };
-  // Honor per-field size from cover_layout (size is relative to a 210-wide board).
-  const clSize = (field) => `${(CL[field]?.size || 16) / 210 * 100}cqw`;
+  const customCoverUrl = typeof card.background_color === 'string' && /^https?:\/\//.test(card.background_color)
+    ? card.background_color
+    : null;
+  const effectiveDesign = customCoverUrl
+    ? { ...design, id:'custom_upload', image:customCoverUrl, artwork:null, background:'#1a1035', ink:'#ffffff', dark:true }
+    : design;
+  const coverTextColor = card.cover_text_color && card.cover_text_color !== 'auto'
+    ? card.cover_text_color
+    : getContrastTextColor(card.background_color, effectiveDesign);
 
   return (
-    <div className={`album-page ${flipClass}`} style={{
-      position:'relative', width:500, maxWidth:'92vw', height:600,
-      containerType:'inline-size',
-      borderRadius:14, overflow:'hidden',
-      background: (typeof card.background_color==='string' && /^https?:\/\//.test(card.background_color))
-        ? `linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.42)), url("${card.background_color}") center/cover no-repeat`
-        : (design?.background || 'linear-gradient(145deg,#F5F0FF,#EDE9FE)'),
-      boxShadow:'0 22px 74px rgba(0,0,0,0.26), 0 2px 0 rgba(255,255,255,0.6) inset',
-      border:`1px solid ${design?.accent || '#C4B5FD'}44`,
-      display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
-      userSelect:'none',
-    }}>
-      {/* SVG artwork backdrop for artwork designs */}
-      {coverArt && (
-        <div style={{position:'absolute',inset:0,zIndex:0}}>
-          <CoverArtwork scene={coverArt.scene} palette={coverArt.palette} seed={coverArt.seed} style={{width:'100%',height:'100%'}}/>
-          <div style={{position:'absolute',inset:0,background:design.dark?'linear-gradient(180deg,rgba(8,6,20,0.28),rgba(8,6,20,0.1))':'linear-gradient(180deg,rgba(255,255,255,0.22),rgba(255,255,255,0.05))'}}/>
-        </div>
-      )}
-
-      {/* Top ribbon accent */}
-      <div style={{position:'absolute',top:0,left:0,right:0,height:8,
-        background:`linear-gradient(90deg,${design?.accent||'#7C3AED'}88,${design?.accent||'#7C3AED'}44,${design?.accent||'#7C3AED'}88)`,
-        borderRadius:'20px 20px 0 0'}}/>
-
-      {/* Main content */}
-      <div aria-hidden="true" style={{display:'none'}}>
-        {/* Big emoji */}
-        <div style={{fontSize:72,marginBottom:16,lineHeight:1,filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.15))'}}>{emoji}</div>
-
-        {/* Card title */}
-        {CL.title.show && (
-        <h1 style={{
-          fontFamily:"'Great Vibes', cursive",
-          fontSize: CL.title.size ? clSize('title') : 'clamp(2.2rem,8vw,3.4rem)',
-          color: clColor('title', isDark ? '#fff' : (design?.ink || '#1A1035')),
-          margin:'0 0 10px', lineHeight:1.15,
-          textShadow: isDark ? '0 2px 20px rgba(0,0,0,0.5)' : '0 2px 12px rgba(0,0,0,0.15)',
-        }}>
-          {cardTitle}
-        </h1>
-        )}
-
-        {/* Divider */}
-        <div style={{width:80,height:3,background:`linear-gradient(90deg,transparent,${design?.accent||'#7C3AED'},transparent)`,margin:'0 auto 16px',borderRadius:2}}/>
-
-        {/* Recipient name */}
-        {CL.recipient.show && (
-        <p style={{
-          fontFamily:"'Dancing Script', cursive",
-          fontSize: CL.recipient.size ? clSize('recipient') : 'clamp(1.3rem,4vw,1.8rem)',
-          color: clColor('recipient', isDark ? 'rgba(255,255,255,0.9)' : (design?.accent || '#7C3AED')),
-          margin:'0 0 8px', fontWeight:700, lineHeight:1.1,
-          textShadow: coverArt ? (isDark?'0 1px 8px rgba(0,0,0,0.4)':'0 1px 6px rgba(255,255,255,0.5)') : 'none',
-        }}>
-          For {card.recipient_name}
-        </p>
-        )}
-
-        {/* Sender line */}
-        {card.cover_sender && CL.sender.show && (
-        <p style={{
-          fontFamily:"'Caveat', cursive",
-          fontSize: CL.sender.size ? clSize('sender') : 15, fontWeight:600,
-          color: clColor('sender', isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)'),
-          margin:'0 0 6px',
-        }}>
-          From {card.cover_sender}
-        </p>
-        )}
-
-        {/* Occasion label */}
-        <p style={{
-          fontFamily:"'Caveat', cursive",
-          fontSize:16,
-          color: isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.45)',
-          margin:0, letterSpacing:1,
-        }}>
-          {occ.replace(/_/g,' ')} card
-        </p>
-
-        {/* Bottom flourish */}
-        <div style={{marginTop:28,fontSize:24,opacity:0.5,letterSpacing:8}}>• • •</div>
+    <div className={`album-page ${flipClass}`} style={{ position:'relative', width:424, maxWidth:'86vw' }}>
+      <div style={{position:'absolute',left:'11%',top:10,width:'89%',height:'100%',borderRadius:8,background:'#fff',boxShadow:'0 18px 58px rgba(0,0,0,.2)'}}/>
+      <div style={{position:'relative'}}>
+        <CardCoverPreview
+          design={effectiveDesign}
+          occasionLabel={(card.occasion || '').replace(/_/g,' ')}
+          recipientName={card.recipient_name}
+          title={card.title}
+          senderName={card.cover_sender}
+          coverColor={card.background_color?.startsWith('#') ? card.background_color : undefined}
+          textColor={coverTextColor}
+          fontFamily={getFontStyle(card.font_style).family}
+          layout={card.cover_layout}
+        />
       </div>
-
-      {/* Decorative elements remain in flow; the editable texts use the exact
-          percentage coordinates stored by the live cover studio. */}
-      {!coverArt && !hasCustomCover && (
-        <div style={{position:'absolute',top:'13%',left:'50%',transform:'translateX(-50%)',zIndex:1,fontSize:64,lineHeight:1,opacity:0.78,filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.15))'}}>{emoji}</div>
-      )}
-      <div style={{position:'absolute',top:14,left:'50%',transform:'translateX(-50%)',zIndex:2,padding:'5px 12px',borderRadius:999,background:isDark?'rgba(255,255,255,0.14)':'rgba(255,255,255,0.7)',backdropFilter:'blur(6px)',fontSize:10,fontWeight:800,letterSpacing:'0.18em',textTransform:'uppercase',color:isDark?'rgba(255,255,255,0.85)':(design?.accent||'#7C3AED')}}>
-        {occ.replace(/_/g,' ')} card
-      </div>
-      {CL.title.show && (
-        <h1 style={{position:'absolute',left:`${CL.title.x}%`,top:`${CL.title.y}%`,transform:'translate(-50%,-50%)',zIndex:3,width:'86%',padding:'2px 4px',margin:0,textAlign:'center',wordBreak:'break-word',fontFamily:"'Great Vibes', cursive",fontWeight:800,fontSize:clSize('title'),lineHeight:1.08,color:clColor('title',isDark?'#fff':(design?.ink||'#1A1035')),textShadow:isDark||coverArt?'0 2px 16px rgba(0,0,0,0.45)':'0 1px 8px rgba(255,255,255,0.55)'}}>{cardTitle}</h1>
-      )}
-      {CL.recipient.show && (
-        <p style={{position:'absolute',left:`${CL.recipient.x}%`,top:`${CL.recipient.y}%`,transform:'translate(-50%,-50%)',zIndex:3,width:'86%',padding:'2px 4px',margin:0,textAlign:'center',wordBreak:'break-word',fontFamily:"'Dancing Script', cursive",fontWeight:800,fontSize:clSize('recipient'),lineHeight:1.08,color:clColor('recipient',isDark?'#fff':(design?.ink||'#1A1035')),textShadow:isDark||coverArt?'0 2px 16px rgba(0,0,0,0.45)':'0 1px 8px rgba(255,255,255,0.55)'}}>{card.recipient_name}</p>
-      )}
-      {card.cover_sender && CL.sender.show && (
-        <p style={{position:'absolute',left:`${CL.sender.x}%`,top:`${CL.sender.y}%`,transform:'translate(-50%,-50%)',zIndex:3,width:'86%',padding:'2px 4px',margin:0,textAlign:'center',wordBreak:'break-word',fontFamily:"'Caveat', cursive",fontWeight:600,fontSize:clSize('sender'),lineHeight:1.08,letterSpacing:'0.04em',color:clColor('sender',isDark?'#fff':(design?.ink||'#1A1035')),textShadow:isDark||coverArt?'0 2px 16px rgba(0,0,0,0.45)':'0 1px 8px rgba(255,255,255,0.55)'}}>From {card.cover_sender}</p>
-      )}
-
-      {/* Bottom ribbon */}
-      <div style={{position:'absolute',bottom:0,left:0,right:0,height:8,
-        background:`linear-gradient(90deg,${design?.accent||'#7C3AED'}88,${design?.accent||'#7C3AED'}44,${design?.accent||'#7C3AED'}88)`,
-        borderRadius:'0 0 20px 20px'}}/>
     </div>
   );
 };
-
-// ─── Page theme picker ───────────────────────────────────────────────────────
-const PageThemePicker = ({ current, onSelect }) => (
-  <div style={{display:'flex',gap:5,flexWrap:'wrap',alignItems:'center'}}>
-    {PAGE_THEMES.map(t=>(
-      <button key={t.id} onClick={()=>onSelect(t.id)} title={t.label}
-        style={{width:24,height:24,borderRadius:6,background:t.bg,
-          border:`3px solid ${current===t.id ? t.accent : 'transparent'}`,
-          cursor:'pointer',flexShrink:0,
-          boxShadow:current===t.id ? `0 0 0 1px ${t.accent}` : '0 1px 4px rgba(0,0,0,0.1)',
-          transition:'all 0.15s'}}/>
-    ))}
-  </div>
-);
 
 // ─── Legacy sticker (old multi-msg pages) ───────────────────────────────────
 const LegacySticker = ({ msg, globalIdx, isOwn, theme, onDragStart }) => {
@@ -280,6 +159,24 @@ const LegacySticker = ({ msg, globalIdx, isOwn, theme, onDragStart }) => {
           <img src={msg.media_url} alt="" style={{display:'block',width:108,height:84,objectFit:'cover',borderRadius:1}}/>
           {msg.author_name&&<p style={{fontFamily:"'Caveat',cursive",fontSize:10,color:'#555',textAlign:'center',margin:'3px 0 0'}}>{msg.author_name}</p>}
         </div>
+      )}
+      {msg.media_url&&msg.media_type==='video'&&(
+        <button type="button" onClick={e=>{e.stopPropagation();window.open(msg.media_url,'_blank','noopener,noreferrer');}}
+          style={{background:'#1A1035',padding:'4px 4px 24px',boxShadow:'0 2px 14px rgba(0,0,0,0.14)',borderRadius:3,transform:`rotate(${rot>0?-1.5:1.5}deg)`,marginBottom:5,display:'inline-flex',flexDirection:'column',alignItems:'center',position:'relative',width:116,border:0,cursor:'pointer'}}>
+          <div style={{position:'absolute',top:-6,left:'50%',transform:'translateX(-50%)',width:34,height:12,background:tape+'BB',borderRadius:2}}/>
+          <div style={{width:108,height:84,borderRadius:1,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}>
+            <Icon name="Play" size={22}/>
+          </div>
+          {msg.author_name&&<p style={{fontFamily:"'Caveat',cursive",fontSize:10,color:'#ccc',textAlign:'center',margin:'3px 0 0'}}>{msg.author_name} — tap to play</p>}
+        </button>
+      )}
+      {msg.media_url&&(msg.media_type==='voice'||msg.media_type==='audio')&&(
+        <button type="button" onClick={e=>{e.stopPropagation();new Audio(msg.media_url).play().catch(()=>window.open(msg.media_url,'_blank','noopener,noreferrer'));}}
+          style={{background:'#fff',padding:'8px 10px',boxShadow:'0 2px 14px rgba(0,0,0,0.14)',borderRadius:3,transform:`rotate(${rot>0?-1.5:1.5}deg)`,marginBottom:5,display:'flex',alignItems:'center',gap:6,position:'relative',border:0,cursor:'pointer'}}>
+          <div style={{position:'absolute',top:-6,left:'50%',transform:'translateX(-50%)',width:34,height:12,background:tape+'BB',borderRadius:2}}/>
+          <Icon name="Mic" size={16} style={{color:theme?.accent||'#7C3AED'}}/>
+          <span style={{fontFamily:"'Caveat',cursive",fontSize:11,color:'#555'}}>{msg.author_name?`${msg.author_name} — voice note`:'Voice note'}</span>
+        </button>
       )}
       <div style={{background:theme?.id==='charcoal'?'rgba(255,255,255,0.08)':'#fff',
         border:`1.5px solid ${theme?.accent+'22'||'#EDE9FE'}`,borderRadius:12,
@@ -320,6 +217,43 @@ const SpiralBinding = ({ dark }) => (
 // ─── New-style signer page (notebook leaf) ───────────────────────────────────
 // When `editing` is true the content + author become inline inputs so a signer
 // can type directly on the page (notebook-style) and the creator can edit any page.
+const messageMediaItems = message => {
+  const items = [];
+  if (message?.media_url) items.push({ media_url: message.media_url, media_type: message.media_type || 'image' });
+  if (message?.media_gallery) {
+    try {
+      const gallery = typeof message.media_gallery === 'string' ? JSON.parse(message.media_gallery) : message.media_gallery;
+      if (Array.isArray(gallery)) gallery.forEach(item => {
+        if (typeof item === 'string') items.push({ media_url: item, media_type: 'image' });
+        else if (item?.media_url || item?.url) items.push({ media_url: item.media_url || item.url, media_type: item.media_type || item.type || 'image' });
+      });
+    } catch { /* Preserve rendering for older cards with malformed gallery JSON. */ }
+  }
+  return items.filter(item => item.media_url);
+};
+
+const SignerMediaCarousel = ({ message, accent, dark, onExpand }) => {
+  const items = messageMediaItems(message);
+  const [index, setIndex] = useState(0);
+  const active = items[Math.min(index, Math.max(0, items.length - 1))];
+  if (!active) return null;
+  const type = active.media_type;
+  const open = () => onExpand?.({ type: type === 'audio' ? 'voice' : type, src: active.media_url });
+  return (
+    <div style={{margin:'0 24px 10px 34px',borderRadius:12,overflow:'hidden',position:'relative',minHeight:type==='voice'||type==='audio'?84:185,background:dark?'rgba(255,255,255,.08)':'#f5f0ff',boxShadow:'0 6px 18px rgba(0,0,0,.14)',border:'4px solid rgba(255,255,255,.88)'}}>
+      {type === 'video' ? <video src={active.media_url} controls style={{width:'100%',height:210,objectFit:'contain',display:'block',background:'#161025'}}/>
+        : type === 'voice' || type === 'audio' ? <div style={{minHeight:84,display:'flex',alignItems:'center',gap:10,padding:'16px 18px',color:accent}}><Icon name="Mic" size={22}/><audio src={active.media_url} controls style={{width:'100%',height:36}}/></div>
+        : <button type="button" onClick={open} style={{display:'block',width:'100%',padding:0,border:0,cursor:'zoom-in',background:'transparent'}}><img src={active.media_url} alt="Message attachment" style={{width:'100%',height:210,objectFit:'contain',display:'block'}}/></button>}
+      <button type="button" onClick={open} aria-label="Open attachment larger" style={{position:'absolute',right:8,top:8,border:0,borderRadius:999,background:'rgba(17,24,39,.78)',color:'#fff',fontSize:9,fontWeight:800,padding:'6px 9px',cursor:'pointer'}}>Expand</button>
+      {items.length > 1 && <div style={{position:'absolute',left:8,right:8,bottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+        <button type="button" onClick={()=>setIndex(i=>(i-1+items.length)%items.length)} aria-label="Previous attachment" style={{width:28,height:28,borderRadius:'50%',border:0,background:'rgba(17,24,39,.7)',color:'#fff',cursor:'pointer'}}>‹</button>
+        <span style={{borderRadius:999,background:'rgba(17,24,39,.7)',color:'#fff',fontSize:9,fontWeight:800,padding:'5px 9px'}}>{index+1} of {items.length}</span>
+        <button type="button" onClick={()=>setIndex(i=>(i+1)%items.length)} aria-label="Next attachment" style={{width:28,height:28,borderRadius:'50%',border:0,background:'rgba(17,24,39,.7)',color:'#fff',cursor:'pointer'}}>›</button>
+      </div>}
+    </div>
+  );
+};
+
 const NewSignerPage = ({
   msg, theme, isOwn, flipClass, canEdit, editing,
   draft, onDraftChange, onStartEdit, onSaveEdit, onCancelEdit, saving,
@@ -330,7 +264,6 @@ const NewSignerPage = ({
   const sub    = isDark ? '#A78BFA' : '#8b8299';
   const accentC= theme?.accent || '#7C3AED';
   const paper  = theme?.bg || '#FFFDF8';
-  const rule   = isDark ? 'rgba(167,139,250,0.16)' : 'rgba(120,90,200,0.14)';
   const fStyle = getFontStyle(editing ? (draft?.font_style || msg?.font_style) : msg?.font_style);
   const content = editing ? (draft?.content ?? '') : (msg?.content ?? '');
   const author  = editing ? (draft?.author_name ?? '') : (msg?.author_name ?? '');
@@ -349,9 +282,6 @@ const NewSignerPage = ({
     <div className={`album-page ${flipClass}`} style={{
       position:'relative', width:500, maxWidth:'92vw', height:600,
       background:paper,
-      // ruled notebook lines + a margin rule near the spine
-      backgroundImage:`repeating-linear-gradient(0deg, transparent, transparent 33px, ${rule} 33px, ${rule} 34px)`,
-      backgroundPosition:'0 78px',
       borderRadius:14,
       border:`1px solid ${isDark?'rgba(255,255,255,0.08)':'rgba(120,90,200,0.16)'}`,
       boxShadow:isDark
@@ -360,11 +290,8 @@ const NewSignerPage = ({
       overflow:'hidden', display:'flex', flexDirection:'column',
       transition:'background 0.4s,border-color 0.4s',
     }}>
-      {/* red margin rule like a real notebook */}
-      <div style={{ position:'absolute', left:52, top:0, bottom:0, width:1.5, background:isDark?'rgba(248,113,113,0.28)':'rgba(230,90,110,0.4)', zIndex:1 }}/>
-
       {/* Header band */}
-      <div style={{ padding:'16px 24px 10px 60px', flexShrink:0, position:'relative', zIndex:2 }}>
+      <div style={{ padding:'18px 24px 10px 34px', flexShrink:0, position:'relative', zIndex:2 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <span style={{ width:9, height:9, borderRadius:'50%', background:accentC, opacity:0.7 }}/>
           <span style={{ fontFamily:"'Kalam',cursive", fontSize:13, color:sub, fontWeight:700 }}>
@@ -373,26 +300,12 @@ const NewSignerPage = ({
         </div>
       </div>
 
-      {/* Photo (kept if present) */}
-      {mediaUrl && (mediaType==='image'||mediaType==='gif'||mediaType==='video') && (
-        <div style={{ margin:'0 24px 8px 60px', borderRadius:10, overflow:'hidden', flexShrink:0, position:'relative',
-          boxShadow:'0 6px 18px rgba(0,0,0,0.16)', transform:'rotate(-1.2deg)', border:'5px solid #fff' }}>
-          {mediaType==='video'
-            ? <video src={mediaUrl} style={{ width:'100%', maxHeight:220, objectFit:'cover', display:'block' }} controls/>
-            : <button type="button" onClick={()=>setExpandedMedia({type:mediaType,src:mediaUrl})} style={{display:'block',width:'100%',padding:0,border:0,cursor:'zoom-in',background:'transparent'}}><img src={mediaUrl} alt="" style={{ width:'100%', maxHeight:220, objectFit:'cover', display:'block' }}/></button>}
-          <button type="button" onClick={()=>setExpandedMedia({type:mediaType,src:mediaUrl})} aria-label="Open media larger" style={{position:'absolute',right:7,top:7,border:0,borderRadius:999,background:'rgba(17,24,39,.78)',color:'#fff',fontSize:10,fontWeight:800,padding:'6px 9px',cursor:'zoom-in'}}>Expand</button>
-        </div>
-      )}
-      {mediaUrl && mediaType==='voice' && (
-        <div style={{margin:'0 24px 8px 60px',padding:'10px 12px',borderRadius:12,background:isDark?'rgba(255,255,255,0.08)':'rgba(124,58,237,0.08)',border:`1px solid ${accentC}33`,position:'relative',zIndex:2}}>
-          <audio src={mediaUrl} controls style={{width:'calc(100% - 64px)',height:34}} />
-          <button type="button" onClick={()=>setExpandedMedia({type:'voice',src:mediaUrl})} style={{position:'absolute',right:8,top:10,border:0,borderRadius:999,background:accentC,color:'#fff',fontSize:9,fontWeight:800,padding:'6px 8px',cursor:'pointer'}}>Open</button>
-        </div>
-      )}
+      {!editing && <SignerMediaCarousel message={msg} accent={accentC} dark={isDark} onExpand={setExpandedMedia}/>} 
+      {editing && mediaUrl && <SignerMediaCarousel message={{media_url:mediaUrl,media_type:mediaType}} accent={accentC} dark={isDark} onExpand={setExpandedMedia}/>} 
 
       {editing && (
-        <div style={{margin:'0 24px 6px 60px',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',position:'relative',zIndex:8}}>
-          <input ref={editMediaInputRef} type="file" accept="image/*,video/*,audio/*" hidden
+        <div style={{margin:'0 24px 6px 34px',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',position:'relative',zIndex:8}}>
+          <input ref={editMediaInputRef} type="file" accept="image/*,video/*" hidden
             onChange={e=>{const file=e.target.files?.[0];if(file)onMediaSelect?.(file);e.target.value='';}} />
           <button type="button" onClick={()=>editMediaInputRef.current?.click()} style={{border:`1px solid ${accentC}55`,background:isDark?'rgba(255,255,255,0.08)':'#fff',color:accentC,borderRadius:999,padding:'5px 9px',fontSize:10,fontWeight:800,cursor:'pointer'}}>
             <Icon name="Image" size={11}/> Photo / video
@@ -405,7 +318,7 @@ const NewSignerPage = ({
       )}
 
       {/* Message body — inline editable */}
-      <div style={{ margin:'6px 24px 0 60px', position:'relative', zIndex:2 }}>
+      <div style={{ margin:'6px 24px 0 34px', position:'relative', zIndex:2 }}>
         {editing ? (
           <textarea
             className="album-inline-input"
@@ -445,7 +358,7 @@ const NewSignerPage = ({
       </div>
 
       {/* Signature footer */}
-      <div style={{ margin:'8px 24px 20px 60px', flexShrink:0, position:'relative', zIndex:2, borderTop:`1px dashed ${accentC}33`, paddingTop:12, display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:12 }}>
+      <div style={{ margin:'8px 24px 20px 34px', flexShrink:0, position:'relative', zIndex:2, borderTop:`1px dashed ${accentC}33`, paddingTop:12, display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:12 }}>
         <div style={{ flex:1, minWidth:0 }}>
           <span style={{ fontFamily:"'Kalam',cursive", fontSize:12, color:sub }}>with love,</span>
           {editing ? (
@@ -514,7 +427,6 @@ const LegacyAlbumPage = ({ pageNum, messages, myMsgIds, theme, flipClass, onDrag
     <div ref={pageRef} className={`album-page ${flipClass}`} style={{
       position:'relative',width:500,maxWidth:'90vw',height:600,
       background:theme?.bg||'#F5F3FF',
-      backgroundImage:`repeating-linear-gradient(0deg,transparent,transparent 27px,${theme?.lines||'rgba(150,120,220,0.13)'} 27px,${theme?.lines||'rgba(150,120,220,0.13)'} 28px)`,
       borderRadius:20,border:`1.5px solid ${isDark?'rgba(255,255,255,0.1)':accentC+'30'}`,
       boxShadow:isDark?'0 12px 60px rgba(0,0,0,0.4)':'0 8px 48px rgba(0,0,0,0.1)',
       overflow:'hidden',
@@ -557,7 +469,6 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const [showHelp,   setShowHelp]   = useState(false);
   const [signaturesOpen, setSignaturesOpen] = useState(true);
   const [flipClass,  setFlipClass]  = useState('');
-  const [pageThemes, setPageThemes] = useState(['lavender']);
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [customAmount,   setCustomAmount]   = useState('');
   const [giftCurrency,   setGiftCurrency]   = useState('NGN');
@@ -619,6 +530,12 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   // ─ Derived ─
   const messages = (card?.messages||[]).filter(Boolean);
   const design   = getCardDesign(card?.design_theme);
+  const albumTheme = getAlbumTheme(card?.album_background_theme);
+
+  useEffect(() => {
+    setSelectedAmount(card?.is_gift_enabled ? (card?.suggested_amount || 2500) : null);
+    setCustomAmount('');
+  }, [card?.id]);
 
   // Detect legacy vs new-style:
   // Legacy = messages that were packed (page_number used sequentially per MSGS_PER_PAGE grouping).
@@ -659,11 +576,15 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const clampedPage = Math.min(page, totalPages-1);
 
   // Current page theme
-  const themeIdx = Math.max(0, clampedPage-1); // cover has no theme (design handles it)
-  const currentPageThemeId = pageThemes[themeIdx] || 'lavender';
-  const currentTheme = PAGE_THEMES.find(t=>t.id===currentPageThemeId)||PAGE_THEMES[2];
-  const isDark = currentTheme?.id==='charcoal';
+  const currentTheme = { ...albumTheme, bg:albumTheme.page, accent:design?.accent || '#7C3AED' };
+  const isDark = albumTheme.id === 'midnight';
   const accentC = clampedPage===0 ? (design?.accent||'#7C3AED') : (currentTheme?.accent||'#7C3AED');
+  const stageBackground = albumTheme.id === 'cover_blur'
+    ? (typeof card?.background_color === 'string' && /^https?:\/\//.test(card.background_color)
+      ? `url("${card.background_color}") center / cover no-repeat`
+      : design?.image ? `url("${design.image}") center / cover no-repeat`
+        : design?.background || albumTheme.stage)
+    : albumTheme.stage;
 
   // ─ Page flip sound (Web Audio — a short filtered-noise "paper" swish) ─
   const audioCtxRef = useRef(null);
@@ -698,11 +619,9 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const flipTo = useCallback((newPage, direction='forward') => {
     if (newPage === clampedPage) return;
     playFlipSound();
-    const outClass = direction==='forward' ? 'album-flip-out'  : 'album-flip-outB';
-    const inClass  = direction==='forward' ? 'album-flip-in'   : 'album-flip-inB';
-    setFlipClass(outClass);
-    setTimeout(()=>{ setPage(newPage); setFlipClass(inClass); }, 300);
-    setTimeout(()=>{ setFlipClass(''); }, 620);
+    setPage(newPage);
+    setFlipClass(direction==='forward' ? 'album-flip-forward' : 'album-flip-back');
+    window.setTimeout(()=>{ setFlipClass(''); }, 620);
   }, [clampedPage, playFlipSound]);
 
   const goNext = () => { if (clampedPage < totalPages-1) flipTo(clampedPage+1,'forward'); };
@@ -763,7 +682,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     const {msgId}=dragging.current;
     const msg=(card?.messages||[]).filter(Boolean).find(m=>m.id===msgId);
     if(msg&&(msg._x!==undefined||msg._y!==undefined)){
-      messagesAPI.updatePosition(msgId,{position_x:msg._x??msg.position_x,position_y:msg._y??msg.position_y,rotation:msg.rotation,author_email:form.author_email}).catch(()=>{});
+      messagesAPI.updatePosition(msgId,{position_x:msg._x??msg.position_x,position_y:msg._y??msg.position_y,rotation:msg.rotation,edit_token:getEditToken(msgId)||undefined,author_email:form.author_email}).catch(()=>{});
     }
     dragging.current=null;
   },[card,form.author_email]);
@@ -773,11 +692,9 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     if (!m) return false;
     if (card?.isCreator) return true;              // creator edits all pages
     if (myMsgIds.includes(m.id)) return true;      // signer edits own page (this session)
-    // author email match (returning signer)
-    if (form.author_email && m.author_email &&
-        form.author_email.toLowerCase().trim() === m.author_email.toLowerCase().trim()) return true;
+    if (getEditToken(m.id)) return true;           // returning signer — this browser holds the token
     return false;
-  }, [card?.isCreator, myMsgIds, form.author_email]);
+  }, [card?.isCreator, myMsgIds]);
 
   const startEdit = useCallback((m) => {
     if (!m) return;
@@ -838,6 +755,9 @@ const AlbumSign = ({ card: initialCard, slug }) => {
         author_name: editDraft.author_name?.trim() || undefined,
         font_style: editDraft.font_style,
         ...(editDraft.font_color ? { font_color: editDraft.font_color } : {}),
+        edit_token: getEditToken(editingMsgId) || undefined,
+        // Legacy fallback for messages created before edit_token existed —
+        // backend only honours this when the message has no edit_token stored.
         author_email: form.author_email || undefined,
         ...(editDraft.remove_media ? { remove_media:true } : {}),
       };
@@ -934,7 +854,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
       mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
       const msgRes = await messagesAPI.add(slug, fd);
       const messageId = msgRes.data?.id;
-      if (messageId) setMyMsgIds(prev => [...prev, messageId]);
+      if (messageId) { setMyMsgIds(prev => [...prev, messageId]); storeEditToken(messageId, msgRes.data?.edit_token); }
       const refreshed = await cardsAPI.getPublic(slug);
       setCard(refreshed.data);
 
@@ -984,7 +904,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
       mediaFiles.forEach((m,i)=>fd.append(i===0?'media':`media_gallery_${i}`,m.file));
       const msgRes=await messagesAPI.add(slug,fd);
       const messageId=msgRes.data?.id;
-      if(messageId) setMyMsgIds(prev=>[...prev,messageId]);
+      if(messageId) { setMyMsgIds(prev=>[...prev,messageId]); storeEditToken(messageId, msgRes.data?.edit_token); }
       const refreshed=await cardsAPI.getPublic(slug);
       setCard(refreshed.data);
       if(!wantsGift){
@@ -1051,7 +971,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   // ─ Render current page ─
   const pageDef = pageList[clampedPage];
   const showingCover = clampedPage===0;
-  const bgColor = showingCover ? (design?.soft||'#F5F3FF') : (currentTheme?.bg||'#F5F3FF');
+  const bgColor = stageBackground || albumTheme.stage;
 
   return(
     <div className="section-dots" style={{minHeight:'100vh',background:bgColor,fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif",transition:'background 0.4s'}}>
@@ -1070,7 +990,12 @@ const AlbumSign = ({ card: initialCard, slug }) => {
           style={{background:'#7C3AED',border:'none',borderRadius:12,padding:'8px 14px',fontWeight:700,fontSize:13,color:'#fff',cursor:'pointer'}}>
           Gift &amp; Share
         </button>
-        <div className="hidden md:block" style={{width:100}}/>
+        <div className="hidden md:block" style={{width:164,textAlign:'right'}}>
+          {card.is_gift_enabled && <button type="button" onClick={()=>openEditorFor('gift')}
+            style={{border:'none',borderRadius:12,padding:'9px 13px',background:'linear-gradient(135deg,#F59E0B,#D97706)',color:'#fff',fontWeight:800,fontSize:12,cursor:'pointer',boxShadow:'0 3px 12px rgba(245,158,11,.3)'}}>
+            Gift this card
+          </button>}
+        </div>
       </div>
 
       {/* ── Toolbar (hidden on cover) ── */}
@@ -1086,12 +1011,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
             style={{width:40,height:40,borderRadius:'50%',border:`1.5px solid ${isDark?'rgba(255,255,255,0.15)':'#EDE9FE'}`,background:isDark?'rgba(255,255,255,0.07)':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:11,color:isDark?'#A78BFA':'#7C3AED'}}>GIF</button>
           <VoiceRecorder onRecorded={f=>addMedia([f])} disabled={submitting}/>
           <div style={{flex:1}}/>
-          <div style={{display:'flex',alignItems:'center',gap:6}}>
-            <span style={{fontSize:11,fontWeight:700,color:isDark?'#A78BFA':'#9CA3AF',whiteSpace:'nowrap'}}>Page colour:</span>
-            <PageThemePicker current={currentPageThemeId} onSelect={themeId=>{
-              setPageThemes(prev=>{const n=[...prev];while(n.length<clampedPage)n.push('lavender');n[clampedPage-1]=themeId;return n;});
-            }}/>
-          </div>
+          <span style={{fontSize:11,fontWeight:700,color:isDark?'#cbd5e1':'#6B7280',whiteSpace:'nowrap'}}>Creator's {albumTheme.name.toLowerCase()} album</span>
             <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={e=>{addMedia(e.target.files);e.target.value='';}}/>
         </div>
       )}
@@ -1111,14 +1031,14 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               <div key={off} style={{position:'absolute',left:'50%',top:'50%',
                 transform:`translate(calc(-50% - ${off*18}px),calc(-50% + ${off*4}px)) rotate(${-off*2}deg)`,
                 width:500,maxWidth:'90vw',height:600,borderRadius:20,
-                background:PAGE_THEMES[(themeIdx-off+PAGE_THEMES.length)%PAGE_THEMES.length]?.bg||'#fff',
+                background:currentTheme.bg||'#fff',
                 border:'1.5px solid rgba(200,180,240,0.25)',boxShadow:'0 4px 20px rgba(0,0,0,0.05)',zIndex:0}}/>
             ))}
             {clampedPage<totalPages-1&&[1,2].map(off=>(
               <div key={off} style={{position:'absolute',left:'50%',top:'50%',
                 transform:`translate(calc(-50% + ${off*18}px),calc(-50% + ${off*4}px)) rotate(${off*2}deg)`,
                 width:500,maxWidth:'90vw',height:600,borderRadius:20,
-                background:PAGE_THEMES[(themeIdx+off)%PAGE_THEMES.length]?.bg||'#fff',
+                background:currentTheme.bg||'#fff',
                 border:'1.5px solid rgba(200,180,240,0.25)',boxShadow:'0 4px 20px rgba(0,0,0,0.05)',zIndex:0}}/>
             ))}
 
@@ -1149,7 +1069,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                   <div style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none'}}>
                     {inlineCompose ? (
                       /* Direct-on-page notebook compose */
-                      <div style={{position:'absolute',inset:0,pointerEvents:'auto',display:'flex',flexDirection:'column',padding:'22px 24px 20px 60px'}}>
+                      <div style={{position:'absolute',inset:0,pointerEvents:'auto',display:'flex',flexDirection:'column',padding:'22px 24px 20px 34px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
                           <span style={{width:9,height:9,borderRadius:'50%',background:accentC,opacity:0.7}}/>
                           <span style={{fontFamily:"'Kalam',cursive",fontSize:13,color:accentC,fontWeight:700}}>Your page — write freely</span>
@@ -1181,6 +1101,9 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                             placeholder="your name"
                             style={{fontFamily:"'Dancing Script',cursive",fontWeight:700,fontSize:24,color:accentC,marginTop:2}}
                           />
+                          <input type="email" value={form.author_email} onChange={e=>setForm(p=>({...p,author_email:e.target.value}))}
+                            placeholder="Your email (for your signature)" aria-label="Your email"
+                            style={{width:'100%',marginTop:6,border:`1px solid ${accentC}33`,borderRadius:8,padding:'7px 9px',fontSize:12,color:'#374151',background:'rgba(255,255,255,.75)',outline:'none'}}/>
                         </div>
                         <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
                           <button type="button" onClick={handleSubmit} disabled={submitting}
@@ -1199,31 +1122,34 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                         )}
                       </div>
                     ) : (
-                      <>
+                      <div style={{position:'absolute',inset:0,pointerEvents:'auto',display:'flex',flexDirection:'column',padding:'22px 24px 20px 34px',gap:12}}>
+                        {/* Primary CTA — write the message */}
                         <button type="button" onClick={()=>setInlineCompose(true)}
-                          style={{position:'absolute',top:24,left:60,right:24,bottom:150,pointerEvents:'auto',border:'2px dashed rgba(124,58,237,0.32)',background:'rgba(255,255,255,0.35)',borderRadius:14,fontWeight:800,fontSize:16,color:accentC,cursor:'text',fontFamily:"'Caveat',cursive",display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8}}>
-                          <Icon name="PenLine" size={26}/>
-                          <span style={{fontSize:20}}>Tap to write your message right here</span>
+                          style={{flex:1,minHeight:0,border:'2px dashed rgba(124,58,237,0.42)',background:'rgba(255,255,255,0.6)',borderRadius:16,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:'text',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,padding:16}}>
+                          <span style={{display:'flex',width:48,height:48,borderRadius:14,alignItems:'center',justifyContent:'center',background:accentC+'18',flexShrink:0}}><Icon name="PenLine" size={23} style={{color:accentC}}/></span>
+                          <span style={{fontSize:17,fontWeight:800,color:accentC}}>This page is yours</span>
+                          <span style={{fontSize:12,fontWeight:600,color:'#6B7280',maxWidth:260,lineHeight:1.5,textAlign:'center'}}>Tap here to write your message. Everything below is optional.</span>
                         </button>
-                        <div style={{position:'absolute',left:60,right:24,bottom:64,display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,pointerEvents:'auto'}}>
-                          <button type="button" onClick={()=>openEditorFor('media')} style={{border:'2px dashed rgba(124,58,237,0.45)',background:'rgba(255,255,255,0.72)',borderRadius:12,padding:'9px',fontWeight:800,color:accentC,cursor:'pointer'}}>
-                            Add photo / video
-                          </button>
-                          <button type="button" onClick={()=>openEditorFor('gif')} style={{border:'2px dashed rgba(124,58,237,0.45)',background:'rgba(255,255,255,0.72)',borderRadius:12,padding:'9px',fontWeight:800,color:accentC,cursor:'pointer'}}>
-                            Add GIF
-                          </button>
+
+                        {/* Optional add-ons — icon grid, clearly secondary to the CTA above */}
+                        <div style={{flexShrink:0}}>
+                          <p style={{fontSize:10,fontWeight:800,letterSpacing:'0.08em',textTransform:'uppercase',color:'#9CA3AF',margin:'0 0 8px 4px'}}>Optional extras</p>
+                          <div style={{display:'grid',gridTemplateColumns:card.is_gift_enabled?'repeat(4,1fr)':'repeat(3,1fr)',gap:8}}>
+                            {[
+                              { action:'media', icon:'Image',  label:'Photo/Video', color:accentC,     bg:accentC+'12' },
+                              { action:'gif',   icon:'Sparkles',label:'GIF',         color:accentC,     bg:accentC+'12' },
+                              { action:'voice', icon:'Mic',     label:'Voice note',  color:accentC,     bg:accentC+'12' },
+                              ...(card.is_gift_enabled ? [{ action:'gift', icon:'Gift', label:'Gift', color:'#92400E', bg:'rgba(254,243,199,0.9)' }] : []),
+                            ].map(opt=>(
+                              <button key={opt.action} type="button" onClick={()=>openEditorFor(opt.action)}
+                                style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5,border:`1.5px solid ${opt.color}33`,background:opt.bg,borderRadius:12,padding:'10px 6px',cursor:'pointer'}}>
+                                <Icon name={opt.icon} size={17} style={{color:opt.color}}/>
+                                <span style={{fontSize:10,fontWeight:800,color:opt.color,textAlign:'center',lineHeight:1.2}}>{opt.label}</span>
+                              </button>
+                            ))}
+                          </div>
                         </div>
-                        <div style={{position:'absolute',left:60,right:24,bottom:18,display:'flex',justifyContent:'space-between',gap:10,pointerEvents:'auto'}}>
-                          <button type="button" onClick={()=>openEditorFor('voice')} style={{flex:1,border:'2px dashed rgba(124,58,237,0.35)',background:'rgba(255,255,255,0.72)',borderRadius:999,padding:'9px 12px',fontWeight:800,color:accentC,cursor:'pointer'}}>
-                            Add voice note
-                          </button>
-                          {card.is_gift_enabled && (
-                            <button type="button" onClick={()=>openEditorFor('gift')} style={{flex:1,border:'2px dashed rgba(245,158,11,0.65)',background:'rgba(254,243,199,0.86)',borderRadius:999,padding:'9px 12px',fontWeight:800,color:'#92400E',cursor:'pointer'}}>
-                              Add gift
-                            </button>
-                          )}
-                        </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}

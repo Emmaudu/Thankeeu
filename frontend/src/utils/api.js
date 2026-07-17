@@ -208,6 +208,8 @@ export const cardsAPI = {
       },
     }
   ),
+  // Admin-uploaded cover designs for an occasion, newest-first (public, no auth)
+  getCoverDesigns: (occasion) => publicAxios.get(`/cards/cover-designs/${occasion}`),
 };
 
 // ─── Live Memory Wall ──────────────────────────────────────────────────────
@@ -297,6 +299,11 @@ export const adminAPI = {
   getSettings:  ()                      => api.get('/admin/settings'),
   uploadMusic:  (formData)              => api.post('/admin/music-upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   removeMusic:  ()                      => api.delete('/admin/music'),
+  // Cover designs (bulk upload per occasion)
+  getCoverDesignOccasions: ()                => api.get('/admin/cover-designs/occasions'),
+  getCoverDesigns:         (occasion)         => api.get('/admin/cover-designs', { params: occasion ? { occasion } : {} }),
+  uploadCoverDesigns:      (formData)         => api.post('/admin/cover-designs', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180000 }),
+  deleteCoverDesign:       (id)               => api.delete(`/admin/cover-designs/${id}`),
 };
 
 export const adminCompanyAPI = {

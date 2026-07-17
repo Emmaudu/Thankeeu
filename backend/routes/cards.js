@@ -247,4 +247,32 @@ router.post('/:slug/claim', validateSlugParam('slug'), auth, async (req, res) =>
   }
 });
 
+// ── Admin-uploaded cover designs, public read (no auth) ─────────────────────
+// GET /api/cards/cover-designs/:occasion — active designs for one occasion,
+// newest-first. The frontend prepends these to its built-in static designs,
+// so a fresh admin upload appears first without displacing older uploads —
+// they simply queue behind it, and the static designs trail after all of them.
+router.get('/cover-designs/:occasion', async (req, res) => {
+  try {
+    const { occasion } = req.params;
+    const { data, error } = await supabase
+      .from('cover_designs')
+      .select('id, occasion, name, image_url, created_at')
+      .eq('occasion', occasion)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    if (error) {
+      // Table may not exist yet if the migration hasn't run — degrade to an
+      // empty list rather than breaking the design picker for everyone.
+      if (/relation .* does not exist/i.test(error.message || '')) return res.json({ ok: true, designs: [] });
+      throw new Error(error.message);
+    }
+    res.json({ ok: true, designs: data || [] });
+  } catch (err) {
+    console.error('[cover-designs GET] error:', err.message);
+    // Same reasoning — never let this endpoint being down break card creation.
+    res.json({ ok: true, designs: [] });
+  }
+});
+
 module.exports = router;

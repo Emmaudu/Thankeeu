@@ -132,4 +132,46 @@ if (hasCloudinary) {
   });
 }
 
-module.exports = { upload, uploadRecipientPhoto, uploadMusic, cloudinary, deleteFile };
+// ── Cover design bulk upload (admin only — stores to thankeeu/cover-designs) ──
+// Images only, up to 40 files per batch (a generous ceiling; the admin UI itself
+// doesn't impose a lower artificial limit but Cloudinary/network realities do).
+let uploadCoverDesigns;
+
+if (hasCloudinary) {
+  const coverDesignStorage = new CloudinaryStorage({
+    cloudinary,
+    params: async () => ({
+      folder: 'thankeeu/cover-designs',
+      resource_type: 'image',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 1600, crop: 'limit', quality: 'auto:good' }],
+    }),
+  });
+  uploadCoverDesigns = multer({
+    storage: coverDesignStorage,
+    limits: { fileSize: 9 * 1024 * 1024, files: 40 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) cb(null, true);
+      else cb(new Error('Only image files (JPG, PNG, WEBP) are allowed for cover designs'));
+    },
+  });
+} else {
+  const uploadDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  uploadCoverDesigns = multer({
+    storage: multer.diskStorage({
+      destination: uploadDir,
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.jpg';
+        cb(null, `cover-design-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+      },
+    }),
+    limits: { fileSize: 9 * 1024 * 1024, files: 40 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) cb(null, true);
+      else cb(new Error('Only image files (JPG, PNG, WEBP) are allowed for cover designs'));
+    },
+  });
+}
+
+module.exports = { upload, uploadRecipientPhoto, uploadMusic, uploadCoverDesigns, cloudinary, deleteFile };

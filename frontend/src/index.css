@@ -41,17 +41,29 @@
 body.loading #root { opacity: 0; }
 #app-shell-loader {
   position: fixed; inset: 0; z-index: 9999;
-  display: flex; align-items: center; justify-content: center;
-  background: #FDFCFF;
-  transition: opacity 0.18s ease;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  background:
+    radial-gradient(circle at 50% 26%, rgba(196,181,253,0.44), transparent 34%),
+    linear-gradient(180deg, #faf7ff 0%, #f5f0ff 100%);
+  transition: opacity 0.16s ease;
 }
 body:not(.loading) #app-shell-loader { opacity: 0; pointer-events: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
+#app-shell-brand {
+  color: #6d28d9;
+  font-size: 24px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+@keyframes thankeeu-shell-spin { to { transform: rotate(360deg); } }
 #app-shell-loader-inner {
-  width: 44px; height: 44px; border-radius: 50%;
+  width: 42px; height: 42px; border-radius: 50%;
   border: 3px solid #ede9fe;
   border-top-color: #7c3aed;
-  animation: spin 0.75s linear infinite;
+  animation: thankeeu-shell-spin 0.72s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  #app-shell-loader { transition: none; }
+  #app-shell-loader-inner { animation-duration: 1.5s; }
 }
 
 /* ── Component classes ───────────────────────────────────────────── */

@@ -6,8 +6,8 @@
  * • Social crawlers  → Returns OG-enriched HTML (meta tags from live card data)
  *                      with a <meta http-equiv="refresh"> so if a human somehow lands
  *                      here, they get bounced to the SPA immediately.
- * • Real browsers    → Returns a thin HTML shell that loads the Vite SPA bundle,
- *                      identical to index.html but with card-specific OG tags pre-baked.
+ * • Real browsers    → Returns the built Vite index shell directly from the edge,
+ *                      preserving the requested URL without rewriting the document.
  *
  * This way WhatsApp/Facebook/Twitter see real og:title + og:image,
  * and human users get the full React app — no URL changes.
@@ -50,6 +50,19 @@ async function fetchCardMeta(slug) {
     );
     if (!res.ok) return null;
     return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchAppShell() {
+  try {
+    const res = await fetch(`${BASE_URL}/index.html`, {
+      headers: { Accept: 'text/html' },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    return await res.text();
   } catch {
     return null;
   }
@@ -148,6 +161,22 @@ export default async function handler(req) {
   const canonicalUrl = `${BASE_URL}${url.pathname}${url.search}`;
   const crawler       = isCrawler(ua);
   const searchCrawler = isSearchCrawler(ua);
+
+  // Return the built app document before first paint. The previous browser
+  // shell fetched index.html and rewrote the document client-side, which
+  // guaranteed a blank white flash on every direct card-page reload.
+  if (!crawler) {
+    const appShell = await fetchAppShell();
+    if (appShell) {
+      return new Response(appShell, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          'Cache-Control': 'no-store',
+        },
+      });
+    }
+  }
 
   // Fetch card meta from backend (needed for both crawlers and browser OG tags)
   const meta   = await fetchCardMeta(slug);

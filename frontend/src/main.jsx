@@ -44,14 +44,21 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+const AppReady = ({ children }) => {
+  React.useLayoutEffect(() => {
+    document.body.classList.remove('loading')
+  }, [])
+
+  return children
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
+    <AppReady>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </AppReady>
   </React.StrictMode>
 )
 
-// Remove the loading class immediately — this hides the shell spinner
-// and reveals the React-rendered page without a blank flash.
-document.body.classList.remove('loading');

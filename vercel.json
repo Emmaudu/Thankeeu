@@ -20,6 +20,14 @@
       "destination": "https://thankeeu-production.up.railway.app/api/$1"
     },
     {
+      "source": "/card/new",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/card/customize",
+      "destination": "/index.html"
+    },
+    {
       "source": "/sign/:slug",
       "destination": "/api/card-meta"
     },

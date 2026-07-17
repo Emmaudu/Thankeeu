@@ -114,6 +114,7 @@ const CardStart = () => {
  // Step 1 has two sub-pages: 'design' then 'experience' (Group Card vs Live Wall).
  // This avoids renumbering all steps while giving Experience its own screen.
  const [designSubStep, setDesignSubStep] = useState('design'); // 'design' | 'experience'
+ const [designsExpanded, setDesignsExpanded] = useState(false);
  // Scroll to top whenever the user advances or goes back a step
  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
 
@@ -706,10 +707,7 @@ const CardStart = () => {
  .ccg-upload p{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#fff;margin:0;text-align:center;line-height:1.2;}
  `}</style>
 
- {(() => {
-   const [designsExpanded, setDesignsExpanded] = React.useState(false);
-   return (
-   <>
+ <>
    <div className={`ccg-wrap ${designsExpanded ? 'expanded' : ''}`}>
    <div className="ccg">
    <button type="button" className="ccg-item ccg-upload" onClick={() => document.getElementById('cs-bg-upload')?.click()}>
@@ -760,8 +758,6 @@ const CardStart = () => {
    </button>
  )}
  </>
- );
- })()}
 
  {selectedDesign && (
   <div className="mb-5">

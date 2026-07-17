@@ -12,6 +12,67 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
+    <!-- Critical app-shell CSS is intentionally inline. Vite's full stylesheet
+         arrives with the JS graph; without this tiny block, deep-link reloads
+         briefly expose the unstyled prerendered HTML. -->
+    <style id="critical-app-shell">
+      :root { color-scheme: light; }
+      html {
+        min-height: 100%;
+        background: #f8f5ff;
+      }
+      body {
+        min-height: 100%;
+        margin: 0;
+        background: #fdfcff;
+        color: #1a1035;
+        font-family: "Nunito Sans", "Plus Jakarta Sans", system-ui, sans-serif;
+      }
+      #root { min-height: 100vh; }
+      body.loading { overflow: hidden; }
+      body.loading #root { opacity: 0; }
+      #app-shell-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background:
+          radial-gradient(circle at 50% 26%, rgba(196, 181, 253, 0.44), transparent 34%),
+          linear-gradient(180deg, #faf7ff 0%, #f5f0ff 100%);
+        opacity: 1;
+        transition: opacity 160ms ease;
+      }
+      body:not(.loading) #app-shell-loader {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #app-shell-brand {
+        color: #6d28d9;
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+      }
+      #app-shell-loader-inner {
+        width: 42px;
+        height: 42px;
+        border: 3px solid #ddd6fe;
+        border-top-color: #7c3aed;
+        border-radius: 999px;
+        animation: thankeeu-shell-spin 720ms linear infinite;
+      }
+      @keyframes thankeeu-shell-spin {
+        to { transform: rotate(360deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #app-shell-loader { transition: none; }
+        #app-shell-loader-inner { animation-duration: 1.5s; }
+      }
+    </style>
+
     <!-- ── Theme colour (browser chrome, Android, PWA) ──────────────── -->
     <meta name="theme-color" content="#7C3AED" />
     <meta name="msapplication-TileColor" content="#7C3AED" />
@@ -156,6 +217,7 @@
          Prevents the blank white flash that occurs between HTML parse and
          first React paint. CSS in index.css controls .loading / not(.loading). -->
     <div id="app-shell-loader" aria-hidden="true">
+      <div id="app-shell-brand">Thankeeu</div>
       <div id="app-shell-loader-inner"></div>
     </div>
     <div id="root"><nav aria-label="Thankeeu services"><a href="/occasions/birthday">Birthday group cards</a> <a href="/cards/leaving-card">Leaving cards</a> <a href="/cards/retirement">Retirement cards</a> <a href="/live-memory-wall">Live Memory Wall</a> <a href="/pricing">Pricing</a> <a href="/how-it-works">How it works</a></nav><main><h1>Thankeeu online group cards, gifts and Live Memory Walls</h1><p>Create a beautiful group card everyone signs from one link. Add messages, photos, GIFs, voice notes, a group gift, or a live two-column memory wall for birthdays, farewells and retirements.</p><p><a href="/create-card">Create a group card</a> or <a href="/sample">view a sample card</a>.</p></main></div>

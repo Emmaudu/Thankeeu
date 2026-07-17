@@ -257,7 +257,7 @@ const SignerMediaCarousel = ({ message, accent, dark, onExpand }) => {
 const NewSignerPage = ({
   msg, theme, isOwn, flipClass, canEdit, editing,
   draft, onDraftChange, onStartEdit, onSaveEdit, onCancelEdit, saving,
-  onMediaSelect, onMediaRemove,
+  onMediaSelect, onMediaRemove, spread,
 }) => {
   const isDark = theme?.id === 'charcoal';
   const ink    = isDark ? '#F3E8FF' : '#2a2140';
@@ -280,7 +280,7 @@ const NewSignerPage = ({
 
   return (
     <div className={`album-page ${flipClass}`} style={{
-      position:'relative', width:500, maxWidth:'92vw', height:600,
+      position:'relative', width:500, maxWidth: spread ? '45vw' : '92vw', height:600,
       background:paper,
       borderRadius:14,
       border:`1px solid ${isDark?'rgba(255,255,255,0.08)':'rgba(120,90,200,0.16)'}`,
@@ -313,7 +313,7 @@ const NewSignerPage = ({
           <button type="button" onClick={()=>setShowEditGif(true)} style={{border:`1px solid ${accentC}55`,background:isDark?'rgba(255,255,255,0.08)':'#fff',color:accentC,borderRadius:999,padding:'5px 9px',fontSize:10,fontWeight:800,cursor:'pointer'}}>GIF</button>
           <VoiceRecorder onRecorded={file=>onMediaSelect?.(file)} disabled={saving}/>
           {mediaUrl && <button type="button" onClick={onMediaRemove} style={{border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#B91C1C',borderRadius:999,padding:'5px 9px',fontSize:10,fontWeight:800,cursor:'pointer'}}>Remove media</button>}
-          {showEditGif && <GifPicker onSelect={file=>{onMediaSelect?.(file);setShowEditGif(false);}} onClose={()=>setShowEditGif(false)}/>} 
+          {showEditGif && <GifPicker onSelect={file=>{onMediaSelect?.(file);setShowEditGif(false);}} onClose={()=>setShowEditGif(false)} compact/>} 
         </div>
       )}
 
@@ -420,12 +420,12 @@ const NewSignerPage = ({
 };
 
 // ─── Legacy page (multi-sticker) ─────────────────────────────────────────────
-const LegacyAlbumPage = ({ pageNum, messages, myMsgIds, theme, flipClass, onDragStart, pageRef }) => {
+const LegacyAlbumPage = ({ pageNum, messages, myMsgIds, theme, flipClass, onDragStart, pageRef, spread }) => {
   const isDark = theme?.id === 'charcoal';
   const accentC= theme?.accent||'#7C3AED';
   return (
     <div ref={pageRef} className={`album-page ${flipClass}`} style={{
-      position:'relative',width:500,maxWidth:'90vw',height:600,
+      position:'relative',width:500,maxWidth: spread ? '45vw' : '90vw',height:600,
       background:theme?.bg||'#F5F3FF',
       borderRadius:20,border:`1.5px solid ${isDark?'rgba(255,255,255,0.1)':accentC+'30'}`,
       boxShadow:isDark?'0 12px 60px rgba(0,0,0,0.4)':'0 8px 48px rgba(0,0,0,0.1)',
@@ -973,21 +973,69 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const showingCover = clampedPage===0;
   const bgColor = stageBackground || albumTheme.stage;
 
+  // ─ Full-spread: pair pages into a left/right open-book spread (post-cover).
+  // The "active" side is whichever one clampedPage points at — that's the only
+  // side that gets the compose overlay / edit affordances / flip animation.
+  // The other side renders the same page components in pure read-only mode,
+  // so both pages are genuinely visible at once without duplicating any of
+  // the interaction logic above (which is already parameterized by pageDef,
+  // not by clampedPage directly).
+  const spreadLeftIdx  = showingCover ? null : (clampedPage % 2 === 1 ? clampedPage : clampedPage - 1);
+  const spreadRightIdx = showingCover ? null : spreadLeftIdx + 1;
+  const leftDef  = spreadLeftIdx  != null && spreadLeftIdx  >= 1 && spreadLeftIdx  < totalPages ? pageList[spreadLeftIdx]  : null;
+  const rightDef = spreadRightIdx != null && spreadRightIdx < totalPages ? pageList[spreadRightIdx] : null;
+  const activeSide = clampedPage === spreadRightIdx ? 'right' : 'left';
+
+  const renderLeaf = (def, idx, isActive) => {
+    if (!def) {
+      // Inside cover / end of book — a quiet closed-leaf placeholder rather than empty space
+      return (
+        <div style={{width:424,maxWidth:'44vw',minHeight:600,borderRadius:'0 16px 16px 0',background:currentTheme.bg||'#fff',
+          border:'1.5px solid rgba(200,180,240,0.25)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <span style={{fontFamily:"'Caveat',cursive",fontSize:18,color:'#C4B5FD'}}>The end ✦</span>
+        </div>
+      );
+    }
+    const leafFlip = isActive ? flipClass : '';
+    if (def.type==='legacy') {
+      return <LegacyAlbumPage pageRef={isActive?pageRef:undefined} pageNum={def.pageNum} messages={def.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass={leafFlip} onDragStart={isActive?startDrag:undefined} spread/>;
+    }
+    return (
+      <NewSignerPage
+        msg={def?.msg||null}
+        theme={currentTheme}
+        isOwn={def?.msg&&myMsgIds.includes(def.msg.id)}
+        flipClass={leafFlip}
+        canEdit={isActive && canEditMsg(def?.msg)}
+        editing={isActive && !!def?.msg && editingMsgId===def.msg.id}
+        draft={editDraft}
+        saving={savingEdit}
+        onDraftChange={isActive?(patch)=>setEditDraft(d=>({...d,...patch})):undefined}
+        onStartEdit={isActive?()=>startEdit(def?.msg):undefined}
+        onSaveEdit={isActive?saveEdit:undefined}
+        onCancelEdit={isActive?cancelEdit:undefined}
+        onMediaSelect={isActive?selectEditMedia:undefined}
+        onMediaRemove={isActive?removeEditMedia:undefined}
+        spread
+      />
+    );
+  };
+
   return(
     <div className="section-dots" style={{minHeight:'100vh',background:bgColor,fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif",transition:'background 0.4s'}}>
       <style>{ALBUM_CSS}</style>
 
-      {/* ── Top bar ── */}
-      <div style={{background:isDark&&!showingCover?'#14102a':'#fff',borderBottom:`1.5px solid ${showingCover?design?.accent+'30'||'#EDE9FE':'#EDE9FE'}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 1.25rem',height:60,position:'sticky',top:0,zIndex:40,boxShadow:'0 2px 12px rgba(0,0,0,0.06)'}}>
+      {/* ── Top bar — tinted to match the album's own background/theme ── */}
+      <div style={{background:showingCover?'#fff':(currentTheme.bg||'#fff'),borderBottom:`1.5px solid ${showingCover?design?.accent+'30'||'#EDE9FE':(currentTheme.accent||'#7C3AED')+'25'}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 1.25rem',height:60,position:'sticky',top:0,zIndex:40,boxShadow:'0 2px 12px rgba(0,0,0,0.06)',transition:'background 0.4s,border-color 0.4s'}}>
         <Link to="/" style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:17,color:isDark&&!showingCover?'#E9D5FF':'#1A1035',textDecoration:'none'}}>
-          Thank<span style={{color:'#7C3AED'}}>eeu</span>
+          Thank<span style={{color:currentTheme.accent||'#7C3AED'}}>eeu</span>
         </Link>
         <div style={{textAlign:'center'}}>
           <h1 style={{fontWeight:700,fontSize:15,color:isDark&&!showingCover?'#E9D5FF':'#1A1035',margin:0,lineHeight:1.2}}>{card.recipient_name}'s card</h1>
           <p style={{fontSize:11,color:'#9CA3AF',margin:0}}>{messages.length} {messages.length===1?'message':'messages'} · {showingCover?'Cover':`Page ${clampedPage} of ${totalPages-1}`}</p>
         </div>
         <button className="md:hidden" onClick={()=>setMobileSidebar(true)}
-          style={{background:'#7C3AED',border:'none',borderRadius:12,padding:'8px 14px',fontWeight:700,fontSize:13,color:'#fff',cursor:'pointer'}}>
+          style={{background:currentTheme.accent||'#7C3AED',border:'none',borderRadius:12,padding:'8px 14px',fontWeight:700,fontSize:13,color:'#fff',cursor:'pointer'}}>
           Gift &amp; Share
         </button>
         <div className="hidden md:block" style={{width:164,textAlign:'right'}}>
@@ -1007,7 +1055,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
           </button>
           <button onClick={()=>fileInputRef.current?.click()} title="Add photo"
             style={{width:40,height:40,borderRadius:'50%',border:`1.5px solid ${isDark?'rgba(255,255,255,0.15)':'#EDE9FE'}`,background:isDark?'rgba(255,255,255,0.07)':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17}}>🖼️</button>
-          <button onClick={()=>setShowGif(s=>!s)} title="Add GIF"
+          <button onClick={()=>openEditorFor('gif')} title="Add GIF"
             style={{width:40,height:40,borderRadius:'50%',border:`1.5px solid ${isDark?'rgba(255,255,255,0.15)':'#EDE9FE'}`,background:isDark?'rgba(255,255,255,0.07)':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:11,color:isDark?'#A78BFA':'#7C3AED'}}>GIF</button>
           <VoiceRecorder onRecorded={f=>addMedia([f])} disabled={submitting}/>
           <div style={{flex:1}}/>
@@ -1042,12 +1090,19 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                 border:'1.5px solid rgba(200,180,240,0.25)',boxShadow:'0 4px 20px rgba(0,0,0,0.05)',zIndex:0}}/>
             ))}
 
-            {/* Active page */}
-            <div style={{position:'relative',zIndex:1}}>
+            {/* Active page + peek page — full open-book spread */}
+            <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'stretch'}}>
+              {!showingCover && activeSide==='right' && (
+                <div style={{position:'relative',borderRadius:'14px 0 0 14px',overflow:'hidden',boxShadow:'inset -8px 0 20px -12px rgba(0,0,0,0.25)'}}>
+                  {renderLeaf(leftDef, spreadLeftIdx, false)}
+                </div>
+              )}
+              {!showingCover && <div style={{width:2,alignSelf:'stretch',background:'linear-gradient(90deg,rgba(0,0,0,0.08),rgba(0,0,0,0.02))',flexShrink:0}}/>}
+            <div style={{position:'relative',zIndex:1,borderRadius:!showingCover?(activeSide==='left'?'0 14px 14px 0':'14px 0 0 14px'):undefined,overflow:!showingCover?'hidden':undefined,boxShadow:!showingCover?(activeSide==='left'?'inset 8px 0 20px -12px rgba(0,0,0,0.25)':'inset -8px 0 20px -12px rgba(0,0,0,0.25)'):undefined}}>
                 {showingCover
                   ? <CoverPage card={card} design={design} flipClass={flipClass}/>
                   : pageDef?.type==='legacy'
-                    ? <LegacyAlbumPage pageRef={pageRef} pageNum={pageDef.pageNum} messages={pageDef.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass={flipClass} onDragStart={startDrag}/>
+                    ? <LegacyAlbumPage pageRef={pageRef} pageNum={pageDef.pageNum} messages={pageDef.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass={flipClass} onDragStart={startDrag} spread/>
                     : <NewSignerPage
                         msg={pageDef?.msg||null}
                         theme={currentTheme}
@@ -1063,6 +1118,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                         onCancelEdit={cancelEdit}
                         onMediaSelect={selectEditMedia}
                         onMediaRemove={removeEditMedia}
+                        spread={!showingCover}
                       />
                 }
                 {!showingCover && pageDef?.type === 'blank' && (
@@ -1117,6 +1173,19 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                           <button type="button" onClick={()=>setInlineCompose(false)}
                             style={{width:44,height:44,borderRadius:12,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',color:'#9CA3AF'}}>✕</button>
                         </div>
+                        {showGif && (
+                          // Fixed, centered overlay — the page card this button lives in has
+                          // overflow:hidden for its paper/flip-animation look, so an absolutely
+                          // positioned picker anchored to the button would get silently clipped
+                          // instead of showing. Escaping to a viewport-level overlay guarantees
+                          // it's always visible regardless of where on the page the button sits.
+                          <div style={{position:'fixed',inset:0,zIndex:150,display:'flex',alignItems:'center',justifyContent:'center',padding:16,background:'rgba(26,16,53,0.55)',backdropFilter:'blur(4px)'}}
+                            onClick={()=>setShowGif(false)}>
+                            <div style={{position:'relative',width:'min(380px,92vw)'}} onClick={e=>e.stopPropagation()}>
+                              <GifPicker onSelect={f=>{addMedia([f]);setShowGif(false);}} onClose={()=>setShowGif(false)} compact/>
+                            </div>
+                          </div>
+                        )}
                         {mediaFiles.length>0 && (
                           <p style={{fontSize:11,color:accentC,fontWeight:700,marginTop:8}}>{mediaFiles.length} attachment{mediaFiles.length>1?'s':''} ready ✓</p>
                         )}
@@ -1154,6 +1223,12 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                   </div>
                 )}
               </div>
+              {!showingCover && activeSide==='left' && (
+                <div style={{position:'relative',borderRadius:'0 14px 14px 0',overflow:'hidden',boxShadow:'inset 8px 0 20px -12px rgba(0,0,0,0.25)'}}>
+                  {renderLeaf(rightDef, spreadRightIdx, false)}
+                </div>
+              )}
+            </div>
             </div>
 
           {/* ── Page navigation (jump freely to any page) ── */}
@@ -1326,8 +1401,18 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                   Add GIF
                 </button>
               </div>
-
-              {showGif&&<GifPicker onSelect={f=>{addMedia([f]);setShowGif(false);}} onClose={()=>setShowGif(false)}/>}
+              {showGif && (
+                // Fixed, centered overlay — the modal panel scrolls (overflowY:auto) and can
+                // be tall, so a picker anchored to this button could render off the visible
+                // area or get clipped depending on scroll position. A viewport-level overlay
+                // guarantees it's always visible regardless of where the button sits.
+                <div style={{position:'fixed',inset:0,zIndex:150,display:'flex',alignItems:'center',justifyContent:'center',padding:16,background:'rgba(26,16,53,0.55)',backdropFilter:'blur(4px)'}}
+                  onClick={()=>setShowGif(false)}>
+                  <div style={{position:'relative',width:'min(380px,92vw)'}} onClick={e=>e.stopPropagation()}>
+                    <GifPicker onSelect={f=>{addMedia([f]);setShowGif(false);}} onClose={()=>setShowGif(false)} compact/>
+                  </div>
+                </div>
+              )}
 
             {mediaFiles.length>0&&(
               <div style={{marginBottom:18,border:'1.5px solid #EDE9FE',borderRadius:16,overflow:'hidden'}}>

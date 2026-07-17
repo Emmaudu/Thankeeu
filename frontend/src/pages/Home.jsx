@@ -1344,9 +1344,9 @@ const Home = () => {
  .svg-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
  @media(max-width:900px){.svg-grid{grid-template-columns:repeat(3,1fr);}}
  @media(max-width:540px){.svg-grid{grid-template-columns:repeat(2,1fr);}}
- .svg-tile { position:relative; border-radius:16px; overflow:hidden; cursor:pointer; aspect-ratio:10/7; box-shadow:0 2px 12px rgba(0,0,0,0.10); transition:transform 0.18s,box-shadow 0.18s; text-decoration:none; display:block; }
+ .svg-tile { position:relative; border-radius:16px; overflow:hidden; cursor:pointer; aspect-ratio:210/297; box-shadow:0 2px 12px rgba(0,0,0,0.10); transition:transform 0.18s,box-shadow 0.18s; text-decoration:none; display:block; }
  .svg-tile:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(124,58,237,0.18); }
- .svg-tile img { width:100%; height:100%; object-fit:cover; display:block; }
+ .svg-tile img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
  `}</style>
 
  <div className="svg-grid">

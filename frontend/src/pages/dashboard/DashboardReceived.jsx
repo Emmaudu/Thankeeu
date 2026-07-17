@@ -27,7 +27,7 @@ export default function DashboardReceived() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map(card=>(
-            <Link to={`/card/${card.slug}`} key={card.id} className="db-card-item" style={{textDecoration:'none'}}>
+            <Link to={`/card/${card.slug}${card.access_token ? `?token=${card.access_token}` : ''}`} key={card.id} className="db-card-item" style={{textDecoration:'none'}}>
               <div className="db-card-item-body">
                 <div className="flex items-start gap-3 mb-3">
                   <span className="text-2xl">{EMOJI[card.occasion]||'💌'}</span>

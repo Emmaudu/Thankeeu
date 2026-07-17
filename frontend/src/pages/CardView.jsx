@@ -11,6 +11,7 @@ import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns'
 import { CoverArtwork } from '../utils/coverArtwork.jsx';
 import { normalizeCoverLayout, coverLayoutEqualsDefault } from '../utils/coverLayout';
 import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
+import CardCoverPreview from '../components/CardCoverPreview';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
 import QRButton from '../components/QRButton';
@@ -296,7 +297,7 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
   const [busy,        setBusy]        = useState(false);
   const [result,      setResult]      = useState(null);
 
-  const fee     = Math.round(amount * 0.035);
+  const fee     = Math.round(amount * 0.03);
   const net     = amount - fee;
   const isVerified = user ? user.is_verified !== false : true;
 
@@ -421,7 +422,7 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
       {result?.type === 'transfer' && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-xs text-warm-600 space-y-1">
           <div className="flex justify-between"><span>Gift pot</span><span>{formatNGN(amount)}</span></div>
-          <div className="flex justify-between"><span>Platform fee (3.5%)</span><span>-{formatNGN(result.fee)}</span></div>
+          <div className="flex justify-between"><span>Platform fee (3%)</span><span>-{formatNGN(result.fee)}</span></div>
           <div className="flex justify-between font-bold text-warm-900"><span>You receive</span><span>{formatNGN(result.amount)}</span></div>
         </div>
       )}
@@ -456,7 +457,7 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
   if (step === 'choose') return (
     <div className="space-y-3">
       <p className="text-xs text-warm-500 text-center mb-1">How would you like to receive your {formatNGN(net)}?</p>
-      <p className="text-xs text-warm-400 text-center -mt-2 mb-2">(After 3.5% platform fee on {formatNGN(amount)})</p>
+      <p className="text-xs text-warm-400 text-center -mt-2 mb-2">(After 3% platform fee on {formatNGN(amount)})</p>
 
       <button onClick={loadBankAccounts} disabled={busy}
         className="w-full flex items-center gap-3 p-4 rounded-2xl border-2 border-green-200 bg-green-50 hover:bg-green-100 transition-all text-left">
@@ -506,7 +507,7 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
           ))}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs space-y-1 text-warm-600">
             <div className="flex justify-between"><span>Gift pot</span><span>{formatNGN(amount)}</span></div>
-            <div className="flex justify-between"><span>Platform fee (3.5%)</span><span>-{formatNGN(fee)}</span></div>
+            <div className="flex justify-between"><span>Platform fee (3%)</span><span>-{formatNGN(fee)}</span></div>
             <div className="flex justify-between font-bold text-warm-900 pt-1 border-t border-gray-200"><span>You receive (est.)</span><span>{formatNGN(net)}</span></div>
             <p className="text-warm-400 text-center pt-1">Exact amount confirmed at transfer</p>
           </div>
@@ -1010,6 +1011,164 @@ const TransferCardButton = ({ slug }) => {
 };
 
 
+/** AlbumFlipbookViewer — a real page-turning open-book viewer for album-layout
+ * cards, so the finished card view matches what the creator saw building it
+ * and what signers saw when they added their pages. Read-only: no compose,
+ * no editing — just the cover, then every signed message as its own page,
+ * shown two at a time as a genuine spread. */
+const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackground, coverTextColor }) => {
+  const [page, setPage] = useState(0);
+  const [flipClass, setFlipClass] = useState('');
+  const pages = messages; // one page per signed message
+  const totalPages = pages.length + 1; // +1 for the cover
+  const clamped = Math.min(page, totalPages - 1);
+  const showingCover = clamped === 0;
+  const accent = albumTheme.accent || design?.accent || '#7C3AED';
+
+  const flipTo = (target) => {
+    const next = Math.max(0, Math.min(totalPages - 1, target));
+    if (next === clamped) return;
+    setFlipClass(next > clamped ? 'album-flip-forward' : 'album-flip-back');
+    setPage(next);
+    window.setTimeout(() => setFlipClass(''), 500);
+  };
+
+  const leftIdx  = showingCover ? null : (clamped % 2 === 1 ? clamped : clamped - 1);
+  const rightIdx = showingCover ? null : leftIdx + 1;
+  const leftMsg  = leftIdx  != null && leftIdx  >= 1 ? pages[leftIdx  - 1] : null;
+  const rightMsg = rightIdx != null && rightIdx < totalPages ? pages[rightIdx - 1] : null;
+
+  const Leaf = ({ msg }) => {
+    const [carouselIdx, setCarouselIdx] = useState(0);
+    // Same shape as the signer page: a JSON array of extra items in
+    // media_gallery, with media_url/media_type as the first item. Combine
+    // them into one list so multi-photo/video messages show everything,
+    // not just the first attachment.
+    let galleryItems = [];
+    try {
+      const extra = msg?.media_gallery ? (typeof msg.media_gallery === 'string' ? JSON.parse(msg.media_gallery) : msg.media_gallery) : [];
+      galleryItems = msg?.media_url ? [{ url: msg.media_url, type: msg.media_type }, ...(extra || [])] : (extra || []);
+    } catch { galleryItems = msg?.media_url ? [{ url: msg.media_url, type: msg.media_type }] : []; }
+    const activeItem = galleryItems[Math.min(carouselIdx, Math.max(0, galleryItems.length - 1))];
+
+    return (
+    <div className="relative flex flex-col overflow-hidden rounded-2xl border shadow-xl"
+      style={{
+        width: 420, maxWidth: '44vw', minHeight: 560,
+        background: albumTheme.page || '#FFFDF8',
+        borderColor: 'rgba(120,90,200,0.16)',
+        boxShadow: '0 22px 70px rgba(76,29,149,0.16)',
+      }}>
+      {msg ? (
+        <div className="flex flex-1 flex-col p-6 sm:p-7">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full opacity-70" style={{ background: accent }}/>
+            <span className="text-xs font-bold" style={{ fontFamily: "'Kalam',cursive", color: albumTheme.ink, opacity: 0.6 }}>
+              {msg.created_at ? new Date(msg.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : ''}
+            </span>
+          </div>
+          {activeItem && (
+            <div className="relative mb-4 overflow-hidden rounded-xl" style={{ height: 160 }}>
+              {activeItem.type === 'video' ? (
+                <video src={activeItem.url} controls className="h-full w-full object-cover"/>
+              ) : activeItem.type === 'voice' || activeItem.type === 'audio' ? (
+                <div className="flex h-full flex-col items-center justify-center gap-2 bg-purple-50 px-4">
+                  <Icon name="Mic" size={22} className="text-primary-500"/>
+                  <audio src={activeItem.url} controls className="w-full"/>
+                </div>
+              ) : (
+                <img src={activeItem.url} alt="" className="h-full w-full object-cover"/>
+              )}
+              {galleryItems.length > 1 && (
+                <div className="absolute inset-x-0 bottom-1.5 flex items-center justify-center gap-2">
+                  <button type="button" onClick={() => setCarouselIdx(i => (i - 1 + galleryItems.length) % galleryItems.length)}
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white"><Icon name="ChevronLeft" size={12}/></button>
+                  <span className="rounded-full bg-black/65 px-2 py-0.5 text-[9px] font-bold text-white">{carouselIdx + 1}/{galleryItems.length}</span>
+                  <button type="button" onClick={() => setCarouselIdx(i => (i + 1) % galleryItems.length)}
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-black/65 text-white"><Icon name="ChevronRight" size={12}/></button>
+                </div>
+              )}
+            </div>
+          )}
+          <p className="flex-1 whitespace-pre-wrap break-words leading-relaxed"
+            style={{ fontFamily: getFontStyle(msg.font_style)?.family || "'Kalam',cursive", color: msg.font_color || albumTheme.ink, fontSize: 19 }}>
+            {msg.content}
+          </p>
+          <p className="mt-4 text-right text-sm font-bold" style={{ fontFamily: "'Dancing Script',cursive", color: accent, fontSize: 22 }}>
+            — {msg.author_name}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-1 items-center justify-center">
+          <span style={{ fontFamily: "'Caveat',cursive", fontSize: 18, color: '#C4B5FD' }}>The end ✦</span>
+        </div>
+      )}
+    </div>
+    );
+  };
+
+  return (
+    <div className="rounded-2xl p-5 sm:p-8" style={{ background: albumTheme.stage }}>
+      <style>{`
+        @keyframes cv-album-flip-forward { 0% { opacity:.2; transform:rotateY(-90deg); } 100% { opacity:1; transform:rotateY(0); } }
+        @keyframes cv-album-flip-back { 0% { opacity:.2; transform:rotateY(90deg); } 100% { opacity:1; transform:rotateY(0); } }
+        .cv-flip-forward { animation: cv-album-flip-forward .5s ease both; }
+        .cv-flip-back { animation: cv-album-flip-back .5s ease both; }
+      `}</style>
+      <div className="flex items-center justify-center" style={{ minHeight: 600 }}>
+        {showingCover ? (
+          <div className={flipClass === 'album-flip-forward' ? 'cv-flip-forward' : flipClass === 'album-flip-back' ? 'cv-flip-back' : ''}
+            style={{ width: 424, maxWidth: '86vw', position: 'relative' }}>
+            <div style={{position:'absolute',left:'11%',top:10,width:'89%',height:'100%',borderRadius:8,background:'#fff',boxShadow:'0 18px 58px rgba(0,0,0,.2)'}}/>
+            <div style={{position:'relative'}}>
+              <CardCoverPreview
+                design={design}
+                occasionLabel={(card.occasion || '').replace(/_/g, ' ')}
+                recipientName={card.recipient_name}
+                title={card.title}
+                senderName={card.cover_sender}
+                coverColor={card.background_color?.startsWith('#') ? card.background_color : undefined}
+                textColor={coverTextColor}
+                fontFamily={getFontStyle(card.font_style).family}
+                layout={card.cover_layout}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-stretch" style={{ gap: 2 }}>
+            <div className={flipClass && leftIdx === clamped ? (flipClass === 'album-flip-forward' ? 'cv-flip-forward' : 'cv-flip-back') : ''}
+              style={{ borderRadius: '14px 0 0 14px', overflow: 'hidden' }}>
+              <Leaf msg={leftMsg}/>
+            </div>
+            <div style={{ width: 2, background: 'linear-gradient(90deg,rgba(0,0,0,0.08),rgba(0,0,0,0.02))', flexShrink: 0 }}/>
+            <div className={flipClass && rightIdx === clamped ? (flipClass === 'album-flip-forward' ? 'cv-flip-forward' : 'cv-flip-back') : ''}
+              style={{ borderRadius: '0 14px 14px 0', overflow: 'hidden' }}>
+              <Leaf msg={rightMsg}/>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <div className="mt-6 flex items-center justify-center gap-3">
+        <button type="button" onClick={() => flipTo(clamped - (showingCover ? 1 : 2))} disabled={clamped === 0}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow disabled:opacity-30"
+          style={{ border: `2px solid ${accent}44`, color: accent }}>
+          <Icon name="ChevronLeft" size={20}/>
+        </button>
+        <span className="text-xs font-bold" style={{ color: albumTheme.ink === '#F3E8FF' ? '#fff' : '#4B3F72' }}>
+          {showingCover ? 'Cover' : `Page ${clamped} of ${totalPages - 1}`}
+        </span>
+        <button type="button" onClick={() => flipTo(showingCover ? 1 : clamped + 2)} disabled={clamped >= totalPages - 1}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow disabled:opacity-30"
+          style={{ border: `2px solid ${accent}44`, color: accent }}>
+          <Icon name="ChevronRight" size={20}/>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const CardView = () => {
   const { slug } = useParams();
   const { user }    = useAuth();
@@ -1208,6 +1367,17 @@ const CardView = () => {
   const coverTextColor = card.cover_text_color && card.cover_text_color !== 'auto'
     ? card.cover_text_color
     : getContrastTextColor(card.background_color, design);
+  // Navbar theming: for album-layout cards, reflect the interior album theme
+  // (album_background_theme) the same way AlbumSign.jsx colors its own top
+  // bar — not just the cover art gradient — so the navbar reads consistently
+  // whether you're looking at the cover or already inside the flipbook.
+  const albumNavTheme = card.card_layout === 'album' ? getAlbumTheme(card.album_background_theme) : null;
+  const navThemeBg = albumNavTheme
+    ? (albumNavTheme.id === 'cover_blur'
+        ? (isCustomCoverUrl ? `url("${card.background_color}") center/cover no-repeat` : design?.image ? `url("${design.image}") center/cover no-repeat` : design?.background)
+        : albumNavTheme.stage)
+    : design?.background;
+  const navThemeDark = albumNavTheme ? albumNavTheme.id === 'charcoal' : design?.dark;
   // Movable/recolourable cover text layout (show/hide + per-field colour)
   const coverLayout = normalizeCoverLayout(card.cover_layout);
   const hasCustomCoverLayout = !coverLayoutEqualsDefault(coverLayout);
@@ -1217,13 +1387,6 @@ const CardView = () => {
   };
   const coverArt = design.artwork;
   const albumTheme = getAlbumTheme(card.album_background_theme);
-  const albumPageDesign = {
-    ...design,
-    background: albumTheme.page,
-    ink: albumTheme.ink,
-    soft: albumTheme.page,
-    dark: false,
-  };
   const titleFont = getFontStyle(card.font_style);
   const canViewPrivate = Boolean(token || card.isCreator || card.isRecipient);
 
@@ -1557,6 +1720,32 @@ const CardView = () => {
           </section>
         )}
 
+        {/* ── Who gave — individual contributor list ───────────────────────
+             The gift-pot card above only shows the total. Creator and
+             recipient can also see who gave what, one line per gift. */}
+        {totalCollected > 0 && (card.isCreator || card.isRecipient) && Array.isArray(card.contributions) && card.contributions.filter(c => c.status === 'success').length > 0 && (
+          <section className="rounded-[1.5rem] border-2 border-emerald-100 bg-emerald-50/40 p-5 sm:p-6 mb-9">
+            <p className="text-xs font-extrabold tracking-[.15em] uppercase text-emerald-700 mb-4 flex items-center gap-2">
+              <Icon name="Gift" size={14}/>Who gave
+            </p>
+            <ul className="space-y-2.5">
+              {card.contributions.filter(c => c.status === 'success').map((c, i) => (
+                <li key={i} className="flex items-center justify-between gap-3 bg-white rounded-xl px-4 py-3 border border-emerald-100">
+                  <span className="flex items-center gap-2.5 min-w-0">
+                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-100 grid place-items-center text-sm font-extrabold text-emerald-700">
+                      {(c.contributor_name || 'A')[0].toUpperCase()}
+                    </span>
+                    <span className="font-semibold text-warm-800 text-sm truncate">{c.contributor_name || 'Anonymous'}</span>
+                  </span>
+                  <span className="font-extrabold text-emerald-700 text-sm flex-shrink-0">
+                    {c.amount != null ? formatNGN(c.amount) : 'Amount hidden'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         {/* ── Share your card ──────────────────────────────────────────── */}
         <div className="no-print mb-9 space-y-3">
           {/* Box 1 — Public signing link — open while active AND after delivery (sent) */}
@@ -1716,46 +1905,14 @@ const CardView = () => {
                 </div>
               )}
               {card?.card_layout === 'album' ? (
-                <div className="overflow-x-auto rounded-lg p-5 sm:p-7" style={{ scrollSnapType: 'x mandatory', background: albumTheme.stage }}>
-                  <div className="flex gap-5 min-w-max">
-                    <div
-                      className={`card-art ${cardArtClass(design)} celebration-shell rounded-[2rem] p-7 w-[280px] sm:w-[340px] min-h-[430px] flex flex-col justify-between flex-shrink-0`}
-                      style={{ background: coverBackground, color: coverTextColor, scrollSnapAlign: 'start' }}
-                    >
-                      <div>
-                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-extrabold bg-white/75" style={{ color: design.accent }}>
-                          Album flipbook
-                        </span>
-                        <h3 className="text-3xl font-extrabold mt-8 leading-tight" style={{ color: coverTextColor }}>
-                          {card.title || `${card.recipient_name}'s card`}
-                        </h3>
-                        <p className="text-sm mt-4 leading-relaxed opacity-75" style={{ color: coverTextColor }}>
-                          A page-by-page keepsake from everyone who signed.
-                        </p>
-                      </div>
-                      <div className="text-sm font-bold opacity-70">{messages.length} notes inside</div>
-                    </div>
-                    {displayMessages.map((message, index) => (
-                      <div key={message.id}
-                        className="w-[280px] sm:w-[340px] flex-shrink-0"
-                        style={{
-                          scrollSnapAlign: 'start',
-                          animation: searchQuery && filteredMessages.includes(message)
-                            ? 'msg-found .5s ease forwards' : 'none',
-                        }}>
-                        <MessageCard
-                          message={message}
-                          index={index}
-                          design={albumPageDesign}
-                          canViewPrivate={canViewPrivate}
-                          onOpen={setOpenMessage}
-                          onReact={id => messagesAPI.react(id, { emoji: 'heart' })}
-                          highlighted={!!searchQuery && filteredMessages.includes(message)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                <AlbumFlipbookViewer
+                  card={card}
+                  messages={displayMessages}
+                  design={design}
+                  albumTheme={albumTheme}
+                  coverBackground={coverBackground}
+                  coverTextColor={coverTextColor}
+                />
               ) : (
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-start">
                   {displayMessages.map((message, index) => (
@@ -1866,9 +2023,9 @@ const CardView = () => {
     </div>
   );
 
-  if (layoutType === 'member')  return <><Navbar themeBg={design?.background} themeDark={design?.dark}/>{content}</>;
-  if (layoutType === 'company') return <><Navbar themeBg={design?.background} themeDark={design?.dark}/>{content}</>;
-  return <><Navbar themeBg={design?.background} themeDark={design?.dark}/>{content}</>;
+  if (layoutType === 'member')  return <><Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>{content}</>;
+  if (layoutType === 'company') return <><Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>{content}</>;
+  return <><Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>{content}</>;
 };
 
 export default CardView;

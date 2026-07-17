@@ -115,6 +115,11 @@ const emailTemplates = {
 
       ${btn('🎉 Open my card now', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
 
+      <p style="color:#9CA3AF;font-size:12px;text-align:center;margin:8px 0 0;line-height:1.6;">
+        Or copy your private link:<br/>
+        <a href="${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}" style="color:#7C6EFF;word-break:break-all;">${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}</a>
+      </p>
+
       ${data.hasMemoryWall ? `
       <div style="background:linear-gradient(135deg,#0d0020,#2d1052);border-radius:12px;padding:20px;margin:20px 0;text-align:center;">
         <div style="font-size:32px;margin-bottom:8px;">📸</div>
@@ -200,6 +205,11 @@ const emailTemplates = {
       </div>` : ''}
 
       ${btn('🎉 Open my updated card', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
+
+      <p style="color:#9CA3AF;font-size:12px;text-align:center;margin:8px 0 0;line-height:1.6;">
+        Or copy your private link:<br/>
+        <a href="${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}" style="color:#7C6EFF;word-break:break-all;">${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}</a>
+      </p>
 
       <div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:12px;padding:18px 20px;margin:24px 0;">
         <p style="color:#F57F17;font-weight:700;font-size:14px;margin:0 0 10px;">📋 How to access your card & gift:</p>
@@ -452,7 +462,7 @@ const teamsTemplates = {
         ${[['Card',data.cardTitle],['Amount Requested',`${fmtNGN(data.amount)}`],['Reason',data.reason]].map(([k,v])=>
           `<tr><td style="padding:8px 12px;background:#f9f9f9;font-weight:600;color:#555;border:1px solid #eee;width:130px;">${k}</td><td style="padding:8px 12px;border:1px solid #eee;color:#333;">${v}</td></tr>`).join('')}
       </table>
-      <p style="color:#555;font-size:13px;line-height:1.7;">Note: A 3.5% platform fee has already been deducted from the gross total before this request.</p>
+      <p style="color:#555;font-size:13px;line-height:1.7;">Note: A 3% platform fee has already been deducted from the gross total before this request.</p>
       ${btn('Review in HR Dashboard', `${FRONTEND_URL}/company/deductions`)}
     `)
   }),

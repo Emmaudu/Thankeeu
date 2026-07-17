@@ -14,7 +14,7 @@ const CATEGORIES = [
 const sessionResultsCache = new Map();
 const sessionBlobCache    = new Map();
 
-const GifPicker = ({ onSelect, onClose }) => {
+const GifPicker = ({ onSelect, onClose, compact = false }) => {
   const [query, setQuery]             = useState('');
   const [gifs, setGifs]               = useState([]);
   const [loading, setLoading]         = useState(false);
@@ -154,8 +154,8 @@ const GifPicker = ({ onSelect, onClose }) => {
 
   return (
     <div ref={ref}
-      className="absolute z-30 mt-2 w-full sm:w-96 max-w-[calc(100vw-2rem)] bg-white rounded-2xl border-2 border-purple-100 shadow-xl overflow-hidden"
-      style={{ left: 0 }}>
+      className={`absolute z-30 mt-2 bg-white rounded-2xl border-2 border-purple-100 shadow-xl overflow-hidden ${compact ? 'w-full max-w-full' : 'w-full sm:w-96 max-w-[calc(100vw-2rem)]'}`}
+      style={{ left: 0, right: compact ? 0 : undefined }}>
 
       {/* Search */}
       <div className="p-2 border-b border-purple-50">

@@ -45,7 +45,7 @@ export default function DashboardDelivered() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {cards.map(card=>(
             <div key={card.id} className="db-card-item" style={{textDecoration:'none'}}>
-              <Link to={`/card/${card.slug}`} className="db-card-item-body block" style={{textDecoration:'none'}}>
+              <Link to={`/card/${card.slug}${card.access_token ? `?token=${card.access_token}` : ''}`} className="db-card-item-body block" style={{textDecoration:'none'}}>
                 <div className="flex items-start gap-3 mb-3">
                   <span className="text-2xl">{EMOJI[card.occasion]||'💌'}</span>
                   <div className="flex-1 min-w-0">
@@ -61,7 +61,22 @@ export default function DashboardDelivered() {
                 </div>
               </Link>
               <div className="db-card-item-actions">
-                <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
+                <Link to={`/card/${card.slug}${card.access_token ? `?token=${card.access_token}` : ''}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
+                {card.access_token && (
+                  <button
+                    type="button"
+                    className="db-card-item-action"
+                    onClick={e => {
+                      e.preventDefault(); e.stopPropagation();
+                      const link = `${window.location.origin}/card/${card.slug}?token=${card.access_token}`;
+                      navigator.clipboard.writeText(link).then(
+                        () => toast.success('Private link copied — this is the link the recipient received by email.'),
+                        () => toast.error('Could not copy — long-press the link to copy manually.')
+                      );
+                    }}>
+                    <Icon name="Link" size={13}/>Copy private link
+                  </button>
+                )}
                 {card.recipient_email && (
                   <button
                     className="db-card-item-action"

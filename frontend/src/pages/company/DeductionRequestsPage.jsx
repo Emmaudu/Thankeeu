@@ -87,7 +87,7 @@ const DeductionRequestsPage = () => {
           <div>
             <p className="font-semibold text-blue-800 mb-1">💰 How deductions work</p>
             <p className="text-blue-700 text-xs leading-relaxed">
-              Team leaders can request to deduct an amount from a celebrant's gift pot for physical in-office celebrations (e.g. buying a cake). A 3.5% platform fee is taken from the gross total first. The remaining balance (minus your approved deduction) goes to the celebrant.
+              Team leaders can request to deduct an amount from a celebrant's gift pot for physical in-office celebrations (e.g. buying a cake). A 3% platform fee is taken from the gross total first. The remaining balance (minus your approved deduction) goes to the celebrant.
             </p>
           </div>
           <div>

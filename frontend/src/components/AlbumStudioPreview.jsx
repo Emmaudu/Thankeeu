@@ -132,9 +132,13 @@ function LiveWallStudioPreview({ cards = [], onChange, creatorName, design, form
 
   return (
     <div className="w-full">
-      <div className="overflow-hidden rounded-2xl border border-purple-100 shadow-[0_24px_70px_rgba(27,34,48,0.16)]">
-        {/* Header — reflects chosen cover design color */}
-        <div className="relative overflow-hidden px-4 py-6 text-center" style={{ background: headerBg }}>
+      <div className="overflow-hidden rounded-[1.75rem] border border-purple-100 shadow-[0_28px_80px_rgba(27,34,48,0.20)]">
+        {/* Header — reflects chosen cover design color, with decorative dot pattern + glow */}
+        <div className="relative overflow-hidden px-4 py-7 text-center" style={{ background: headerBg }}>
+          <div className="pointer-events-none absolute inset-0 opacity-[0.14]"
+            style={{ backgroundImage: 'radial-gradient(circle, #fff 1.4px, transparent 1.4px)', backgroundSize: '18px 18px' }}/>
+          <div className="pointer-events-none absolute -left-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl"/>
+          <div className="pointer-events-none absolute -right-6 -bottom-14 h-44 w-44 rounded-full bg-white/10 blur-2xl"/>
           {design?.artwork && (
             <div className="absolute inset-0 opacity-60 pointer-events-none">
               <CardCoverPreview design={design} occasionLabel="" recipientName="" title="" senderName="" compact
@@ -142,23 +146,35 @@ function LiveWallStudioPreview({ cards = [], onChange, creatorName, design, form
             </div>
           )}
           <div className="relative z-10">
-            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-[10px] font-extrabold text-white uppercase tracking-widest">
+            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3 py-1 text-[10px] font-extrabold text-white uppercase tracking-widest shadow-sm">
               <Icon name="Camera" size={11}/> Live Memory Wall™
             </span>
-            <h3 className="text-xl font-black text-white drop-shadow-lg mt-2">
+            <h3 className="text-2xl font-black text-white drop-shadow-lg mt-2">
               {form?.recipient_name ? `For ${form.recipient_name}` : 'Memory Wall Preview'}
             </h3>
-            <p className="text-white/75 text-xs mt-1">Guests upload photos & videos from one QR link</p>
-            <div className="mt-3 flex justify-center gap-3">
+            <p className="text-white/75 text-xs mt-1.5">Guests upload photos &amp; videos from one QR link — updates in real time</p>
+            <div className="mt-4 flex justify-center gap-2">
               {['📸 Photos', '🎥 Videos', '💬 Messages'].map(label => (
-                <span key={label} className="rounded-full bg-white/20 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold text-white">{label}</span>
+                <span key={label} className="rounded-full bg-white/20 backdrop-blur-sm px-2.5 py-1.5 text-[10px] font-bold text-white shadow-sm">{label}</span>
               ))}
+            </div>
+            {/* Mini QR mock — visual only, communicates "scan to join" */}
+            <div className="mx-auto mt-5 flex w-fit items-center gap-2.5 rounded-2xl bg-white/95 px-3 py-2 shadow-lg">
+              <div className="grid grid-cols-4 grid-rows-4 gap-[1.5px]" style={{ width: 30, height: 30 }}>
+                {Array.from({ length: 16 }, (_, i) => (
+                  <span key={i} className="rounded-[1px]" style={{ background: [0,1,3,4,6,9,11,12,14,15].includes(i) ? '#1A1035' : 'transparent' }}/>
+                ))}
+              </div>
+              <span className="text-left">
+                <span className="block text-[9px] font-extrabold uppercase tracking-wide" style={{ color: accent }}>Scan to join</span>
+                <span className="block text-[8px] text-warm-400">No app needed</span>
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-b from-purple-50 to-white px-3 py-3">
-          <div className="grid grid-cols-2 gap-3">
+        <div className="bg-gradient-to-b from-purple-50/70 to-white px-3.5 py-4">
+          <div className="grid grid-cols-2 gap-3.5">
             {visible.map((card, index) => (
               <EditableWallCard key={card.id} card={card} index={wallPage * cardsPerPage + index}
                 onChange={patch => updateCard(index, patch)} onRemove={() => removeCard(index)}
@@ -167,21 +183,21 @@ function LiveWallStudioPreview({ cards = [], onChange, creatorName, design, form
           </div>
         </div>
 
-        <div className="border-t border-purple-50 bg-white px-3 py-3">
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-2">
+        <div className="border-t border-purple-50 bg-white px-3 py-3.5">
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-2.5">
             <button type="button" onClick={() => go(wallPage - 1)} disabled={wallPage === 0}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-100 bg-white text-primary-600 disabled:opacity-30">
-              <Icon name="ChevronLeft" size={14} />
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-purple-100 bg-white text-primary-600 shadow-sm disabled:opacity-30 disabled:shadow-none">
+              <Icon name="ChevronLeft" size={15} />
             </button>
             <span className="text-[10px] font-extrabold text-warm-600">Page {wallPage + 1} of {pageCount}</span>
             <button type="button" onClick={() => go(wallPage + 1)} disabled={wallPage === pageCount - 1}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-purple-100 bg-white text-primary-600 disabled:opacity-30">
-              <Icon name="ChevronRight" size={14} />
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-purple-100 bg-white text-primary-600 shadow-sm disabled:opacity-30 disabled:shadow-none">
+              <Icon name="ChevronRight" size={15} />
             </button>
           </div>
           <button type="button" onClick={addRow}
-            className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-extrabold text-white shadow-sm"
-            style={{ background: `linear-gradient(135deg,${accent},${accent}cc)` }}>
+            className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 rounded-2xl py-3 text-xs font-extrabold text-white shadow-lg transition-transform hover:scale-[1.02]"
+            style={{ background: `linear-gradient(135deg,${accent},${accent}cc)`, boxShadow: `0 10px 28px ${accent}40` }}>
             <Icon name="Plus" size={15}/>Add another row (2 cards)
           </button>
         </div>
@@ -211,13 +227,6 @@ function BoardPreview({ design, form, message, creatorName, onMessageChange, onA
   const [themePickerOpen, setThemePickerOpen] = useState(false);
   const boardPhotoRef = useRef(null);
 
-  const [boardMediaIdx, setBoardMediaIdx] = useState(0);
-  const activeBoardMedia = media[Math.min(boardMediaIdx, Math.max(0, media.length - 1))];
-
-  useEffect(() => {
-    if (boardMediaIdx >= media.length) setBoardMediaIdx(Math.max(0, media.length - 1));
-  }, [boardMediaIdx, media.length]);
-
   const handleBoardFiles = (e) => { const fs = e.target.files; if (fs?.length && onAddMedia) onAddMedia(fs); e.target.value = ''; };
   const openPickerFor = (accept) => { boardPhotoRef.current.accept = accept; boardPhotoRef.current.click(); };
 
@@ -226,19 +235,7 @@ function BoardPreview({ design, form, message, creatorName, onMessageChange, onA
   const isProductGift = ['product', 'gift'].includes(form?.gift_type);
 
   const [messageTileOpen, setMessageTileOpen] = useState(true);
-  const [voiceTileOpen, setVoiceTileOpen] = useState(false);
-
-  const TileIcon = ({ name, label, sub, onClick, filled }) => (
-    <button type="button" onClick={onClick}
-      className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-purple-200 bg-purple-50/40 p-4 text-center transition-colors hover:border-primary-300 hover:bg-primary-50/60"
-      style={{ minHeight: 118 }}>
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: accent + '18' }}>
-        <Icon name={name} size={19} style={{ color: accent }}/>
-      </span>
-      <span className="text-[11px] font-extrabold text-warm-700">{label}</span>
-      {sub && <span className="text-[9px] font-semibold text-warm-400">{sub}</span>}
-    </button>
-  );
+  const [voiceRecorderOpen, setVoiceRecorderOpen] = useState(false);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-purple-100 shadow-[0_24px_70px_rgba(27,34,48,0.16)]">
@@ -266,38 +263,55 @@ function BoardPreview({ design, form, message, creatorName, onMessageChange, onA
       {/* Board body */}
       <div className="bg-white px-4 pt-4 pb-2 space-y-3">
 
-        {/* If media already attached, show it large with carousel controls up top */}
-        {activeBoardMedia && (
-          <div className="relative overflow-hidden rounded-2xl border-2 border-primary-200 bg-warm-900" style={{ aspectRatio: '16/9' }}>
-            {activeBoardMedia.type === 'video' ? (
-              <video src={activeBoardMedia.preview} controls className="h-full w-full object-contain"/>
-            ) : activeBoardMedia.type === 'voice' ? (
-              <div className="flex h-full flex-col items-center justify-center gap-2 bg-purple-50 px-4">
-                <Icon name="Mic" size={26} className="text-primary-500"/>
-                <audio src={activeBoardMedia.preview} controls className="w-full"/>
+        {/* Media tiles — Thankbox-style grid: one tile per attachment already
+            added, plus a trailing "Add card" tile that opens the 4-way picker.
+            Keep adding cards until the 5-item cap. This matches the real data
+            model (one message, one media_gallery array) while giving the
+            same repeatable-tile feel as the reference. */}
+        <div>
+          <p className="mb-1.5 flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-primary-500">
+            <Icon name="LayoutGrid" size={12}/> Photos, videos &amp; voice notes
+          </p>
+          <div className="grid grid-cols-3 gap-2.5">
+            {media.map((item, idx) => (
+              <div key={idx} className="group relative overflow-hidden rounded-2xl border-2 border-primary-200 bg-warm-900" style={{ aspectRatio: '3/4' }}>
+                {item.type === 'video' ? (
+                  <video src={item.preview} className="h-full w-full object-cover"/>
+                ) : item.type === 'voice' ? (
+                  <div className="flex h-full flex-col items-center justify-center gap-2 bg-purple-50 px-2">
+                    <Icon name="Mic" size={22} className="text-primary-500"/>
+                    <audio src={item.preview} controls className="w-full" style={{ maxWidth: 90 }}/>
+                  </div>
+                ) : (
+                  <img src={item.preview} alt="Message attachment" className="h-full w-full object-cover"/>
+                )}
+                <button type="button" aria-label="Remove this card" onClick={() => onRemoveMedia?.(idx)}
+                  className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  <Icon name="X" size={11}/>
+                </button>
+                <span className="absolute left-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white">
+                  <Icon name={item.type === 'video' ? 'Film' : item.type === 'voice' ? 'Mic' : 'Image'} size={10}/>
+                </span>
               </div>
-            ) : (
-              <img src={activeBoardMedia.preview} alt="Message attachment" className="h-full w-full object-contain"/>
+            ))}
+            {voiceRecorderOpen && media.length < 5 && (
+              <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-primary-300 bg-primary-50/70 p-2" style={{ aspectRatio: '3/4' }}>
+                <VoiceRecorder onRecorded={file => { onAddMedia?.([file]); setVoiceRecorderOpen(false); }} disabled={media.length >= 5}/>
+                <button type="button" onClick={() => setVoiceRecorderOpen(false)} className="text-[9px] font-bold text-warm-400">Cancel</button>
+              </div>
             )}
-            <button type="button" aria-label="Remove current attachment" onClick={() => onRemoveMedia?.(boardMediaIdx)}
-              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white">
-              <Icon name="X" size={12}/>
-            </button>
-            <button type="button" onClick={() => setMediaPickerOpen(true)}
-              className="absolute left-2 top-2 flex h-7 items-center gap-1 rounded-full bg-black/70 px-2.5 text-[10px] font-extrabold text-white">
-              <Icon name="Plus" size={11}/> Add more
-            </button>
-            {media.length > 1 && (
-              <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-2">
-                <button type="button" aria-label="Previous attachment" onClick={() => setBoardMediaIdx(i => (i - 1 + media.length) % media.length)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white"><Icon name="ChevronLeft" size={13}/></button>
-                <span className="rounded-full bg-black/65 px-2 py-1 text-[9px] font-extrabold text-white">{boardMediaIdx + 1} / {media.length}</span>
-                <button type="button" aria-label="Next attachment" onClick={() => setBoardMediaIdx(i => (i + 1) % media.length)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full bg-black/65 text-white"><Icon name="ChevronRight" size={13}/></button>
-              </div>
+            {media.length < 5 && (
+              <button type="button" onClick={() => setMediaPickerOpen(true)}
+                className="flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-purple-200 bg-purple-50/40 text-center transition-colors hover:border-primary-300 hover:bg-primary-50/60"
+                style={{ aspectRatio: '3/4' }}>
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ background: accent + '18' }}>
+                  <Icon name="Plus" size={18} style={{ color: accent }}/>
+                </span>
+                <span className="text-[10px] font-extrabold text-warm-700">{media.length ? 'Add card' : 'Tap to add'}</span>
+              </button>
             )}
           </div>
-        )}
+        </div>
 
         {/* Tile grid — tap any tile to act on it directly */}
         <div className="grid grid-cols-2 gap-2.5">
@@ -321,19 +335,6 @@ function BoardPreview({ design, form, message, creatorName, onMessageChange, onA
               />
             )}
           </div>
-
-          {/* Photo/video/GIF tile — tap opens the 4-way picker directly */}
-          <TileIcon name="Camera" label="Photo / Video" sub={media.length ? `${media.length} added` : 'Tap to add'} onClick={() => setMediaPickerOpen(true)}/>
-
-          {/* Voice tile — tap reveals the recorder inline */}
-          {voiceTileOpen ? (
-            <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-primary-200 bg-primary-50/60 p-3" style={{ minHeight: 118 }}>
-              <VoiceRecorder onRecorded={file => { onAddMedia?.([file]); setVoiceTileOpen(false); }} disabled={media.length >= 5}/>
-              <button type="button" onClick={() => setVoiceTileOpen(false)} className="text-[9px] font-bold text-warm-400">Cancel</button>
-            </div>
-          ) : (
-            <TileIcon name="Mic" label="Voice note" sub="Record live" onClick={() => setVoiceTileOpen(true)}/>
-          )}
 
           {/* Gift tile — actually toggles form.is_gift_enabled now, not a decorative stub */}
           <button type="button"
@@ -383,7 +384,7 @@ function BoardPreview({ design, form, message, creatorName, onMessageChange, onA
                 <Icon name="Film" size={22} className="text-primary-500"/>
                 <span className="text-xs font-bold text-warm-700">Video</span>
               </button>
-              <button type="button" onClick={() => { setMediaPickerOpen(false); setVoiceTileOpen(true); }}
+              <button type="button" onClick={() => { setMediaPickerOpen(false); setVoiceRecorderOpen(true); }}
                 className="flex flex-col items-center gap-2 rounded-xl border-2 border-purple-100 p-4 hover:border-primary-300">
                 <Icon name="Mic" size={22} className="text-primary-500"/>
                 <span className="text-xs font-bold text-warm-700">Voice note</span>

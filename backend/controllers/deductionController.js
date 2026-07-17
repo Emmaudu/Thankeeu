@@ -31,14 +31,14 @@ const ensureWallet = async (cardId, companyId) => {
     if (fetchErr && (fetchErr.code === '42P01' || fetchErr.message?.includes('does not exist'))) {
       const { data: contribs } = await supabase.from('contributions').select('amount').eq('card_id', cardId).eq('status', 'success');
       const total = (contribs || []).reduce((s, c) => s + (c.amount || 0), 0);
-      const fee   = Math.round(total * 0.035); // 3.5%
+      const fee   = Math.round(total * 0.03); // 3%
       return { id: null, card_id: cardId, total_contributed: total, platform_fee: fee, net_after_fee: total - fee, total_deducted: 0, _synthetic: true };
     }
     if (existing) return existing;
 
     const { data: contribs } = await supabase.from('contributions').select('amount').eq('card_id', cardId).eq('status', 'success');
     const total = (contribs || []).reduce((s, c) => s + (c.amount || 0), 0);
-    const fee   = Math.round(total * 0.035); // 3.5% platform fee
+    const fee   = Math.round(total * 0.03); // 3% platform fee
 
     const { data: wallet, error: insertErr } = await supabase.from('contribution_wallets').insert({
       card_id: cardId, company_id: companyId,
@@ -134,7 +134,7 @@ const requestDeduction = async (req, res) => {
     const available    = wallet.net_after_fee - wallet.total_deducted - pendingTotal;
 
     if (amount > available)
-      return res.status(400).json({ error: `Amount exceeds available balance (₦${available.toLocaleString('en-NG')} available after 3.5% fee)` });
+      return res.status(400).json({ error: `Amount exceeds available balance (₦${available.toLocaleString('en-NG')} available after 3% fee)` });
 
     const { data: request, error } = await supabase.from('deduction_requests').insert({
       card_id, wallet_id: wallet.id,

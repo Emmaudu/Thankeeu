@@ -375,8 +375,8 @@ const Pricing = () => {
  <p className="text-warm-500 text-center text-sm mb-6">A small platform cut keeps Thankeeu running</p>
  <div className="grid grid-cols-3 gap-4">
  {[
- { icon: 'Gift', title: 'Gift vouchers', sub: '3–5% cut' },
- { icon: 'Card', title: 'Cash withdrawal', sub: '3.5% platform fee' },
+ { icon: 'Gift', title: 'Gift vouchers', sub: '3% cut' },
+ { icon: 'Card', title: 'Cash withdrawal', sub: '3% platform fee' },
  { icon: 'Globe', title: 'Global payouts', sub: 'FLW live FX rate' },
  ].map(r => (
  <div key={r.title} className="text-center">

@@ -155,8 +155,33 @@ function buildPage({ title, description, canonicalPath, ogType = 'website', json
   // Inject visible content into #root so crawlers see real content pre-JS.
   // React's createRoot(...).render() on mount will clear and replace this,
   // so it never causes hydration mismatches for real browsers.
+  //
+  // NOTE: this used to be a non-greedy regex (`[\s\S]*?<\/div>`), which broke
+  // silently whenever rootHtml contained its own nested <div> (e.g. blog post
+  // rootHtml wraps `post.content` in a <div> — any div inside real post
+  // content, which is common, made the regex stop at the wrong closing tag
+  // and truncate the page). This scans for the actual balanced closing tag
+  // instead, so nesting depth can never break it.
   if (rootHtml) {
-    html = html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${rootHtml}</div>`);
+    const openTag = '<div id="root">';
+    const start = html.indexOf(openTag);
+    if (start !== -1) {
+      let depth = 1;
+      let i = start + openTag.length;
+      const tagRe = /<div[^>]*>|<\/div>/g;
+      tagRe.lastIndex = i;
+      let end = -1;
+      let m;
+      while ((m = tagRe.exec(html))) {
+        if (m[0].startsWith('</')) depth--; else depth++;
+        if (depth === 0) { end = m.index + m[0].length; break; }
+      }
+      if (end !== -1) {
+        html = html.slice(0, start) + `<div id="root">${rootHtml}</div>` + html.slice(end);
+      } else {
+        console.warn('[prerender] Could not find balanced close for <div id="root"> — rootHtml not injected for this page.');
+      }
+    }
   }
 
   return html;
@@ -175,7 +200,7 @@ const STATIC_PAGES = [
   {
     path: '/',
     title: 'Thankeeu — Group Cards, Gift Pools & Company Workspaces',
-    description: 'Create online group cards, gift pools, Memory Movies and company workspaces on your own Thankeeu subdomain. Automate employee birthdays, farewells, anniversaries and team celebrations while still making personal cards for any occasion.',
+    description: 'Create beautiful online group cards, gift pools, Memory Movies and company workspaces on your own Thankeeu subdomain — for any occasion, any team.',
   },
   {
     path: '/pricing',
@@ -240,7 +265,7 @@ const STATIC_PAGES = [
   {
     path: '/cards/leaving-card',
     title: 'Online Leaving Card — Group Leaving Cards for Colleagues | Thankeeu',
-    description: "Create an online leaving card the whole team signs from one link. Messages, photos, GIFs and voice notes, plus an optional gift collection. Free to start — no signup needed to sign.",
+    description: "Create an online leaving card the whole team signs from one link — messages, photos, GIFs, voice notes, plus an optional gift collection. Free to start.",
   },
   {
     path: '/cards/pet-loss-card',
@@ -272,10 +297,10 @@ const STATIC_PAGES = [
     title: 'Online Christmas Card — Group Christmas Cards for Teams | Thankeeu',
     description: 'Send one beautiful online Christmas card from the whole team. Everyone signs from one link — festive messages, photos, GIFs — with an optional group gift or bonus pool.',
   },
-  { path: '/cards/sympathy', title: 'Online Sympathy Card — Group Condolence Cards | Thankeeu', description: 'Send heartfelt condolences from the whole team with an online sympathy card. Everyone signs from one link — kind words, memories and support — delivered privately when needed most.' },
+  { path: '/cards/sympathy', title: 'Online Sympathy Card — Group Condolence Cards | Thankeeu', description: 'Send heartfelt condolences from the whole team with an online sympathy card — kind words, memories and support, delivered privately when it matters.' },
   { path: '/cards/welcome', title: 'Online Welcome Card — Group Welcome Cards for New Starters | Thankeeu', description: 'Make a new starter feel at home from day one with a welcome card signed by the whole team. Everyone adds a message, photo or GIF from one link. Free to start.' },
   { path: '/cards/good-luck', title: 'Online Good Luck Card — Group Good Luck Cards | Thankeeu', description: 'Send good luck wishes from the whole group with one online card. Perfect for job interviews, exams, surgery, a new venture, or any big moment. Everyone signs from one link.' },
-  { path: '/cards/baby-shower', title: 'Online Baby Shower Card — Group Cards & Gift Collections | Thankeeu', description: 'Create an online baby shower card the whole team or group signs from one link. Messages, photos, GIFs and voice notes, with an optional pooled baby shower gift.' },
+  { path: '/cards/baby-shower', title: 'Online Baby Shower Card — Group Cards & Gift Collections | Thankeeu', description: 'Create an online baby shower card the whole group signs from one link — messages, photos, GIFs and voice notes, with an optional pooled baby gift.' },
   { path: '/cards/teacher-thank-you', title: 'Online Teacher Thank You Card — Group Cards from the Class | Thankeeu', description: 'Create a thank you card for a teacher or teaching assistant from the whole class. Every pupil, parent and family member signs from one link.' },
   { path: '/cards/engagement', title: 'Online Engagement Card — Group Congratulations Cards | Thankeeu', description: 'Celebrate an engagement with a group card from everyone who loves them. Messages, photos, GIFs, voice notes and an optional pooled engagement gift.' },
   { path: '/cards/new-home', title: 'Online New Home Card — Group Cards & Housewarming Gifts | Thankeeu', description: 'Celebrate a new home with a group card from family, friends and colleagues. Everyone signs from one link with an optional pooled housewarming gift.' },
@@ -346,7 +371,7 @@ const STATIC_PAGES = [
   {
     path: '/occasions/birthday',
     title: 'Online Birthday Group Cards Nigeria | Thankeeu',
-    description: 'Create an online birthday group card in Nigeria that everyone signs from their phone. Add photos, voice notes, and a pooled Naira gift. Delivered at the perfect moment.',
+    description: 'Create an online birthday group card in Nigeria that everyone signs from their phone — photos, voice notes, and a pooled Naira gift.',
   },
   {
     path: '/occasions/farewell',

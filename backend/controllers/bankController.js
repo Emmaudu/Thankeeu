@@ -418,12 +418,12 @@ const withdrawGift = async (req, res) => {
       return res.status(400).json({ error: 'Bank account details incomplete. Please re-save your bank account.' });
     }
 
-    // Platform fee: 3.5%
+    // Platform fee: 3%
     // Use the DB value at time of withdrawal — not a value passed from frontend —
     // so the calculation is always based on the real collected amount.
     const gross = card.total_collected || 0;
     if (gross <= 0) return res.status(400).json({ error: 'No gift pot to withdraw' });
-    const fee   = Math.round(gross * 0.035);
+    const fee   = Math.round(gross * 0.03);
     const net   = gross - fee;
     console.log(`[withdrawGift] gross=${gross} fee=${fee} net=${net} card=${card.id}`);
 

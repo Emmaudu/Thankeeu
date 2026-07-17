@@ -111,10 +111,17 @@ const CardStart = () => {
 
  // ── Wizard state ────────────────────────────────────────────────────────
  const [step, setStep] = useState(0);
- // Step 1 has two sub-pages: 'design' then 'experience' (Group Card vs Live Wall).
- // This avoids renumbering all steps while giving Experience its own screen.
- const [designSubStep, setDesignSubStep] = useState('design'); // 'design' | 'experience'
+ // Step 1 is now design-only — the old "experience" (Group Card vs Live Wall)
+ // sub-step has moved to tabs directly above the live preview, which removed
+ // a redundant wizard step (see the Group Card / Live Wall tabs near where
+ // <AlbumStudioPreview> is rendered).
  const [designsExpanded, setDesignsExpanded] = useState(false);
+ // Controls the new Group Card / Live Wall tabs shown above the live preview.
+ // Starts false so those tabs show first, as requested; once either is
+ // tapped this flips true and — for Group Card — the existing Album/Board
+ // sub-tabs (already built into AlbumStudioPreview) take over that same
+ // visual slot instead of stacking a second row of tabs underneath.
+ const [experienceChosen, setExperienceChosen] = useState(false);
  // Scroll to top whenever the user advances or goes back a step
  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
 
@@ -693,40 +700,9 @@ const CardStart = () => {
  </div>
  )}
 
- {/* ══ STEP 1: Design + Experience ════════════════════════════════════ */}
+ {/* ══ STEP 1: Design ════════════════════════════════════ */}
  {step === 1 && (
  <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
- {designSubStep === 'experience' ? (
-  <>
-   <button onClick={() => setDesignSubStep('design')} className="mb-4 text-xs font-bold text-primary-500 flex items-center gap-1"><Icon name="ChevronLeft" size={14}/> Back to design</button>
-   <h2 className="text-xl font-bold text-warm-900 mb-1">Card experience</h2>
-   <p className="text-warm-500 text-sm mb-5">How do you want contributors to participate?</p>
-   <div className="space-y-3 mb-6">
-    {[
-     { id: 'card_only', icon: 'Mail', title: 'Group Card', badge: null,
-       desc: 'Everyone signs one beautiful card — messages, photos, GIFs, voice notes and a group gift. A Memory Movie™ is auto-generated.' },
-     { id: 'wall_only', icon: 'Camera', title: 'Live Memory Wall™',
-       desc: 'Guests upload photos and videos to a shared live wall throughout the event. Perfect for weddings, owambes and parties.', badge: null },
-    ].map(opt => (
-     <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
-      className={`w-full text-left rounded-2xl p-5 border-2 transition-all ${form.card_experience === opt.id || (opt.id === 'card_only' && form.card_experience === 'card_and_wall') ? 'border-primary-400 bg-primary-50 shadow-sm' : 'border-purple-100 hover:border-purple-200'}`}>
-      <div className="flex items-start gap-4">
-       <span className={`mt-0.5 flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-2xl ${form.card_experience === opt.id || (opt.id === 'card_only' && form.card_experience === 'card_and_wall') ? 'bg-primary-500 text-white' : 'bg-purple-50 text-primary-500'}`}>
-        <Icon name={opt.icon} size={20} />
-       </span>
-       <div className="flex-1">
-        <p className="font-extrabold text-warm-900">{opt.title}</p>
-        <p className="text-xs text-warm-500 mt-1 leading-relaxed">{opt.desc}</p>
-       </div>
-       <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${form.card_experience === opt.id || (opt.id === 'card_only' && form.card_experience === 'card_and_wall') ? 'border-primary-500 bg-primary-500' : 'border-gray-300'}`}>
-        {(form.card_experience === opt.id || (opt.id === 'card_only' && form.card_experience === 'card_and_wall')) && <span className="w-2 h-2 rounded-full bg-white block"/>}
-       </div>
-      </div>
-     </button>
-    ))}
-   </div>
-  </>
- ) : (
   <>
    <h2 className="text-xl font-bold text-warm-900 mb-1">Pick a design</h2>
    <p className="text-warm-500 text-sm mb-5">Choose from our templates</p>
@@ -880,16 +856,13 @@ const CardStart = () => {
 
 
   </>
- )}
 
  <div className="flex justify-between">
- <button onClick={() => { if (designSubStep === 'experience') { setDesignSubStep('design'); } else { setStep(0); } }} className="btn-secondary">← Back</button>
+ <button onClick={() => setStep(0)} className="btn-secondary">← Back</button>
  <button onClick={() => {
-  if (designSubStep === 'design') { setDesignSubStep('experience'); return; }
   saveSnapshot();
   setStep(2);
-  setDesignSubStep('design');
- }} className="btn-primary">{designSubStep === 'design' ? 'Choose experience →' : 'Add details →'}</button>
+ }} className="btn-primary">Add details →</button>
  </div>
  </div>
  )}
@@ -1437,6 +1410,47 @@ const CardStart = () => {
  </section>
 
  <aside className="order-first border-b border-purple-100 bg-white px-4 py-6 sm:px-8 lg:order-none lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-l lg:px-10 lg:py-8">
+
+  {/* Group Card / Live Wall — shown first. Tapping either sets card_experience
+      and hides this row; for Group Card, AlbumStudioPreview's own Album/Board
+      sub-tabs then occupy this same spot instead of stacking underneath. */}
+  {!experienceChosen && (
+   <div className="mb-5 grid grid-cols-2 gap-3 rounded-2xl bg-gradient-to-r from-purple-50 via-fuchsia-50 to-sky-50 p-2">
+    {[
+     { id: 'card_only', icon: 'Mail', label: 'Online Group Card', sub: 'Everyone signs one card' },
+     { id: 'wall_only', icon: 'Camera', label: 'Live Photo Wall', sub: 'Guests upload live' },
+    ].map(opt => (
+     <button key={opt.id} type="button"
+      onClick={() => { set('card_experience', opt.id); setExperienceChosen(true); }}
+      className={`flex min-h-[82px] items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all hover:-translate-y-0.5 ${
+       form.card_experience === opt.id
+        ? 'border-primary-400 bg-white shadow-md'
+        : 'border-white bg-white/90 text-warm-700 shadow-sm hover:border-purple-200'
+      }`}>
+      <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${form.card_experience === opt.id ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-600'}`}><Icon name={opt.icon} size={21}/></span>
+      <span>
+       <span className="block text-sm font-extrabold sm:text-base">{opt.label}</span>
+       <span className="block text-xs text-warm-400">{opt.sub}</span>
+      </span>
+     </button>
+    ))}
+   </div>
+  )}
+  {experienceChosen && (
+   <button type="button" onClick={() => setExperienceChosen(false)}
+    className="mb-3 flex items-center gap-1 text-xs font-bold text-primary-500">
+    <Icon name="ChevronLeft" size={13}/> Change experience
+   </button>
+  )}
+
+  {!experienceChosen && (
+   <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-purple-100 bg-purple-50/30 p-8 text-center">
+    <Icon name="Sparkles" size={26} className="mb-3 text-primary-300"/>
+    <p className="text-sm font-bold text-warm-500">Choose Online Group Card or Live Photo Wall above</p>
+    <p className="mt-1 text-xs text-warm-400">Your live preview appears here once you pick one</p>
+   </div>
+  )}
+  {experienceChosen && (
   <AlbumStudioPreview
    design={selectedDesign}
    form={form}
@@ -1459,6 +1473,7 @@ const CardStart = () => {
    recipientPhoto={recipientPhoto}
    onRecipientPhoto={(f) => setRecipientPhoto({ file: f, preview: URL.createObjectURL(f) })}
   />
+  )}
  </aside>
  </div>
  </div>

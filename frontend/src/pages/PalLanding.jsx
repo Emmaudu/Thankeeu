@@ -10,7 +10,7 @@ const FEATURES = [
   { icon: 'Gift',     title: 'Pooled gifts, sent automatically', desc: 'Everyone chips in to a shared gift pot. By evening on the big day, the money is sent straight to the celebrant\'s bank account.' },
   { icon: 'Lock',     title: 'Private contribution amounts', desc: 'Only the celebrant sees how much was raised — no comparisons, no awkwardness, just a nice surprise.' },
   { icon: 'UserPlus', title: 'Simple invites',               desc: 'Invite friends by email or bulk-upload a list. Each person sets their own password to join the shared dashboard.' },
-  { icon: 'Percent',  title: 'Free to join',                 desc: 'Creating a Pals group costs nothing. Thankeeu takes a small 3.5% fee only from gift pots when they\'re paid out.' },
+  { icon: 'Percent',  title: 'Free to join',                 desc: 'Creating a Pals group costs nothing. Thankeeu takes a small 3% fee only from gift pots when they\'re paid out.' },
 ];
 
 const STEPS = [

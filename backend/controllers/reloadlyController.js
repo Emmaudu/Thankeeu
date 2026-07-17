@@ -215,8 +215,8 @@ const orderGiftCard = async (req, res) => {
       return res.status(403).json({ error: 'Only the gift recipient can claim this gift pot.' });
     }
 
-    // Platform fee: 3.5%
-    const fee = Math.round(amount * 0.035);
+    // Platform fee: 3%
+    const fee = Math.round(amount * 0.03);
     const net = amount - fee;
 
     // Atomically claim the gift pot BEFORE calling Reloadly/Airtime — only

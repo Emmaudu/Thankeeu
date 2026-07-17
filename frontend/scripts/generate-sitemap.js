@@ -38,7 +38,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-const APP_URL = (process.env.APP_URL || 'https://www.thankeeu.com').replace(/\/$/, '');
+const APP_URL = (process.env.APP_URL || 'https://www.thankeeu.com')
+  .replace(/\/+$/, '')
+  .replace(/^https?:\/\/thankeeu\.com$/i, 'https://www.thankeeu.com');
 
 // API_URL: prefer explicit API_URL, then derive from VITE_API_URL (which is
 // usually something like https://api.thankeeu.com/api), then fall back to
@@ -57,7 +59,7 @@ const TODAY = new Date().toISOString().slice(0, 10);
 // Using fixed dates prevents Google from thinking ALL pages changed on every deploy,
 // which wastes crawl budget and dilutes freshness signals for pages that actually changed.
 const STATIC_LASTMOD = {
-  '/':                      '2026-07-08',
+  '/':                      '2026-07-17',
   '/pricing':               '2026-07-01',
   '/how-it-works':          '2026-07-15',
   '/card/new':              '2026-07-15',

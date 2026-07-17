@@ -1,7 +1,9 @@
 import { LEAVING_CARD_DESIGNS } from './leavingCardDesigns';
 import { OCCASION_CARD_DESIGNS } from './occasionCardDesigns';
+import { PRIORITY_CARD_DESIGNS } from './priorityCardDesigns';
 
 export const CARD_DESIGNS = [
+  ...PRIORITY_CARD_DESIGNS,
   {
     id: 'rose_love',
     name: 'Rose Romance',

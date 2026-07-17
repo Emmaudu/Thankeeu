@@ -38,13 +38,13 @@ import GifPicker from '../components/GifPicker';
 import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
 import toast from 'react-hot-toast';
-import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI } from '../utils/api';
+import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI, wallAPI } from '../utils/api';
 import { CARD_DESIGNS, FONT_STYLES, getFontStyle } from '../utils/cardDesigns';
 import { getOccasionLabel } from '../utils/occasionCardDesigns';
 import { ALBUM_THEMES, getContrastTextColor } from '../utils/albumThemes';
 import { formatNGN, formatCurrency, CURRENCIES } from '../utils/currency';
 import CardCoverPreview from '../components/CardCoverPreview';
-import AlbumStudioPreview from '../components/AlbumStudioPreview';
+import AlbumStudioPreview, { makeWallPreviewCard } from '../components/AlbumStudioPreview';
 import CoverTextStudio from '../components/CoverTextStudio';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -113,6 +113,7 @@ const CardStart = () => {
  const [step, setStep] = useState(0);
  // Scroll to top whenever the user advances or goes back a step
  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
+
  const [loading, setLoading] = useState(false);
  const [paymentStage, setPaymentStage] = useState('idle');
  const [draftSlug, setDraftSlug] = useState(null);
@@ -125,7 +126,7 @@ const CardStart = () => {
 
  // ── Card form ────────────────────────────────────────────────────────────
  const [form, setForm] = useState({
- occasion: 'birthday', design_theme: 'rose_love',
+ occasion: 'birthday', design_theme: 'birthday-featured-01',
  background_color: '#FBEAF0', font_style: 'elegant', card_layout: 'album',
  cover_text_color: 'auto', album_background_theme: 'cover_blur',
  title: "Someone's Birthday Card",
@@ -146,6 +147,8 @@ const CardStart = () => {
  // ── Message form ─────────────────────────────────────────────────────────
  const [msgForm, setMsgForm] = useState({ content: '', font_style: 'handwritten', is_private: false });
  const [mediaFiles, setMediaFiles] = useState([]);
+ const [wallDrafts, setWallDrafts] = useState(() => [makeWallPreviewCard(creatorName, 0)]);
+ const [recipientPhoto, setRecipientPhoto] = useState(null); // board-style recipient image {file,preview}
  const [carouselIdx, setCarouselIdx] = useState(0);
  const [showEmoji, setShowEmoji] = useState(false);
  const [showGif, setShowGif] = useState(false);
@@ -169,10 +172,21 @@ const CardStart = () => {
  const fileRef = useRef();
  const textareaRef = useRef();
 
- const selectedDesign = CARD_DESIGNS.find(d => d.id === form.design_theme);
- const availableDesigns = CARD_DESIGNS.filter(design =>
-  design.occasion ? design.occasion === form.occasion : form.occasion !== 'leaving'
- );
+ const [customCoverUrl, setCustomCoverUrl] = useState(null); // Cloudinary URL for uploaded cover
+ const [uploadingCover, setUploadingCover] = useState(false);
+ const selectedDesign = form.design_theme === 'custom_upload'
+   ? {
+       id: 'custom_upload', occasion: form.occasion, name: 'Your design',
+       image: customCoverUrl || (form.background_color?.startsWith('blob:') || form.background_color?.startsWith('http') ? form.background_color : null),
+       background: '#1a1035', ink: '#ffffff', accent: '#7c3aed', dark: true,
+       coverTitle: form.title, icon: 'Image',
+     }
+   : CARD_DESIGNS.find(d => d.id === form.design_theme);
+  // Show only real image/artwork covers; retire the old plain gradient templates.
+  const availableDesigns = (() => {
+    const realCovers = CARD_DESIGNS.filter(d => (d.artwork || d.image) && d.occasion === form.occasion);
+    return realCovers.length ? realCovers : CARD_DESIGNS.filter(d => d.artwork || d.image).slice(0, 10);
+ })();
  const occasionLabel = form.occasion === 'other' && form.custom_occasion
   ? form.custom_occasion
   : getOccasionLabel(form.occasion);
@@ -201,7 +215,7 @@ const CardStart = () => {
  setStep(4); // go straight to payment
  } else if (saved.formSnapshot) {
  toast.success('Welcome back! Pick up where you left off.');
- setStep(2);
+ setStep(saved.localOnly ? 4 : 2);
  }
  } catch {}
  const url = new URL(window.location.href);
@@ -252,6 +266,17 @@ const CardStart = () => {
  set('background_color', d.background || '#F5F0FF');
  };
 
+ // When the occasion changes, make sure a matching design is selected so the
+ // preview + payload stay consistent (art covers are occasion-specific).
+ // This must live after form/design initialization; placing it above the form
+ // state causes a temporal-dead-zone render crash.
+ useEffect(() => {
+   if (form.design_theme === 'custom_upload') return;
+   const matches = selectedDesign && (selectedDesign.occasion === form.occasion || !selectedDesign.occasion);
+   if (!matches && availableDesigns[0]) handleDesignSelect(availableDesigns[0]);
+ // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [form.occasion]);
+
  // ── Media helpers ────────────────────────────────────────────────────────
  const addMedia = useCallback((files) => {
  const items = [];
@@ -296,6 +321,30 @@ const CardStart = () => {
  ...existing, formSnapshot: form, msgSnapshot: msgForm,
  timestamp: Date.now(), ...extra,
  }));
+ };
+
+ // Creator Live Wall cards can be authored directly in the big preview.
+ // Draft wall posts are supported, which lets guest media survive a login or
+ // payment redirect. Successfully uploaded cards are marked to avoid duplicates.
+ const saveCreatorWallCards = async (activeSlug) => {
+ if (!['wall_only', 'card_and_wall'].includes(form.card_experience)) return;
+ const authorEmail = user?.email || member?.email || company?.email || '';
+ for (const draft of wallDrafts) {
+ if (draft.uploaded || (!draft.message?.trim() && !draft.caption?.trim() && !draft.media?.length)) continue;
+ try {
+ const fd = new FormData();
+ fd.append('author_name', draft.sender?.trim() || creatorName || 'Card Creator');
+ if (authorEmail) fd.append('author_email', authorEmail);
+ if (draft.message?.trim()) fd.append('message', draft.message.trim());
+ if (draft.caption?.trim()) fd.append('caption', draft.caption.trim());
+ (draft.media || []).forEach((item, index) => fd.append(index === 0 ? 'media' : `media_gallery_${index}`, item.file));
+ await wallAPI.add(activeSlug, fd);
+ setWallDrafts(current => current.map(item => item.id === draft.id ? { ...item, uploaded: true } : item));
+ } catch (error) {
+ console.warn('[creator-wall] card failed to save:', error?.response?.data || error?.message);
+ toast('One Live Wall card could not upload yet. Your other card details are safe.', { duration: 5000 });
+ }
+ }
  };
 
  // ── Step 2 → 3: create/update draft for authenticated users ─────────────
@@ -410,12 +459,24 @@ const CardStart = () => {
  await messagesAPI.add(activeSlug, fd).catch(e => console.warn('[creator-msg] failed to save:', e?.message));
  };
 
+ // Upload the board-style recipient photo (Cloudinary) once the card exists.
+ const saveRecipientPhoto = async (activeSlug) => {
+ if (!recipientPhoto?.file) return;
+ try {
+ const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
+ const token = draftSlug ? existing.draft_edit_token : undefined;
+ const pfd = new FormData();
+ pfd.append('photo', recipientPhoto.file);
+ await cardsAPI.uploadRecipientPhoto(activeSlug, pfd, token);
+ } catch (e) { console.warn('[recipient-photo] upload failed:', e?.message); }
+ };
+
  // Company/member: free activation
  if (isCompanyUser) {
  await cardsAPI.activate(slug, {
  inviteEmails: inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean),
  });
- await saveCreatorMessage(slug);
+ await saveCreatorMessage(slug); await saveRecipientPhoto(slug); await saveCreatorWallCards(slug);
  localStorage.removeItem(PENDING_KEY);
  toast.success('Card is live! ');
  setLiveSlug(slug);
@@ -433,7 +494,7 @@ const CardStart = () => {
  if (emailList.length) {
  await cardsAPI.activate(slug, { inviteEmails: emailList }).catch(() => {});
  }
- await saveCreatorMessage(slug);
+ await saveCreatorMessage(slug); await saveRecipientPhoto(slug); await saveCreatorWallCards(slug);
  localStorage.removeItem(PENDING_KEY);
  setCreditBalance(res.data.credits_remaining);
  toast.success('Card is live! ');
@@ -449,7 +510,7 @@ const CardStart = () => {
  const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency, userEmail);
  const { payment_link, already_active, card_slug: activatedSlug } = payRes.data;
  if (already_active) {
- await saveCreatorMessage(activatedSlug || slug);
+ await saveCreatorMessage(activatedSlug || slug); await saveRecipientPhoto(activatedSlug || slug); await saveCreatorWallCards(activatedSlug || slug);
  localStorage.removeItem(PENDING_KEY);
  toast.success('Your card is already live! ');
  setLiveSlug(activatedSlug || slug);
@@ -457,6 +518,8 @@ const CardStart = () => {
  return;
  }
  if (!payment_link) throw new Error('No payment link returned');
+ // Persist creator-authored wall carousel cards before leaving for Flutterwave.
+ await saveCreatorWallCards(slug);
  // Persist creator message + invite emails before FLW redirect — CardFeeVerify
  // will read them back after payment and send the invites.
  try {
@@ -482,8 +545,9 @@ const CardStart = () => {
  setLoading(false); setPaymentStage('idle');
  setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
  setMediaFiles([]); setInviteEmails('');
+ setWallDrafts([makeWallPreviewCard(creatorName, 0)]);
  setForm({
- occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0',
+ occasion: 'birthday', design_theme: 'birthday-art-1', background_color: '#FBEAF0',
  font_style: 'elegant', card_layout: 'album', title: "Someone's Birthday Card",
  cover_text_color: 'auto', album_background_theme: 'cover_blur',
  cover_sender: creatorName === 'You' ? '' : creatorName,
@@ -610,7 +674,23 @@ const CardStart = () => {
  </svg>
  <p>Upload<br/>your own</p>
  <input id="cs-bg-upload" type="file" accept="image/*" className="hidden"
- onChange={e => { const f = e.target.files?.[0]; if (!f) return; set('background_color', URL.createObjectURL(f)); set('design_theme', 'custom_upload'); }}/>
+ onChange={async e => {
+   const f = e.target.files?.[0]; if (!f) return;
+   const localPreview = URL.createObjectURL(f);
+   setCustomCoverUrl(localPreview);
+   set('design_theme', 'custom_upload');
+   set('background_color', localPreview);
+   setUploadingCover(true);
+   try {
+     const fd = new FormData(); fd.append('photo', f);
+     const res = await cardsAPI.uploadCover(fd);
+     const url = res.data?.url;
+     if (url) { setCustomCoverUrl(url); set('background_color', url); }
+   } catch (err) {
+     toast.error('Could not upload your design. Please try a smaller image.');
+   } finally { setUploadingCover(false); e.target.value=''; }
+ }}/>
+ {uploadingCover && <span className="ccg-badge ccg-new" style={{right:7,left:'auto'}}>Uploading…</span>}
  </button>
  {availableDesigns.map((d, idx) => (
  <button key={d.id} type="button" className={`ccg-item ${form.design_theme === d.id ? 'sel' : ''}`} onClick={() => handleDesignSelect(d)}>
@@ -1101,9 +1181,18 @@ const CardStart = () => {
  formSnapshot: form, msgSnapshot: msgForm,
  resumeStep: 4, timestamp: Date.now(),
  }));
+ await saveCreatorWallCards(slug);
  setGuestSaved(true);
  } catch (err) {
- toast.error(err.response?.data?.error || 'Could not save your draft. Please try again.');
+ // If the server/database is temporarily unavailable, preserve the complete
+ // draft on this device so the guest is never forced to start over.
+ const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
+ localStorage.setItem(PENDING_KEY, JSON.stringify({
+ ...existing, localOnly: true, formSnapshot: form, msgSnapshot: msgForm,
+ resumeStep: 4, timestamp: Date.now(),
+ }));
+ setGuestSaved(true);
+ toast.success('Draft saved on this device. Sign in to sync it to your account.');
  } finally { setLoading(false); }
  }}
  disabled={loading}
@@ -1309,6 +1398,18 @@ const CardStart = () => {
    occasionLabel={occasionLabel}
    activeStep={step}
    creatorName={creatorName}
+   layout={form.cover_layout}
+   onLayoutChange={(next) => set('cover_layout', next)}
+   selectedField={selectedCoverField}
+   onSelectField={setSelectedCoverField}
+   media={mediaFiles}
+   onAddMedia={addMedia}
+   onRemoveMedia={removeMedia}
+   onMessageChange={(content) => setMsg('content', content)}
+   wallDrafts={wallDrafts}
+   onWallDraftsChange={setWallDrafts}
+   recipientPhoto={recipientPhoto}
+   onRecipientPhoto={(f) => setRecipientPhoto({ file: f, preview: URL.createObjectURL(f) })}
   />
  </aside>
  </div>

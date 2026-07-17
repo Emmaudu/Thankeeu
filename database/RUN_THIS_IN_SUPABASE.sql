@@ -363,3 +363,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_occasion_members_unique_email
 
 CREATE INDEX IF NOT EXISTS idx_occasion_members_type_str ON occasion_members(company_id, occasion_type);
 CREATE INDEX IF NOT EXISTS idx_occasion_members_email    ON occasion_members(company_id, email);
+
+-- Live Memory Wall carousel cards + voice notes (2026-07-17)
+ALTER TABLE wall_posts ADD COLUMN IF NOT EXISTS message text;
+ALTER TABLE wall_posts ADD COLUMN IF NOT EXISTS media_gallery jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE wall_posts DROP CONSTRAINT IF EXISTS wall_posts_media_type_check;
+ALTER TABLE wall_posts ADD CONSTRAINT wall_posts_media_type_check
+  CHECK (media_type IS NULL OR media_type IN ('image','video','gif','voice'));
+CREATE INDEX IF NOT EXISTS idx_wall_posts_card_created
+  ON wall_posts(card_id, created_at DESC) WHERE is_moderated = false;
+
+-- Anonymous draft recovery (required by "Save draft & continue")
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS draft_edit_token TEXT;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS is_draft BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE cards ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_cards_draft_edit_token
+  ON cards(draft_edit_token) WHERE draft_edit_token IS NOT NULL;

@@ -51,8 +51,6 @@ const requireAuth = async (req, res, next) => {
 };
 
 // Position update for album layout — must be BEFORE wildcard /:card_slug
-router.patch('/position/:message_id', validateUUIDParam('message_id'), flexAuth, updatePosition);
-
 // IMPORTANT: /react/:message_id and /:message_id (delete) are fixed-segment
 // routes that MUST be registered before the /:card_slug wildcard — otherwise
 // Express matches 'react' as card_slug and routes to addMessage instead.
@@ -68,7 +66,7 @@ const handleUpload = (req, res, next) => {
     if (!err) return next();
     console.error('[messages upload] error:', err.code, err.message);
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File too large — maximum size is 9MB per file. GIFs and images must be under 9MB.' });
+      return res.status(400).json({ error: 'File too large — maximum size is 50MB per media file.' });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {
       return res.status(400).json({ error: 'You can attach up to 10 files per message.' });
@@ -77,7 +75,7 @@ const handleUpload = (req, res, next) => {
       return res.status(400).json({ error: 'Unexpected file field. Please try again.' });
     }
     if (err.message?.includes('File size too large') || err.message?.includes('Maximum is')) {
-      return res.status(400).json({ error: 'File too large for upload. Please use a GIF or image under 9MB.' });
+      return res.status(400).json({ error: 'File too large for upload. Please use a media file under 50MB.' });
     }
     if (err.message?.includes('timeout') || err.message?.includes('ETIMEDOUT')) {
       return res.status(504).json({ error: 'Upload timed out — your files may be too large or your connection is slow. Try attaching fewer files or smaller files.' });
@@ -88,6 +86,9 @@ const handleUpload = (req, res, next) => {
 
 // Wildcard routes — must be after all fixed-segment routes
 // flexAuth runs before upload so req.user is set for logged-in signers (needed for signer_user_id)
+// Position, copy and inline attachment edits. Multipart is optional, so JSON
+// drag/typing updates continue to use this same endpoint.
+router.patch('/position/:message_id', validateUUIDParam('message_id'), flexAuth, handleUpload, updatePosition);
 router.post('/:card_slug',        validateSlugParam('card_slug'), flexAuth, handleUpload, addMessage);
 // Access-token recipients can reply without a login session
 router.post('/:card_slug/reply',  validateSlugParam('card_slug'), flexAuth, requireAuth, sendReply);

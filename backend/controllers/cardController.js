@@ -111,7 +111,7 @@ const createCard = async (req, res) => {
           ? f.color : 'auto';
         return {
           x: num(f.x, 0, 100, 50), y: num(f.y, 0, 100, 50),
-          size: num(f.size, 6, 72, 18), color: colour, show: !!f.show,
+        size: num(f.size, 7, 120, 18), color: colour, show: !!f.show,
         };
       };
       const out = {};
@@ -186,7 +186,10 @@ const createCard = async (req, res) => {
 
     // Try all optional columns first, then remove only the column an older
     // database reports as missing. This preserves every supported setting.
-    const isMissingCol = (e) => !!e && (e.code === '42703' || /column .* does not exist/i.test(e.message || ''));
+    const isMissingCol = (e) => !!e && (
+      e.code === '42703' || e.code === 'PGRST204' ||
+      /column .* does not exist|could not find the .* column .* schema cache/i.test(e.message || '')
+    );
 
     let card, error;
     let insertCandidate = {
@@ -194,15 +197,31 @@ const createCard = async (req, res) => {
       font_style: font_style || 'elegant',
       card_layout: cleanCardLayout,
     };
-    const optionalColumns = ['card_layout', 'font_style', 'custom_occasion', 'cover_sender', 'cover_text_color', 'album_background_theme', 'cover_layout'];
+    // Longest names first so 'cover_layout' isn't shadowed by 'card_layout' etc.
+    const optionalColumns = ['album_background_theme', 'cover_text_color', 'custom_occasion',
+      'cover_layout', 'card_layout', 'cover_sender', 'card_experience', 'font_style']
+      .sort((a, b) => b.length - a.length);
 
-    for (let attempt = 0; attempt <= optionalColumns.length; attempt += 1) {
+    // Extract the exact missing column name from the Postgres error, if any.
+    const missingColName = (e) => {
+      if (!e) return null;
+      const message = e.message || '';
+      const postgres = /column "?([a-z_]+)"? .*does not exist/i.exec(message);
+      const postgrest = /could not find the ['"]([a-z_]+)['"] column/i.exec(message);
+      return postgres?.[1] || postgrest?.[1] || null;
+    };
+
+    for (let attempt = 0; attempt <= optionalColumns.length + 2; attempt += 1) {
       ({ data: card, error } = await supabase.from('cards')
         .insert(insertCandidate)
         .select().maybeSingle());
 
       if (!error || !isMissingCol(error)) break;
-      const missingColumn = optionalColumns.find(column => error.message?.includes(column));
+      // Prefer the exact column named in the error; fall back to substring scan.
+      const named = missingColName(error);
+      const missingColumn = (named && named in insertCandidate)
+        ? named
+        : optionalColumns.find(column => error.message?.includes(column) && column in insertCandidate);
       if (!missingColumn || !(missingColumn in insertCandidate)) break;
 
       const nextCandidate = { ...insertCandidate };
@@ -341,6 +360,15 @@ const createCard = async (req, res) => {
   } catch (err) {
     const { isSanitizeError } = require('../utils/sanitize');
     if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+    const draftSchemaMissing = (err.code === '42703' || err.code === 'PGRST204') &&
+      /draft_edit_token|is_draft|claimed_at/i.test(err.message || '');
+    if (draftSchemaMissing) {
+      console.error('Create card draft schema missing:', err.message);
+      return res.status(503).json({
+        error: 'Draft saving needs the latest database migration. Run database/RUN_THIS_IN_SUPABASE.sql, then try again.',
+        code: 'DRAFT_SCHEMA_MISSING',
+      });
+    }
     console.error('Create card error:', err.message);
     safeError(res, err, 'Failed to create card');
   }
@@ -482,7 +510,7 @@ const updateCard = async (req, res) => {
           const f = obj[key];
           if (f && typeof f === 'object') {
             const colour = typeof f.color === 'string' && (f.color === 'auto' || /^#[0-9a-f]{6}$/i.test(f.color)) ? f.color : 'auto';
-            out[key] = { x: num(f.x, 0, 100, 50), y: num(f.y, 0, 100, 50), size: num(f.size, 6, 72, 18), color: colour, show: !!f.show };
+        out[key] = { x: num(f.x, 0, 100, 50), y: num(f.y, 0, 100, 50), size: num(f.size, 7, 120, 18), color: colour, show: !!f.show };
           }
         }
         safeUpdates.cover_layout = Object.keys(out).length ? out : null;
@@ -1427,8 +1455,27 @@ module.exports = {
   createCard, getUserCards, getCard, updateCard, activateCard, sendCard,
   deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards,
   getClaimGate, getCardLoginType, markClaimed, claimMemberPassword,
-  approveCardScope, notifyAllCompany, uploadRecipientPhoto,
+  approveCardScope, notifyAllCompany, uploadRecipientPhoto, uploadCoverImage,
 };
+
+// ── Generic custom cover image upload ───────────────────────────────────────
+// POST /cards/upload-cover  (multipart/form-data, field: "photo")
+// Returns a persistent Cloudinary (or local) URL the creator can use as their
+// own album/board cover. Not tied to a card yet — the URL is saved into the
+// card's background_color when the draft/card is created.
+async function uploadCoverImage(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image provided' });
+    const appUrl = process.env.APP_URL || 'http://localhost:5000';
+    const url = req.file.path?.startsWith('http')
+      ? req.file.path
+      : `${appUrl}/uploads/${require('path').basename(req.file.path)}`;
+    res.json({ url });
+  } catch (err) {
+    console.error('[uploadCoverImage] error:', err.message);
+    res.status(500).json({ error: 'Failed to upload cover image' });
+  }
+}
 
 // ── Recipient photo upload ─────────────────────────────────────────────────
 // POST /cards/:slug/recipient-photo  (multipart/form-data, field: "photo")

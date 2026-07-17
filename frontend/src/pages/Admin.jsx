@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { adminAPI, adminCompanyAPI, adminSupportAPI, demoAPI, blogAPI } from '../utils/api';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
+import Icon from '../components/ui/Icon';
 
 // ── Mini helpers ──────────────────────────────────────────────────────────────
 const Badge = ({ children, color = 'purple' }) => {
@@ -954,24 +955,24 @@ const Admin = () => {
             <p style={{ fontWeight:800, fontSize:15, margin:0, background:'linear-gradient(90deg,#A78BFA,#F472B6)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>Thankeeu</p>
             <p style={{ fontSize:10, color:'rgba(255,255,255,0.3)', letterSpacing:'0.12em', textTransform:'uppercase', margin:0 }}>Admin Panel</p>
           </div>
-          <button onClick={() => setMobileSidebarOpen(false)} style={{ marginLeft:'auto', background:'none', border:'none', color:'rgba(255,255,255,0.4)', fontSize:20, cursor:'pointer', padding:4 }}>✕</button>
+          <button type="button" onClick={() => setMobileSidebarOpen(false)} aria-label="Close admin navigation" style={{ marginLeft:'auto', background:'none', border:'none', color:'rgba(255,255,255,0.4)', cursor:'pointer', padding:4, display:'inline-flex' }}><Icon name="X" size={18} /></button>
         </div>
         <nav style={{ flex:1, padding:'10px 8px', overflowY:'auto' }}>
           {[
-            { id:'overview',  icon:'⚡', label:'Overview',      badge:null },
-            { id:'analytics', icon:'📊', label:'Analytics',     badge:null },
-            { id:'users',     icon:'👥', label:'Users',         badge:users.length||null },
-            { id:'cards',     icon:'🃏', label:'Cards',         badge:cards.length||null },
-            { id:'companies', icon:'🏢', label:'Companies',     badge:null },
+            { id:'overview',  icon:'Zap', label:'Overview',      badge:null },
+            { id:'analytics', icon:'BarChart2', label:'Analytics', badge:null },
+            { id:'users',     icon:'Users', label:'Users',        badge:users.length||null },
+            { id:'cards',     icon:'CreditCard', label:'Cards',   badge:cards.length||null },
+            { id:'companies', icon:'Building2', label:'Companies', badge:null },
             { id:'games',     icon:'GL', label:'Games League',  badge:null },
-            { id:'support',   icon:'🎧', label:'Support',       badge:openTickets.length||null },
-            { id:'broadcast', icon:'📣', label:'Broadcast',     badge:null },
-            { id:'demos',     icon:'🚀', label:'Demo Requests', badge:newDemos.length||null },
-            { id:'visitors',  icon:'👣', label:'Visitors',      badge:visitors.length||null },
-            { id:'blog',      icon:'✍️', label:'Blog',          badge:null },
-            { id:'vendors',   icon:'🏪', label:'Vendors',       badge:null },
-            { id:'pals',      icon:'🤝', label:'Pals',          badge:palApplications.filter(p=>p.status==='pending').length||null },
-            { id:'settings',  icon:'🎵', label:'Settings',       badge:null },
+            { id:'support',   icon:'MessageCircle', label:'Support', badge:openTickets.length||null },
+            { id:'broadcast', icon:'Send', label:'Broadcast', badge:null },
+            { id:'demos',     icon:'Rocket', label:'Demo Requests', badge:newDemos.length||null },
+            { id:'visitors',  icon:'Users', label:'Visitors', badge:visitors.length||null },
+            { id:'blog',      icon:'PenLine', label:'Blog', badge:null },
+            { id:'vendors',   icon:'Store', label:'Vendors', badge:null },
+            { id:'pals',      icon:'HeartHandshake', label:'Pals', badge:palApplications.filter(p=>p.status==='pending').length||null },
+            { id:'settings',  icon:'Settings', label:'Settings', badge:null },
           ].map(item => {
             const active = tab === item.id;
             const isAlert = (item.id==='support'||item.id==='demos') && item.badge > 0;
@@ -979,7 +980,7 @@ const Admin = () => {
               <button key={item.id} onClick={() => { if (item.id === 'games') { window.location.href = '/admin/games'; return; } setTab(item.id); setMobileSidebarOpen(false); }}
                 style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10, border:'none', cursor:'pointer', marginBottom:2, background:active?'rgba(124,58,237,0.25)':'transparent', color:active?'#C4B5FD':'rgba(255,255,255,0.55)', textAlign:'left', position:'relative' }}>
                 {active && <div style={{ position:'absolute', left:0, top:'20%', bottom:'20%', width:3, borderRadius:'0 3px 3px 0', background:'linear-gradient(180deg,#7C3AED,#EC4899)' }} />}
-                <span style={{ fontSize:16 }}>{item.icon}</span>
+                <span style={{ display:'inline-flex' }}><Icon name={item.icon} size={16} /></span>
                 <span style={{ fontSize:13, fontWeight:active?700:500, flex:1 }}>{item.label}</span>
                 {item.badge > 0 && <span style={{ background:isAlert?'#EF4444':'rgba(139,92,246,0.55)', color:'#fff', fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:20 }}>{item.badge}</span>}
               </button>
@@ -993,21 +994,21 @@ const Admin = () => {
 
         {/* Mobile/tablet topbar — hamburger, hidden on desktop */}
         <div className="lg:hidden" style={{ padding:'12px 16px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.98)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
-          <button onClick={() => setMobileSidebarOpen(true)} style={{ width:40, height:40, borderRadius:10, border:'none', background:'linear-gradient(135deg,#7C3AED,#EC4899)', color:'white', fontSize:18, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>☰</button>
+          <button type="button" onClick={() => setMobileSidebarOpen(true)} aria-label="Open admin navigation" style={{ width:40, height:40, borderRadius:10, border:'none', background:'linear-gradient(135deg,#7C3AED,#EC4899)', color:'white', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="Menu" size={19} /></button>
           <span style={{ fontWeight:800, fontSize:15, color:'#1a1a2e' }}>Admin Panel</span>
-          <button onClick={fetchCore} style={{ width:40, height:40, borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:16, cursor:'pointer' }}>↻</button>
+          <button type="button" onClick={fetchCore} aria-label="Refresh admin data" style={{ width:40, height:40, borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="Refresh" size={16} /></button>
         </div>
 
         {/* Desktop topbar — tab title + actions, hidden on mobile/tablet */}
         <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <div>
             <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
-              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'📣 Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','settings':'⚙️ Settings'})[tab] || tab}
+              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','settings':'Settings'})[tab] || tab}
             </h1>
             <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
           </div>
           <div style={{ display:'flex', gap:8 }}>
-            <button onClick={fetchCore} style={{ padding:'8px 14px', borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:12, fontWeight:700, cursor:'pointer' }}>↻ Refresh</button>
+            <button type="button" onClick={fetchCore} style={{ padding:'8px 14px', borderRadius:10, border:'1px solid #DDD6FE', background:'white', color:'#7C3AED', fontSize:12, fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}><Icon name="Refresh" size={13} />Refresh</button>
             <button onClick={() => { localStorage.removeItem('thankeeu_token'); localStorage.removeItem('thankeeu_user'); window.location.href='/admin/login'; }}
               style={{ padding:'8px 14px', borderRadius:10, border:'none', background:'#FEE2E2', color:'#DC2626', fontSize:12, fontWeight:700, cursor:'pointer' }}>Sign out</button>
           </div>
@@ -1715,9 +1716,9 @@ const Admin = () => {
                 <button onClick={sendNudge} disabled={nudging}
                   className="btn-secondary text-sm py-2 px-4 flex items-center gap-1.5"
                   title="Send conversion nudge emails to eligible unconverted visitors (max 4 per visitor, 7-day cooldown)">
-                  {nudging ? '⏳ Sending…' : '📧 Send Nudge Emails'}
+                  {nudging ? <><Icon name="Loader" size={14} className="animate-spin" />Sending…</> : <><Icon name="Mail" size={14} />Send Nudge Emails</>}
                 </button>
-                <button onClick={fetchVisitors} className="btn-secondary text-sm py-2 px-4">🔄 Refresh</button>
+                <button type="button" onClick={fetchVisitors} className="btn-secondary inline-flex items-center gap-2 text-sm py-2 px-4"><Icon name="Refresh" size={14} />Refresh</button>
               </div>
             </div>
 

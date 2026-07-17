@@ -101,7 +101,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
 
       {/* Create card CTA */}
       <div style={{ padding:'0.5rem 0.75rem' }}>
-        <Link to="/create-card" onClick={() => setOpen(false)} style={{
+        <Link to="/card/new" onClick={() => setOpen(false)} style={{
           display:'flex', alignItems:'center', justifyContent:'center', gap:'0.4rem',
           padding:'0.7rem', borderRadius:14, textDecoration:'none',
           background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff',
@@ -172,7 +172,7 @@ const DashboardLayout = ({ children, title, subtitle }) => {
           </Link>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <NotificationBell fetchFn={() => notificationsAPI.getAll()} markReadFn={() => notificationsAPI.markAllRead()} />
-            <Link to="/create-card" style={{
+            <Link to="/card/new" style={{
               background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff',
               fontSize:12, fontWeight:800, padding:'7px 13px', borderRadius:10,
               textDecoration:'none', whiteSpace:'nowrap', fontFamily:'Plus Jakarta Sans,sans-serif',

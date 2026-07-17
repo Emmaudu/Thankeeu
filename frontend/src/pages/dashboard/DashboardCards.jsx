@@ -215,7 +215,7 @@ export default function DashboardCards() {
           <div className="db-empty-icon"><Icon name="Heart" size={28} className="text-primary-400"/></div>
           <p className="db-empty-title">No {filter==='all'?'':filter+' '}cards yet</p>
           <p className="db-empty-body">{filter==='all'?'Create your first group card in 2 minutes.':'Try a different filter.'}</p>
-          {filter==='all' && <Link to="/create-card" className="btn-primary text-sm px-6 py-2.5 inline-flex items-center gap-2"><Icon name="Sparkles" size={14}/>Create a card</Link>}
+          {filter==='all' && <Link to="/card/new" className="btn-primary text-sm px-6 py-2.5 inline-flex items-center gap-2"><Icon name="Sparkles" size={14}/>Create a card</Link>}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -331,7 +331,7 @@ export default function DashboardCards() {
               </div>
             );
           })}
-          <Link to="/create-card" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 min-h-40 transition-all hover:border-primary-400 hover:bg-primary-50" style={{borderColor:'#DDD6FE'}}>
+          <Link to="/card/new" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 min-h-40 transition-all hover:border-primary-400 hover:bg-primary-50" style={{borderColor:'#DDD6FE'}}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'#EDE9FE'}}>
               <Icon name="Plus" size={20} className="text-primary-500"/>
             </div>

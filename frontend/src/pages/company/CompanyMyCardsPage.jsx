@@ -314,7 +314,7 @@ export default function CompanyMyCardsPage() {
           >
             {resyncing ? 'Checking...' : 'Sync Occasions'}
           </button>
-          <Link to="/create-card" className="btn-primary text-sm py-2 px-4 whitespace-nowrap">+ Create Card</Link>
+          <Link to="/card/new" className="btn-primary text-sm py-2 px-4 whitespace-nowrap">+ Create Card</Link>
         </div>
       </div>
 
@@ -325,7 +325,7 @@ export default function CompanyMyCardsPage() {
         <div className="text-center py-16 rounded-2xl bg-white border-2 border-dashed border-purple-100">
           <div className="text-sm font-bold uppercase tracking-wide mb-4 text-primary-600">{tab === 'my' ? 'Cards' : tab === 'received' ? 'Received' : 'Delivered'}</div>
           <p className="font-semibold text-warm-900 mb-2">No {TABS.find(t=>t.id===tab)?.desc?.toLowerCase()} yet</p>
-          {tab === 'my' && <Link to="/create-card" className="btn-primary text-sm px-5 py-2.5">Create your first card</Link>}
+          {tab === 'my' && <Link to="/card/new" className="btn-primary text-sm px-5 py-2.5">Create your first card</Link>}
         </div>
       ) : (
         <div className="space-y-3">

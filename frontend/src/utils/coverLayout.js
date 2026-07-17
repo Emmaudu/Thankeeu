@@ -30,7 +30,7 @@ const normField = (field, raw = {}) => {
   return {
     x: typeof raw.x === 'number' ? clamp(raw.x, 4, 96) : d.x,
     y: typeof raw.y === 'number' ? clamp(raw.y, 4, 96) : d.y,
-    size: typeof raw.size === 'number' ? clamp(raw.size, 7, 64) : d.size,
+    size: typeof raw.size === 'number' ? clamp(raw.size, 7, 120) : d.size,
     color: typeof raw.color === 'string' ? raw.color : d.color,
     show: raw.show === undefined ? d.show : !!raw.show,
   };
@@ -50,8 +50,18 @@ export const normalizeCoverLayout = (input) => {
   };
 };
 
-export const coverLayoutEqualsDefault = (layout) =>
-  JSON.stringify(normalizeCoverLayout(layout)) === JSON.stringify(DEFAULT_COVER_LAYOUT);
+export const coverLayoutEqualsDefault = (layout) => {
+  const normalized = normalizeCoverLayout(layout);
+  return COVER_FIELDS.every((field) => {
+    const current = normalized[field];
+    const baseline = DEFAULT_COVER_LAYOUT[field];
+    return current.x === baseline.x
+      && current.y === baseline.y
+      && current.size === baseline.size
+      && current.color === baseline.color
+      && current.show === baseline.show;
+  });
+};
 
 // Preset colours offered in the editor swatches (plus 'auto').
 export const COVER_TEXT_SWATCHES = [

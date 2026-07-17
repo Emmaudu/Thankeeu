@@ -397,7 +397,7 @@ const updatePosition = async (req, res) => {
     const { message_id } = req.params;
     const {
       position_x, position_y, rotation, font_color, font_size, page_number, author_email,
-      content, is_private, font_style,
+      content, is_private, font_style, author_name, remove_media,
     } = req.body;
 
     // Authorization: original author (email match) OR authenticated card creator/member
@@ -443,23 +443,47 @@ const updatePosition = async (req, res) => {
     }
     if (font_style != null) updateData.font_style = String(font_style).slice(0, 40);
     if (is_private != null) updateData.is_private = (is_private === true || is_private === 'true');
+    if (author_name != null) {
+      const cleanAuthor = String(author_name).replace(/<[^>]+>/g, '').replace(/on\w+\s*=/gi, '').trim().slice(0, 80);
+      if (!cleanAuthor) return res.status(400).json({ error: 'Signer name is required' });
+      updateData.author_name = cleanAuthor;
+    }
+
+    // Existing signatures can replace or remove their attachment inline.
+    // Reusing the create-message upload pipeline keeps validation and storage
+    // consistent for images, GIFs, video and recorded audio.
+    const primaryFile = req.files?.find(f => f.fieldname === 'media') || req.files?.[0] || req.file;
+    if (primaryFile) {
+      updateData.media_url = primaryFile.path?.startsWith('http')
+        ? primaryFile.path
+        : `${FRONTEND_URL}/uploads/${require('path').basename(primaryFile.path)}`;
+      const mime = primaryFile.mimetype || '';
+      updateData.media_type = mime.startsWith('video/') ? 'video'
+        : mime.startsWith('audio/') ? 'voice'
+        : mime === 'image/gif' ? 'gif'
+        : 'image';
+    } else if (remove_media === true || remove_media === 'true') {
+      updateData.media_url = null;
+      updateData.media_type = null;
+      updateData.media_gallery = null;
+    }
 
     if (Object.keys(updateData).length === 0)
       return res.status(400).json({ error: 'No fields to update' });
 
     // Gracefully handle migration-not-run case for placement columns
-    let { error } = await supabase.from('messages').update(updateData).eq('id', message_id);
+    let { data: updated, error } = await supabase.from('messages').update(updateData).eq('id', message_id).select().single();
     if (error && (error.code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
       // Retry without optional placement columns
       const { position_x: _a, position_y: _b, rotation: _c, font_color: _d, font_size: _e, page_number: _f, font_style: _g, ...core } = updateData;
       if (Object.keys(core).length === 0) {
         return res.status(422).json({ error: 'Placement columns not yet available — run migration first' });
       }
-      ({ error } = await supabase.from('messages').update(core).eq('id', message_id));
+      ({ data: updated, error } = await supabase.from('messages').update(core).eq('id', message_id).select().single());
     }
     if (error) throw error;
 
-    res.json({ ok: true });
+    res.json(updated || { id: message_id, ...updateData });
   } catch (err) {
     console.error('[updatePosition]', err.message);
     res.status(500).json({ error: 'Failed to update message' });

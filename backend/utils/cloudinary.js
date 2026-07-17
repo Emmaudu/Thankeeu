@@ -29,7 +29,10 @@ if (hasCloudinary) {
       };
     },
   });
-  upload = multer({ storage, limits: { fileSize: 9 * 1024 * 1024, files: 10 } });
+  // The product advertises and the creation/signing clients allow videos and
+  // voice notes up to 50 MB. Keep the shared production middleware aligned;
+  // image/GIF clients still enforce their smaller 9 MB limit before upload.
+  upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024, files: 10 } });
 } else {
   // Local fallback — serve via /uploads static route
   const uploadDir = path.join(__dirname, '../../uploads');
@@ -41,7 +44,7 @@ if (hasCloudinary) {
       cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
     },
   });
-  upload = multer({ storage: diskStorage, limits: { fileSize: 100 * 1024 * 1024, files: 10 } });
+  upload = multer({ storage: diskStorage, limits: { fileSize: 50 * 1024 * 1024, files: 10 } });
 }
 
 const deleteFile = async (publicId, resourceType = 'image') => {

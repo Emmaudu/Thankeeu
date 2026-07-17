@@ -16,7 +16,9 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
   const [open, setOpen]         = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [cardsOpen, setCardsOpen]       = useState(false);
   const [teamsOpen, setTeamsOpen]       = useState(false);
+  const cardsRef = useRef(null);
   const teamsRef = useRef(null);
 
   useEffect(() => {
@@ -24,11 +26,14 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
-  useEffect(() => { setOpen(false); setDropdownOpen(false); setTeamsOpen(false); }, [location.pathname]);
+  useEffect(() => { setOpen(false); setDropdownOpen(false); setCardsOpen(false); setTeamsOpen(false); }, [location.pathname]);
 
   // Close teams dropdown on outside click
   useEffect(() => {
-    const handler = (e) => { if (teamsRef.current && !teamsRef.current.contains(e.target)) setTeamsOpen(false); };
+    const handler = (e) => {
+      if (cardsRef.current && !cardsRef.current.contains(e.target)) setCardsOpen(false);
+      if (teamsRef.current && !teamsRef.current.contains(e.target)) setTeamsOpen(false);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
@@ -72,6 +77,22 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
 
             {/* Desktop nav links */}
             <div className="hidden lg:flex items-center gap-0.5">
+              <div className="relative" ref={cardsRef}>
+                <button type="button" onClick={() => setCardsOpen(value => !value)} aria-expanded={cardsOpen}
+                  className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${cardsOpen ? 'bg-primary-50 text-primary-600' : 'text-warm-700 hover:bg-primary-50 hover:text-primary-600'}`}>
+                  Cards <Icon name={cardsOpen ? 'ChevronUp' : 'ChevronDown'} size={13} className="opacity-60" />
+                </button>
+                {cardsOpen && <div className="absolute left-0 top-full z-[60] mt-2 w-72 rounded-2xl border border-purple-100 bg-white p-2 shadow-xl">
+                  <p className="px-3 py-2 text-[10px] font-extrabold uppercase tracking-wider text-primary-400">Popular experiences</p>
+                  {[
+                    ['/occasions/birthday', 'Birthday group cards', 'Cake'],
+                    ['/cards/leaving-card', 'Leaving cards', 'Send'],
+                    ['/cards/retirement', 'Retirement cards', 'Sparkles'],
+                    ['/live-memory-wall', 'Live Memory Wall', 'Image'],
+                  ].map(([to, label, icon]) => <Link key={to} to={to} onClick={() => { scrollTop(); setCardsOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-warm-700 hover:bg-primary-50 hover:text-primary-600"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50"><Icon name={icon} size={15} className="text-primary-500" /></span>{label}</Link>)}
+                  <Link to="/card/new" onClick={() => { scrollTop(); setCardsOpen(false); }} className="mt-1 block rounded-xl bg-primary-500 px-3 py-2.5 text-center text-xs font-extrabold text-white">Create a card</Link>
+                </div>}
+              </div>
               {[
                 { to: '/pricing',       label: 'Pricing',       icon: 'Sparkles' },
                 { to: '/how-it-works', label: 'How it works', icon: 'Lightbulb' },
@@ -176,7 +197,7 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
                           <p className="text-xs text-warm-500 truncate">{user.email}</p>
                         </div>
                         <Link to="/dashboard" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">Dashboard</Link>
-                        <Link to="/create-card" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">New card</Link>
+                        <Link to="/card/new" onClick={scrollTop} className="flex items-center gap-2 px-4 py-2 text-sm text-warm-700 hover:bg-primary-50 hover:text-primary-600 transition-colors">New card</Link>
                         <button onClick={handleLogout} className="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-500 hover:bg-rose-50 transition-colors">Sign out</button>
                       </div>
                     )}
@@ -255,6 +276,14 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
             )}
 
             <div className="p-4 space-y-1">
+              <p className="px-4 pt-1 text-xs font-bold uppercase tracking-wider text-warm-400">Cards &amp; walls</p>
+              {[
+                { to: '/occasions/birthday', label: 'Birthday group cards' },
+                { to: '/cards/leaving-card', label: 'Leaving cards' },
+                { to: '/cards/retirement', label: 'Retirement cards' },
+                { to: '/live-memory-wall', label: 'Live Memory Wall' },
+              ].map(({ to, label }) => <Link key={to} to={to} onClick={scrollTop} className="flex items-center gap-3 rounded-2xl px-4 py-2.5 text-sm font-semibold text-warm-800 transition-all hover:bg-primary-50 hover:text-primary-600">{label}</Link>)}
+              <div className="my-2 border-t border-purple-50" />
               {[
                 { to: '/pricing',       label: 'Pricing',       icon: 'Sparkles' },
                 { to: '/how-it-works', label: 'How it works', icon: 'Lightbulb' },
@@ -293,7 +322,7 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
               {user ? (
                 <>
                   <Link to="/dashboard" onClick={scrollTop} className="btn-primary w-full text-sm inline-flex items-center justify-center gap-1.5"><Icon name="Dashboard" size={15}/> Dashboard</Link>
-                  <Link to="/create-card" onClick={scrollTop} className="btn-secondary w-full text-sm text-center inline-flex items-center justify-center gap-1.5"><Icon name="Plus" size={15}/> Create card</Link>
+                  <Link to="/card/new" onClick={scrollTop} className="btn-secondary w-full text-sm text-center inline-flex items-center justify-center gap-1.5"><Icon name="Plus" size={15}/> Create card</Link>
                   <button onClick={handleLogout} className="w-full text-sm text-rose-500 font-semibold py-2.5 hover:bg-rose-50 rounded-xl transition-colors inline-flex items-center justify-center gap-1.5"><Icon name="LogOut" size={15}/> Sign out</button>
                 </>
               ) : member ? (

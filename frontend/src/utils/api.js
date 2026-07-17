@@ -198,6 +198,7 @@ export const cardsAPI = {
     draftEditToken ? { headers: { 'x-draft-edit-token': draftEditToken } } : undefined),
   claimDraft:   (slug, draftEditToken)     => api.post(`/cards/${slug}/claim`, { draft_edit_token: draftEditToken }),
   // Upload recipient photo (multipart, field: "photo"). Works for auth users and anonymous drafts.
+  uploadCover: (formData) => anyAxios.post('/cards/upload-cover', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   uploadRecipientPhoto: (slug, formData, draftEditToken) => anyAxios.post(
     `/cards/${slug}/recipient-photo`, formData,
     {
@@ -207,6 +208,16 @@ export const cardsAPI = {
       },
     }
   ),
+};
+
+// ─── Live Memory Wall ──────────────────────────────────────────────────────
+export const wallAPI = {
+  add: (cardSlug, formData) => publicAxios.post(`/wall/${cardSlug}`, formData, {
+    headers: { 'Content-Type': undefined },
+    timeout: 180000,
+  }),
+  list: (cardSlug, params = {}) => publicAxios.get(`/wall/${cardSlug}`, { params }),
+  delete: (cardSlug, postId) => smartAxios.delete(`/wall/${cardSlug}/${postId}`),
 };
 
 // ─── Messages ──────────────────────────────────────────────────────────────
@@ -221,7 +232,10 @@ export const messagesAPI = {
   updatePosition: (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data),
   // Inline content/style edit (notebook direct typing). Same endpoint as position;
   // author proves identity via author_email, card owner via JWT.
-  updateMessage:  (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data),
+  updateMessage:  (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data, data instanceof FormData ? {
+    headers: { 'Content-Type': undefined },
+    timeout: 180000,
+  } : undefined),
   delete: (messageId)       => api.delete(`/messages/${messageId}`),
   // reply is authenticated — uses smart axios so both users and members can reply
   reply:  (cardSlug, data)  => smartAxios.post(`/messages/${cardSlug}/reply`, data),

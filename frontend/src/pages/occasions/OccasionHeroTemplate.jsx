@@ -36,6 +36,7 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Icon from '../../components/ui/Icon';
 import HeroShowcase from '../../components/HeroShowcase';
+import PriorityDesignGallery from '../../components/PriorityDesignGallery';
 
 /* ─── Shared pricing plans ────────────────────────────────────────────── */
 export const SHARED_PLANS = [
@@ -381,7 +382,7 @@ export default function OccasionHeroTemplate({
   /* SEO */
   seoProps,
   /* Hero */
-  heroEyebrow, heroHeadline, heroSubline,
+  heroEyebrow, heroHeadline, heroSubline, heroImage,
   ctaPath, ctaLabel,
   trustBadges,
   slides,
@@ -406,6 +407,12 @@ export default function OccasionHeroTemplate({
   finalCtaHeadline, finalCtaSubline,
   /* Hero showcase (images 1-3 from screenshots) */
   sampleMessages, demoMessages,
+  /* Optional priority A4 cover gallery */
+  priorityDesigns,
+  priorityDesignOccasion,
+  priorityDesignEyebrow,
+  priorityDesignTitle,
+  priorityDesignDescription,
 }) {
   useSEO(seoProps);
 
@@ -414,6 +421,23 @@ export default function OccasionHeroTemplate({
       <Navbar />
 
       {/* ════ HERO ════ */}
+      {heroImage ? (
+      <section className="relative overflow-hidden" style={{minHeight:'min(760px,82vh)',backgroundImage:`linear-gradient(90deg,rgba(22,10,40,0.97) 0%,rgba(47,20,68,0.88) 37%,rgba(40,15,54,0.3) 67%,rgba(20,8,30,0.08) 100%),url(${heroImage})`,backgroundSize:'cover',backgroundPosition:'center'}}>
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-16 sm:py-24 relative z-10 flex items-center" style={{minHeight:'min(760px,82vh)'}}>
+          <div className="max-w-2xl text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-6" style={{background:'rgba(255,255,255,0.14)',color:'#fff',border:'1px solid rgba(255,255,255,0.22)',backdropFilter:'blur(10px)'}}>{heroEyebrow}</div>
+            <h1 className="font-extrabold text-white leading-[0.96] mb-6" style={{fontSize:'clamp(2.8rem,7vw,5.25rem)',letterSpacing:'-0.045em',textShadow:'0 3px 28px rgba(0,0,0,0.3)'}}>{heroHeadline}</h1>
+            <p className="text-lg sm:text-xl max-w-xl mb-8 leading-relaxed" style={{color:'rgba(255,255,255,0.84)'}}>{heroSubline}</p>
+            <div className="flex flex-wrap items-center gap-3 mb-7">
+              <Link to={ctaPath} className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl font-extrabold text-warm-900 text-base transition-all hover:-translate-y-0.5 hover:shadow-2xl" style={{background:'linear-gradient(135deg,#FDE68A,#F9A8D4)',boxShadow:'0 12px 35px rgba(249,168,212,0.28)'}}><Icon name="Sparkles" size={18}/>{ctaLabel}</Link>
+              <a href="#how-it-works" className="inline-flex items-center gap-2 px-6 py-4 rounded-2xl font-bold text-white text-base border border-white/30 hover:bg-white/10 transition-all">See how it works <span aria-hidden="true">↓</span></a>
+            </div>
+            {trustBadges && <div className="flex flex-wrap gap-x-5 gap-y-3 text-sm font-semibold" style={{color:'rgba(255,255,255,0.8)'}}>{trustBadges.map(t=><span key={t} className="flex items-center gap-1.5"><span className="w-5 h-5 rounded-full bg-emerald-400/20 flex items-center justify-center"><Icon name="Check" size={12} className="text-emerald-300"/></span>{t}</span>)}</div>}
+          </div>
+        </div>
+        <div className="absolute bottom-5 right-5 sm:right-8 z-10 px-4 py-2 rounded-full text-xs font-bold text-white" style={{background:'rgba(20,8,30,0.55)',backdropFilter:'blur(10px)',border:'1px solid rgba(255,255,255,0.18)'}}>One link · everyone contributes · one unforgettable reveal</div>
+      </section>
+      ) : (
       <section className="pt-10 pb-4 px-4" style={{ background: 'linear-gradient(180deg,#F5F0FF 0%,#fff 100%)' }}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-6">
@@ -452,22 +476,24 @@ export default function OccasionHeroTemplate({
           <HeroSlideshow slides={slides} ctaPath={ctaPath} ctaLabel={ctaLabel} />
         </div>
       </section>
-
-      {/* ══ HERO SHOWCASE — sample cards + interactive demo + feature cards ══ */}
-      {sampleMessages && demoMessages && (
-        <HeroShowcase
-          sampleMessages={sampleMessages}
-          demoMessages={demoMessages}
-          ctaPath={ctaPath}
-          ctaLabel={ctaLabel}
-        />
       )}
 
       {/* ════ LOGOS ════ */}
       <LogosMarquee />
 
+      {priorityDesigns?.length > 0 && (
+        <PriorityDesignGallery
+          designs={priorityDesigns}
+          occasion={priorityDesignOccasion}
+          eyebrow={priorityDesignEyebrow}
+          title={priorityDesignTitle}
+          description={priorityDesignDescription}
+          background="#fff"
+        />
+      )}
+
       {/* ════ HOW IT WORKS ════ */}
-      <section className="py-16 md:py-20 px-4 bg-white">
+      <section id="how-it-works" className="py-16 md:py-20 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary-500 mb-3">

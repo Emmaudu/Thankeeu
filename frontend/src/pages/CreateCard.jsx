@@ -19,6 +19,7 @@ import { formatNGN, CURRENCIES, formatCurrency } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 import { getOccasionLabel } from '../utils/occasionCardDesigns';
 import CoverTextStudio from '../components/CoverTextStudio';
+import CardCoverPreview from '../components/CardCoverPreview';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 
 const OCCASIONS = [
@@ -93,7 +94,7 @@ const CreateCard = () => {
 
  // Card form
  const [form, setForm] = useState({
- occasion: 'birthday', design_theme: 'rose_love', background_color: '#FBEAF0',
+ occasion: 'birthday', design_theme: 'birthday-featured-01', background_color: '#FBEAF0',
  font_style: 'elegant', card_layout: 'form',
  title: `${creatorName.split(' ')[0]}'s Birthday Card`,
  recipient_name: '', recipient_email: '', send_date: '',
@@ -162,7 +163,7 @@ const CreateCard = () => {
  } else if (saved.formSnapshot) {
  // Form filled but draft not created yet — go to details step
  toast.success('Welcome back! Pick up where you left off.');
- setStep(2);
+ setStep(saved.localOnly ? 4 : 2);
  }
  } catch {}
  // Clean the ?resumed=1 param from the URL without a page reload
@@ -327,7 +328,16 @@ const CreateCard = () => {
  };
 
 
- const selectedDesign = CARD_DESIGNS.find(d => d.id === form.design_theme);
+ const selectedDesign = form.design_theme === 'custom_upload'
+   ? { id:'custom_upload', occasion:form.occasion, name:'Your design',
+       image: (form.background_color?.startsWith('blob:')||form.background_color?.startsWith('http')) ? form.background_color : null,
+       background:'#1a1035', ink:'#ffffff', accent:'#7c3aed', dark:true, coverTitle:form.title, icon:'Image' }
+   : CARD_DESIGNS.find(d => d.id === form.design_theme);
+  // Only real image/artwork covers for this occasion (retire old plain templates).
+  const ccAvailableDesigns = (() => {
+    const realCovers = CARD_DESIGNS.filter(d => (d.artwork || d.image) && d.occasion === form.occasion);
+    return realCovers.length ? realCovers : CARD_DESIGNS.filter(d => d.artwork || d.image).slice(0, 10);
+ })();
 
  const handleOccasionSelect = (occ) => {
  set('occasion', occ.id);
@@ -553,7 +563,7 @@ const CreateCard = () => {
  setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
  setMediaFiles([]); setGiftAmount(null); setCustomGift(''); setInviteEmails('');
  setRecipientPhoto({ file: null, preview: null });
- setForm({ occasion:'birthday', design_theme:'rose_love', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
+ setForm({ occasion:'birthday', design_theme:'birthday-art-1', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
  title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
  send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
  allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department',
@@ -697,14 +707,18 @@ const CreateCard = () => {
  </svg>
  <p>Upload<br/>your own</p>
  <input id="cc-bg-upload" type="file" accept="image/*" className="hidden"
- onChange={e => { const f=e.target.files?.[0]; if(!f) return; set('background_color',URL.createObjectURL(f)); set('design_theme','custom_upload'); }}/>
+ onChange={async e => {
+   const f=e.target.files?.[0]; if(!f) return;
+   const local = URL.createObjectURL(f);
+   set('background_color', local); set('design_theme','custom_upload');
+   try { const fd=new FormData(); fd.append('photo',f); const res=await cardsAPI.uploadCover(fd); if(res.data?.url) set('background_color',res.data.url); }
+   catch { toast.error('Could not upload your design.'); }
+   finally { e.target.value=''; }
+ }}/>
  </button>
- {CARD_DESIGNS.map((d, idx) => (
+ {ccAvailableDesigns.map((d, idx) => (
  <button key={d.id} type="button" className={`ccg-item ${form.design_theme===d.id?'sel':''}`} onClick={() => handleDesignSelect(d)}>
- <div className={`card-art ${cardArtClass(d)} w-full h-full flex flex-col items-center justify-center`} style={{ background:d.background }}>
- <span style={{ fontSize:30 }}>{d.icon}</span>
- <p style={{ fontFamily:"'Plus Jakarta Sans',sans-serif", fontWeight:700, fontSize:10, color:d.ink, marginTop:4, textAlign:'center', padding:'0 4px', textShadow:d.dark?'0 1px 4px rgba(0,0,0,0.5)':'none' }}>{d.name}</p>
- </div>
+ <CardCoverPreview design={d} occasionLabel={getOccasionLabel(form.occasion)} recipientName={form.recipient_name} title={form.title} senderName={form.cover_sender || creatorName} compact/>
  {idx < 3 && <span className="ccg-badge ccg-new">New</span>}
  {idx >= 3 && idx < 7 && <span className="ccg-badge ccg-more">More</span>}
  </button>
@@ -1314,7 +1328,13 @@ const CreateCard = () => {
  }
  setGuestPhase('auth');
  } catch (err) {
- toast.error(err.response?.data?.error || 'Could not save your draft. Please try again.');
+ const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+ localStorage.setItem('thankeeu_pending_card', JSON.stringify({
+ ...existing, localOnly: true, formSnapshot: form, msgSnapshot: msgForm,
+ resumeStep: 4, timestamp: Date.now(),
+ }));
+ setGuestPhase('auth');
+ toast.success('Draft saved on this device. Sign in to sync it to your account.');
  } finally {
  setLoading(false);
  }

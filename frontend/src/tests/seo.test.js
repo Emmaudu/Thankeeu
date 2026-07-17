@@ -178,7 +178,7 @@ describe('Canonical link tag', () => {
 });
 
 describe('JSON-LD schema builders (SCHEMAS object)', () => {
-  const BASE_URL = 'https://thankeeu.com';
+  const BASE_URL = 'https://www.thankeeu.com';
 
   const organization = {
     '@type': 'Organization', '@id': `${BASE_URL}/#organization`,
@@ -190,11 +190,6 @@ describe('JSON-LD schema builders (SCHEMAS object)', () => {
   const website = {
     '@type': 'WebSite', '@id': `${BASE_URL}/#website`,
     url: BASE_URL, name: 'Thankeeu', inLanguage: 'en-NG',
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: { '@type': 'EntryPoint', urlTemplate: `${BASE_URL}/sign/{card_slug}` },
-      'query-input': 'required name=card_slug',
-    },
   };
 
   function breadcrumb(items) {
@@ -239,9 +234,9 @@ describe('JSON-LD schema builders (SCHEMAS object)', () => {
     expect(organization.logo.url).toContain('favicon');
   });
 
-  it('WebSite has SearchAction with card_slug template', () => {
-    expect(website.potentialAction['@type']).toBe('SearchAction');
-    expect(website.potentialAction.target.urlTemplate).toContain('{card_slug}');
+  it('WebSite uses the canonical www host and no retired SearchAction', () => {
+    expect(website.url).toBe('https://www.thankeeu.com');
+    expect(website.potentialAction).toBeUndefined();
   });
 
   it('WebSite language is en-NG', () => {

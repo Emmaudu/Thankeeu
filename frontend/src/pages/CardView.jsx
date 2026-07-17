@@ -9,11 +9,12 @@ import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import { CoverArtwork } from '../utils/coverArtwork.jsx';
-import { normalizeCoverLayout } from '../utils/coverLayout';
+import { normalizeCoverLayout, coverLayoutEqualsDefault } from '../utils/coverLayout';
 import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
 import QRButton from '../components/QRButton';
+import Icon from '../components/ui/Icon';
 
 
 import toast from 'react-hot-toast';
@@ -964,13 +965,13 @@ const TransferCardButton = ({ slug }) => {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-secondary text-sm">🎁 Transfer card</button>
+      <button type="button" onClick={() => setOpen(true)} className="btn-secondary inline-flex items-center gap-2 text-sm"><Icon name="Gift" size={15} />Transfer card</button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}>
           <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-lg" style={{ fontFamily:'Space Grotesk,sans-serif' }}>Transfer card box</h3>
-              <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+              <button type="button" onClick={() => setOpen(false)} aria-label="Close transfer dialog" className="flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-purple-50 hover:text-gray-600"><Icon name="X" size={16} /></button>
             </div>
             <p className="text-sm text-gray-500 mb-4">Search for a Thankeeu user by username. The full card box will appear in their Received tab.</p>
             <div className="relative mb-3">
@@ -1035,6 +1036,10 @@ const CardView = () => {
   const [cardViewTab,  setCardViewTab]  = useState(
     ['wall','movie'].includes(searchParams.get('tab')) ? searchParams.get('tab') : 'messages'
   );
+
+  useEffect(() => {
+    if (card?.card_experience === 'wall_only' || searchParams.get('tab') === 'wall') setCardViewTab('wall');
+  }, [card?.card_experience, searchParams]);
   const [showAll,      setShowAll]      = useState(false);
   const [searchQuery,  setSearchQuery]  = useState('');
   const [searchActive, setSearchActive] = useState(false);
@@ -1194,14 +1199,18 @@ const CardView = () => {
     : showAll ? messages : messages.slice(0, 8);   // normal paginated view
   const totalCollected = card.total_collected || 0;
   const design = getCardDesign(card.design_theme);
+  const isCustomCoverUrl = typeof card.background_color === 'string' && /^https?:\/\//.test(card.background_color);
   const coverBackground = card.background_color?.startsWith('#')
     ? `linear-gradient(145deg, ${card.background_color}26, transparent 68%), ${design.background}`
-    : (card.background_color || design.background);
+    : isCustomCoverUrl
+      ? `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url("${card.background_color}") center/cover no-repeat`
+      : (card.background_color || design.background);
   const coverTextColor = card.cover_text_color && card.cover_text_color !== 'auto'
     ? card.cover_text_color
     : getContrastTextColor(card.background_color, design);
   // Movable/recolourable cover text layout (show/hide + per-field colour)
   const coverLayout = normalizeCoverLayout(card.cover_layout);
+  const hasCustomCoverLayout = !coverLayoutEqualsDefault(coverLayout);
   const fieldColor = (field) => {
     const c = coverLayout[field]?.color;
     return !c || c === 'auto' ? coverTextColor : c;
@@ -1244,6 +1253,24 @@ const CardView = () => {
         <div style={{ position:'absolute', top:'40%', left:'50%', transform:'translate(-50%,-50%)', width:340, height:340, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none', zIndex:0 }} />
 
         <div className="relative max-w-5xl mx-auto px-4 py-7 sm:py-10 text-center" style={{ zIndex:1 }}>
+          {hasCustomCoverLayout ? (
+            <div style={{position:'relative',width:500,maxWidth:'100%',height:600,maxHeight:'72vh',margin:'0 auto 24px',containerType:'inline-size'}}>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase"
+                style={{position:'absolute',top:12,left:'50%',transform:'translateX(-50%)',zIndex:2,background:'rgba(255,255,255,0.18)',backdropFilter:'blur(8px)',color:coverTextColor,border:'1px solid rgba(255,255,255,0.25)',whiteSpace:'nowrap'}}>
+                Online Group Card
+              </div>
+              {coverLayout.title.show && (
+                <h1 style={{position:'absolute',left:`${coverLayout.title.x}%`,top:`${coverLayout.title.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Great Vibes', cursive",fontWeight:800,fontSize:`${coverLayout.title.size/210*100}cqw`,lineHeight:1.08,color:fieldColor('title'),wordBreak:'break-word',textShadow:'0 2px 18px rgba(0,0,0,0.35)'}}>{cardTitle}</h1>
+              )}
+              {coverLayout.recipient.show && (
+                <p style={{position:'absolute',left:`${coverLayout.recipient.x}%`,top:`${coverLayout.recipient.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Dancing Script', cursive",fontWeight:800,fontSize:`${coverLayout.recipient.size/210*100}cqw`,lineHeight:1.08,color:fieldColor('recipient'),wordBreak:'break-word',textShadow:'0 2px 18px rgba(0,0,0,0.35)'}}>{card.recipient_name}</p>
+              )}
+              {card.cover_sender && coverLayout.sender.show && (
+                <p style={{position:'absolute',left:`${coverLayout.sender.x}%`,top:`${coverLayout.sender.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Caveat', cursive",fontWeight:600,fontSize:`${coverLayout.sender.size/210*100}cqw`,lineHeight:1.08,letterSpacing:'0.04em',color:fieldColor('sender'),wordBreak:'break-word',textShadow:'0 2px 18px rgba(0,0,0,0.35)'}}>From {card.cover_sender}</p>
+              )}
+            </div>
+          ) : (
+          <>
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase mb-3"
             style={{ background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', color: coverTextColor, border:'1px solid rgba(255,255,255,0.25)' }}>
@@ -1299,6 +1326,8 @@ const CardView = () => {
             <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.16em] mb-3" style={{ color: fieldColor('sender'), opacity: 0.9 }}>
               From {card.cover_sender}
             </p>
+          )}
+          </>
           )}
 
           {/* Subtitle */}

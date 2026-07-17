@@ -5,15 +5,17 @@ import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { LEAVING_CARD_DESIGNS, createLeavingCardUrl } from '../utils/leavingCardDesigns';
+import { FAREWELL_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
+const ALL_LEAVING_DESIGNS = [...FAREWELL_PRIORITY_DESIGNS, ...LEAVING_CARD_DESIGNS];
 
 export default function LeavingCardGallery() {
   const [page, setPage] = useState(1);
-  const pageCount = Math.ceil(LEAVING_CARD_DESIGNS.length / PAGE_SIZE);
+  const pageCount = Math.ceil(ALL_LEAVING_DESIGNS.length / PAGE_SIZE);
   const visibleDesigns = useMemo(() => {
     const start = (page - 1) * PAGE_SIZE;
-    return LEAVING_CARD_DESIGNS.slice(start, start + PAGE_SIZE);
+    return ALL_LEAVING_DESIGNS.slice(start, start + PAGE_SIZE);
   }, [page]);
 
   useSEO({
@@ -59,7 +61,7 @@ export default function LeavingCardGallery() {
               </div>
             </div>
             <div className="hidden lg:grid grid-cols-3 gap-3 items-center">
-              {LEAVING_CARD_DESIGNS.slice(0, 6).map((design, index) => (
+              {ALL_LEAVING_DESIGNS.slice(0, 6).map((design, index) => (
                 <div key={design.id} className="rounded-2xl overflow-hidden shadow-lg border-4 border-white bg-white"
                   style={{ transform: `translateY(${index % 2 ? 20 : 0}px) rotate(${index % 2 ? 2 : -2}deg)` }}>
                   <img src={design.image} alt="" className="w-full aspect-[3/4] object-cover" loading="eager" />
@@ -77,7 +79,7 @@ export default function LeavingCardGallery() {
                 <p className="text-warm-500 mt-2">Rows, columns, and pagination for fast browsing.</p>
               </div>
               <div className="text-sm font-bold text-warm-400">
-                Showing {visibleDesigns.length} of {LEAVING_CARD_DESIGNS.length}
+                Showing {visibleDesigns.length} of {ALL_LEAVING_DESIGNS.length}
               </div>
             </div>
 

@@ -7,6 +7,7 @@ import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../../utils/currency';
 import { format, parseISO } from 'date-fns';
+import Icon from '../../components/ui/Icon';
 
 const occasionEmoji = {
   birthday:'🎂', leaving:'👋', work_anniversary:'🏆', promotion:'🌟',
@@ -31,7 +32,7 @@ const StatusBadge = ({ status }) => {
 
 const EmptyState = ({ icon, title, desc, action }) => (
   <div className="py-12 text-center">
-    <div className="text-5xl mb-3">{icon}</div>
+    <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><Icon name={icon} size={25} /></div>
     <p className="font-semibold text-warm-900 mb-1">{title}</p>
     <p className="text-sm text-warm-500 mb-5">{desc}</p>
     {action}
@@ -88,7 +89,7 @@ const TabHome = ({ data, loading }) => {
             <Link to="/member/occasions" className="text-xs font-semibold text-primary-500">View all →</Link>
           </div>
           {loading ? <div className="p-4 space-y-2">{[...Array(3)].map((_,i) => <div key={i} className="h-12 rounded-xl animate-pulse bg-purple-50"/>)}</div>
-          : upcoming.length === 0 ? <EmptyState icon="📅" title="All clear!" desc="No occasions in the next 30 days" />
+          : upcoming.length === 0 ? <EmptyState icon="Calendar" title="All clear!" desc="No occasions in the next 30 days" />
           : <div className="divide-y divide-purple-50">
               {upcoming.slice(0,5).map((occ,i) => {
                 const urgent = (occ.days_until ?? 99) <= 3;
@@ -118,12 +119,12 @@ const TabHome = ({ data, loading }) => {
             {pendingSign.length > 0 && <span className="text-xs font-bold bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full">{pendingSign.length}</span>}
           </div>
           {loading ? <div className="p-4 space-y-2">{[...Array(3)].map((_,i) => <div key={i} className="h-14 rounded-xl animate-pulse bg-purple-50"/>)}</div>
-          : pendingSign.length === 0 ? <EmptyState icon="💌" title="All signed!" desc="No cards waiting for your signature" />
+          : pendingSign.length === 0 ? <EmptyState icon="Mail" title="All signed!" desc="No cards waiting for your signature" />
           : <div className="divide-y divide-purple-50">
               {pendingSign.slice(0,5).map(card => (
                 <CardRow key={card.id} card={card} action={
                   <a href={`/sign/${card.slug}`} className="text-xs font-bold px-3 py-1.5 rounded-xl flex-shrink-0 text-white" style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED)' }}>
-                    Sign ✍️
+                    <span className="inline-flex items-center gap-1.5"><Icon name="PenLine" size={12} />Sign</span>
                   </a>
                 } />
               ))}
@@ -195,7 +196,7 @@ const TabMyCards = () => {
       {loading ? <div className="space-y-3">{[...Array(4)].map((_,i) => <div key={i} className="h-16 rounded-2xl animate-pulse bg-purple-50"/>)}</div>
       : cards.length === 0 ? (
         <div className="bg-white rounded-2xl border-2 border-purple-100">
-          <EmptyState icon="✨" title="No cards yet" desc="Go to Occasions to create your first group card" action={
+          <EmptyState icon="Sparkles" title="No cards yet" desc="Go to Occasions to create your first group card" action={
             <Link to="/member/occasions" className="btn-primary text-sm py-2 px-5 inline-flex">Create card</Link>
           } />
         </div>
@@ -206,9 +207,9 @@ const TabMyCards = () => {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <StatusBadge status={card.status} />
                 {card.status === 'active' && (
-                  <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${card.slug}`); toast.success('Invite link copied! 📲'); }}
-                    className="text-xs font-semibold text-primary-500 hover:text-primary-700">
-                    📲 Copy link
+                  <button type="button" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${card.slug}`); toast.success('Invite link copied'); }}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary-500 hover:text-primary-700">
+                    <Icon name="Copy" size={12} />Copy link
                   </button>
                 )}
                 <Link to={`/card/${card.slug}`} className="text-xs text-primary-500 font-semibold hover:underline">View</Link>
@@ -234,7 +235,7 @@ const TabPending = () => {
       {loading ? <div className="space-y-3">{[...Array(4)].map((_,i) => <div key={i} className="h-16 rounded-2xl animate-pulse bg-purple-50"/>)}</div>
       : cards.length === 0 ? (
         <div className="bg-white rounded-2xl border-2 border-purple-100">
-          <EmptyState icon="🎉" title="You're all caught up!" desc="No cards are waiting for your signature right now" />
+          <EmptyState icon="CheckCircle" title="You're all caught up!" desc="No cards are waiting for your signature right now" />
         </div>
       ) : (
         <div className="bg-white rounded-2xl border-2 border-purple-100 divide-y divide-purple-50 overflow-hidden">
@@ -336,7 +337,7 @@ const TabReceived = ({ member }) => {
       {loading ? <div className="space-y-3">{[...Array(3)].map((_,i) => <div key={i} className="h-20 rounded-2xl animate-pulse bg-purple-50"/>)}</div>
       : received.length === 0 ? (
         <div className="bg-white rounded-2xl border-2 border-purple-100">
-          <EmptyState icon="📬" title="Nothing here yet" desc="Cards transferred to you by teammates will appear here"
+          <EmptyState icon="Mail" title="Nothing here yet" desc="Cards transferred to you by teammates will appear here"
             action={<p className="text-xs text-warm-400">Make sure you have a username set in your Settings so teammates can find you.</p>} />
         </div>
       ) : (
@@ -442,7 +443,7 @@ const TabFinances = () => {
 
       {!data?.contributions?.length && !data?.my_card_wallets?.length && (
         <div className="bg-white rounded-2xl border-2 border-purple-100">
-          <EmptyState icon="💳" title="No transactions yet" desc="Naira gift contributions you make or receive will appear here" />
+          <EmptyState icon="CreditCard" title="No transactions yet" desc="Naira gift contributions you make or receive will appear here" />
         </div>
       )}
     </div>
@@ -529,7 +530,7 @@ const TabReminders = () => {
               </select>
             </div>
             <div className="flex gap-2">
-              <button type="submit" disabled={saving} className="btn-primary text-sm py-2 px-5">{saving ? 'Saving…' : '✓ Save reminder'}</button>
+              <button type="submit" disabled={saving} className="btn-primary inline-flex items-center gap-2 text-sm py-2 px-5">{saving ? <Icon name="Loader" size={14} className="animate-spin" /> : <Icon name="Check" size={14} />}{saving ? 'Saving…' : 'Save reminder'}</button>
               <button type="button" onClick={() => setShowAdd(false)} className="btn-secondary text-sm py-2 px-4">Cancel</button>
             </div>
           </form>
@@ -539,7 +540,7 @@ const TabReminders = () => {
       {loading ? <div className="space-y-3">{[...Array(4)].map((_,i) => <div key={i} className="h-16 rounded-2xl animate-pulse bg-purple-50"/>)}</div>
       : withDays.length === 0 ? (
         <div className="bg-white rounded-2xl border-2 border-purple-100">
-          <EmptyState icon="🔔" title="No reminders set" desc="Add birthday and occasion reminders so you never forget" />
+          <EmptyState icon="Bell" title="No reminders set" desc="Add birthday and occasion reminders so you never forget" />
         </div>
       ) : (
         <div className="space-y-2">

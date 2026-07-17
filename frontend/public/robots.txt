@@ -1,6 +1,6 @@
 # Thankeeu — robots.txt
 # https://www.thankeeu.com
-# Last updated: 2026-07-08
+# Last updated: 2026-07-17
 
 # ── Default: allow all crawlers ───────────────────────────────────────────────
 User-agent: *
@@ -101,4 +101,3 @@ Disallow: /
 
 # ── Sitemap ───────────────────────────────────────────────────────────────────
 Sitemap: https://www.thankeeu.com/sitemap.xml
-Sitemap: https://games.thankeeu.com/sitemap.xml

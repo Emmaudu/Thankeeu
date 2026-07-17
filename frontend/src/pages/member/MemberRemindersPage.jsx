@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { memberAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
+import Icon from '../../components/ui/Icon';
 
 const FREQS = [
   { id:'once',label:'Once only'},{id:'yearly',label:'Every year'},{id:'quarterly',label:'Every 3 months'},
@@ -92,8 +93,8 @@ export default function MemberRemindersPage() {
         <div className="space-y-3">
           {reminders.map(r => (
             <div key={r.id} className="rounded-2xl border-2 p-4 flex items-center gap-4" style={{background:'#fff',borderColor:'#EDE9FF'}}>
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0" style={{background:'rgba(124,110,255,0.1)'}}>
-                {r.occasion==='birthday'?'🎂':r.occasion==='anniversary'?'💍':'⏰'}
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-primary-600 flex-shrink-0" style={{background:'rgba(124,110,255,0.1)'}}>
+                <Icon name={r.occasion === 'birthday' ? 'Cake' : r.occasion === 'anniversary' ? 'Heart' : 'Clock'} size={21} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-sm" style={{color:'#1A1730'}}>{r.recipient_name}</p>
@@ -101,7 +102,7 @@ export default function MemberRemindersPage() {
                   {r.occasion} · {new Date(r.occasion_date).toLocaleDateString('en-GB',{day:'numeric',month:'long'})} · {FREQS.find(f=>f.id===r.frequency)?.label}
                 </p>
               </div>
-              <button onClick={() => del(r.id)} className="text-sm px-2 py-1 rounded-xl hover:bg-red-50" style={{color:'#ef4444'}}>✕</button>
+              <button type="button" onClick={() => del(r.id)} aria-label={`Delete reminder for ${r.recipient_name}`} className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-red-50" style={{color:'#ef4444'}}><Icon name="Trash2" size={15} /></button>
             </div>
           ))}
         </div>

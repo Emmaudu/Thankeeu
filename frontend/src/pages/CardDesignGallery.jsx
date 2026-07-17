@@ -70,12 +70,13 @@ const OCCASION_DESIGN_IDS_BASE = {
   other:           ['rose_love','minimal_chic','garden_bloom','midnight_blue','warm_ember','rose_gold'],
 };
 
-// Prepend the 10 senior-designer SVG artwork covers for each occasion so they
-// lead the gallery, then fall back to the curated generic templates.
+// Show ONLY the senior-designer SVG artwork covers for each occasion in the
+// gallery (the old plain gradient templates are retired from the picker).
 const OCCASION_DESIGN_IDS = Object.fromEntries(
-  Object.entries(OCCASION_DESIGN_IDS_BASE).map(([occ, ids]) => {
+  Object.keys(OCCASION_DESIGN_IDS_BASE).map((occ) => {
     const artIds = CARD_DESIGNS.filter(d => d.artwork && d.occasion === occ).map(d => d.id);
-    return [occ, [...artIds, ...ids]];
+    // Fallback to the curated generics only if (unexpectedly) no artwork exists
+    return [occ, artIds.length ? artIds : OCCASION_DESIGN_IDS_BASE[occ]];
   })
 );
 

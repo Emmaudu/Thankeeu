@@ -18,6 +18,7 @@ import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useSEO } from '../hooks/useSEO';
+import Icon from '../components/ui/Icon';
 
 const BASE = import.meta.env.VITE_API_URL || '/api';
 const api  = axios.create({ baseURL: BASE, timeout: 15000 });
@@ -57,7 +58,7 @@ function LoginGate({ gateData, slug, onMarkClaimed }) {
       localStorage.setItem('thankeeu_token', token);
       // Mark this card as claimed by this user
       await onMarkClaimed(token);
-      toast.success(`Welcome back! Your card is ready 🎉`);
+      toast.success('Welcome back! Your card is ready');
       redirectToCard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Login failed. Please check your password.');
@@ -69,9 +70,9 @@ function LoginGate({ gateData, slug, onMarkClaimed }) {
   return (
     <form onSubmit={handleLogin} className="space-y-4">
       <div className="text-center mb-6">
-        <div className="text-4xl mb-3">🎉</div>
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><Icon name="Mail" size={26} /></div>
         <h2 className="text-2xl font-bold text-warm-900">Your card is waiting!</h2>
-        <p className="text-warm-500 text-sm mt-1">Sign in to view your card from <strong>{gateData.recipient_name && gateData.recipient_name}</strong>'s friends</p>
+        <p className="text-warm-500 text-sm mt-1">Sign in to view the card and messages waiting for you.</p>
       </div>
       <div>
         <label className="block text-sm font-semibold text-warm-700 mb-1">Email</label>
@@ -90,8 +91,8 @@ function LoginGate({ gateData, slug, onMarkClaimed }) {
         />
       </div>
       <button type="submit" disabled={loading}
-        className="btn-primary w-full py-3 text-base font-bold">
-        {loading ? 'Signing in…' : '🎉 Sign in & open my card'}
+        className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3 text-base font-bold">
+        {loading ? <Icon name="Loader" size={17} className="animate-spin" /> : <Icon name="LogIn" size={17} />}{loading ? 'Signing in…' : 'Sign in & open my card'}
       </button>
       <p className="text-center text-xs text-warm-400">
         Forgot your password?{' '}
@@ -131,7 +132,7 @@ function SignupGate({ gateData, slug, onMarkClaimed }) {
       localStorage.setItem('thankeeu_token', token);
       // After signup cards are auto-linked in authController — just mark claimed
       await onMarkClaimed(token);
-      toast.success('Account created! Your card and gift are now in your dashboard 🎉');
+      toast.success('Account created! Your card and gift are now in your dashboard');
       redirectToCard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Signup failed. Please try again.');
@@ -143,7 +144,7 @@ function SignupGate({ gateData, slug, onMarkClaimed }) {
   return (
     <form onSubmit={handleSignup} className="space-y-4">
       <div className="text-center mb-6">
-        <div className="text-4xl mb-3">🎁</div>
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><Icon name="Gift" size={26} /></div>
         <h2 className="text-2xl font-bold text-warm-900">Claim your card!</h2>
         <p className="text-warm-500 text-sm mt-1">
           Create a free account to access your card, see all the messages, and withdraw your gift.
@@ -158,7 +159,7 @@ function SignupGate({ gateData, slug, onMarkClaimed }) {
         <label className="block text-sm font-semibold text-warm-700 mb-1">Email</label>
         <input type="email" value={email} onChange={e => setEmail(e.target.value)}
           className="input w-full" required placeholder="your@email.com" />
-        <p className="text-xs text-amber-600 mt-1">⚠️ Use the email this card was sent to so your card is linked automatically</p>
+        <p className="mt-1 flex items-start gap-1.5 text-xs text-amber-600"><Icon name="AlertTriangle" size={13} className="mt-0.5 flex-shrink-0" />Use the email this card was sent to so your card is linked automatically.</p>
       </div>
       <div>
         <label className="block text-sm font-semibold text-warm-700 mb-1">Create password</label>
@@ -171,8 +172,8 @@ function SignupGate({ gateData, slug, onMarkClaimed }) {
           className="input w-full" required placeholder="Same password again" />
       </div>
       <button type="submit" disabled={loading}
-        className="btn-primary w-full py-3 text-base font-bold">
-        {loading ? 'Creating account…' : '🎁 Create account & claim my card'}
+        className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3 text-base font-bold">
+        {loading ? <Icon name="Loader" size={17} className="animate-spin" /> : <Icon name="Gift" size={17} />}{loading ? 'Creating account…' : 'Create account & claim my card'}
       </button>
       <p className="text-center text-xs text-warm-400">
         Already have an account?{' '}
@@ -199,7 +200,7 @@ function MemberLoginGate({ gateData, slug, onMarkClaimed }) {
       const { token } = res.data;
       localStorage.setItem('thankeeu_member_token', token);
       await onMarkClaimed(null, token); // pass member token
-      toast.success('Welcome! Your card is ready 🎉');
+      toast.success('Welcome! Your card is ready');
       redirectToCard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Login failed. Please check your password.');
@@ -211,7 +212,7 @@ function MemberLoginGate({ gateData, slug, onMarkClaimed }) {
   return (
     <form onSubmit={handleLogin} className="space-y-4">
       <div className="text-center mb-6">
-        <div className="text-4xl mb-3">🎉</div>
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><Icon name="Mail" size={26} /></div>
         <h2 className="text-2xl font-bold text-warm-900">Your team card is waiting!</h2>
         <p className="text-warm-500 text-sm mt-1">Sign into your team dashboard to see your card and gift</p>
       </div>
@@ -226,8 +227,8 @@ function MemberLoginGate({ gateData, slug, onMarkClaimed }) {
           className="input w-full" required placeholder="Your team account password" />
       </div>
       <button type="submit" disabled={loading}
-        className="btn-primary w-full py-3 text-base font-bold">
-        {loading ? 'Signing in…' : '🎉 Sign in & open my card'}
+        className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3 text-base font-bold">
+        {loading ? <Icon name="Loader" size={17} className="animate-spin" /> : <Icon name="LogIn" size={17} />}{loading ? 'Signing in…' : 'Sign in & open my card'}
       </button>
       <p className="text-center text-xs text-warm-400">
         Forgot your password?{' '}
@@ -263,7 +264,7 @@ function MemberClaimGate({ gateData, slug, onMarkClaimed }) {
       const { token } = res.data;
       localStorage.setItem('thankeeu_member_token', token);
       await onMarkClaimed(null, token);
-      toast.success('Password set! Welcome — your card and gift are ready 🎉');
+      toast.success('Password set! Welcome — your card and gift are ready');
       redirectToCard();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to set password. Please try again.');
@@ -275,7 +276,7 @@ function MemberClaimGate({ gateData, slug, onMarkClaimed }) {
   return (
     <form onSubmit={handleSetPassword} className="space-y-4">
       <div className="text-center mb-6">
-        <div className="text-4xl mb-3">🎁</div>
+        <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><Icon name="Gift" size={26} /></div>
         <h2 className="text-2xl font-bold text-warm-900">Set your password to claim your card!</h2>
         <p className="text-warm-500 text-sm mt-1">
           Your HR team created an account for <strong>{gateData.recipient_email}</strong>. 
@@ -293,8 +294,8 @@ function MemberClaimGate({ gateData, slug, onMarkClaimed }) {
           className="input w-full" required placeholder="Same password again" />
       </div>
       <button type="submit" disabled={loading}
-        className="btn-primary w-full py-3 text-base font-bold">
-        {loading ? 'Setting password…' : '🎁 Set password & claim my card'}
+        className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3 text-base font-bold">
+        {loading ? <Icon name="Loader" size={17} className="animate-spin" /> : <Icon name="Lock" size={17} />}{loading ? 'Setting password…' : 'Set password & claim my card'}
       </button>
     </form>
   );
@@ -373,14 +374,14 @@ export default function RecipientClaimGate() {
   if (error) return (
     <div className="min-h-screen grid place-items-center px-4" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
       <div className="max-w-sm w-full bg-white rounded-3xl p-8 text-center shadow-xl border border-red-100">
-        <div className="text-5xl mb-4">😕</div>
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-50 text-red-500"><Icon name="AlertCircle" size={30} /></div>
         <h2 className="text-xl font-bold text-warm-900 mb-2">Link couldn't be verified</h2>
         <p className="text-warm-500 text-sm mb-5">{error}</p>
         <a
           href={`/card/${slug}`}
           className="block w-full py-3 rounded-2xl font-bold text-white text-center mb-3"
           style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
-          💌 View card anyway
+          <span className="inline-flex items-center justify-center gap-2"><Icon name="Mail" size={17} />View card anyway</span>
         </a>
         <p className="text-xs text-warm-400">
           Or sign into your{' '}
@@ -407,7 +408,7 @@ export default function RecipientClaimGate() {
             </span>
           </a>
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-primary-700 mb-2">
-            💌 You have a card waiting
+            <Icon name="Mail" size={13} />You have a card waiting
           </div>
         </div>
 

@@ -11,6 +11,7 @@ const {
   getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember,
   getClaimGate, getCardLoginType, markClaimed, claimMemberPassword,
   uploadRecipientPhoto,
+  uploadCoverImage,
 } = require('../controllers/cardController');
 const { getOgImage, getOgMeta } = require('../controllers/ogImageController');
 const { uploadRecipientPhoto: photoUpload } = require('../utils/cloudinary');
@@ -112,6 +113,9 @@ const handlePhotoUpload = (req, res, next) => {
 };
 router.post('/:slug/recipient-photo', validateSlugParam('slug'), optionalAuth,
   handlePhotoUpload, uploadRecipientPhoto);
+
+// ── Custom cover image upload — anyone building a card, multipart field "photo" ─
+router.post('/upload-cover', optionalAuth, handlePhotoUpload, uploadCoverImage);
 
 // ── Slug-based routes (wildcard — must come after all fixed-segment routes) ─
 router.get('/:slug',                validateSlugParam('slug'), flexUserAuth, getCard);

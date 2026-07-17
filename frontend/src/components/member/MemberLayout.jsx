@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../ui/Icon';
 import { useMemberAuth } from '../../context/MemberAuthContext';
@@ -58,8 +58,9 @@ const MemberLayout = ({ children, title, subtitle }) => {
           }
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold truncate" style={{ color:'#E4E2F6' }}>{member?.first_name} {member?.last_name}</p>
-            <p className="text-xs truncate" style={{ color:'#6B678A' }}>
-              {isLeader ? '👑 Team Leader' : '👤 Team Member'}{member?.department ? ` · ${member.department}` : ''}
+            <p className="flex items-center gap-1.5 truncate text-xs" style={{ color:'#6B678A' }}>
+              <Icon name={isLeader ? 'Award' : 'User'} size={12} />
+              <span>{isLeader ? 'Team Leader' : 'Team Member'}{member?.department ? ` · ${member.department}` : ''}</span>
             </p>
           </div>
         </Link>
@@ -73,7 +74,7 @@ const MemberLayout = ({ children, title, subtitle }) => {
           style={{ fontSize:15, color:'#FF8A80', background:'rgba(239,68,68,0.08)', border:'1px solid rgba(239,68,68,0.18)' }}
           onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.18)'}
           onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}>
-          <span style={{fontSize:18}}>🚪</span>
+          <Icon name="LogOut" size={18} />
           <span>Sign out</span>
         </button>
       </div>
@@ -126,14 +127,15 @@ const MemberLayout = ({ children, title, subtitle }) => {
               }}
               className="flex items-center gap-2.5 w-full py-2.5 px-3 rounded-xl text-sm font-semibold transition-all cursor-pointer"
               style={{ background:'rgba(124,110,255,0.12)', color:'#9D95FF', border:'1.5px solid rgba(124,110,255,0.25)' }}>
-              <span className="text-base">🏢</span>
+              <Icon name="Building2" size={16} />
               <span>Switch to HR View</span>
             </button>
           </div>
         )}
         {member?.company?.name && (
-          <div className="px-3 py-2 rounded-xl text-sm" style={{ background:'rgba(255,255,255,0.04)', color:'#6B678A' }}>
-            🏢 {member.company.name}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm" style={{ background:'rgba(255,255,255,0.04)', color:'#6B678A' }}>
+            <Icon name="Building2" size={14} />
+            <span className="truncate">{member.company.name}</span>
           </div>
         )}
       </div>
@@ -168,8 +170,10 @@ const MemberLayout = ({ children, title, subtitle }) => {
              <div className="md:hidden flex items-center justify-between sticky top-0 z-30"
           style={{ background:'rgba(15,13,36,0.98)', backdropFilter:'blur(8px)', borderBottom:'1px solid rgba(124,110,255,0.15)', height:56, padding:'0 16px' }}>
           <button onClick={() => setMobileOpen(true)}
+            type="button"
+            aria-label="Open navigation"
             style={{ width:44, height:44, borderRadius:12, border:'none', background:'linear-gradient(135deg,#7C6EFF,#5B4BDF)', color:'#fff', fontSize:20, display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
-            ☰
+            <Icon name="Menu" size={22} />
           </button>
           <span style={{ fontFamily:'Space Grotesk,sans-serif', fontWeight:800, fontSize:15, color:'#E4E2F6' }}>
             Thank<span style={{ color:'#7C6EFF' }}>eeu</span>

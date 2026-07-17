@@ -8,11 +8,12 @@ import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
+import Icon from '../components/ui/Icon';
 
 const statusConfig = {
   draft:    { label:'Draft',    style:'bg-warm-100 text-warm-500 border border-warm-300' },
-  active:   { label:'Active ✓', style:'bg-green-50 text-green-700 border border-green-200' },
-  sent:     { label:'Sent 🚀',  style:'bg-blue-50 text-blue-700 border border-blue-200' },
+  active:   { label:'Active', style:'bg-green-50 text-green-700 border border-green-200' },
+  sent:     { label:'Sent', style:'bg-blue-50 text-blue-700 border border-blue-200' },
   expired:  { label:'Expired',  style:'bg-rose-50 text-rose-600 border border-rose-200' },
 };
 
@@ -30,7 +31,7 @@ const StatCard = ({ icon, label, value, sub, highlight }) => (
         <p className={`text-xl sm:text-2xl font-bold ${highlight ? 'text-primary-600' : 'text-warm-900'}`}>{value}</p>
         {sub && <p className="text-xs text-warm-400 mt-1">{sub}</p>}
       </div>
-      <span className="text-2xl flex-shrink-0">{icon}</span>
+      <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-500"><Icon name={icon} size={19} /></span>
     </div>
   </div>
 );
@@ -148,7 +149,7 @@ const Dashboard = () => {
             </h1>
             <p className="text-warm-500 text-sm mt-1">Here's what's happening with your cards</p>
           </div>
-          <Link to="/create-card" className="btn-primary py-3 px-6 text-sm w-full sm:w-auto">
+          <Link to="/card/new" className="btn-primary py-3 px-6 text-sm w-full sm:w-auto">
             ✨ Create new card
           </Link>
         </div>
@@ -161,21 +162,21 @@ const Dashboard = () => {
         ) : (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-              <StatCard icon="🎴" label="Active cards"    value={stats.active_cards || 0}  sub="collecting now" />
-              <StatCard icon="📋" label="Total cards"     value={stats.total_cards  || 0}  sub="all time" />
-              <StatCard icon="🚀" label="Cards sent"      value={stats.sent_cards   || 0}  sub="delivered" />
-              <StatCard icon="🎁" label="Gifts collected" value={formatNGN(stats.total_collected||0)} sub="total" highlight />
+              <StatCard icon="CreditCard" label="Active cards" value={stats.active_cards || 0} sub="collecting now" />
+              <StatCard icon="FileText" label="Total cards" value={stats.total_cards || 0} sub="all time" />
+              <StatCard icon="Send" label="Cards sent" value={stats.sent_cards || 0} sub="delivered" />
+              <StatCard icon="Gift" label="Gifts collected" value={formatNGN(stats.total_collected||0)} sub="total" highlight />
             </div>
 
             {/* Credit balance banner */}
             <div className={`rounded-2xl border-2 px-4 py-3 mb-6 flex items-center gap-3 ${
               credits === 0 ? 'border-amber-200 bg-amber-50' : 'border-primary-200 bg-primary-50'
             }`}>
-              <span className="text-2xl flex-shrink-0">💳</span>
+              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/70 text-primary-600"><Icon name="CreditCard" size={19} /></span>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold ${credits === 0 ? 'text-amber-800' : 'text-primary-700'}`}>
                   {credits === 0
-                    ? '⚠️ No credits — top up to create cards instantly'
+                    ? 'No credits — top up to create cards instantly'
                     : `${credits} card credit${credits !== 1 ? 's' : ''} remaining`}
                 </p>
                 <p className="text-xs text-warm-400">
@@ -222,7 +223,7 @@ const Dashboard = () => {
             <p className="text-warm-500 mb-7 text-sm">
               {filter==='all' ? 'Create your first group card to get started!' : `You don't have any ${filter} cards.`}
             </p>
-            <Link to="/create-card" className="btn-primary px-8 py-3">✨ Create your first card</Link>
+            <Link to="/card/new" className="btn-primary px-8 py-3">✨ Create your first card</Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -244,7 +245,7 @@ const Dashboard = () => {
                     <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-warm-500">
                       <span>✍️ {card.signed_count || 0} signed</span>
                       {(card.total_collected||0) > 0 && (
-                        <span className="text-green-700 font-semibold">🎁 {formatNGN(card.total_collected)}</span>
+                        <span className="inline-flex items-center gap-1 text-green-700 font-semibold"><Icon name="Gift" size={12} />{formatNGN(card.total_collected)}</span>
                       )}
                       {card.created_at && <span>{format(new Date(card.created_at), 'MMM d, yy')}</span>}
                     </div>
@@ -253,19 +254,19 @@ const Dashboard = () => {
                   {/* Card actions */}
                   <div className="flex border-t-2 border-purple-50">
                     {card.status==='active' && (
-                      <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${card.slug}`); toast.success('Invite link copied! 📲'); }}
-                        className="flex-1 py-3 text-xs font-bold text-primary-600 hover:bg-primary-50 transition-colors">
-                        📲 Copy invite link
+                      <button type="button" onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${card.slug}`); toast.success('Invite link copied'); }}
+                        className="flex flex-1 items-center justify-center gap-1.5 py-3 text-xs font-bold text-primary-600 hover:bg-primary-50 transition-colors">
+                        <Icon name="Copy" size={12} />Copy invite link
                       </button>
                     )}
                     <Link to={`/card/${card.slug}`}
                       className="flex-1 py-3 text-xs font-bold text-warm-600 hover:bg-purple-50 transition-colors text-center border-l-2 border-purple-50 first:border-l-0">
-                      👁️ View
+                      <span className="inline-flex items-center gap-1.5"><Icon name="Eye" size={12} />View</span>
                     </Link>
                     {card.status==='draft' && (
                       <Link to={`/create-card?edit=${card.slug}`}
                         className="flex-1 py-3 text-xs font-bold text-warm-600 hover:bg-purple-50 transition-colors text-center border-l-2 border-purple-50">
-                        ✏️ Edit
+                        <span className="inline-flex items-center gap-1.5"><Icon name="Edit" size={12} />Edit</span>
                       </Link>
                     )}
                   </div>
@@ -274,9 +275,9 @@ const Dashboard = () => {
             })}
 
             {/* Create new card tile */}
-            <Link to="/create-card"
+            <Link to="/card/new"
               className="border-2 border-dashed border-purple-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-3 hover:border-primary-400 hover:bg-primary-50 transition-all group min-h-[180px]">
-              <div className="w-12 h-12 rounded-2xl bg-primary-50 border-2 border-primary-200 flex items-center justify-center text-2xl group-hover:bg-primary-100 transition-colors">✨</div>
+              <div className="w-12 h-12 rounded-2xl bg-primary-50 border-2 border-primary-200 flex items-center justify-center text-primary-500 group-hover:bg-primary-100 transition-colors"><Icon name="Plus" size={22} /></div>
               <p className="text-sm font-bold text-warm-700 group-hover:text-primary-600 text-center">Create new card</p>
             </Link>
           </div>

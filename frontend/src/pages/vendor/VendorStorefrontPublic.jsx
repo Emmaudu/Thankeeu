@@ -6,6 +6,7 @@ import { useSEO } from '../../hooks/useSEO';
 import { formatNGN } from '../../utils/currency';
 import { vendorAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
+import Icon from '../../components/ui/Icon';
 
 const BASE = () => import.meta.env.VITE_API_URL || '/api';
 const CATEGORY_ICON = {
@@ -374,17 +375,19 @@ export default function VendorStorefrontPublic() {
                     <p className="text-xs text-primary-600 font-bold">{formatNGN(item.price)}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <button onClick={() => updateQty(item.id, -1)}
+                        type="button" aria-label={`Decrease ${item.name} quantity`}
                         className="w-6 h-6 rounded-full border border-purple-200 text-warm-600 text-sm font-bold flex items-center justify-center hover:bg-purple-50">
-                        −
+                        <Icon name="Minus" size={11} />
                       </button>
                       <span className="text-sm font-bold">{item.qty}</span>
                       <button onClick={() => updateQty(item.id, 1)}
+                        type="button" aria-label={`Increase ${item.name} quantity`}
                         className="w-6 h-6 rounded-full border border-purple-200 text-warm-600 text-sm font-bold flex items-center justify-center hover:bg-purple-50">
-                        +
+                        <Icon name="Plus" size={11} />
                       </button>
                     </div>
                   </div>
-                  <button onClick={() => removeFromCart(item.id)} className="text-red-400 font-bold">✕</button>
+                  <button type="button" onClick={() => removeFromCart(item.id)} aria-label={`Remove ${item.name} from cart`} className="flex h-8 w-8 items-center justify-center rounded-full text-red-400 hover:bg-red-50"><Icon name="X" size={14} /></button>
                 </div>
               ))}
             </div>

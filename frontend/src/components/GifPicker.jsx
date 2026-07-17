@@ -136,7 +136,7 @@ const GifPicker = ({ onSelect, onClose }) => {
       const res = await fetch(url);
       if (!res.ok) throw new Error('Download failed');
       const blob = await res.blob();
-      if (blob.size > 50 * 1024 * 1024) { toast.error('That GIF is too large (max 50MB)'); return; }
+      if (blob.size > 9 * 1024 * 1024) { toast.error('That GIF is too large (maximum 9MB)'); return; }
 
       // Save to both caches — next time this GIF is selected it will be instant
       sessionBlobCache.set(url, blob);

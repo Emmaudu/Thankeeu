@@ -14,7 +14,10 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const BASE_URL   = import.meta.env.VITE_APP_URL || 'https://www.thankeeu.com';
+const RAW_BASE_URL = import.meta.env.VITE_APP_URL || 'https://www.thankeeu.com';
+const BASE_URL = RAW_BASE_URL
+  .replace(/\/+$/, '')
+  .replace(/^https?:\/\/thankeeu\.com$/i, 'https://www.thankeeu.com');
 // NOTE: the live site's canonical host is www.thankeeu.com — the apex
 // (thankeeu.com) 308-redirects to www. VITE_APP_URL in Vercel MUST be set
 // to https://www.thankeeu.com, or every canonical/og:url tag on the site
@@ -45,9 +48,10 @@ function setMeta(attr, key, value) {
 function setLink(rel, href, extra = {}) {
   if (!href) return;
   // canonical: only one allowed
+  const languageSelector = extra.hreflang ? `[hreflang="${extra.hreflang}"]` : '';
   let el = rel === 'canonical'
     ? document.querySelector('link[rel="canonical"]')
-    : document.querySelector(`link[rel="${rel}"][href="${href}"]`);
+    : document.querySelector(`link[rel="${rel}"]${languageSelector}[href="${href}"]`);
   if (!el) {
     el = document.createElement('link');
     el.setAttribute('rel', rel);
@@ -183,6 +187,7 @@ export const SCHEMAS = {
     '@type': 'Organization',
     '@id':   `${BASE_URL}/#organization`,
     name:    SITE_NAME,
+    alternateName: 'Thankeeu Group Cards',
     url:     BASE_URL,
     logo: {
       '@type':  'ImageObject',
@@ -229,11 +234,6 @@ export const SCHEMAS = {
     description: SITE_DESC,
     publisher:  { '@id': `${BASE_URL}/#organization` },
     inLanguage: 'en',
-    potentialAction: {
-      '@type':  'SearchAction',
-      target:   { '@type': 'EntryPoint', urlTemplate: `${BASE_URL}/sign/{search_term_string}` },
-      'query-input': 'required name=search_term_string',
-    },
   },
 
   softwareApp: {

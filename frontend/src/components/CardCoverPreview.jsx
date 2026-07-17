@@ -113,7 +113,7 @@ const CardCoverPreview = ({
           color: col,
           fontFamily,
           fontWeight: field === 'sender' ? 600 : 800,
-          fontSize: `calc(${cfg.size * fontScale} * (100% / 210) * 2.1)`,
+          fontSize: `${(cfg.size * fontScale / 210) * 100}cqw`,
           lineHeight: 1.08,
           letterSpacing: field === 'sender' ? '0.04em' : '-0.01em',
           wordBreak: 'break-word',
@@ -156,6 +156,7 @@ const CardCoverPreview = ({
       className="relative overflow-hidden w-full shadow-[0_24px_65px_rgba(31,23,62,0.18)]"
       style={{
         aspectRatio: '210 / 297',
+        containerType: 'inline-size',
         maxHeight: compact ? undefined : '70vh',
         borderRadius: 6,
         background: hasArtwork ? design.background : withTint(design, coverColor),

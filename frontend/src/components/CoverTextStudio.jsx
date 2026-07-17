@@ -126,7 +126,7 @@ const CoverTextStudio = ({
                   <span className="text-[11px] font-bold text-primary-600">{Math.round(cfg.size)}</span>
                 </div>
                 <input
-                  type="range" min={7} max={56} step={1} value={cfg.size}
+                  type="range" min={7} max={120} step={1} value={cfg.size}
                   onChange={(e) => update(active, { size: Number(e.target.value) })}
                   className="w-full accent-primary-500"
                 />

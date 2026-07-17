@@ -46,7 +46,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-const APP_URL = (process.env.APP_URL || 'https://www.thankeeu.com').replace(/\/$/, '');
+const APP_URL = (process.env.APP_URL || 'https://www.thankeeu.com')
+  .replace(/\/+$/, '')
+  .replace(/^https?:\/\/thankeeu\.com$/i, 'https://www.thankeeu.com');
 
 function resolveApiBase() {
   // API_URL is the correct build-time Node env var for the Railway backend.
@@ -154,7 +156,7 @@ function buildPage({ title, description, canonicalPath, ogType = 'website', json
   // React's createRoot(...).render() on mount will clear and replace this,
   // so it never causes hydration mismatches for real browsers.
   if (rootHtml) {
-    html = html.replace('<div id="root"></div>', `<div id="root">${rootHtml}</div>`);
+    html = html.replace(/<div id="root">[\s\S]*?<\/div>/, `<div id="root">${rootHtml}</div>`);
   }
 
   return html;
@@ -381,6 +383,7 @@ function prerenderStaticPages() {
         title: page.title,
         description: page.description,
         canonicalPath: page.path,
+        rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="${esc(page.path)}">${esc(page.title.replace(/\s*[|â€”-]\s*Thankeeu.*$/, ''))}</a></nav><main><h1>${esc(page.title.replace(/\s*[|â€”-]\s*Thankeeu.*$/, ''))}</h1><p>${esc(page.description)}</p><p><a href="/create-card">Create a group card</a> <a href="/occasions/birthday">Birthday cards</a> <a href="/cards/leaving-card">Leaving cards</a> <a href="/cards/retirement">Retirement cards</a> <a href="/live-memory-wall">Live Memory Wall</a> <a href="/pricing">Pricing</a></p></main>`,
       });
       writeStatic(page.path, html);
       count++;

@@ -1,5 +1,6 @@
 import { SCHEMAS } from '../../hooks/useSEO';
 import OccasionHeroTemplate, { CHECK, CROSS, PAID, DEFAULT_COMP_CARDS } from './OccasionHeroTemplate';
+import { BIRTHDAY_PRIORITY_DESIGNS } from '../../utils/priorityCardDesigns';
 
 /* ─── HeroShowcase data — birthday-specific ──────────────────────────── */
 const BIRTHDAY_SAMPLE_MESSAGES = [
@@ -141,8 +142,9 @@ export default function BirthdayPage() {
         ],
       }}
       heroEyebrow="🎂 Online Birthday Cards"
-      heroHeadline={<>The birthday card<br/><span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg,#E84393,#7C3AED)' }}>everyone actually signs.</span></>}
-      heroSubline="One link. The whole team signs from anywhere — messages, photos, GIFs, voice notes and a pooled birthday gift. Delivered at midnight on their day."
+      heroHeadline={<>Give them more than<br/><span style={{color:'#FDE68A'}}>another birthday message.</span></>}
+      heroSubline="Bring every message, photo, GIF and voice note into one beautiful keepsake — then deliver it at exactly the right moment. No chasing. Nobody left out."
+      heroImage="/images/heroes/birthday-hero.jpg"
       ctaPath="/card/new?occasion=birthday"
       ctaLabel="Create Birthday Card — Free"
       trustBadges={['Free to create', 'No account to sign', 'Gift collection included', 'Midnight delivery']}
@@ -164,6 +166,11 @@ export default function BirthdayPage() {
       finalCtaSubline="Free to create. The whole team signs. Delivered at exactly the right moment."
       sampleMessages={BIRTHDAY_SAMPLE_MESSAGES}
       demoMessages={BIRTHDAY_DEMO_MESSAGES}
+      priorityDesigns={BIRTHDAY_PRIORITY_DESIGNS}
+      priorityDesignOccasion="birthday"
+      priorityDesignEyebrow="20 new birthday covers"
+      priorityDesignTitle="Pick a birthday cover that already feels special"
+      priorityDesignDescription="Browse ten premium A4 designs at a time. Choose one to open it in the album studio, then personalise the cover, messages and media."
     />
   );
 }

@@ -7,6 +7,7 @@ import CardCoverPreview from '../components/CardCoverPreview';
 import { useSEO } from '../hooks/useSEO';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 import { OCCASION_CARD_DESIGNS, OCCASION_FILTERS, getOccasionLabel } from '../utils/occasionCardDesigns';
+import { PRIORITY_CARD_DESIGNS } from '../utils/priorityCardDesigns';
 
 const PAGE_SIZE = 16;
 
@@ -20,7 +21,7 @@ const LEAVING_DESIGNS = LEAVING_CARD_DESIGNS.map(design => ({
   palette: ['#102a43', '#7c3aed', '#0f766e', '#be123c', '#ca8a04'],
 }));
 
-const ALL_DESIGNS = [...LEAVING_DESIGNS, ...OCCASION_CARD_DESIGNS];
+const ALL_DESIGNS = [...PRIORITY_CARD_DESIGNS, ...LEAVING_DESIGNS, ...OCCASION_CARD_DESIGNS];
 
 const CardGallery = () => {
   const [searchParams, setSearchParams] = useSearchParams();

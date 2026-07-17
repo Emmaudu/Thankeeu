@@ -170,7 +170,7 @@ export default function DashboardHome() {
           <div className="db-empty-icon"><Icon name="Heart" size={28} className="text-primary-400"/></div>
           <p className="db-empty-title">No cards yet</p>
           <p className="db-empty-body">Create your first group card in under 2 minutes.</p>
-          <Link to="/create-card" className="btn-primary text-sm px-6 py-2.5 inline-flex items-center gap-2">
+          <Link to="/card/new" className="btn-primary text-sm px-6 py-2.5 inline-flex items-center gap-2">
             <Icon name="Sparkles" size={14}/> Create your first card
           </Link>
         </div>
@@ -212,7 +212,7 @@ export default function DashboardHome() {
               </div>
             </div>
           ))}
-          <Link to="/create-card" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 min-h-36 transition-all hover:border-primary-400 hover:bg-primary-50"
+          <Link to="/card/new" className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-6 min-h-36 transition-all hover:border-primary-400 hover:bg-primary-50"
             style={{borderColor:'#DDD6FE'}}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{background:'#EDE9FE'}}>
               <Icon name="Plus" size={20} className="text-primary-500"/>

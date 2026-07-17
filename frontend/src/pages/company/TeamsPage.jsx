@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { occasionsAPI, subscriptionAPI, hrisAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
+import Icon from '../../components/ui/Icon';
 
 const daysUntil = (dateStr) => {
   const today = new Date();
@@ -212,7 +213,7 @@ const TeamsPage = () => {
                 <div className="text-5xl mb-3">{selected.icon}</div>
                 <p className="text-sm font-medium text-warm-700 mb-1">No {selected.label} data yet</p>
                 <p className="text-xs text-warm-400 mb-5">Download the template, fill it in, then upload it back here</p>
-                <button onClick={handleDownload} className="btn-primary text-sm py-2.5 px-6">📥 Download template</button>
+                <button type="button" onClick={handleDownload} className="btn-primary inline-flex items-center gap-2 text-sm py-2.5 px-6"><Icon name="Download" size={15} />Download template</button>
               </div>
             ) : (
               <div className="overflow-x-auto -mx-0">

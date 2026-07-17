@@ -546,15 +546,15 @@ describe('SEO: JSON-LD structured data', () => {
     expect(org.logo.url).toContain('favicon');
   });
 
-  it('WebSite schema has SearchAction potentialAction', () => {
+  it('WebSite schema identifies the canonical site without retired search-box markup', () => {
     const site = {
       '@type': 'WebSite',
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: { '@type': 'EntryPoint', urlTemplate: 'https://thankeeu.com/sign/{s}' },
-      },
+      name: 'Thankeeu',
+      url: 'https://www.thankeeu.com',
     };
-    expect(site.potentialAction['@type']).toBe('SearchAction');
+    expect(site.name).toBe('Thankeeu');
+    expect(site.url).toBe('https://www.thankeeu.com');
+    expect(site.potentialAction).toBeUndefined();
   });
 
   it('SoftwareApplication has aggregateRating', () => {

@@ -1351,14 +1351,14 @@ const Home = () => {
 
  <div className="svg-grid">
  {[
- { n:'01', label:'Elegant Bloom' },
- { n:'02', label:'Bold Celebration' },
- { n:'03', label:'Floral Joy' },
- { n:'04', label:'Golden Wishes' },
- { n:'05', label:'Sunshine Birthday' },
+ { n:'01', label:'So Long, Good Luck' },
+ { n:'02', label:'Elegant Farewell' },
+ { n:'05', label:'A Fresh Chapter' },
+ { n:'07', label:'Goodbye & Good Luck' },
+ { n:'13', label:'On To Wonderful Things' },
  ].map(({ n, label }) => (
- <Link key={n} to="/card/new" className="svg-tile" title={`${label} card design`}>
- <img src={`/cards/birthday_${n}.svg`} alt={label} loading="lazy"/>
+ <Link key={n} to="/card/new?occasion=leaving" className="svg-tile" title={`${label} leaving card design`}>
+ <img src={`/cards/leaving/leave-card-${n}.png`} alt={`${label} leaving card cover`} loading="lazy"/>
  <div style={{
  position:'absolute', bottom:0, left:0, right:0,
  background:'linear-gradient(0deg,rgba(0,0,0,0.55) 0%,transparent 100%)',

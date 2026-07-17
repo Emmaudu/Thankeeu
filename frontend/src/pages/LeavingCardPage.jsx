@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { RotatingPrice, CurrencyToggle } from '../utils/currencyUI';
@@ -6,228 +6,9 @@ import { convertFromNGN, getCurrency } from '../utils/currency';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
-import HeroShowcase from '../components/HeroShowcase';
+import PriorityDesignGallery from '../components/PriorityDesignGallery';
 import { LEAVING_CARD_DESIGNS, createLeavingCardUrl } from '../utils/leavingCardDesigns';
-
-/* ─── HeroShowcase data — farewell-specific ──────────────────────────── */
-const FAREWELL_SAMPLE_MESSAGES = [
-  { name:'Emma Clarke',   role:'Director of People',   font:'font-vibes',
-    media:'photo', photoUrl:'https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80',
-    text:"You've been the glue holding this team together for three incredible years. Wishing you every success.",
-    avatar:'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&h=120&fit=crop&crop=face' },
-  { name:'Tunde Bakare',  role:'Operations Lead',      font:'font-dancing',
-    media:'gif', gifUrl:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif',
-    text:"You are the reason the ops team runs as smoothly as it does. Wherever you go next is lucky to have you.",
-    avatar:'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=120&h=120&fit=crop&crop=face' },
-  { name:'Sarah Chen',    role:'Head of Design',       font:'font-dancing',
-    media:'voice',
-    text:"You have the rarest combination — impeccable taste and genuine humility. Going to miss you every single day.",
-    avatar:'https://images.unsplash.com/photo-1573496799652-408c2ac9fe98?w=120&h=120&fit=crop&crop=face' },
-  { name:'Marcus Williams',role:'Sales Director',      font:'font-sacramento',
-    media:'gif', gifUrl:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif',
-    text:"You made every room better just by being in it. Whatever's next — go get it. We'll be cheering.",
-    avatar:'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&h=120&fit=crop&crop=face' },
-];
-
-const FAREWELL_DEMO_MESSAGES = [
-  { initials:'NG', name:'Ngozi A.',  color:'#7C3AED', bg:'#EDE9FE',
-    text:"You built this team. The culture you created will outlive your time here. Thank you for everything. 👏",
-    gif:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
-  { initials:'SO', name:'Sola B.',   color:'#0D9488', bg:'#CCFBF1',
-    text:"Meetings will honestly never be the same without your energy. We'll miss you more than words can say.",
-    gif:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
-  { initials:'TN', name:'Tunde N.',  color:'#DB2777', bg:'#FCE7F3',
-    text:"Three years of the most fun, chaotic, brilliant projects I've ever worked on. Don't be a stranger.",
-    gif:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
-  { initials:'CM', name:'Chidi M.',  color:'#92400E', bg:'#FEF3C7',
-    text:"You were always the calmest person in every storm. Thank you for steadying us all. Good luck! 🙌",
-    gif:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
-  { initials:'BD', name:'Bolu D.',   color:'#1D4ED8', bg:'#DBEAFE',
-    text:"Whatever's next is lucky to have you. We are already jealous of them. Farewell and godspeed! 🚀",
-    gif:'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
-];
-
-/* ─── Hero card preview data (farewell-specific) ─────────────────────── */
-const FAREWELL_SLIDES = [
-  {
-    title: 'Colleague leaving tomorrow?',
-    description: 'One link. Everyone signs from anywhere. Pooled leaving gift sorted at the same time.',
-    cta: 'Create Leaving Card — Free',
-    color: '#7C3AED', accent: '#EDE9FE', emoji: '👋',
-    count: 31, gift: '£280',
-    messages: [
-      { name: 'Tunde N.',  role: 'CTO',             color: '#1D4ED8', bg: '#DBEAFE', text: 'You built this team. The culture you created will outlive your time here.', emoji: '🏆' },
-      { name: 'Ngozi A.',  role: 'Product Manager',  color: '#7C3AED', bg: '#EDE9FE', text: 'Working with you was the highlight of my career. See you at the top!',      emoji: '✨' },
-      { name: 'Chidi M.',  role: 'Engineering Lead', color: '#0D9488', bg: '#CCFBF1', text: 'You were always the calmest person in every storm. Thank you.',               emoji: '🙏' },
-      { name: 'Sola B.',   role: 'Finance',          color: '#DB2777', bg: '#FCE7F3', text: 'Meetings will never be the same without your energy. We\'ll miss you!',      emoji: '💜' },
-    ],
-  },
-  {
-    title: 'Remote team can all sign?',
-    description: 'Manchester, Lagos, New York — one link works everywhere. No account needed to sign.',
-    cta: 'Create Leaving Card — Free',
-    color: '#0D9488', accent: '#CCFBF1', emoji: '🌍',
-    count: 47, gift: '$420',
-    messages: [
-      { name: 'Emma L.',   role: 'London',           color: '#0D9488', bg: '#CCFBF1', text: 'Three years of the most fun, chaotic, brilliant projects I\'ve ever worked on.', emoji: '🎉' },
-      { name: 'Amara T.',  role: 'Lagos',            color: '#7C3AED', bg: '#EDE9FE', text: 'Thank you for always making time for the team in every timezone.',               emoji: '🌟' },
-      { name: 'Jake R.',   role: 'New York',         color: '#D97706', bg: '#FEF3C7', text: 'You made remote feel like being in the same room. Going to miss that energy.',   emoji: '🔥' },
-      { name: 'Priya K.',  role: 'Austin',           color: '#DB2777', bg: '#FCE7F3', text: 'From 9am calls to 11pm debugging sessions — always there. Always brilliant.',    emoji: '💪' },
-    ],
-  },
-  {
-    title: 'Leaving gift already sorted?',
-    description: 'Enable the collection pot. Everyone chips in when they sign — no chasing, no awkward bank transfers.',
-    cta: 'Create Leaving Card — Free',
-    color: '#059669', accent: '#D1FAE5', emoji: '🎁',
-    count: 23, gift: '₦450,000',
-    messages: [
-      { name: 'Bolu D.',   role: 'HR Manager',       color: '#059669', bg: '#D1FAE5', text: '5 years of patience, grace and never-ending support. The leaving gift barely covers it.', emoji: '💝' },
-      { name: 'Lola M.',   role: 'CEO',              color: '#7C3AED', bg: '#EDE9FE', text: 'You were the first person I hired and the hardest to lose. Use it well!',                emoji: '🏆' },
-      { name: 'Kunle O.',  role: 'Operations',       color: '#D97706', bg: '#FEF3C7', text: 'The gift is small compared to what you\'ve given this company over the years.',           emoji: '🙌' },
-      { name: 'Dami A.',   role: 'Marketing',        color: '#DB2777', bg: '#FCE7F3', text: 'Whatever\'s next is lucky to have you. We are already jealous of them!',                 emoji: '✨' },
-    ],
-  },
-];
-
-/* ─── Farewell card preview component ───────────────────────────────── */
-const FarewellCardPreview = ({ slide }) => (
-  <div className="relative w-full max-w-md mx-auto select-none" style={{ fontFamily: 'Plus Jakarta Sans, sans-serif' }}>
-    <div className="rounded-3xl overflow-hidden shadow-2xl border border-purple-100 bg-white">
-      <div className="px-5 pt-5 pb-3 flex items-center justify-between"
-        style={{ background: `linear-gradient(135deg,${slide.accent},white)` }}>
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: slide.color, opacity: 0.7 }}>
-            farewell card
-          </p>
-          <h3 className="font-extrabold text-warm-900 text-base leading-tight">
-            {slide.emoji} For {slide.messages[0].name.split(' ')[0]}
-          </h3>
-        </div>
-        <div className="text-right">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
-            style={{ background: slide.color, color: '#fff' }}>
-            {slide.count} signed
-          </div>
-          {slide.gift && (
-            <p className="text-xs font-bold mt-1.5" style={{ color: '#059669' }}>
-              🎁 {slide.gift} pooled
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 p-3">
-        {slide.messages.map((m, i) => (
-          <div key={m.name} className="rounded-2xl p-3 flex flex-col gap-1.5"
-            style={{ background: m.bg, minHeight: i < 2 ? 120 : 100 }}>
-            <div className="flex items-center gap-1.5">
-              <div className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ background: m.color, color: '#fff' }}>
-                {m.name[0]}
-              </div>
-              <p className="font-bold text-xs text-warm-900 truncate">{m.name}</p>
-            </div>
-            <p className="text-xs text-warm-700 leading-relaxed" style={{ fontSize: '0.7rem' }}>
-              {m.text.length > 85 ? m.text.slice(0, 85) + '…' : m.text}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      <div className="px-4 pb-3 pt-1 flex items-center justify-between">
-        <div className="flex -space-x-1">
-          {slide.messages.map((m, i) => (
-            <div key={m.name} className="w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold"
-              style={{ background: m.color, color: '#fff', zIndex: 4 - i }}>
-              {m.name[0]}
-            </div>
-          ))}
-          <div className="w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-bold bg-warm-200 text-warm-600">
-            +{slide.count - 4}
-          </div>
-        </div>
-        <div className="text-[10px] font-semibold text-warm-400">thankeeu.com</div>
-      </div>
-    </div>
-    <div className="absolute -top-3 -right-3 w-10 h-10 rounded-2xl shadow-lg flex items-center justify-center text-xl"
-      style={{ background: slide.color }}>
-      {slide.emoji}
-    </div>
-  </div>
-);
-
-/* ─── Slideshow ──────────────────────────────────────────────────────── */
-const HeroSlideshow = () => {
-  const [idx, setIdx] = useState(0);
-  const [fading, setFading] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const timerRef = useRef(null);
-
-  const goTo = useCallback((next) => {
-    setFading(true);
-    setTimeout(() => { setIdx(next); setFading(false); }, 300);
-  }, []);
-
-  useEffect(() => {
-    if (paused) return;
-    timerRef.current = setInterval(() => {
-      goTo((prev) => (prev + 1) % FAREWELL_SLIDES.length);
-    }, 5500);
-    return () => clearInterval(timerRef.current);
-  }, [paused, goTo]);
-
-  const slide = FAREWELL_SLIDES[idx];
-
-  return (
-    <div onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} className="relative">
-      <div className="transition-all duration-300"
-        style={{ opacity: fading ? 0 : 1, transform: fading ? 'translateY(6px)' : 'translateY(0)' }}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center rounded-3xl px-6 py-8 sm:px-10 sm:py-10"
-          style={{ background: `linear-gradient(135deg,${slide.accent}cc,white)`, border: `1.5px solid ${slide.accent}` }}>
-
-          <div className="text-center lg:text-left order-2 lg:order-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold mb-5"
-              style={{ background: slide.color, color: '#fff' }}>
-              {slide.emoji} Leaving Card
-            </div>
-            <h2 className="font-extrabold text-warm-900 mb-4 leading-tight"
-              style={{ fontSize: 'clamp(1.6rem,4vw,2.4rem)', letterSpacing: '-0.025em' }}>
-              {slide.title}
-            </h2>
-            <p className="text-warm-500 mb-7 text-base sm:text-lg leading-relaxed max-w-md mx-auto lg:mx-0">
-              {slide.description}
-            </p>
-            <Link to="/card/new?occasion=farewell"
-              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-white text-base transition-all hover:scale-105 hover:shadow-xl"
-              style={{ background: `linear-gradient(135deg,${slide.color},${slide.color}cc)`, boxShadow: `0 8px 24px ${slide.color}44` }}>
-              {slide.cta} →
-            </Link>
-            <p className="text-xs text-warm-400 mt-4">Free to create · No account needed to sign</p>
-          </div>
-
-          <div className="flex items-center justify-center order-1 lg:order-2">
-            <FarewellCardPreview slide={slide} />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-center gap-4 mt-5">
-        <button onClick={() => goTo((idx - 1 + FAREWELL_SLIDES.length) % FAREWELL_SLIDES.length)}
-          className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-purple-200 text-warm-500 hover:bg-purple-50 hover:border-primary-400 hover:text-primary-600 transition-all font-bold text-sm">‹</button>
-        <div className="flex items-center gap-2">
-          {FAREWELL_SLIDES.map((_, i) => (
-            <button key={i} onClick={() => goTo(i)}
-              className="transition-all rounded-xl"
-              style={{ width: i === idx ? 24 : 8, height: 8, background: i === idx ? slide.color : '#DDD6FE' }} />
-          ))}
-        </div>
-        <button onClick={() => goTo((idx + 1) % FAREWELL_SLIDES.length)}
-          className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-purple-200 text-warm-500 hover:bg-purple-50 hover:border-primary-400 hover:text-primary-600 transition-all font-bold text-sm">›</button>
-      </div>
-    </div>
-  );
-};
+import { FAREWELL_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
 
 /* ─── Comparison table data ──────────────────────────────────────────── */
 const CHECK = <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100"><Icon name="Check" size={13} className="text-green-600" strokeWidth={3}/></span>;
@@ -347,56 +128,16 @@ const PricingSection = () => {
 };
 
 /* ─── Main page ──────────────────────────────────────────────────────── */
-const LeavingDesignPreviewSection = () => {
-  const featured = LEAVING_CARD_DESIGNS.slice(0, 10);
-
-  return (
-    <section className="py-16 md:py-20 px-4 bg-white" id="designs">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-5 mb-10">
-          <div>
-            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary-500 mb-3">
-              <Icon name="Images" size={13}/>Leave card designs
-            </div>
-            <h2 className="font-extrabold text-warm-900 leading-tight"
-              style={{ fontSize: 'clamp(1.85rem,5vw,2.75rem)' }}>
-              Choose a design before you create
-            </h2>
-            <p className="text-warm-500 mt-3 max-w-2xl">
-              Start from a real leaving-card cover, then build an album-style group card with pages, messages, photos, voice notes and a gift collection.
-            </p>
-          </div>
-          <Link to="/cards/leaving-card/gallery"
-            className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl font-bold text-primary-600 border-2 border-primary-200 hover:bg-primary-50 transition-all">
-            View full catalogue <Icon name="ArrowRight" size={16} />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {featured.map(design => (
-            <article key={design.id} className="rounded-lg overflow-hidden border border-purple-100 bg-white shadow-sm hover:shadow-xl hover:border-primary-200 transition-all">
-              <Link to={createLeavingCardUrl(design.id)} className="block group">
-                <div className="relative">
-                  <img src={design.image} alt={`${design.name} card design`} className="w-full aspect-[3/4] object-cover group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" />
-                  <span className="absolute top-2 left-2 px-2 py-1 rounded-full text-[10px] font-extrabold text-white bg-primary-600 shadow-sm">
-                    {design.badge}
-                  </span>
-                </div>
-                <div className="p-3">
-                  <h3 className="font-extrabold text-warm-900 text-sm leading-tight">{design.name}</h3>
-                  <p className="text-xs text-warm-400 mt-1">{design.style}</p>
-                  <span className="mt-3 inline-flex items-center justify-center gap-1.5 w-full rounded-xl bg-primary-600 px-3 py-2 text-xs font-bold text-white group-hover:bg-primary-700 transition-colors">
-                    Select to create <Icon name="ArrowRight" size={13} />
-                  </span>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
+const LeavingDesignPreviewSection = () => (
+  <PriorityDesignGallery
+    designs={FAREWELL_PRIORITY_DESIGNS}
+    occasion="leaving"
+    eyebrow="20 new leaving-card covers"
+    title="Choose a proper cover for their send-off"
+    description="Browse ten premium A4 designs at a time. Select one to open it in the album studio and add the team's messages, photos, GIFs, videos and voice notes."
+    background="#ffffff"
+  />
+);
 
 export default function LeavingCardPage() {
   useSEO({
@@ -422,43 +163,41 @@ export default function LeavingCardPage() {
       <Navbar />
 
       {/* ══ HERO — matches home exactly ══ */}
-      <section className="pt-10 pb-4 px-4" style={{ background: 'linear-gradient(180deg,#F5F0FF 0%,#fff 100%)' }}>
-        <div className="max-w-6xl mx-auto">
+      <section className="relative overflow-hidden px-4" style={{minHeight:'min(760px,82vh)',backgroundImage:'linear-gradient(90deg,rgba(24,10,38,0.97) 0%,rgba(54,27,65,0.88) 38%,rgba(59,28,66,0.27) 69%,rgba(20,8,30,0.06) 100%),url(/images/heroes/leaving-hero.jpg)',backgroundSize:'cover',backgroundPosition:'center'}}>
+        <div className="max-w-6xl mx-auto flex items-center py-16 sm:py-24" style={{minHeight:'min(760px,82vh)'}}>
           {/* eyebrow */}
-          <div className="text-center mb-6">
+          <div className="text-left max-w-2xl">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold mb-5"
-              style={{ background: '#EDE9FE', color: '#7C3AED' }}>
+              style={{ background:'rgba(255,255,255,0.14)',color:'#fff',border:'1px solid rgba(255,255,255,0.22)',backdropFilter:'blur(10px)' }}>
               👋 Online Leaving Cards
             </div>
-            <h1 className="font-extrabold text-warm-900 leading-none mb-4"
+            <h1 className="font-extrabold text-white leading-none mb-5"
               style={{ fontSize: 'clamp(2.4rem,7vw,4.5rem)', letterSpacing: '-0.03em' }}>
-              The leaving card<br />
-              <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg,#7C3AED,#DB2777)' }}>
-                everyone actually signs.
-              </span>
+              Their last day deserves<br />
+              <span style={{color:'#FDE68A'}}>more than a rushed goodbye.</span>
             </h1>
-            <p className="text-warm-500 text-lg sm:text-xl max-w-2xl mx-auto mb-3 leading-relaxed">
-              One link. The whole team signs from anywhere — messages, photos, GIFs, voice notes and a pooled leaving gift. Delivered on their last day.
+            <p className="text-lg sm:text-xl max-w-xl mb-7 leading-relaxed" style={{color:'rgba(255,255,255,0.84)'}}>
+              Give everyone one place to share the stories, photos and voice notes that made working together matter — with an optional leaving gift built in.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4 mb-8">
+            <div className="flex flex-wrap items-center gap-3 mb-7">
               <Link to="/cards/leaving-card/gallery"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-white text-base transition-all hover:scale-105 hover:shadow-xl"
-                style={{ background: 'linear-gradient(135deg,#7C3AED,#9333EA)', boxShadow: '0 8px 24px rgba(124,58,237,0.35)' }}>
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-base transition-all hover:scale-105 hover:shadow-xl"
+                style={{background:'linear-gradient(135deg,#FDE68A,#F9A8D4)',color:'#2D1638',boxShadow:'0 12px 35px rgba(249,168,212,0.28)'}}>
                 <Icon name="Sparkles" size={17} />
                 Create Leaving Card — Free
               </Link>
-              <a href="#pricing"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-primary-600 text-base border-2 border-primary-200 hover:bg-primary-50 transition-all">
-                See pricing
+              <a href="#how-it-works"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-white text-base border border-white/30 hover:bg-white/10 transition-all">
+                See how it works ↓
               </a>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-5 text-sm text-warm-400 font-medium">
-              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-green-500"/>Free to create</span>
-              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-green-500"/>No account to sign</span>
-              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-green-500"/>Gift collection included</span>
-              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-green-500"/>Works for remote teams</span>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm font-semibold" style={{color:'rgba(255,255,255,0.8)'}}>
+              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>Free to create</span>
+              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>No account to sign</span>
+              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>Gift collection included</span>
+              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>Works for remote teams</span>
             </div>
-            <div className="hidden md:flex justify-center gap-4 mt-8">
+            <div className="hidden">
               {LEAVING_CARD_DESIGNS.slice(0, 4).map((design, index) => (
                 <Link key={design.id} to={createLeavingCardUrl(design.id)}
                   className="block w-24 lg:w-32 rounded-2xl overflow-hidden shadow-lg border-4 border-white hover:-translate-y-1 hover:shadow-xl transition-all"
@@ -469,18 +208,8 @@ export default function LeavingCardPage() {
             </div>
           </div>
 
-          {/* Slideshow */}
-          <HeroSlideshow />
         </div>
       </section>
-
-      {/* ══ HERO SHOWCASE — sample cards + interactive demo + feature cards ══ */}
-      <HeroShowcase
-        sampleMessages={FAREWELL_SAMPLE_MESSAGES}
-        demoMessages={FAREWELL_DEMO_MESSAGES}
-        ctaPath="/cards/leaving-card/gallery"
-        ctaLabel="Create Leaving Card - Free"
-      />
 
       {/* ══ COMPANY LOGOS ══ */}
       <section className="py-10 px-4 overflow-hidden" style={{ background: '#FDFCFF' }}>
@@ -518,7 +247,7 @@ export default function LeavingCardPage() {
       </section>
 
       {/* ══ HOW IT WORKS ══ */}
-      <section className="py-16 md:py-20 px-4 bg-white">
+      <section id="how-it-works" className="py-16 md:py-20 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary-500 mb-3">

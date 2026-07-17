@@ -136,7 +136,7 @@ const CompanyDashboard = () => {
 
       {/* HR quick actions bar */}
       <div className="flex flex-wrap gap-2 mb-5">
-        <Link to="/create-card" className="btn-primary text-xs py-2.5 px-4">Create Card</Link>
+        <Link to="/card/new" className="btn-primary text-xs py-2.5 px-4">Create Card</Link>
         <Link to={companyPath('/occasions')} className="btn-primary text-xs py-2.5 px-4">Occasions</Link>
         <Link to={companyPath('/hris')} className="btn-secondary text-xs py-2.5 px-4">HRIS &amp; Import</Link>
         <Link to={companyPath('/members')} className="btn-secondary text-xs py-2.5 px-4">Team members{pending.length > 0 && ` (${pending.length} pending)`}</Link>

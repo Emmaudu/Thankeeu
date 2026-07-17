@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { format, parseISO } from 'date-fns';
+import Icon from './ui/Icon';
 
 /**
  * NotificationBell — drop-in bell icon for any layout.
@@ -45,22 +46,22 @@ const NotificationBell = ({ fetchFn, markReadFn, linkResolver }) => {
   };
 
   const typeIcon = (type) => ({
-    sign_card:         '✍️',
-    card_approved:     '✅',
-    deduction_approved:'💸',
-    gift_ready:        '🎁',
-    reminder:          '🔔',
-    welcome:           '🎉',
-    withdrawal:        '💸',
-    card_approval:     '🏢',
-  }[type] || '🔔');
+    sign_card:         'PenLine',
+    card_approved:     'CheckCircle',
+    deduction_approved:'Banknote',
+    gift_ready:        'Gift',
+    reminder:          'Bell',
+    welcome:           'PartyPopper',
+    withdrawal:        'Wallet',
+    card_approval:     'Building2',
+  }[type] || 'Bell');
 
   return (
     <div className="relative" ref={panelRef}>
-      <button onClick={handleOpen}
+      <button type="button" onClick={handleOpen} aria-label={`Notifications${unread ? `, ${unread} unread` : ''}`}
         className="relative w-9 h-9 flex items-center justify-center rounded-xl transition-colors hover:bg-primary-50"
         style={{ color: '#5B4BDF' }}>
-        <span className="text-xl">🔔</span>
+        <Icon name="Bell" size={20} />
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 bg-rose-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none min-w-[18px] min-h-[18px] px-0.5">
             {unread > 9 ? '9+' : unread}
@@ -72,21 +73,21 @@ const NotificationBell = ({ fetchFn, markReadFn, linkResolver }) => {
         <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-purple-100 z-[70] animate-fade-in overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-purple-50">
             <p className="font-semibold text-warm-900 text-sm">Notifications {unread > 0 && <span className="ml-1 text-xs bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full font-bold">{unread}</span>}</p>
-            <button onClick={() => setOpen(false)} className="text-warm-400 hover:text-warm-700 text-lg leading-none">✕</button>
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close notifications" className="flex h-8 w-8 items-center justify-center rounded-full text-warm-400 hover:bg-purple-50 hover:text-warm-700"><Icon name="X" size={15} /></button>
           </div>
           <div className="max-h-96 overflow-y-auto">
             {loading && notifs.length === 0 ? (
               <div className="p-4 space-y-2">{[...Array(3)].map((_,i) => <div key={i} className="h-12 rounded-xl animate-pulse bg-purple-50"/>)}</div>
             ) : notifs.length === 0 ? (
               <div className="p-8 text-center">
-                <div className="text-4xl mb-2">🔔</div>
+                <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><Icon name="Bell" size={23} /></div>
                 <p className="text-sm text-warm-400">No notifications yet</p>
               </div>
             ) : notifs.map(n => {
               const href = n.data?.card_slug ? `/card/${n.data.card_slug}` : null;
               const Inner = (
                 <div className={`flex items-start gap-3 px-4 py-3 border-b border-purple-50 transition-colors hover:bg-purple-50 ${!n.is_read ? 'bg-primary-50/40' : ''}`}>
-                  <span className="text-xl flex-shrink-0 mt-0.5">{typeIcon(n.type)}</span>
+                  <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600"><Icon name={typeIcon(n.type)} size={16} /></span>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm leading-tight truncate ${!n.is_read ? 'font-semibold text-warm-900' : 'font-medium text-warm-700'}`}>{n.title}</p>
                     {n.body && <p className="text-xs text-warm-500 mt-0.5 line-clamp-2">{n.body}</p>}
@@ -102,7 +103,7 @@ const NotificationBell = ({ fetchFn, markReadFn, linkResolver }) => {
           </div>
           {notifs.length > 0 && (
             <div className="px-4 py-2.5 border-t border-purple-50 text-center">
-              <button onClick={load} className="text-xs text-primary-500 font-semibold hover:text-primary-700">Refresh</button>
+              <button type="button" onClick={load} className="inline-flex items-center gap-1.5 text-xs text-primary-500 font-semibold hover:text-primary-700"><Icon name="Refresh" size={12} />Refresh</button>
             </div>
           )}
         </div>

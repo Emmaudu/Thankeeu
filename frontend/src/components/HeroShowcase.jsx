@@ -188,7 +188,8 @@ const LiveCardPreview = ({ demoMessages, ctaPath, ctaLabel }) => {
               onChange={e => { const f=e.target.files?.[0]; if(f) setSignerPhoto({ url:URL.createObjectURL(f), file:f }); }}/>
             {signerPhoto && (
               <button type="button" onClick={() => setSignerPhoto(null)}
-                style={{ background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#DC2626', fontWeight:700, alignSelf:'center' }}>✕</button>
+                aria-label="Remove photo"
+                style={{ background:'none', border:'none', cursor:'pointer', color:'#DC2626', fontWeight:700, alignSelf:'center', display:'inline-flex', alignItems:'center', justifyContent:'center' }}><Icon name="X" size={14} /></button>
             )}
 
             <button type="button" onClick={() => { setShowGifPick(s=>!s); setShowEmoji(false); }}
@@ -197,7 +198,8 @@ const LiveCardPreview = ({ demoMessages, ctaPath, ctaLabel }) => {
             </button>
             {signerGif && (
               <button type="button" onClick={() => setSignerGif('')}
-                style={{ background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#DC2626', fontWeight:700, alignSelf:'center' }}>✕</button>
+                aria-label="Remove GIF"
+                style={{ background:'none', border:'none', cursor:'pointer', color:'#DC2626', fontWeight:700, alignSelf:'center', display:'inline-flex', alignItems:'center', justifyContent:'center' }}><Icon name="X" size={14} /></button>
             )}
 
             <VoiceRecorder onRecorded={f => {

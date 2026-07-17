@@ -35,6 +35,12 @@ const SignCard = () => {
     if (searchParams.get('tab') === 'wall') return 'wall';
     return 'messages';
   }); // 'messages' | 'wall'
+
+  // The card loads asynchronously. Once its experience is known, a wall-only
+  // signing link must open the wall composer instead of leaving a blank page.
+  useEffect(() => {
+    if (card?.card_experience === 'wall_only' || searchParams.get('tab') === 'wall') setWallTab('wall');
+  }, [card?.card_experience, searchParams]);
   const [submitting,  setSubmitting]  = useState(false);
   // 'idle' | 'sending' | 'paying' | 'verifying' | 'done'
   const [stage,       setStage]       = useState('idle');
@@ -286,13 +292,13 @@ const SignCard = () => {
     const items = [];
     for (const f of Array.from(files)) {
       const isGifOrImage = f.type === 'image/gif' || f.type.startsWith('image/');
-      const maxSize = isGifOrImage ? 9 * 1024 * 1024 : 100 * 1024 * 1024;
+      const maxSize = isGifOrImage ? 9 * 1024 * 1024 : 50 * 1024 * 1024;
       if (f.size > maxSize) {
-        toast.error(`${f.name} is too large. ${isGifOrImage ? 'Images and GIFs must be under 9MB.' : 'Videos must be under 100MB.'}`);
+        toast.error(`${f.name} is too large. ${isGifOrImage ? 'Images and GIFs must be under 9MB.' : 'Videos and voice notes must be under 50MB.'}`);
         continue;
       }
       if (f.size > 5 * 1024 * 1024 && isGifOrImage) { toast(`${f.name} is large (${(f.size/1024/1024).toFixed(0)}MB) — upload may take a moment.`, { icon: '⏳' }); }
-      if (f.size > 50 * 1024 * 1024 && !isGifOrImage) { toast(`${f.name} is large (${(f.size/1024/1024).toFixed(0)}MB) — upload may take a moment.`, { icon: '⏳' }); }
+      if (f.size > 25 * 1024 * 1024 && !isGifOrImage) { toast(`${f.name} is large (${(f.size/1024/1024).toFixed(0)}MB) — upload may take a moment.`, { icon: '⏳' }); }
       const mime = f.type;
       const type = mime.startsWith('video/') ? 'video'
                  : mime.startsWith('audio/') ? 'voice'

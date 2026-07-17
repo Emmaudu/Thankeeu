@@ -3,6 +3,7 @@ import Icon from '../../components/ui/Icon';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
+import PriorityDesignGallery from '../../components/PriorityDesignGallery';
 
 const BASE = 'https://www.thankeeu.com';
 
@@ -400,7 +401,14 @@ const MessageMiniCard = ({ msg, color }) => {
   );
 };
 
-export default function OccasionLandingPage({ occasion }) {
+export default function OccasionLandingPage({
+  occasion,
+  priorityDesigns,
+  priorityDesignOccasion = occasion,
+  priorityDesignEyebrow,
+  priorityDesignTitle,
+  priorityDesignDescription,
+}) {
   const d = OCCASIONS[occasion] || OCCASIONS.birthday;
   const path = `/occasions/${occasion}`;
   const canonicalUrl = `${BASE}${path}`;
@@ -518,6 +526,17 @@ export default function OccasionLandingPage({ occasion }) {
       </section>
 
       {/* ── What's inside ── */}
+      {priorityDesigns?.length > 0 && (
+        <PriorityDesignGallery
+          designs={priorityDesigns}
+          occasion={priorityDesignOccasion}
+          eyebrow={priorityDesignEyebrow}
+          title={priorityDesignTitle}
+          description={priorityDesignDescription}
+          background="#ffffff"
+        />
+      )}
+
       <section className="max-w-5xl mx-auto px-4 pb-16">
         <h2 className="font-display text-2xl font-bold text-center mb-2" style={{ color: '#1a1a2e' }}>
           What goes inside every card

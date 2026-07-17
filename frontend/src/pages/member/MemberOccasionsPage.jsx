@@ -6,6 +6,7 @@ import { useMemberAuth } from '../../context/MemberAuthContext';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../../utils/cardDesigns';
+import Icon from '../../components/ui/Icon';
 
 const OCCASION_ICONS = {
   birthday: '🎂', leaving: '👋', work_anniversary: '🏆', promotion: '🌟',
@@ -213,7 +214,7 @@ const MemberOccasionsPage = () => {
           <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-display text-xl font-semibold text-warm-900">Create a card</h3>
-              <button onClick={() => setShowCreate(false)} className="text-warm-400 hover:text-warm-600 text-xl">✕</button>
+              <button type="button" onClick={() => setShowCreate(false)} aria-label="Close create card dialog" className="flex h-9 w-9 items-center justify-center rounded-full text-warm-400 hover:bg-purple-50 hover:text-warm-600"><Icon name="X" size={16} /></button>
             </div>
             <form onSubmit={handleCreateCard} className="space-y-4">
               <div>

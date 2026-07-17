@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
+import Icon from './ui/Icon';
 
 const VoiceRecorder = ({ onRecorded, disabled = false }) => {
   const recorderRef  = useRef(null);
@@ -15,11 +16,17 @@ const VoiceRecorder = ({ onRecorded, disabled = false }) => {
     streamRef.current = null;
   };
 
-  useEffect(() => () => {
-    mountedRef.current = false;
-    window.clearInterval(timerRef.current);
-    if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
-    stopTracks();
+  useEffect(() => {
+    // React StrictMode mounts, cleans up, and mounts effects again in
+    // development. Reset this flag during setup so completed recordings are
+    // still delivered after that lifecycle check.
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      window.clearInterval(timerRef.current);
+      if (recorderRef.current?.state === 'recording') recorderRef.current.stop();
+      stopTracks();
+    };
   }, []);
 
   const startRecording = async () => {
@@ -86,7 +93,7 @@ const VoiceRecorder = ({ onRecorded, disabled = false }) => {
 
       if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
         toast.error(
-          '🎤 Microphone permission denied.\n\nOn desktop: click the lock/camera icon in your browser address bar → allow Microphone → refresh the page.',
+          'Microphone permission denied.\n\nOn desktop: open the site permissions in your browser address bar, allow Microphone, then refresh the page.',
           { duration: 8000 }
         );
       } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
@@ -100,7 +107,7 @@ const VoiceRecorder = ({ onRecorded, disabled = false }) => {
       } else {
         // Generic fallback — most likely a desktop permission issue
         toast.error(
-          `Could not access microphone. On desktop/laptop:\n1. Click the 🔒 lock in your browser's address bar\n2. Set Microphone → Allow\n3. Refresh the page and try again.`,
+          'Could not access the microphone. On desktop or laptop, open site permissions from the browser address bar, set Microphone to Allow, then refresh and try again.',
           { duration: 9000 }
         );
       }
@@ -122,7 +129,7 @@ const VoiceRecorder = ({ onRecorded, disabled = false }) => {
       onClick={recording ? stopRecording : startRecording}
       className={`voice-record-button ${recording ? 'is-recording' : ''}`}
     >
-      <span className="voice-record-icon">{recording ? '■' : '🎤'}</span>
+      <span className="voice-record-icon"><Icon name={recording ? 'Square' : 'Mic'} size={14} /></span>
       <span>{recording ? `Stop  ${fmt(seconds)}` : 'Record voice note'}</span>
       {recording && <span className="voice-record-pulse" />}
     </button>

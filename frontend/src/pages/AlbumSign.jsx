@@ -65,14 +65,21 @@ const ALBUM_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@600;700&family=Caveat:wght@400;500;600;700&family=Kalam:wght@300;400;700&display=swap');
 @keyframes albumSpin { to { transform: rotate(360deg); } }
 @keyframes albumPop  { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
-@keyframes flipOut   { 0%{transform:perspective(1600px) rotateY(0deg);opacity:1} 100%{transform:perspective(1600px) rotateY(-88deg);opacity:0.35} }
-@keyframes flipIn    { 0%{transform:perspective(1600px) rotateY(88deg);opacity:0.35} 100%{transform:perspective(1600px) rotateY(0deg);opacity:1} }
-@keyframes flipOutB  { 0%{transform:perspective(1600px) rotateY(0deg);opacity:1} 100%{transform:perspective(1600px) rotateY(88deg);opacity:0.35} }
-@keyframes flipInB   { 0%{transform:perspective(1600px) rotateY(-88deg);opacity:0.35} 100%{transform:perspective(1600px) rotateY(0deg);opacity:1} }
-.album-flip-out  { animation: flipOut  0.34s cubic-bezier(.4,0,.2,1) both; transform-origin:left center; }
-.album-flip-in   { animation: flipIn   0.34s cubic-bezier(.4,0,.2,1) both; transform-origin:left center; }
-.album-flip-outB { animation: flipOutB 0.34s cubic-bezier(.4,0,.2,1) both; transform-origin:right center; }
-.album-flip-inB  { animation: flipInB  0.34s cubic-bezier(.4,0,.2,1) both; transform-origin:right center; }
+@keyframes flipOut   { 0%{transform:perspective(1800px) rotateY(0deg) scale(1);box-shadow:0 22px 70px rgba(0,0,0,.2);filter:brightness(1)} 100%{transform:perspective(1800px) rotateY(-105deg) scale(.97);box-shadow:40px 30px 80px rgba(0,0,0,.35);filter:brightness(.82)} }
+@keyframes flipIn    { 0%{transform:perspective(1800px) rotateY(105deg) scale(.97);filter:brightness(.82)} 60%{filter:brightness(1.03)} 100%{transform:perspective(1800px) rotateY(0deg) scale(1);filter:brightness(1)} }
+@keyframes flipOutB  { 0%{transform:perspective(1800px) rotateY(0deg) scale(1);box-shadow:0 22px 70px rgba(0,0,0,.2);filter:brightness(1)} 100%{transform:perspective(1800px) rotateY(105deg) scale(.97);box-shadow:-40px 30px 80px rgba(0,0,0,.35);filter:brightness(.82)} }
+@keyframes flipInB   { 0%{transform:perspective(1800px) rotateY(-105deg) scale(.97);filter:brightness(.82)} 60%{filter:brightness(1.03)} 100%{transform:perspective(1800px) rotateY(0deg) scale(1);filter:brightness(1)} }
+.album-flip-out  { animation: flipOut  0.32s cubic-bezier(.42,0,.35,1) both; transform-origin:left center; will-change:transform; }
+.album-flip-in   { animation: flipIn   0.34s cubic-bezier(.4,.1,.2,1) both; transform-origin:left center; will-change:transform; }
+.album-flip-outB { animation: flipOutB 0.32s cubic-bezier(.42,0,.35,1) both; transform-origin:right center; will-change:transform; }
+.album-flip-inB  { animation: flipInB  0.34s cubic-bezier(.4,.1,.2,1) both; transform-origin:right center; will-change:transform; }
+/* animated sheen that sweeps across the leaf as it turns */
+.album-flip-out::after,.album-flip-outB::after,.album-flip-in::after,.album-flip-inB::after{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:12; border-radius:14px;
+  background:linear-gradient(105deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.35) 50%, rgba(255,255,255,0) 70%);
+  animation:sheen .34s ease-out both;
+}
+@keyframes sheen{ 0%{transform:translateX(-60%);opacity:0} 40%{opacity:.9} 100%{transform:translateX(60%);opacity:0} }
 .album-page{ position:relative; }
 /* subtle inner shadow toward the spine to sell the "bound book" look */
 .album-page::before{
@@ -106,7 +113,8 @@ const ALBUM_CSS = `
 
 // ─── Cover Page ──────────────────────────────────────────────────────────────
 const CoverPage = ({ card, design, flipClass }) => {
-  const isDark = design?.dark;
+  const hasCustomCover = typeof card.background_color === 'string' && /^https?:\/\//.test(card.background_color);
+  const isDark = design?.dark || hasCustomCover;
   const occasions = {
     birthday:'🎂', farewell:'👋', leaving:'👋', retirement:'🌟',
     wedding:'💍', anniversary:'💕', baby_shower:'👶', graduation:'🎓',
@@ -123,12 +131,17 @@ const CoverPage = ({ card, design, flipClass }) => {
     const c = CL[field]?.color;
     return !c || c === 'auto' ? fallback : c;
   };
+  // Honor per-field size from cover_layout (size is relative to a 210-wide board).
+  const clSize = (field) => `${(CL[field]?.size || 16) / 210 * 100}cqw`;
 
   return (
     <div className={`album-page ${flipClass}`} style={{
       position:'relative', width:500, maxWidth:'92vw', height:600,
+      containerType:'inline-size',
       borderRadius:14, overflow:'hidden',
-      background: design?.background || 'linear-gradient(145deg,#F5F0FF,#EDE9FE)',
+      background: (typeof card.background_color==='string' && /^https?:\/\//.test(card.background_color))
+        ? `linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.42)), url("${card.background_color}") center/cover no-repeat`
+        : (design?.background || 'linear-gradient(145deg,#F5F0FF,#EDE9FE)'),
       boxShadow:'0 22px 74px rgba(0,0,0,0.26), 0 2px 0 rgba(255,255,255,0.6) inset',
       border:`1px solid ${design?.accent || '#C4B5FD'}44`,
       display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center',
@@ -148,7 +161,7 @@ const CoverPage = ({ card, design, flipClass }) => {
         borderRadius:'20px 20px 0 0'}}/>
 
       {/* Main content */}
-      <div style={{position:'relative',zIndex:2,textAlign:'center',padding:'0 32px'}}>
+      <div aria-hidden="true" style={{display:'none'}}>
         {/* Big emoji */}
         <div style={{fontSize:72,marginBottom:16,lineHeight:1,filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.15))'}}>{emoji}</div>
 
@@ -156,7 +169,7 @@ const CoverPage = ({ card, design, flipClass }) => {
         {CL.title.show && (
         <h1 style={{
           fontFamily:"'Great Vibes', cursive",
-          fontSize:'clamp(2.2rem,8vw,3.4rem)',
+          fontSize: CL.title.size ? clSize('title') : 'clamp(2.2rem,8vw,3.4rem)',
           color: clColor('title', isDark ? '#fff' : (design?.ink || '#1A1035')),
           margin:'0 0 10px', lineHeight:1.15,
           textShadow: isDark ? '0 2px 20px rgba(0,0,0,0.5)' : '0 2px 12px rgba(0,0,0,0.15)',
@@ -172,9 +185,9 @@ const CoverPage = ({ card, design, flipClass }) => {
         {CL.recipient.show && (
         <p style={{
           fontFamily:"'Dancing Script', cursive",
-          fontSize:'clamp(1.3rem,4vw,1.8rem)',
+          fontSize: CL.recipient.size ? clSize('recipient') : 'clamp(1.3rem,4vw,1.8rem)',
           color: clColor('recipient', isDark ? 'rgba(255,255,255,0.9)' : (design?.accent || '#7C3AED')),
-          margin:'0 0 8px', fontWeight:700,
+          margin:'0 0 8px', fontWeight:700, lineHeight:1.1,
           textShadow: coverArt ? (isDark?'0 1px 8px rgba(0,0,0,0.4)':'0 1px 6px rgba(255,255,255,0.5)') : 'none',
         }}>
           For {card.recipient_name}
@@ -185,7 +198,7 @@ const CoverPage = ({ card, design, flipClass }) => {
         {card.cover_sender && CL.sender.show && (
         <p style={{
           fontFamily:"'Caveat', cursive",
-          fontSize:15, fontWeight:600,
+          fontSize: CL.sender.size ? clSize('sender') : 15, fontWeight:600,
           color: clColor('sender', isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)'),
           margin:'0 0 6px',
         }}>
@@ -206,6 +219,24 @@ const CoverPage = ({ card, design, flipClass }) => {
         {/* Bottom flourish */}
         <div style={{marginTop:28,fontSize:24,opacity:0.5,letterSpacing:8}}>• • •</div>
       </div>
+
+      {/* Decorative elements remain in flow; the editable texts use the exact
+          percentage coordinates stored by the live cover studio. */}
+      {!coverArt && !hasCustomCover && (
+        <div style={{position:'absolute',top:'13%',left:'50%',transform:'translateX(-50%)',zIndex:1,fontSize:64,lineHeight:1,opacity:0.78,filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.15))'}}>{emoji}</div>
+      )}
+      <div style={{position:'absolute',top:14,left:'50%',transform:'translateX(-50%)',zIndex:2,padding:'5px 12px',borderRadius:999,background:isDark?'rgba(255,255,255,0.14)':'rgba(255,255,255,0.7)',backdropFilter:'blur(6px)',fontSize:10,fontWeight:800,letterSpacing:'0.18em',textTransform:'uppercase',color:isDark?'rgba(255,255,255,0.85)':(design?.accent||'#7C3AED')}}>
+        {occ.replace(/_/g,' ')} card
+      </div>
+      {CL.title.show && (
+        <h1 style={{position:'absolute',left:`${CL.title.x}%`,top:`${CL.title.y}%`,transform:'translate(-50%,-50%)',zIndex:3,width:'86%',padding:'2px 4px',margin:0,textAlign:'center',wordBreak:'break-word',fontFamily:"'Great Vibes', cursive",fontWeight:800,fontSize:clSize('title'),lineHeight:1.08,color:clColor('title',isDark?'#fff':(design?.ink||'#1A1035')),textShadow:isDark||coverArt?'0 2px 16px rgba(0,0,0,0.45)':'0 1px 8px rgba(255,255,255,0.55)'}}>{cardTitle}</h1>
+      )}
+      {CL.recipient.show && (
+        <p style={{position:'absolute',left:`${CL.recipient.x}%`,top:`${CL.recipient.y}%`,transform:'translate(-50%,-50%)',zIndex:3,width:'86%',padding:'2px 4px',margin:0,textAlign:'center',wordBreak:'break-word',fontFamily:"'Dancing Script', cursive",fontWeight:800,fontSize:clSize('recipient'),lineHeight:1.08,color:clColor('recipient',isDark?'#fff':(design?.ink||'#1A1035')),textShadow:isDark||coverArt?'0 2px 16px rgba(0,0,0,0.45)':'0 1px 8px rgba(255,255,255,0.55)'}}>{card.recipient_name}</p>
+      )}
+      {card.cover_sender && CL.sender.show && (
+        <p style={{position:'absolute',left:`${CL.sender.x}%`,top:`${CL.sender.y}%`,transform:'translate(-50%,-50%)',zIndex:3,width:'86%',padding:'2px 4px',margin:0,textAlign:'center',wordBreak:'break-word',fontFamily:"'Caveat', cursive",fontWeight:600,fontSize:clSize('sender'),lineHeight:1.08,letterSpacing:'0.04em',color:clColor('sender',isDark?'#fff':(design?.ink||'#1A1035')),textShadow:isDark||coverArt?'0 2px 16px rgba(0,0,0,0.45)':'0 1px 8px rgba(255,255,255,0.55)'}}>From {card.cover_sender}</p>
+      )}
 
       {/* Bottom ribbon */}
       <div style={{position:'absolute',bottom:0,left:0,right:0,height:8,
@@ -292,6 +323,7 @@ const SpiralBinding = ({ dark }) => (
 const NewSignerPage = ({
   msg, theme, isOwn, flipClass, canEdit, editing,
   draft, onDraftChange, onStartEdit, onSaveEdit, onCancelEdit, saving,
+  onMediaSelect, onMediaRemove,
 }) => {
   const isDark = theme?.id === 'charcoal';
   const ink    = isDark ? '#F3E8FF' : '#2a2140';
@@ -303,6 +335,15 @@ const NewSignerPage = ({
   const content = editing ? (draft?.content ?? '') : (msg?.content ?? '');
   const author  = editing ? (draft?.author_name ?? '') : (msg?.author_name ?? '');
   const fontColor = editing ? (draft?.font_color || msg?.font_color || ink) : (msg?.font_color || ink);
+  const editMediaInputRef = useRef(null);
+  const [showEditGif, setShowEditGif] = useState(false);
+  const [expandedMedia, setExpandedMedia] = useState(null);
+  const mediaUrl = editing
+    ? (draft?.media_preview || (draft?.remove_media ? null : msg?.media_url))
+    : msg?.media_url;
+  const mediaType = editing
+    ? (draft?.media_type || (draft?.remove_media ? null : msg?.media_type))
+    : msg?.media_type;
 
   return (
     <div className={`album-page ${flipClass}`} style={{
@@ -333,12 +374,33 @@ const NewSignerPage = ({
       </div>
 
       {/* Photo (kept if present) */}
-      {msg?.media_url && (msg.media_type==='image'||msg.media_type==='gif'||msg.media_type==='video') && (
-        <div style={{ margin:'0 24px 8px 60px', borderRadius:10, overflow:'hidden', flexShrink:0,
+      {mediaUrl && (mediaType==='image'||mediaType==='gif'||mediaType==='video') && (
+        <div style={{ margin:'0 24px 8px 60px', borderRadius:10, overflow:'hidden', flexShrink:0, position:'relative',
           boxShadow:'0 6px 18px rgba(0,0,0,0.16)', transform:'rotate(-1.2deg)', border:'5px solid #fff' }}>
-          {msg.media_type==='video'
-            ? <video src={msg.media_url} style={{ width:'100%', maxHeight:200, objectFit:'cover', display:'block' }} controls/>
-            : <img src={msg.media_url} alt="" style={{ width:'100%', maxHeight:200, objectFit:'cover', display:'block' }}/>}
+          {mediaType==='video'
+            ? <video src={mediaUrl} style={{ width:'100%', maxHeight:220, objectFit:'cover', display:'block' }} controls/>
+            : <button type="button" onClick={()=>setExpandedMedia({type:mediaType,src:mediaUrl})} style={{display:'block',width:'100%',padding:0,border:0,cursor:'zoom-in',background:'transparent'}}><img src={mediaUrl} alt="" style={{ width:'100%', maxHeight:220, objectFit:'cover', display:'block' }}/></button>}
+          <button type="button" onClick={()=>setExpandedMedia({type:mediaType,src:mediaUrl})} aria-label="Open media larger" style={{position:'absolute',right:7,top:7,border:0,borderRadius:999,background:'rgba(17,24,39,.78)',color:'#fff',fontSize:10,fontWeight:800,padding:'6px 9px',cursor:'zoom-in'}}>Expand</button>
+        </div>
+      )}
+      {mediaUrl && mediaType==='voice' && (
+        <div style={{margin:'0 24px 8px 60px',padding:'10px 12px',borderRadius:12,background:isDark?'rgba(255,255,255,0.08)':'rgba(124,58,237,0.08)',border:`1px solid ${accentC}33`,position:'relative',zIndex:2}}>
+          <audio src={mediaUrl} controls style={{width:'calc(100% - 64px)',height:34}} />
+          <button type="button" onClick={()=>setExpandedMedia({type:'voice',src:mediaUrl})} style={{position:'absolute',right:8,top:10,border:0,borderRadius:999,background:accentC,color:'#fff',fontSize:9,fontWeight:800,padding:'6px 8px',cursor:'pointer'}}>Open</button>
+        </div>
+      )}
+
+      {editing && (
+        <div style={{margin:'0 24px 6px 60px',display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',position:'relative',zIndex:8}}>
+          <input ref={editMediaInputRef} type="file" accept="image/*,video/*,audio/*" hidden
+            onChange={e=>{const file=e.target.files?.[0];if(file)onMediaSelect?.(file);e.target.value='';}} />
+          <button type="button" onClick={()=>editMediaInputRef.current?.click()} style={{border:`1px solid ${accentC}55`,background:isDark?'rgba(255,255,255,0.08)':'#fff',color:accentC,borderRadius:999,padding:'5px 9px',fontSize:10,fontWeight:800,cursor:'pointer'}}>
+            <Icon name="Image" size={11}/> Photo / video
+          </button>
+          <button type="button" onClick={()=>setShowEditGif(true)} style={{border:`1px solid ${accentC}55`,background:isDark?'rgba(255,255,255,0.08)':'#fff',color:accentC,borderRadius:999,padding:'5px 9px',fontSize:10,fontWeight:800,cursor:'pointer'}}>GIF</button>
+          <VoiceRecorder onRecorded={file=>onMediaSelect?.(file)} disabled={saving}/>
+          {mediaUrl && <button type="button" onClick={onMediaRemove} style={{border:'1px solid #FCA5A5',background:'#FEF2F2',color:'#B91C1C',borderRadius:999,padding:'5px 9px',fontSize:10,fontWeight:800,cursor:'pointer'}}>Remove media</button>}
+          {showEditGif && <GifPicker onSelect={file=>{onMediaSelect?.(file);setShowEditGif(false);}} onClose={()=>setShowEditGif(false)}/>} 
         </div>
       )}
 
@@ -395,7 +457,7 @@ const NewSignerPage = ({
         </div>
         {msg?.contributed_amount>0 && (
           <div style={{ display:'flex', alignItems:'center', gap:5, background:'#FEF3C7', border:'1.5px solid #FDE68A', borderRadius:20, padding:'5px 11px', flexShrink:0 }}>
-            <span style={{ fontSize:14 }}>🎁</span>
+            <span style={{ fontSize:14 }}>💸</span>
             <span style={{ fontSize:11, fontWeight:800, color:'#92400E' }}>{formatNGN(msg.contributed_amount)}</span>
           </div>
         )}
@@ -423,6 +485,16 @@ const NewSignerPage = ({
       <div style={{ position:'absolute', bottom:10, right:18, fontFamily:"'Caveat',cursive", fontSize:14, color:accentC, opacity:0.4, zIndex:2 }}>
         {msg?._pageLabel || ''}
       </div>
+      {expandedMedia && (
+        <div role="dialog" aria-modal="true" onClick={()=>setExpandedMedia(null)} style={{position:'fixed',inset:0,zIndex:120,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(0,0,0,.82)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{position:'relative',maxWidth:920,width:'100%',maxHeight:'88vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {expandedMedia.type==='video' ? <video src={expandedMedia.src} controls autoPlay style={{maxWidth:'100%',maxHeight:'86vh',borderRadius:16}}/>
+              : expandedMedia.type==='voice' ? <div style={{background:'#fff',borderRadius:18,padding:28,width:'min(420px,90vw)'}}><audio src={expandedMedia.src} controls autoPlay style={{width:'100%'}}/></div>
+              : <img src={expandedMedia.src} alt="" style={{maxWidth:'100%',maxHeight:'86vh',objectFit:'contain',borderRadius:16}}/>}
+            <button type="button" onClick={()=>setExpandedMedia(null)} aria-label="Close media preview" style={{position:'absolute',right:-8,top:-8,width:36,height:36,borderRadius:'50%',border:0,background:'#fff',fontSize:20,cursor:'pointer'}}>×</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -494,10 +566,11 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 
   // ── Inline page editing (notebook direct typing) ──────────────────────────
   const [editingMsgId, setEditingMsgId] = useState(null);
-  const [editDraft, setEditDraft] = useState(null); // {content, author_name, font_style, font_color}
+  const [editDraft, setEditDraft] = useState(null); // copy/style + optional inline media replacement
   const [savingEdit, setSavingEdit] = useState(false);
   // Direct-on-page compose for the blank leaf
   const [inlineCompose, setInlineCompose] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
 
   const signedInName  = user?.full_name||(member?`${member.first_name} ${member.last_name}`.trim():null)||company?.contact_person||'';
   const signedInEmail = user?.email||member?.email||company?.email||'';
@@ -509,6 +582,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   });
 
   const [mediaFiles,  setMediaFiles]  = useState([]);
+  const [expandedComposeMedia, setExpandedComposeMedia] = useState(null);
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [showEmoji,   setShowEmoji]   = useState(false);
   const [showGif,     setShowGif]     = useState(false);
@@ -584,18 +658,78 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const isDark = currentTheme?.id==='charcoal';
   const accentC = clampedPage===0 ? (design?.accent||'#7C3AED') : (currentTheme?.accent||'#7C3AED');
 
+  // ─ Page flip sound (Web Audio — a short filtered-noise "paper" swish) ─
+  const audioCtxRef = useRef(null);
+  const soundOnRef = useRef(true);
+  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
+  const playFlipSound = useCallback(() => {
+    if (!soundOnRef.current) return;
+    try {
+      let ctx = audioCtxRef.current;
+      if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); audioCtxRef.current = ctx; }
+      if (ctx.state === 'suspended') ctx.resume();
+      const dur = 0.26;
+      const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < data.length; i++) {
+        const t = i / data.length;
+        // envelope: quick attack, decay — mimics a page swish
+        const env = Math.pow(1 - t, 2.2) * Math.min(1, t * 12);
+        data[i] = (Math.random() * 2 - 1) * env * 0.5;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.7;
+      const gain = ctx.createGain(); gain.gain.value = 0.35;
+      src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
+      src.start();
+    } catch { /* audio not available — silent */ }
+  }, []);
+
   // ─ Page flip animation ─
   const flipTo = useCallback((newPage, direction='forward') => {
     if (newPage === clampedPage) return;
+    playFlipSound();
     const outClass = direction==='forward' ? 'album-flip-out'  : 'album-flip-outB';
     const inClass  = direction==='forward' ? 'album-flip-in'   : 'album-flip-inB';
     setFlipClass(outClass);
-    setTimeout(()=>{ setPage(newPage); setFlipClass(inClass); }, 220);
-    setTimeout(()=>{ setFlipClass(''); }, 440);
-  }, [clampedPage]);
+    setTimeout(()=>{ setPage(newPage); setFlipClass(inClass); }, 300);
+    setTimeout(()=>{ setFlipClass(''); }, 620);
+  }, [clampedPage, playFlipSound]);
 
   const goNext = () => { if (clampedPage < totalPages-1) flipTo(clampedPage+1,'forward'); };
   const goPrev = () => { if (clampedPage > 0) flipTo(clampedPage-1,'back'); };
+
+  // Keyboard arrows flip pages freely (ignored while typing/editing)
+  useEffect(() => {
+    const onKey = (e) => {
+      if (showEditor || editingMsgId || inlineCompose) return;
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); goPrev(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [clampedPage, totalPages, showEditor, editingMsgId, inlineCompose]);
+
+  // Swipe left/right to flip on touch devices (only when not dragging a sticker/editing)
+  const swipeRef = useRef(null);
+  const onSwipeStart = useCallback((e) => {
+    if (dragging.current || editingMsgId || inlineCompose) { swipeRef.current = null; return; }
+    const t = e.touches?.[0]; if (!t) return;
+    swipeRef.current = { x: t.clientX, y: t.clientY };
+  }, [editingMsgId, inlineCompose]);
+  const onSwipeEnd = useCallback((e) => {
+    const s = swipeRef.current; swipeRef.current = null;
+    if (!s) return;
+    const t = e.changedTouches?.[0]; if (!t) return;
+    const dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0) goNext(); else goPrev();
+    }
+  }, [clampedPage, totalPages]);
 
   // ─ Drag (legacy only) ─
   const startDrag = useCallback((e,msgId,initialX,initialY)=>{
@@ -646,35 +780,88 @@ const AlbumSign = ({ card: initialCard, slug }) => {
       author_name: m.author_name || '',
       font_style: m.font_style || 'handwritten',
       font_color: m.font_color || null,
+      media_type: m.media_type || null,
+      media_file: null,
+      media_preview: null,
+      remove_media: false,
     });
   }, []);
 
-  const cancelEdit = useCallback(() => { setEditingMsgId(null); setEditDraft(null); }, []);
+  const clearEditDraft = useCallback(() => {
+    setEditDraft(d => {
+      if (d?.media_preview) URL.revokeObjectURL(d.media_preview);
+      return null;
+    });
+  }, []);
+
+  const cancelEdit = useCallback(() => {
+    setEditingMsgId(null);
+    clearEditDraft();
+  }, [clearEditDraft]);
+
+  const selectEditMedia = useCallback((file) => {
+    if (!file) return;
+    if (file.size > 9 * 1024 * 1024) return toast.error('Please choose a file under 9MB');
+    const type = file.type.startsWith('video/') ? 'video'
+      : file.type.startsWith('audio/') ? 'voice'
+      : file.type === 'image/gif' ? 'gif'
+      : file.type.startsWith('image/') ? 'image'
+      : null;
+    if (!type) return toast.error('Choose an image, GIF, video or audio file');
+    setEditDraft(d => {
+      if (d?.media_preview) URL.revokeObjectURL(d.media_preview);
+      return { ...d, media_file:file, media_preview:URL.createObjectURL(file), media_type:type, remove_media:false };
+    });
+  }, []);
+
+  const removeEditMedia = useCallback(() => {
+    setEditDraft(d => {
+      if (d?.media_preview) URL.revokeObjectURL(d.media_preview);
+      return { ...d, media_file:null, media_preview:null, media_type:null, remove_media:true };
+    });
+  }, []);
 
   const saveEdit = useCallback(async () => {
     if (!editingMsgId || !editDraft) return;
     if (!editDraft.content.trim()) return toast.error('Message cannot be empty');
     setSavingEdit(true);
     try {
-      await messagesAPI.updateMessage(editingMsgId, {
+      const values = {
         content: editDraft.content.trim(),
         author_name: editDraft.author_name?.trim() || undefined,
         font_style: editDraft.font_style,
         ...(editDraft.font_color ? { font_color: editDraft.font_color } : {}),
         author_email: form.author_email || undefined,
-      });
+        ...(editDraft.remove_media ? { remove_media:true } : {}),
+      };
+      let payload = values;
+      if (editDraft.media_file) {
+        payload = new FormData();
+        Object.entries(values).forEach(([key,value])=>{ if(value !== undefined) payload.append(key,value); });
+        payload.append('media', editDraft.media_file);
+      }
+      const response = await messagesAPI.updateMessage(editingMsgId, payload);
+      const saved = response.data || {};
       // optimistic local update
       setCard(prev => ({
         ...prev,
         messages: (prev.messages || []).map(m =>
-          m.id === editingMsgId ? { ...m, content: editDraft.content.trim(), author_name: editDraft.author_name?.trim() || m.author_name, font_style: editDraft.font_style, font_color: editDraft.font_color || m.font_color } : m),
+          m.id === editingMsgId ? {
+            ...m,
+            content: editDraft.content.trim(),
+            author_name: editDraft.author_name?.trim() || m.author_name,
+            font_style: editDraft.font_style,
+            font_color: editDraft.font_color || m.font_color,
+            ...(editDraft.remove_media ? { media_url:null, media_type:null, media_gallery:null } : {}),
+            ...(saved.media_url ? { media_url:saved.media_url, media_type:saved.media_type } : {}),
+          } : m),
       }));
       toast.success('Saved ✓');
-      setEditingMsgId(null); setEditDraft(null);
+      setEditingMsgId(null); clearEditDraft();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not save your edits');
     } finally { setSavingEdit(false); }
-  }, [editingMsgId, editDraft, form.author_email]);
+  }, [editingMsgId, editDraft, form.author_email, clearEditDraft]);
 
   // ─ Media ─
   const addMedia = useCallback((files)=>{
@@ -909,7 +1096,8 @@ const AlbumSign = ({ card: initialCard, slug }) => {
         <div>
           <div style={{position:'relative',display:'flex',justifyContent:'center',alignItems:'center',minHeight:640,userSelect:'none'}}
             onMouseMove={onDragMove} onMouseUp={onDragEnd}
-            onTouchMove={onDragMove} onTouchEnd={onDragEnd}>
+            onTouchStart={onSwipeStart}
+            onTouchMove={onDragMove} onTouchEnd={(e)=>{ onDragEnd(e); onSwipeEnd(e); }}>
 
             {/* Stacked shadows */}
             {clampedPage>0&&[2,1].map(off=>(
@@ -946,6 +1134,8 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                         onStartEdit={()=>startEdit(pageDef?.msg)}
                         onSaveEdit={saveEdit}
                         onCancelEdit={cancelEdit}
+                        onMediaSelect={selectEditMedia}
+                        onMediaRemove={removeEditMedia}
                       />
                 }
                 {!showingCover && pageDef?.type === 'blank' && (
@@ -957,6 +1147,15 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                           <span style={{width:9,height:9,borderRadius:'50%',background:accentC,opacity:0.7}}/>
                           <span style={{fontFamily:"'Kalam',cursive",fontSize:13,color:accentC,fontWeight:700}}>Your page — write freely</span>
                         </div>
+                        {mediaFiles.length>0 && (()=>{const item=mediaFiles[Math.min(carouselIdx,mediaFiles.length-1)];return (
+                          <div style={{position:'relative',height:135,flexShrink:0,marginBottom:9,borderRadius:12,overflow:'hidden',background:'rgba(26,16,53,.9)',border:`2px solid ${accentC}44`}}>
+                            {item.type==='video' ? <video src={item.preview} controls style={{width:'100%',height:'100%',objectFit:'contain'}}/>
+                              : item.type==='voice' ? <div style={{height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:7,background:'rgba(255,255,255,.92)'}}><span style={{fontSize:26}}>🎙️</span><audio src={item.preview} controls style={{width:'80%',height:34}}/></div>
+                              : <button type="button" onClick={()=>setExpandedComposeMedia(item)} style={{width:'100%',height:'100%',padding:0,border:0,background:'transparent',cursor:'zoom-in'}}><img src={item.preview} alt="Selected attachment" style={{width:'100%',height:'100%',objectFit:'contain'}}/></button>}
+                            <button type="button" onClick={()=>setExpandedComposeMedia(item)} style={{position:'absolute',right:7,top:7,border:0,borderRadius:999,background:'rgba(17,24,39,.78)',color:'#fff',fontSize:9,fontWeight:800,padding:'5px 8px',cursor:'zoom-in'}}>Expand</button>
+                            {mediaFiles.length>1 && <span style={{position:'absolute',left:7,bottom:7,borderRadius:999,background:'rgba(17,24,39,.72)',color:'#fff',fontSize:9,fontWeight:800,padding:'4px 7px'}}>{carouselIdx+1}/{mediaFiles.length}</span>}
+                          </div>
+                        );})()}
                         <textarea
                           ref={textareaRef}
                           autoFocus
@@ -1024,21 +1223,52 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               </div>
             </div>
 
-          {/* ── Page navigation ── */}
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginTop:22,flexWrap:'wrap'}}>
+          {/* ── Page navigation (jump freely to any page) ── */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:22,width:'100%',minWidth:0}}>
             <button onClick={goPrev} disabled={clampedPage===0}
               style={{width:48,height:48,borderRadius:'50%',background:showingCover?(design?.accent||'#7C3AED')+'22':'#fff',border:`2px solid ${accentC}44`,display:'flex',alignItems:'center',justifyContent:'center',cursor:clampedPage===0?'not-allowed':'pointer',opacity:clampedPage===0?0.3:1,color:accentC,boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
               <Icon name="ChevronLeft" size={22}/>
             </button>
 
-            {/* Page dots */}
-            <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap',justifyContent:'center',maxWidth:300}}>
-              {pageList.map((_,i)=>(
-                <button key={i} onClick={()=>flipTo(i,i>clampedPage?'forward':'back')}
-                  style={{width:i===clampedPage?22:8,height:8,borderRadius:4,background:i===clampedPage?accentC:accentC+'44',border:'none',cursor:'pointer',padding:0,transition:'all 0.2s'}}
-                  title={i===0?'Cover':`Page ${i}`}/>
-              ))}
-            </div>
+            {totalPages <= 9 ? (
+              /* Few pages → dots */
+              <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'nowrap',justifyContent:'center',minWidth:0,overflow:'hidden'}}>
+                {pageList.map((_,i)=>(
+                  <button key={i} onClick={()=>flipTo(i,i>clampedPage?'forward':'back')}
+                    style={{width:i===clampedPage?22:8,height:8,borderRadius:4,background:i===clampedPage?accentC:accentC+'44',border:'none',cursor:'pointer',padding:0,transition:'all 0.2s'}}
+                    title={i===0?'Cover':`Page ${i}`}/>
+                ))}
+              </div>
+            ) : (
+              /* Many pages → jump-to control + first/last so any page is one tap away */
+              <div style={{display:'flex',gap:6,alignItems:'center',minWidth:0,maxWidth:'calc(100% - 104px)'}}>
+                <button onClick={()=>flipTo(0,'back')} disabled={clampedPage===0}
+                  aria-label="Go to first page" title="First page - Cover"
+                  style={{height:34,padding:'0 10px',borderRadius:999,border:`1.5px solid ${accentC}44`,background:'#fff',color:accentC,fontWeight:800,fontSize:12,cursor:clampedPage===0?'not-allowed':'pointer',opacity:clampedPage===0?0.4:1,whiteSpace:'nowrap'}}>
+                  {'<< First'}
+                </button>
+                <label style={{display:'flex',alignItems:'center',gap:5,background:'#fff',border:`1.5px solid ${accentC}44`,borderRadius:999,padding:'4px 7px 4px 10px',minWidth:0}}>
+                  <span style={{fontSize:11,fontWeight:700,color:isDark?'#A78BFA':'#6B7280',whiteSpace:'nowrap'}}>Page</span>
+                  <select
+                    aria-label="Jump to page"
+                    value={clampedPage}
+                    onChange={e=>{const t=Number(e.target.value);flipTo(t,t>clampedPage?'forward':'back');}}
+                    style={{border:'none',background:'transparent',color:accentC,fontWeight:800,fontSize:12,cursor:'pointer',outline:'none',minWidth:0,maxWidth:108}}
+                  >
+                    {pageList.map((pd,i)=>(
+                      <option key={i} value={i}>
+                        {i===0?'Cover':pd.type==='blank'?'Last - Sign here':`${i} of ${totalPages-1}`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button onClick={()=>flipTo(totalPages-1,'forward')} disabled={clampedPage>=totalPages-1}
+                  aria-label="Go to last page" title="Last page - Sign here"
+                  style={{height:34,padding:'0 10px',borderRadius:999,border:`1.5px solid ${accentC}44`,background:accentC+'12',color:accentC,fontWeight:800,fontSize:12,cursor:clampedPage>=totalPages-1?'not-allowed':'pointer',opacity:clampedPage>=totalPages-1?0.4:1,whiteSpace:'nowrap'}}>
+                  {'Last >>'}
+                </button>
+              </div>
+            )}
 
             <button onClick={goNext} disabled={clampedPage>=totalPages-1}
               style={{width:48,height:48,borderRadius:'50%',background:'#fff',border:`2px solid ${accentC}44`,display:'flex',alignItems:'center',justifyContent:'center',cursor:clampedPage>=totalPages-1?'not-allowed':'pointer',opacity:clampedPage>=totalPages-1?0.3:1,color:accentC,boxShadow:'0 2px 8px rgba(0,0,0,0.06)'}}>
@@ -1048,8 +1278,14 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 
           {/* Page label */}
           <p style={{textAlign:'center',fontFamily:"'Caveat',cursive",fontSize:14,color:showingCover?(design?.accent||'#7C3AED')+'88':accentC+'88',marginTop:10}}>
-            {showingCover?'Cover — flip to see messages →':`${clampedPage} of ${totalPages-1}`}
+            {showingCover?'Cover — flip, swipe or use ← → to browse every page':`Page ${clampedPage} of ${totalPages-1} · swipe or use ← →`}
           </p>
+          <div style={{display:'flex',justifyContent:'center',marginTop:4}}>
+            <button onClick={()=>setSoundOn(s=>!s)} title={soundOn?'Page-flip sound on':'Sound muted'}
+              style={{display:'inline-flex',alignItems:'center',gap:5,background:'transparent',border:'none',cursor:'pointer',color:accentC+'99',fontSize:11,fontWeight:700}}>
+              <Icon name={soundOn?'Volume2':'VolumeX'} size={13}/> {soundOn?'Flip sound on':'Muted'}
+            </button>
+          </div>
         </div>
 
         {/* ── Sidebar ── */}
@@ -1069,7 +1305,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
       {mobileSidebar&&(
         <div style={{position:'fixed',inset:0,zIndex:60,background:'rgba(0,0,0,0.55)',backdropFilter:'blur(4px)'}} onClick={()=>setMobileSidebar(false)}>
           <div style={{position:'absolute',right:0,top:0,bottom:0,width:300,background:'#fff',padding:20,overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
-            <button onClick={()=>setMobileSidebar(false)} style={{float:'right',background:'none',border:'none',cursor:'pointer',fontSize:20,color:'#6B7280'}}>✕</button>
+            <button type="button" onClick={()=>setMobileSidebar(false)} aria-label="Close album menu" style={{float:'right',background:'none',border:'none',cursor:'pointer',color:'#6B7280',display:'inline-flex'}}><Icon name="X" size={18} /></button>
             <SidebarContent card={card} slug={slug} myMsgIds={myMsgIds}
               signaturesOpen={signaturesOpen} setSignaturesOpen={setSignaturesOpen}
               allSignersOpen={allSignersOpen} setAllSignersOpen={setAllSignersOpen}
@@ -1163,8 +1399,8 @@ const AlbumSign = ({ card: initialCard, slug }) => {
             {mediaFiles.length>0&&(
               <div style={{marginBottom:18,border:'1.5px solid #EDE9FE',borderRadius:16,overflow:'hidden'}}>
                 <div style={{position:'relative',aspectRatio:'16/9',background:'#1A1035'}}>
-                  {mediaFiles[carouselIdx].type==='video'?<video src={mediaFiles[carouselIdx].preview} className="w-full h-full object-contain" controls/>:mediaFiles[carouselIdx].type==='voice'?<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:8}}><span style={{fontSize:40}}>🎙️</span><audio src={mediaFiles[carouselIdx].preview} controls style={{width:'80%'}}/></div>:<img src={mediaFiles[carouselIdx].preview} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>}
-                  <button onClick={()=>removeMedia(carouselIdx)} style={{position:'absolute',top:6,right:6,width:26,height:26,borderRadius:'50%',background:'rgba(0,0,0,0.6)',color:'#fff',border:'none',cursor:'pointer',fontSize:14}}>✕</button>
+                  {mediaFiles[carouselIdx].type==='video'?<video src={mediaFiles[carouselIdx].preview} className="w-full h-full object-contain" controls/>:mediaFiles[carouselIdx].type==='voice'?<div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:8,color:'#7C3AED'}}><Icon name="Mic" size={34} /><audio src={mediaFiles[carouselIdx].preview} controls style={{width:'80%'}}/></div>:<img src={mediaFiles[carouselIdx].preview} alt="" style={{width:'100%',height:'100%',objectFit:'contain'}}/>}
+                  <button type="button" onClick={()=>removeMedia(carouselIdx)} aria-label="Remove current media" style={{position:'absolute',top:6,right:6,width:28,height:28,borderRadius:'50%',background:'rgba(0,0,0,0.65)',color:'#fff',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}><Icon name="X" size={13} /></button>
                 </div>
                 {mediaFiles.length>1&&<p style={{textAlign:'center',fontSize:11,color:'#9CA3AF',padding:'6px 0'}}>{carouselIdx+1} of {mediaFiles.length}</p>}
               </div>
@@ -1312,6 +1548,16 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                 </button>
             }
             <p style={{textAlign:'center',fontSize:11,color:'#9CA3AF',marginTop:8}}>Secured by Flutterwave · Message private until delivery</p>
+          </div>
+        </div>
+      )}
+      {expandedComposeMedia && (
+        <div role="dialog" aria-modal="true" onClick={()=>setExpandedComposeMedia(null)} style={{position:'fixed',inset:0,zIndex:130,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(0,0,0,.84)'}}>
+          <div onClick={e=>e.stopPropagation()} style={{position:'relative',maxWidth:940,width:'100%',maxHeight:'88vh',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            {expandedComposeMedia.type==='video' ? <video src={expandedComposeMedia.preview} controls autoPlay style={{maxWidth:'100%',maxHeight:'86vh',borderRadius:16}}/>
+              : expandedComposeMedia.type==='voice' ? <div style={{background:'#fff',borderRadius:18,padding:28,width:'min(420px,90vw)'}}><audio src={expandedComposeMedia.preview} controls autoPlay style={{width:'100%'}}/></div>
+              : <img src={expandedComposeMedia.preview} alt="Attachment preview" style={{maxWidth:'100%',maxHeight:'86vh',objectFit:'contain',borderRadius:16}}/>}
+            <button type="button" onClick={()=>setExpandedComposeMedia(null)} aria-label="Close media preview" style={{position:'absolute',right:-8,top:-8,width:38,height:38,borderRadius:'50%',border:0,background:'#fff',fontSize:22,cursor:'pointer'}}>×</button>
           </div>
         </div>
       )}

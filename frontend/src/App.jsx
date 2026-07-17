@@ -114,7 +114,11 @@ import { RetirementPage, GetWellSoonPage, ThankYouCardPage, MaternityLeavePage, 
 import FarewellPage    from './pages/occasions/Farewell';
 import AnniversaryPage from './pages/occasions/Anniversary';
 import PromotionPage   from './pages/occasions/Promotion';
-import WeddingPage     from './pages/occasions/Wedding';
+import {
+  SympathyCardPageRevamped, LeavingCardUKPageRevamped, BirthdayCardUKPageRevamped,
+  BabyShowerPageRevamped, WeddingPageRevamped, MaternityLeavePageRevamped,
+  OnlineBirthdayNigeriaPageRevamped,
+} from './pages/occasions/RevampedOccasionPages';
 import GraduationPage  from './pages/occasions/Graduation';
 import NewBabyPage           from './pages/occasions/NewBaby';
 import StaffAppreciationPage from './pages/occasions/StaffAppreciation';
@@ -425,13 +429,13 @@ const App = () => (
             <Route path="/cards/retirement"      element={<RetirementPage />} />
             <Route path="/cards/get-well-soon"   element={<GetWellSoonPage />} />
             <Route path="/cards/thank-you"       element={<ThankYouCardPage />} />
-            <Route path="/cards/maternity-leave" element={<MaternityLeavePage />} />
+            <Route path="/cards/maternity-leave" element={<MaternityLeavePageRevamped />} />
             <Route path="/cards/christmas"       element={<ChristmasCardPage />} />
             {/* UK Tier 1 */}
-            <Route path="/cards/sympathy"                      element={<SympathyCardPage />} />
+            <Route path="/cards/sympathy"                      element={<SympathyCardPageRevamped />} />
             <Route path="/cards/welcome"                       element={<WelcomeCardPage />} />
             <Route path="/cards/good-luck"                     element={<GoodLuckCardPage />} />
-            <Route path="/cards/baby-shower"                   element={<BabyShowerPage />} />
+            <Route path="/cards/baby-shower"                   element={<BabyShowerPageRevamped />} />
             <Route path="/cards/teacher-thank-you"             element={<TeacherThankYouPage />} />
             <Route path="/cards/engagement"                    element={<EngagementCardPage />} />
             <Route path="/cards/new-home"                      element={<NewHomeCardPage />} />
@@ -442,16 +446,16 @@ const App = () => (
             <Route path="/cards/thanksgiving"                  element={<ThanksgivingCardPage />} />
             <Route path="/cards/mothers-day"                   element={<MothersDayCardPage />} />
             <Route path="/cards/fathers-day"                   element={<FathersDayCardPage />} />
-            <Route path="/online-birthday-cards-nigeria"      element={<OnlineBirthdayNigeriaPage />} />
+            <Route path="/online-birthday-cards-nigeria"      element={<OnlineBirthdayNigeriaPageRevamped />} />
             {/* UK-specific occasion pages */}
-            <Route path="/leaving-cards-uk"                   element={<LeavingCardUKPage />} />
-            <Route path="/birthday-cards-uk"                  element={<BirthdayCardUKPage />} />
+            <Route path="/leaving-cards-uk"                   element={<LeavingCardUKPageRevamped />} />
+            <Route path="/birthday-cards-uk"                  element={<BirthdayCardUKPageRevamped />} />
             <Route path="/retirement-cards-uk"                element={<RetirementCardUKPage />} />
             <Route path="/get-well-soon-cards-uk"             element={<GetWellSoonUKPage />} />
             <Route path="/occasions/farewell"    element={<FarewellPage />} />
             <Route path="/occasions/anniversary" element={<AnniversaryPage />} />
             <Route path="/occasions/promotion"   element={<PromotionPage />} />
-            <Route path="/occasions/wedding"     element={<WeddingPage />} />
+            <Route path="/occasions/wedding"     element={<WeddingPageRevamped />} />
             <Route path="/occasions/graduation"  element={<GraduationPage />} />
             <Route path="/occasions/new-baby"           element={<NewBabyPage />} />
             <Route path="/occasions/staff-appreciation" element={<StaffAppreciationPage />} />

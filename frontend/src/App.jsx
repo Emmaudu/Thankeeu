@@ -117,7 +117,7 @@ import PromotionPage   from './pages/occasions/Promotion';
 import {
   SympathyCardPageRevamped, LeavingCardUKPageRevamped, BirthdayCardUKPageRevamped,
   BabyShowerPageRevamped, WeddingPageRevamped, MaternityLeavePageRevamped,
-  OnlineBirthdayNigeriaPageRevamped,
+  OnlineBirthdayNigeriaPageRevamped, OnlineGroupCardRevamped,
 } from './pages/occasions/RevampedOccasionPages';
 import GraduationPage  from './pages/occasions/Graduation';
 import NewBabyPage           from './pages/occasions/NewBaby';
@@ -404,7 +404,7 @@ const App = () => (
             <Route path="/wedding-group-card"            element={<WeddingGroupCard />} />
             <Route path="/uk-wedding-photo-sharing"      element={<UKWeddingPhotoSharing />} />
             <Route path="/usa-wedding-photo-sharing"     element={<USAWeddingPhotoSharing />} />
-            <Route path="/online-group-card"             element={<OnlineGroupCard />} />
+            <Route path="/online-group-card"             element={<OnlineGroupCardRevamped />} />
             <Route path="/weduploader-alternative"     element={<WedUploaderAlt />} />
             <Route path="/guestpix-alternative"        element={<GuestPixAlt />} />
             <Route path="/kululu-alternative"          element={<KululuAlt />} />

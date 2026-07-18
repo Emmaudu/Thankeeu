@@ -4,6 +4,14 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "framework": null,
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "thankeeu.com" }],
+      "destination": "https://www.thankeeu.com/$1",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

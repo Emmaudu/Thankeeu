@@ -27,3 +27,6 @@ export function MaternityLeavePageRevamped() {
 export function OnlineBirthdayNigeriaPageRevamped() {
   return <RichOccasionPage config={RICH_OCCASION_PAGES['birthday-nigeria']} />;
 }
+export function OnlineGroupCardRevamped() {
+  return <RichOccasionPage config={RICH_OCCASION_PAGES['online-group-card']} />;
+}

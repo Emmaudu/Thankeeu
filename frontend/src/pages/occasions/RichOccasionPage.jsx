@@ -132,6 +132,11 @@ export default function RichOccasionPage({ config }) {
     finalCtaLead, finalCtaHighlight, finalCtaSub = 'Free to create. Everyone signs. Delivered at the exact moment you choose.',
   } = config;
 
+  // Generic (non-occasion-specific) pages like /online-group-card pass an
+  // empty cardOccasion — the CTA should go to a plain /card/new in that case
+  // rather than a URL with a dangling empty ?occasion= param.
+  const createCardUrl = cardOccasion ? `/card/new?occasion=${encodeURIComponent(cardOccasion)}` : '/card/new';
+
   useSEO({
     title: seoTitle,
     description: seoDescription,
@@ -162,7 +167,7 @@ export default function RichOccasionPage({ config }) {
               {subline}
             </p>
             <div className="flex flex-wrap items-center gap-3 mb-7">
-              <Link to={`/card/new?occasion=${encodeURIComponent(cardOccasion)}`}
+              <Link to={createCardUrl}
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-base transition-all hover:scale-105 hover:shadow-xl"
                 style={{background:'linear-gradient(135deg,#FDE68A,#F9A8D4)',color:'#2D1638',boxShadow:'0 12px 35px rgba(249,168,212,0.28)'}}>
                 <Icon name="Sparkles" size={17} />
@@ -416,7 +421,7 @@ export default function RichOccasionPage({ config }) {
           </h2>
           <p className="text-white/60 mb-8 text-base">{finalCtaSub}</p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link to={`/card/new?occasion=${encodeURIComponent(cardOccasion)}`}
+            <Link to={createCardUrl}
               className="px-8 py-4 rounded-2xl font-bold text-white text-base transition-all hover:scale-105"
               style={{ background: 'linear-gradient(135deg,#7C3AED,#9333EA)', boxShadow: '0 8px 32px rgba(124,58,237,0.5)' }}>
               {ctaLabel} →

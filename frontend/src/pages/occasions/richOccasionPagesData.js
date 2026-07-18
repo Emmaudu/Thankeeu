@@ -280,4 +280,40 @@ export const RICH_OCCASION_PAGES = {
     finalCtaHighlight: 'everyone actually shows up for.',
     finalCtaSub: 'Free to create. Everyone signs. Naira gift pooled automatically.',
   },
+  // ── /online-group-card ────────────────────────────────────────────────────
+  // Generic, any-occasion page — cardOccasion left empty so the CTA goes to
+  // a plain /card/new (person picks their own occasion there), and the cover
+  // gallery defaults to birthday designs as the most universally recognisable
+  // showcase rather than implying this is birthday-only.
+  'online-group-card': {
+    cardOccasion: '', coverOccasion: 'birthday',
+    seoTitle: 'Online Group Card — Everyone Signs Together | Thankeeu',
+    seoDescription: 'Create a free online group card that everyone signs. Perfect for birthdays, farewells, retirements, weddings, and more. Share the link — anyone with it can sign from any device. No account needed.',
+    seoKeywords: 'online group card, free online group card, digital group card, group card everyone signs, virtual group card, create group card online',
+    canonical: '/online-group-card',
+    eyebrow: 'Online Group Cards',
+    headlineLead: 'One card.',
+    headlineHighlight: 'Everyone signs. Any occasion.',
+    subline: 'Create a free group card in 2 minutes. Share the link with the whole team, family, or friend group — everyone adds their message, photo, or voice note, and the recipient gets one beautiful card.',
+    ctaLabel: 'Create Your Card — Free',
+    trustBadges: ['Free to create', 'No account to sign', 'Works for any occasion', 'Gift collection included'],
+    howItWorksHeading: 'One link, any occasion, in four steps',
+    howItWorksSteps: STANDARD_STEPS,
+    featuresHeading: 'Everything a great group card needs',
+    featuresSub: 'Works for birthdays, farewells, retirements, anniversaries, weddings, new babies, graduations, promotions, and any occasion worth celebrating together.',
+    features: STANDARD_FEATURES,
+    coverEyebrow: 'Popular cover designs',
+    coverTitle: 'Choose a cover for any occasion',
+    coverDescription: 'A taste of the newest designs — browse the full catalogue for every occasion once you start creating.',
+    faqs: [
+      { q: 'What is an online group card?', a: 'An online group card is a digital card that multiple people sign together for one recipient. Everyone adds their own personal message, photo, or voice note, and the recipient receives it as one beautiful combined card.' },
+      { q: 'Is an online group card free?', a: 'Yes — creating your card and inviting people to sign is completely free on Thankeeu. You pay only when sending the final card.' },
+      { q: 'How do I invite people to sign an online group card?', a: 'Share the link via WhatsApp, email, Slack, or any messaging app. Anyone with the link can sign from their phone or laptop — no account needed.' },
+      { q: 'What occasions work for online group cards?', a: 'Any occasion where a group wants to celebrate someone together: birthdays, farewells, retirements, weddings, anniversaries, new baby, graduation, promotions, and more.' },
+      { q: 'Can I add a gift to an online group card?', a: 'Yes. Thankeeu lets you combine a group card with a pooled gift collection — guests sign and contribute to the gift in one flow.' },
+    ],
+    finalCtaLead: 'One card.',
+    finalCtaHighlight: 'Everyone signs. Any occasion.',
+    finalCtaSub: 'Free to create. Everyone signs. Delivered at the exact moment you choose.',
+  },
 };

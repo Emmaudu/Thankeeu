@@ -947,6 +947,20 @@ const Admin = () => {
     finally { setAnalyticsLoading(false); }
   };
 
+  const resetAnalytics = async () => {
+    if (!window.confirm('This will permanently delete ALL page view records and reset the counter to zero. This cannot be undone. Continue?')) return;
+    try {
+      const base = import.meta.env.VITE_API_URL || '/api';
+      const tok  = localStorage.getItem('thankeeu_token') || '';
+      const r = await fetch(`${base}/analytics/reset`, { method: 'DELETE', headers: { Authorization: `Bearer ${tok}` } });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Reset failed');
+      toast.success(d.message || 'Analytics reset to zero.');
+      setAnalytics(null);
+      fetchAnalytics(analyticsDays);
+    } catch (e) { toast.error(e.message || 'Reset failed'); }
+  };
+
   const fetchCountryVisits = async (country = selectedCountry, days = analyticsDays) => {
     setCountryVisitsLoading(true);
     try {
@@ -1730,6 +1744,11 @@ const Admin = () => {
                 <button onClick={() => fetchAnalytics(analyticsDays)}
                   className="px-3 py-1.5 rounded-xl text-xs font-bold border bg-white text-warm-600 border-warm-200 hover:border-primary-300 transition-colors">
                   ↻ Refresh
+                </button>
+                <button onClick={resetAnalytics}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold border bg-red-50 text-red-600 border-red-200 hover:bg-red-100 hover:border-red-400 transition-colors"
+                  title="Delete all page view records and reset to zero">
+                  🗑 Reset to 0
                 </button>
               </div>
             </div>

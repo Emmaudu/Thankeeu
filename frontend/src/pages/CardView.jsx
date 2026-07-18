@@ -1400,7 +1400,9 @@ const CardView = () => {
       <style>{FONT_INJECT}</style>
       {/* Confetti runs forever — never stops */}
       <Confetti />
-      {/* ── HERO BANNER — Sample-page style ───────────────────────── */}
+      {/* ── HERO BANNER — hidden for album flipbook cards (they have their own
+           themed cover page inside the flipbook viewer itself) ── */}
+      {card?.card_layout !== 'album' && (
       <header className="relative overflow-hidden" style={{ background: coverBackground, color: coverTextColor }}>
         {/* SVG artwork backdrop for artwork designs */}
         {coverArt && (
@@ -1649,6 +1651,7 @@ const CardView = () => {
           )}
         </div>
       </header>
+      )} {/* end card_layout !== 'album' */}
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 pt-10 sm:pt-14 pb-28 sm:pb-20" style={{ position: 'relative', zIndex: 1 }}>
         {totalCollected > 0 && (
@@ -2023,9 +2026,9 @@ const CardView = () => {
     </div>
   );
 
-  if (layoutType === 'member')  return <><Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>{content}</>;
-  if (layoutType === 'company') return <><Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>{content}</>;
-  return <><Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>{content}</>;
+  if (layoutType === 'member')  return <>{card?.card_layout !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
+  if (layoutType === 'company') return <>{card?.card_layout !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
+  return <>{card?.card_layout !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
 };
 
 export default CardView;

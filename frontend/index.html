@@ -128,17 +128,21 @@
     <!-- ── Sitemap ───────────────────────────────────────────────────── -->
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
 
-    <!-- ── Fonts (Fraunces display + Plus Jakarta Sans body) ─────────── -->
+    <!-- ── Fonts ─────────────────────────────────────────────── -->
+    <!-- Trimmed from 9 families to 6 actually used in the codebase:
+         Plus Jakarta Sans (UI/body), Nunito (headings), Caveat (handwritten
+         card messages), Great Vibes (album cover titles), Fraunces (display
+         accent), Cormorant Garamond (Classic Script font style option in card
+         creation). Removed: Poppins (0 uses), JetBrains Mono (0 uses),
+         Nunito Sans (0 uses). Loaded non-blocking via rel=preload+onload. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Single consolidated font request — all families the site uses, one HTTP round-trip.
-         Removed the duplicate @import in index.css to avoid double-loading. -->
     <link rel="preload" as="style"
-      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
       onload="this.onload=null;this.rel='stylesheet'" />
     <noscript>
       <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700;800&family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" />
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
     </noscript>
 
     <!-- ── DNS prefetch for third-party origins ──────────────────────── -->

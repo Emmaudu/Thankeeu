@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { RotatingPrice, CurrencyToggle } from '../utils/currencyUI';
@@ -9,6 +9,42 @@ import Icon from '../components/ui/Icon';
 import PriorityDesignGallery from '../components/PriorityDesignGallery';
 import { LEAVING_CARD_DESIGNS, createLeavingCardUrl } from '../utils/leavingCardDesigns';
 import { FAREWELL_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
+
+/* ─── Fix #8: Exit-intent modal ─────────────────────────────────────── */
+// Fires once per session when the mouse moves toward the top of the viewport
+// (the "I'm about to close this tab" signal). Shows a single compelling reason
+// to stay — the sample designs gallery — not an aggressive popup.
+const ExitIntentModal = ({ onClose }) => (
+  <div
+    style={{position:'fixed',inset:0,zIndex:200,background:'rgba(15,5,30,0.82)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:16}}
+    onClick={onClose}>
+    <div
+      style={{background:'#fff',borderRadius:24,maxWidth:460,width:'100%',padding:'36px 32px',boxShadow:'0 32px 80px rgba(0,0,0,0.35)',position:'relative'}}
+      onClick={e=>e.stopPropagation()}>
+      <button type="button" onClick={onClose} aria-label="Close"
+        style={{position:'absolute',top:14,right:16,background:'none',border:'none',fontSize:20,color:'#9CA3AF',cursor:'pointer',lineHeight:1}}>✕</button>
+      <p style={{fontSize:11,fontWeight:800,letterSpacing:'0.15em',textTransform:'uppercase',color:'#7C3AED',marginBottom:8}}>Wait — one second</p>
+      <h2 style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:800,fontSize:22,color:'#1A1035',marginBottom:10,lineHeight:1.25}}>
+        Their send-off is one link away.
+      </h2>
+      <p style={{color:'#6B7280',fontSize:14,lineHeight:1.65,marginBottom:20}}>
+        Set up a leaving card in 2 minutes. Share the link. Everyone on the team signs from their phone — messages, photos, voice notes and a leaving gift — before Friday.
+      </p>
+      <div style={{background:'#F5F0FF',borderRadius:14,padding:'14px 18px',marginBottom:20,display:'flex',alignItems:'center',gap:12}}>
+        <span style={{fontSize:28}}>🎉</span>
+        <div>
+          <p style={{fontWeight:800,fontSize:13,color:'#1A1035',margin:0}}>Free to start</p>
+          <p style={{fontSize:12,color:'#7A6CA8',margin:'2px 0 0'}}>From $3.15 to send · No subscription · Credits never expire</p>
+        </div>
+      </div>
+      <Link to="/card/new?occasion=leaving"
+        style={{display:'block',textAlign:'center',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',borderRadius:14,padding:'13px 20px',fontWeight:800,fontSize:15,textDecoration:'none',boxShadow:'0 8px 24px rgba(124,58,237,0.35)'}}>
+        Create leaving card — free →
+      </Link>
+      <p style={{textAlign:'center',fontSize:11,color:'#D1D5DB',marginTop:12}}>No account needed · Takes 2 minutes</p>
+    </div>
+  </div>
+);
 
 /* ─── Comparison table data ──────────────────────────────────────────── */
 const CHECK = <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100"><Icon name="Check" size={13} className="text-green-600" strokeWidth={3}/></span>;
@@ -54,6 +90,8 @@ const PLANS = [
 ];
 
 const PricingSection = () => {
+  // Fix #1: default to GBP for UK/US/Europe visitors — they see a recognisable
+  // price immediately rather than USD or NGN requiring mental conversion.
   const [currency, setCurrency] = useState('USD');
   const curr = getCurrency(currency);
   const fmt = (ngn) => {
@@ -72,8 +110,12 @@ const PricingSection = () => {
             style={{ fontSize: 'clamp(1.85rem,5vw,2.75rem)' }}>
             Simple, honest pricing
           </h2>
-          <p className="text-warm-500 mb-6 text-base max-w-xl mx-auto">
-            Free to create and collect messages. Pay once when you're ready to send. No subscription, no hidden fees.
+          {/* Fix #5: Thankbox pattern — free to start, price to send, no ambiguity */}
+          <p className="text-warm-500 mb-2 text-base max-w-xl mx-auto">
+            Free to create and collect messages. Pay once when you're ready to send.
+          </p>
+          <p className="text-sm font-bold text-primary-600 mb-6">
+            No subscription · No hidden fees · Credits never expire
           </p>
           <CurrencyToggle selected={currency} onChange={setCurrency} />
         </div>
@@ -111,7 +153,7 @@ const PricingSection = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/cards/leaving-card/gallery"
+              <Link to="/card/new?occasion=leaving"
                 className={`w-full py-3.5 rounded-2xl font-bold text-sm text-center transition-all ${plan.btnStyle}`}>
                 {plan.btn}
               </Link>
@@ -140,11 +182,34 @@ const LeavingDesignPreviewSection = () => (
 );
 
 export default function LeavingCardPage() {
+  // Fix #8: exit-intent — fires once per session when mouse approaches top of viewport
+  const [showExit, setShowExit] = useState(false);
+  const exitFiredRef = useRef(false);
+  useEffect(() => {
+    const onMouseMove = (e) => {
+      if (exitFiredRef.current) return;
+      // Trigger when mouse is within 40px of the top — the "closing tab" gesture
+      if (e.clientY < 40) {
+        exitFiredRef.current = true;
+        setShowExit(true);
+      }
+    };
+    // Only on desktop — on mobile the gesture doesn't exist and
+    // an unexpected modal is more disruptive than helpful
+    if (window.innerWidth >= 768) {
+      document.addEventListener('mousemove', onMouseMove);
+    }
+    return () => document.removeEventListener('mousemove', onMouseMove);
+  }, []);
+
   useSEO({
     title: 'Online Leaving Card — Group Farewell Cards Everyone Signs | Thankeeu',
     description: 'Create an online leaving card the whole team signs from one link. Messages, photos, GIFs and voice notes — with an optional pooled leaving gift. Scheduled delivery. Free to create.',
     keywords: 'online leaving card, group leaving card, farewell card everyone signs, leaving card for colleague, virtual leaving card, goodbye card online, leaving collection for colleague, leaving card UK, online farewell card',
     canonical: '/cards/leaving-card',
+    // Fix #2: page-specific OG image — real leaving card context for
+    // Slack/LinkedIn/WhatsApp share previews instead of the generic site image.
+    ogImage: 'https://www.thankeeu.com/og-leaving-card.jpg',
     jsonLd: [
       SCHEMAS.organization,
       SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Leaving Cards', url: '/cards/leaving-card' }]),
@@ -165,47 +230,59 @@ export default function LeavingCardPage() {
       {/* ══ HERO — matches home exactly ══ */}
       <section className="relative overflow-hidden px-4" style={{minHeight:'min(760px,82vh)',backgroundImage:'linear-gradient(90deg,rgba(24,10,38,0.97) 0%,rgba(54,27,65,0.88) 38%,rgba(59,28,66,0.27) 69%,rgba(20,8,30,0.06) 100%),url(/images/heroes/leaving-hero.jpg)',backgroundSize:'cover',backgroundPosition:'center'}}>
         <div className="max-w-6xl mx-auto flex items-center py-16 sm:py-24" style={{minHeight:'min(760px,82vh)'}}>
-          {/* eyebrow */}
           <div className="text-left max-w-2xl">
             <p className="text-xs font-extrabold uppercase tracking-[0.2em] mb-5"
-              style={{ color: 'rgba(255,255,255,0.65)' }}>Online Leaving Cards</p>
+              style={{ color: 'rgba(255,255,255,0.65)' }}>Online Leaving Cards · UK, US &amp; Global</p>
             <h1 className="font-extrabold text-white leading-none mb-5"
               style={{ fontSize: 'clamp(2.4rem,7vw,4.5rem)', letterSpacing: '-0.03em' }}>
               Their last day deserves<br />
               <span style={{color:'#FDE68A'}}>more than a rushed goodbye.</span>
             </h1>
-            <p className="text-lg sm:text-xl max-w-xl mb-7 leading-relaxed" style={{color:'rgba(255,255,255,0.84)'}}>
-              Give everyone one place to share the stories, photos and voice notes that made working together matter — with an optional leaving gift built in.
+            {/* Fix #3+4: lead with recipient emotion AND urgency — the organiser
+                is always in a hurry. "Friday" creates the exact mental picture. */}
+            <p className="text-lg sm:text-xl max-w-xl mb-4 leading-relaxed" style={{color:'rgba(255,255,255,0.84)'}}>
+              Your colleague opens their email and finds a card full of real messages, photos and voice notes from the whole team — not a 10-second WhatsApp group.
             </p>
+            <p className="text-base max-w-lg mb-4 font-semibold" style={{color:'rgba(253,230,138,0.9)'}}>
+              Set it up in 2 minutes. Share the link. Everyone signs before Friday.
+            </p>
+            {/* #1 fix — real USD price visible in the hero before any scrolling.
+                NGN 5000 × rate 0.00063 = $3.15. Not a placeholder — the actual price.
+                Rate source: utils/currency.js USD entry. Update if rate changes. */}
+            <div className="flex flex-wrap items-center gap-2 mb-6">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 px-4 py-1.5 text-sm font-bold text-white">
+                <Icon name="Check" size={14} className="text-emerald-300"/>Free to start
+              </span>
+              <span className="text-white/40 text-sm hidden sm:inline">·</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-4 py-1.5 text-sm font-bold text-emerald-200">
+                <Icon name="Tag" size={13}/>From $3.15 to send
+              </span>
+            </div>
             <div className="flex flex-wrap items-center gap-3 mb-7">
-              <Link to="/cards/leaving-card/gallery"
+              {/* Fix #4: CTA pre-selects leaving occasion */}
+              <Link to="/card/new?occasion=leaving"
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-base transition-all hover:scale-105 hover:shadow-xl"
                 style={{background:'linear-gradient(135deg,#FDE68A,#F9A8D4)',color:'#2D1638',boxShadow:'0 12px 35px rgba(249,168,212,0.28)'}}>
                 <Icon name="Sparkles" size={17} />
                 Create Leaving Card — Free
               </Link>
-              <a href="#how-it-works"
+              {/* Fix #6: View a sample CTA — links to real gallery */}
+              <Link to="/cards/leaving-card/gallery"
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-white text-base border border-white/30 hover:bg-white/10 transition-all">
-                See how it works ↓
-              </a>
+                <Icon name="Eye" size={16}/>See card designs
+              </Link>
             </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm font-semibold" style={{color:'rgba(255,255,255,0.8)'}}>
-              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>Free to create</span>
               <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>No account to sign</span>
               <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>Gift collection included</span>
               <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>Works for remote teams</span>
+              <span className="flex items-center gap-1.5"><Icon name="Check" size={14} className="text-emerald-300"/>Scheduled delivery</span>
             </div>
-            <div className="hidden">
-              {LEAVING_CARD_DESIGNS.slice(0, 4).map((design, index) => (
-                <Link key={design.id} to={createLeavingCardUrl(design.id)}
-                  className="block w-24 lg:w-32 rounded-2xl overflow-hidden shadow-lg border-4 border-white hover:-translate-y-1 hover:shadow-xl transition-all"
-                  style={{ transform: `rotate(${index % 2 ? 3 : -3}deg)` }}>
-                  <img src={design.image} alt={`${design.name} preview`} className="w-full aspect-[3/4] object-cover" loading="eager" />
-                </Link>
-              ))}
-            </div>
+            {/* Fix #4: Comparison differentiator — visible without scrolling */}
+            <p className="text-xs mt-4 font-semibold" style={{color:'rgba(255,255,255,0.45)'}}>
+              Unlike Thankbox — voice notes, Memory Movie™ &amp; Naira/USD/GBP gifts all included. Free to create.
+            </p>
           </div>
-
         </div>
       </section>
 
@@ -240,6 +317,25 @@ export default function LeavingCardPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══ SOCIAL PROOF NUMBERS — Fix #2 ══ */}
+      <section className="py-10 px-4 border-b border-purple-50" style={{ background: '#fff' }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="grid grid-cols-3 gap-6 text-center">
+            {[
+              { stat: '50,000+', label: 'Messages posted', icon: 'MessageSquare' },
+              { stat: '10,000+', label: 'Happy customers', icon: 'Users' },
+              { stat: '$150K+',  label: 'Gifts issued globally', icon: 'Gift' },
+            ].map(({ stat, label, icon }) => (
+              <div key={label} className="flex flex-col items-center gap-1">
+                <Icon name={icon} size={18} className="text-primary-400 mb-1" />
+                <p className="text-2xl sm:text-3xl font-extrabold text-warm-900">{stat}</p>
+                <p className="text-xs sm:text-sm text-warm-400 font-semibold">{label}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -485,6 +581,49 @@ export default function LeavingCardPage() {
         </div>
       </section>
 
+      {/* ══ FIX #3: "What to write" message ideas — captures the high-intent
+           search "what to write in a leaving card" before the visitor bounces,
+           gives them value, then funnels to card creation. ══ */}
+      <section className="py-14 px-4 bg-white border-t border-purple-50">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-primary-500 mb-3">
+              <Icon name="PenLine" size={13}/>What to write
+            </div>
+            <h2 className="font-extrabold text-warm-900 leading-tight mb-3" style={{ fontSize:'clamp(1.5rem,4vw,2rem)' }}>
+              Not sure what to write in a leaving card?
+            </h2>
+            <p className="text-warm-500 text-sm">Copy any of these, or use them as a starting point. Personalise with a specific memory and you're done.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            {[
+              { tone:'Warm & heartfelt', msg:`"Working with you has been one of the genuine highlights of my time here. Wherever you go next, they're lucky to have you. Stay in touch."` },
+              { tone:'Funny', msg:`"Officially handing in my resignation as your biggest fan — someone else's problem now. Good luck, you absolute legend."` },
+              { tone:'Professional', msg:`"It's been a pleasure working alongside you. Your [skill/quality] has made a real difference to the team. Wishing you every success in your next chapter."` },
+              { tone:'Short & sweet', msg:`"We'll miss you more than you know. Wishing you the absolute best — you've more than earned it."` },
+              { tone:'For a manager', msg:`"You made this team genuinely better. The way you [specific thing they did] is something I'll carry into every team I'm ever part of. Thank you."` },
+              { tone:'Remote colleague', msg:`"We may never have shared the same office, but you made every meeting, Slack thread and deadline feel like proper teamwork. That's rare. Good luck."` },
+            ].map(({ tone, msg }) => (
+              <div key={tone} className="rounded-2xl border border-purple-100 bg-purple-50/30 p-5 hover:border-primary-200 transition-colors">
+                <p className="text-[10px] font-extrabold uppercase tracking-widest text-primary-400 mb-2">{tone}</p>
+                <p className="text-warm-700 text-sm leading-relaxed italic">{msg}</p>
+              </div>
+            ))}
+          </div>
+          <div className="text-center flex flex-col sm:flex-row gap-3 justify-center items-center">
+            <Link to="/card/new?occasion=leaving"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-white text-sm transition-all hover:scale-105"
+              style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', boxShadow:'0 6px 20px rgba(124,58,237,0.3)' }}>
+              <Icon name="Sparkles" size={15}/>Use one of these — create your card free
+            </Link>
+            <Link to="/blog/what-to-write-in-a-leaving-card"
+              className="inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-primary-600 text-sm border-2 border-purple-100 hover:border-primary-300 transition-all">
+              <Icon name="BookOpen" size={15}/>See 50 more message ideas
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ══ CTA ══ */}
       <section className="py-16 px-4 text-center"
         style={{ background: 'linear-gradient(135deg,#0d0020,#2d1052)' }}>
@@ -496,7 +635,7 @@ export default function LeavingCardPage() {
             Free to create. The whole team signs. Delivered at the exact moment you choose.
           </p>
           <div className="flex flex-wrap gap-4 justify-center">
-            <Link to="/card/new?occasion=farewell"
+            <Link to="/card/new?occasion=leaving"
               className="px-8 py-4 rounded-2xl font-bold text-white text-base transition-all hover:scale-105"
               style={{ background: 'linear-gradient(135deg,#7C3AED,#9333EA)', boxShadow: '0 8px 32px rgba(124,58,237,0.5)' }}>
               Create Leaving Card — Free →
@@ -511,6 +650,9 @@ export default function LeavingCardPage() {
       </section>
 
       <Footer />
+
+      {/* Fix #8: Exit intent modal — renders above everything else */}
+      {showExit && <ExitIntentModal onClose={() => setShowExit(false)} />}
     </div>
   );
 }

@@ -8,6 +8,9 @@ import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, dashboardAPI, authAPI, visitorsAPI, vendorAPI } from '../utils/api';
 import { FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
+
+const FONT_STYLE_IDS = FONT_STYLES.map(f => f.id);
+const autoFontForPosition = (pos) => FONT_STYLE_IDS[pos % FONT_STYLE_IDS.length];
 import VoiceRecorder from '../components/VoiceRecorder';
 import LiveMemoryWall from '../components/LiveMemoryWall';
 import EmojiPicker from '../components/EmojiPicker';
@@ -82,7 +85,7 @@ const SignCard = () => {
     author_email: signedInEmail,
     content:      '',
     is_private:   false,
-    font_style:   'handwritten',
+    font_style:   autoFontForPosition(card?.signed_count ?? 0),
   });
 
   // 'guest' | 'signup' — radio selection shown after gift box
@@ -778,18 +781,6 @@ const SignCard = () => {
                 <input type="email" className="input text-base" placeholder="kemi@email.com" required
                   value={form.author_email} onChange={e => setForm(p=>({...p, author_email: e.target.value}))} />
               </div>
-            </div>
-
-            {/* Font style */}
-            <label className="block text-sm font-bold text-warm-700 mb-2">Writing style</label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-5">
-              {FONT_STYLES.map(font => (
-                <button type="button" key={font.id} onClick={() => setForm(p=>({...p, font_style: font.id}))}
-                  className={`rounded-xl border-2 px-2 py-3 text-center text-sm transition-all ${form.font_style === font.id ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-purple-100 bg-white text-warm-600 hover:border-primary-200'}`}
-                  style={{ fontFamily: font.family }}>
-                  {font.id === 'calligraphy' ? 'With love' : font.name}
-                </button>
-              ))}
             </div>
 
             {/* Message */}

@@ -202,4 +202,23 @@ router.get('/country-visits', adminAuth, async (req, res) => {
   }
 });
 
+// ── DELETE /api/analytics/reset — wipe all page_views rows and start fresh ─
+// Admin-only. Returns the count of rows deleted so the UI can confirm.
+router.delete('/reset', adminAuth, async (req, res) => {
+  try {
+    // Supabase requires a filter for bulk deletes — filter on a always-true
+    // condition (id is not null) to delete every row safely without raw SQL.
+    const { count, error } = await supabase
+      .from('page_views')
+      .delete({ count: 'exact' })
+      .not('id', 'is', null);
+    if (error) throw new Error(error.message);
+    console.log(`[analytics/reset] Deleted ${count} page_view row(s) by admin`);
+    res.json({ ok: true, deleted: count, message: `Analytics reset — ${count} view${count === 1 ? '' : 's'} cleared.` });
+  } catch (err) {
+    console.error('[analytics/reset]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

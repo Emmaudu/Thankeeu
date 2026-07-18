@@ -266,6 +266,38 @@ const STATIC_PAGES = [
     path: '/cards/leaving-card',
     title: 'Online Leaving Card — Group Leaving Cards for Colleagues | Thankeeu',
     description: "Create an online leaving card the whole team signs from one link — messages, photos, GIFs, voice notes, plus an optional gift collection. Free to start.",
+    rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="/cards/leaving-card">Online Leaving Card</a></nav>
+<main>
+  <h1>Online Leaving Card — Group Farewell Cards Everyone Signs</h1>
+  <p>Your colleague opens their email and finds a card full of real messages, photos and voice notes from the whole team — not a 10-second WhatsApp group. Set it up in 2 minutes. Share the link. Everyone signs before Friday.</p>
+  <p><strong>Free to start · From $3.15 / £2.45 to send · No subscription · No account needed to sign</strong></p>
+  <p>50,000+ messages posted · 10,000+ happy customers · $150K+ gifts issued globally</p>
+  <ul>
+    <li>One link — everyone signs from any device, anywhere</li>
+    <li>Photos, GIFs, videos and voice notes included</li>
+    <li>Optional pooled leaving gift collection (NGN, GBP, USD)</li>
+    <li>Scheduled delivery — lands at the exact moment you choose</li>
+    <li>Memory Movie™ auto-generated from all messages and media</li>
+    <li>Unlike Thankbox — voice notes, Memory Movie and Naira payments all included</li>
+  </ul>
+  <p><a href="/card/new?occasion=leaving">Create a leaving card — free</a> | <a href="/cards/leaving-card/gallery">Browse leaving card designs</a> | <a href="/blog/what-to-write-in-a-leaving-card">50 leaving card messages</a> | <a href="/pricing">Pricing</a></p>
+  <h2>How it works</h2>
+  <ol>
+    <li><strong>Create</strong> — choose the leaving occasion, pick a design, set delivery date. Done in 2 minutes.</li>
+    <li><strong>Share</strong> — send the link via WhatsApp, Slack or email. Anyone can sign — no account needed.</li>
+    <li><strong>Sign</strong> — everyone adds their message, photo, GIF or voice note at their own pace.</li>
+    <li><strong>Deliver</strong> — the card arrives by email at the exact time you set, with the pooled gift if enabled.</li>
+  </ol>
+  <h2>Frequently asked questions</h2>
+  <h3>How does an online leaving card work?</h3>
+  <p>Create the card in under 2 minutes, share one link with colleagues, and everyone adds their message, photo, GIF or voice note. Schedule it to arrive on their last day.</p>
+  <h3>Can we collect money for a leaving gift?</h3>
+  <p>Yes — every card includes an optional gift collection. People chip in when they sign, and the recipient withdraws the pooled amount directly.</p>
+  <h3>Do people need an account to sign?</h3>
+  <p>No. Anyone with the link can sign instantly — no registration, no app download.</p>
+  <h3>How much does an online leaving card cost?</h3>
+  <p>Free to create and collect messages. Classic plan starts at $3.15 USD / £2.45 GBP / ₦5,000 NGN to send. Always shown upfront before you pay.</p>
+</main>`,
   },
   {
     path: '/cards/pet-loss-card',

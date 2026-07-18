@@ -19,6 +19,12 @@ import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardsAPI, messagesAPI, paymentsAPI, visitorsAPI, vendorAPI } from '../utils/api';
 import { FONT_STYLES, getFontStyle, getCardDesign } from '../utils/cardDesigns';
+
+// Auto-assign font by signer position so every page looks different without
+// asking the signer to choose. Cycles through all 5 styles — signer 1 gets
+// elegant, signer 2 gets calligraphy, etc. The card looks deliberately varied.
+const FONT_STYLE_IDS = FONT_STYLES.map(f => f.id);
+const autoFontForPosition = (pos) => FONT_STYLE_IDS[pos % FONT_STYLE_IDS.length];
 import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
 import CardCoverPreview from '../components/CardCoverPreview';
 import VoiceRecorder from '../components/VoiceRecorder';
@@ -74,8 +80,12 @@ const ALBUM_CSS = `
 @keyframes albumPop  { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
 @keyframes album-leaf-forward { 0% { opacity:.2; transform:rotateY(-96deg) skewY(-1.5deg); filter:brightness(.72); } 58% { opacity:1; transform:rotateY(8deg) skewY(.3deg); } 100% { transform:rotateY(0); filter:brightness(1); } }
 @keyframes album-leaf-back { 0% { opacity:.2; transform:rotateY(96deg) skewY(1.5deg); filter:brightness(.72); } 58% { opacity:1; transform:rotateY(-8deg) skewY(-.3deg); } 100% { transform:rotateY(0); filter:brightness(1); } }
+/* Primary classes — used by the sign page */
 .album-flip-forward { animation:album-leaf-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
-.album-flip-back { animation:album-leaf-back .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
+.album-flip-back    { animation:album-leaf-back    .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
+/* Aliases matching AlbumStudioPreview's class names — identical animation */
+.album-page-turn.forward { animation:album-leaf-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
+.album-page-turn.back    { animation:album-leaf-back    .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
 .album-page{ position:relative; }
 /* subtle inner shadow toward the spine to sell the "bound book" look */
 .album-page::before{
@@ -100,7 +110,6 @@ const ALBUM_CSS = `
   padding:5px 11px; font-size:11px; font-weight:800; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif;
   box-shadow:0 4px 14px rgba(124,58,237,0.4); backdrop-filter:blur(4px);
 }
-@media(max-width:900px){ .album-layout{ grid-template-columns:1fr !important; } }
 @media(max-width:560px){
   .album-page{ width:100% !important; max-width:94vw !important; height:auto !important; min-height:520px !important; aspect-ratio:5/6; }
   .album-page::before{ width:22px; }
@@ -294,9 +303,9 @@ const NewSignerPage = ({
       <div style={{ padding:'18px 24px 10px 34px', flexShrink:0, position:'relative', zIndex:2 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <span style={{ width:9, height:9, borderRadius:'50%', background:accentC, opacity:0.7 }}/>
-          <span style={{ fontFamily:"'Kalam',cursive", fontSize:13, color:sub, fontWeight:700 }}>
-            {msg?.created_at ? new Date(msg.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : 'A note for you'}
-          </span>
+          {msg?.created_at && <span style={{ fontFamily:"'Kalam',cursive", fontSize:13, color:sub, fontWeight:700 }}>
+            {new Date(msg.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}
+          </span>}
         </div>
       </div>
 
@@ -348,19 +357,12 @@ const NewSignerPage = ({
           }}>
             {content}
           </p>
-        ) : (
-          <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'flex-start' }}>
-            <p style={{ fontFamily:"'Caveat',cursive", fontSize:20, color:sub, opacity:0.55, margin:0 }}>
-              This page is waiting for a message…
-            </p>
-          </div>
-        )}
+        ) : null}
       </div>
 
       {/* Signature footer */}
       <div style={{ margin:'8px 24px 20px 34px', flexShrink:0, position:'relative', zIndex:2, borderTop:`1px dashed ${accentC}33`, paddingTop:12, display:'flex', alignItems:'flex-end', justifyContent:'space-between', gap:12 }}>
         <div style={{ flex:1, minWidth:0 }}>
-          <span style={{ fontFamily:"'Kalam',cursive", fontSize:12, color:sub }}>with love,</span>
           {editing ? (
             <input
               className="album-inline-input"
@@ -465,7 +467,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const [showEditor, setShowEditor] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [stage,      setStage]      = useState('idle');
-  const [mobileSidebar, setMobileSidebar] = useState(false);
+  // (mobileSidebar state removed — the side pane it opened no longer exists)
   const [showHelp,   setShowHelp]   = useState(false);
   const [signaturesOpen, setSignaturesOpen] = useState(true);
   const [flipClass,  setFlipClass]  = useState('');
@@ -495,7 +497,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 
   const [form, setForm] = useState({
     author_name:signedInName, author_email:signedInEmail,
-    content:'', is_private:false, font_style:'handwritten',
+    content:'', is_private:false, font_style: autoFontForPosition(messages.length),
     font_color:'#1E40AF', font_size:18,
   });
 
@@ -511,7 +513,13 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const textareaRef  = useRef();
 
   const openEditorFor = useCallback((action = 'message') => {
-    setShowEditor(true);
+    // Opens direct on-page compose instead of a form modal — tapping any
+    // action (message, media, gif, voice, gift) writes straight onto the
+    // page itself. The old fullscreen editor modal is no longer triggered
+    // anywhere in this file; its JSX is left in place further below but is
+    // now unreachable dead code, kept rather than deleted to avoid
+    // re-touching a large, delicate block of JSX in this file.
+    setInlineCompose(true);
     setShowEmoji(false);
     setShowGif(false);
 
@@ -747,7 +755,9 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 
   const saveEdit = useCallback(async () => {
     if (!editingMsgId || !editDraft) return;
-    if (!editDraft.content.trim()) return toast.error('Message cannot be empty');
+    const originalMsg = messages.find(m => m.id === editingMsgId);
+    const hasMedia = !!(editDraft.media_preview || (!editDraft.remove_media && originalMsg?.media_url));
+    if (!editDraft.content.trim() && !hasMedia) return toast.error('Add a message or a photo/GIF/voice note before saving');
     setSavingEdit(true);
     try {
       const values = {
@@ -788,7 +798,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     } catch (err) {
       toast.error(err.response?.data?.error || 'Could not save your edits');
     } finally { setSavingEdit(false); }
-  }, [editingMsgId, editDraft, form.author_email, clearEditDraft]);
+  }, [editingMsgId, editDraft, form.author_email, clearEditDraft, messages]);
 
   // ─ Media ─
   const addMedia = useCallback((files)=>{
@@ -834,7 +844,6 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     if (!selectedVendor)  return toast.error('Please select a vendor');
     if (!form.author_name.trim())  return toast.error('Please add your name');
     if (!form.author_email.trim()) return toast.error('Email is required');
-    if (!form.content.trim())      return toast.error('Please write a message');
     setProductSubmitting(true);
     try {
       const newPageNum = isNewStyle ? messages.length + 1 : Math.ceil((messages.length + 1) / MSGS_PER_PAGE);
@@ -886,10 +895,13 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   // ─ Submit ─
   const handleSubmit = async()=>{
     if(!form.author_name.trim()) return toast.error('Please add your name');
-    if(!form.content.trim())     return toast.error('Please write a message');
-    if(!form.author_email.trim()) return toast.error('Email is required');
     const amountNGN=Number(customAmount||selectedAmount||0);
     const wantsGift=card.is_gift_enabled&&amountNGN>=2500;
+    // A page needs *something* on it — a written message, a photo/video/voice
+    // note, or a gift — but not specifically text. Signers who just want to
+    // leave a photo or a gift without writing anything can now do that.
+    if(!form.content.trim() && mediaFiles.length===0 && !wantsGift) return toast.error('Add a message, a photo/GIF/voice note, or a gift before signing');
+    if(!form.author_email.trim()) return toast.error('Email is required');
     setSubmitting(true); setStage('sending');
     try{
       // New-style: page_number = messages.length + 1 (each signer gets own page)
@@ -1025,47 +1037,62 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     <div className="section-dots" style={{minHeight:'100vh',background:bgColor,fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif",transition:'background 0.4s'}}>
       <style>{ALBUM_CSS}</style>
 
-      {/* ── Top bar — tinted to match the album's own background/theme ── */}
-      <div style={{background:showingCover?'#fff':(currentTheme.bg||'#fff'),borderBottom:`1.5px solid ${showingCover?design?.accent+'30'||'#EDE9FE':(currentTheme.accent||'#7C3AED')+'25'}`,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 1.25rem',height:60,position:'sticky',top:0,zIndex:40,boxShadow:'0 2px 12px rgba(0,0,0,0.06)',transition:'background 0.4s,border-color 0.4s'}}>
-        <Link to="/" style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:17,color:isDark&&!showingCover?'#E9D5FF':'#1A1035',textDecoration:'none'}}>
-          Thank<span style={{color:currentTheme.accent||'#7C3AED'}}>eeu</span>
-        </Link>
-        <div style={{textAlign:'center'}}>
-          <h1 style={{fontWeight:700,fontSize:15,color:isDark&&!showingCover?'#E9D5FF':'#1A1035',margin:0,lineHeight:1.2}}>{card.recipient_name}'s card</h1>
-          <p style={{fontSize:11,color:'#9CA3AF',margin:0}}>{messages.length} {messages.length===1?'message':'messages'} · {showingCover?'Cover':`Page ${clampedPage} of ${totalPages-1}`}</p>
+      {/* ── Top bar — beautiful, fully centred ── */}
+      <div style={{
+        background: showingCover ? 'rgba(255,255,255,0.96)' : (isDark ? 'rgba(20,12,42,0.97)' : 'rgba(255,255,255,0.96)'),
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderBottom: `1px solid ${(currentTheme.accent||'#7C3AED')}22`,
+        boxShadow: '0 2px 24px rgba(0,0,0,0.07)',
+        position: 'sticky', top: 0, zIndex: 40,
+        transition: 'background 0.4s',
+      }}>
+        {/* Row 1 — brand left, card info centre, gift right */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 1.25rem',height:54}}>
+          <Link to="/" style={{fontFamily:"'Plus Jakarta Sans',sans-serif",fontWeight:900,fontSize:16,color:isDark&&!showingCover?'#E9D5FF':'#1A1035',textDecoration:'none',letterSpacing:'-0.01em'}}>
+            Thank<span style={{color:currentTheme.accent||'#7C3AED'}}>eeu</span>
+          </Link>
+          <div style={{textAlign:'center',position:'absolute',left:'50%',transform:'translateX(-50%)'}}>
+            <p style={{margin:0,fontWeight:800,fontSize:14,color:isDark&&!showingCover?'#E9D5FF':'#1A1035',lineHeight:1.2}}>
+              {card.recipient_name}&rsquo;s card
+            </p>
+            <p style={{margin:0,fontSize:11,color:isDark&&!showingCover?'rgba(200,180,240,0.7)':'#9CA3AF'}}>
+              {messages.length} {messages.length===1?'message':'messages'}&nbsp;&middot;&nbsp;
+              {showingCover ? 'Cover' : `Page ${clampedPage} of ${totalPages-1}`}
+            </p>
+          </div>
+          {card.is_gift_enabled ? (
+            <button onClick={()=>openEditorFor('gift')}
+              style={{border:'none',borderRadius:20,padding:'7px 16px',background:'linear-gradient(135deg,#F59E0B,#D97706)',color:'#fff',fontWeight:800,fontSize:12,cursor:'pointer',boxShadow:'0 3px 10px rgba(245,158,11,0.35)',whiteSpace:'nowrap'}}>
+              🎁 Gift
+            </button>
+          ) : <div style={{width:64}}/>}
         </div>
-        <button className="md:hidden" onClick={()=>setMobileSidebar(true)}
-          style={{background:currentTheme.accent||'#7C3AED',border:'none',borderRadius:12,padding:'8px 14px',fontWeight:700,fontSize:13,color:'#fff',cursor:'pointer'}}>
-          Gift &amp; Share
-        </button>
-        <div className="hidden md:block" style={{width:164,textAlign:'right'}}>
-          {card.is_gift_enabled && <button type="button" onClick={()=>openEditorFor('gift')}
-            style={{border:'none',borderRadius:12,padding:'9px 13px',background:'linear-gradient(135deg,#F59E0B,#D97706)',color:'#fff',fontWeight:800,fontSize:12,cursor:'pointer',boxShadow:'0 3px 12px rgba(245,158,11,.3)'}}>
-            Gift this card
-          </button>}
+
+        {/* Row 2 — action buttons, fully centred */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'8px 1.25rem 10px',flexWrap:'wrap'}}>
+          <button onClick={()=>openEditorFor('message')}
+            style={{display:'inline-flex',alignItems:'center',gap:6,background:`linear-gradient(135deg,${currentTheme.accent||'#7C3AED'},${currentTheme.accent||'#7C3AED'}cc)`,color:'#fff',border:'none',borderRadius:24,padding:'9px 22px',fontWeight:800,fontSize:13,cursor:'pointer',boxShadow:`0 4px 14px ${currentTheme.accent||'#7C3AED'}44`}}>
+            <Icon name="PenLine" size={14}/>Sign this card
+          </button>
+          <button onClick={()=>fileInputRef.current?.click()} title="Add photo"
+            style={{width:38,height:38,borderRadius:'50%',border:`1.5px solid ${(currentTheme.accent||'#7C3AED')}33`,background:isDark?'rgba(255,255,255,0.08)':'rgba(124,58,237,0.06)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,transition:'background 0.15s'}}>🖼️</button>
+          <button onClick={()=>openEditorFor('gif')} title="Add GIF"
+            style={{width:38,height:38,borderRadius:'50%',border:`1.5px solid ${(currentTheme.accent||'#7C3AED')}33`,background:isDark?'rgba(255,255,255,0.08)':'rgba(124,58,237,0.06)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:10,color:currentTheme.accent||'#7C3AED'}}>GIF</button>
+          <div style={{display:'flex',alignItems:'center'}}>
+            <VoiceRecorder onRecorded={f=>addMedia([f])} disabled={submitting}/>
+          </div>
+          <button onClick={()=>setSoundOn(s=>!s)} title={soundOn?'Sound on':'Sound off'}
+            style={{width:38,height:38,borderRadius:'50%',border:`1.5px solid ${(currentTheme.accent||'#7C3AED')}33`,background:isDark?'rgba(255,255,255,0.08)':'rgba(124,58,237,0.06)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <Icon name={soundOn?'Volume2':'VolumeX'} size={14} style={{color:currentTheme.accent||'#7C3AED'}}/>
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden"
+            onChange={e=>{addMedia(e.target.files);e.target.value='';}}/>
         </div>
       </div>
 
-      {/* ── Toolbar (hidden on cover) ── */}
-      {!showingCover && (
-        <div style={{background:isDark?'#1a1535':'#fff',borderBottom:`1.5px solid ${isDark?'rgba(255,255,255,0.08)':'#EDE9FE'}`,display:'flex',alignItems:'center',gap:8,padding:'10px 1.25rem',flexWrap:'wrap'}}>
-          <button onClick={()=>openEditorFor('message')}
-            style={{background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',border:'none',borderRadius:22,padding:'10px 22px',fontWeight:800,fontSize:14,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:7,boxShadow:'0 4px 16px rgba(124,58,237,0.35)'}}>
-            <Icon name="PenLine" size={15} style={{color:'#fff'}}/> Sign this card
-          </button>
-          <button onClick={()=>fileInputRef.current?.click()} title="Add photo"
-            style={{width:40,height:40,borderRadius:'50%',border:`1.5px solid ${isDark?'rgba(255,255,255,0.15)':'#EDE9FE'}`,background:isDark?'rgba(255,255,255,0.07)':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:17}}>🖼️</button>
-          <button onClick={()=>openEditorFor('gif')} title="Add GIF"
-            style={{width:40,height:40,borderRadius:'50%',border:`1.5px solid ${isDark?'rgba(255,255,255,0.15)':'#EDE9FE'}`,background:isDark?'rgba(255,255,255,0.07)':'#fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:11,color:isDark?'#A78BFA':'#7C3AED'}}>GIF</button>
-          <VoiceRecorder onRecorded={f=>addMedia([f])} disabled={submitting}/>
-          <div style={{flex:1}}/>
-          <span style={{fontSize:11,fontWeight:700,color:isDark?'#cbd5e1':'#6B7280',whiteSpace:'nowrap'}}>Creator's {albumTheme.name.toLowerCase()} album</span>
-            <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={e=>{addMedia(e.target.files);e.target.value='';}}/>
-        </div>
-      )}
-
       {/* ── Main layout ── */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 300px',gap:0,maxWidth:1100,margin:'0 auto',padding:'32px 16px',alignItems:'start'}} className="album-layout">
+      <div style={{maxWidth:760,margin:'0 auto',padding:'32px 16px'}} className="album-layout">
 
         {/* ── Book ── */}
         <div>
@@ -1090,8 +1117,11 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                 border:'1.5px solid rgba(200,180,240,0.25)',boxShadow:'0 4px 20px rgba(0,0,0,0.05)',zIndex:0}}/>
             ))}
 
-            {/* Active page + peek page — full open-book spread */}
-            <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'stretch'}}>
+            {/* Active page + peek page — full open-book spread.
+                perspective on this wrapper is what gives the 3D depth to the
+                rotateY animation — exactly what the live preview does at line 630
+                of AlbumStudioPreview.jsx. Without it the keyframes run in 2D. */}
+            <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'stretch',perspective:'1800px',transformStyle:'preserve-3d'}}>
               {!showingCover && activeSide==='right' && (
                 <div style={{position:'relative',borderRadius:'14px 0 0 14px',overflow:'hidden',boxShadow:'inset -8px 0 20px -12px rgba(0,0,0,0.25)'}}>
                   {renderLeaf(leftDef, spreadLeftIdx, false)}
@@ -1149,7 +1179,6 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                           style={{flex:1,fontFamily:getFontStyle(form.font_style).family,fontSize:22,color:form.font_color,lineHeight:'34px',minHeight:150}}
                         />
                         <div style={{borderTop:`1px dashed ${accentC}33`,paddingTop:10,marginTop:6}}>
-                          <span style={{fontFamily:"'Kalam',cursive",fontSize:12,color:accentC,opacity:0.7}}>with love,</span>
                           <input
                             className="album-inline-input"
                             value={form.author_name}
@@ -1170,9 +1199,30 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                             style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontSize:17}}>🖼️</button>
                           <button type="button" onClick={()=>setShowGif(s=>!s)} title="Add GIF"
                             style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontWeight:800,fontSize:11,color:accentC}}>GIF</button>
+                          <div style={{width:44,height:44}}><VoiceRecorder onRecorded={f=>addMedia([f])} disabled={submitting}/></div>
                           <button type="button" onClick={()=>setInlineCompose(false)}
                             style={{width:44,height:44,borderRadius:12,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',color:'#9CA3AF'}}>✕</button>
                         </div>
+                        {card.is_gift_enabled && (
+                          <div id="album-gift-section" style={{background:'linear-gradient(135deg,#FFF7ED,#FEF3C7)',border:'1.5px solid #FDE68A',borderRadius:14,padding:'12px 14px',marginTop:12}}>
+                            <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:8}}>
+                              <span style={{fontSize:16}}>🎁</span>
+                              <span style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:12,color:'#92400E'}}>Add a gift (optional)</span>
+                            </div>
+                            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                              {[1000,2500,5000,10000].map(amt=>(
+                                <button key={amt} type="button" onClick={()=>{setSelectedAmount(amt);setCustomAmount('');}}
+                                  style={{border:`2px solid ${selectedAmount===amt?'#F59E0B':'#FDE68A'}`,background:selectedAmount===amt?'#FEF3C7':'#fff',borderRadius:10,padding:'6px 10px',fontSize:12,fontWeight:800,color:'#92400E',cursor:'pointer'}}>
+                                  {formatNGN(amt)}
+                                </button>
+                              ))}
+                            </div>
+                            <input type="number" min="100" value={customAmount}
+                              onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}}
+                              placeholder="Or enter a custom amount (₦)"
+                              style={{width:'100%',marginTop:8,border:'1px solid #FDE68A',borderRadius:8,padding:'7px 9px',fontSize:12,outline:'none'}}/>
+                          </div>
+                        )}
                         {showGif && (
                           // Fixed, centered overlay — the page card this button lives in has
                           // overflow:hidden for its paper/flip-animation look, so an absolutely
@@ -1288,43 +1338,8 @@ const AlbumSign = ({ card: initialCard, slug }) => {
           <p style={{textAlign:'center',fontFamily:"'Caveat',cursive",fontSize:14,color:showingCover?(design?.accent||'#7C3AED')+'88':accentC+'88',marginTop:10}}>
             {showingCover?'Cover — flip, swipe or use ← → to browse every page':`Page ${clampedPage} of ${totalPages-1} · swipe or use ← →`}
           </p>
-          <div style={{display:'flex',justifyContent:'center',marginTop:4}}>
-            <button onClick={()=>setSoundOn(s=>!s)} title={soundOn?'Page-flip sound on':'Sound muted'}
-              style={{display:'inline-flex',alignItems:'center',gap:5,background:'transparent',border:'none',cursor:'pointer',color:accentC+'99',fontSize:11,fontWeight:700}}>
-              <Icon name={soundOn?'Volume2':'VolumeX'} size={13}/> {soundOn?'Flip sound on':'Muted'}
-            </button>
-          </div>
-        </div>
-
-        {/* ── Sidebar ── */}
-        <div className="hidden md:block" style={{paddingLeft:24}}>
-          <SidebarContent card={card} slug={slug} myMsgIds={myMsgIds}
-            signaturesOpen={signaturesOpen} setSignaturesOpen={setSignaturesOpen}
-            allSignersOpen={allSignersOpen} setAllSignersOpen={setAllSignersOpen}
-              onContribute={()=>openEditorFor('gift')}
-            selectedAmount={selectedAmount} setSelectedAmount={setSelectedAmount}
-            customAmount={customAmount} setCustomAmount={setCustomAmount}
-            showHelp={showHelp} setShowHelp={setShowHelp}
-            isDark={isDark&&!showingCover} accent={accentC}/>
         </div>
       </div>
-
-      {/* Mobile sidebar */}
-      {mobileSidebar&&(
-        <div style={{position:'fixed',inset:0,zIndex:60,background:'rgba(0,0,0,0.55)',backdropFilter:'blur(4px)'}} onClick={()=>setMobileSidebar(false)}>
-          <div style={{position:'absolute',right:0,top:0,bottom:0,width:300,background:'#fff',padding:20,overflowY:'auto'}} onClick={e=>e.stopPropagation()}>
-            <button type="button" onClick={()=>setMobileSidebar(false)} aria-label="Close album menu" style={{float:'right',background:'none',border:'none',cursor:'pointer',color:'#6B7280',display:'inline-flex'}}><Icon name="X" size={18} /></button>
-            <SidebarContent card={card} slug={slug} myMsgIds={myMsgIds}
-              signaturesOpen={signaturesOpen} setSignaturesOpen={setSignaturesOpen}
-              allSignersOpen={allSignersOpen} setAllSignersOpen={setAllSignersOpen}
-                onContribute={()=>{setMobileSidebar(false);openEditorFor('gift');}}
-              selectedAmount={selectedAmount} setSelectedAmount={setSelectedAmount}
-              customAmount={customAmount} setCustomAmount={setCustomAmount}
-              showHelp={showHelp} setShowHelp={setShowHelp}
-              isDark={false} accent={accentC}/>
-          </div>
-        </div>
-      )}
 
       {/* ── Editor modal ── */}
       {showEditor&&(
@@ -1358,16 +1373,6 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:18}}>
               <div><label className="auth-label">Your name *</label><input className="input" placeholder="Your name" value={form.author_name} onChange={e=>setForm(p=>({...p,author_name:e.target.value}))}/></div>
               <div><label className="auth-label">Email *</label><input type="email" className="input" placeholder="you@email.com" value={form.author_email} onChange={e=>setForm(p=>({...p,author_email:e.target.value}))}/></div>
-            </div>
-
-            <label className="auth-label">Writing style</label>
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:14}}>
-              {FONT_STYLES.map(fs=>(
-                <button key={fs.id} type="button" onClick={()=>setForm(p=>({...p,font_style:fs.id}))}
-                  style={{padding:'6px 12px',borderRadius:20,border:`2px solid ${form.font_style===fs.id?'#7C3AED':'#DDD6FE'}`,background:form.font_style===fs.id?'#EDE9FE':'#fff',fontFamily:fs.family,fontSize:13,fontWeight:600,cursor:'pointer',color:form.font_style===fs.id?'#5B21B6':'#6B7280'}}>
-                  {fs.name}
-                </button>
-              ))}
             </div>
 
             <label className="auth-label">Message colour</label>

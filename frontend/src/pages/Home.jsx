@@ -1583,7 +1583,10 @@ const Home = () => {
  <p className="text-warm-600 mb-5 text-sm leading-relaxed">Create a card for anyone — friend, colleague, family. No account needed to sign.</p>
  <ul className="space-y-2 mb-6">
  {['Quick card creation','Unlimited signers','Global gift pot','Photo & video messages'].map(f => (
- <li key={f} className="text-sm text-warm-700 flex gap-2"><span className="text-primary-500 font-bold">{f.slice(0,1)}</span>{f.slice(1)}</li>
+ <li key={f} className="text-sm text-warm-700 flex items-center gap-2">
+   <Icon name="Check" size={14} className="text-primary-500 flex-shrink-0"/>
+   <span style={{whiteSpace:'nowrap'}}>{f}</span>
+ </li>
  ))}
  </ul>
  <Link to="/card/new" className="gc-btn-primary px-7 py-3 w-full sm:w-auto inline-flex items-center justify-center">Get started →</Link>
@@ -1595,8 +1598,11 @@ const Home = () => {
  <p className="text-xs text-purple-400 mb-2">Price based on your team size</p>
  <p className="text-purple-300 mb-5 text-sm leading-relaxed">Automate all team celebrations. Connect your HRIS. Never forget a birthday again.</p>
  <ul className="space-y-2 mb-6">
- {['Unlimited employees','HRIS integration',' 12 automated occasions','HR analytics dashboard'].map(f => (
- <li key={f} className="text-sm text-purple-200 flex gap-2"><span className="text-purple-400 font-bold">{f.slice(0,1)}</span>{f.slice(1)}</li>
+ {['Unlimited employees','HRIS integration','12 automated occasions','HR analytics dashboard'].map(f => (
+ <li key={f} className="text-sm text-purple-200 flex items-center gap-2">
+   <Icon name="Check" size={14} className="text-purple-400 flex-shrink-0"/>
+   <span style={{whiteSpace:'nowrap'}}>{f}</span>
+ </li>
  ))}
  </ul>
  <div className="flex flex-wrap gap-2">

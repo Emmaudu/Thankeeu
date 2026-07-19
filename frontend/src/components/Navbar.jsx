@@ -89,7 +89,7 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
                     ['/cards/leaving-card', 'Leaving cards', 'Send'],
                     ['/cards/retirement', 'Retirement cards', 'Sparkles'],
                     ['/live-memory-wall', 'Live Memory Wall', 'Image'],
-                  ].map(([to, label, icon]) => <Link key={to} to={to} onClick={() => { scrollTop(); setCardsOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-warm-700 hover:bg-primary-50 hover:text-primary-600"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50"><Icon name={icon} size={15} className="text-primary-500" /></span>{label}</Link>)}
+                  ].map(([to, label, icon]) => <Link key={to} to={to} onClick={() => { scrollTop(); setCardsOpen(false); }} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-warm-700 hover:bg-primary-50 hover:text-primary-600"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-50 flex-shrink-0"><Icon name={icon} size={15} className="text-primary-500" /></span>{label}</Link>)}
                   <Link to="/card/new" onClick={() => { scrollTop(); setCardsOpen(false); }} className="mt-1 block rounded-xl bg-primary-500 px-3 py-2.5 text-center text-xs font-extrabold text-white">Create a card</Link>
                 </div>}
               </div>

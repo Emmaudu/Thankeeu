@@ -2008,6 +2008,25 @@ td, th, li, p, span, h1, h2, h3, h4, h5, h6, a, button, label, div {
   word-break: break-word;
   hyphens: auto;
 }
+/* Navigation dropdowns must NEVER break words — they have fixed widths
+   and rely on their container constraining content, not word-breaking.
+   This covers both the desktop dropdown panels and the mobile slide-out. */
+nav *,
+[class*="z-[60]"] *,
+.mobile-nav-overlay * {
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  hyphens: none !important;
+}
+/* Allow sub-descriptions in dropdowns to wrap naturally (they're short enough) */
+nav .text-xs,
+nav .text-warm-400,
+nav .text-warm-500,
+nav .text-purple-300,
+nav .text-purple-400 {
+  white-space: normal !important;
+  word-break: normal !important;
+}
 
 /* ── 2. Pricing card grids — 1 column on all phones ────────────────── */
 /* Phones: 0–767px. sm: fires at 640px which is still a narrow phone.
@@ -2113,12 +2132,15 @@ td, th, li, p, span, h1, h2, h3, h4, h5, h6, a, button, label, div {
   }
 }
 
-/* ── 7. Pricing-specific single column enforcement ──────────────────── */
-/* Belt-and-braces rule specifically for the pricing plan cards since
-   they're the most commonly reported squeeze issue. */
-@media (max-width: 767px) {
-  /* Individual plan cards */
+/* ── 7. Pricing — exactly 1 card per row on phones, 3 on desktop ────── */
+/* Belt-and-braces: explicit breakpoints so no Tailwind class overrides it */
+.pricing-plans-grid {
+  display: grid;
+  grid-template-columns: 1fr; /* default: 1 column (all phones) */
+  gap: 1.25rem;
+}
+@media (min-width: 768px) {
   .pricing-plans-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(3, 1fr); /* tablet+ : 3 columns */
   }
 }

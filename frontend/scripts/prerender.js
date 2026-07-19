@@ -199,8 +199,9 @@ function writeStatic(relPath, html) {
 const STATIC_PAGES = [
   {
     path: '/',
-    title: 'Thankeeu — Group Cards, Gift Pools & Company Workspaces',
+    title: 'Thankeeu — Group Cards, Memory Movies & Gift Pools for Every Occasion',
     description: 'Create beautiful online group cards, gift pools, Memory Movies and company workspaces on your own Thankeeu subdomain — for any occasion, any team.',
+    rootHtml: `<nav aria-label="Thankeeu services"><a href="/occasions/birthday">Birthday group cards</a> <a href="/cards/leaving-card">Leaving cards</a> <a href="/cards/retirement">Retirement cards</a> <a href="/live-memory-wall">Live Memory Wall</a> <a href="/pricing">Pricing</a> <a href="/how-it-works">How it works</a></nav><main><h1>Online Group Cards, Gift Pools &amp; Live Memory Walls — Thankeeu</h1><p>Create a beautiful online group card everyone signs from one link. One link, everyone signs, any occasion. Share with the team — everyone adds messages, photos, voice notes and a gift. The recipient gets something genuinely unforgettable. Free to start, from $3.15 to send.</p><h2>Popular occasions</h2><ul><li><a href="/cards/leaving-card">Leaving &amp; farewell cards</a> — the whole team signs from one link, with an optional leaving gift collection.</li><li><a href="/occasions/birthday">Birthday group cards</a> — personalised messages, photos, GIFs and a pooled birthday gift.</li><li><a href="/cards/retirement">Retirement cards</a> — celebrate a career with a card full of memories.</li><li><a href="/occasions/wedding">Wedding group cards</a> — collect messages and a gift from everyone who loves them.</li><li><a href="/qr-code-for-wedding-photos">QR code for wedding photos</a> — guests scan and upload photos live at your venue.</li></ul><h2>How it works</h2><ol><li>Create your card and choose an occasion — takes 2 minutes.</li><li>Share one link via WhatsApp, Slack, email or text.</li><li>Everyone signs from any device — no account needed.</li><li>Set a delivery time — the recipient gets it at exactly the right moment.</li></ol><p><a href="/card/new">Create a group card — free</a> | <a href="/sample">See a sample card</a> | <a href="/pricing">Pricing from $3.15</a></p></main>`,
   },
   {
     path: '/pricing',
@@ -441,11 +442,12 @@ function prerenderStaticPages() {
   let count = 0;
   for (const page of STATIC_PAGES) {
     try {
+      const genericRootHtml = `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="${esc(page.path)}">${esc(page.title.replace(/\s*[|\u2014-]\s*Thankeeu.*$/, ''))}</a></nav><main><h1>${esc(page.title.replace(/\s*[|\u2014-]\s*Thankeeu.*$/, ''))}</h1><p>${esc(page.description)}</p><p><a href="/create-card">Create a group card</a> <a href="/occasions/birthday">Birthday cards</a> <a href="/cards/leaving-card">Leaving cards</a> <a href="/cards/retirement">Retirement cards</a> <a href="/live-memory-wall">Live Memory Wall</a> <a href="/pricing">Pricing</a></p></main>`;
       const html = buildPage({
         title: page.title,
         description: page.description,
         canonicalPath: page.path,
-        rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="${esc(page.path)}">${esc(page.title.replace(/\s*[|â€”-]\s*Thankeeu.*$/, ''))}</a></nav><main><h1>${esc(page.title.replace(/\s*[|â€”-]\s*Thankeeu.*$/, ''))}</h1><p>${esc(page.description)}</p><p><a href="/create-card">Create a group card</a> <a href="/occasions/birthday">Birthday cards</a> <a href="/cards/leaving-card">Leaving cards</a> <a href="/cards/retirement">Retirement cards</a> <a href="/live-memory-wall">Live Memory Wall</a> <a href="/pricing">Pricing</a></p></main>`,
+        rootHtml: page.rootHtml || genericRootHtml,
       });
       writeStatic(page.path, html);
       count++;

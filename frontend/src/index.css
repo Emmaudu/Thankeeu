@@ -19,15 +19,26 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
+    /* Prevent text from escaping its container on any device */
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
-  h1, h2, h3 { font-family: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif; line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; }
-  h1 { @apply text-4xl md:text-5xl lg:text-6xl font-bold; }
-  h2 { @apply text-3xl md:text-4xl font-bold; }
-  h3 { @apply text-xl md:text-2xl font-semibold; }
-  p  { @apply text-[16px] leading-relaxed; color: #4A3A7A; }
+  /* Every element respects its container width — prevents text overflow
+     on iPhones, small Android devices, and narrow viewports */
+  *, *::before, *::after {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+
+  h1, h2, h3 { font-family: 'Nunito', 'Plus Jakarta Sans', system-ui, sans-serif; line-height: 1.15; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: break-word; word-break: break-word; }
+  /* Override Tailwind's static heading sizes — clamp() is mobile-safe */
+  h1 { font-size: clamp(1.75rem, 6vw, 3.5rem); font-weight: 800; }
+  h2 { font-size: clamp(1.4rem, 4.5vw, 2.5rem); font-weight: 700; }
+  h3 { font-size: clamp(1.1rem, 3vw, 1.5rem); font-weight: 600; }
+  p  { @apply text-[16px] leading-relaxed; color: #4A3A7A; overflow-wrap: break-word; }
   a  { @apply transition-colors duration-150; }
-  img { @apply max-w-full h-auto; }
+  img { @apply max-w-full h-auto; display: block; }
   button, [role="button"] { @apply cursor-pointer; }
 
   input, select, textarea {
@@ -788,6 +799,12 @@ body.sidebar-open { overflow: hidden; }
 .auth-root > * {
   position: relative;
   z-index: 1;
+}
+/* Navbar inside auth pages must sit above the form container so its
+   dropdown menus aren't trapped below the page content's stacking context */
+.auth-root > nav,
+.auth-root > header {
+  z-index: 100;
 }
 
 .auth-bg-dots {
@@ -1969,5 +1986,139 @@ body.sidebar-open { overflow: hidden; }
   .lcp-outer-wrap {
     padding-left: 1.75rem !important;
     padding-right: 1.75rem !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   COMPREHENSIVE MOBILE RESPONSIVENESS
+   Covers all iPhones (SE 375px → iPhone 17 430px), all Android sizes,
+   all Samsung devices, iPads, tablets.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* ── 1. Universal text overflow prevention ─────────────────────────── */
+/* Every element must stay inside its parent — no text escaping boxes */
+* {
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+/* But don't constrain flex/grid children (they have their own sizing) */
+td, th, li, p, span, h1, h2, h3, h4, h5, h6, a, button, label, div {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+}
+
+/* ── 2. Pricing card grids — 1 column on all phones ────────────────── */
+/* Phones: 0–767px. sm: fires at 640px which is still a narrow phone.
+   Force single column on anything narrower than md (768px). */
+@media (max-width: 767px) {
+  /* All 3-column grids become 1-column on phones */
+  [class*="grid-cols-3"]:not([class*="sm:grid-cols"]):not([class*="md:grid-cols"]) {
+    grid-template-columns: 1fr !important;
+  }
+  /* sm:grid-cols-3 still fires at 640px which is too narrow for 3 cards */
+  [class*="sm:grid-cols-3"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* md:grid-cols-3 is correct (768px) — leave those alone */
+
+  /* 2-column grids that need to stay 2 on tablet but 1 on phone */
+  [class*="sm:grid-cols-2"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── 3. Small phones (≤390px — iPhone SE, budget Android) ──────────── */
+@media (max-width: 390px) {
+  /* Hero font sizes — prevent overflow on iPhone SE width (375px) */
+  h1 { font-size: clamp(1.5rem, 8vw, 2rem) !important; }
+  h2 { font-size: clamp(1.25rem, 6.5vw, 1.75rem) !important; }
+  h3 { font-size: clamp(1rem, 5vw, 1.35rem) !important; }
+
+  /* Inline styles using clamp can still be too big — cap them */
+  [style*="clamp(2"] { font-size: clamp(1.6rem, 7.5vw, 2rem) !important; }
+  [style*="clamp(3"] { font-size: clamp(1.6rem, 7.5vw, 2rem) !important; }
+  [style*="clamp(4"] { font-size: clamp(1.8rem, 7.5vw, 2.2rem) !important; }
+
+  /* Buttons — full width, comfortable tap target */
+  .gc-btn-primary, .gc-btn-secondary,
+  .btn-primary, .btn-secondary {
+    width: 100% !important;
+    justify-content: center !important;
+    font-size: 0.9rem !important;
+    padding: 12px 16px !important;
+  }
+
+  /* Reduce card padding on tiny screens */
+  .gc-card, [class*="rounded-3xl"][class*="p-7"],
+  [class*="rounded-2xl"][class*="p-6"] {
+    padding: 1rem !important;
+  }
+
+  /* Section padding */
+  [class*="px-4"] { padding-left: 0.75rem !important; padding-right: 0.75rem !important; }
+}
+
+/* ── 4. Tablets portrait (768–1023px) ──────────────────────────────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* 3-col grids become 2-col on tablet portrait */
+  [class*="md:grid-cols-3"]:not([class*="lg:grid-cols-3"]) {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Make sure the "popular" card badge doesn't overflow */
+  [class*="absolute"][class*="-top-3"] {
+    white-space: nowrap;
+    font-size: 0.7rem !important;
+  }
+}
+
+/* ── 5. Prevent flex children from shrinking below readable size ────── */
+@media (max-width: 767px) {
+  /* Badge pills in hero sections */
+  [class*="rounded-full"][class*="px-4"] {
+    font-size: 0.75rem !important;
+    padding-left: 0.6rem !important;
+    padding-right: 0.6rem !important;
+  }
+
+  /* Feature card text inside grids */
+  [class*="grid"] p { font-size: 0.875rem !important; }
+  [class*="grid"] h3 { font-size: 1rem !important; }
+
+  /* Comparison tables — always horizontally scrollable */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 0; }
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+
+  /* FAQ accordions */
+  details summary { font-size: 0.9rem !important; }
+
+  /* Hero sections — comfortable vertical padding on phones */
+  [style*="min(760px"] { min-height: auto !important; padding-top: 3.5rem !important; padding-bottom: 3.5rem !important; }
+
+  /* Flex rows that shouldn't wrap become column on phone */
+  .flex.items-center.gap-3:not([class*="flex-wrap"]):not([class*="flex-col"]) {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── 6. iOS Safari specific fixes ──────────────────────────────────── */
+@supports (-webkit-touch-callout: none) {
+  /* Prevent input zoom on iOS (must be ≥16px) */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Fix 100vh on iOS Safari (includes toolbar in height) */
+  [style*="100vh"], [style*="100svh"] {
+    height: -webkit-fill-available;
+  }
+}
+
+/* ── 7. Pricing-specific single column enforcement ──────────────────── */
+/* Belt-and-braces rule specifically for the pricing plan cards since
+   they're the most commonly reported squeeze issue. */
+@media (max-width: 767px) {
+  /* Individual plan cards */
+  .pricing-plans-grid {
+    grid-template-columns: 1fr !important;
   }
 }

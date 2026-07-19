@@ -70,22 +70,25 @@ const COMPARISON_ROWS = [
 /* ─── Pricing component ──────────────────────────────────────────────── */
 const PLANS = [
   {
-    name: 'Classic', priceNGN: 5000, credits: 1, popular: false,
+    name: 'Classic', planId: 'single', priceNGN: 5000, credits: 1, popular: false,
     label: 'One perfect farewell card',
     features: ['Send 1 group card', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
-    btn: 'Send this leaving card', btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
+    btn: 'Create your leaving card →', btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
+    href: '/card/new?occasion=leaving',
   },
   {
-    name: 'Standard', priceNGN: 9000, credits: 2, popular: true,
+    name: 'Standard', planId: 'standard', priceNGN: 9000, credits: 2, popular: true,
     label: 'Two cards — save on the second',
     features: ['Send 2 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
     btn: 'Get 2 credits', btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
+    href: '/signup?plan=standard',
   },
   {
-    name: 'Pack of 5', priceNGN: 20000, credits: 5, popular: false,
+    name: 'Pack of 5', planId: 'pack5', priceNGN: 20000, credits: 5, popular: false,
     label: '5 cards — best per-card price',
     features: ['Send 5 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
     btn: 'Buy 5 credits', btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
+    href: '/signup?plan=pack5',
   },
 ];
 
@@ -120,7 +123,7 @@ const PricingSection = () => {
           <CurrencyToggle selected={currency} onChange={setCurrency} />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="pricing-plans-grid grid grid-cols-1 md:grid-cols-3 gap-6">
           {PLANS.map(plan => (
             <div key={plan.name}
               className={`relative rounded-3xl border-2 p-7 flex flex-col transition-all hover:shadow-xl ${plan.popular ? 'border-primary-400 shadow-lg' : 'border-purple-100'}`}
@@ -153,7 +156,7 @@ const PricingSection = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/card/new?occasion=leaving"
+              <Link to={plan.href}
                 className={`w-full py-3.5 rounded-2xl font-bold text-sm text-center transition-all ${plan.btnStyle}`}>
                 {plan.btn}
               </Link>
@@ -176,7 +179,7 @@ const LeavingDesignPreviewSection = () => (
     occasion="leaving"
     eyebrow="20 new leaving-card covers"
     title="Choose a proper cover for their send-off"
-    description="Browse ten premium A4 designs at a time. Select one to open it in the album studio and add the team's messages, photos, GIFs, videos and voice notes."
+    description="Browse ten premium A4 designs at a time. Select one to open it in the album studio and add the team's messages, photos, GIFs, videos and voice notes. Every cover is fully editable — personalise the recipient's name, title text and colours before sharing."
     background="#ffffff"
   />
 );
@@ -324,7 +327,7 @@ export default function LeavingCardPage() {
       {/* ══ SOCIAL PROOF NUMBERS — Fix #2 ══ */}
       <section className="py-10 px-4 border-b border-purple-50" style={{ background: '#fff' }}>
         <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-3 gap-6 text-center">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6 text-center">
             {[
               { stat: '50,000+', label: 'Messages posted', icon: 'MessageSquare' },
               { stat: '10,000+', label: 'Happy customers', icon: 'Users' },

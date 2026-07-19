@@ -25,7 +25,7 @@ const INDIVIDUAL_PLANS = [
  {
  id: 'single', name: 'Classic', priceNGN: 5000, credits: 1, savingsNGN: 0,
  label: 'Send one card — full experience included',
- btn: 'Send this card', btnIcon: 'Sparkles', popular: false,
+ btn: 'Create your card →', btnIcon: 'Sparkles', popular: false,
  btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
  features: [
  { text: 'Send 1 group card (use any time)', ok: true },
@@ -156,11 +156,19 @@ const Pricing = () => {
  const fmt = (ngn) => formatCurrency(ngn, currency);
 
  const handleIndividualPurchase = async (planId) => {
+ // Classic (single 1-credit card) — send visitor straight to card creation.
+ // No account required to start; they'll be prompted to sign in at checkout.
+ // Every other plan (Standard 2-credits, packs) still requires an account
+ // because they involve credit purchases that need a wallet to hold credits.
+ if (planId === 'single') {
+   navigate('/card/new');
+   return;
+ }
  if (!user) {
- // Require account — store intended plan and redirect to signup
- sessionStorage.setItem('post_signup_plan', planId);
- navigate('/signup?plan=' + planId);
- return;
+   // Require account — store intended plan and redirect to signup
+   sessionStorage.setItem('post_signup_plan', planId);
+   navigate('/signup?plan=' + planId);
+   return;
  }
  setLoadingPlan(planId);
  try {
@@ -248,7 +256,7 @@ const Pricing = () => {
  )}
  </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-12">
+ <div className="pricing-plans-grid grid grid-cols-1 md:grid-cols-3 gap-5 mb-12">
  {/* Classic + Standard */}
  {INDIVIDUAL_PLANS.filter(p => p.id !== 'pack5').map(plan => (
  <div key={plan.id} className="gc-card relative p-6 flex flex-col"
@@ -373,7 +381,7 @@ const Pricing = () => {
  <div className="gc-card p-5 sm:p-8 max-w-2xl mx-auto" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
  <h3 className="text-xl font-bold text-warm-900 mb-1 text-center flex items-center justify-center gap-2"><Icon name="Wallet" size={18} className="text-green-600"/>Gift pot fees</h3>
  <p className="text-warm-500 text-center text-sm mb-6">A small platform cut keeps Thankeeu running</p>
- <div className="grid grid-cols-3 gap-4">
+ <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
  {[
  { icon: 'Gift', title: 'Gift vouchers', sub: '3% cut' },
  { icon: 'Card', title: 'Cash withdrawal', sub: '3% platform fee' },

@@ -40,13 +40,16 @@ const DEFAULT_COMPARISON_ROWS = [
 const DEFAULT_PLANS = [
   { name: 'Classic', priceNGN: 5000, credits: 1, popular: false, label: 'One perfect card',
     features: ['Send 1 group card', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
-    btn: 'Get started', btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50' },
+    btn: 'Create your card →', btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
+    href: null }, // resolved dynamically below using createCardUrl
   { name: 'Standard', priceNGN: 9000, credits: 2, popular: true, label: 'Two cards — save on the second',
     features: ['Send 2 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
-    btn: 'Get 2 credits', btnStyle: 'bg-primary-500 text-white hover:bg-primary-600' },
+    btn: 'Get 2 credits', btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
+    href: '/signup?plan=standard' },
   { name: 'Pack of 5', priceNGN: 20000, credits: 5, popular: false, label: '5 cards — best per-card price',
     features: ['Send 5 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
-    btn: 'Buy 5 credits', btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50' },
+    btn: 'Buy 5 credits', btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
+    href: '/signup?plan=pack5' },
 ];
 
 const PricingSection = () => {
@@ -71,7 +74,7 @@ const PricingSection = () => {
           </p>
           <CurrencyToggle selected={currency} onChange={setCurrency} />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="pricing-plans-grid grid grid-cols-1 md:grid-cols-3 gap-6">
           {DEFAULT_PLANS.map(plan => (
             <div key={plan.name}
               className={`relative rounded-3xl border-2 p-7 flex flex-col transition-all hover:shadow-xl ${plan.popular ? 'border-primary-400 shadow-lg' : 'border-purple-100'}`}
@@ -103,7 +106,7 @@ const PricingSection = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/card/new" className={`w-full py-3.5 rounded-2xl font-bold text-sm text-center transition-all ${plan.btnStyle}`}>
+              <Link to={plan.href || createCardUrl} className={`w-full py-3.5 rounded-2xl font-bold text-sm text-center transition-all ${plan.btnStyle}`}>
                 {plan.btn}
               </Link>
             </div>
@@ -291,7 +294,7 @@ export default function RichOccasionPage({ config }) {
             </h2>
             <p className="text-warm-500 mt-3 max-w-xl mx-auto text-sm">All three do group cards. Here's what sets Thankeeu apart.</p>
           </div>
-          <div className="grid sm:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             {[
               { name: 'Thankbox', icon: 'Mail', colour: '#0ea5e9', bg: '#f0f9ff', line: 'UK group card platform. GBP gift collection. No voice notes, no Memory Movie, no Nigerian payments.' },
               { name: 'Kudoboard', icon: 'Award', colour: '#f59e0b', bg: '#fffbeb', line: 'US recognition platform. USD-only. No voice notes, no live photo wall, expensive subscription model.' },

@@ -1002,7 +1002,7 @@ const WhatsAppVsThankeeu = () => (
 /* ─── Main Home ──────────────────────────────────────────────────────── */
 const Home = () => {
  useSEO({
- title:'Thankeeu — Group Cards, Gift Pools & Company Workspaces',
+ title:'Thankeeu — Group Cards, Memory Movies & Gift Pools for Every Occasion',
  description:'Create beautiful online group cards, gift pools, Memory Movies and company workspaces on your own Thankeeu subdomain — for any occasion, any team.',
  canonical:'/',
  keywords:'online group card, company workspace, employee recognition workspace, HR birthday automation, wildcard subdomain workspace, group birthday card, farewell card online, group gift collection, memory movie slideshow, collect wedding guest photos, event photo sharing QR code, live photo wall, digital group card, team birthday card, group card app',
@@ -1039,18 +1039,31 @@ const Home = () => {
  </p>
  </div>
  <h1 className="font-extrabold text-warm-900 mb-4" style={{ fontSize:'clamp(2.2rem,5.5vw,4rem)', lineHeight:1.1, letterSpacing:'-0.02em' }}>
- <span style={{ color:'#1A1035' }}>Send a Group</span>
+ <span style={{ color:'#1A1035' }}>Send an Online Group</span>
  <br />
  <span style={{ display:'inline-block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px' }}>
  {ROTATING_WORDS[wordIndex]}
  </span>
  <br />
- <span style={{ color:'#1A1035' }}>Card &amp; Collect Real-time Guests Shots Online</span>
+ <span style={{ color:'#1A1035' }}>Card that will be Read and Watched</span>
  </h1>
 
  <p className="text-warm-600 mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.1rem,2.4vw,1.3rem)', lineHeight:1.6 }}>
  The card that collects everyone's love — messages, photos, voice notes and a gift — then turns it all into a group card and movie video memory they keep forever.
  </p>
+
+ {/* Price — visible before any scrolling, same pattern as leaving card hero */}
+ <div className="flex flex-wrap items-center gap-2 mb-5 justify-center lg:justify-start">
+   <span className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold" style={{background:'#EDE9FE',color:'#5B21B6'}}>
+     <Icon name="Check" size={13} className="text-emerald-600"/>Free to start
+   </span>
+   <span className="text-warm-300 text-sm">·</span>
+   <span className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold" style={{background:'#ECFDF5',color:'#065F46'}}>
+     <Icon name="Tag" size={12}/>From $3.15 to send
+   </span>
+   <span className="text-warm-300 text-sm hidden sm:inline">·</span>
+   <span className="text-xs font-semibold text-warm-400 hidden sm:inline">No subscription</span>
+ </div>
 
  {/* ── 3 Feature Cards ── */}
  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 max-w-xl mx-auto lg:mx-0">
@@ -1336,7 +1349,10 @@ const Home = () => {
  Get inspiration from our<br/><span className="text-primary-500">sample cards</span>
  </h2>
  <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
- See a real, finished card before you start — no signup needed.
+   See a real, finished card before you start — no signup needed.
+ </p>
+ <p className="text-xs font-semibold text-primary-500 mt-2">
+   ✏️ Every cover design is fully editable — add your recipient's name, change the title, colours and text before sharing.
  </p>
  </div>
 

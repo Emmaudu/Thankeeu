@@ -63,9 +63,9 @@ const PricingSection = () => {
     return `${curr.symbol}${currency === 'NGN' ? v.toLocaleString() : v.toFixed(2)}`;
   };
   const plans = [
-    { name:'Classic', ngn:5000,  badge:null,       highlight:false, btn:'Create wedding wall', btnStyle:'bg-primary-600 hover:bg-primary-700 text-white', features:['1 wedding card', 'Unlimited guest uploads', 'QR code included', 'Live Memory Wall', 'Memory Movie™', 'Delivery on your day'] },
-    { name:'Premium', ngn:9000,  badge:'Most popular', highlight:true,  btn:'Get Premium',        btnStyle:'bg-gradient-to-r from-primary-500 to-purple-600 text-white shadow-lg', features:['Everything in Classic', '2 wedding cards', 'Priority support', 'HD Memory Movie™', 'Gift pot enabled', 'Custom branding'] },
-    { name:'Duo',     ngn:20000, badge:'Best value',   highlight:false, btn:'Get 2 credits',      btnStyle:'bg-warm-900 hover:bg-warm-800 text-white', features:['Everything in Premium', '4 wedding cards', 'Memory Movie™ for each', 'Dedicated support', 'Early feature access', 'Team gift collection'] },
+    { name:'Classic', ngn:5000,  badge:null,       highlight:false, btn:'Create wedding wall →', btnStyle:'bg-primary-600 hover:bg-primary-700 text-white', href:'/card/new?occasion=wedding', features:['1 wedding card', 'Unlimited guest uploads', 'QR code included', 'Live Memory Wall', 'Memory Movie™', 'Delivery on your day'] },
+    { name:'Premium', ngn:9000,  badge:'Most popular', highlight:true,  btn:'Get Premium',        btnStyle:'bg-gradient-to-r from-primary-500 to-purple-600 text-white shadow-lg', href:'/signup?plan=standard', features:['Everything in Classic', '2 wedding cards', 'Priority support', 'HD Memory Movie™', 'Gift pot enabled', 'Custom branding'] },
+    { name:'Duo',     ngn:20000, badge:'Best value',   highlight:false, btn:'Get 2 credits',      btnStyle:'bg-warm-900 hover:bg-warm-800 text-white', href:'/signup?plan=pack5', features:['Everything in Premium', '4 wedding cards', 'Memory Movie™ for each', 'Dedicated support', 'Early feature access', 'Team gift collection'] },
   ];
   return (
     <section className="py-16 md:py-24 px-4 bg-white" id="pricing">
@@ -86,7 +86,7 @@ const PricingSection = () => {
           </p>
           <CurrencyToggle selected={currency} onChange={setCurrency} />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="pricing-plans-grid grid grid-cols-1 md:grid-cols-3 gap-6">
           {plans.map(plan => (
             <div key={plan.name} className={`rounded-3xl border-2 p-7 flex flex-col relative ${plan.highlight ? 'border-primary-400 shadow-2xl shadow-primary-100' : 'border-purple-100'}`}>
               {plan.badge && (
@@ -101,7 +101,7 @@ const PricingSection = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/card/new?occasion=wedding"
+              <Link to={plan.href}
                 className={`w-full py-3.5 rounded-2xl font-bold text-sm text-center transition-all ${plan.btnStyle}`}>
                 {plan.btn}
               </Link>
@@ -216,7 +216,7 @@ export default function QRCodeForWeddingPhotos() {
       {/* ══ SOCIAL PROOF NUMBERS ══ */}
       <section className="py-10 px-4 border-b border-purple-50" style={{ background: '#fff' }}>
         <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-3 gap-6 text-center">
+          <div className="grid grid-cols-3 gap-3 sm:gap-6 text-center">
             {[
               { stat: '50,000+', label: 'Messages posted',     icon: 'MessageSquare' },
               { stat: '10,000+', label: 'Happy customers',     icon: 'Users' },

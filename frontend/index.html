@@ -226,5 +226,65 @@
     </div>
     <div id="root"><nav aria-label="Thankeeu services"><a href="/occasions/birthday">Birthday group cards</a> <a href="/cards/leaving-card">Leaving cards</a> <a href="/cards/retirement">Retirement cards</a> <a href="/live-memory-wall">Live Memory Wall</a> <a href="/pricing">Pricing</a> <a href="/how-it-works">How it works</a></nav><main><h1>Thankeeu online group cards, gifts and Live Memory Walls</h1><p>Create a beautiful group card everyone signs from one link. Add messages, photos, GIFs, voice notes, a group gift, or a live two-column memory wall for birthdays, farewells and retirements.</p><p><a href="/create-card">Create a group card</a> or <a href="/sample">view a sample card</a>.</p></main></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!--
+      ── Tawk.to live chat ────────────────────────────────────────────────
+      Property: Thankeeu / Widget: 1jts7ek8k
+      Deferred 3s so it never affects LCP. Auto-hidden on /card/* and
+      /sign/* so the bubble never overlaps the album flipbook UI.
+    -->
+    <script>
+      (function () {
+        var src = 'https://embed.tawk.to/6a5c47803de87f1d487ef758/1jts7ek8k';
+
+        // Guard: if the env var was not set, src will be the literal
+        // placeholder string — bail out silently rather than loading a
+        // broken script URL.
+        if (!src || src.indexOf('tawk.to') === -1) return;
+
+        window.Tawk_API = window.Tawk_API || {};
+        window.Tawk_LoadStart = new Date();
+
+        // Auto-hide on /card/* and /sign/* so the bubble never sits on
+        // top of the album flipbook signing experience.
+        window.Tawk_API.onLoad = function () {
+          var path = window.location.pathname;
+          if (/^\/(card|sign)\//.test(path)) {
+            window.Tawk_API.hideWidget();
+          }
+        };
+
+        // Re-evaluate on SPA navigation — React Router changes the path
+        // without a full page reload so we need to listen for it.
+        // Tawk_API exposes no navigation hook, so we patch history instead.
+        (function patchHistory() {
+          var _push = history.pushState;
+          var _replace = history.replaceState;
+          function onNav() {
+            var path = window.location.pathname;
+            if (!window.Tawk_API || !window.Tawk_API.hideWidget) return;
+            if (/^\/(card|sign)\//.test(path)) {
+              window.Tawk_API.hideWidget();
+            } else {
+              window.Tawk_API.showWidget();
+            }
+          }
+          history.pushState = function () { _push.apply(this, arguments); onNav(); };
+          history.replaceState = function () { _replace.apply(this, arguments); onNav(); };
+          window.addEventListener('popstate', onNav);
+        })();
+
+        // Defer load by 3s — doesn't affect LCP/FCP/CLS scores
+        setTimeout(function () {
+          var s1 = document.createElement('script');
+          var s0 = document.getElementsByTagName('script')[0];
+          s1.async = true;
+          s1.src = src;
+          s1.charset = 'UTF-8';
+          s1.setAttribute('crossorigin', '*');
+          s0.parentNode.insertBefore(s1, s0);
+        }, 3000);
+      })();
+    </script>
   </body>
 </html>

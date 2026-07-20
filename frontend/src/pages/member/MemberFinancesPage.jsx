@@ -34,16 +34,16 @@ export default function MemberFinancesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="rounded-2xl p-5 border-2" style={{ background:'rgba(124,110,255,0.06)', borderColor:'rgba(124,110,255,0.2)' }}>
+        <div className="min-w-0 rounded-2xl p-5 border-2" style={{ background:'rgba(124,110,255,0.06)', borderColor:'rgba(124,110,255,0.2)' }}>
           <p className="text-base font-medium mb-1" style={{ color:'#7A7898' }}>I contributed</p>
-          <p className="text-2xl font-bold" style={{ fontFamily:'Space Grotesk,sans-serif', color:'#5B4BDF' }}>
+          <p className="text-2xl font-bold" style={{ fontFamily:'Space Grotesk,sans-serif', color:'#5B4BDF', overflowWrap:'break-word' }}>
             {formatNGN(total_contributed)}
           </p>
           <p className="text-sm mt-1" style={{ color:'#9490C8' }}>Gifts given to others</p>
         </div>
-        <div className="rounded-2xl p-5 border-2" style={{ background:'rgba(16,185,129,0.06)', borderColor:'rgba(16,185,129,0.2)' }}>
+        <div className="min-w-0 rounded-2xl p-5 border-2" style={{ background:'rgba(16,185,129,0.06)', borderColor:'rgba(16,185,129,0.2)' }}>
           <p className="text-base font-medium mb-1" style={{ color:'#7A7898' }}>Collected for me</p>
-          <p className="text-2xl font-bold" style={{ fontFamily:'Space Grotesk,sans-serif', color:'#059669' }}>
+          <p className="text-2xl font-bold" style={{ fontFamily:'Space Grotesk,sans-serif', color:'#059669', overflowWrap:'break-word' }}>
             {formatNGN(total_collected)}
           </p>
           <p className="text-sm mt-1" style={{ color:'#6EE7B7' }}>On cards you created</p>

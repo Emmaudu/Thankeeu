@@ -439,7 +439,7 @@ const Pricing = () => {
  </div>
  </div>
 
- <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl mx-auto mb-10">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto mb-10">
  {COMPANY_PLANS.map(plan => (
  <div key={plan.id} className="gc-card relative p-6" style={plan.popular ? { border: '2px solid #7C3AED' } : undefined}>
  {plan.popular && (

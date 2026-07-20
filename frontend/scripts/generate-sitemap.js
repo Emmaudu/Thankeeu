@@ -98,6 +98,20 @@ const STATIC_PAGES = [
   { loc: '/online-group-cards-canada',  changefreq: 'monthly', priority: '0.9', hreflang: 'en-CA' },
   { loc: '/online-group-cards-nigeria', changefreq: 'monthly', priority: '0.9', hreflang: 'en-NG' },
   { loc: '/cards/leaving-card',    changefreq: 'monthly', priority: '0.9', hreflang: true },
+
+  // ── Keyword + competitor landing pages (SEO expansion) ─────────────────────
+  { loc: '/ecards',                              changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/virtual-cards',                       changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/group-ecard',                         changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/digital-greeting-cards',              changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/virtual-birthday-card',               changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/virtual-farewell-card',               changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/ecard-for-coworker',                  changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/free-ecards-for-friends-and-family',  changefreq: 'monthly', priority: '0.8', hreflang: true },
+  { loc: '/canva-cards-alternative',             changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/sendwishonline-alternative',          changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/groupgreeting-alternative',           changefreq: 'monthly', priority: '0.9', hreflang: true },
+
   { loc: '/cards/pet-loss-card',   changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/cards/retirement',      changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/cards/get-well-soon',   changefreq: 'monthly', priority: '0.8', hreflang: true },

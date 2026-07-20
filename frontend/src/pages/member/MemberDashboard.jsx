@@ -68,7 +68,7 @@ const TabHome = ({ data, loading }) => {
           { icon:'💌', label:'Active cards',     value: stats.active_cards || 0 },
           { icon:'⏳', label:'Pending to sign',  value: stats.pending_approvals || 0, accent: (stats.pending_approvals||0)>0 },
         ].map(s => (
-          <div key={s.label} className={`rounded-2xl p-4 border-2 ${s.accent ? 'bg-primary-50 border-primary-200' : 'bg-white border-purple-100'}`}>
+          <div key={s.label} className={`min-w-0 rounded-2xl p-4 border-2 ${s.accent ? 'bg-primary-50 border-primary-200' : 'bg-white border-purple-100'}`}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-warm-500 mb-1">{s.label}</p>
@@ -383,14 +383,14 @@ const TabFinances = () => {
     <div className="space-y-5">
       {/* Summary */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-2xl border-2 border-purple-100 p-4">
+        <div className="min-w-0 bg-white rounded-2xl border-2 border-purple-100 p-4">
           <p className="text-xs text-warm-500 mb-1">💸 Total contributed</p>
-          <p className="font-display text-2xl font-bold text-primary-600">{formatNGN(data?.total_contributed || 0)}</p>
+          <p className="font-display text-2xl font-bold text-primary-600" style={{overflowWrap:'break-word'}}>{formatNGN(data?.total_contributed || 0)}</p>
           <p className="text-xs text-warm-400 mt-0.5">Gifts you gave to others</p>
         </div>
-        <div className="bg-white rounded-2xl border-2 border-purple-100 p-4">
+        <div className="min-w-0 bg-white rounded-2xl border-2 border-purple-100 p-4">
           <p className="text-xs text-warm-500 mb-1">🎁 Total collected</p>
-          <p className="font-display text-2xl font-bold text-green-600">{formatNGN(data?.total_collected || 0)}</p>
+          <p className="font-display text-2xl font-bold text-green-600" style={{overflowWrap:'break-word'}}>{formatNGN(data?.total_collected || 0)}</p>
           <p className="text-xs text-warm-400 mt-0.5">On cards you created</p>
         </div>
       </div>

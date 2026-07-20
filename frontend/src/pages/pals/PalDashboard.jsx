@@ -7,16 +7,16 @@ import { formatNGN } from '../../utils/currency';
 import toast from 'react-hot-toast';
 
 const StatCard = ({ icon, label, value, sub, color = '#7C3AED' }) => (
-  <div className="bg-white rounded-2xl border border-purple-100 p-5 relative overflow-hidden">
+  <div className="min-w-0 bg-white rounded-2xl border border-purple-100 p-5 relative overflow-hidden">
     <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-5"
       style={{ background: color, transform: 'translate(25%,-25%)' }} />
     <div className="flex items-start justify-between relative">
-      <div>
+      <div className="min-w-0">
         <p className="text-xs font-semibold text-warm-400 uppercase tracking-wide mb-1">{label}</p>
-        <p className="text-2xl font-bold text-warm-900">{value}</p>
+        <p className="text-2xl font-bold text-warm-900" style={{overflowWrap:'break-word'}}>{value}</p>
         {sub && <p className="text-xs text-warm-400 mt-1">{sub}</p>}
       </div>
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
+      <div className="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
         <Icon name={icon} size={20} style={{ color }} />
       </div>
     </div>

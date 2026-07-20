@@ -135,7 +135,7 @@ export default function DashboardCredits() {
         </div>
 
         {/* Plans */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
           {/* Classic + Standard — fixed plans */}
           {PLANS.map(plan => (
             <div key={plan.id} className={`relative rounded-3xl border-2 p-5 flex flex-col ${plan.color}`}>

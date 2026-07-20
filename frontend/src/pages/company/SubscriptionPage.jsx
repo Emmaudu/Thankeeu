@@ -188,7 +188,7 @@ export default function SubscriptionPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Monthly */}
                 <div className={`rounded-2xl border-2 p-5 ${isActive && sub?.plan === 'monthly' ? 'border-primary-400 bg-primary-50' : 'border-purple-100'}`}>
                   <p className="font-bold text-warm-900 mb-1">Monthly</p>

@@ -2099,7 +2099,8 @@ const Admin = () => {
               {palApplications.length === 0 ? (
                 <EmptyState icon="👥" title="No Pals applications yet" sub="Groups that apply for a Thankeeu Pals account will appear here." />
               ) : (
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto" style={{WebkitOverflowScrolling:'touch'}}>
+                <table className="w-full text-sm" style={{minWidth:640}}>
                   <thead className="bg-purple-50 text-xs uppercase text-warm-500">
                     <tr>{['Group','Username','Email','Size','Status','Action'].map(h=>(
                       <th key={h} className="px-4 py-3 text-left">{h}</th>
@@ -2141,6 +2142,7 @@ const Admin = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
 
@@ -2190,7 +2192,8 @@ const Admin = () => {
 
             <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
               <div className="px-5 py-4 border-b border-purple-50 font-semibold text-warm-900">Vendors</div>
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto" style={{WebkitOverflowScrolling:'touch'}}>
+              <table className="w-full text-sm" style={{minWidth:560}}>
                 <thead className="bg-purple-50 text-xs uppercase text-warm-500">
                   <tr>
                     {['Store','Category','Status','Verified','Action'].map(h=>(
@@ -2279,12 +2282,14 @@ const Admin = () => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {vendorOrders.length > 0 && (
               <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
                 <div className="px-5 py-4 border-b border-purple-50 font-semibold text-warm-900">🎂 Gift Orders via Thankeeu</div>
-                <table className="w-full text-sm">
+                <div className="overflow-x-auto" style={{WebkitOverflowScrolling:'touch'}}>
+                <table className="w-full text-sm" style={{minWidth:640}}>
                   <thead className="bg-purple-50 text-xs uppercase text-warm-500">
                     <tr>
                       {['Order','Vendor','Customer','Total','Fee','Status'].map(h=>(
@@ -2315,6 +2320,7 @@ const Admin = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>

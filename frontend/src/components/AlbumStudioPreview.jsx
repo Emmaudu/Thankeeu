@@ -550,27 +550,30 @@ const AlbumStudioPreview = ({
       `}</style>
 
       {/* Group-card layout options. Card experience already decides Group Card vs Live Wall. */}
-      <div className="mb-5 grid grid-cols-2 gap-3 rounded-2xl bg-gradient-to-r from-purple-50 via-fuchsia-50 to-sky-50 p-2">
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 rounded-2xl bg-gradient-to-r from-purple-50 via-fuchsia-50 to-sky-50 p-2">
           {[
             { id: 'album', label: 'Album flipbook', icon: 'BookOpen', description: 'Turn pages like a real keepsake', recommended: true },
             { id: 'form',  label: 'Message board', icon: 'LayoutGrid', description: 'See every message in one board', recommended: false },
           ].map(sub => (
             <button key={sub.id} type="button"
               onClick={() => onCardLayoutChange?.(sub.id)}
-              className={`flex min-h-[82px] items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all ${
+              className={`flex min-h-[82px] min-w-0 items-center gap-2 sm:gap-3 rounded-xl border-2 px-2.5 sm:px-4 py-3 text-left transition-all ${
                 (form.card_layout === sub.id || (!form.card_layout && sub.id === 'album'))
                   ? sub.id === 'album'
                     ? 'border-primary-500 bg-gradient-to-br from-primary-600 to-fuchsia-600 text-white shadow-lg shadow-primary-200'
                     : 'border-sky-500 bg-gradient-to-br from-sky-500 to-cyan-600 text-white shadow-lg shadow-sky-200'
                   : 'border-white bg-white/90 text-warm-700 shadow-sm hover:-translate-y-0.5 hover:border-purple-200'
               }`}>
-              <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/20"><Icon name={sub.icon} size={21}/></span>
-              <span>
-                <span className="flex items-center gap-2 text-sm font-extrabold sm:text-base">
-                  {sub.label}
-                  {sub.recommended && <span className="rounded-full bg-white/20 px-2 py-0.5 text-[9px] font-extrabold">Recommended</span>}
+              <span className="flex h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/20"><Icon name={sub.icon} size={19}/></span>
+              {/* min-w-0 is required here — without it, a flex child refuses to
+                  shrink below its content's natural width and forces the
+                  parent button (and the page) wider than the viewport. */}
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-1 sm:gap-2 text-[13px] font-extrabold leading-tight sm:text-base">
+                  <span className="truncate">{sub.label}</span>
+                  {sub.recommended && <span className="flex-shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-extrabold sm:px-2 sm:text-[9px]">Recommended</span>}
                 </span>
-                <span className="mt-1 block text-[10px] font-semibold opacity-80 sm:text-xs">{sub.description}</span>
+                <span className="mt-1 block text-[10px] font-semibold leading-snug opacity-80 sm:text-xs">{sub.description}</span>
               </span>
             </button>
           ))}

@@ -22,6 +22,11 @@ import GuestCamAlt           from './pages/GuestCamAlternative';
 import VsThankbox            from './pages/VsThankbox';
 import VsKudoboard           from './pages/VsKudoboard';
 import VsThankboxKudoboard   from './pages/VsThankboxKudoboard';
+import CanvaCardsAlternative from './pages/CanvaCardsAlternative';
+import SendWishOnlineAlternative from './pages/SendWishOnlineAlternative';
+import GroupGreetingAlternative from './pages/GroupGreetingAlternative';
+import KeywordLandingPage    from './pages/keywords/KeywordLandingPage';
+import { KEYWORD_SLUGS }     from './pages/keywords/keywordPagesData';
 import WeddingPhotoSharingApp      from './pages/WeddingPhotoSharingApp';
 import WeddingPhotoUploadApp       from './pages/WeddingPhotoUploadApp';
 import QRCodeForWeddingPhotos      from './pages/QRCodeForWeddingPhotos';
@@ -413,6 +418,12 @@ const App = () => (
             <Route path="/thankeeu-vs-thankbox"       element={<VsThankbox />} />
             <Route path="/thankeeu-vs-kudoboard"      element={<VsKudoboard />} />
             <Route path="/thankeeu-vs-thankbox-vs-kudoboard" element={<VsThankboxKudoboard />} />
+            <Route path="/canva-cards-alternative"     element={<CanvaCardsAlternative />} />
+            <Route path="/sendwishonline-alternative"  element={<SendWishOnlineAlternative />} />
+            <Route path="/groupgreeting-alternative"   element={<GroupGreetingAlternative />} />
+            {KEYWORD_SLUGS.map(slug => (
+              <Route key={slug} path={`/${slug}`} element={<KeywordLandingPage slug={slug} />} />
+            ))}
             <Route path="/policy"        element={<Policy />} />
             <Route path="/how-it-works"  element={<HowItWorks />} />
             <Route path="/occasions/birthday"    element={<BirthdayPage />} />

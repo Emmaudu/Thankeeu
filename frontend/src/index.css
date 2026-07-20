@@ -790,10 +790,13 @@ body.sidebar-open { overflow: hidden; }
   z-index: 1;
 }
 /* The navbar is a direct child of auth-root and gets z-index:1 from the
-   rule above — but its mobile overlay (fixed, z-[60]) is scoped within
-   that stacking context. Raising the nav's z-index above the form card
-   (also z-index:1) lets the overlay escape and appear in front of everything. */
-.auth-root > nav {
+   rule above — but its mobile menu overlay is a SEPARATE sibling element
+   (rendered outside <nav> in the Fragment, not nested inside it), so it
+   was still trapped at z-index:1 even after raising nav's z-index alone.
+   Both must be raised together so the mobile hamburger menu appears in
+   front of the login/signup form instead of behind it. */
+.auth-root > nav,
+.auth-root > .mobile-nav-overlay {
   z-index: 50;
 }
 
@@ -858,6 +861,12 @@ body.sidebar-open { overflow: hidden; }
   border: 2px solid #EDE9FE;
   border-radius: 20px;
   padding: 1.25rem 1.25rem 1rem;
+  /* CSS Grid items default to min-width:auto, which refuses to shrink
+     below the intrinsic width of unwrapped content (e.g. a large Naira
+     figure). This forces the grid track — and the whole row — wider
+     than the viewport on mobile. min-width:0 lets the card shrink to
+     its grid track's actual size instead of overflowing it. */
+  min-width: 0;
 }
 
 .db-stat-card.db-stat-hi {
@@ -879,6 +888,9 @@ body.sidebar-open { overflow: hidden; }
   font-size: 1.625rem;
   color: #1A1035;
   line-height: 1;
+  /* Safety net: if the card is still too narrow for a very large number
+     even after shrinking, wrap it rather than push the layout wider. */
+  overflow-wrap: break-word;
 }
 
 .db-stat-value.db-stat-value-hi { color: #6D28D9; }

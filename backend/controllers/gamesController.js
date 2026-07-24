@@ -5,7 +5,7 @@ const supabase = require('../utils/supabase');
 const emailUtil = require('../utils/email');
 const sendEmail = emailUtil.sendEmail || emailUtil;
 
-const GAMES_URL = (process.env.GAMES_URL || 'https://games.thankeeu.com').replace(/\/$/, '');
+const GAMES_URL = (process.env.GAMES_URL || 'https://www.thankeeu.com/games').replace(/\/$/, '');
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://thankeeu.com').replace(/\/$/, '');
 const FLW_BASE = 'https://api.flutterwave.com/v3';

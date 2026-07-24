@@ -52,7 +52,7 @@ const DEFAULT_PLANS = [
     href: '/signup?plan=pack5' },
 ];
 
-const PricingSection = () => {
+const PricingSection = ({ createCardUrl }) => {
   const [currency, setCurrency] = useState('USD');
   const curr = getCurrency(currency);
   const fmt = (ngn) => {
@@ -278,7 +278,7 @@ export default function RichOccasionPage({ config }) {
         background="#ffffff"
       />
 
-      <PricingSection />
+      <PricingSection createCardUrl={createCardUrl} />
 
       <div className="h-px mx-4" style={{ background: 'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
 

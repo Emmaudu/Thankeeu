@@ -60,9 +60,9 @@ export default function CultureEngagements() {
                 employees build pride in their craft, and winners are celebrated with automatic congratulations group cards that players and visitors can sign with messages, GIFs, photos, videos and voice notes.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <a href="https://games.thankeeu.com" className="rounded-xl bg-primary-500 px-6 py-3 text-sm font-black text-white hover:bg-primary-600">
+                <Link to="/games" className="rounded-xl bg-primary-500 px-6 py-3 text-sm font-black text-white hover:bg-primary-600">
                   Open Thankeeu Games
-                </a>
+                </Link>
                 <Link to="/business" className="rounded-xl border border-white/20 px-6 py-3 text-sm font-black text-white hover:bg-white/10">
                   Explore company workspaces
                 </Link>

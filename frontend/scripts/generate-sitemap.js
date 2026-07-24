@@ -69,6 +69,8 @@ const STATIC_LASTMOD = {
   '/blog':                  TODAY, // blog index changes frequently
   '/business':              '2026-07-14',
   '/employee-memory-wall':  '2026-07-14',
+  '/games':                 '2026-07-14',
+  '/games/leaderboard':     '2026-07-14',
   '/thankeeu-vs-thankbox':  '2026-07-14',
   '/thankeeu-vs-kudoboard': '2026-07-14',
   '/thankeeu-vs-thankbox-vs-kudoboard': '2026-07-14',
@@ -138,6 +140,13 @@ const STATIC_PAGES = [
   { loc: '/birthday-memory-wall',changefreq: 'monthly', priority: '0.8', hreflang: true },
   { loc: '/church-memory-wall',  changefreq: 'monthly', priority: '0.7', hreflang: true },
   { loc: '/employee-memory-wall',changefreq: 'monthly', priority: '0.9', hreflang: true },
+  { loc: '/games',             changefreq: 'weekly',  priority: '0.8', hreflang: true,
+    image: {
+      loc: `${APP_URL}/og-image.png`,
+      title: 'Thankeeu Games - Inter-Company Employee Engagement League',
+      caption: 'Department-based weekly employee engagement games with public leaderboards and congratulations group cards signed with messages, GIFs, photos, videos and voice notes.',
+    } },
+  { loc: '/games/leaderboard', changefreq: 'weekly',  priority: '0.7', hreflang: true },
   { loc: '/thankeeu-vs-wedtrove', changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/thankeeu-vs-thankbox', changefreq: 'monthly', priority: '0.85', hreflang: true },
   { loc: '/thankeeu-vs-kudoboard',changefreq: 'monthly', priority: '0.85', hreflang: true },

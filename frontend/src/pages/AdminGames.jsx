@@ -54,7 +54,7 @@ export default function AdminGames() {
           <div>
             <Link to="/admin" className="text-sm font-semibold text-primary-600">Back to Thankeeu admin</Link>
             <h1 className="mt-2 text-3xl font-black text-warm-900">Thankeeu Games Admin</h1>
-            <p className="text-warm-500">Control games.thankeeu.com from the normal Thankeeu admin account. Current week: {data.week.week_key}</p>
+            <p className="text-warm-500">Control thankeeu.com/games from the normal Thankeeu admin account. Current week: {data.week.week_key}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={sendReminders} className="btn-secondary px-5 py-3">Send Friday reminders</button>

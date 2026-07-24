@@ -17,7 +17,7 @@ const router   = express.Router();
 const supabase = require('../utils/supabase');
 const emailUtil = require('../utils/email');
 const sendEmail = emailUtil.sendEmail || emailUtil;
-const GAMES_URL = (process.env.GAMES_URL || 'https://games.thankeeu.com').replace(/\/$/, '');
+const GAMES_URL = (process.env.GAMES_URL || 'https://www.thankeeu.com/games').replace(/\/$/, '');
 const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 router.post('/flutterwave', express.raw({ type: 'application/json' }), async (req, res) => {

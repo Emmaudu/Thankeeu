@@ -311,7 +311,7 @@ export const GamesHome = () => {
   useSEO({
     title: 'Thankeeu Games - Employee Engagement League',
     description: 'Thankeeu Games is an inter-company employee engagement league with Friday 2pm department games, public leaderboards and company teams.',
-    canonical: 'https://games.thankeeu.com/',
+    canonical: 'https://www.thankeeu.com/games',
     keywords: 'employee engagement games, inter-company league, workplace quiz games, department games, employee recognition leaderboard',
   });
 
@@ -784,7 +784,7 @@ export const GamesLeaderboard = () => {
   const [playWindow, setPlayWindow] = useState(null);
   const department = params.get('department') || '';
   const week = params.get('week') || '';
-  useSEO({ title: 'Public Employee Games Leaderboard - Thankeeu Games', description: 'View weekly public leaderboards for Thankeeu Games employee engagement league.', canonical: 'https://games.thankeeu.com/leaderboard' });
+  useSEO({ title: 'Public Employee Games Leaderboard - Thankeeu Games', description: 'View weekly public leaderboards for Thankeeu Games employee engagement league.', canonical: 'https://www.thankeeu.com/games/leaderboard' });
   useEffect(() => {
     const query = {};
     if (department) query.department = department;
@@ -865,7 +865,7 @@ export const GamesLeaderboard = () => {
 
 export const GamesGifts = () => {
   const [data, setData] = useState({ sponsors: [], week_key: '' });
-  useSEO({ title: 'Thankeeu Games Gifts - Sponsored Employee Rewards', description: 'See weekly sponsorship gifts pledged by companies for Thankeeu Games department winners.', canonical: 'https://games.thankeeu.com/gifts' });
+  useSEO({ title: 'Thankeeu Games Gifts - Sponsored Employee Rewards', description: 'See weekly sponsorship gifts pledged by companies for Thankeeu Games department winners.', canonical: 'https://www.thankeeu.com/games/gifts' });
   useEffect(() => {
     gamesAPI.sponsorships().then(res => setData(res.data)).catch(() => toast.error('Could not load sponsorship gifts'));
   }, []);
@@ -909,7 +909,7 @@ export const GamesGifts = () => {
 };
 
 export const GamesSponsor = () => {
-  useSEO({ title: 'Sponsor Thankeeu Games - Employee Engagement Rewards', description: 'Sponsor weekly Thankeeu Games department winners with Flutterwave payments and brand visibility across Thankeeu.', canonical: 'https://games.thankeeu.com/sponsor' });
+  useSEO({ title: 'Sponsor Thankeeu Games - Employee Engagement Rewards', description: 'Sponsor weekly Thankeeu Games department winners with Flutterwave payments and brand visibility across Thankeeu.', canonical: 'https://www.thankeeu.com/games/sponsor' });
   return (
     <div className={lightPageClass}>
       <GamesNav />

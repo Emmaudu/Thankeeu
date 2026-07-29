@@ -94,7 +94,7 @@ const sendVerificationCode = async (req, res) => {
 
     // Send code via email
     const appName = 'Thankeeu';
-    await sendEmail({
+    const emailResult = await sendEmail({
       to: cleanEmail,
       subject: `${code} is your ${appName} verification code`,
       html: `
@@ -108,6 +108,13 @@ const sendVerificationCode = async (req, res) => {
           <p style="color:#888;font-size:13px;margin:0;">If you did not request this, you can safely ignore this email.</p>
         </div>`
     });
+
+    if (!emailResult?.success) {
+      console.error('sendVerificationCode: email delivery failed for', cleanEmail, emailResult?.error);
+      // Roll back the pending signup so the user isn't stuck in limbo with a code that never arrived
+      await supabase.from('pending_signups').delete().eq('email', cleanEmail);
+      return res.status(502).json({ error: 'Could not send verification email. Please try again in a moment, or check your email address is correct.' });
+    }
 
     res.json({ ok: true, message: `Verification code sent to ${cleanEmail}` });
   } catch (err) {

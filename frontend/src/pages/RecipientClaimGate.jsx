@@ -104,30 +104,53 @@ function LoginGate({ gateData, slug, onMarkClaimed }) {
   );
 }
 
-// ── Gate: Signup / claim account ───────────────────────────────────────────
+// ── Gate: Signup / claim account (two-step: send code, then verify) ───────
 function SignupGate({ gateData, slug, onMarkClaimed }) {
+  const [step,     setStep]     = useState('details'); // 'details' | 'verify'
   const [fullName, setFullName] = useState(gateData.recipient_name || '');
   const [email,    setEmail]    = useState(gateData.recipient_email || '');
   const [password, setPassword] = useState('');
   const [confirm,  setConfirm]  = useState('');
+  const [code,     setCode]     = useState('');
   const [loading,  setLoading]  = useState(false);
   const redirectToCard = useRedirectToCard(slug, gateData.access_token);
 
-  const handleSignup = async (e) => {
+  // Username is generated once per signup attempt and reused for both
+  // send-code and verify-code, so it must stay stable across the two steps.
+  const [username] = useState(() => {
+    const emailPrefix = (gateData.recipient_email || '').split('@')[0].replace(/[^a-z0-9_]/gi, '').toLowerCase().slice(0, 15) || 'user';
+    return emailPrefix + Math.random().toString(36).slice(2, 8);
+  });
+
+  // Step 1: validate and send the 6-digit code to their email
+  const handleSendCode = async (e) => {
     e.preventDefault();
     if (password !== confirm) { toast.error('Passwords do not match'); return; }
     if (password.length < 8)  { toast.error('Password must be at least 8 characters'); return; }
     setLoading(true);
     try {
-      // Generate a unique-enough username from email prefix + random suffix
-      const emailPrefix = email.split('@')[0].replace(/[^a-z0-9_]/gi, '').toLowerCase().slice(0, 15) || 'user';
-      const username = emailPrefix + Math.random().toString(36).slice(2, 8);
-      const res = await api.post('/auth/signup', {
+      await api.post('/auth/send-code', {
         full_name: fullName,
         email,
-        password,
         username,
+        password,
       });
+      toast.success(`Verification code sent to ${email}`);
+      setStep('verify');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to send code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: verify the code, create the account, then claim the card
+  const handleVerifyCode = async (e) => {
+    e.preventDefault();
+    if (!code.trim() || code.trim().length !== 6) { toast.error('Enter the 6-digit code from your email'); return; }
+    setLoading(true);
+    try {
+      const res = await api.post('/auth/verify-code', { email, code: code.trim() });
       const { token } = res.data;
       localStorage.setItem('thankeeu_token', token);
       // After signup cards are auto-linked in authController — just mark claimed
@@ -135,14 +158,55 @@ function SignupGate({ gateData, slug, onMarkClaimed }) {
       toast.success('Account created! Your card and gift are now in your dashboard');
       redirectToCard();
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Signup failed. Please try again.');
+      toast.error(err.response?.data?.error || 'Incorrect or expired code. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  if (step === 'verify') {
+    return (
+      <form onSubmit={handleVerifyCode} className="space-y-5">
+        <div className="text-center mb-2">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><Icon name="Mail" size={26} /></div>
+          <h2 className="text-2xl font-bold text-warm-900">Check your inbox</h2>
+          <p className="text-warm-500 text-sm mt-1">
+            We sent a 6-digit code to <strong>{email}</strong>. It expires in 15 minutes.
+          </p>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-warm-700 mb-2 text-center">Enter your 6-digit code</label>
+          <input
+            className="w-full text-center text-4xl font-extrabold tracking-[0.4em] py-4 px-6 rounded-2xl border-2 border-purple-200 focus:border-primary-500 focus:outline-none bg-white text-warm-900 transition-colors"
+            placeholder="000000"
+            value={code}
+            onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            maxLength={6}
+            inputMode="numeric"
+            autoFocus
+          />
+        </div>
+        <button type="submit" disabled={loading || code.length !== 6}
+          className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3 text-base font-bold disabled:opacity-60">
+          {loading ? <Icon name="Loader" size={17} className="animate-spin" /> : <Icon name="Gift" size={17} />}{loading ? 'Verifying…' : 'Verify & claim my card'}
+        </button>
+        <div className="text-center space-y-2">
+          <button type="button" onClick={() => { setStep('details'); setCode(''); }}
+            className="text-xs text-warm-400 hover:text-warm-700">
+            ← Change email or details
+          </button>
+          <br />
+          <button type="button" onClick={handleSendCode} disabled={loading}
+            className="text-xs text-primary-500 font-semibold hover:underline disabled:opacity-50">
+            Resend code
+          </button>
+        </div>
+      </form>
+    );
+  }
+
   return (
-    <form onSubmit={handleSignup} className="space-y-4">
+    <form onSubmit={handleSendCode} className="space-y-4">
       <div className="text-center mb-6">
         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-500"><Icon name="Gift" size={26} /></div>
         <h2 className="text-2xl font-bold text-warm-900">Claim your card!</h2>
@@ -171,9 +235,10 @@ function SignupGate({ gateData, slug, onMarkClaimed }) {
         <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
           className="input w-full" required placeholder="Same password again" />
       </div>
+
       <button type="submit" disabled={loading}
         className="btn-primary inline-flex w-full items-center justify-center gap-2 py-3 text-base font-bold">
-        {loading ? <Icon name="Loader" size={17} className="animate-spin" /> : <Icon name="Gift" size={17} />}{loading ? 'Creating account…' : 'Create account & claim my card'}
+        {loading ? <Icon name="Loader" size={17} className="animate-spin" /> : <Icon name="Gift" size={17} />}{loading ? 'Sending code…' : 'Continue — send verification code'}
       </button>
       <p className="text-center text-xs text-warm-400">
         Already have an account?{' '}

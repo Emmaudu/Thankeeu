@@ -35,6 +35,7 @@
 const axios    = require('axios');
 const supabase = require('../utils/supabase');
 const { safeTxRef, safeError } = require('../utils/paramGuard');
+const { validateDiscountCode, applyDiscountToFeeNGN, recordDiscountRedemption } = require('./discountCodeController');
 
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
@@ -152,7 +153,7 @@ const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountN
 // ═══════════════════════════════════════════════════════════════════════════════
 const initCardFee = async (req, res) => {
   try {
-    const { card_slug, currency: reqCurrency } = req.body;
+    const { card_slug, currency: reqCurrency, discount_code } = req.body;
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
 
     // Guard against double-charging: if the card is already active (previous payment
@@ -169,8 +170,40 @@ const initCardFee = async (req, res) => {
     const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
     // FX rates (approximate — FLW uses live rates at checkout)
     const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
-    const feeNGN = 5000;
+    const baseFeeNGN = 5000;
+
+    // Discount code — validated server-side only; the frontend never decides the price.
+    let feeNGN = baseFeeNGN;
+    let appliedDiscount = null;
+    if (discount_code) {
+      const result = await validateDiscountCode(discount_code);
+      if (!result.valid) return res.status(400).json({ error: result.error });
+      const { discountedNGN, discountAmountNGN } = applyDiscountToFeeNGN(baseFeeNGN, result.discount);
+      feeNGN = discountedNGN;
+      appliedDiscount = { id: result.discount.id, code: result.discount.code, amountNGN: discountAmountNGN };
+    }
+
     const feeInCurrency = currency === 'NGN' ? feeNGN : parseFloat((feeNGN * FX[currency]).toFixed(2));
+
+    // A 100%-off code (or a cap/rate that reduces the fee to effectively nothing —
+    // including cases where a small NGN fee rounds to 0.00 after FX conversion)
+    // would send FLW a ₦0 charge, which payment gateways generally reject or
+    // mishandle. Treat a fully-discounted fee as an instant free activation.
+    if (feeNGN <= 0 || feeInCurrency <= 0) {
+      await supabase.from('cards').update({ status: 'active' }).eq('slug', card_slug);
+      if (appliedDiscount) {
+        recordDiscountRedemption({
+          discountId: appliedDiscount.id,
+          cardSlug: card_slug,
+          txRef: null,
+          email: req.body.email || req.user?.email || req.member?.email || req.company?.email || null,
+          amountBeforeNGN: baseFeeNGN,
+          amountAfterNGN: 0,
+        }).catch(() => {});
+      }
+      console.log('initCardFee: 100% discount, activated free. card:', card_slug, 'code:', appliedDiscount?.code);
+      return res.json({ already_active: true, card_slug, discount_applied: appliedDiscount ? { code: appliedDiscount.code, amount_ngn: appliedDiscount.amountNGN } : null });
+    }
 
     const email =
       req.body.email    ||
@@ -198,7 +231,13 @@ const initCardFee = async (req, res) => {
         description: 'One-time card creation fee',
         logo:        `${FRONTEND_URL}/logo.png`,
       },
-      meta: { type: 'card_fee', card_slug },
+      meta: {
+        type: 'card_fee',
+        card_slug,
+        expected_ngn: feeNGN,
+        discount_code_id: appliedDiscount?.id || null,
+        discount_code: appliedDiscount?.code || null,
+      },
     };
 
     const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
@@ -211,8 +250,14 @@ const initCardFee = async (req, res) => {
     try { await supabase.from('cards').update({ payment_ref: txRef }).eq('slug', card_slug); }
     catch (e) { console.warn('payment_ref store:', e.message); }
 
-    console.log('initCardFee OK tx_ref:', txRef, 'card:', card_slug);
-    return res.json({ payment_link: r.data.data.link, tx_ref: txRef });
+    console.log('initCardFee OK tx_ref:', txRef, 'card:', card_slug, appliedDiscount ? `discount: ${appliedDiscount.code} (-₦${appliedDiscount.amountNGN})` : '');
+    return res.json({
+      payment_link: r.data.data.link,
+      tx_ref: txRef,
+      amount: feeInCurrency,
+      currency,
+      discount_applied: appliedDiscount ? { code: appliedDiscount.code, amount_ngn: appliedDiscount.amountNGN } : null,
+    });
 
   } catch (err) {
     console.error('initCardFee error:', err.response?.data?.message || err.message);
@@ -250,8 +295,10 @@ const verifyCardFee = async (req, res) => {
       return res.status(404).json({ error: 'Card not found for this payment. Please contact support with ref: ' + txRef });
     }
 
-    // Verify amount paid matches what was expected (prevents ₦1 payment activating card)
-    const CARD_FEE = 5000; // ₦5,000 card creation fee
+    // Verify amount paid matches what was expected (prevents ₦1 payment activating card).
+    // Uses meta.expected_ngn set at init time so a legitimately discounted payment
+    // isn't mistaken for underpayment against the undiscounted base fee.
+    const CARD_FEE = Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn) : 5000;
     const paidAmount = txn.amount;
     if (paidAmount < CARD_FEE * 0.90) {
       console.error(`[verifyCardFee] UNDERPAYMENT: expected ₦${CARD_FEE}, got ₦${paidAmount}. card: ${cardSlug}, ref: ${txRef}`);
@@ -260,6 +307,19 @@ const verifyCardFee = async (req, res) => {
 
     await supabase.from('cards').update({ status: 'active' }).eq('slug', cardSlug);
     console.log('Card activated:', cardSlug);
+
+    // Record discount redemption now that payment is confirmed — not at init
+    // time, so an abandoned checkout never burns a use.
+    if (meta.discount_code_id) {
+      recordDiscountRedemption({
+        discountId: meta.discount_code_id,
+        cardSlug,
+        txRef,
+        email: txn.customer?.email || null,
+        amountBeforeNGN: 5000,
+        amountAfterNGN: CARD_FEE,
+      }).catch(() => {});
+    }
 
     // Arm precise delivery setTimeout if the card has a scheduled date.
     const { data: activatedCard } = await supabase

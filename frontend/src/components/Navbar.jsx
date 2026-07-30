@@ -3,9 +3,11 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
+import { paymentsAPI } from '../utils/api';
 import Icon from './ui/Icon';
 
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
+const BANNER_DISMISS_KEY = 'thankeeu_banner_dismissed_code';
 
 const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
   const { user, logout }              = useAuth();
@@ -18,8 +20,28 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [cardsOpen, setCardsOpen]       = useState(false);
   const [teamsOpen, setTeamsOpen]       = useState(false);
+  const [banner, setBanner]     = useState(null);
   const cardsRef = useRef(null);
   const teamsRef = useRef(null);
+
+  // Fetch once per mount (Navbar is re-rendered per page, but this is a cheap,
+  // cached-friendly GET) — fails silently so a banner outage never blocks the site.
+  useEffect(() => {
+    paymentsAPI.getActiveBanner()
+      .then(res => {
+        const b = res.data?.banner;
+        if (!b) return setBanner(null);
+        const dismissed = sessionStorage.getItem(BANNER_DISMISS_KEY);
+        if (dismissed === b.code) return setBanner(null); // user already closed this exact promo this session
+        setBanner(b);
+      })
+      .catch(() => setBanner(null));
+  }, []);
+
+  const dismissBanner = () => {
+    if (banner?.code) sessionStorage.setItem(BANNER_DISMISS_KEY, banner.code);
+    setBanner(null);
+  };
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 10);
@@ -51,6 +73,25 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
 
   return (
     <>
+      {banner && (
+        <div className="relative bg-gradient-to-r from-primary-600 to-purple-600 text-white text-center text-xs sm:text-sm font-semibold">
+          <Link
+            to={`/pricing?discount=${encodeURIComponent(banner.code)}`}
+            onClick={scrollTop}
+            className="block px-10 py-2.5 hover:bg-white/10 transition-colors"
+          >
+            {banner.text} <span className="underline underline-offset-2">Shop now →</span>
+          </Link>
+          <button
+            type="button"
+            onClick={dismissBanner}
+            aria-label="Dismiss"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-white/20 transition-colors"
+          >
+            <Icon name="X" size={14} />
+          </button>
+        </div>
+      )}
       <nav className="sticky top-0 z-50 transition-all duration-300 border-b"
         style={{
           background: themeBg

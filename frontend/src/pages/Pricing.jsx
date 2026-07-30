@@ -1,9 +1,9 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
-import { subscriptionAPI, creditsAPI } from '../utils/api';
+import { subscriptionAPI, creditsAPI, paymentsAPI } from '../utils/api';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
@@ -150,10 +150,35 @@ const Pricing = () => {
  const [openFAQ, setOpenFAQ] = useState(null);
  const [showDemo, setShowDemo] = useState(false);
  const [selectedPack, setSelectedPack] = useState(PACK_OPTIONS[0]);
+ const [searchParams] = useSearchParams();
+ const [activeDiscount, setActiveDiscount] = useState(null); // { code, percent_off } | null
+
+ // Discount code arrives via ?discount=CODE (from the promo banner). Validate
+ // it against the backend rather than trust the URL — an expired/invalid code
+ // in a stale shared link should just silently not apply, not show a false promise.
+ useEffect(() => {
+   const code = searchParams.get('discount');
+   if (!code) return;
+   paymentsAPI.discountPreview(code)
+     .then(res => setActiveDiscount({ code: res.data.code, percent_off: res.data.percent_off, max_discount_ngn: res.data.max_discount_ngn }))
+     .catch(() => setActiveDiscount(null));
+ }, [searchParams]);
 
  const cur = getCurrency(currency);
 
  const fmt = (ngn) => formatCurrency(ngn, currency);
+
+ // Applies the active discount to any NGN amount, respecting an optional
+ // per-code max-discount cap the same way checkout does server-side.
+ const applyDiscount = (ngn) => {
+   if (!activeDiscount) return ngn;
+   let off = Math.round(ngn * (activeDiscount.percent_off / 100));
+   if (activeDiscount.max_discount_ngn && off > activeDiscount.max_discount_ngn) {
+     off = activeDiscount.max_discount_ngn;
+   }
+   return Math.max(0, ngn - Math.min(off, ngn));
+ };
+ const fmtDiscounted = (ngn) => fmt(applyDiscount(ngn));
 
  const handleIndividualPurchase = async (planId) => {
  // Classic (single 1-credit card) — send visitor straight to card creation.
@@ -161,7 +186,7 @@ const Pricing = () => {
  // Every other plan (Standard 2-credits, packs) still requires an account
  // because they involve credit purchases that need a wallet to hold credits.
  if (planId === 'single') {
-   navigate('/card/new');
+   navigate(activeDiscount ? `/card/new?discount=${encodeURIComponent(activeDiscount.code)}` : '/card/new');
    return;
  }
  if (!user) {
@@ -173,9 +198,15 @@ const Pricing = () => {
  setLoadingPlan(planId);
  try {
  // Use creditsAPI — these are credit purchases, not direct card payments
- const res = await creditsAPI.purchase(planId, currency);
+ const res = await creditsAPI.purchase(planId, currency, activeDiscount?.code);
+ if (res.data?.already_active) {
+   toast.success(`${res.data.credits_added} credits added — discount covered the full price!`);
+   navigate('/dashboard/credits');
+   setLoadingPlan(null);
+   return;
+ }
  window.location.href = res.data.payment_link;
- } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
+ } catch (err) { toast.error(err.response?.data?.error || 'Failed to start payment. Please try again.'); setLoadingPlan(null); }
  };
 
  const handleCompanySubscribe = async (plan) => {
@@ -190,6 +221,11 @@ const Pricing = () => {
  return (
  <div className="min-h-screen gc-font">
  <Navbar />
+ {activeDiscount && (
+   <div className="bg-green-50 border-b border-green-200 text-green-700 text-center text-xs sm:text-sm font-semibold px-4 py-2.5">
+     ✓ Code {activeDiscount.code} applied — {activeDiscount.percent_off}% off will be applied at checkout
+   </div>
+ )}
 
  {/* Hero */}
  <section className="py-12 md:py-16 px-4 text-center section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
@@ -207,8 +243,11 @@ const Pricing = () => {
  <div className="inline-flex flex-col items-center bg-white rounded-2xl border-2 border-primary-100 px-6 py-4 shadow-sm mb-6">
  <p className="text-xs text-warm-400 mb-1 font-medium">One card — from</p>
  <div className="text-3xl font-extrabold text-primary-600 min-w-[120px] text-center">
- <RotatingPrice amountNGN={5000} />
+ {activeDiscount ? <RotatingPrice amountNGN={applyDiscount(5000)} /> : <RotatingPrice amountNGN={5000} />}
  </div>
+ {activeDiscount && (
+   <p className="text-xs text-warm-400 line-through">{fmt(5000)}</p>
+ )}
  <p className="text-xs text-warm-400 mt-1">Select your currency below · Memory Movie + Photo Wall included</p>
  </div>
 
@@ -268,9 +307,19 @@ const Pricing = () => {
  )}
  <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
  <p className="text-warm-500 text-xs mb-4">{plan.label}</p>
- <div className="flex items-end gap-1 mb-1">
- <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(plan.priceNGN)}</span>
- <span className="text-warm-400 text-sm pb-1">· one-time</span>
+ <div className="flex items-end gap-1 mb-1 flex-wrap">
+ {activeDiscount ? (
+   <>
+     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmtDiscounted(plan.priceNGN)}</span>
+     <span className="text-warm-400 text-sm pb-1">· one-time</span>
+     <span className="text-warm-400 text-sm line-through w-full">{fmt(plan.priceNGN)}</span>
+   </>
+ ) : (
+   <>
+     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(plan.priceNGN)}</span>
+     <span className="text-warm-400 text-sm pb-1">· one-time</span>
+   </>
+ )}
  </div>
  {currency !== 'NGN' && currency !== 'GBP' && currency !== 'USD' && currency !== 'EUR' && currency !== 'CAD' && (
  <p className="text-xs text-warm-400 mb-1">≈ ₦{plan.priceNGN.toLocaleString('en-NG')} NGN</p>
@@ -324,24 +373,34 @@ const Pricing = () => {
  >
    {PACK_OPTIONS.map(p => (
      <option key={p.id} value={p.id}>
-       {p.credits} cards — {fmt(p.perCardNGN)}/card ({fmt(p.priceNGN)})
+       {p.credits} cards — {activeDiscount ? fmtDiscounted(p.perCardNGN) : fmt(p.perCardNGN)}/card ({activeDiscount ? fmtDiscounted(p.priceNGN) : fmt(p.priceNGN)})
      </option>
    ))}
  </select>
  </div>
 
- <div className="flex items-end gap-1 mb-1">
- <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(selectedPack.priceNGN)}</span>
- <span className="text-warm-400 text-sm pb-1">· one-time</span>
+ <div className="flex items-end gap-1 mb-1 flex-wrap">
+ {activeDiscount ? (
+   <>
+     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmtDiscounted(selectedPack.priceNGN)}</span>
+     <span className="text-warm-400 text-sm pb-1">· one-time</span>
+     <span className="text-warm-400 text-sm line-through w-full">{fmt(selectedPack.priceNGN)}</span>
+   </>
+ ) : (
+   <>
+     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(selectedPack.priceNGN)}</span>
+     <span className="text-warm-400 text-sm pb-1">· one-time</span>
+   </>
+ )}
  </div>
  {currency !== 'NGN' && !['GBP','USD','EUR','CAD'].includes(currency) && (
- <p className="text-xs text-warm-400 mb-1">≈ ₦{selectedPack.priceNGN.toLocaleString('en-NG')} NGN</p>
+ <p className="text-xs text-warm-400 mb-1">≈ ₦{(activeDiscount ? applyDiscount(selectedPack.priceNGN) : selectedPack.priceNGN).toLocaleString('en-NG')} NGN</p>
  )}
  <p className="text-green-700 text-xs font-bold mb-0.5">
- {fmt(selectedPack.perCardNGN)} per card (flat rate) · {fmt(selectedPack.priceNGN)} total
+ {activeDiscount ? fmtDiscounted(selectedPack.perCardNGN) : fmt(selectedPack.perCardNGN)} per card (flat rate) · {activeDiscount ? fmtDiscounted(selectedPack.priceNGN) : fmt(selectedPack.priceNGN)} total
  </p>
  {selectedPack.savingsNGN > 0 && (
- <p className="text-green-600 text-xs font-bold mb-1">Save {fmt(selectedPack.savingsNGN)} vs {selectedPack.credits} singles</p>
+ <p className="text-green-600 text-xs font-bold mb-1">Save {fmt(selectedPack.savingsNGN)} vs {selectedPack.credits} singles{activeDiscount ? ' + discount' : ''}</p>
  )}
 
  <div className="h-px bg-purple-100 my-4" />
@@ -371,7 +430,7 @@ const Pricing = () => {
  Processing…
  </span>
  : <span className="inline-flex items-center justify-center gap-2">
- <Icon name="Gift" size={15}/>Buy {selectedPack.credits} credits — {fmt(selectedPack.priceNGN)}
+ <Icon name="Gift" size={15}/>Buy {selectedPack.credits} credits — {activeDiscount ? fmtDiscounted(selectedPack.priceNGN) : fmt(selectedPack.priceNGN)}
  </span>}
  </button>
  </div>

@@ -9,6 +9,9 @@ const {
   listPalApplications, approvePalGroup, rejectPalGroup,
 } = require('../controllers/adminController');
 const { adminListPalTickets, adminReplyPalTicket } = require('../controllers/palSupportController');
+const {
+  listDiscountCodes, createDiscountCode, toggleDiscountCode, deleteDiscountCode,
+} = require('../controllers/discountCodeController');
 const { sendNudgeEmails } = require('../controllers/visitorsController');
 const { validateUUIDParam } = require('../utils/paramGuard');
 
@@ -38,6 +41,12 @@ router.delete('/users/:userId',       validateUUIDParam('userId'), deleteUser);
 router.get('/cards',                                    getAllCards);
 router.post('/cards/:cardId/redeliver', validateUUIDParam('cardId'), redeliverCard);
 router.delete('/cards/:cardId',     validateUUIDParam('cardId'),    deleteCard);
+
+// Discount codes
+router.get('/discount-codes',                                            listDiscountCodes);
+router.post('/discount-codes',                                           createDiscountCode);
+router.put('/discount-codes/:id',   validateUUIDParam('id'),             toggleDiscountCode);
+router.delete('/discount-codes/:id',validateUUIDParam('id'),             deleteDiscountCode);
 
 // Companies — fixed routes before /:companyId wildcard
 router.get('/companies',                                getAllCompanies);

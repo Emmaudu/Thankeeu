@@ -24,6 +24,7 @@
 const axios    = require('axios');
 const supabase = require('../utils/supabase');
 const { safeTxRef } = require('../utils/paramGuard');
+const { validateDiscountCode, applyDiscountToFeeNGN, recordDiscountRedemption } = require('./discountCodeController');
 
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
@@ -99,17 +100,48 @@ const purchaseCredits = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-    const { plan_type, currency: reqCurrency } = req.body;
+    const { plan_type, currency: reqCurrency, discount_code } = req.body;
     const plan = PLANS[plan_type];
     if (!plan) return res.status(400).json({ error: 'Invalid plan. Choose classic, standard, pack5, pack10, pack25, pack50, pack70, or pack100.' });
 
     const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
-    const amount   = currency === 'NGN' ? plan.priceNGN : parseFloat((plan.priceNGN * FX[currency]).toFixed(2));
+
+    // Discount code — validated server-side only; the frontend price shown is
+    // never trusted as-is.
+    let priceNGN = plan.priceNGN;
+    let appliedDiscount = null;
+    if (discount_code) {
+      const result = await validateDiscountCode(discount_code);
+      if (!result.valid) return res.status(400).json({ error: result.error });
+      const { discountedNGN, discountAmountNGN } = applyDiscountToFeeNGN(plan.priceNGN, result.discount);
+      priceNGN = discountedNGN;
+      appliedDiscount = { id: result.discount.id, code: result.discount.code, amountNGN: discountAmountNGN };
+    }
+
+    const amount = currency === 'NGN' ? priceNGN : parseFloat((priceNGN * FX[currency]).toFixed(2));
 
     // Get user info
     const { data: user } = await supabase.from('users')
       .select('email, full_name').eq('id', userId).maybeSingle();
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // A steep discount could reduce the charge to ₦0 (or round to 0.00 after FX
+    // conversion) — payment gateways generally reject/mishandle a zero-amount
+    // charge, so grant the credits immediately instead of sending FLW a ₦0 request.
+    if (priceNGN <= 0 || amount <= 0) {
+      await addCreditsToUser(userId, plan.credits, plan_type, `TK-CR-FREE-${Date.now()}`);
+      if (appliedDiscount) {
+        recordDiscountRedemption({
+          discountId: appliedDiscount.id,
+          cardSlug: null,
+          txRef: null,
+          email: user.email,
+          amountBeforeNGN: plan.priceNGN,
+          amountAfterNGN: 0,
+        }).catch(() => {});
+      }
+      return res.json({ already_active: true, credits_added: plan.credits, discount_applied: appliedDiscount ? { code: appliedDiscount.code, amount_ngn: appliedDiscount.amountNGN } : null });
+    }
 
     const txRef = `TK-CR-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
 
@@ -118,7 +150,7 @@ const purchaseCredits = async (req, res) => {
       user_id:       userId,
       plan_type,
       credits_bought: plan.credits,
-      amount_paid:   plan.priceNGN,
+      amount_paid:   priceNGN,
       currency,
       flw_reference: txRef,
       status:        'pending',
@@ -136,7 +168,15 @@ const purchaseCredits = async (req, res) => {
         description: `${plan.credits} card credit${plan.credits > 1 ? 's' : ''}`,
         logo:        `${FRONTEND_URL}/logo.png`,
       },
-      meta: { type: 'card_credits', plan_type, credits: plan.credits, user_id: userId },
+      meta: {
+        type: 'card_credits',
+        plan_type,
+        credits: plan.credits,
+        user_id: userId,
+        expected_ngn: priceNGN,
+        discount_code_id: appliedDiscount?.id || null,
+        discount_code: appliedDiscount?.code || null,
+      },
     };
 
     const r = await axios.post(`${FLW_BASE}/payments`, payload, {
@@ -205,6 +245,18 @@ const verifyPurchase = async (req, res) => {
     }
 
     await addCreditsToUser(userId, credits, planType, txRef);
+
+    if (meta.discount_code_id) {
+      recordDiscountRedemption({
+        discountId: meta.discount_code_id,
+        cardSlug: null,
+        txRef,
+        email: null,
+        amountBeforeNGN: PLANS[planType]?.priceNGN || null,
+        amountAfterNGN: Number(meta.expected_ngn) || null,
+      }).catch(() => {});
+    }
+
     return res.json({ ok: true, credits_added: credits, plan_type: planType });
 
   } catch (err) {

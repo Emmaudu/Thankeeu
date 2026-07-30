@@ -251,7 +251,9 @@ export const paymentsAPI = {
   // Uses publicAxios (no auth required) — email passed in body as fallback when
   // the user's JWT has expired mid-session. optionalAuth on the backend still
   // picks up any valid token that IS present via the Authorization header.
-  initCardFee:         (card_slug, currency, email) => publicAxios.post('/payments/initialize/purchase', { card_slug, currency: currency || 'NGN', ...(email ? { email } : {}) }),
+  initCardFee:         (card_slug, currency, email, discount_code) => publicAxios.post('/payments/initialize/purchase', { card_slug, currency: currency || 'NGN', ...(email ? { email } : {}), ...(discount_code ? { discount_code } : {}) }),
+  discountPreview:     (code) => publicAxios.post('/payments/discount-preview', { code }),
+  getActiveBanner:     () => publicAxios.get('/payments/active-banner'),
   verifyCardFee:       (txRef)     => anyAxios.get(`/payments/verify-card-fee?tx_ref=${encodeURIComponent(txRef)}`),
 
   // Gift contribution — returns { payment_link }
@@ -449,7 +451,7 @@ export const notificationsAPI = {
 export const creditsAPI = {
   getBalance:  ()           => api.get('/credits/balance'),
   getHistory:  ()           => api.get('/credits/history'),
-  purchase:    (plan_type, currency) => api.post('/credits/purchase', { plan_type, currency: currency || 'NGN' }),
+  purchase:    (plan_type, currency, discount_code) => api.post('/credits/purchase', { plan_type, currency: currency || 'NGN', ...(discount_code ? { discount_code } : {}) }),
   verify:      (txRef)      => api.get(`/credits/verify/${encodeURIComponent(txRef)}`),
   spend:       (card_slug)  => smartAxios.post('/credits/spend', { card_slug }),
 };

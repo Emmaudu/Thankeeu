@@ -133,6 +133,10 @@ const CardStart = () => {
  const [creditBalance, setCreditBalance]= useState(null);
  const [payMode, setPayMode] = useState('direct');
  const [selectedCurrency, setSelectedCurrency] = useState('NGN');
+ const [discountCode, setDiscountCode] = useState('');
+ const [discountStatus, setDiscountStatus] = useState(null); // null | 'applied' | 'invalid'
+ const [discountMessage, setDiscountMessage] = useState('');
+ const [discountedNGN, setDiscountedNGN] = useState(null);
  const [inviteEmails, setInviteEmails] = useState('');
 
  // ── Card form ────────────────────────────────────────────────────────────
@@ -452,6 +456,38 @@ const CardStart = () => {
  } finally { setLoading(false); }
  };
 
+ // Validate a discount code before checkout, so the price updates immediately
+ // rather than the user finding out only after being redirected to FLW.
+ // Accepts an optional explicit code (used for auto-apply from ?discount=)
+ // since React state updates aren't synchronous — reading discountCode right
+ // after setDiscountCode would use the stale value.
+ const handleApplyDiscount = async (explicitCode) => {
+   const code = (explicitCode ?? discountCode).trim();
+   if (!code) return;
+   setDiscountStatus('checking');
+   try {
+     const res = await paymentsAPI.discountPreview(code);
+     setDiscountStatus('applied');
+     setDiscountedNGN(res.data.discounted_ngn);
+     setDiscountMessage(`${res.data.percent_off}% off applied — you save ${formatCurrency(res.data.discount_amount_ngn, 'NGN')}`);
+   } catch (err) {
+     setDiscountStatus('invalid');
+     setDiscountedNGN(null);
+     setDiscountMessage(err.response?.data?.error || 'Invalid discount code');
+   }
+ };
+
+ // Auto-apply a discount code passed in via ?discount=CODE (from the pricing
+ // page / promo banner flow), so the user doesn't have to retype it.
+ useEffect(() => {
+   const codeFromUrl = searchParams.get('discount');
+   if (!codeFromUrl) return;
+   const clean = codeFromUrl.trim().toUpperCase();
+   setDiscountCode(clean);
+   handleApplyDiscount(clean);
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
+
  // ── Step 4: pay / activate ───────────────────────────────────────────────
  const handlePayAndLaunch = async () => {
  setLoading(true);
@@ -560,7 +596,14 @@ const CardStart = () => {
  // Flutterwave
  setPaymentStage('redirecting');
  const userEmail = user?.email || member?.email || company?.email || '';
- const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency, userEmail);
+ let payRes;
+ try {
+   payRes = await paymentsAPI.initCardFee(slug, selectedCurrency, userEmail, discountCode.trim() || undefined);
+ } catch (payErr) {
+   toast.error(payErr.response?.data?.error || 'Failed to start payment. Please try again.');
+   setLoading(false); setPaymentStage('idle');
+   return;
+ }
  const { payment_link, already_active, card_slug: activatedSlug } = payRes.data;
  if (already_active) {
  await saveCreatorMessage(activatedSlug || slug); await saveRecipientPhoto(activatedSlug || slug); await saveCreatorWallCards(activatedSlug || slug);
@@ -1343,6 +1386,8 @@ const CardStart = () => {
  ? [['Card fee', 'Free (company)']]
  : payMode === 'credit' && creditBalance > 0
  ? [['Card fee', `1 credit (${creditBalance} remaining)`]]
+ : discountStatus === 'applied' && discountedNGN !== null
+ ? [['Card fee', `${formatCurrency(discountedNGN, selectedCurrency)} (${discountCode} applied)`]]
  : [['Card fee', `${formatCurrency(5000, selectedCurrency)} one-time`]]),
  ].map(([k, v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-3 gap-2">
@@ -1382,6 +1427,29 @@ const CardStart = () => {
  </div>
  </div>
  )}
+ {payMode === 'direct' && (
+ <div className="mb-3">
+ <p className="text-xs font-semibold text-warm-500 mb-1.5">Discount code (optional):</p>
+ <div className="flex gap-2">
+ <input
+   type="text"
+   value={discountCode}
+   onChange={e => { setDiscountCode(e.target.value.toUpperCase()); setDiscountStatus(null); }}
+   placeholder="e.g. LAUNCH20"
+   className="flex-1 input text-sm py-2"
+ />
+ <button type="button" onClick={handleApplyDiscount} disabled={!discountCode.trim() || discountStatus === 'checking'}
+   className="px-4 py-2 rounded-xl text-xs font-bold bg-primary-100 text-primary-600 hover:bg-primary-200 disabled:opacity-50 transition-all">
+   {discountStatus === 'checking' ? 'Checking…' : 'Apply'}
+ </button>
+ </div>
+ {discountMessage && (
+   <p className={`mt-1.5 text-xs font-semibold ${discountStatus === 'applied' ? 'text-green-600' : 'text-red-500'}`}>
+     {discountStatus === 'applied' ? '✓ ' : ''}{discountMessage}
+   </p>
+ )}
+ </div>
+ )}
  </div>
  )}
 
@@ -1395,6 +1463,8 @@ const CardStart = () => {
  </span>
  : isCompanyUser ? 'Create Card (Free)'
  : payMode === 'credit' ? 'Use 1 Credit & Launch'
+ : discountStatus === 'applied' && discountedNGN !== null
+ ? `Pay ${formatCurrency(discountedNGN, selectedCurrency)} & Launch Card`
  : `Pay ${formatCurrency(5000, selectedCurrency)} & Launch Card`}
  </button>
  </div>

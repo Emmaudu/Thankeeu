@@ -825,6 +825,218 @@ const BroadcastTab = () => {
 };
 
 // ── Admin component ───────────────────────────────────────────────────────────
+const DiscountCodesTab = ({ codes, loading, onCreate, onToggle, onDelete, redemptions, onLoadRedemptions }) => {
+  const [showForm, setShowForm] = React.useState(false);
+  const [form, setForm] = React.useState({
+    code: '', percent_off: '', max_discount_ngn: '', max_uses: '', expires_at: '',
+    banner_enabled: false, banner_text: '',
+  });
+  const [saving, setSaving] = React.useState(false);
+
+  const resetForm = () => setForm({ code: '', percent_off: '', max_discount_ngn: '', max_uses: '', expires_at: '', banner_enabled: false, banner_text: '' });
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    const ok = await onCreate({
+      code: form.code,
+      percent_off: Number(form.percent_off),
+      max_discount_ngn: form.max_discount_ngn || undefined,
+      max_uses: form.max_uses || undefined,
+      expires_at: form.expires_at || undefined,
+      banner_enabled: form.banner_enabled,
+      banner_text: form.banner_text || undefined,
+    });
+    setSaving(false);
+    if (ok) { resetForm(); setShowForm(false); }
+  };
+
+  const activeBannerCode = codes.find(c => c.banner_enabled);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bg-white rounded-2xl border border-purple-100 p-4">
+          <p className="text-xs text-warm-400 mb-1">Total Codes</p>
+          <p className="text-2xl font-bold text-warm-900">{codes.length}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-purple-100 p-4">
+          <p className="text-xs text-warm-400 mb-1">Active</p>
+          <p className="text-2xl font-bold text-green-600">{codes.filter(c => c.is_active).length}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-purple-100 p-4">
+          <p className="text-xs text-warm-400 mb-1">Total Redemptions</p>
+          <p className="text-2xl font-bold text-warm-900">{codes.reduce((s, c) => s + (c.used_count || 0), 0)}</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-purple-100 p-4">
+          <p className="text-xs text-warm-400 mb-1">Banner Live</p>
+          <p className="text-sm font-bold text-warm-900">{activeBannerCode ? activeBannerCode.code : 'None'}</p>
+        </div>
+      </div>
+
+      <button onClick={() => setShowForm(s => !s)}
+        className="px-4 py-2.5 rounded-xl bg-primary-500 text-white text-sm font-bold hover:bg-primary-600">
+        {showForm ? 'Cancel' : '+ New Discount Code'}
+      </button>
+
+      {showForm && (
+        <form onSubmit={handleCreate} className="bg-white rounded-2xl border border-purple-100 p-5 space-y-4 max-w-xl">
+          <div>
+            <label className="block text-xs font-semibold text-warm-500 mb-1">Code</label>
+            <input value={form.code} onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+              placeholder="LAUNCH20" required className="input w-full" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-warm-500 mb-1">Percent off</label>
+              <input type="number" min="1" max="100" value={form.percent_off}
+                onChange={e => setForm(f => ({ ...f, percent_off: e.target.value }))}
+                placeholder="20" required className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-warm-500 mb-1">Max discount (₦, optional)</label>
+              <input type="number" min="1" value={form.max_discount_ngn}
+                onChange={e => setForm(f => ({ ...f, max_discount_ngn: e.target.value }))}
+                placeholder="No cap" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-warm-500 mb-1">Max uses (optional)</label>
+              <input type="number" min="1" value={form.max_uses}
+                onChange={e => setForm(f => ({ ...f, max_uses: e.target.value }))}
+                placeholder="Unlimited" className="input w-full" />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-warm-500 mb-1">Expires (optional)</label>
+              <input type="date" value={form.expires_at}
+                onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))}
+                className="input w-full" />
+            </div>
+          </div>
+          <div className="border-t border-purple-100 pt-4">
+            <label className="flex items-center gap-2 text-sm font-semibold text-warm-700 mb-2">
+              <input type="checkbox" checked={form.banner_enabled}
+                onChange={e => setForm(f => ({ ...f, banner_enabled: e.target.checked }))} />
+              Show as a banner above the navbar site-wide
+            </label>
+            {form.banner_enabled && (
+              <>
+                <textarea value={form.banner_text} onChange={e => setForm(f => ({ ...f, banner_text: e.target.value }))}
+                  placeholder="e.g. 20% off all cards this week — use LAUNCH20 at checkout"
+                  maxLength={140} rows={2} required className="input w-full" />
+                <p className="text-xs text-warm-400 mt-1">{form.banner_text.length}/140 · Enabling this will turn off any other active banner.</p>
+              </>
+            )}
+          </div>
+          <button type="submit" disabled={saving} className="px-5 py-2.5 rounded-xl bg-primary-500 text-white text-sm font-bold disabled:opacity-60">
+            {saving ? 'Creating…' : 'Create Code'}
+          </button>
+        </form>
+      )}
+
+      {loading ? (
+        <p className="text-warm-400 text-sm">Loading…</p>
+      ) : codes.length === 0 ? (
+        <EmptyState icon="Tag" title="No discount codes yet" sub="Create one above to get started" />
+      ) : (
+        <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-purple-50/50 text-left text-xs text-warm-500">
+              <tr>
+                <th className="px-4 py-3">Code</th>
+                <th className="px-4 py-3">Off</th>
+                <th className="px-4 py-3">Cap</th>
+                <th className="px-4 py-3">Uses</th>
+                <th className="px-4 py-3">Expires</th>
+                <th className="px-4 py-3">Banner</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {codes.map(c => {
+                const expired = c.expires_at && new Date(c.expires_at) < new Date();
+                const exhausted = c.max_uses !== null && c.used_count >= c.max_uses;
+                return (
+                  <React.Fragment key={c.id}>
+                    <tr className="border-t border-purple-50">
+                      <td className="px-4 py-3 font-bold text-warm-900">{c.code}</td>
+                      <td className="px-4 py-3">{c.percent_off}%</td>
+                      <td className="px-4 py-3 text-warm-500">{c.max_discount_ngn ? `₦${c.max_discount_ngn.toLocaleString()}` : '—'}</td>
+                      <td className="px-4 py-3 text-warm-500">{c.used_count}{c.max_uses ? ` / ${c.max_uses}` : ''}</td>
+                      <td className="px-4 py-3 text-warm-500">{c.expires_at ? format(new Date(c.expires_at), 'MMM d, yyyy') : '—'}</td>
+                      <td className="px-4 py-3">{c.banner_enabled ? <Badge color="purple">Live</Badge> : '—'}</td>
+                      <td className="px-4 py-3">
+                        {!c.is_active ? <Badge color="red">Inactive</Badge>
+                          : expired ? <Badge color="orange">Expired</Badge>
+                          : exhausted ? <Badge color="orange">Exhausted</Badge>
+                          : <Badge color="green">Active</Badge>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          <button onClick={() => onToggle(c.id, { is_active: !c.is_active })}
+                            className="text-xs px-2.5 py-1 rounded-lg border border-purple-200 text-warm-600 hover:bg-purple-50">
+                            {c.is_active ? 'Deactivate' : 'Activate'}
+                          </button>
+                          <button onClick={() => onToggle(c.id, { banner_enabled: !c.banner_enabled })}
+                            disabled={!c.banner_text}
+                            title={!c.banner_text ? 'No banner text set on this code' : ''}
+                            className="text-xs px-2.5 py-1 rounded-lg border border-purple-200 text-warm-600 hover:bg-purple-50 disabled:opacity-40">
+                            {c.banner_enabled ? 'Hide banner' : 'Show banner'}
+                          </button>
+                          <button onClick={() => onLoadRedemptions(c.id)}
+                            className="text-xs px-2.5 py-1 rounded-lg border border-purple-200 text-warm-600 hover:bg-purple-50">
+                            {redemptions[c.id] ? 'Hide uses' : 'See who used it'}
+                          </button>
+                          <button onClick={() => onDelete(c.id, c.code)}
+                            className="text-xs px-2.5 py-1 rounded-lg border border-red-200 text-red-500 hover:bg-red-50">
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {redemptions[c.id] && (
+                      <tr className="border-t border-purple-50 bg-purple-50/30">
+                        <td colSpan={8} className="px-4 py-3">
+                          {redemptions[c.id].length === 0 ? (
+                            <p className="text-xs text-warm-400">No redemptions yet.</p>
+                          ) : (
+                            <table className="w-full text-xs">
+                              <thead className="text-warm-400">
+                                <tr>
+                                  <th className="text-left py-1 pr-4">Email</th>
+                                  <th className="text-left py-1 pr-4">Card</th>
+                                  <th className="text-left py-1 pr-4">Before</th>
+                                  <th className="text-left py-1 pr-4">After</th>
+                                  <th className="text-left py-1 pr-4">Date</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {redemptions[c.id].map(r => (
+                                  <tr key={r.id} className="border-t border-purple-100/60">
+                                    <td className="py-1.5 pr-4">{r.email || '—'}</td>
+                                    <td className="py-1.5 pr-4">{r.card_slug || '(credit pack)'}</td>
+                                    <td className="py-1.5 pr-4">{r.amount_before_ngn != null ? `₦${r.amount_before_ngn.toLocaleString()}` : '—'}</td>
+                                    <td className="py-1.5 pr-4">{r.amount_after_ngn != null ? `₦${r.amount_after_ngn.toLocaleString()}` : '—'}</td>
+                                    <td className="py-1.5 pr-4">{r.created_at ? format(new Date(r.created_at), 'MMM d, h:mm a') : '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Admin = () => {
   useSEO({ title: 'Admin Panel — Thankeeu', noIndex: true });
 
@@ -875,6 +1087,9 @@ const Admin = () => {
   const [vendorOrders,     setVendorOrders]     = useState([]);
   const [vendorsLoading,   setVendorsLoading]   = useState(false);
   const [palApplications,  setPalApplications]  = useState([]);
+  const [discountCodes,    setDiscountCodes]    = useState([]);
+  const [discountLoading,  setDiscountLoading]  = useState(false);
+  const [discountRedemptions, setDiscountRedemptions] = useState({}); // { [codeId]: [redemption, ...] }
   const [palLoading,       setPalLoading]        = useState(false);
   const [palTickets,       setPalTickets]        = useState([]);
   const [rejectModal,      setRejectModal]       = useState(null);
@@ -898,6 +1113,7 @@ const Admin = () => {
     if (tab === 'blog'      && !blogPosts.length)     fetchBlog();
     if (tab === 'vendors'   && !vendors.length)      fetchVendors();
     if (tab === 'pals'      && !palApplications.length) fetchPals();
+    if (tab === 'discounts' && !discountCodes.length)   fetchDiscountCodes();
   }, [tab]);
 
   const fetchCore = async () => {
@@ -1026,6 +1242,67 @@ const Admin = () => {
       setPalTickets(Array.isArray(tRes) ? tRes : []);
     } catch { toast.error('Failed to load Pals data'); }
     finally { setPalLoading(false); }
+  };
+
+  const adminHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem('thankeeu_token')}` });
+  const adminBase = () => import.meta.env.VITE_API_URL || '/api';
+
+  const fetchDiscountCodes = async () => {
+    setDiscountLoading(true);
+    try {
+      const res = await fetch(`${adminBase()}/admin/discount-codes`, { headers: adminHeaders() }).then(r => r.json());
+      setDiscountCodes(Array.isArray(res.codes) ? res.codes : []);
+    } catch { toast.error('Failed to load discount codes'); }
+    finally { setDiscountLoading(false); }
+  };
+
+  const createDiscountCode = async (payload) => {
+    try {
+      const res = await fetch(`${adminBase()}/admin/discount-codes`, {
+        method: 'POST',
+        headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Could not create code'); return false; }
+      toast.success(`Code "${data.code.code}" created`);
+      setDiscountCodes(prev => [data.code, ...prev]);
+      return true;
+    } catch { toast.error('Could not create code'); return false; }
+  };
+
+  const toggleDiscountCode = async (id, patch) => {
+    try {
+      const res = await fetch(`${adminBase()}/admin/discount-codes/${id}`, {
+        method: 'PUT',
+        headers: { ...adminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error || 'Could not update code'); return; }
+      setDiscountCodes(prev => prev.map(c => c.id === id ? data.code : c));
+    } catch { toast.error('Could not update code'); }
+  };
+
+  const deleteDiscountCode = async (id, code) => {
+    if (!window.confirm(`Delete discount code "${code}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`${adminBase()}/admin/discount-codes/${id}`, { method: 'DELETE', headers: adminHeaders() });
+      if (!res.ok) { const d = await res.json(); toast.error(d.error || 'Could not delete code'); return; }
+      toast.success('Code deleted');
+      setDiscountCodes(prev => prev.filter(c => c.id !== id));
+    } catch { toast.error('Could not delete code'); }
+  };
+
+  const loadRedemptions = async (id) => {
+    if (discountRedemptions[id]) { // already loaded — just toggle visibility handled in render
+      setDiscountRedemptions(prev => ({ ...prev, [id]: undefined }));
+      return;
+    }
+    try {
+      const res = await fetch(`${adminBase()}/admin/discount-codes/${id}/redemptions`, { headers: adminHeaders() }).then(r => r.json());
+      setDiscountRedemptions(prev => ({ ...prev, [id]: Array.isArray(res.redemptions) ? res.redemptions : [] }));
+    } catch { toast.error('Could not load redemptions'); }
   };
 
   const approvePal = async (id, name) => {
@@ -1159,6 +1436,7 @@ const Admin = () => {
     { id:'blog',      label:'Blog' },
     { id:'vendors',   label:'Vendors' },
     { id:'pals',      label:`Pals${palApplications.filter(p=>p.status==='pending').length ? ` · ${palApplications.filter(p=>p.status==='pending').length} new` : ''}` },
+    { id:'discounts', label:'Discount Codes' },
   ];
 
   return (
@@ -1196,6 +1474,7 @@ const Admin = () => {
             { id:'blog',      icon:'✍️', label:'Blog',          badge:null },
             { id:'vendors',   icon:'🏪', label:'Vendors',       badge:null },
             { id:'pals',      icon:'🤝', label:'Pals',          badge:palApplications.filter(p=>p.status==='pending').length||null },
+            { id:'discounts', icon:'🎟', label:'Discount Codes', badge:null },
             { id:'coverdesigns', icon:'🎨', label:'Cover Design', badge:null },
             { id:'settings',  icon:'🎵', label:'Settings',       badge:null },
           ].map(item => {
@@ -1259,6 +1538,7 @@ const Admin = () => {
             { id:'blog',      icon:'PenLine', label:'Blog', badge:null },
             { id:'vendors',   icon:'Store', label:'Vendors', badge:null },
             { id:'pals',      icon:'HeartHandshake', label:'Pals', badge:palApplications.filter(p=>p.status==='pending').length||null },
+            { id:'discounts', icon:'Tag', label:'Discount Codes', badge:null },
             { id:'coverdesigns', icon:'Image', label:'Cover Design', badge:null },
             { id:'settings',  icon:'Settings', label:'Settings', badge:null },
           ].map(item => {
@@ -1291,7 +1571,7 @@ const Admin = () => {
         <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <div>
             <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
-              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
+              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','discounts':'Discount Codes','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
             </h1>
             <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
           </div>
@@ -2172,6 +2452,19 @@ const Admin = () => {
               </div>
             )}
           </div>
+        )}
+
+        {/* ─────────────── DISCOUNT CODES ─────────────── */}
+        {tab === 'discounts' && (
+          <DiscountCodesTab
+            codes={discountCodes}
+            loading={discountLoading}
+            onCreate={createDiscountCode}
+            onToggle={toggleDiscountCode}
+            onDelete={deleteDiscountCode}
+            redemptions={discountRedemptions}
+            onLoadRedemptions={loadRedemptions}
+          />
         )}
 
                 {tab === 'vendors' && (

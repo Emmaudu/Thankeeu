@@ -1,6 +1,5 @@
 const supabase = require('../utils/supabase');
 const { RESERVED_SLUGS } = require('../utils/companySlug');
-
 const APP_DOMAIN = (process.env.APP_DOMAIN || 'thankeeu.com').toLowerCase();
 
 const cleanHost = (value = '') => {
@@ -34,7 +33,10 @@ const tenantResolver = async (req, res, next) => {
       : null;
     const hostSlug = extractWorkspaceSlug(getRequestHost(req));
     const originSlug = extractWorkspaceSlug(req.headers.origin || req.headers.referer || '');
-    const slug = headerSlug || hostSlug || originSlug;
+    let slug = headerSlug || hostSlug || originSlug;
+    // Reserved subdomains (mentorship, games, admin, etc.) are never company workspaces,
+    // even if a stale/older frontend sends them via the X-Workspace-Slug header.
+    if (slug && RESERVED_SLUGS.has(slug)) slug = null;
     if (!slug) return next();
 
     const { data: company, error } = await supabase

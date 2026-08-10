@@ -11,6 +11,7 @@ const RESERVED_SLUGS = new Set([
   'games',
   'help',
   'mail',
+  'mentorship',
   'support',
   'www',
 ]);

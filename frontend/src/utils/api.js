@@ -641,3 +641,17 @@ export const palAPI = {
   getTickets:    ()      => palAxios.get('/pals/support'),
   createTicket:  (data)  => palAxios.post('/pals/support', data),
 };
+
+// ─── Thankeeu Mentorship (subdomain app) ─────────────────────────────────────
+export const mentorshipAPI = {
+  // Public
+  apply:        (data) => publicAxios.post('/mentorship/apply', data),
+  contact:      (data) => publicAxios.post('/mentorship/contact', data),
+  subscribe:    (data) => publicAxios.post('/mentorship/subscribe', data),
+  verifySub:    (txRef) => publicAxios.get(`/mentorship/subscribe/verify?tx_ref=${encodeURIComponent(txRef)}`),
+  // Admin (uses thankeeu_token via `api` instance)
+  adminApplications: (status) => api.get(`/mentorship/admin/applications${status && status !== 'all' ? `?status=${status}` : ''}`),
+  adminUpdateApplication: (id, data) => api.put(`/mentorship/admin/applications/${id}`, data),
+  adminContacts:     () => api.get('/mentorship/admin/contacts'),
+  adminSubscriptions:() => api.get('/mentorship/admin/subscriptions'),
+};

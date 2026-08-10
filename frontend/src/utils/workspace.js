@@ -9,6 +9,7 @@ const RESERVED_SUBDOMAINS = new Set([
   'help',
   'games',
   'mail',
+  'mentorship',
   'support',
   'www',
 ]);
@@ -50,6 +51,11 @@ export const isGamesHost = (hostname = window.location.hostname) => {
 export const isAdminHost = (hostname = window.location.hostname) => {
   const host = cleanHost(hostname);
   return host === `admin.${APP_DOMAIN}` || host === 'admin.localhost';
+};
+
+export const isMentorshipHost = (hostname = window.location.hostname) => {
+  const host = cleanHost(hostname);
+  return host === `mentorship.${APP_DOMAIN}` || host === 'mentorship.localhost';
 };
 
 export const getWorkspaceUrl = (slug) => {

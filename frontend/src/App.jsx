@@ -173,7 +173,8 @@ import MemberRemindersPage   from './pages/member/MemberRemindersPage';
 import { usePageTracker } from './hooks/usePageTracker';
 import ScrollToTop from './components/ScrollToTop';
 import { companyAPI } from './utils/api';
-import { companyPath, getWorkspaceSlug, isAdminHost, isGamesHost, isWorkspaceFinderHost, isWorkspaceHost } from './utils/workspace';
+import { companyPath, getWorkspaceSlug, isAdminHost, isGamesHost, isMentorshipHost, isWorkspaceFinderHost, isWorkspaceHost } from './utils/workspace';
+import MentorshipApp from './pages/mentorship/MentorshipApp';
 
 const PageTracker = () => { usePageTracker(); return null; };
 
@@ -345,7 +346,26 @@ const MemberProtectedRoute = ({ children, leaderOnly = false }) => {
   return children;
 };
 
-const App = () => (
+const MentorshipRoot = () => (
+  <AuthProvider>
+    <BrowserRouter>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          className: 'font-sans text-sm',
+          success: { iconTheme: { primary: '#7F77DD', secondary: '#fff' } },
+          duration: 4000,
+        }}
+      />
+      <ScrollToTop />
+      <MentorshipApp />
+    </BrowserRouter>
+  </AuthProvider>
+);
+
+const App = () => {
+  if (isMentorshipHost()) return <MentorshipRoot />;
+  return (
   <AuthProvider>
     <CompanyAuthProvider>
       <MemberAuthProvider>
@@ -605,6 +625,7 @@ const App = () => (
       </MemberAuthProvider>
     </CompanyAuthProvider>
   </AuthProvider>
-);
+  );
+};
 
 export default App;

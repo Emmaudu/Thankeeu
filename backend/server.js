@@ -207,6 +207,7 @@ app.use('/api/deductions', require('./routes/deductions'));
 app.use('/api/hris', require('./routes/hrisPublic')); // public: zoho-callback (no auth)
 app.use('/api/hris', require('./routes/hris'));       // protected: all other hris routes
 app.use('/api/demo', require('./routes/demo'));
+app.use('/api/mentorship', require('./routes/mentorship'));
 app.use('/api/blog',   require('./routes/blog'));
 app.use('/api/movies', require('./routes/movies'));
 app.use('/api/wall',   require('./routes/wall'));

@@ -33,8 +33,9 @@ const CardGallery = () => {
 
   useSEO({
     title: 'Browse Online Group Card Designs | Thankeeu',
-    description: 'Browse A4 online group card covers for birthdays, leaving, retirement, weddings, thank you cards and more.',
-    canonical: '/card/new',
+    description: 'Browse 100+ online group card designs for birthdays, leaving, retirement, weddings, thank you cards and more. Pick a design and start collecting messages in seconds.',
+    canonical: '/cards/create',
+    keywords: 'group card designs, online card designs, birthday card designs, leaving card designs, retirement card designs',
   });
 
   const occasionCounts = useMemo(() => ALL_DESIGNS.reduce((counts, design) => ({

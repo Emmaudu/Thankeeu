@@ -12,6 +12,11 @@ const USE_CASE_COL1 = [
   { to:'/cards/sympathy',        label:'Free Sympathy Group Cards' },
   { to:'/cards/thank-you',       label:'Free Thank You Group Cards' },
   { to:'/occasions/birthday',    label:'Free Group Electronic Cards' },
+  { to:'/cards/pet-loss-card',        label:'Pet Loss Group Card' },
+  { to:'/cards/teacher-appreciation', label:'Teacher Appreciation Card' },
+  { to:'/occasions/staff-appreciation', label:'Staff Appreciation Cards' },
+  { to:'/virtual-birthday-card',      label:'Virtual Birthday Card' },
+  { to:'/virtual-farewell-card',      label:'Virtual Farewell Card' },
 ];
 const USE_CASE_COL2 = [
   { to:'/memory-movie',          label:'Thankeeu Memory Movie™' },
@@ -32,6 +37,12 @@ const USE_CASE_COL3 = [
   { to:'/online-group-cards-uk',         label:'Free Kudoboard Alternative UK' },
   { to:'/qr-code-for-wedding-photos',    label:'QR Code for Wedding Photos' },
   { to:'/collect-wedding-guest-photos',  label:'Collect Wedding Guest Photos' },
+  { to:'/ecards',                        label:'eCards' },
+  { to:'/virtual-cards',                 label:'Virtual Cards' },
+  { to:'/digital-greeting-cards',        label:'Digital Greeting Cards' },
+  { to:'/ecard-for-coworker',            label:'eCard for a Coworker' },
+  { to:'/group-ecard',                   label:'Group eCard' },
+  { to:'/free-ecards-for-friends-and-family', label:'Free eCards for Friends & Family' },
 ];
 const USE_CASE_COL4 = [
   { to:'/wedding-group-card',            label:'Wedding Group Card' },
@@ -276,8 +287,8 @@ const Footer = () => (
               { to:'/create-card',        label:'Create a card' },
               { to:'/pricing',            label:'Pricing' },
               { to:'/culture-and-engagements', label:'Culture and Engagements' },
-              { to:'/games/gifts', label:'Games Gift Sponsors' },
-              { to:'/games/sponsor', label:'Sponsor Games' },
+              { to:'https://games.thankeeu.com/gifts', label:'Games Gift Sponsors' },
+              { to:'https://games.thankeeu.com/sponsor', label:'Sponsor Games' },
               { to:'/memory-movie',       label:'Memory Movie™' },
               { to:'/live-memory-wall',   label:'Live Memory Wall™' },
               { to:'/faq',               label:'FAQ' },
@@ -381,6 +392,10 @@ const Footer = () => (
             { to:'/wedding-photo-album-online',      label:'Wedding Photo Album Online' },
             { to:'/wedding-guest-photo-collection',  label:'Wedding Guest Photo Collection' },
             { to:'/wedding-voice-note-guest-book',   label:'Wedding Voice Note Book' },
+            { to:'/canva-cards-alternative',         label:'Canva Cards Alternative' },
+            { to:'/groupgreeting-alternative',       label:'GroupGreeting Alternative' },
+            { to:'/sendwishonline-alternative',      label:'SendWishOnline Alternative' },
+            { to:'/thankeeu-vs-thankbox-vs-kudoboard', label:'Thankeeu vs Thankbox vs Kudoboard' },
           ].map(({ to, label }) => (
             <div key={to}><Link to={to} onClick={scrollTop} className="text-xs text-warm-500 hover:text-primary-600 transition-colors leading-snug block">{label}</Link></div>
           ))}

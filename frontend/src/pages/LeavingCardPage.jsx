@@ -215,13 +215,25 @@ export default function LeavingCardPage() {
     ogImage: 'https://www.thankeeu.com/og-leaving-card.jpg',
     jsonLd: [
       SCHEMAS.organization,
-      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Leaving Cards', url: '/cards/leaving-card' }]),
-      SCHEMAS.webPage('Online Leaving Card', 'Create a group leaving card the whole team signs from one link.', '/cards/leaving-card'),
+      SCHEMAS.website,
+      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Cards', url: '/cards/create' }, { name: 'Online Leaving Card', url: '/cards/leaving-card' }]),
+      SCHEMAS.webPage('Online Leaving Card — Group Farewell Cards Everyone Signs', 'Create an online leaving card the whole team signs from one link. Messages, photos, GIFs and voice notes — with an optional pooled leaving gift. Scheduled delivery. Free to create.', '/cards/leaving-card', {
+        dateModified: '2026-08-31',
+        primaryImageOfPage: {
+          '@type': 'ImageObject',
+          url: 'https://www.thankeeu.com/og-leaving-card.jpg',
+          width: 1200,
+          height: 630,
+        },
+      }),
+      SCHEMAS.product('Online Leaving Card', 'Group farewell card the whole team signs from one link — messages, photos, GIFs, voice notes and an optional leaving gift collection.', 3.15, 'USD', '/cards/leaving-card'),
       SCHEMAS.faqPage([
         { q: 'How does an online leaving card work?', a: 'Create the card in under 2 minutes, share one link with colleagues, and everyone adds their message, photo, GIF or voice note. Schedule it to arrive on their last day.' },
         { q: 'Can we collect money for a leaving gift?', a: 'Yes — every card includes an optional gift collection. People chip in when they sign, and the recipient or organiser withdraws the pooled amount.' },
         { q: 'Do people need an account to sign?', a: 'No. Anyone with the link can sign instantly — no registration, no app download.' },
-        { q: 'How much does an online leaving card cost?', a: 'Free to create and collect messages. A small fee applies when you send, always shown upfront.' },
+        { q: 'How much does an online leaving card cost?', a: 'Free to create and collect messages. A small fee applies when you send — from $3.15 / £2.45 / NGN 5,000. Always shown upfront, no subscription.' },
+        { q: 'Can remote colleagues sign the leaving card?', a: 'Yes — the link works from any device, anywhere. Remote colleagues sign exactly the same way as those in the office.' },
+        { q: 'What is a Memory Movie?', a: 'Every Thankeeu card automatically generates a short 1080p video combining all the messages, photos and voice notes into a cinematic slideshow — a keepsake the recipient keeps forever.' },
       ]),
     ],
   });

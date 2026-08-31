@@ -418,26 +418,28 @@ export const SCHEMAS = {
     };
   },
 
-  // SiteNavigationElement — tells Google which pages to show as sitelinks
+  // SiteNavigationElement — tells Google which pages to show as sitelinks.
+  // Order matters: Google uses this as a priority signal. Most-important pages first.
   siteNavigation() {
     const links = [
-      { name: 'Birthday Group Cards',       url: '/occasions/birthday' },
-      { name: 'Online Leaving Cards',        url: '/cards/leaving-card' },
-      { name: 'Pricing',                    url: '/pricing' },
-      { name: 'How It Works',               url: '/how-it-works' },
-      { name: 'Farewell Group Cards',       url: '/occasions/farewell' },
-      { name: 'Get Well Soon Cards',        url: '/cards/get-well-soon' },
-      { name: 'Sympathy Cards',             url: '/cards/sympathy' },
-      { name: 'Group Cards UK',             url: '/online-group-cards-uk' },
-      { name: 'Group Cards Nigeria',        url: '/online-group-cards-nigeria' },
-      { name: 'Blog',                       url: '/blog' },
-      { name: 'Company Workspaces',         url: '/business' },
-      { name: 'Retirement Cards',           url: '/cards/retirement' },
+      { name: 'Online Leaving Card',         url: '/cards/leaving-card',         description: 'Group farewell card everyone signs from one link — messages, photos, voice notes and a leaving gift.' },
+      { name: 'Birthday Group Cards',        url: '/occasions/birthday',          description: 'Birthday cards the whole team signs from one link, with messages, photos, GIFs and a pooled birthday gift.' },
+      { name: 'Pricing',                     url: '/pricing',                     description: 'From $3.15 per card. One flat price, unlimited signers. No subscription required.' },
+      { name: 'How It Works',                url: '/how-it-works',                description: 'Create a card, share one link, everyone signs, scheduled delivery. Takes 2 minutes to set up.' },
+      { name: 'Retirement Cards',            url: '/cards/retirement',            description: 'Group retirement card to celebrate a full career. Everyone signs with messages and a pooled retirement gift.' },
+      { name: 'Sympathy Cards',              url: '/cards/sympathy',              description: 'Heartfelt sympathy card the whole team signs — kind words and support delivered privately.' },
+      { name: 'Group Cards UK',              url: '/online-group-cards-uk',       description: 'Online group cards for UK teams with GBP gift collection. Leaving cards, birthday cards and more.' },
+      { name: 'Group Cards Nigeria',         url: '/online-group-cards-nigeria',  description: 'Online group cards in Nigeria with Naira gift collection via Flutterwave. Share on WhatsApp.' },
+      { name: 'Blog',                        url: '/blog',                        description: 'Guides on what to write in leaving cards, birthday cards, retirement cards, sympathy cards and more.' },
+      { name: 'Company Workspaces',          url: '/business',                    description: 'Dedicated Thankeeu subdomain for HR teams. Automate birthdays, farewells and employee recognition.' },
+      { name: 'Browse Card Designs',         url: '/cards/create',                description: '100+ premium group card designs for every occasion — birthday, leaving, retirement, wedding and more.' },
+      { name: 'Get Well Soon Cards',         url: '/cards/get-well-soon',         description: 'Group get well soon cards from the whole team — warm messages, photos and an optional gift.' },
     ];
-    return links.map(({ name, url }) => ({
+    return links.map(({ name, url, description }) => ({
       '@type': 'SiteNavigationElement',
       name,
       url: `${BASE_URL}${url}`,
+      description,
     }));
   },
 };

@@ -1030,7 +1030,37 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
     if (next === clamped) return;
     setFlipClass(next > clamped ? 'album-flip-forward' : 'album-flip-back');
     setPage(next);
-    window.setTimeout(() => setFlipClass(''), 500);
+    window.setTimeout(() => setFlipClass(''), 620);
+  };
+  const stepBack = () => flipTo(clamped - (showingCover ? 1 : 2));
+  const stepFwd  = () => flipTo(showingCover ? 1 : clamped + 2);
+
+  // Arrow keys turn pages, the way a real book responds to a nudge.
+  useEffect(() => {
+    const onKey = (e) => {
+      const tag = (e.target?.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
+      if (e.key === 'ArrowRight') { e.preventDefault(); stepFwd(); }
+      if (e.key === 'ArrowLeft')  { e.preventDefault(); stepBack(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  // Swipe on touch devices.
+  const swipeRef = useRef(null);
+  const onTouchStart = (e) => {
+    const t = e.touches?.[0];
+    swipeRef.current = t ? { x: t.clientX, y: t.clientY } : null;
+  };
+  const onTouchEnd = (e) => {
+    const s = swipeRef.current; swipeRef.current = null;
+    const t = e.changedTouches?.[0];
+    if (!s || !t) return;
+    const dx = t.clientX - s.x, dy = t.clientY - s.y;
+    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (dx < 0) stepFwd(); else stepBack();
+    }
   };
 
   const leftIdx  = showingCover ? null : (clamped % 2 === 1 ? clamped : clamped - 1);
@@ -1110,12 +1140,43 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
   return (
     <div className="rounded-2xl p-5 sm:p-8" style={{ background: albumTheme.stage }}>
       <style>{`
-        @keyframes cv-album-flip-forward { 0% { opacity:.2; transform:rotateY(-90deg); } 100% { opacity:1; transform:rotateY(0); } }
-        @keyframes cv-album-flip-back { 0% { opacity:.2; transform:rotateY(90deg); } 100% { opacity:1; transform:rotateY(0); } }
-        .cv-flip-forward { animation: cv-album-flip-forward .5s ease both; }
-        .cv-flip-back { animation: cv-album-flip-back .5s ease both; }
+        /* A page turn should read as paper lifting off a spine: it hinges on the
+           binding edge, dips through shadow at the midpoint, then settles flat.
+           The old version rotated a flat element with no perspective and no
+           origin, which looked like a card being wiped in rather than turned. */
+        @keyframes cv-album-flip-forward {
+          0%   { opacity:.25; transform: rotateY(-96deg) skewY(-1.5deg); filter: brightness(.72); }
+          58%  { opacity:1;   transform: rotateY(8deg) skewY(.3deg); }
+          100% { opacity:1;   transform: rotateY(0); filter: brightness(1); }
+        }
+        @keyframes cv-album-flip-back {
+          0%   { opacity:.25; transform: rotateY(96deg) skewY(1.5deg); filter: brightness(.72); }
+          58%  { opacity:1;   transform: rotateY(-8deg) skewY(-.3deg); }
+          100% { opacity:1;   transform: rotateY(0); filter: brightness(1); }
+        }
+        .cv-book { perspective: 1800px; transform-style: preserve-3d; }
+        .cv-flip-forward, .cv-flip-back {
+          transform-style: preserve-3d; backface-visibility: hidden; will-change: transform;
+        }
+        .cv-flip-forward { animation: cv-album-flip-forward .62s cubic-bezier(.2,.72,.15,1) both; transform-origin: left center; }
+        .cv-flip-back    { animation: cv-album-flip-back    .62s cubic-bezier(.2,.72,.15,1) both; transform-origin: right center; }
+        /* Gutter shading + a soft corner curl sell the bound-book depth. */
+        .cv-leaf { position: relative; }
+        .cv-leaf::before {
+          content:''; position:absolute; inset:0 auto 0 0; width:34px; pointer-events:none; z-index:6;
+          background: linear-gradient(90deg, rgba(0,0,0,.14), rgba(0,0,0,.04) 40%, transparent);
+        }
+        .cv-leaf.cv-leaf-right::before { inset:0 0 0 auto; background: linear-gradient(270deg, rgba(0,0,0,.14), rgba(0,0,0,.04) 40%, transparent); }
+        .cv-leaf::after {
+          content:''; position:absolute; right:0; bottom:0; width:46px; height:46px; pointer-events:none; z-index:6;
+          background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,.06) 50%, rgba(0,0,0,.12));
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .cv-flip-forward, .cv-flip-back { animation-duration: .01s; }
+        }
       `}</style>
-      <div className="flex items-center justify-center" style={{ minHeight: 600 }}>
+      <div className="cv-book flex items-center justify-center" style={{ minHeight: 600 }}
+        onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {showingCover ? (
           <div className={flipClass === 'album-flip-forward' ? 'cv-flip-forward' : flipClass === 'album-flip-back' ? 'cv-flip-back' : ''}
             style={{ width: 424, maxWidth: '86vw', position: 'relative' }}>
@@ -1136,12 +1197,12 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           </div>
         ) : (
           <div className="flex items-stretch" style={{ gap: 2 }}>
-            <div className={flipClass && leftIdx === clamped ? (flipClass === 'album-flip-forward' ? 'cv-flip-forward' : 'cv-flip-back') : ''}
+            <div className={`cv-leaf ${flipClass ? (flipClass === 'album-flip-forward' ? 'cv-flip-forward' : 'cv-flip-back') : ''}`}
               style={{ borderRadius: '14px 0 0 14px', overflow: 'hidden' }}>
               <Leaf msg={leftMsg}/>
             </div>
             <div style={{ width: 2, background: 'linear-gradient(90deg,rgba(0,0,0,0.08),rgba(0,0,0,0.02))', flexShrink: 0 }}/>
-            <div className={flipClass && rightIdx === clamped ? (flipClass === 'album-flip-forward' ? 'cv-flip-forward' : 'cv-flip-back') : ''}
+            <div className={`cv-leaf cv-leaf-right ${flipClass ? (flipClass === 'album-flip-forward' ? 'cv-flip-forward' : 'cv-flip-back') : ''}`}
               style={{ borderRadius: '0 14px 14px 0', overflow: 'hidden' }}>
               <Leaf msg={rightMsg}/>
             </div>
@@ -1151,15 +1212,16 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
 
       {/* Navigation */}
       <div className="mt-6 flex items-center justify-center gap-3">
-        <button type="button" onClick={() => flipTo(clamped - (showingCover ? 1 : 2))} disabled={clamped === 0}
+        <button type="button" onClick={stepBack} disabled={clamped === 0}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow disabled:opacity-30"
           style={{ border: `2px solid ${accent}44`, color: accent }}>
           <Icon name="ChevronLeft" size={20}/>
         </button>
         <span className="text-xs font-bold" style={{ color: albumTheme.ink === '#F3E8FF' ? '#fff' : '#4B3F72' }}>
           {showingCover ? 'Cover' : `Page ${clamped} of ${totalPages - 1}`}
+          <span className="ml-1.5 font-semibold opacity-60">· swipe or use ← →</span>
         </span>
-        <button type="button" onClick={() => flipTo(showingCover ? 1 : clamped + 2)} disabled={clamped >= totalPages - 1}
+        <button type="button" onClick={stepFwd} disabled={clamped >= totalPages - 1}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow disabled:opacity-30"
           style={{ border: `2px solid ${accent}44`, color: accent }}>
           <Icon name="ChevronRight" size={20}/>
@@ -1199,6 +1261,30 @@ const CardView = () => {
   useEffect(() => {
     if (card?.card_experience === 'wall_only' || searchParams.get('tab') === 'wall') setCardViewTab('wall');
   }, [card?.card_experience, searchParams]);
+
+  // How the signed messages are displayed is the *viewer's* choice — a signer,
+  // the recipient or anyone with the link can flip between the album flipbook
+  // and the message board at any time. The card's own card_layout only decides
+  // which one they land on first, and ?view=album|board can preselect it (used
+  // by shared links). Remembered per browser so a repeat visit opens the way
+  // they left it.
+  const VIEW_STYLE_KEY = 'thankeeu_card_view_style';
+  const [viewStyle, setViewStyle] = useState(() => {
+    const fromUrl = searchParams.get('view');
+    if (fromUrl === 'album' || fromUrl === 'board') return fromUrl;
+    try {
+      const saved = localStorage.getItem(VIEW_STYLE_KEY);
+      if (saved === 'album' || saved === 'board') return saved;
+    } catch { /* private mode — fall through to the card's own default */ }
+    return null; // decided from the card once it loads
+  });
+  // Derived rather than synced through an effect, so the very first paint
+  // already uses the right style (no hero/navbar flash on album cards).
+  const effectiveViewStyle = viewStyle || (card?.card_layout === 'album' ? 'album' : 'board');
+  const chooseViewStyle = (next) => {
+    setViewStyle(next);
+    try { localStorage.setItem(VIEW_STYLE_KEY, next); } catch { /* non-fatal */ }
+  };
   const [showAll,      setShowAll]      = useState(false);
   const [searchQuery,  setSearchQuery]  = useState('');
   const [searchActive, setSearchActive] = useState(false);
@@ -1371,7 +1457,7 @@ const CardView = () => {
   // (album_background_theme) the same way AlbumSign.jsx colors its own top
   // bar — not just the cover art gradient — so the navbar reads consistently
   // whether you're looking at the cover or already inside the flipbook.
-  const albumNavTheme = card.card_layout === 'album' ? getAlbumTheme(card.album_background_theme) : null;
+  const albumNavTheme = effectiveViewStyle === 'album' ? getAlbumTheme(card.album_background_theme) : null;
   const navThemeBg = albumNavTheme
     ? (albumNavTheme.id === 'cover_blur'
         ? (isCustomCoverUrl ? `url("${card.background_color}") center/cover no-repeat` : design?.image ? `url("${design.image}") center/cover no-repeat` : design?.background)
@@ -1402,7 +1488,7 @@ const CardView = () => {
       <Confetti />
       {/* ── HERO BANNER — hidden for album flipbook cards (they have their own
            themed cover page inside the flipbook viewer itself) ── */}
-      {card?.card_layout !== 'album' && (
+      {effectiveViewStyle !== 'album' && (
       <header className="relative overflow-hidden" style={{ background: coverBackground, color: coverTextColor }}>
         {/* SVG artwork backdrop for artwork designs */}
         {coverArt && (
@@ -1907,7 +1993,25 @@ const CardView = () => {
                   </button>
                 </div>
               )}
-              {card?.card_layout === 'album' ? (
+              {/* Viewer-controlled display style — same messages, two ways to read them. */}
+              <div className="mb-5 flex justify-center">
+                <div className="inline-flex gap-1 rounded-2xl border border-purple-100 bg-white p-1 shadow-sm">
+                  {[
+                    { id: 'album', icon: 'BookOpen',   label: 'Album' },
+                    { id: 'board', icon: 'LayoutGrid', label: 'Board' },
+                  ].map(opt => (
+                    <button key={opt.id} type="button" onClick={() => chooseViewStyle(opt.id)}
+                      aria-pressed={effectiveViewStyle === opt.id}
+                      className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-extrabold transition-all ${
+                        effectiveViewStyle === opt.id ? 'text-white shadow' : 'text-warm-500 hover:bg-purple-50'
+                      }`}
+                      style={effectiveViewStyle === opt.id ? { background: design.accent } : undefined}>
+                      <Icon name={opt.icon} size={14}/>{opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {effectiveViewStyle === 'album' ? (
                 <AlbumFlipbookViewer
                   card={card}
                   messages={displayMessages}
@@ -2026,9 +2130,9 @@ const CardView = () => {
     </div>
   );
 
-  if (layoutType === 'member')  return <>{card?.card_layout !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
-  if (layoutType === 'company') return <>{card?.card_layout !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
-  return <>{card?.card_layout !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
+  if (layoutType === 'member')  return <>{effectiveViewStyle !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
+  if (layoutType === 'company') return <>{effectiveViewStyle !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
+  return <>{effectiveViewStyle !== 'album' && <Navbar themeBg={navThemeBg} themeDark={navThemeDark}/>}{content}</>;
 };
 
 export default CardView;

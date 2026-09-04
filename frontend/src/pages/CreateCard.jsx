@@ -1,5 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
@@ -9,9 +9,6 @@ import Navbar from '../components/Navbar';
 import DashboardLayout from '../components/DashboardLayout';
 import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
-import VoiceRecorder from '../components/VoiceRecorder';
-import EmojiPicker from '../components/EmojiPicker';
-import GifPicker from '../components/GifPicker';
 import Icon from '../components/ui/Icon';
 import QRButton from '../components/QRButton';
 import toast from 'react-hot-toast';
@@ -40,7 +37,7 @@ const OCCASIONS = [
 ];
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000];
-const STEPS = ['Occasion', 'Design', 'Details', 'Your Message', 'Gift & Pay'];
+const STEPS = ['Occasion', 'Design', 'Details', 'Gift & Pay'];
 
 const StepIndicator = ({ current }) => (
  <div className="flex items-center mb-8">
@@ -106,23 +103,24 @@ const CreateCard = () => {
  cover_sender: creatorName === 'You' ? '' : creatorName,
  cover_text_color: 'auto',
  cover_layout: null,
- card_experience: 'card_and_wall', // default: Group Card + Live Memory Wall
+ card_experience: 'card_only', // the wizard creates group cards; Live Wall is not part of this flow
  });
  const [selectedCoverField, setSelectedCoverField] = useState('recipient');
 
- // Creator's own first message (Step 3)
+ // Creator's own message is no longer written during setup — they add it after
+ // the card is live, on the /sign page, alongside everyone they invite. These
+ // stay so an older saved draft (which may carry a msgSnapshot) still restores,
+ // and so an existing draft's own message is preserved when it is re-opened.
  const [msgForm, setMsgForm] = useState({ content: '', font_style: 'handwritten', is_private: false });
- const [mediaFiles, setMediaFiles] = useState([]);
- const [carouselIdx, setCarouselIdx] = useState(0);
- const [showEmoji, setShowEmoji] = useState(false);
- const [showGif, setShowGif] = useState(false);
+ const [mediaFiles] = useState([]);
+ // True when msgForm was restored from a message that is already saved on the
+ // card (re-opening an existing draft or a live card via ?edit=).
+ const [creatorMessageAlreadyPosted, setCreatorMessageAlreadyPosted] = useState(false);
  const [giftAmount, setGiftAmount] = useState(null);
  const [customGift, setCustomGift] = useState('');
  // Recipient photo — optional cover photo uploaded in Step 2
  const [recipientPhoto, setRecipientPhoto] = useState({ file: null, preview: null });
  const photoInputRef = useRef();
- const fileRef = useRef();
- const textareaRef = useRef();
 
  useEffect(() => {
  const reset = () => { setLoading(false); setPaymentStage('idle'); };
@@ -157,13 +155,13 @@ const CreateCard = () => {
  cardsAPI.claimDraft(saved.slug, saved.draft_edit_token).catch(() => {});
  }
  // If they were at the payment step when they went to log in, return there
- const targetStep = saved.resumeStep === 4 ? 4 : 3;
+ const targetStep = saved.resumeStep >= 3 ? 3 : 2;
  toast.success('Welcome back! Continuing your card…');
  setStep(targetStep);
  } else if (saved.formSnapshot) {
  // Form filled but draft not created yet — go to details step
  toast.success('Welcome back! Pick up where you left off.');
- setStep(saved.localOnly ? 4 : 2);
+ setStep(saved.localOnly ? 3 : 2);
  }
  } catch {}
  // Clean the ?resumed=1 param from the URL without a page reload
@@ -294,12 +292,15 @@ const CreateCard = () => {
  const myMsg = (card.messages || []).find(m => myEmail && m.author_email?.toLowerCase() === myEmail);
  if (myMsg) {
  setMsgForm({ content: myMsg.content || '', font_style: myMsg.font_style || 'handwritten', is_private: !!myMsg.is_private });
+ // It is already on the card — re-posting it on the next activate would
+ // duplicate the creator's page.
+ setCreatorMessageAlreadyPosted(true);
  }
 
  const wasActive = card.status === 'active';
  setIsActiveEdit(wasActive);
  toast.success(wasActive ? 'Editing your live card — changes save immediately.' : 'Continuing your draft — your progress is right where you left it.');
- setStep(myMsg ? 3 : 2);
+ setStep(2);
  } catch (err) {
  toast.error(err.response?.data?.error || 'Could not load this draft. Starting fresh instead.');
  } finally {
@@ -311,7 +312,6 @@ const CreateCard = () => {
 
 
  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
- const setMsg = (k, v) => setMsgForm(p => ({ ...p, [k]: v }));
 
  // Convert local date+time to UTC before sending to backend.
  // The backend and cron run in UTC, so we must store UTC times to deliver
@@ -348,35 +348,6 @@ const CreateCard = () => {
  }
  };
  const handleDesignSelect = (d) => { set('design_theme', d.id); set('background_color', d.background || d.bg || '#F5F0FF'); };
-
- // Media helpers
- const addMedia = useCallback((files) => {
- const items = [];
- for (const f of Array.from(files)) {
- const isGifOrImage = f.type === 'image/gif' || f.type.startsWith('image/');
- const maxSize = isGifOrImage ? 9 * 1024 * 1024 : 50 * 1024 * 1024;
- if (f.size > maxSize) {
- toast.error(`${f.name} is too large. ${isGifOrImage ? 'Images and GIFs must be under 9MB.' : 'Videos must be under 50MB.'}`);
- continue;
- }
- const mime = f.type;
- const type = mime.startsWith('video/') ? 'video' : mime.startsWith('audio/') ? 'voice' : mime === 'image/gif' ? 'gif' : 'image';
- items.push({ file: f, preview: URL.createObjectURL(f), type, name: f.name });
- }
- setMediaFiles(prev => [...prev, ...items].slice(0, 5));
- }, []);
- const removeMedia = useCallback((idx) => {
- setMediaFiles(prev => { const n = [...prev]; URL.revokeObjectURL(n[idx].preview); n.splice(idx, 1); setCarouselIdx(i =>Math.min(i, Math.max(0, n.length - 1))); return n; });
- }, []);
- const insertEmoji = useCallback((emoji) => {
- const el = textareaRef.current;
- if (el && typeof el.selectionStart === 'number') {
- const s = el.selectionStart, e = el.selectionEnd;
- setMsg('content', msgForm.content.slice(0, s) + emoji + msgForm.content.slice(e));
- requestAnimationFrame(() => { el.focus(); const p = s + emoji.length; el.setSelectionRange(p, p); });
- } else setMsg('content', msgForm.content + emoji);
- setShowEmoji(false);
- }, [msgForm.content]);
 
  // Step 3: create card draft (no payment yet) then allow creator to add first message
  const handleCreateDraft = async () => {
@@ -422,7 +393,7 @@ const CreateCard = () => {
  } finally { setLoading(false); }
  };
 
- // Step 4: post creator's message then pay / activate
+ // Step 3: pay / activate
  const handlePayAndLaunch = async () => {
  setLoading(true);
  setPaymentStage('sending');
@@ -447,7 +418,7 @@ const CreateCard = () => {
  const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
  const fullUpdate = {
  is_gift_enabled: form.is_gift_enabled,
- card_experience: form.card_experience || 'card_and_wall',
+ card_experience: form.card_experience || 'card_only',
  suggested_amount: form.suggested_amount,
  gift_type: form.gift_type,
  send_date: utcSD || null,
@@ -473,7 +444,7 @@ const CreateCard = () => {
 
  // Save creator's message AFTER activation (addMessage blocks on draft cards)
  const saveCreatorMessage = async (activeSlug) => {
- if (!msgForm.content.trim()) return;
+ if (!msgForm.content.trim() || creatorMessageAlreadyPosted) return;
  const authorName = user?.full_name
  || (member ? `${member?.first_name || ''} ${member?.last_name || ''}`.trim() : null)
  || company?.contact_person || company?.name || creatorName || 'Card Creator';
@@ -560,14 +531,14 @@ const CreateCard = () => {
  localStorage.removeItem('thankeeu_pending_card');
  setStep(0); setLiveSlug(null); setDraftSlug(null); setIsActiveEdit(false); setGuestPhase('configure');
  setLoading(false); setPaymentStage('idle');
- setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
- setMediaFiles([]); setGiftAmount(null); setCustomGift(''); setInviteEmails('');
+ setMsgForm({ content: '', font_style: 'handwritten', is_private: false }); setCreatorMessageAlreadyPosted(false);
+ setGiftAmount(null); setCustomGift(''); setInviteEmails('');
  setRecipientPhoto({ file: null, preview: null });
  setForm({ occasion:'birthday', design_theme:'birthday-art-1', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
  title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
  send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
  allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department',
- cover_sender: creatorName === 'You' ? '' : creatorName, cover_text_color:'auto', cover_layout:null, card_experience:'card_and_wall' });
+ cover_sender: creatorName === 'You' ? '' : creatorName, cover_text_color:'auto', cover_layout:null, card_experience:'card_only' });
  };
 
  // ── LIVE screen ──────────────────────────────────────────────────────────
@@ -578,9 +549,16 @@ const CreateCard = () => {
  <h1 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:'clamp(1.75rem,5vw,2.75rem)', color:'#1A1035', marginBottom:12 }}>
  Your card is live!
  </h1>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', color:'#7A6CA8', fontSize:18, marginBottom:32 }}>
- Share the link below so people can sign it.
+ <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', color:'#7A6CA8', fontSize:18, marginBottom:24 }}>
+ Sign it first, then share the link so everyone else can too.
  </p>
+
+ {/* The creator writes their message here, not during setup — this is the
+     one place anyone signs, so it has to be the first thing offered. */}
+ <Link to={`/sign/${liveSlug}`}
+  className="btn-primary mb-8 inline-flex items-center gap-2 px-8 py-3.5 text-base">
+  <Icon name="PenLine" size={17}/>Write your message on the card
+ </Link>
  <div className="flex flex-col sm:flex-row gap-3 mb-6 w-full max-w-lg">
  <input readOnly value={`${window.location.origin}/sign/${liveSlug}`}
  className="input flex-1 text-sm" style={{ background:'#fff' }}/>
@@ -598,9 +576,6 @@ const CreateCard = () => {
  Share on WhatsApp
  </button>
  <QRButton url={`${window.location.origin}/sign/${liveSlug}`} label="Scan to sign the group card" variant="secondary" className="px-8 py-3">QR Code — Group Card</QRButton>
- {['card_and_wall','wall_only'].includes(form.card_experience) && (
-   <QRButton url={`${window.location.origin}/sign/${liveSlug}?tab=wall`} label="Scan to add photos to the Live Photo Wall" variant="secondary" className="px-8 py-3">QR Code — Photo Wall</QRButton>
- )}
  <Link to={`/create-card?edit=${liveSlug}`}
  className="btn-secondary px-8 py-3 inline-flex items-center gap-2">
  Edit card
@@ -960,41 +935,6 @@ const CreateCard = () => {
  </div>
  </div>
  )}
- {/* ── Celebration Experience ── */}
- <div className="rounded-2xl border-2 border-purple-100 p-5">
- <h3 className="font-bold text-warm-900 text-sm mb-1">Celebration Experience</h3>
- <p className="text-xs text-warm-500 mb-4">Choose how contributors participate in the celebration.</p>
- <div className="space-y-3">
- {[
- { id:'card_only', emoji:'Mail', title:'Group Card Only',
- desc:'Contributors send messages, photos, videos, voice notes and gifts. Auto-generates a Memory Movie™ keepsake.' },
- { id:'wall_only', emoji:'Camera', title:'Live Memory Wall™ Only',
- desc:'Contributors upload photos and videos to a live timeline throughout the event. No traditional card.' },
- { id:'card_and_wall', emoji:'Sparkles', title:'Group Card + Live Memory Wall™',
- desc:'Best of both — heartfelt messages AND a live photo wall. Auto-generates one unforgettable Memory Movie™.', recommended: true },
- ].map(opt => (
- <button key={opt.id} type="button" onClick={() => set('card_experience', opt.id)}
- className={`w-full text-left rounded-xl p-4 border-2 transition-all ${form.card_experience === opt.id ? 'border-primary-400 bg-primary-50' : 'border-purple-100 hover:border-purple-200'}`}>
- <div className="flex items-start gap-3">
- <span className={`mt-0.5 flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl ${form.card_experience === opt.id ? 'bg-primary-500 text-white' : 'bg-purple-50 text-primary-500'}`}>
-   <Icon name={opt.emoji} size={18} />
- </span>
- <div className="flex-1 min-w-0">
- <div className="flex items-center gap-2 flex-wrap">
- <span className="font-bold text-warm-900 text-sm">{opt.title}</span>
- {opt.recommended && <span className="text-xs px-2 py-0.5 rounded-xl bg-primary-100 text-primary-600 font-bold">Recommended</span>}
- </div>
- <p className="text-xs text-warm-500 mt-0.5 leading-relaxed">{opt.desc}</p>
- </div>
- <div className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5 transition-colors ${form.card_experience === opt.id ? 'border-primary-500 bg-primary-500' : 'border-gray-300'}`}>
- {form.card_experience === opt.id && <span className="w-2 h-2 rounded-full bg-white block"/>}
- </div>
- </div>
- </button>
- ))}
- </div>
- </div>
-
  <div className="rounded-2xl border border-purple-100 divide-y divide-gray-100">
  {[
  { key:'allow_private_messages', label:'Allow private messages', desc:'Contributors can mark messages visible only to recipient' },
@@ -1018,7 +958,7 @@ const CreateCard = () => {
  if (!form.recipient_name?.trim()) { toast.error('Recipient name is required'); return; }
  if (!user && !isCompanyUser) {
  // Guest: just save to localStorage and advance — no API call yet
- // The draft is created at Step 4 when they click "Save draft & continue"
+ // The draft is created at Step 3 when they click "Save draft & continue"
  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
  ...existing, formSnapshot: form, msgSnapshot: msgForm, timestamp: Date.now(),
@@ -1033,187 +973,15 @@ const CreateCard = () => {
  className="btn-primary inline-flex items-center gap-2">
  {loading
  ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving…</span>
- : 'Add your message →'}
+ : 'Gift & pay →'}
  </button>
  </div>
  </div>
  )}
 
- {/* ── Step 3: Creator's First Message ── */}
- {step === 3 && (
- <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
- <h2 className="text-xl font-bold text-warm-900 mb-1">Add your message </h2>
- <p className="text-warm-500 text-sm mb-4">
- You're the card creator — add your own message first. Others will sign too once you share the link.
- </p>
 
- {/* ── Sign-in banner — shown to guests who may already have an account ── */}
- {!user && !isCompanyUser && (
- <div style={{
- background: 'linear-gradient(135deg,#EDE9FE,#F5F0FF)',
- border: '1.5px solid #C4B5FD',
- borderRadius: 16,
- padding: '12px 16px',
- display: 'flex',
- alignItems: 'center',
- justifyContent: 'space-between',
- gap: 12,
- marginBottom: 20,
- flexWrap: 'wrap',
- }}>
- <div style={{ display:'flex', alignItems:'center', gap:10 }}>
- <span style={{ fontSize:22 }}></span>
- <div>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#1A1035', margin:0, lineHeight:1.3 }}>
- Already have an account?
- </p>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:12, color:'#7A6CA8', margin:0 }}>
- Sign in to save this card to your dashboard — your progress won't be lost.
- </p>
- </div>
- </div>
- <Link
- to={`/login?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
- onClick={() => {
- const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
- localStorage.setItem('thankeeu_pending_card', JSON.stringify({
- ...existing,
- formSnapshot: form,
- msgSnapshot: msgForm,
- timestamp: Date.now(),
- }));
- }}
- style={{
- background: '#7C3AED',
- color: '#fff',
- borderRadius: 12,
- padding: '8px 18px',
- fontFamily: 'Plus Jakarta Sans,sans-serif',
- fontWeight: 700,
- fontSize: 13,
- textDecoration: 'none',
- whiteSpace: 'nowrap',
- flexShrink: 0,
- display: 'inline-flex',
- alignItems: 'center',
- gap: 6,
- }}>
- <Icon name="LogIn" size={14}/>Sign in
- </Link>
- </div>
- )}
-
-
- {/* Writing style */}
- <label className="block text-sm font-bold text-warm-700 mb-2">Writing style</label>
- <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
- {FONT_STYLES.map(font => (
- <button key={font.id} type="button" onClick={() => setMsg('font_style', font.id)}
- className={`rounded-xl border-2 px-2 py-2.5 text-sm transition-all ${msgForm.font_style===font.id?'border-primary-500 bg-primary-50 text-primary-700':'border-purple-100 text-warm-600'}`}
- style={{ fontFamily:font.family }}>
- {font.id==='calligraphy'?'With love':font.name}
- </button>
- ))}
- </div>
-
- {/* Message textarea */}
- <label className="block text-sm font-bold text-warm-700 mb-2">Your message to {form.recipient_name||'them'}</label>
- <div className="relative mb-1">
- <textarea ref={textareaRef} className="input h-36 resize-none"
- style={{ fontFamily:getFontStyle(msgForm.font_style).family, fontSize: msgForm.font_style==='calligraphy'?'1.5rem':'1rem' }}
- placeholder={`Write something heartfelt for ${form.recipient_name||'them'}…`}
- maxLength={1200} value={msgForm.content} onChange={e => setMsg('content', e.target.value)}/>
- <button type="button" onClick={() => { setShowEmoji(s=>!s); setShowGif(false); }}
- className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-white border border-purple-100 shadow-sm flex items-center justify-center text-lg hover:bg-purple-50 transition-colors">
- 
- </button>
- {showEmoji && <EmojiPicker onSelect={insertEmoji} onClose={() => setShowEmoji(false)}/>}
- </div>
- <div className="flex justify-end mb-4">
- <span className="text-xs text-warm-400">{msgForm.content.length}/1200</span>
- </div>
-
- {/* Media buttons */}
- <div className="relative flex flex-wrap gap-2 mb-4">
- <button type="button" onClick={() => fileRef.current?.click()}
- className="voice-record-button"><span></span><span>Photos/video {mediaFiles.length>0?`(${mediaFiles.length}/5)`:''}</span></button>
- <button type="button" onClick={() => { setShowGif(s=>!s); setShowEmoji(false); }} disabled={mediaFiles.length>=5}
- className="voice-record-button disabled:opacity-50"><span></span><span>Add GIF</span></button>
- <VoiceRecorder onRecorded={f => addMedia([f])} disabled={loading}/>
- <input ref={fileRef} type="file" accept="image/*,video/*,audio/*,.m4a,.ogg,.webm" multiple className="hidden"
- onChange={e => addMedia(e.target.files)}/>
- {showGif && <GifPicker onSelect={f => { addMedia([f]); setShowGif(false); }} onClose={() => setShowGif(false)}/>}
- </div>
-
- {/* Media carousel */}
- {mediaFiles.length > 0 && (
- <div className="mb-4 rounded-2xl overflow-hidden border-2 border-purple-100 bg-white">
- <div className="relative" style={{ aspectRatio:'16/9', background:'#1A1035' }}>
- {mediaFiles[carouselIdx].type==='video' ? (
- <video src={mediaFiles[carouselIdx].preview} className="w-full h-full object-contain" controls/>
- ) : mediaFiles[carouselIdx].type==='voice' ? (
- <div className="w-full h-full flex flex-col items-center justify-center gap-3">
- <span className="inline-flex w-12 h-12 rounded-xl bg-primary-100 items-center justify-center mb-1"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span>
- <audio src={mediaFiles[carouselIdx].preview} controls className="w-4/5"/>
- </div>
- ) : (
- <img src={mediaFiles[carouselIdx].preview} alt="" className="w-full h-full object-contain"/>
- )}
- <button type="button" onClick={() => removeMedia(carouselIdx)}
- className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-sm flex items-center justify-center hover:bg-red-500 transition-colors"></button>
- {mediaFiles.length > 1 && (
- <>
- <button type="button" onClick={() => setCarouselIdx(i=>(i-1+mediaFiles.length)%mediaFiles.length)}
- className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-lg">‹</button>
- <button type="button" onClick={() => setCarouselIdx(i=>(i+1)%mediaFiles.length)}
- className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-lg">›</button>
- </>
- )}
- </div>
- <p className="text-center text-xs text-warm-400 py-2">{carouselIdx+1} of {mediaFiles.length} — Add up to {5-mediaFiles.length} more</p>
- </div>
- )}
-
- {/* Private toggle */}
- {form.allow_private_messages && (
- <label className="flex items-center justify-between gap-4 border-t border-purple-100 pt-4 mb-4 cursor-pointer">
- <span>
- <span className="block text-sm font-bold text-warm-800">Private message</span>
- <span className="block text-xs text-warm-400">Only the recipient and card creator can read it</span>
- </span>
- <input type="checkbox" checked={msgForm.is_private} onChange={e => setMsg('is_private', e.target.checked)} className="w-5 h-5 accent-violet-600"/>
- </label>
- )}
-
- {/* Invite emails */}
- <div className="mb-5">
- <label className="block text-sm font-bold text-warm-700 mb-1.5">Invite people to sign <span className="text-warm-400 font-normal text-xs">(optional)</span></label>
- <textarea className="input h-20 resize-none" placeholder="kemi@email.com, emeka@email.com"
- value={inviteEmails} onChange={e => setInviteEmails(e.target.value)}/>
- <p className="text-xs text-warm-400 mt-1">You can also share a link after creating the card</p>
- </div>
-
- <div className="flex justify-between">
- <button onClick={() => setStep(2)} className="btn-secondary">← Back</button>
- <button
- onClick={() => {
- // Save current state to localStorage in case of page refresh
- const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
- localStorage.setItem('thankeeu_pending_card', JSON.stringify({
- ...existing, formSnapshot: form, msgSnapshot: msgForm, timestamp: Date.now(),
- }));
- setGuestPhase('configure');
- setStep(4);
- }}
- className="btn-primary inline-flex items-center gap-2">
- {msgForm.content.trim() ? 'Save message & pay →' : 'Skip & continue →'}
- </button>
- </div>
- </div>
- )}
-
- {/* ── Step 4: Gift & Pay — GUEST ── */}
- {step === 4 && !user && !isCompanyUser && (
+ {/* ── Step 3: Gift & Pay — GUEST ── */}
+ {step === 3 && !user && !isCompanyUser && (
 
  /* ── Phase 1: Configure gift pot ── */
  guestPhase === 'configure' ? (
@@ -1254,6 +1022,14 @@ const CreateCard = () => {
  )}
 
  {/* Full card summary */}
+ {/* Invite emails */}
+ <div className="mb-5">
+ <label className="block text-sm font-bold text-warm-700 mb-1.5">Invite people to sign <span className="text-warm-400 font-normal text-xs">(optional)</span></label>
+ <textarea className="input h-20 resize-none" placeholder="kemi@email.com, emeka@email.com"
+ value={inviteEmails} onChange={e => setInviteEmails(e.target.value)}/>
+ <p className="text-xs text-warm-400 mt-1">Optional — you can also just share the link once the card is live.</p>
+ </div>
+
  <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
  {[
  ['Occasion', form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o=>o.id===form.occasion)?.label || form.occasion)],
@@ -1263,7 +1039,6 @@ const CreateCard = () => {
  ['Recipient email', form.recipient_email || 'Not set'],
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
- ['Your message', msgForm.content?.trim() ? `Written (${msgForm.content.length} chars)` : 'None added'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount||2500)} suggested` : 'No'],
  ['Card fee', `${formatCurrency(5000,'NGN')} one-time`],
  ].map(([k,v]) => (
@@ -1276,7 +1051,7 @@ const CreateCard = () => {
 
  {/* Actions */}
  <div className="flex gap-3">
- <button onClick={() => setStep(3)} className="btn-secondary px-4">← Back</button>
+ <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
  <button
  onClick={async () => {
  if (!form.recipient_name?.trim()) {
@@ -1313,7 +1088,7 @@ const CreateCard = () => {
  draft_edit_token: editToken,
  formSnapshot: form,
  msgSnapshot: msgForm,
- resumeStep: 4,
+ resumeStep: 3,
  timestamp: Date.now(),
  }));
  // Upload recipient photo if one was chosen (non-fatal)
@@ -1331,7 +1106,7 @@ const CreateCard = () => {
  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
  ...existing, localOnly: true, formSnapshot: form, msgSnapshot: msgForm,
- resumeStep: 4, timestamp: Date.now(),
+ resumeStep: 3, timestamp: Date.now(),
  }));
  setGuestPhase('auth');
  toast.success('Draft saved on this device. Sign in to sync it to your account.');
@@ -1389,7 +1164,6 @@ const CreateCard = () => {
  ['Recipient email', form.recipient_email || 'Not set'],
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
- ['Your message', msgForm.content?.trim() ? `Written (${msgForm.content.length} chars)` : 'None added'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount||2500)} suggested` : 'No'],
  ['Card fee', `${formatCurrency(5000,'NGN')} one-time`],
  ['Status', 'Draft — sign in to pay & launch'],
@@ -1409,7 +1183,7 @@ const CreateCard = () => {
  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
  ...existing, formSnapshot: form, msgSnapshot: msgForm,
- resumeStep: 4, timestamp: Date.now(),
+ resumeStep: 3, timestamp: Date.now(),
  }));
  }}
  className="btn-primary w-full py-3.5 text-base font-bold text-center block">
@@ -1421,7 +1195,7 @@ const CreateCard = () => {
  const existing = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
  localStorage.setItem('thankeeu_pending_card', JSON.stringify({
  ...existing, formSnapshot: form, msgSnapshot: msgForm,
- resumeStep: 4, timestamp: Date.now(),
+ resumeStep: 3, timestamp: Date.now(),
  }));
  }}
  className="btn-secondary w-full py-3.5 text-base font-bold text-center block">
@@ -1454,7 +1228,7 @@ const CreateCard = () => {
  )
  )}
 
- {step === 4 && (user || isCompanyUser) && (
+ {step === 3 && (user || isCompanyUser) && (
  <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
  <h2 className="text-xl font-bold text-warm-900 mb-1">{isActiveEdit ? 'Save your changes' : 'Gift & activate'}</h2>
  <p className="text-warm-500 text-sm mb-5">{isActiveEdit ? 'Your card is already live — updates apply immediately' : 'Enable a gift collection and launch your card'}</p>
@@ -1486,6 +1260,14 @@ const CreateCard = () => {
  )}
 
  {/* Summary */}
+ {/* Invite emails */}
+ <div className="mb-5">
+ <label className="block text-sm font-bold text-warm-700 mb-1.5">Invite people to sign <span className="text-warm-400 font-normal text-xs">(optional)</span></label>
+ <textarea className="input h-20 resize-none" placeholder="kemi@email.com, emeka@email.com"
+ value={inviteEmails} onChange={e => setInviteEmails(e.target.value)}/>
+ <p className="text-xs text-warm-400 mt-1">Optional — you can also just share the link once the card is live.</p>
+ </div>
+
  <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
  {[
  ['Occasion', form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o=>o.id===form.occasion)?.label||form.occasion)],
@@ -1537,7 +1319,7 @@ const CreateCard = () => {
  )}
 
  <div className="flex gap-3">
- <button onClick={() => setStep(3)} className="btn-secondary px-4">← Back</button>
+ <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
  <button onClick={handlePayAndLaunch} disabled={loading} className="btn-primary flex-1">
  {loading
  ? <span className="flex items-center justify-center gap-2">

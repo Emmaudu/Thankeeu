@@ -455,6 +455,11 @@ const AlbumStudioPreview = ({
   const videoInputRef = useRef(null);
   const recipientInputRef = useRef(null);
 
+  // Whether this preview offers a compose surface at all. The card wizard passes
+  // no message/media handlers any more (creators write on the live card, with
+  // everyone else), so the Message leaf is preview-only there and is hidden.
+  const canCompose = !!onMessageChange;
+  const NAV_PAGES = useMemo(() => (canCompose ? [0, 1, 2] : [0, 2]), [canCompose]);
   const isLiveWall = ['wall_only', 'card_and_wall'].includes(form.card_experience);
   const isBoard = form.card_layout === 'form';
   const theme = getAlbumTheme(form.album_background_theme);
@@ -465,10 +470,10 @@ const AlbumStudioPreview = ({
 
   useEffect(() => {
     if (isLiveWall || isBoard) { setPage(0); return; }
-    if (activeStep === 3) setPage(1);
+    if (activeStep === 3) setPage(canCompose ? 1 : 2);
     else if (activeStep === 4) setPage(2);
     else setPage(0);
-  }, [activeStep, isBoard, isLiveWall]);
+  }, [activeStep, isBoard, isLiveWall, canCompose]);
 
   const stageBackground = useMemo(() => {
     if (theme.id !== 'cover_blur') return theme.stage;
@@ -500,18 +505,29 @@ const AlbumStudioPreview = ({
     } catch { /* Browsers may block audio until the first interaction. */ }
   }, []);
   const goToPage = useCallback((target) => {
-    const next = Math.min(2, Math.max(0, target));
+    // Snap to the nearest *navigable* leaf, so the Message page is skipped
+    // whenever this preview is read-only.
+    const clampedTarget = Math.min(2, Math.max(0, target));
+    const next = NAV_PAGES.includes(clampedTarget)
+      ? clampedTarget
+      : NAV_PAGES.reduce((best, candidate) =>
+          Math.abs(candidate - clampedTarget) < Math.abs(best - clampedTarget) ? candidate : best, NAV_PAGES[0]);
     if (next === page) return;
     setFlipDirection(next > page ? 'forward' : 'back');
     playFlipSound();
     setPage(next);
     clearTimeout(flipTimerRef.current);
     flipTimerRef.current = setTimeout(() => setFlipDirection(''), 620);
-  }, [page, playFlipSound]);
-  const movePage = d => goToPage(page + d);
+  }, [page, playFlipSound, NAV_PAGES]);
+  const movePage = (d) => {
+    const at = NAV_PAGES.indexOf(page);
+    const next = NAV_PAGES[Math.min(NAV_PAGES.length - 1, Math.max(0, (at === -1 ? 0 : at) + d))];
+    goToPage(next);
+  };
   const recipient = form.recipient_name?.trim() || 'Recipient name';
   const sender = form.cover_sender?.trim() || creatorName || 'Your name';
-  const messageText = message.content?.trim() || 'Your message will appear here as you type. Add a memory, a thank-you, or a few words from the heart.';
+  const messageText = message.content?.trim()
+    || 'Every person who signs gets a page like this — their words, photos and voice notes. Yours included, once the card is live.';
 
   const photoMedia = media.find(m => m.type === 'image' || m.type === 'gif');
   const videoMedia = media.find(m => m.type === 'video');
@@ -587,7 +603,7 @@ const AlbumStudioPreview = ({
           <p className="mt-1 text-sm font-bold text-warm-900">
             {isBoard
                 ? 'Messages appear as a scrollable board'
-                : (PAGE_LABELS[page] + (page === 0 ? ' · drag & edit texts' : page === 1 ? ' · tap to add media' : ''))}
+                : (PAGE_LABELS[page] + (page === 0 ? ' · drag & edit texts' : page === 1 && canCompose ? ' · tap to add media' : ''))}
           </p>
         </div>
         <span className="rounded-md border border-purple-100 bg-white px-2.5 py-1 text-[10px] font-extrabold text-warm-500">Editable</span>
@@ -755,11 +771,11 @@ const AlbumStudioPreview = ({
       {/* Pager dots — only for album flipbook */}
       {!isBoard && (
       <div className="mx-auto mt-4 flex w-fit items-center gap-3 rounded-full border border-purple-100 bg-white px-3 py-2 shadow-sm">
-        <button type="button" onClick={() => movePage(-1)} disabled={page === 0} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronLeft" size={17} /></button>
+        <button type="button" onClick={() => movePage(-1)} disabled={page === NAV_PAGES[0]} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronLeft" size={17} /></button>
         <div className="flex items-center gap-1.5">
-          {PAGE_LABELS.map((label, i) => <button key={label} type="button" aria-label={`Show ${label} page`} onClick={() => goToPage(i)} className={`h-2 rounded-full transition-all ${page === i ? 'w-8 bg-primary-500' : 'w-2 bg-warm-300'}`} />)}
+          {NAV_PAGES.map(i => <button key={PAGE_LABELS[i]} type="button" aria-label={`Show ${PAGE_LABELS[i]} page`} onClick={() => goToPage(i)} className={`h-2 rounded-full transition-all ${page === i ? 'w-8 bg-primary-500' : 'w-2 bg-warm-300'}`} />)}
         </div>
-        <button type="button" onClick={() => movePage(1)} disabled={page === 2} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronRight" size={17} /></button>
+        <button type="button" onClick={() => movePage(1)} disabled={page === NAV_PAGES[NAV_PAGES.length - 1]} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronRight" size={17} /></button>
       </div>
       )}
 

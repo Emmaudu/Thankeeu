@@ -495,10 +495,39 @@ const updateCard = async (req, res) => {
 
     if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
 
+    // Only ever write real card columns. The wizard PUTs its whole form object,
+    // which carries UI-only keys (and keys whose column may not exist yet in
+    // this schema version, e.g. custom_occasion). Passing those straight to
+    // Postgres produced a 42703 "column does not exist" and a blanket
+    // 500 "Failed to update card" — which is what users hit when they stepped
+    // Back to Details and pressed Next a second time (the create path whitelists,
+    // the update path did not).
+    const UPDATABLE_FIELDS = [
+      'recipient_name', 'recipient_email', 'occasion', 'custom_occasion', 'title',
+      'design_theme', 'background_color', 'font_style', 'card_layout', 'card_experience',
+      'cover_sender', 'cover_text_color', 'album_background_theme', 'board_background_theme',
+      'cover_layout', 'is_gift_enabled', 'gift_type', 'suggested_amount',
+      'send_date', 'send_time', 'deadline', 'deadline_time',
+      'allow_private_messages', 'send_reminders', 'hide_amounts', 'notification_scope',
+      'recipient_photo_url',
+    ];
+    const safeUpdates = {};
+    for (const key of UPDATABLE_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(updates, key)) safeUpdates[key] = updates[key];
+    }
+    if (Object.keys(safeUpdates).length === 0) {
+      const { data: unchanged } = await supabase.from('cards').select().eq('slug', slug).maybeSingle();
+      return res.json(unchanged);
+    }
+    // An empty custom occasion is meaningless — store NULL rather than ''.
+    if ('custom_occasion' in safeUpdates && !String(safeUpdates.custom_occasion || '').trim()) {
+      safeUpdates.custom_occasion = null;
+    }
     // Sanitize empty strings to null for date/time columns to avoid Postgres type errors
-    const safeUpdates = { ...updates };
+    // Only touch a date/time column when the caller actually sent it — a partial
+    // update (e.g. gift settings only) must not silently wipe the schedule.
     for (const field of ['send_date', 'deadline', 'send_time', 'deadline_time']) {
-      if (safeUpdates[field] === '' || safeUpdates[field] === undefined) {
+      if (field in safeUpdates && (safeUpdates[field] === '' || safeUpdates[field] === undefined)) {
         safeUpdates[field] = null;
       }
     }
@@ -550,26 +579,40 @@ const updateCard = async (req, res) => {
 
     // Attempt update with all columns first; fall back gracefully if optional
     // columns (card_layout, font_style) don't exist yet in this schema version.
+    // Optional columns arrive via migrations that may not have been run on this
+    // environment yet. Rather than guessing a fixed strip-list (which silently
+    // failed for any column not on it), read the offending column name out of
+    // the Postgres error, drop it, and retry until the write succeeds.
     let updated, error;
-    ({ data: updated, error } = await supabase
-      .from('cards').update({ ...safeUpdates, updated_at: new Date() })
-      .eq('slug', slug).select().maybeSingle());
-
-    if (error && (error.code === '42703' || /column .* does not exist/i.test(error.message || ''))) {
-      // Unknown column — retry without it
-      const {
-        card_layout: _cl,
-        font_style: _fs,
-        cover_sender: _coverSender,
-        cover_text_color: _coverTextColor,
-        album_background_theme: _albumTheme,
-        board_background_theme: _boardTheme,
-        cover_layout: _coverLayout,
-        ...saferUpdates
-      } = safeUpdates;
+    let payload = { ...safeUpdates };
+    const dropped = [];
+    for (let attempt = 0; attempt < UPDATABLE_FIELDS.length + 1; attempt++) {
       ({ data: updated, error } = await supabase
-        .from('cards').update({ ...saferUpdates, updated_at: new Date() })
+        .from('cards').update({ ...payload, updated_at: new Date() })
         .eq('slug', slug).select().maybeSingle());
+
+      // Two shapes reach us: Postgres 42703 ("column X of relation cards does
+      // not exist") and PostgREST's schema-cache miss PGRST204 ("Could not find
+      // the 'X' column of 'cards' in the schema cache"). Handle both.
+      const errText = `${error?.message || ''} ${error?.details || ''}`;
+      const isUnknownColumn = !!error && (
+        error.code === '42703' || error.code === 'PGRST204'
+        || /does not exist/i.test(errText)
+        || /could not find the .* column/i.test(errText)
+      );
+      if (!isUnknownColumn) break;
+
+      const named =
+        /column\s+"?(?:cards\.)?([a-z0-9_]+)"?\s+.*does not exist/i.exec(errText)
+        || /could not find the '([a-z0-9_]+)' column/i.exec(errText);
+      const badColumn = named?.[1] && named[1] in payload ? named[1] : null;
+      if (!badColumn) break; // can't identify it — surface the real error
+      delete payload[badColumn];
+      dropped.push(badColumn);
+      if (Object.keys(payload).length === 0) break;
+    }
+    if (dropped.length) {
+      console.warn('[updateCard] skipped columns missing from this schema:', dropped.join(', '));
     }
 
     if (error) {

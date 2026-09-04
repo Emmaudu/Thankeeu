@@ -34,7 +34,9 @@ const ICONS = {
   Share: Share2, Share2, Link, ExternalLink, Tag,
   File: FileText, FileText, Folder: FolderOpen, Table, Grid, List,
   ArrowRight, ArrowLeft, ArrowUp, ArrowDown, Refresh: RefreshCw,
-  Zap, Award, Flag, Briefcase, Book: BookOpen,
+  // BookOpen was only registered under the alias "Book", so every caller asking
+  // for "BookOpen" (the album/flipbook toggles) silently fell back to Sparkles.
+  Zap, Award, Flag, Briefcase, Book: BookOpen, BookOpen,
   Package, Store, Cart: ShoppingCart, ShoppingCart, MapPin,
   Dollar: DollarSign, Percent, Dashboard: LayoutDashboard, LayoutDashboard, Layers, Repeat, Camera,
   Sparkles, Wand: Wand2, MessageCircle, Smartphone, ShieldCheck, Banknote,

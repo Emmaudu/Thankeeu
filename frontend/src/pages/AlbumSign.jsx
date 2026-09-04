@@ -497,7 +497,11 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 
   const [form, setForm] = useState({
     author_name:signedInName, author_email:signedInEmail,
-    content:'', is_private:false, font_style: autoFontForPosition(messages.length),
+    // NOTE: `messages` is derived further down the component, so referencing it
+    // here threw "Cannot access 'messages' before initialization" (a TDZ crash,
+    // minified to "Cannot access 'Tt' before initialization") on every album
+    // card. Read the count off the prop instead — it is available immediately.
+    content:'', is_private:false, font_style: autoFontForPosition((initialCard?.messages || []).length),
     font_color:'#1E40AF', font_size:18,
   });
 

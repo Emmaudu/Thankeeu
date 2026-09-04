@@ -1,6 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
 import Icon from '../components/ui/Icon';
-import AlbumSign from './AlbumSign';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -488,11 +487,10 @@ const SignCard = () => {
     </div>
   );
 
-  // Branch to album layout
-  if (card.card_layout === 'album') {
-    return <AlbumSign card={card} slug={slug} />;
-  }
-
+  // Signing is always the classic form, for every card_layout.
+  // Album vs Board is purely a *viewing* choice now and lives on /card/:slug —
+  // the flipbook compose surface confused signers and could not be filled in
+  // on small screens. AlbumSign is no longer rendered from here.
   const design   = getCardDesign(card.design_theme);
   const cardFont = getFontStyle(card.font_style);
   const msgFont  = getFontStyle(form.font_style);

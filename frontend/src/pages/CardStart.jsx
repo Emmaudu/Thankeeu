@@ -2,28 +2,31 @@
  * CardStart.jsx — /card/new
  *
  * The public card-creation wizard for guests (and logged-in users from the homepage).
- * Full 5-step flow matching the dashboard CreateCard experience:
+ * Deliberately short — 4 steps, matching the dashboard CreateCard experience:
  *
  * Step 0 Occasion — pick the type of card
  * Step 1 Design — pick template + font + layout
  * Step 2 Details — recipient, dates, title, toggles
- * Step 3 Your Message — write message, attach media, invite emails
- * Step 4 Gift & Pay — gift pot config → save draft → auth wall
+ * Step 3 Gift & Pay — gift pot + invites → save draft → auth wall
  * (authenticated users go straight to payment)
  *
+ * Nobody writes a message here. The creator adds theirs after the card is live,
+ * on the same /sign page they send to everyone else — one place to write, and
+ * setting up a card stays a minute's work.
+ *
  * Guest flow:
- * Steps 0-3 are pure UI (no backend calls).
- * Step 4 "Save draft & continue" creates one anonymous draft via createDraft(),
+ * Steps 0-2 are pure UI (no backend calls).
+ * Step 3 "Save draft & continue" creates one anonymous draft via createDraft(),
  * then shows the auth wall with the full summary.
  * After login/signup the draft is claimed and they land on the payment step.
  *
  * Authenticated flow:
- * Steps 0-3 still pure UI.
+ * Steps 0-1 are pure UI.
  * Step 2 → 3 button calls handleCreateDraft() to persist to backend.
- * Step 4 shows normal payment panel.
+ * Step 3 shows normal payment panel.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 import { useAuth } from '../context/AuthContext';
@@ -32,9 +35,6 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import Navbar from '../components/Navbar';
 import Icon from '../components/ui/Icon';
 import QRButton from '../components/QRButton';
-import VoiceRecorder from '../components/VoiceRecorder';
-import EmojiPicker from '../components/EmojiPicker';
-import GifPicker from '../components/GifPicker';
 import CompanyLayout from '../components/company/CompanyLayout';
 import MemberLayout from '../components/member/MemberLayout';
 import toast from 'react-hot-toast';
@@ -68,7 +68,7 @@ const OCCASIONS = [
  { id: 'other',           icon: 'Sparkles',     label: 'Other' },
 ];
 
-const STEPS = ['Occasion', 'Design', 'Details', 'Message', 'Finalise'];
+const STEPS = ['Occasion', 'Design', 'Details', 'Finalise'];
 const PENDING_KEY = 'thankeeu_pending_card';
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
@@ -109,6 +109,18 @@ const CardStart = () => {
  const [searchParams] = useSearchParams();
  const creatorName = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'You';
 
+ // A signed-in creator builds cards inside their dashboard, never on the public
+ // wizard: /create-card is this same flow wrapped in DashboardLayout, so we hand
+ // them straight over (query string intact, so ?occasion=/?design=/?resumed=1
+ // from the gallery or a post-login return all still land correctly).
+ // Guests stay here — that's the whole point of the public flow. Company and
+ // team accounts already render inside their own layouts further down.
+ const redirectToDashboardFlow = !!user && !isCompanyUser;
+ useEffect(() => {
+  if (!redirectToDashboardFlow) return;
+  navigate(`/create-card${window.location.search}`, { replace: true });
+ }, [redirectToDashboardFlow, navigate]);
+
  // ── Wizard state ────────────────────────────────────────────────────────
  const [step, setStep] = useState(0);
  // Step 1 is now design-only — the old "experience" (Group Card vs Live Wall)
@@ -116,12 +128,10 @@ const CardStart = () => {
  // a redundant wizard step (see the Group Card / Live Wall tabs near where
  // <AlbumStudioPreview> is rendered).
  const [designsExpanded, setDesignsExpanded] = useState(false);
- // Controls the new Group Card / Live Wall tabs shown above the live preview.
- // Starts false so those tabs show first, as requested; once either is
- // tapped this flips true and — for Group Card — the existing Album/Board
- // sub-tabs (already built into AlbumStudioPreview) take over that same
- // visual slot instead of stacking a second row of tabs underneath.
- const [experienceChosen, setExperienceChosen] = useState(false);
+ // The Group Card / Live Wall chooser has been removed from this flow: picking a
+ // template now drops straight into the Album/Board sub-tabs (Album preselected),
+ // so nothing has to be tapped before the live preview appears. Cards created
+ // here are always card_only.
  // Scroll to top whenever the user advances or goes back a step
  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
 
@@ -160,14 +170,14 @@ const CardStart = () => {
  const [selectedCoverField, setSelectedCoverField] = useState('recipient');
 
  // ── Message form ─────────────────────────────────────────────────────────
+ // The creator no longer writes a message during setup — they add theirs after
+ // the card is live, on the same signing page as everyone they invite. This
+ // state is kept only so the live preview has a shape to render and so an older
+ // saved draft (which may still carry a msgSnapshot) restores without throwing.
  const [msgForm, setMsgForm] = useState({ content: '', font_style: 'handwritten', is_private: false });
- const [mediaFiles, setMediaFiles] = useState([]);
+ const [mediaFiles] = useState([]);
  const [wallDrafts, setWallDrafts] = useState(() => [makeWallPreviewCard(creatorName, 0)]);
  const [recipientPhoto, setRecipientPhoto] = useState(null); // board-style recipient image {file,preview}
- const [carouselIdx, setCarouselIdx] = useState(0);
- const [showEmoji, setShowEmoji] = useState(false);
- const [showGif, setShowGif] = useState(false);
- const setMsg = (k, v) => setMsgForm(p => ({ ...p, [k]: v }));
 
  // Convert local date+time to UTC before sending to backend.
  // The backend and cron run in UTC, so we must store UTC times to deliver
@@ -183,9 +193,6 @@ const CardStart = () => {
  const utcTime = localDatetime.toISOString().slice(11, 19); // "HH:MM:SS"
  return { send_date: utcDate, send_time: utcTime };
  };
-
- const fileRef = useRef();
- const textareaRef = useRef();
 
  const [customCoverUrl, setCustomCoverUrl] = useState(null); // Cloudinary URL for uploaded cover
  const [uploadingCover, setUploadingCover] = useState(false);
@@ -269,10 +276,10 @@ const CardStart = () => {
  cardsAPI.claimDraft(saved.slug, saved.draft_edit_token).catch(() => {});
  }
  toast.success('Welcome back! Your card draft is ready.');
- setStep(4); // go straight to payment
+ setStep(3); // go straight to payment
  } else if (saved.formSnapshot) {
  toast.success('Welcome back! Pick up where you left off.');
- setStep(saved.localOnly ? 4 : 2);
+ setStep(saved.localOnly ? 3 : 2);
  }
  } catch {}
  const url = new URL(window.location.href);
@@ -333,43 +340,6 @@ const CardStart = () => {
    if (!matches && availableDesigns[0]) handleDesignSelect(availableDesigns[0]);
  // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [form.occasion]);
-
- // ── Media helpers ────────────────────────────────────────────────────────
- const addMedia = useCallback((files) => {
- const items = [];
- for (const f of Array.from(files)) {
- const isGifOrImage = f.type === 'image/gif' || f.type.startsWith('image/');
- const maxSize = isGifOrImage ? 9 * 1024 * 1024 : 50 * 1024 * 1024;
- if (f.size > maxSize) {
- toast.error(`${f.name} is too large. ${isGifOrImage ? 'Images and GIFs must be under 9MB.' : 'Videos must be under 50MB.'}`);
- continue;
- }
- const mime = f.type;
- const type = mime.startsWith('video/') ? 'video' : mime.startsWith('audio/') ? 'voice' : mime === 'image/gif' ? 'gif' : 'image';
- items.push({ file: f, preview: URL.createObjectURL(f), type, name: f.name });
- }
- setMediaFiles(prev => [...prev, ...items].slice(0, 5));
- }, []);
-
- const removeMedia = useCallback((idx) => {
- setMediaFiles(prev => {
- const n = [...prev];
- URL.revokeObjectURL(n[idx].preview);
- n.splice(idx, 1);
- setCarouselIdx(i =>Math.min(i, Math.max(0, n.length - 1)));
- return n;
- });
- }, []);
-
- const insertEmoji = useCallback((emoji) => {
- const el = textareaRef.current;
- if (el && typeof el.selectionStart === 'number') {
- const s = el.selectionStart, e = el.selectionEnd;
- setMsg('content', msgForm.content.slice(0, s) + emoji + msgForm.content.slice(e));
- requestAnimationFrame(() => { el.focus(); const p = s + emoji.length; el.setSelectionRange(p, p); });
- } else setMsg('content', msgForm.content + emoji);
- setShowEmoji(false);
- }, [msgForm.content]);
 
  // ── Save localStorage snapshot ───────────────────────────────────────────
  const saveSnapshot = (extra = {}) => {
@@ -640,7 +610,7 @@ const CardStart = () => {
  setStep(0); setLiveSlug(null); setDraftSlug(null); setGuestSaved(false);
  setLoading(false); setPaymentStage('idle');
  setMsgForm({ content: '', font_style: 'handwritten', is_private: false });
- setMediaFiles([]); setInviteEmails('');
+ setInviteEmails('');
  setWallDrafts([makeWallPreviewCard(creatorName, 0)]);
  setForm({
  occasion: 'birthday', design_theme: 'birthday-art-1', background_color: '#FBEAF0',
@@ -655,6 +625,11 @@ const CardStart = () => {
  });
  };
 
+ // Redirecting to the dashboard flow — render nothing rather than flashing the
+ // public wizard for a frame. Every hook above has already run, so hook order
+ // stays stable.
+ if (redirectToDashboardFlow) return null;
+
  // ── Live screen (authenticated users after payment) ──────────────────────
  if (liveSlug) return (
  <div className="min-h-screen section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF0F5)' }}>
@@ -663,7 +638,14 @@ const CardStart = () => {
  <div className="w-24 h-24 rounded-xl flex items-center justify-center text-5xl mb-6"
  style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
  <h1 className="text-3xl font-extrabold text-warm-900 mb-3">Your card is live!</h1>
- <p className="text-warm-500 text-lg mb-8">Share the link so people can sign it.</p>
+ <p className="text-warm-500 text-lg mb-6">Sign it first, then share the link so everyone else can too.</p>
+
+ {/* The creator writes their message here, not during setup — this is the
+     one place anyone signs, so it has to be the first thing offered. */}
+ <Link to={`/sign/${liveSlug}`}
+  className="btn-primary mb-8 inline-flex items-center gap-2 px-8 py-3.5 text-base">
+  <Icon name="PenLine" size={17}/>Write your message on the card
+ </Link>
  <div className="flex flex-col sm:flex-row gap-3 mb-6 w-full max-w-lg">
  <input readOnly value={`${window.location.origin}/sign/${liveSlug}`}
  className="input flex-1 text-sm" style={{ background: '#fff' }}/>
@@ -679,9 +661,6 @@ const CardStart = () => {
  Share on WhatsApp
  </button>
  <QRButton url={`${window.location.origin}/sign/${liveSlug}`} label="Scan to sign the group card" variant="secondary" className="px-6 py-3">QR Code — Group Card</QRButton>
- {['card_and_wall','wall_only'].includes(form.card_experience) && (
-   <QRButton url={`${window.location.origin}/sign/${liveSlug}?tab=wall`} label="Scan to add photos to the Live Photo Wall" variant="secondary" className="px-6 py-3">QR Code — Photo Wall</QRButton>
- )}
  <button onClick={handleReset}
  className="px-8 py-3 rounded-2xl font-bold border-2 border-red-200 text-red-500 hover:bg-red-50 inline-flex items-center gap-2 transition-colors">
  Create another card
@@ -926,7 +905,7 @@ const CardStart = () => {
  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:12, color:'#7A6CA8', margin:0 }}>Sign in to save this card to your dashboard.</p>
  </div>
  </div>
- <Link to={`/login?returnTo=${encodeURIComponent('/card/customize?resumed=1')}`}
+ <Link to={`/login?returnTo=${encodeURIComponent('/create-card?resumed=1')}`}
  onClick={() => saveSnapshot()}
  style={{ background:'#7C3AED', color:'#fff', borderRadius:12, padding:'8px 18px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, textDecoration:'none', whiteSpace:'nowrap', flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
  <Icon name="LogIn" size={14}/>Sign in
@@ -1021,140 +1000,15 @@ const CardStart = () => {
  className="btn-primary inline-flex items-center gap-2">
  {loading
  ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving…</span>
- : 'Add your message →'}
+ : 'Gift & pay →'}
  </button>
  </div>
  </div>
  )}
 
- {/* ══ STEP 3: Your Message ════════════════════════════════════════════ */}
+
+ {/* ══ STEP 3: Gift & Pay ══════════════════════════════════════════════ */}
  {step === 3 && (
- <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
- <h2 className="text-xl font-bold text-warm-900 mb-1">Add your message </h2>
- <p className="text-warm-500 text-sm mb-4">
- You're the card creator — add your own message first. Others will sign once you share the link.
- </p>
-
- {/* Sign-in nudge for guests */}
- {!user && !isCompanyUser && (
- <div style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', border:'1.5px solid #C4B5FD', borderRadius:16, padding:'12px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:20, flexWrap:'wrap' }}>
- <div style={{ display:'flex', alignItems:'center', gap:10 }}>
- <span style={{ fontSize:22 }}></span>
- <div>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, color:'#1A1035', margin:0, lineHeight:1.3 }}>Already have an account?</p>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:12, color:'#7A6CA8', margin:0 }}>Sign in to save your card.</p>
- </div>
- </div>
- <Link to={`/login?returnTo=${encodeURIComponent('/card/customize?resumed=1')}`}
- onClick={() => saveSnapshot()}
- style={{ background:'#7C3AED', color:'#fff', borderRadius:12, padding:'8px 18px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, textDecoration:'none', whiteSpace:'nowrap', flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
- <Icon name="LogIn" size={14}/>Sign in
- </Link>
- </div>
- )}
-
- {/* Writing style */}
- <label className="block text-sm font-bold text-warm-700 mb-2">Writing style</label>
- <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
- {FONT_STYLES.map(font => (
- <button key={font.id} type="button" onClick={() => setMsg('font_style', font.id)}
- className={`rounded-xl border-2 px-2 py-2.5 text-sm transition-all ${msgForm.font_style === font.id ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-purple-100 text-warm-600'}`}
- style={{ fontFamily: font.family }}>
- {font.id === 'calligraphy' ? 'With love' : font.name}
- </button>
- ))}
- </div>
-
- {/* Message textarea */}
- <label className="block text-sm font-bold text-warm-700 mb-2">Your message to {form.recipient_name || 'them'}</label>
- <div className="relative mb-1">
- <textarea ref={textareaRef} className="input h-36 resize-none"
- style={{ fontFamily: getFontStyle(msgForm.font_style).family, fontSize: msgForm.font_style === 'calligraphy' ? '1.5rem' : '1rem' }}
- placeholder={`Write something heartfelt for ${form.recipient_name || 'them'}…`}
- maxLength={1200} value={msgForm.content} onChange={e => setMsg('content', e.target.value)}/>
- <button type="button" onClick={() => { setShowEmoji(s => !s); setShowGif(false); }}
- className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-white border border-purple-100 shadow-sm flex items-center justify-center text-lg hover:bg-purple-50 transition-colors">
- 
- </button>
- {showEmoji && <EmojiPicker onSelect={insertEmoji} onClose={() => setShowEmoji(false)}/>}
- </div>
- <div className="flex justify-end mb-4">
- <span className="text-xs text-warm-400">{msgForm.content.length}/1200</span>
- </div>
-
- {/* Media buttons */}
- <div className="relative flex flex-wrap gap-2 mb-4">
- <button type="button" onClick={() => fileRef.current?.click()} className="voice-record-button">
- <span></span><span>Photos/video {mediaFiles.length > 0 ? `(${mediaFiles.length}/5)` : ''}</span>
- </button>
- <button type="button" onClick={() => { setShowGif(s => !s); setShowEmoji(false); }} disabled={mediaFiles.length >= 5}
- className="voice-record-button disabled:opacity-50"><span></span><span>Add GIF</span></button>
- <VoiceRecorder onRecorded={f => addMedia([f])} disabled={loading}/>
- <input ref={fileRef} type="file" accept="image/*,video/*,audio/*,.m4a,.ogg,.webm" multiple className="hidden"
- onChange={e => addMedia(e.target.files)}/>
- {showGif && <GifPicker onSelect={f => { addMedia([f]); setShowGif(false); }} onClose={() => setShowGif(false)}/>}
- </div>
-
- {/* Media carousel */}
- {mediaFiles.length > 0 && (
- <div className="mb-4 rounded-2xl overflow-hidden border-2 border-purple-100 bg-white">
- <div className="relative" style={{ aspectRatio: '16/9', background: '#1A1035' }}>
- {mediaFiles[carouselIdx].type === 'video'
- ? <video src={mediaFiles[carouselIdx].preview} className="w-full h-full object-contain" controls/>
- : mediaFiles[carouselIdx].type === 'voice'
- ? <div className="w-full h-full flex flex-col items-center justify-center gap-3"><span className="inline-flex w-12 h-12 rounded-xl bg-primary-100 items-center justify-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></span><audio src={mediaFiles[carouselIdx].preview} controls className="w-4/5"/></div>
- : <img src={mediaFiles[carouselIdx].preview} alt="" className="w-full h-full object-contain"/>}
- <button type="button" onClick={() => removeMedia(carouselIdx)}
- className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 text-white text-sm flex items-center justify-center hover:bg-red-500 transition-colors"></button>
- {mediaFiles.length > 1 && (<>
- <button type="button" onClick={() => setCarouselIdx(i => (i - 1 + mediaFiles.length) % mediaFiles.length)}
- className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-lg">‹</button>
- <button type="button" onClick={() => setCarouselIdx(i => (i + 1) % mediaFiles.length)}
- className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/50 text-white flex items-center justify-center text-lg">›</button>
- </>)}
- </div>
- <p className="text-center text-xs text-warm-400 py-2">{carouselIdx + 1} of {mediaFiles.length} — Add up to {5 - mediaFiles.length} more</p>
- </div>
- )}
-
- {/* Private toggle */}
- {form.allow_private_messages && (
- <label className="flex items-center justify-between gap-4 border-t border-purple-100 pt-4 mb-4 cursor-pointer">
- <span>
- <span className="block text-sm font-bold text-warm-800">Private message</span>
- <span className="block text-xs text-warm-400">Only the recipient and card creator can read it</span>
- </span>
- <input type="checkbox" checked={msgForm.is_private} onChange={e => setMsg('is_private', e.target.checked)} className="w-5 h-5 accent-violet-600"/>
- </label>
- )}
-
- {/* Invite emails */}
- <div className="mb-5">
- <label className="block text-sm font-bold text-warm-700 mb-1.5">
- Invite people to sign <span className="text-warm-400 font-normal text-xs">(optional)</span>
- </label>
- <textarea className="input h-20 resize-none" placeholder="kemi@email.com, emeka@email.com"
- value={inviteEmails} onChange={e => setInviteEmails(e.target.value)}/>
- <p className="text-xs text-warm-400 mt-1">You can also share a link after creating the card</p>
- </div>
-
- <div className="flex justify-between">
- <button onClick={() => setStep(2)} className="btn-secondary">← Back</button>
- <button
- onClick={() => {
- saveSnapshot();
- setGuestSaved(false);
- setStep(4);
- }}
- className="btn-primary inline-flex items-center gap-2">
- {msgForm.content.trim() ? 'Save message & pay →' : 'Skip & continue →'}
- </button>
- </div>
- </div>
- )}
-
- {/* ══ STEP 4: Gift & Pay ══════════════════════════════════════════════ */}
- {step === 4 && (
  <div className="bg-white rounded-lg border border-purple-100 p-5 sm:p-6 animate-fade-in">
 
  {/* ── GUEST: Configure gift (before draft saved) ── */}
@@ -1193,6 +1047,16 @@ const CardStart = () => {
  </div>
  )}
 
+ {/* Invite emails */}
+ <div className="mb-5">
+ <label className="block text-sm font-bold text-warm-700 mb-1.5">
+ Invite people to sign <span className="text-warm-400 font-normal text-xs">(optional)</span>
+ </label>
+ <textarea className="input h-20 resize-none" placeholder="kemi@email.com, emeka@email.com"
+ value={inviteEmails} onChange={e => setInviteEmails(e.target.value)}/>
+ <p className="text-xs text-warm-400 mt-1">Optional — you can also just share the link once the card is live.</p>
+ </div>
+
  {/* Full summary */}
  <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
  {[
@@ -1203,7 +1067,6 @@ const CardStart = () => {
  ['Recipient email', form.recipient_email || 'Not set'],
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time || '09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time || '23:59'}` : 'Not set'],
- ['Your message', msgForm.content?.trim() ? `Written — ${msgForm.content.length} chars` : 'None added'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount || 2500)} suggested` : 'No'],
  ['Card fee', `${formatCurrency(5000, 'NGN')} one-time`],
  ].map(([k, v]) => (
@@ -1215,7 +1078,7 @@ const CardStart = () => {
  </div>
 
  <div className="flex gap-3">
- <button onClick={() => setStep(3)} className="btn-secondary px-4">← Back</button>
+ <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
  <button
  onClick={async () => {
  if (!form.recipient_name?.trim()) {
@@ -1241,7 +1104,7 @@ const CardStart = () => {
  localStorage.setItem(PENDING_KEY, JSON.stringify({
  slug, draft_edit_token: editToken,
  formSnapshot: form, msgSnapshot: msgForm,
- resumeStep: 4, timestamp: Date.now(),
+ resumeStep: 3, timestamp: Date.now(),
  }));
  await saveCreatorWallCards(slug);
  setGuestSaved(true);
@@ -1251,7 +1114,7 @@ const CardStart = () => {
  const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
  localStorage.setItem(PENDING_KEY, JSON.stringify({
  ...existing, localOnly: true, formSnapshot: form, msgSnapshot: msgForm,
- resumeStep: 4, timestamp: Date.now(),
+ resumeStep: 3, timestamp: Date.now(),
  }));
  setGuestSaved(true);
  toast.success('Draft saved on this device. Sign in to sync it to your account.');
@@ -1298,7 +1161,6 @@ const CardStart = () => {
  ['Recipient email', form.recipient_email || 'Not set'],
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time || '09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time || '23:59'}` : 'Not set'],
- ['Your message', msgForm.content?.trim() ? `Written — ${msgForm.content.length} chars` : 'None added'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount || 2500)} suggested` : 'No'],
  ['Card fee', `${formatCurrency(5000, 'NGN')} one-time`],
  ['Status', 'Draft — sign in to pay & launch'],
@@ -1312,21 +1174,21 @@ const CardStart = () => {
 
  <div className="flex flex-col gap-3 mb-4">
  <Link
-  to={`/login?returnTo=${encodeURIComponent('/card/customize?resumed=1')}`}
- onClick={() => saveSnapshot({ resumeStep: 4 })}
+  to={`/login?returnTo=${encodeURIComponent('/create-card?resumed=1')}`}
+ onClick={() => saveSnapshot({ resumeStep: 3 })}
  className="btn-primary w-full py-3.5 text-base font-bold text-center block">
  Sign in &amp; complete payment
  </Link>
  <Link
-  to={`/signup?returnTo=${encodeURIComponent('/card/customize?resumed=1')}`}
- onClick={() => saveSnapshot({ resumeStep: 4 })}
+  to={`/signup?returnTo=${encodeURIComponent('/create-card?resumed=1')}`}
+ onClick={() => saveSnapshot({ resumeStep: 3 })}
  className="btn-secondary w-full py-3.5 text-base font-bold text-center block">
  Create free account &amp; continue
  </Link>
  </div>
 
  <p className="text-center text-xs text-warm-400 mb-5">
- Draft is safe. After signing in you land straight on the payment step.
+ Draft is safe. After signing in you land in your dashboard, on the payment step — and you can start another card from there any time.
  </p>
 
  <div className="border-t border-purple-100 pt-4 flex gap-2">
@@ -1376,6 +1238,16 @@ const CardStart = () => {
  </div>
  </div>
  )}
+
+ {/* Invite emails */}
+ <div className="mb-5">
+ <label className="block text-sm font-bold text-warm-700 mb-1.5">
+ Invite people to sign <span className="text-warm-400 font-normal text-xs">(optional)</span>
+ </label>
+ <textarea className="input h-20 resize-none" placeholder="kemi@email.com, emeka@email.com"
+ value={inviteEmails} onChange={e => setInviteEmails(e.target.value)}/>
+ <p className="text-xs text-warm-400 mt-1">Optional — you can also just share the link once the card is live.</p>
+ </div>
 
  <div className="rounded-2xl bg-warm-100 border border-purple-100 divide-y divide-gray-100 mb-5">
  {[
@@ -1454,7 +1326,7 @@ const CardStart = () => {
  )}
 
  <div className="flex gap-3">
- <button onClick={() => setStep(3)} className="btn-secondary px-4">← Back</button>
+ <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
  <button onClick={handlePayAndLaunch} disabled={loading} className="btn-primary flex-1">
  {loading
  ? <span className="flex items-center justify-center gap-2">
@@ -1481,69 +1353,26 @@ const CardStart = () => {
 
  <aside className="order-first border-b border-purple-100 bg-white px-4 py-6 sm:px-8 lg:order-none lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-b-0 lg:border-l lg:px-10 lg:py-8">
 
-  {/* Group Card / Live Wall — shown first. Tapping either sets card_experience
-      and hides this row; for Group Card, AlbumStudioPreview's own Album/Board
-      sub-tabs then occupy this same spot instead of stacking underneath. */}
-  {!experienceChosen && (
-   <div className="mb-5 grid grid-cols-2 gap-3 rounded-2xl bg-gradient-to-r from-purple-50 via-fuchsia-50 to-sky-50 p-2">
-    {[
-     { id: 'card_only', icon: 'Mail', label: 'Online Group Card', sub: 'Everyone signs one card' },
-     { id: 'wall_only', icon: 'Camera', label: 'Live Photo Wall', sub: 'Guests upload live' },
-    ].map(opt => (
-     <button key={opt.id} type="button"
-      onClick={() => { set('card_experience', opt.id); setExperienceChosen(true); }}
-      className={`flex min-h-[82px] items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all hover:-translate-y-0.5 ${
-       form.card_experience === opt.id
-        ? 'border-primary-400 bg-white shadow-md'
-        : 'border-white bg-white/90 text-warm-700 shadow-sm hover:border-purple-200'
-      }`}>
-      <span className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${form.card_experience === opt.id ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-600'}`}><Icon name={opt.icon} size={21}/></span>
-      <span>
-       <span className="block text-sm font-extrabold sm:text-base">{opt.label}</span>
-       <span className="block text-xs text-warm-400">{opt.sub}</span>
-      </span>
-     </button>
-    ))}
-   </div>
-  )}
-  {experienceChosen && (
-   <button type="button" onClick={() => setExperienceChosen(false)}
-    className="mb-3 flex items-center gap-1 text-xs font-bold text-primary-500">
-    <Icon name="ChevronLeft" size={13}/> Change experience
-   </button>
-  )}
-
-  {!experienceChosen && (
-   <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-purple-100 bg-purple-50/30 p-8 text-center">
-    <Icon name="Sparkles" size={26} className="mb-3 text-primary-300"/>
-    <p className="text-sm font-bold text-warm-500">Choose Online Group Card or Live Photo Wall above</p>
-    <p className="mt-1 text-xs text-warm-400">Your live preview appears here once you pick one</p>
-   </div>
-  )}
-  {experienceChosen && (
+  {/* No experience chooser — AlbumStudioPreview renders its own Album / Board
+      sub-tabs immediately, with Album selected by default. */}
   <AlbumStudioPreview
    design={selectedDesign}
    form={form}
    message={msgForm}
    occasionLabel={occasionLabel}
-   activeStep={step}
+   activeStep={step >= 3 ? 4 : step}
    creatorName={creatorName}
    layout={form.cover_layout}
    onLayoutChange={(next) => set('cover_layout', next)}
    onCardLayoutChange={(layout) => set('card_layout', layout)}
    selectedField={selectedCoverField}
    onSelectField={setSelectedCoverField}
-   media={mediaFiles}
-   onAddMedia={addMedia}
-   onRemoveMedia={removeMedia}
-   onMessageChange={(content) => setMsg('content', content)}
    onFormChange={set}
    wallDrafts={wallDrafts}
    onWallDraftsChange={setWallDrafts}
    recipientPhoto={recipientPhoto}
    onRecipientPhoto={(f) => setRecipientPhoto({ file: f, preview: URL.createObjectURL(f) })}
   />
-  )}
  </aside>
  </div>
  </div>

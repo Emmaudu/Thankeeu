@@ -27,6 +27,7 @@ const FONT_STYLE_IDS = FONT_STYLES.map(f => f.id);
 const autoFontForPosition = (pos) => FONT_STYLE_IDS[pos % FONT_STYLE_IDS.length];
 import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
 import { readableTextColor, backgroundIsDark } from '../utils/textContrast';
+import { ALBUM_FLIP_CSS } from '../utils/albumFlip';
 import CardCoverPreview from '../components/CardCoverPreview';
 import VoiceRecorder from '../components/VoiceRecorder';
 import EmojiPicker from '../components/EmojiPicker';
@@ -79,14 +80,12 @@ const ALBUM_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@600;700&family=Caveat:wght@400;500;600;700&family=Kalam:wght@300;400;700&display=swap');
 @keyframes albumSpin { to { transform: rotate(360deg); } }
 @keyframes albumPop  { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
-@keyframes album-leaf-forward { 0% { opacity:.2; transform:rotateY(-96deg) skewY(-1.5deg); filter:brightness(.72); } 58% { opacity:1; transform:rotateY(8deg) skewY(.3deg); } 100% { transform:rotateY(0); filter:brightness(1); } }
-@keyframes album-leaf-back { 0% { opacity:.2; transform:rotateY(96deg) skewY(1.5deg); filter:brightness(.72); } 58% { opacity:1; transform:rotateY(-8deg) skewY(-.3deg); } 100% { transform:rotateY(0); filter:brightness(1); } }
-/* Primary classes — used by the sign page */
-.album-flip-forward { animation:album-leaf-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
-.album-flip-back    { animation:album-leaf-back    .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
-/* Aliases matching AlbumStudioPreview's class names — identical animation */
-.album-page-turn.forward { animation:album-leaf-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
-.album-page-turn.back    { animation:album-leaf-back    .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
+/* The page turn lives in utils/albumFlip.js — one definition shared by the
+   signing album, the studio preview and the card view, so they cannot drift.
+   `.album-flip-forward/back` are kept as aliases for this page's own markup. */
+${ALBUM_FLIP_CSS}
+.album-flip-forward { animation:album-leaf-forward .62s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
+.album-flip-back    { animation:album-leaf-back    .62s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
 .album-page{ position:relative; }
 /* subtle inner shadow toward the spine to sell the "bound book" look */
 .album-page::before{
@@ -1106,7 +1105,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 
         {/* ── Book ── */}
         <div>
-          <div style={{position:'relative',display:'flex',justifyContent:'center',alignItems:'center',minHeight:640,userSelect:'none'}}
+          <div className="album-stage" style={{position:'relative',display:'flex',justifyContent:'center',alignItems:'center',minHeight:640,userSelect:'none'}}
             onMouseMove={onDragMove} onMouseUp={onDragEnd}
             onTouchStart={onSwipeStart}
             onTouchMove={onDragMove} onTouchEnd={(e)=>{ onDragEnd(e); onSwipeEnd(e); }}>

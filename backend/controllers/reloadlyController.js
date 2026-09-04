@@ -83,6 +83,37 @@ const FEATURED_PRODUCTS = [
 
 // ── GET /api/giftcards/products?country=NG&currency=NGN ────────────────────
 // Returns Reloadly product catalogue filtered by country/currency
+// ── Reloadly product ids ────────────────────────────────────────────────────
+// Declared ONCE at module scope. This map used to be duplicated inside two
+// handlers in two different formats; a third copy for orderGiftCardDirect
+// would have been a maintenance trap (and a module-scope helper cannot see a
+// function-scoped const anyway).
+const RELOADLY_IDS = {
+  'NG_JUMIA':       10,   // Jumia Nigeria
+  'UK_AMAZON':      3,    // Amazon UK
+  'UK_ITUNES':      22,   // iTunes UK
+  'UK_GOOGLE_PLAY': 5,    // Google Play UK
+  'UK_NETFLIX':     47,   // Netflix UK
+  'UK_SPOTIFY':     26,   // Spotify UK
+  'UK_ASOS':        182,  // ASOS UK
+  'US_AMAZON':      1,    // Amazon US
+  'US_ITUNES':      4,    // iTunes US
+  'US_GOOGLE_PLAY': 6,    // Google Play US
+  'US_NETFLIX':     48,   // Netflix US
+  'US_SPOTIFY':     27,   // Spotify US
+  'US_XBOX':        12,   // Xbox
+  'US_PLAYSTATION': 13,   // PlayStation
+  'US_WALMART':     11,   // Walmart
+};
+
+// Where the recipient redeems each gift card.
+const REDEEM_URLS = {
+  'NG_JUMIA':'https://www.jumia.com.ng/','UK_AMAZON':'https://www.amazon.co.uk/gc/redeem','UK_ITUNES':'https://redeem.apple.com/',
+  'UK_GOOGLE_PLAY':'https://play.google.com/store/account/subscriptions','UK_NETFLIX':'https://www.netflix.com/redeem','UK_SPOTIFY':'https://www.spotify.com/redeem','UK_ASOS':'https://www.asos.com/',
+  'US_AMAZON':'https://www.amazon.com/gc/redeem','US_ITUNES':'https://redeem.apple.com/','US_GOOGLE_PLAY':'https://play.google.com/store/account/subscriptions',
+  'US_NETFLIX':'https://www.netflix.com/redeem','US_SPOTIFY':'https://www.spotify.com/redeem','US_XBOX':'https://redeem.microsoft.com/','US_PLAYSTATION':'https://www.playstation.com/redeem-codes/','US_WALMART':'https://www.walmart.com/',
+};
+
 const getProducts = async (req, res) => {
   try {
     const { country, currency } = req.query;
@@ -104,26 +135,6 @@ const getProducts = async (req, res) => {
 const getProductDenominations = async (req, res) => {
   try {
     const { productId } = req.params;
-
-    // Map our friendly IDs to real Reloadly product IDs
-    // In sandbox these are the correct test product IDs
-    const RELOADLY_IDS = {
-      'NG_JUMIA':           10,   // Jumia Nigeria
-      'UK_AMAZON':          3,    // Amazon UK
-      'UK_ITUNES':          22,   // iTunes UK
-      'UK_GOOGLE_PLAY':     5,    // Google Play UK
-      'UK_NETFLIX':         47,   // Netflix UK
-      'UK_SPOTIFY':         26,   // Spotify UK
-      'UK_ASOS':            182,  // ASOS UK
-      'US_AMAZON':          1,    // Amazon US
-      'US_ITUNES':          4,    // iTunes US
-      'US_GOOGLE_PLAY':     6,    // Google Play US
-      'US_NETFLIX':         48,   // Netflix US
-      'US_SPOTIFY':         27,   // Spotify US
-      'US_XBOX':            12,   // Xbox
-      'US_PLAYSTATION':     13,   // PlayStation
-      'US_WALMART':         11,   // Walmart
-    };
 
     const rlId = RELOADLY_IDS[productId];
 
@@ -251,21 +262,6 @@ const orderGiftCard = async (req, res) => {
     };
 
     // Map product_id to Reloadly numeric ID
-    const RELOADLY_IDS = {
-      'NG_JUMIA':10,'UK_AMAZON':3,'UK_ITUNES':22,'UK_GOOGLE_PLAY':5,
-      'UK_NETFLIX':47,'UK_SPOTIFY':26,'UK_ASOS':182,
-      'US_AMAZON':1,'US_ITUNES':4,'US_GOOGLE_PLAY':6,
-      'US_NETFLIX':48,'US_SPOTIFY':27,'US_XBOX':12,'US_PLAYSTATION':13,'US_WALMART':11,
-    };
-
-    // Where the recipient can redeem each gift card
-    const REDEEM_URLS = {
-      'NG_JUMIA':'https://www.jumia.com.ng/','UK_AMAZON':'https://www.amazon.co.uk/gc/redeem','UK_ITUNES':'https://redeem.apple.com/',
-      'UK_GOOGLE_PLAY':'https://play.google.com/store/account/subscriptions','UK_NETFLIX':'https://www.netflix.com/redeem','UK_SPOTIFY':'https://www.spotify.com/redeem','UK_ASOS':'https://www.asos.com/',
-      'US_AMAZON':'https://www.amazon.com/gc/redeem','US_ITUNES':'https://redeem.apple.com/','US_GOOGLE_PLAY':'https://play.google.com/store/account/subscriptions',
-      'US_NETFLIX':'https://www.netflix.com/redeem','US_SPOTIFY':'https://www.spotify.com/redeem','US_XBOX':'https://redeem.microsoft.com/','US_PLAYSTATION':'https://www.playstation.com/redeem-codes/','US_WALMART':'https://www.walmart.com/',
-    };
-
     const targetEmail = recipient_email || callerEmail || card.recipient_email;
 
     // Record the claim attempt
@@ -457,4 +453,73 @@ const orderGiftCard = async (req, res) => {
   }
 };
 
-module.exports = { getProducts, getProductDenominations, orderGiftCard };
+/**
+ * orderGiftCardDirect — place a Reloadly gift-card order, decoupled from the
+ * group-card tables.
+ *
+ * `orderGiftCard` above is an Express handler wired to `cards` /
+ * `gift_claims`. The Send Money flow needs the same Reloadly call against a
+ * different table, so the ordering core lives here and both callers use it.
+ * Keeping one integration means one place to fix an FX or product-id bug.
+ *
+ * Throws on failure; the caller owns its own claim lock and rollback.
+ *
+ * @param {object}  o
+ * @param {string}  o.product_id       key into RELOADLY_IDS
+ * @param {number}  o.amount           net NGN to convert and spend
+ * @param {string}  o.recipient_email  where Reloadly sends the code
+ * @param {string}  o.reference        customIdentifier — must be unique
+ * @returns {Promise<{redemption_code:string|null, transaction_id:any, product_name:string, amount_usd:number}>}
+ */
+const orderGiftCardDirect = async ({ product_id, amount, recipient_email, reference }) => {
+  const rlId = RELOADLY_IDS[product_id];
+  if (!rlId) throw new Error('Unknown gift card product');
+  if (!recipient_email) throw new Error('A recipient email is required for a gift card');
+
+  const net = Math.round(Number(amount) || 0);
+  if (net < 100) throw new Error('Amount is too low for a gift card');
+
+  const hdrs = await rlHeaders();
+
+  const NGN_TO_USD = Number(process.env.NGN_TO_USD_RATE || 1600);
+  const senderAmountUSD = parseFloat((net / NGN_TO_USD).toFixed(2));
+  if (senderAmountUSD < 1) {
+    throw new Error(`Amount too low for a gift card after conversion. Minimum is about ₦${Math.ceil(NGN_TO_USD).toLocaleString()}`);
+  }
+
+  const orderPayload = {
+    productId:        rlId,
+    quantity:         1,
+    unitPrice:        senderAmountUSD,
+    customIdentifier: reference,
+    senderName:       'Thankeeu',
+    recipientEmail:   recipient_email,
+  };
+
+  console.log('[orderGiftCardDirect] Reloadly order:', JSON.stringify(orderPayload));
+  const orderR = await axios.post(`${RL_BASE}/orders`, orderPayload, { headers: hdrs });
+
+  if (!(orderR.data.status === 'SUCCESSFUL' || orderR.data.transactionId)) {
+    throw new Error(orderR.data?.message || 'Reloadly rejected the gift card order');
+  }
+
+  let redeemCode = orderR.data.redemptionCode || orderR.data.pin || null;
+  if (!redeemCode && orderR.data.transactionId) {
+    try {
+      const cardsR = await axios.get(
+        `${RL_BASE}/orders/transactions/${orderR.data.transactionId}/cards`, { headers: hdrs });
+      const firstCard = Array.isArray(cardsR.data) ? cardsR.data[0] : cardsR.data?.cards?.[0];
+      redeemCode = firstCard?.pinCode || firstCard?.cardNumber || firstCard?.redemptionCode || null;
+    } catch (_) { /* best-effort — Reloadly also emails the code directly */ }
+  }
+
+  const meta = FEATURED_PRODUCTS.find(p => p.id === product_id);
+  return {
+    redemption_code: redeemCode,
+    transaction_id:  orderR.data.transactionId || null,
+    product_name:    meta?.name || product_id,
+    amount_usd:      senderAmountUSD,
+  };
+};
+
+module.exports = { getProducts, getProductDenominations, orderGiftCard, orderGiftCardDirect };

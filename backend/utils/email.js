@@ -1150,3 +1150,65 @@ Object.assign(emailTemplates, {
     `)
   }),
 });
+
+// ── SEND MONEY (money tucked inside a card) ────────────────────────────────
+// These use BASE()/btn() like every other template, so the money emails carry
+// the same branding, and sendEmail's auto plain-text pass applies to them too.
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+
+Object.assign(emailTemplates, {
+
+  /** To the recipient — there is money waiting, here is the private link. */
+  moneyCardReceived: (d) => ({
+    subject: `${d.senderName} sent you ${fmtNGN(d.amount)} 💛`,
+    html: BASE(`
+      <p style="color:#7C3AED;font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;margin:0 0 10px;">You have money waiting</p>
+      <h2 style="color:#1a1a1a;font-size:22px;margin:0 0 12px;">${esc(d.senderName)} sent you ${fmtNGN(d.amount)}</h2>
+      <p style="color:#555;line-height:1.7;">It is tucked inside a card with a message for you. Open it, read it, then take the money to your bank account or as a gift card — whichever suits you.</p>
+      ${d.message ? `<div style="background:#F8F5FF;border-left:3px solid #7C3AED;border-radius:8px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#4A3A7A;margin:0;font-size:14px;font-style:italic;line-height:1.6;">“${esc(String(d.message).slice(0, 220))}”</p></div>` : ''}
+      ${btn('Open your card', d.claimUrl)}
+      <p style="color:#aaa;font-size:12px;margin:22px 0 0;">This link is private to you. Thankeeu will never ask for your card PIN, OTP or password.</p>
+    `)
+  }),
+
+  /** To the sender — a receipt, so the charge is never a surprise. */
+  moneyCardSent: (d) => ({
+    subject: `Your card to ${d.recipientName} is on its way`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Sent to ${esc(d.recipientName)} 💌</h2>
+      <p style="color:#555;line-height:1.7;">We emailed <strong>${esc(d.recipientEmail)}</strong> a private link to open your card. They will choose how to receive the money — straight to their bank, or as a gift card.</p>
+      <div style="background:#F8F5FF;border-radius:10px;padding:16px;margin:16px 0;">
+        <table style="width:100%;font-size:14px;color:#4A3A7A;border-collapse:collapse;">
+          <tr><td style="padding:4px 0;">Gift</td><td align="right"><strong>${fmtNGN(d.amount)}</strong></td></tr>
+          <tr><td style="padding:4px 0;">Card fee</td><td align="right"><strong>${fmtNGN(d.cardFee)}</strong></td></tr>
+          <tr><td style="padding:8px 0 0;border-top:1px solid #DDD6FE;">Total paid</td>
+              <td align="right" style="padding:8px 0 0;border-top:1px solid #DDD6FE;"><strong>${fmtNGN(d.total)}</strong></td></tr>
+        </table>
+      </div>
+      ${btn('See your sent cards', `${FRONTEND_URL}/dashboard/send-money`)}
+    `)
+  }),
+
+  /** To the recipient — confirmation once they have claimed. */
+  moneyCardClaimed: (d) => ({
+    subject: d.claimType === 'bank'
+      ? `${fmtNGN(d.net)} is on its way to your bank`
+      : `Your ${fmtNGN(d.net)} gift card is on its way`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">
+        ${d.claimType === 'bank' ? 'On its way to your bank ✅' : 'Your gift card is on its way 🎁'}
+      </h2>
+      <p style="color:#555;line-height:1.7;">
+        ${d.claimType === 'bank'
+          ? `We have sent <strong>${fmtNGN(d.net)}</strong> to your ${esc(d.bankName || 'bank')} account ending ${esc(d.last4 || '••••')}. Bank transfers usually land within minutes.`
+          : `Your <strong>${esc(d.productName || 'gift card')}</strong> for <strong>${fmtNGN(d.net)}</strong> is being issued. The code arrives by email shortly.`}
+      </p>
+      <div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;padding:14px 16px;margin:16px 0;">
+        <p style="color:#166534;font-size:13px;margin:0;">${fmtNGN(d.gross)} from ${esc(d.senderName)} · ${fmtNGN(d.fee)} payout fee</p>
+      </div>
+      ${d.redemptionCode ? `<p style="color:#4A3A7A;font-size:14px;">Your code: <strong style="font-family:monospace;font-size:16px;">${esc(d.redemptionCode)}</strong></p>` : ''}
+    `)
+  }),
+});

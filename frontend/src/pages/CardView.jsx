@@ -9,9 +9,11 @@ import { useMemberAuth } from '../context/MemberAuthContext';
 import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import { CoverArtwork } from '../utils/coverArtwork.jsx';
-import { normalizeCoverLayout, coverLayoutEqualsDefault } from '../utils/coverLayout';
+import { normalizeCoverLayout } from '../utils/coverLayout';
 import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
 import { readableTextColor, backgroundIsDark, backgroundIsPhoto, legibilityShadow } from '../utils/textContrast';
+import { messageMediaItems, messageGift } from '../utils/messageMedia';
+import { ALBUM_FLIP_CSS, ALBUM_FLIP_DURATION_MS } from '../utils/albumFlip';
 import CardCoverPreview from '../components/CardCoverPreview';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
@@ -673,17 +675,11 @@ const MediaCarousel = ({ items, large = false }) => {
   );
 };
 
-const Media = ({ message, large = false }) => {
-  const items = [];
-  if (message.media_url) items.push({ media_url: message.media_url, media_type: message.media_type });
-  if (message.media_gallery) {
-    try {
-      const g = typeof message.media_gallery === 'string' ? JSON.parse(message.media_gallery) : message.media_gallery;
-      if (Array.isArray(g)) items.push(...g);
-    } catch {}
-  }
-  return <MediaCarousel items={items} large={large} />;
-};
+const Media = ({ message, large = false }) => (
+  // One reader for both layouts, so the board and the album agree about what a
+  // message is carrying (it also tolerates legacy {url,type} and string entries).
+  <MediaCarousel items={messageMediaItems(message)} large={large} />
+);
 
 /* ─── CelebrationBackground ─────────────────────────────────────────────
    Floating celebration SVG icons on the card's LIGHT soft background.
@@ -789,8 +785,13 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
     : design.background;
   const cardInk   = readableTextColor(design.ink, surface, { ink: design.ink, fallback: design.soft || '#ffffff' });
   const cardAccent = readableTextColor(design.accent, surface, { ink: cardInk, fallback: design.soft || '#ffffff' });
-  // Badges/avatars sit on their own near-white pills inside the note.
-  const onWhiteAccent = readableTextColor(design.accent, '#ffffff', { ink: '#1A1035' });
+  // Badges, avatars and the reaction button sit on their own near-white pills
+  // INSIDE the note, so their ink must be resolved against the pill (white at
+  // 75-80% over the note), not against the note itself — on the dark designs
+  // the note ink is white, which rendered "❤️ 0" white-on-white.
+  const pillSurface = `linear-gradient(rgba(255,255,255,0.78), rgba(255,255,255,0.78)), ${surface}`;
+  const onWhiteAccent = readableTextColor(design.accent, pillSurface, { ink: '#1A1035', fallback: design.soft || '#ffffff' });
+  const onWhiteInk = readableTextColor(cardInk, pillSurface, { ink: '#1A1035', fallback: design.soft || '#ffffff' });
 
   const giftBadge = () => {
     if (message.gift_type === 'product' && message.product_name) {
@@ -912,7 +913,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
             await onReact(message.id).catch(() => {});
           }}
           className="rounded-full bg-white/75 px-3 py-1.5 text-xs font-bold shadow-sm"
-          style={{ color: reacted ? '#e11d48' : cardInk }}
+          style={{ color: reacted ? '#e11d48' : onWhiteInk }}
         >
           ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
         </button>
@@ -1043,7 +1044,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
     if (next === clamped) return;
     setFlipClass(next > clamped ? 'album-flip-forward' : 'album-flip-back');
     setPage(next);
-    window.setTimeout(() => setFlipClass(''), 620);
+    window.setTimeout(() => setFlipClass(''), ALBUM_FLIP_DURATION_MS);
   };
   const stepBack = () => flipTo(clamped - (showingCover ? 1 : 2));
   const stepFwd  = () => flipTo(showingCover ? 1 : clamped + 2);
@@ -1083,16 +1084,13 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
 
   const Leaf = ({ msg }) => {
     const [carouselIdx, setCarouselIdx] = useState(0);
-    // Same shape as the signer page: a JSON array of extra items in
-    // media_gallery, with media_url/media_type as the first item. Combine
-    // them into one list so multi-photo/video messages show everything,
-    // not just the first attachment.
-    let galleryItems = [];
-    try {
-      const extra = msg?.media_gallery ? (typeof msg.media_gallery === 'string' ? JSON.parse(msg.media_gallery) : msg.media_gallery) : [];
-      galleryItems = msg?.media_url ? [{ url: msg.media_url, type: msg.media_type }, ...(extra || [])] : (extra || []);
-    } catch { galleryItems = msg?.media_url ? [{ url: msg.media_url, type: msg.media_type }] : []; }
+    // Attachments are read with the shared reader. This used to build the list
+    // itself using `{url,type}`, but the backend stores `{media_url,media_type}`
+    // — so every gallery photo, GIF, video and voice note rendered with an
+    // undefined src.
+    const galleryItems = messageMediaItems(msg);
     const activeItem = galleryItems[Math.min(carouselIdx, Math.max(0, galleryItems.length - 1))];
+    const gift = messageGift(msg);
 
     return (
     <div className="relative flex flex-col overflow-hidden rounded-2xl border shadow-xl"
@@ -1112,15 +1110,16 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           </div>
           {activeItem && (
             <div className="relative mb-4 overflow-hidden rounded-xl" style={{ height: 160 }}>
-              {activeItem.type === 'video' ? (
-                <video src={activeItem.url} controls className="h-full w-full object-cover"/>
-              ) : activeItem.type === 'voice' || activeItem.type === 'audio' ? (
+              {activeItem.media_type === 'video' ? (
+                <video src={activeItem.media_url} controls playsInline className="h-full w-full object-cover"/>
+              ) : activeItem.media_type === 'voice' || activeItem.media_type === 'audio' ? (
                 <div className="flex h-full flex-col items-center justify-center gap-2 bg-purple-50 px-4">
                   <Icon name="Mic" size={22} className="text-primary-500"/>
-                  <audio src={activeItem.url} controls className="w-full"/>
+                  <audio src={activeItem.media_url} controls className="w-full"/>
                 </div>
               ) : (
-                <img src={activeItem.url} alt="" className="h-full w-full object-cover"/>
+                /* GIFs are images — an <img> animates them correctly. */
+                <img src={activeItem.media_url} alt="" loading="lazy" className="h-full w-full object-cover"/>
               )}
               {galleryItems.length > 1 && (
                 <div className="absolute inset-x-0 bottom-1.5 flex items-center justify-center gap-2">
@@ -1134,9 +1133,29 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
             </div>
           )}
           <p className="flex-1 whitespace-pre-wrap break-words leading-relaxed"
-            style={{ fontFamily: getFontStyle(msg.font_style)?.family || "'Kalam',cursive", color: readableTextColor(msg.font_color || albumTheme.ink, albumTheme.page || '#FFFDF8', { ink: albumTheme.ink, fallback: albumTheme.page || '#FFFDF8' }), fontSize: 19 }}>
+            style={{ fontFamily: getFontStyle(msg.font_style)?.family || "'Kalam',cursive", color: readableTextColor(msg.font_color || albumTheme.ink, albumTheme.page || '#FFFDF8', { ink: albumTheme.ink, fallback: albumTheme.page || '#FFFDF8' }), fontSize: Number(msg.font_size) > 0 ? Number(msg.font_size) : 19 }}>
             {msg.content}
           </p>
+          {/* A gift belongs on the signer's page — it was only ever rendered on
+              the board, so album cards showed no gifts at all. */}
+          {gift && (
+            <div className="mt-3">
+              {gift.kind === 'product' ? (
+                <a href={gift.vendorSlug ? `/c/${gift.vendorSlug}` : undefined}
+                  target={gift.vendorSlug ? '_blank' : undefined} rel="noopener noreferrer"
+                  title={gift.vendorName ? `View ${gift.vendorName} store` : undefined}
+                  className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold"
+                  style={{ borderColor: `${accent}55`, background: `${accent}12`, color: accent }}>
+                  🎁 {gift.label}
+                </a>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-white"
+                  style={{ background: '#059669' }}>
+                  🎁 {formatNGN(gift.amount)}
+                </span>
+              )}
+            </div>
+          )}
           <p className="mt-4 text-right text-sm font-bold" style={{ fontFamily: "'Dancing Script',cursive", color: accent, fontSize: 22 }}>
             — {msg.author_name}
           </p>
@@ -1150,43 +1169,37 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
     );
   };
 
+  // "Cover blur" is meant to echo the artwork, exactly as AlbumSign and the
+  // album studio resolve it. Using albumTheme.stage flat made every cover_blur
+  // card render as the same pale green, so the chosen background never showed.
+  const customCoverUrl = typeof card?.background_color === 'string' && /^https?:\/\//.test(card.background_color)
+    ? card.background_color
+    : null;
+  // A creator-uploaded cover replaces the template's artwork entirely — this
+  // mirrors AlbumSign's CoverPage, which CardView was not doing, so uploaded
+  // covers fell back to the original template image.
+  const coverDesign = customCoverUrl
+    ? { ...design, id: 'custom_upload', image: customCoverUrl, artwork: null, background: '#1a1035', ink: '#ffffff', dark: true }
+    : design;
+  const stageBackground = albumTheme.id === 'cover_blur'
+    ? (customCoverUrl
+        ? `url("${customCoverUrl}") center / cover no-repeat`
+        : design?.image
+          ? `url("${design.image}") center / cover no-repeat`
+          : (design?.background || albumTheme.stage))
+    : albumTheme.stage;
+
   return (
-    <div className="rounded-2xl p-5 sm:p-8" style={{ background: albumTheme.stage }}>
+    <div className="relative overflow-hidden rounded-2xl p-5 sm:p-8" style={{ background: stageBackground }}>
+      {albumTheme.id === 'cover_blur' && (customCoverUrl || design?.image) && (
+        <div className="pointer-events-none absolute inset-0 backdrop-blur-xl" style={{ background: 'rgba(255,255,255,0.22)' }} />
+      )}
+      <div className="relative">
       <style>{`
-        /* One leaf, one hinge. The spread turns as a single sheet off the
-           binding edge — exactly the motion the album studio preview uses.
-           Previously each half animated on its own transform-origin, so the
-           two pages swung apart like shutters instead of turning as a page. */
-        @keyframes cv-album-flip-forward {
-          0%   { opacity:.2; transform: rotateY(-96deg) skewY(-1.5deg); filter: brightness(.72); }
-          58%  { opacity:1;  transform: rotateY(8deg) skewY(.3deg); }
-          100% { opacity:1;  transform: rotateY(0); filter: brightness(1); }
-        }
-        @keyframes cv-album-flip-back {
-          0%   { opacity:.2; transform: rotateY(96deg) skewY(1.5deg); filter: brightness(.72); }
-          58%  { opacity:1;  transform: rotateY(-8deg) skewY(-.3deg); }
-          100% { opacity:1;  transform: rotateY(0); filter: brightness(1); }
-        }
+        ${ALBUM_FLIP_CSS}
         .cv-book { display:flex; align-items:center; justify-content:center; }
-        .cv-leaf-turn { transform-style: preserve-3d; backface-visibility: hidden; will-change: transform; perspective: 1800px; }
-        .cv-leaf-turn.forward { animation: cv-album-flip-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin: left center; }
-        .cv-leaf-turn.back    { animation: cv-album-flip-back    .6s cubic-bezier(.2,.72,.15,1) both; transform-origin: right center; }
-        /* Gutter shading + a soft corner curl sell the bound-book depth. */
-        .cv-leaf { position: relative; }
-        .cv-leaf::before {
-          content:''; position:absolute; inset:0 auto 0 0; width:34px; pointer-events:none; z-index:6;
-          background: linear-gradient(90deg, rgba(0,0,0,.14), rgba(0,0,0,.04) 40%, transparent);
-        }
-        .cv-leaf.cv-leaf-right::before { inset:0 0 0 auto; background: linear-gradient(270deg, rgba(0,0,0,.14), rgba(0,0,0,.04) 40%, transparent); }
-        .cv-leaf::after {
-          content:''; position:absolute; right:0; bottom:0; width:46px; height:46px; pointer-events:none; z-index:6;
-          background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,.06) 50%, rgba(0,0,0,.12));
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .cv-leaf-turn.forward, .cv-leaf-turn.back { animation-duration: .01s; }
-        }
       `}</style>
-      <div className="cv-book" style={{ minHeight: 600 }}
+      <div className="cv-book album-stage" style={{ minHeight: 600 }}
         onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {(() => {
           // `key` forces a remount on every turn so the animation actually
@@ -1194,12 +1207,12 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           const turn = flipClass === 'album-flip-forward' ? 'forward'
                      : flipClass === 'album-flip-back' ? 'back' : '';
           return showingCover ? (
-            <div key={`cv-cover-${clamped}`} className={`cv-leaf-turn ${turn}`}
+            <div key={`cv-cover-${clamped}`} className={`album-page-turn ${turn}`}
               style={{ width: 424, maxWidth: '86vw', position: 'relative' }}>
               <div style={{position:'absolute',left:'11%',top:10,width:'89%',height:'100%',borderRadius:8,background:'#fff',boxShadow:'0 18px 58px rgba(0,0,0,.2)'}}/>
               <div style={{position:'relative'}}>
                 <CardCoverPreview
-                  design={design}
+                  design={coverDesign}
                   occasionLabel={(card.occasion || '').replace(/_/g, ' ')}
                   recipientName={card.recipient_name}
                   title={card.title}
@@ -1214,10 +1227,10 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           ) : (
             /* The spread is ONE leaf: both pages live inside a single animated
                element, hinged on the spine, as in the album studio preview. */
-            <div key={`cv-spread-${clamped}`} className={`cv-leaf-turn ${turn} relative`}>
+            <div key={`cv-spread-${clamped}`} className={`album-page-turn ${turn} relative`}>
               <div className="flex items-stretch overflow-hidden rounded-[14px] shadow-2xl">
-                <div className="cv-leaf"><Leaf msg={leftMsg}/></div>
-                <div className="cv-leaf cv-leaf-right"><Leaf msg={rightMsg}/></div>
+                <div><Leaf msg={leftMsg}/></div>
+                <div><Leaf msg={rightMsg}/></div>
               </div>
               <div className="pointer-events-none absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-black/20 shadow-[0_0_10px_rgba(0,0,0,0.25)]" />
             </div>
@@ -1241,6 +1254,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           style={{ border: `2px solid ${accent}44`, color: accent }}>
           <Icon name="ChevronRight" size={20}/>
         </button>
+      </div>
       </div>
     </div>
   );
@@ -1505,7 +1519,6 @@ const CardView = () => {
   const navThemeDark = backgroundIsDark(navThemeBg, design?.soft || '#F5F0FF');
   // Movable/recolourable cover text layout (show/hide + per-field colour)
   const coverLayout = normalizeCoverLayout(card.cover_layout);
-  const hasCustomCoverLayout = !coverLayoutEqualsDefault(coverLayout);
   const fieldColor = (field) => {
     const c = coverLayout[field]?.color;
     if (!c || c === 'auto') return coverTextColor;
@@ -1551,24 +1564,14 @@ const CardView = () => {
         <div style={{ position:'absolute', bottom:'-40px', left:'-40px', width:200, height:200, borderRadius:'50%', background:'rgba(255,255,255,0.06)', pointerEvents:'none', zIndex:0 }} />
         <div style={{ position:'absolute', top:'40%', left:'50%', transform:'translate(-50%,-50%)', width:340, height:340, borderRadius:'50%', background:'rgba(255,255,255,0.04)', pointerEvents:'none', zIndex:0 }} />
 
-        <div className="relative max-w-5xl mx-auto px-4 py-7 sm:py-10 text-center" style={{ zIndex:1 }}>
-          {hasCustomCoverLayout ? (
-            <div style={{position:'relative',width:500,maxWidth:'100%',height:600,maxHeight:'72vh',margin:'0 auto 24px',containerType:'inline-size'}}>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase"
-                style={{position:'absolute',top:12,left:'50%',transform:'translateX(-50%)',zIndex:2,background: coverIsPhoto ? 'rgba(9,7,22,0.55)' : (coverIsDark ? 'rgba(255,255,255,0.18)' : 'rgba(26,16,53,0.08)'),backdropFilter:'blur(8px)',color:coverTextColor,border:`1px solid ${coverIsDark ? 'rgba(255,255,255,0.25)' : 'rgba(26,16,53,0.14)'}`,whiteSpace:'nowrap'}}>
-                Online Group Card
-              </div>
-              {coverLayout.title.show && (
-                <h1 style={{position:'absolute',left:`${coverLayout.title.x}%`,top:`${coverLayout.title.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Great Vibes', cursive",fontWeight:800,fontSize:`${coverLayout.title.size/210*100}cqw`,lineHeight:1.08,color:fieldColor('title'),wordBreak:'break-word',textShadow:legibilityShadow(fieldColor('title'),coverBackground,{fallback:design?.soft||'#ffffff',force:true})}}>{cardTitle}</h1>
-              )}
-              {coverLayout.recipient.show && (
-                <p style={{position:'absolute',left:`${coverLayout.recipient.x}%`,top:`${coverLayout.recipient.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Dancing Script', cursive",fontWeight:800,fontSize:`${coverLayout.recipient.size/210*100}cqw`,lineHeight:1.08,color:fieldColor('recipient'),wordBreak:'break-word',textShadow:legibilityShadow(fieldColor('recipient'),coverBackground,{fallback:design?.soft||'#ffffff',force:true})}}>{card.recipient_name}</p>
-              )}
-              {card.cover_sender && coverLayout.sender.show && (
-                <p style={{position:'absolute',left:`${coverLayout.sender.x}%`,top:`${coverLayout.sender.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Caveat', cursive",fontWeight:600,fontSize:`${coverLayout.sender.size/210*100}cqw`,lineHeight:1.08,letterSpacing:'0.04em',color:fieldColor('sender'),wordBreak:'break-word',textShadow:legibilityShadow(fieldColor('sender'),coverBackground,{fallback:design?.soft||'#ffffff',force:true})}}>From {card.cover_sender}</p>
-              )}
-            </div>
-          ) : (
+        <div className="relative max-w-5xl mx-auto px-4 py-5 sm:py-7 text-center" style={{ zIndex:1 }}>
+          {/* The board hero is a banner, not the card itself. It used to render
+              the full movable-cover stage (500x600, later 330x400) whenever the
+              creator had arranged their cover, which made this header ~745px —
+              nearly double the signing page's 411px hero. The arranged cover is
+              shown in full in the Album view and on the signing page, so here we
+              use the compact treatment. The creator's per-field show/hide and
+              colours are still honoured below. */}
           <>
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase mb-3"
@@ -1602,15 +1605,15 @@ const CardView = () => {
               </div>
             </div>
           ) : (
-            <div className="text-5xl sm:text-6xl mb-2 animate-float select-none">{design.icon}</div>
+            <div className="text-4xl sm:text-5xl mb-1.5 animate-float select-none">{design.icon}</div>
           )}
 
           {/* Big calligraphic title */}
           {coverLayout.title.show && (
             <h1 className="mb-1 px-2" style={{
               fontFamily: "'Great Vibes', cursive",
-              fontSize: 'clamp(2.4rem, 8vw, 5rem)',
-              lineHeight: 1.2,
+              fontSize: 'clamp(1.9rem, 5vw, 3.25rem)',
+              lineHeight: 1.15,
               color: fieldColor('title'),
               textShadow: legibilityShadow(fieldColor('title'), coverBackground, { fallback: design?.soft || '#ffffff', force: coverIsPhoto }),
               overflowWrap: 'break-word',
@@ -1627,10 +1630,9 @@ const CardView = () => {
             </p>
           )}
           </>
-          )}
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg max-w-xl mx-auto mb-3" style={{
+          <p className="text-sm sm:text-base max-w-xl mx-auto mb-3" style={{
             color: coverTextColor,
             opacity: coverIsPhoto ? 0.95 : 0.72,
           }}>
@@ -1711,7 +1713,7 @@ const CardView = () => {
               : { background: `${pillAccent}22`, color: pillAccent };
             const tabBase = 'flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold border-2 transition-all hover:opacity-90';
             return (
-            <div className="flex justify-center gap-2 mt-6 mb-4 flex-wrap px-4">
+            <div className="flex justify-center gap-2 mt-4 mb-3 flex-wrap px-4">
               {showMessages && (
                 <button onClick={() => setCardViewTab('messages')}
                   className={`${tabBase} ${cardViewTab === 'messages' ? activeCls : ''}`}
@@ -1753,7 +1755,7 @@ const CardView = () => {
           {/* Signer avatar strip — up to 10 initials */}
 
           {messages.length > 0 && cardViewTab === 'messages' && (
-            <div className="flex justify-center mt-7">
+            <div className="flex justify-center mt-4">
               <div style={{ display:'flex', marginLeft:0 }}>
                 {messages.slice(0, 10).map((msg, i) => (
                   <div key={i} style={{

@@ -187,6 +187,7 @@ app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/banks/verify', bankVerifyLimiter);
 app.use('/api/banks',     require('./routes/banks'));
 app.use('/api/giftcards', require('./routes/giftcards'));
+app.use('/api/money',     require('./routes/moneyTransfer'));
 app.use('/api/gifs',      require('./routes/gifs'));
 app.use('/api/credits',   require('./routes/credits'));
 app.use('/api/visitors', require('./routes/visitors'));
@@ -316,7 +317,7 @@ async function deliverCard(card) {
     // Guard: re-fetch current status so a concurrent delivery never double-sends
     const { data: fresh, error: fetchErr } = await supabase
       .from('cards')
-      .select('id, slug, status, recipient_notified, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, card_experience, movie_status')
+      .select('id, slug, status, recipient_notified, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, card_experience, movie_status, send_date')
       .eq('id', card.id)
       .maybeSingle();
 
@@ -328,6 +329,20 @@ async function deliverCard(card) {
     if (!fresh || fresh.status !== 'active' || fresh.recipient_notified) {
       console.log(`[deliver] Skipping ${slug}: status=${fresh?.status}, notified=${fresh?.recipient_notified}`);
       return { skipped: true };
+    }
+
+    // Due-date guard. A timer armed before the creator rescheduled the card
+    // would otherwise deliver it at the OLD time — the card arrives early and
+    // there is no way to undo it. Re-read send_date at fire time and refuse if
+    // the card is not actually due yet, then re-arm for the real time.
+    // 30s of slack absorbs timer jitter and clock skew.
+    if (fresh.send_date) {
+      const dueAt = new Date(fresh.send_date).getTime();
+      if (!isNaN(dueAt) && dueAt - Date.now() > 30 * 1000) {
+        console.log(`[deliver] ${slug} is not due yet (due ${new Date(dueAt).toISOString()}) — re-arming, not sending`);
+        scheduler.scheduleCardDelivery({ ...fresh, send_date: fresh.send_date });
+        return { skipped: true, reason: 'not_due' };
+      }
     }
 
     if (!fresh.recipient_email) {
@@ -524,6 +539,10 @@ async function scheduleAllActive() {
 cron.schedule('* * * * *', async () => {
   try { await autoSendDueCards(); }
   catch (err) { console.error('[auto-send cron] Unhandled error:', err.message); }
+  // Scheduled Send Money cards ride the same per-minute clock rather than
+  // introducing a second scheduler with its own drift and failure modes.
+  try { await require('./controllers/moneyTransferController').sweepDueTransfers(); }
+  catch (err) { console.error('[money-transfer sweep] Unhandled error:', err.message); }
 });
 
 // ── Memory Movie pre-render cron ─────────────────────────────────────────────

@@ -5,6 +5,7 @@ import { RotatingPrice } from '../utils/currencyUI';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
+import MoneyCardArt from '../components/MoneyCardArt';
 
 /*
  * MoneyTransferPage — send money tucked inside a greeting card.
@@ -19,7 +20,8 @@ import Icon from '../components/ui/Icon';
  * (App-side routing wired separately against live files.)
  */
 
-const CTA = '/signup?intent=money-transfer';
+const SEND_MONEY_TAB = '/dashboard/send-money';
+const CTA = `/signup?returnTo=${encodeURIComponent(SEND_MONEY_TAB)}`;
 
 const STEPS = [
   { n: '1', title: 'Pick a design', body: 'Choose a card cover you love. No board, no group link — just one beautiful card for one person.' },
@@ -114,13 +116,9 @@ export default function MoneyTransferPage() {
                 style={{ transformStyle: 'preserve-3d', transform: flip ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
               >
                 {/* Front */}
-                <div className="absolute inset-0 rounded-3xl shadow-card overflow-hidden"
-                  style={{ backfaceVisibility: 'hidden', background: 'linear-gradient(150deg,#7C3AED,#C026D3)' }}>
-                  <div className="h-full flex flex-col items-center justify-center text-white p-8 text-center">
-                    <Icon name="Gift" size={56} className="mb-5 opacity-90" />
-                    <p className="font-display font-extrabold text-2xl mb-2">For you</p>
-                    <p className="text-white/80 text-sm">Tap to open your card</p>
-                  </div>
+                <div className="absolute inset-0 overflow-hidden rounded-3xl shadow-card"
+                  style={{ backfaceVisibility: 'hidden' }}>
+                  <MoneyCardArt amount="₦25,000" label="For you" hint="Tap to open your card" />
                 </div>
                 {/* Back */}
                 <div className="absolute inset-0 rounded-3xl shadow-card bg-white border border-primary-100 p-7 flex flex-col"

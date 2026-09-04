@@ -231,6 +231,36 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
       const flwStatus = (txn.status || '').toUpperCase(); // 'SUCCESSFUL' | 'FAILED'
       console.log('[transfer webhook]', flwRef, flwStatus);
 
+      // ── Send Money payout (bank claim) ─────────────────────────────────────
+      // The claim endpoint already flipped `claimed` and wrote claim_reference
+      // before calling FLW; this is the terminal confirmation. On FAILED we
+      // release the claim so the recipient can retry with another account —
+      // the money is still theirs.
+      if (flwRef?.startsWith('TK-SEND-WD-')) {
+        const { data: transfer } = await supabase.from('money_transfers')
+          .select('id, slug, claimed, recipient_email, recipient_name, sender_name, claim_amount')
+          .eq('claim_reference', flwRef).maybeSingle();
+
+        if (!transfer) { console.warn('[transfer webhook] money_transfer not found:', flwRef); return; }
+
+        if (flwStatus === 'SUCCESSFUL') {
+          await supabase.from('money_transfers').update({
+            claim_status: 'paid', status: 'claimed', updated_at: new Date(),
+          }).eq('id', transfer.id);
+          console.log('[transfer webhook] Send Money payout confirmed:', transfer.slug);
+        } else if (flwStatus === 'FAILED') {
+          await supabase.from('money_transfers').update({
+            claimed: false, claimed_at: null, claim_type: null, claim_reference: null,
+            claim_status: 'failed', claim_amount: null, claim_fee: null,
+            claim_bank_name: null, claim_account_last4: null, status: 'sent',
+            claim_failure_reason: txn.complete_message || 'The bank rejected the transfer',
+            updated_at: new Date(),
+          }).eq('id', transfer.id);
+          console.log('[transfer webhook] Send Money payout FAILED, claim released:', transfer.slug);
+        }
+        return;
+      }
+
       // ── Gift pot withdrawal ─────────────────────────────────────────────────
       if (flwRef?.startsWith('TK-GIFT-WD-')) {
         const { data: card } = await supabase.from('cards')

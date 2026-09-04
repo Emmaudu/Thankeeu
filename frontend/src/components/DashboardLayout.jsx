@@ -8,6 +8,7 @@ import Icon from './ui/Icon';
 const NAV = [
   { to: '/dashboard',            icon: 'Home',       label: 'Home'            },
   { to: '/dashboard/cards',      icon: 'Heart',      label: 'My Cards'        },
+  { to: '/dashboard/send-money', icon: 'Wallet',     label: 'Send Money'      },
   { to: '/dashboard/credits',    icon: 'Card',       label: 'Credits & Plans' },
   { to: '/dashboard/delivered',  icon: 'Send',       label: 'Delivered'       },
   { to: '/dashboard/received',   icon: 'Gift',       label: 'Received'        },

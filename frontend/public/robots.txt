@@ -20,6 +20,8 @@ Disallow: /create-card
 Disallow: /reset-password
 Disallow: /forgot-password
 Disallow: /gift/
+# Private per-recipient money cards — carry a claim token, never index
+Disallow: /money/
 Disallow: /card/
 Disallow: /sign/
 Disallow: /admin
@@ -70,6 +72,8 @@ Disallow: /settings
 Disallow: /hris
 Disallow: /create-card
 Disallow: /gift/
+# Private per-recipient money cards — carry a claim token, never index
+Disallow: /money/
 Disallow: /admin
 Disallow: /company/dashboard
 Disallow: /member/dashboard
@@ -87,6 +91,8 @@ Disallow: /settings
 Disallow: /hris
 Disallow: /create-card
 Disallow: /gift/
+# Private per-recipient money cards — carry a claim token, never index
+Disallow: /money/
 Disallow: /admin
 
 User-agent: anthropic-ai

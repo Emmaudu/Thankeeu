@@ -619,6 +619,26 @@ const updateCard = async (req, res) => {
       console.error('[updateCard] Supabase error:', error.message, '| slug:', slug, '| user:', req.user?.id);
       throw error;
     }
+
+    // Re-arm the delivery timer against the row we just wrote.
+    // Without this, editing a card's schedule left the ORIGINAL setTimeout
+    // armed — the card was delivered at the old time, days early in the worst
+    // case. scheduleCardDelivery cancels a stale timer whose fire time no
+    // longer matches, and cancels outright if the card is no longer
+    // deliverable (schedule cleared, recipient removed, or no longer active).
+    try {
+      const scheduler = require('../utils/scheduler');
+      if (updated && updated.status === 'active' && !updated.recipient_notified) {
+        scheduler.scheduleCardDelivery(updated);
+      } else if (updated?.slug) {
+        scheduler.cancelSchedule(updated.slug);
+      }
+    } catch (schedErr) {
+      // Never fail the update because of the scheduler — the per-minute sweep
+      // in server.js is the backstop.
+      console.warn('[updateCard] could not re-arm delivery timer:', schedErr.message);
+    }
+
     res.json(updated);
   } catch (err) {
     console.error('[updateCard] error:', err.message);
@@ -786,6 +806,9 @@ const deleteCard = async (req, res) => {
     if (!isOwner2) return res.status(403).json({ error: 'Not authorized' });
 
     await supabase.from('cards').delete().eq('slug', slug);
+    // Drop any armed delivery timer — otherwise it fires for a row that no
+    // longer exists and logs a confusing failure.
+    try { require('../utils/scheduler').cancelSchedule(slug); } catch (_) { /* best effort */ }
     res.json({ message: 'Card deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete card' });
@@ -797,7 +820,7 @@ const getPublicCard = async (req, res) => {
     const { slug } = req.params;
     const { data: card, error } = await supabase
       .from('cards')
-      .select('*, messages(id, author_name, content, is_private, font_style, font_color, position_x, position_y, rotation, page_number, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at, gift_type, product_id, product_name, product_price, product_vendor_id, product_vendor_name, product_vendor_slug), contributions(amount, contributor_name, status)')
+      .select('*, messages(id, author_name, content, is_private, font_style, font_color, font_size, position_x, position_y, rotation, page_number, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at, gift_type, product_id, product_name, product_price, product_vendor_id, product_vendor_name, product_vendor_slug), contributions(amount, contributor_name, status)')
       .eq('slug', slug)
       .in('status', ['active', 'sent'])
       .maybeSingle();

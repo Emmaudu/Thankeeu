@@ -1346,6 +1346,71 @@ const Home = () => {
 
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
+ {/* ══ SEND MONEY — money tucked inside a card ══ */}
+ <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'#fff' }}>
+ <div className="max-w-6xl mx-auto grid gap-10 lg:grid-cols-[1.05fr_.95fr] items-center">
+ <div>
+ <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.16em] text-emerald-700 mb-4">
+ <Icon name="Wallet" size={13}/> Send money
+ </div>
+ <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)', lineHeight:1.15 }}>
+ Send money in a card they<br/><span className="text-primary-500">actually open</span>
+ </h2>
+ <p className="text-warm-600 mb-6" style={{ fontSize:'clamp(1rem,2.2vw,1.125rem)', lineHeight:1.65 }}>
+ A bank transfer is a reference line nobody reads. Wrap the money in a real
+ card — your design, your words, your voice — and send it to their email.
+ They open it, read it, then take the money to their bank account or as a gift card.
+ </p>
+ <ul className="mb-7 space-y-2.5">
+ {[
+ 'All you need is their email address',
+ 'They withdraw to their bank, or take a gift card',
+ 'One payment covers the money and the card',
+ ].map(t => (
+ <li key={t} className="flex items-start gap-2.5 text-sm text-warm-700">
+ <span className="mt-0.5 grid h-5 w-5 flex-shrink-0 place-items-center rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-extrabold">✓</span>
+ {t}
+ </li>
+ ))}
+ </ul>
+ <div className="flex flex-wrap gap-3">
+ <Link to="/send-money-greeting-card" onClick={() => window.scrollTo({top:0})}
+ className="btn-primary inline-flex items-center gap-2">
+ <Icon name="Send" size={15}/> Send money in a card
+ </Link>
+ <Link to="/how-it-works" onClick={() => window.scrollTo({top:0})} className="btn-secondary">
+ How it works
+ </Link>
+ </div>
+ </div>
+
+ {/* Visual: the card, then the money on it */}
+ <div className="relative mx-auto w-full max-w-[380px]">
+ <div className="rounded-[2rem] p-6 shadow-[0_28px_70px_rgba(31,23,62,0.16)]"
+ style={{ background:'linear-gradient(160deg,#1A1035,#3B2A6B)' }}>
+ <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-white/50 mb-2">A card, not a transfer</p>
+ <p className="text-white/90 mb-5" style={{ fontFamily:"'Caveat',cursive", fontSize:22, lineHeight:1.45 }}>
+ “Happy birthday Ada — get yourself something good. Proud of you always.”
+ </p>
+ <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3 backdrop-blur">
+ <span className="text-xs font-bold text-white/70">Tucked inside</span>
+ <span className="text-xl font-extrabold text-emerald-300">₦50,000</span>
+ </div>
+ <div className="mt-4 grid grid-cols-2 gap-2">
+ {[{i:'CreditCard',t:'To their bank'},{i:'Gift',t:'Or a gift card'}].map(o => (
+ <div key={o.t} className="flex items-center gap-2 rounded-xl bg-white/8 px-3 py-2.5">
+ <Icon name={o.i} size={14} className="text-emerald-300"/>
+ <span className="text-[11px] font-bold text-white/80">{o.t}</span>
+ </div>
+ ))}
+ </div>
+ </div>
+ </div>
+ </div>
+ </section>
+
+ <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
+
  {/* ══ SAMPLE CARDS — 5 finished examples ══ */}
  <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 100%)' }}>
  <div className="max-w-6xl mx-auto">

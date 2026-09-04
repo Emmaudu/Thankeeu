@@ -60,6 +60,7 @@ import DashboardFinances  from './pages/dashboard/DashboardFinances';
 import DashboardReminders from './pages/dashboard/DashboardReminders';
 import DashboardSettings  from './pages/dashboard/DashboardSettings';
 import DashboardCredits  from './pages/dashboard/DashboardCredits';
+import DashboardSendMoney from './pages/dashboard/DashboardSendMoney';
 import DashboardGiftCards from './pages/dashboard/DashboardGiftCards';
 import MemberGiftCardsPage from './pages/member/MemberGiftCardsPage';
 import CompanyGiftCardsPage from './pages/company/CompanyGiftCardsPage';
@@ -111,6 +112,8 @@ import NotFound         from './pages/NotFound';
 import BirthdayPage    from './pages/occasions/BirthdayPage';
 import { GroupCardsUK, GroupCardsUS, GroupCardsCanada, GroupCardsNigeria } from './pages/occasions/CountryLandingPage';
 import LeavingCardPage from './pages/LeavingCardPage';
+import MoneyTransferPage from './pages/MoneyTransferPage';
+import MoneyCardView from './pages/MoneyCardView';
 import PetLossCardPage from './pages/PetLossCardPage';
 import LeavingCardGallery from './pages/LeavingCardGallery';
 import CardGallery from './pages/CardGallery';
@@ -265,8 +268,21 @@ const CardViewGate = () => {
 
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   if (loading) return <Spinner />;
-  if (!user) return <Navigate to={adminOnly ? '/admin/login' : '/login'} replace />;
+  if (!user) {
+    // Carry the page they were trying to reach through login. Without this a
+    // deep link (e.g. a landing-page CTA to /dashboard/send-money) dropped the
+    // destination and dumped everyone on /dashboard after signing in.
+    // Login.jsx and Signup.jsx both already read ?returnTo.
+    const returnTo = `${location.pathname}${location.search || ''}`;
+    return (
+      <Navigate
+        replace
+        to={adminOnly ? '/admin/login' : `/login?returnTo=${encodeURIComponent(returnTo)}`}
+      />
+    );
+  }
   if (adminOnly && user.role !== 'admin') return <Navigate to="/dashboard" replace />;
   return children;
 };
@@ -452,6 +468,12 @@ const App = () => {
             <Route path="/online-group-cards-canada"  element={<GroupCardsCanada />} />
             <Route path="/online-group-cards-nigeria" element={<GroupCardsNigeria />} />
             <Route path="/cards/leaving-card"    element={<LeavingCardPage />} />
+            {/* The keyword URL is canonical (MoneyTransferPage declares it);
+                /send-money is kept as a short alias that redirects, so the two
+                never compete for the same ranking. */}
+            <Route path="/send-money-greeting-card" element={<MoneyTransferPage />} />
+            <Route path="/send-money" element={<Navigate to="/send-money-greeting-card" replace />} />
+            <Route path="/money/:slug"           element={<MoneyCardView />} />
             <Route path="/cards/pet-loss-card"   element={<PetLossCardPage />} />
             <Route path="/cards/pet-sympathy-card" element={<PetLossCardPage />} />
             <Route path="/cards/pet-memorial-card" element={<PetLossCardPage />} />
@@ -542,6 +564,7 @@ const App = () => {
             {/* ── Individual protected ────────────────────── */}
             <Route path="/dashboard"            element={<WorkspaceDashboard />} />
             <Route path="/dashboard/credits"     element={<ProtectedRoute><DashboardCredits /></ProtectedRoute>} />
+            <Route path="/dashboard/send-money"  element={<ProtectedRoute><DashboardSendMoney /></ProtectedRoute>} />
             <Route path="/dashboard/gift-cards"  element={<ProtectedRoute><DashboardGiftCards /></ProtectedRoute>} />
             <Route path="/dashboard/cards"       element={<ProtectedRoute><DashboardCards /></ProtectedRoute>} />
             <Route path="/dashboard/delivered"   element={<ProtectedRoute><DashboardDelivered /></ProtectedRoute>} />

@@ -13,11 +13,21 @@ const NotificationBell = ({ fetchFn, markReadFn, linkResolver }) => {
   const [loading, setLoading] = useState(false);
   const panelRef = useRef(null);
 
-  const unread = notifs.filter(n => !n.is_read).length;
+  const unread = Array.isArray(notifs) ? notifs.filter(n => !n.is_read).length : 0;
 
   const load = async () => {
     setLoading(true);
-    try { const r = await fetchFn(); setNotifs(r.data || []); }
+    try {
+      const r = await fetchFn();
+      // Defensive: an error page, an HTML fallback or a paginated envelope
+      // would otherwise put a non-array in state and every render of this
+      // component throws — which takes down the whole dashboard layout it
+      // sits in, not just the bell.
+      const list = Array.isArray(r?.data) ? r.data
+        : Array.isArray(r?.data?.notifications) ? r.data.notifications
+        : [];
+      setNotifs(list);
+    }
     catch {}
     finally { setLoading(false); }
   };

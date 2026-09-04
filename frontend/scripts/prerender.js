@@ -363,6 +363,34 @@ const STATIC_PAGES = [
     rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="/cards/create">Card Designs</a></nav><main><h1>Browse Group Card Designs — 100+ Covers for Every Occasion</h1><p>Pick a design for any occasion — birthday, leaving, retirement, wedding, sympathy, thank you and more. Share one link and everyone on the team signs with messages, photos, GIFs and voice notes. Memory Movie™ auto-generated.</p><h2>Popular design categories</h2><ul><li><a href="/cards/create?occasion=leaving">Leaving &amp; farewell card designs</a> — colourful and professional send-off covers.</li><li><a href="/cards/create?occasion=birthday">Birthday card designs</a> — fun, bold and personalised birthday covers.</li><li><a href="/cards/create?occasion=retirement">Retirement card designs</a> — warm, celebratory covers for a career milestone.</li><li><a href="/cards/create?occasion=sympathy">Sympathy card designs</a> — gentle, respectful covers for difficult moments.</li><li><a href="/cards/create?occasion=wedding">Wedding card designs</a> — beautiful covers for the couple's special day.</li></ul><p><a href="/cards/leaving-card">Online Leaving Cards</a> | <a href="/occasions/birthday">Birthday Group Cards</a> | <a href="/pricing">Pricing</a></p></main>`,
   },
   {
+    path: '/send-money-greeting-card',
+    title: 'Send Money in a Greeting Card — Money Gift by Email | Thankeeu',
+    description: 'Send money to anyone by email, tucked inside a greeting card they actually open. They withdraw it to their bank account or take it as a gift card. Nigeria, UK and US.',
+    rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="/send-money-greeting-card">Send Money in a Card</a></nav>
+<main>
+  <h1>Send money inside a card they will actually keep</h1>
+  <p>A bank transfer is a reference line nobody reads. Thankeeu wraps the money in a real greeting card — your design, your message, your photos, your voice — and emails it to the person you are sending it to. They open the card, read it, then take the money to their bank account or as a gift card.</p>
+  <p><strong>Send to any email · Withdraw to a Nigerian bank account or a gift card · Powered by Flutterwave and Reloadly</strong></p>
+  <h2>How sending money in a card works</h2>
+  <ol>
+    <li>Pick a card design and write your message — add photos, videos, GIFs or a voice note.</li>
+    <li>Choose how much money to tuck inside. You pay once, for the money and the card together.</li>
+    <li>They get an email, open the card, and choose how to receive it.</li>
+    <li>Straight to their bank account, or as a gift card for shopping, airtime, food and streaming.</li>
+  </ol>
+  <h2>Why send money this way</h2>
+  <ul>
+    <li>The message and the money arrive together, in one link.</li>
+    <li>You only need their email address — no account number, no bank details.</li>
+    <li>They choose bank withdrawal or a gift card, in their own time.</li>
+    <li>Works for birthdays, thank yous, congratulations, school fees, sending money home and just because.</li>
+  </ul>
+  <h2>Send money to Nigeria, the UK and the US</h2>
+  <p>Recipients in Nigeria withdraw straight to any Nigerian bank account. Gift cards cover Nigeria, the United Kingdom and the United States — Jumia, Amazon, iTunes, Google Play, Netflix, Spotify and more.</p>
+  <p><a href="/signup">Send money in a card — get started</a> | <a href="/pricing">Pricing</a> | <a href="/how-it-works">How it works</a></p>
+</main>`,
+  },
+  {
     path: '/cards/leaving-card',
     title: 'Online Leaving Card — Group Leaving Cards for Colleagues | Thankeeu',
     description: "Create an online leaving card the whole team signs from one link — messages, photos, GIFs, voice notes, plus an optional gift collection. Free to start.",

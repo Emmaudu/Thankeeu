@@ -463,6 +463,30 @@ export const giftcardsAPI = {
   myHistory:      ()                  => anyAxios.get('/giftcards/my-history'),
 };
 
+/**
+ * Send Money — money tucked inside a single greeting card.
+ *
+ * `api` carries the logged-in user's JWT (sender side). `publicAxios` is used
+ * for the recipient's view because they may open the emailed link before they
+ * have an account — the private claim token in the URL authorises them.
+ */
+export const moneyAPI = {
+  // Sender
+  saveDraft:   (data)        => api.post('/money/draft', data),
+  uploadMedia: (formData)    => api.post('/money/media', formData, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 180000 }),
+  initPayment: (slug)        => api.post('/money/initialize', { slug }),
+  verify:      (txRef)       => api.post('/money/verify', { tx_ref: txRef }),
+  listMine:    ()            => api.get('/money/mine'),
+  getMine:     (slug)        => api.get(`/money/mine/${slug}`),
+  listReceived:()            => api.get('/money/received'),
+  // Recipient. smartAxios sends the user's token when there is one (so a
+  // signed-in recipient is recognised by email) and nothing when there isn't
+  // (so the emailed claim token in the URL is what authorises them). It also
+  // never force-redirects on 401, which matters on a public claim page.
+  getPublic:   (slug, token) => smartAxios.get(`/money/${slug}${token ? `?token=${encodeURIComponent(token)}` : ''}`),
+  claim:       (slug, data)  => smartAxios.post(`/money/${slug}/claim`, data),
+};
+
 export const banksAPI = {
   getList:      ()     => publicAxios.get('/banks/list'),
   verify:       (data) => smartAxios.post('/banks/verify', data),

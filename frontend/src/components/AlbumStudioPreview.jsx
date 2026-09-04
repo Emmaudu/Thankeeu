@@ -6,6 +6,7 @@ import Icon from './ui/Icon';
 import Switch from './ui/Switch';
 import { ALBUM_THEMES, getAlbumTheme, getContrastTextColor, getAlbumInk } from '../utils/albumThemes';
 import { getFontStyle } from '../utils/cardDesigns';
+import { ALBUM_FLIP_CSS } from '../utils/albumFlip';
 
 const PAGE_LABELS = ['Cover', 'Message', 'Everyone'];
 
@@ -682,11 +683,7 @@ const AlbumStudioPreview = ({
   return (
     <div className="w-full">
       <style>{`
-        @keyframes album-leaf-forward { 0% { opacity:.2; transform:rotateY(-96deg) skewY(-1.5deg); filter:brightness(.72); } 58% { opacity:1; transform:rotateY(8deg) skewY(.3deg); } 100% { transform:rotateY(0); filter:brightness(1); } }
-        @keyframes album-leaf-back { 0% { opacity:.2; transform:rotateY(96deg) skewY(1.5deg); filter:brightness(.72); } 58% { opacity:1; transform:rotateY(-8deg) skewY(-.3deg); } 100% { transform:rotateY(0); filter:brightness(1); } }
-        .album-page-turn { transform-style:preserve-3d; backface-visibility:hidden; }
-        .album-page-turn.forward { animation:album-leaf-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; }
-        .album-page-turn.back { animation:album-leaf-back .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; }
+        ${ALBUM_FLIP_CSS}
       `}</style>
 
       {/* The message-board layout was retired: a group card is always an album. */}
@@ -746,7 +743,7 @@ const AlbumStudioPreview = ({
         {theme.id === 'cover_blur' && !design?.artwork && <div className="absolute inset-0 bg-white/20 backdrop-blur-xl" />}
         <div className="absolute inset-0 bg-black/5" />
 
-        <div className="relative z-10 flex min-h-[clamp(430px,69vh,710px)] items-center justify-center p-5 sm:p-8 lg:p-10">
+        <div className="album-stage relative z-10 flex min-h-[clamp(430px,69vh,710px)] items-center justify-center p-5 sm:p-8 lg:p-10">
           {page === 0 ? (
             <div key={`cover-${page}`} className={`album-page-turn ${flipDirection} relative w-full max-w-[360px]`}>
               <div className="absolute left-[12%] top-3 h-full w-[88%] rounded-md bg-white shadow-xl" />
@@ -763,7 +760,7 @@ const AlbumStudioPreview = ({
               {onLayoutChange && <p className="mt-2 text-center text-[11px] font-semibold text-warm-500">Drag the title, name or sender anywhere · hidden fields won't show</p>}
             </div>
           ) : (
-            <div key={`spread-${page}`} className={`album-page-turn ${flipDirection} relative w-full max-w-[820px]`} style={{ perspective: '1800px' }}>
+            <div key={`spread-${page}`} className={`album-page-turn ${flipDirection} relative w-full max-w-[820px]`}>
               {page === 2 ? (
                 /* "Everyone" spread — what the card becomes once people sign. */
                 <div className="grid grid-cols-2 overflow-hidden rounded-md shadow-2xl" style={{ background: theme.page, minHeight: 'clamp(340px, 48vw, 540px)' }}>

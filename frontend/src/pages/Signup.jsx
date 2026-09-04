@@ -14,7 +14,7 @@ const Signup = () => {
   const { login } = useAuth();
   const navigate  = useNavigate();
   const [searchParams] = useSearchParams();
-  const returnTo  = searchParams.get('returnTo');
+  const returnTo  = searchParams.get('returnTo') || searchParams.get('redirect');
   const prefillEmail = searchParams.get('email') || '';
 
   const [step,     setStep]    = useState('details');
@@ -213,7 +213,7 @@ const Signup = () => {
 
                   <p className="text-center text-sm text-warm-500 mt-4">
                     Already have an account?{' '}
-                    <Link to="/login" className="text-primary-500 font-bold hover:underline">Sign in</Link>
+                    <Link to={returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login'} className="text-primary-500 font-bold hover:underline">Sign in</Link>
                   </p>
                 </form>
               )}

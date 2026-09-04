@@ -59,23 +59,38 @@ export async function openFlwCheckout({ flwConfig, onSuccess, onClose }) {
   // We call modal.close() immediately in the callback so the modal disappears
   // automatically after payment — the user never has to close it manually.
   // After close, we call onSuccess() which verifies and shows the success screen.
+  // Flutterwave fires `callback` ONLY when a payment attempt completes. If the
+  // user dismisses the modal without paying, `onclose` is the only thing that
+  // fires. This used to be an empty stub, so a cancelled payment never told the
+  // caller anything — every caller's `finally` never ran and their button sat
+  // on "Opening payment…" forever. Track whether we already settled, so exactly
+  // one of onSuccess/onClose runs, whichever path the user took.
+  let settled = false;
+  const settle = (fn, arg) => {
+    if (settled) return;
+    settled = true;
+    try { fn && fn(arg); } catch (e) { console.error('[flwInline] handler threw:', e); }
+  };
+
   const modal = window.FlutterwaveCheckout({
     ...flwConfig,
     callback: async (response) => {
-      // Close the modal immediately — it disappears, user sees the page again
-      modal.close();
-      if (response.status === 'successful' || response.status === 'completed') {
-        // onSuccess does: setStage('verifying') → verifyContribution → setSubmitted(true)
-        onSuccess(response.tx_ref || flwConfig.tx_ref);
+      // Close the modal immediately — it disappears, user sees the page again.
+      try { modal.close(); } catch (_) { /* already gone */ }
+      if (response && (response.status === 'successful' || response.status === 'completed')) {
+        settle(onSuccess, response.tx_ref || flwConfig.tx_ref);
       } else {
-        onClose && onClose();
+        // A failed or abandoned attempt is a cancel from the caller's point of view.
+        settle(onClose);
       }
     },
     onclose: () => {
-      // Fires when modal is closed (either by modal.close() above or user clicking X).
-      // If it was closed by modal.close() after successful payment, onSuccess already
-      // running — do nothing. If user cancelled, fire onClose.
-      // We can't tell the difference here, so onClose is handled via the callback check.
+      // Reached when the user closes the modal. If the callback already settled
+      // this (a completed payment), `settle` is a no-op; otherwise this is a
+      // genuine cancellation and the caller must be released.
+      settle(onClose);
     },
   });
+
+  return modal;
 }

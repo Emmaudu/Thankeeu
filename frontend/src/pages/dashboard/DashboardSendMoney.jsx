@@ -20,6 +20,8 @@ import { useSEO } from '../../hooks/useSEO';
 import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import CardCoverPreview from '../../components/CardCoverPreview';
+import GifPicker from '../../components/GifPicker';
+import VoiceRecorder from '../../components/VoiceRecorder';
 import { moneyAPI } from '../../utils/api';
 import { openFlwCheckout } from '../../utils/flwInline';
 import { CARD_DESIGNS, FONT_STYLES, getCardDesign, getFontStyle } from '../../utils/cardDesigns';
@@ -39,11 +41,14 @@ const QUICK_AMOUNTS = [5000, 10000, 25000, 50000, 100000];
 const MIN_GIFT = 500;
 const CARD_FEE = 500; // display only — the server is authoritative
 
+// Photo and video come off the device. GIF opens the searchable Giphy picker
+// and voice records in the browser — neither should ask a sender to go and
+// find a file, which is what a file input forces them to do.
 const MEDIA_KINDS = [
-  { type: 'image', icon: 'Image', label: 'Photo',  accept: 'image/*' },
-  { type: 'gif',   icon: 'Film',  label: 'GIF',    accept: 'image/gif' },
-  { type: 'video', icon: 'Film',  label: 'Video',  accept: 'video/*' },
-  { type: 'voice', icon: 'Mic',   label: 'Voice',  accept: 'audio/*' },
+  { type: 'image', icon: 'Image', label: 'Photo',  accept: 'image/*', mode: 'file' },
+  { type: 'video', icon: 'Film',  label: 'Video',  accept: 'video/*', mode: 'file' },
+  { type: 'gif',   icon: 'Sparkles', label: 'GIF',  mode: 'gif' },
+  { type: 'voice', icon: 'Mic',   label: 'Voice note', mode: 'record' },
 ];
 
 export default function DashboardSendMoney() {
@@ -58,6 +63,8 @@ export default function DashboardSendMoney() {
   const [sent, setSent]         = useState(false);
   const [previewPage, setPreviewPage] = useState(0);   // 0 = cover, 1 = their page
   const [previewFlip, setPreviewFlip] = useState('');
+  const [gifOpen, setGifOpen]     = useState(false);
+  const [recordOpen, setRecordOpen] = useState(false);
   const fileRef = useRef(null);
   const pendingKind = useRef('image');
 
@@ -210,7 +217,20 @@ export default function DashboardSendMoney() {
   };
 
   /* ── Media (previewed locally; upload rides the existing media pipeline) ── */
-  const pickMedia = (kind) => { pendingKind.current = kind; fileRef.current?.click(); };
+  const addFile = (file, type) => {
+    if (!file) return;
+    setForm(f => ({ ...f, media: [...f.media, {
+      type, preview: URL.createObjectURL(file), file, name: file.name || type,
+    }] }));
+  };
+
+  const pickMedia = (kind) => {
+    const spec = MEDIA_KINDS.find(k => k.type === kind);
+    if (spec?.mode === 'gif')    { setGifOpen(true); return; }
+    if (spec?.mode === 'record') { setRecordOpen(true); return; }
+    pendingKind.current = kind;
+    fileRef.current?.click();
+  };
   const onFile = (e) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -240,7 +260,7 @@ export default function DashboardSendMoney() {
 
   return (
     <DashboardLayout title="Send Money" subtitle="Money tucked inside a card — not a cold transfer">
-      <input ref={fileRef} type="file" className="hidden" accept={MEDIA_KINDS.find(k => k.type === pendingKind.current)?.accept} onChange={onFile} />
+      <input ref={fileRef} type="file" className="hidden" accept={MEDIA_KINDS.find(k => k.type === pendingKind.current)?.accept || 'image/*'} onChange={onFile} />
 
       {/* Stepper */}
       <div className="mb-6 flex items-center gap-3">
@@ -385,6 +405,29 @@ export default function DashboardSendMoney() {
                       </button>
                     ))}
                   </div>
+                  {/* Real GIF search (Giphy) — not a file picker. */}
+                  {gifOpen && (
+                    <div className="relative mt-3">
+                      <GifPicker
+                        onSelect={(file) => { addFile(file, 'gif'); setGifOpen(false); }}
+                        onClose={() => setGifOpen(false)}
+                        compact
+                      />
+                    </div>
+                  )}
+
+                  {/* Record in the browser — no upload. */}
+                  {recordOpen && (
+                    <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-purple-100 bg-purple-50/60 p-3">
+                      <VoiceRecorder
+                        onRecorded={(file) => { addFile(file, 'voice'); setRecordOpen(false); }}
+                        disabled={form.media.length >= 5}
+                      />
+                      <button type="button" onClick={() => setRecordOpen(false)}
+                        className="text-xs font-bold text-warm-500 hover:text-warm-700">Cancel</button>
+                    </div>
+                  )}
+
                   {form.media.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {form.media.map((m, i) => (

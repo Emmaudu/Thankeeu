@@ -3,6 +3,7 @@ import CardCoverPreview from './CardCoverPreview';
 import GifPicker from './GifPicker';
 import VoiceRecorder from './VoiceRecorder';
 import Icon from './ui/Icon';
+import Switch from './ui/Switch';
 import { ALBUM_THEMES, getAlbumTheme, getContrastTextColor, getAlbumInk } from '../utils/albumThemes';
 import { getFontStyle } from '../utils/cardDesigns';
 
@@ -515,7 +516,26 @@ const SampleSignerPage = ({ signer, theme, ink, accent, spread, index }) => (
         <span className="absolute -top-1.5 left-1/2 h-3 w-9 -translate-x-1/2 rounded-[2px]" style={{ background: `${signer.tint}77` }} />
       </div>
     ) : (
-      <div className="mt-4 flex items-center gap-2.5 self-start rounded-2xl border px-3 py-2.5"
+      <>
+      {/* Video still — a real frame with a play badge, so "videos" is shown
+          rather than only claimed in the caption. */}
+      <div className="mt-4 self-start overflow-hidden rounded-xl shadow-[0_3px_14px_rgba(0,0,0,0.14)]" style={{ width: '74%' }}>
+        <div className="relative h-[92px] w-full">
+          <SamplePhoto tint={signer.tint} />
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur-sm">
+              <Icon name="Play" size={15} className="ml-0.5 text-white" />
+            </span>
+          </span>
+          <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[8px] font-extrabold text-white">0:12</span>
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 self-start">
+        <span className="inline-flex items-center gap-1 rounded-md border border-black/10 bg-white/70 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide"
+          style={{ color: accent }}>GIF</span>
+        <span className="text-[10px] font-semibold opacity-45">reaction added</span>
+      </div>
+      <div className="mt-2.5 flex items-center gap-2.5 self-start rounded-2xl border px-3 py-2.5"
         style={{ borderColor: `${accent}44`, background: `${accent}0f`, width: '82%' }}>
         <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style={{ background: accent }}>
           <Icon name="Mic" size={14} className="text-white" />
@@ -527,6 +547,7 @@ const SampleSignerPage = ({ signer, theme, ink, accent, spread, index }) => (
         </span>
         <span className="text-[10px] font-extrabold opacity-60">0:24</span>
       </div>
+      </>
     )}
 
     <div className="mt-auto flex items-center justify-between pt-5">
@@ -630,7 +651,7 @@ const AlbumStudioPreview = ({
   const recipient = form.recipient_name?.trim() || 'Recipient name';
   const sender = form.cover_sender?.trim() || creatorName || 'Your name';
   const messageText = message.content?.trim()
-    || 'Every person who signs gets a page like this — their words, photos and voice notes. Yours included, once the card is live.';
+    || 'Every person who signs gets a page like this — their words, photos, videos, GIFs and voice notes. Yours included, once the card is live.';
 
   const photoMedia = media.find(m => m.type === 'image' || m.type === 'gif');
   const videoMedia = media.find(m => m.type === 'video');
@@ -692,16 +713,15 @@ const AlbumStudioPreview = ({
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-purple-100 bg-white px-3 py-2.5">
           <p className="flex items-center gap-2 text-xs font-semibold text-warm-700">
             <Icon name="Users" size={15} className="flex-shrink-0 text-primary-500"/>
-            Every signer gets their own page like these — words, photos and voice notes.
+            Every signer gets their own page like these — words, photos, videos, GIFs and voice notes.
           </p>
           {onFormChange && (
             <button type="button" onClick={() => onFormChange('is_gift_enabled', !form.is_gift_enabled)}
-              className={`flex items-center gap-2 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors ${form.is_gift_enabled ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-dashed border-purple-200 bg-white text-warm-700 hover:border-primary-300'}`}>
+              aria-pressed={!!form.is_gift_enabled}
+              className={`inline-flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors ${form.is_gift_enabled ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-dashed border-purple-200 bg-white text-warm-700 hover:border-primary-300'}`}>
               <Icon name="Gift" size={14} />
               {form.is_gift_enabled ? 'Gift collection included' : 'Add a gift pot'}
-              <span className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${form.is_gift_enabled ? 'bg-amber-400' : 'bg-gray-300'}`}>
-                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form.is_gift_enabled ? 'translate-x-4' : 'translate-x-0.5'}`}/>
-              </span>
+              <Switch on={!!form.is_gift_enabled} />
             </button>
           )}
         </div>
@@ -778,9 +798,7 @@ const AlbumStudioPreview = ({
                             <Icon name="Gift" size={14} />
                             <span className="font-bold">{form.is_gift_enabled ? 'Gift collection included' : 'Messages only — tap to add a gift pot'}</span>
                           </span>
-                          <span className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${form.is_gift_enabled ? 'bg-amber-400' : 'bg-gray-300'}`}>
-                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form.is_gift_enabled ? 'translate-x-4' : 'translate-x-0.5'}`}/>
-                          </span>
+                          <Switch on={!!form.is_gift_enabled} />
                         </button>
                       </div>
                     </div>

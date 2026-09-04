@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="400" height="280">
+  <defs><linearGradient id="bg21" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#FFF7F0"/><stop offset="100%" style="stop-color:#FFE8D6"/></linearGradient></defs>
+  <rect width="400" height="280" rx="18" fill="url(#bg21)"/>
+  <!-- Gift boxes group -->
+  <rect x="40" y="165" width="90" height="80" rx="5" fill="#FCA5A5"/>
+  <rect x="40" y="150" width="90" height="22" rx="4" fill="#F87171"/>
+  <rect x="80" y="148" width="12" height="100" fill="#FCD34D"/>
+  <rect x="38" y="163" width="94" height="12" fill="#FCD34D"/>
+  <ellipse cx="86" cy="148" rx="16" ry="9" fill="#FDE68A" transform="rotate(-15 86 148)"/>
+  <ellipse cx="86" cy="148" rx="16" ry="9" fill="#FDE68A" transform="rotate(15 86 148)"/>
+  <circle cx="86" cy="148" r="7" fill="#F59E0B"/>
+  <!-- Smaller gift -->
+  <rect x="58" y="208" width="55" height="45" rx="4" fill="#FDBA74"/>
+  <rect x="58" y="197" width="55" height="16" rx="3" fill="#FB923C"/>
+  <rect x="80" y="196" width="10" height="60" fill="#FCD34D"/>
+  <rect x="56" y="208" width="59" height="10" fill="#FCD34D"/>
+  <!-- Confetti -->
+  <rect x="170" y="40" width="10" height="5" rx="1" fill="#F87171" transform="rotate(30 175 42)" opacity="0.7"/>
+  <rect x="350" y="50" width="9" height="4" rx="1" fill="#FCD34D" transform="rotate(-20 354 52)" opacity="0.7"/>
+  <circle cx="200" cy="30" r="4" fill="#FB923C" opacity="0.6"/>
+  <circle cx="370" cy="180" r="4" fill="#F87171" opacity="0.5"/>
+  <circle cx="380" cy="230" r="3" fill="#FCD34D" opacity="0.5"/>
+  <!-- Title -->
+  <text x="250" y="120" font-family="Georgia, serif" font-size="40" font-weight="bold" font-style="italic" fill="#9A3412" text-anchor="middle">Happy</text>
+  <text x="250" y="163" font-family="Georgia, serif" font-size="40" font-weight="bold" font-style="italic" fill="#9A3412" text-anchor="middle">Birthday!</text>
+  <text x="250" y="200" font-family="Georgia, serif" font-size="13" fill="#7C2D12" text-anchor="middle">Here's your day full of</text>
+  <text x="250" y="218" font-family="Georgia, serif" font-size="13" fill="#7C2D12" text-anchor="middle">surprises and sweetness!</text>
+  <text x="250" y="248" font-size="14" fill="#F97316" text-anchor="middle">♥</text>
+</svg>

@@ -63,6 +63,32 @@ const lower = (s) => String(s || '').trim().toLowerCase();
 const isEmail = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s || '').trim());
 const clean = (s, max) => (s == null ? null : String(s).replace(/<[^>]*>/g, '').trim().slice(0, max));
 
+const has = (body, k) => Object.prototype.hasOwnProperty.call(body || {}, k);
+
+/**
+ * Attachments are only touched when the client actually mentions them.
+ * An explicit null clears the card (the sender removed everything); an absent
+ * key leaves what is stored alone, so a save that follows a failed upload
+ * cannot wipe files that saved successfully on an earlier attempt.
+ */
+const pickMedia = (body) => {
+  const out = {};
+  if (has(body, 'media_url'))  out.media_url  = clean(body.media_url, 1000);
+  if (has(body, 'media_type')) out.media_type = clean(body.media_type, 20);
+  if (has(body, 'media_gallery')) {
+    out.media_gallery = Array.isArray(body.media_gallery)
+      ? body.media_gallery
+          .filter(m => m && (m.media_url || m.url))
+          .slice(0, 20)
+          .map(m => ({
+            media_url:  clean(m.media_url || m.url, 1000),
+            media_type: clean(m.media_type || m.type, 20) || 'image',
+          }))
+      : null;
+  }
+  return out;
+};
+
 /** Fields a client is allowed to set on the card. Money is never in here. */
 const pickCardFields = (body) => ({
   title:                  clean(body.title, 200),
@@ -78,9 +104,7 @@ const pickCardFields = (body) => ({
   message_font_style:     clean(body.message_font_style, 30) || 'handwritten',
   message_font_size:      Math.min(120, Math.max(7, Number(body.message_font_size) || 18)),
   message_font_color:     clean(body.message_font_color, 20),
-  media_url:              clean(body.media_url, 1000),
-  media_type:             clean(body.media_type, 20),
-  media_gallery:          Array.isArray(body.media_gallery) ? body.media_gallery : null,
+  ...pickMedia(body),
 });
 
 const publicShape = (t) => ({

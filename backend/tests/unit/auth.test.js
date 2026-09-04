@@ -151,7 +151,7 @@ describe('Auth Controller', () => {
 
   describe('Password reset flow', () => {
     it('reset token is a 64-char hex string', () => {
-      const crypto = require('node:crypto');
+      const crypto = require('crypto');
       const token  = crypto.randomBytes(32).toString('hex');
       assert.equal(token.length, 64);
       assert.match(token, /^[a-f0-9]+$/);
@@ -164,7 +164,7 @@ describe('Auth Controller', () => {
     });
 
     it('different calls produce different reset tokens', () => {
-      const crypto = require('node:crypto');
+      const crypto = require('crypto');
       const t1 = crypto.randomBytes(32).toString('hex');
       const t2 = crypto.randomBytes(32).toString('hex');
       assert.notEqual(t1, t2);

@@ -44,6 +44,7 @@ const COMPARISON = [
 ];
 
 const FAQS = [
+  { q: 'Is this a group card that other people sign?', a: 'No. Send Money is an individual card: you alone write it and you alone add the money, then one recipient opens it privately. Nobody else is invited to sign and there is no shared link to circulate. If you want several people to sign one card and chip in together, use a Thankeeu group card instead — that is a separate flow.' },
   { q: 'How does sending money in a greeting card work?', a: 'You create a single greeting card, write your message, and add any amount of money using Flutterwave during creation. The card is emailed to your recipient. They open a 3D flip card, read your message, and then withdraw the money — either to their bank account or as a gift card.' },
   { q: 'How does the recipient withdraw the money?', a: 'The recipient opens the card from the email you sent it to. To withdraw, they sign up using that same email address for security, then choose to send the money to their bank account or claim it as a gift card. The email match ensures only the intended person can withdraw.' },
   { q: 'Can they take the money as a gift card instead of cash?', a: 'Yes. When withdrawing, the recipient can choose a bank transfer or a gift card across categories like shopping, food and flowers, available in Nigeria, the UK and the US.' },
@@ -93,7 +94,7 @@ export default function MoneyTransferPage() {
               Send money inside a greeting card
             </h1>
             <p className="text-lg text-warm-600 leading-relaxed mb-8 max-w-xl">
-              Tuck real money into a card your friend actually opens. They flip through it, read your message, and withdraw to their bank or as a gift card. Warmer than a cold transfer, realer than a text.
+              One card, from you to one person, with real money tucked inside — not a group card that others sign. They flip through it, read your message, and withdraw to their bank or as a gift card. Warmer than a cold transfer, realer than a text.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <Link to={CTA} className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl bg-primary-500 text-white font-bold text-lg hover:bg-primary-600 shadow-purple transition-colors">

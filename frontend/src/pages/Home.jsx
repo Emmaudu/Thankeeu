@@ -1363,6 +1363,7 @@ const Home = () => {
  </p>
  <ul className="mb-7 space-y-2.5">
  {[
+ 'One card from you to one person — not a group card',
  'All you need is their email address',
  'They withdraw to their bank, or take a gift card',
  'One payment covers the money and the card',

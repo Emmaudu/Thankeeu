@@ -17,7 +17,9 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import CardCoverPreview from '../components/CardCoverPreview';
+import MediaSwiper from '../components/MediaSwiper';
 import { moneyAPI, banksAPI, giftcardsAPI } from '../utils/api';
+import { messageMediaItems } from '../utils/messageMedia';
 import { getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import { getAlbumTheme, getAlbumInk, getContrastTextColor } from '../utils/albumThemes';
 import { formatNGN } from '../utils/currency';
@@ -132,6 +134,9 @@ export default function MoneyCardView() {
   const albumTheme = getAlbumTheme(card.album_background_theme);
   const pageInk    = getAlbumInk(albumTheme, 'page');
   const msgFont    = getFontStyle(card.message_font_style);
+  // Read through the shared reader so the stored {media_url, media_type}
+  // shape (and the legacy variants) all render.
+  const mediaItems = messageMediaItems(card);
   const gross      = Number(card.gift_amount || 0);
   const fee        = Math.round(gross * PAYOUT_FEE_PCT);
   const net        = gross - fee;
@@ -159,7 +164,9 @@ export default function MoneyCardView() {
                 title={card.title}
                 senderName={card.sender_name}
                 coverColor={card.background_color?.startsWith('#') ? card.background_color : undefined}
-                textColor={getContrastTextColor(card.background_color, design)}
+                textColor={card.cover_text_color && card.cover_text_color !== 'auto'
+                  ? card.cover_text_color
+                  : getContrastTextColor(card.background_color, design)}
                 fontFamily={getFontStyle(card.font_style).family}
                 layout={card.cover_layout}
               />
@@ -170,6 +177,14 @@ export default function MoneyCardView() {
           ) : (
             <div className="mx-auto w-full max-w-[420px] rounded-2xl p-6 shadow-xl"
               style={{ background: albumTheme.page, color: pageInk }}>
+              {mediaItems.length > 0 && (
+                <div className="mb-4">
+                  <MediaSwiper
+                    items={mediaItems.map(m => ({ url: m.media_url, type: m.media_type }))}
+                    height={190} accent={design.accent} rounded="rounded-xl"
+                  />
+                </div>
+              )}
               <p className="break-words leading-relaxed"
                 style={{ fontFamily: msgFont.family, fontSize: Number(card.message_font_size) || 20 }}>
                 {card.message || 'They sent you something.'}

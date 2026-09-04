@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 280" width="400" height="280">
+  <defs>
+    <linearGradient id="bg8" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#EFF6FF"/>
+      <stop offset="100%" style="stop-color:#DBEAFE"/>
+    </linearGradient>
+  </defs>
+  <rect width="400" height="280" rx="18" fill="url(#bg8)"/>
+  <!-- Bunting -->
+  <path d="M20,20 Q100,45 200,20 Q300,45 380,20" fill="none" stroke="#93C5FD" stroke-width="2"/>
+  <polygon points="32,20 47,43 62,20" fill="#BFDBFE"/>
+  <polygon points="75,28 90,51 105,28" fill="#93C5FD"/>
+  <polygon points="138,18 153,41 168,18" fill="#60A5FA"/>
+  <polygon points="215,18 230,41 245,18" fill="#BFDBFE"/>
+  <polygon points="272,27 287,50 302,27" fill="#93C5FD"/>
+  <polygon points="333,18 348,41 363,18" fill="#60A5FA"/>
+  <!-- Blue balloons right -->
+  <ellipse cx="330" cy="110" rx="25" ry="32" fill="#60A5FA" opacity="0.9"/>
+  <line x1="330" y1="142" x2="328" y2="175" stroke="#60A5FA" stroke-width="1.5"/>
+  <ellipse cx="367" cy="90" rx="22" ry="28" fill="#3B82F6" opacity="0.9"/>
+  <line x1="367" y1="118" x2="365" y2="175" stroke="#3B82F6" stroke-width="1.5"/>
+  <ellipse cx="295" cy="95" rx="20" ry="26" fill="#BFDBFE" opacity="0.95"/>
+  <line x1="295" y1="121" x2="297" y2="175" stroke="#BFDBFE" stroke-width="1.5"/>
+  <!-- Balloon shines -->
+  <ellipse cx="323" cy="99" rx="7" ry="10" fill="white" opacity="0.3"/>
+  <ellipse cx="360" cy="80" rx="6" ry="8" fill="white" opacity="0.3"/>
+  <ellipse cx="289" cy="86" rx="5" ry="7" fill="white" opacity="0.3"/>
+  <!-- Clouds -->
+  <ellipse cx="50" cy="90" rx="30" ry="18" fill="white" opacity="0.7"/>
+  <ellipse cx="35" cy="95" rx="20" ry="15" fill="white" opacity="0.7"/>
+  <ellipse cx="65" cy="95" rx="22" ry="15" fill="white" opacity="0.7"/>
+  <!-- Stars -->
+  <text x="20" y="180" font-size="12" fill="#93C5FD" opacity="0.7">✦</text>
+  <text x="15" y="230" font-size="10" fill="#60A5FA" opacity="0.6">✦</text>
+  <!-- Title -->
+  <text x="180" y="135" font-family="Georgia, serif" font-size="40" font-weight="bold" font-style="italic" fill="#1D4ED8" text-anchor="middle">Happy</text>
+  <text x="180" y="177" font-family="Georgia, serif" font-size="40" font-weight="bold" font-style="italic" fill="#1D4ED8" text-anchor="middle">Birthday!</text>
+  <!-- Subtitle -->
+  <text x="180" y="212" font-family="Georgia, serif" font-size="13" fill="#1E40AF" text-anchor="middle">Wishing you blue skies and</text>
+  <text x="180" y="230" font-family="Georgia, serif" font-size="13" fill="#1E40AF" text-anchor="middle">sunshine on your special day.</text>
+  <text x="180" y="258" font-size="14" fill="#3B82F6" text-anchor="middle">♥</text>
+</svg>

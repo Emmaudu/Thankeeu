@@ -14,13 +14,14 @@
  * so nothing here can change what a sender is billed.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSEO } from '../../hooks/useSEO';
 import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import CardCoverPreview from '../../components/CardCoverPreview';
 import GifPicker from '../../components/GifPicker';
+import MediaSwiper from '../../components/MediaSwiper';
 import VoiceRecorder from '../../components/VoiceRecorder';
 import { moneyAPI } from '../../utils/api';
 import { openFlwCheckout } from '../../utils/flwInline';
@@ -29,6 +30,8 @@ import { OCCASION_FILTERS, getOccasionLabel } from '../../utils/occasionCardDesi
 import { ALBUM_FLIP_CSS, ALBUM_FLIP_DURATION_MS } from '../../utils/albumFlip';
 import { ALBUM_THEMES, getAlbumTheme, getContrastTextColor, getAlbumInk } from '../../utils/albumThemes';
 import { readableTextColor } from '../../utils/textContrast';
+import { COVER_TEXT_SWATCHES } from '../../utils/coverLayout';
+import { messageMediaItems } from '../../utils/messageMedia';
 import { formatNGN } from '../../utils/currency';
 import { useAuth } from '../../context/AuthContext';
 
@@ -90,6 +93,7 @@ export default function DashboardSendMoney() {
     message_font_size: 20,
     album_background_theme: 'cover_blur',
     font_style: 'elegant',
+    cover_text_color: 'auto',
     gift_amount: 10000,
     media: [],
   });
@@ -103,8 +107,9 @@ export default function DashboardSendMoney() {
     setPreviewPage(next);
     window.setTimeout(() => setPreviewFlip(''), ALBUM_FLIP_DURATION_MS);
   };
-  // The first attachment is what shows on their page.
-  const previewMedia = form.media[0] || null;
+  // Every attachment reaches the preview — the sender should see exactly what
+  // the recipient will swipe through, not just the first item.
+  const previewItems = form.media.map(m => ({ url: m.preview, type: m.type }));
 
   // Changing occasion swaps the design list — keep the selected cover valid.
   useEffect(() => {
@@ -118,7 +123,11 @@ export default function DashboardSendMoney() {
   const design     = getCardDesign(form.design_theme);
   const albumTheme = getAlbumTheme(form.album_background_theme);
   const pageInk    = getAlbumInk(albumTheme, 'page');
-  const coverInk   = getContrastTextColor(null, design);
+  const autoCoverInk = getContrastTextColor(null, design);
+  const coverInk = form.cover_text_color && form.cover_text_color !== 'auto'
+    ? readableTextColor(form.cover_text_color, design.background, {
+        ink: design.ink, fallback: design.soft || '#ffffff', large: true })
+    : autoCoverInk;
   const msgFont    = getFontStyle(form.message_font_style);
   const gift       = Number(form.gift_amount) || 0;
   const total      = gift + CARD_FEE;
@@ -128,27 +137,116 @@ export default function DashboardSendMoney() {
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.recipient_email.trim()) &&
     form.sender_name.trim();
 
+  /* ── Draft hydration ───────────────────────────────────────────────────────
+   * ?draft=<slug> is put in the URL by the first save, and the landing page
+   * redirect can bring a sender back to it. Without loading the stored row the
+   * form would render blank and the next save would overwrite a real draft with
+   * empty values, so nothing may be saved until this has settled.
+   */
+  const [hydrating, setHydrating] = useState(!!params.get('draft'));
+
+  useEffect(() => {
+    const s = params.get('draft');
+    if (!s) return;
+    let alive = true;
+    (async () => {
+      try {
+        const { data: t } = await moneyAPI.getMine(s);
+        if (!alive || !t) return;
+        if (t.status && t.status !== 'draft') {
+          // Already paid for — editing it would silently do nothing server-side.
+          toast('That card has already been sent. Starting a new one.');
+          setSlug(null);
+          setParams({}, { replace: true });
+          return;
+        }
+        const stored = messageMediaItems(t).map(m => ({ type: m.type, url: m.url, preview: m.url }));
+        setForm(f => ({
+          ...f,
+          design_theme:           t.design_theme           || f.design_theme,
+          occasion:               t.occasion               || f.occasion,
+          sender_name:            t.sender_name            || f.sender_name,
+          recipient_name:         t.recipient_name         || '',
+          recipient_email:        t.recipient_email        || '',
+          title:                  t.title                  || '',
+          message:                t.message                || '',
+          message_font_style:     t.message_font_style     || f.message_font_style,
+          message_font_size:      t.message_font_size      || f.message_font_size,
+          album_background_theme: t.album_background_theme || f.album_background_theme,
+          font_style:             t.font_style             || f.font_style,
+          cover_text_color:       t.cover_text_color       || 'auto',
+          gift_amount:            Number(t.gift_amount)    || f.gift_amount,
+          media: stored,
+        }));
+      } catch {
+        // A draft that cannot be loaded (deleted, or another account's) must
+        // not be silently overwritten — drop the slug and start clean.
+        setSlug(null);
+        setParams({}, { replace: true });
+      } finally {
+        if (alive) setHydrating(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   /* ── Draft persistence ─────────────────────────────────────────────────── */
-  const uploadPendingMedia = async () => {
-    const fresh = form.media.filter(m => m.file && !m.uploaded);
-    if (!fresh.length) return null;
-    const fd = new FormData();
-    fresh.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
-    const { data } = await moneyAPI.uploadMedia(fd);
-    // Mark them uploaded so a second save does not re-upload the same files.
-    setForm(f => ({ ...f, media: f.media.map(m => (m.file && !m.uploaded ? { ...m, uploaded: true } : m)) }));
-    return data;
+  /**
+   * Uploads whatever is new and returns the COMPLETE attachment list, in the
+   * order the sender arranged it, each item carrying its stored URL.
+   *
+   * The list has to be rebuilt from form.media rather than from the upload
+   * response: the response only describes the files sent in that request, so
+   * deriving media_url/media_gallery from it drops every attachment saved by
+   * an earlier save, and never notices a removal.
+   */
+  const syncMedia = async () => {
+    const fresh = form.media.filter(m => m.file && !m.url);
+    let uploaded = [];
+    if (fresh.length) {
+      const fd = new FormData();
+      // The route uses upload.any(), so one repeated field name is correct and
+      // order is preserved — the server does not key off the field name.
+      fresh.forEach(m => fd.append('media', m.file));
+      const { data } = await moneyAPI.uploadMedia(fd);
+      uploaded = data?.items || [];
+      // A partial upload must not silently mis-pair URLs with attachments.
+      if (uploaded.length !== fresh.length) throw new Error('Some files did not upload');
+    }
+    let k = 0;
+    const merged = form.media.map(m => {
+      if (m.url || !m.file) return m;
+      const up = uploaded[k++];
+      return up ? { ...m, url: up.media_url, type: up.media_type || m.type } : m;
+    });
+    setForm(f => ({ ...f, media: merged }));
+    return merged.filter(m => m.url);
   };
 
   const saveDraft = async (extra = {}) => {
+    // Saving over a draft that has not finished loading would write the blank
+    // initial form on top of the sender's real card.
+    if (hydrating) return null;
     setSaving(true);
     try {
-      let mediaFields = {};
+      // Always sent, so that removing an attachment actually removes it from
+      // the stored card — an empty list clears the row rather than leaving a
+      // deleted photo on the recipient's copy.
+      let mediaFields = { media_url: null, media_type: null, media_gallery: [] };
       try {
-        const up = await uploadPendingMedia();
-        if (up) mediaFields = { media_url: up.media_url, media_type: up.media_type, media_gallery: up.media_gallery };
+        const list = await syncMedia();
+        if (list.length) {
+          mediaFields = {
+            media_url: list[0].url,
+            media_type: list[0].type,
+            media_gallery: list.slice(1).map(m => ({ media_url: m.url, media_type: m.type })),
+          };
+        }
       } catch (upErr) {
-        // A failed upload must not lose the words the sender already wrote.
+        // A failed upload must not lose the words the sender already wrote —
+        // and must not wipe attachments that did save on an earlier attempt,
+        // so the media fields are omitted entirely rather than sent as null.
+        mediaFields = {};
         toast.error('Your files could not be uploaded — the card was saved without them.');
       }
       const { data } = await moneyAPI.saveDraft({
@@ -165,6 +263,7 @@ export default function DashboardSendMoney() {
         message_font_size: form.message_font_size,
         album_background_theme: form.album_background_theme,
         font_style: form.font_style,
+        cover_text_color: form.cover_text_color,
         gift_amount: gift,
         ...mediaFields,
         ...extra,
@@ -243,7 +342,7 @@ export default function DashboardSendMoney() {
   /* ── Success ───────────────────────────────────────────────────────────── */
   if (sent) {
     return (
-      <DashboardLayout title="Send Money" subtitle="Money tucked inside a card">
+      <DashboardLayout title="Send Money" subtitle="One card from you, with money inside">
         <div className="mx-auto max-w-lg rounded-3xl border border-purple-100 bg-white p-8 text-center">
           <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-full bg-emerald-100 text-4xl">✓</div>
           <h2 className="mb-2 text-2xl font-bold text-warm-900">On its way to {form.recipient_name}</h2>
@@ -259,7 +358,7 @@ export default function DashboardSendMoney() {
   }
 
   return (
-    <DashboardLayout title="Send Money" subtitle="Money tucked inside a card — not a cold transfer">
+    <DashboardLayout title="Send Money" subtitle="One card from you, with money inside — not a group card">
       <input ref={fileRef} type="file" className="hidden" accept={MEDIA_KINDS.find(k => k.type === pendingKind.current)?.accept || 'image/*'} onChange={onFile} />
 
       {/* Stepper */}
@@ -291,6 +390,23 @@ export default function DashboardSendMoney() {
         })}
       </div>
 
+      {/* What this is — sets expectations before any work is done. Send Money is
+          one sender → one recipient. Group cards that other people sign are a
+          different product surface (Create a card), linked here so nobody has
+          to guess which one they are in. */}
+      <div className="mb-6 flex items-start gap-3 rounded-2xl border border-purple-100 bg-purple-50/60 px-4 py-3">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-lg">💌</span>
+        <p className="text-sm leading-relaxed text-warm-700">
+          <strong className="text-warm-900">This is an individual card, not a group card.</strong>{' '}
+          You alone write it and you alone put the money in — nobody else is invited to sign it.
+          Your recipient opens one private link, reads your card and takes the money to their bank
+          account or as a gift card. Want several people to sign one card instead?{' '}
+          <Link to="/create-card" className="font-semibold text-primary-600 underline">
+            Create a group card
+          </Link>.
+        </p>
+      </div>
+
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
         {/* ══ LEFT ══════════════════════════════════════════════════════════ */}
         <div className="space-y-5">
@@ -311,6 +427,29 @@ export default function DashboardSendMoney() {
                       {OCCASIONS.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
                     </select>
                   </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-bold text-warm-600">Cover text colour</label>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <button type="button" onClick={() => set('cover_text_color', 'auto')} data-cover-ink="auto"
+                        className={`h-8 flex-shrink-0 rounded-lg border px-2 text-[11px] font-extrabold ${
+                          form.cover_text_color === 'auto'
+                            ? 'border-primary-500 bg-primary-50 text-primary-700'
+                            : 'border-purple-100 bg-white text-warm-600'}`}>
+                        Auto
+                      </button>
+                      {COVER_TEXT_SWATCHES.map(c => (
+                        <button key={c} type="button" onClick={() => set('cover_text_color', c)}
+                          aria-label={`Cover text ${c}`} title={c} data-cover-ink={c}
+                          className="flex h-8 w-7 flex-shrink-0 items-center justify-center">
+                          <span className={`block h-6 w-6 rounded-full border-2 ${
+                            form.cover_text_color === c
+                              ? 'border-primary-500 ring-2 ring-primary-300'
+                              : 'border-warm-200 shadow-sm'}`} style={{ backgroundColor: c }} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div>
                     <label className="mb-1.5 block text-xs font-bold text-warm-600">Album background</label>
                     <div className="flex flex-nowrap items-center gap-0.5">
@@ -444,7 +583,7 @@ export default function DashboardSendMoney() {
               </section>
 
               <div className="flex justify-end">
-                <button type="button" data-cta="to-step-2" onClick={goToStep2} disabled={!step1Valid || saving} className="btn-primary">
+                <button type="button" data-cta="to-step-2" onClick={goToStep2} disabled={!step1Valid || saving || hydrating} className="btn-primary">
                   {saving ? 'Saving…' : 'Add the money →'}
                 </button>
               </div>
@@ -536,18 +675,9 @@ export default function DashboardSendMoney() {
                       <span className="text-[10px] font-bold opacity-60">{form.sender_name || 'You'}</span>
                     </div>
 
-                    {previewMedia && (
-                      <div className="mb-3 overflow-hidden rounded-lg" style={{ height: 92 }}>
-                        {previewMedia.type === 'video' ? (
-                          <video src={previewMedia.preview} muted className="h-full w-full object-cover" />
-                        ) : previewMedia.type === 'voice' ? (
-                          <div className="flex h-full items-center justify-center gap-2 bg-purple-50">
-                            <Icon name="Mic" size={16} className="text-primary-500" />
-                            <span className="text-[11px] font-bold text-primary-600">Voice note</span>
-                          </div>
-                        ) : (
-                          <img src={previewMedia.preview} alt="" className="h-full w-full object-cover" />
-                        )}
+                    {previewItems.length > 0 && (
+                      <div className="mb-3">
+                        <MediaSwiper items={previewItems} height={92} accent={design.accent} rounded="rounded-lg" />
                       </div>
                     )}
 

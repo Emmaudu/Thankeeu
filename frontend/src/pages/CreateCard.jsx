@@ -19,6 +19,10 @@ import CoverTextStudio from '../components/CoverTextStudio';
 import CardCoverPreview from '../components/CardCoverPreview';
 import { ALBUM_THEMES } from '../utils/albumThemes';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
+import IntentSummaryStrip from '../components/IntentSummaryStrip';
+import ResumeDraftAlert from '../components/ResumeDraftAlert';
+import { takeIntent } from '../utils/cardIntent';
+import { applyCardIntent } from '../utils/applyCardIntent';
 
 const OCCASIONS = [
  { id: 'birthday',        icon: 'Cake',         label: 'Birthday' },
@@ -160,11 +164,11 @@ const CreateCard = () => {
  }
  // If they were at the payment step when they went to log in, return there
  const targetStep = saved.resumeStep >= 3 ? 3 : 2;
- toast.success('Welcome back! Continuing your card…');
+ setResumedDraft(true);   // the alert below replaces the old toast
  setStep(targetStep);
  } else if (saved.formSnapshot) {
  // Form filled but draft not created yet — go to details step
- toast.success('Welcome back! Pick up where you left off.');
+ setResumedDraft(true);
  setStep(saved.localOnly ? 3 : 2);
  }
  } catch {}
@@ -173,6 +177,26 @@ const CreateCard = () => {
  url.searchParams.delete('resumed');
  window.history.replaceState({}, '', url.toString());
  }, [searchParams]);
+
+ // ── Type-to-create handover ──────────────────────────────────────────────
+ // Set by the homepage box (or carried here when CardStart forwarded a
+ // signed-in user). The ?occasion=/?design= effect below returns early unless
+ // those params are present, so the two cannot fight over the same form.
+ const [intentSummary, setIntentSummary] = useState([]);
+ const [resumedDraft, setResumedDraft] = useState(false);
+ useEffect(() => {
+  if (searchParams.get('intent') !== '1') return;
+  const intent = takeIntent();
+  if (!intent) return;
+  const { patch, step: target, summary } = applyCardIntent(intent, {
+    creatorName, occasionIds: OCCASIONS.map(o => o.id),
+  });
+  if (!Object.keys(patch).length) return;
+  setForm(prev => ({ ...prev, ...patch }));
+  setStep(target);
+  setIntentSummary(summary);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
 
  useEffect(() => {
  const editSlug = searchParams.get('edit');
@@ -627,6 +651,16 @@ const CreateCard = () => {
  )}
 
  <StepIndicator current={step} />
+
+ {resumedDraft && (
+   <ResumeDraftAlert
+     cardTitle={form.title}
+     recipient={form.recipient_name}
+     onPay={() => setStep(3)}
+   />
+ )}
+
+ <IntentSummaryStrip items={intentSummary} />
 
  {/* ── Step 0: Occasion ── */}
  {step === 0 && (

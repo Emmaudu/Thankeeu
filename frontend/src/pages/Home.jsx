@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
+import CardIntentBar from '../components/CardIntentBar';
 import VoiceRecorder from '../components/VoiceRecorder';
 import { demoAPI } from '../utils/api';
 import toast from 'react-hot-toast';
@@ -1000,6 +1001,39 @@ const WhatsAppVsThankeeu = () => (
 );
 
 /* ─── Main Home ──────────────────────────────────────────────────────── */
+// Homepage FAQ — one source of truth for the visible list AND the FAQPage
+// structured data below. They must not drift: Google requires the marked-up
+// Q&A to be visible on the page, and answer engines quote whichever they find.
+const HOME_FAQS = [
+ { q:'Is it really free to create a card?', a:"Yes — creating a card and collecting messages is 100% free. You only pay a small one-time fee when you're ready to activate and send the card to the recipient." },
+ { q:'Does the recipient need to create an account?', a:"No. The recipient simply opens a link, reads all the messages and can claim the gift — no sign-up required." },
+ { q:'What payment methods are supported?', a:'Visa, Mastercard, American Express, and bank transfers depending on your country. We support USD, GBP, EUR, CAD, AUD and 30+ currencies.' },
+ { q:'Can people from other countries contribute to the gift pot?', a:'Yes — signers can contribute from anywhere in the world using Visa, Mastercard or local bank transfer. USD, GBP, EUR and 30+ currencies are all supported.' },
+ { q:'What types of media can contributors add?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs — all in one beautiful card.' },
+ { q:'How does the gift pot work for companies?', a:"Each celebration card has its own secure gift pot. Team members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account." },
+ { q:'Can I schedule the card to send on a specific date?', a:"Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget." },
+ { q:'Is there a limit on how many people can sign?', a:'No limit. Invite your entire company if you want. The more signatures, the more meaningful the card.' },
+  { q:'How fast can I create a group card?', a:"About a minute. Describe the card in one line on the homepage — who it's for, when to send it, whether you're collecting for a gift — and Thankeeu fills in the design, the details and the dates for you. Review it, pay once, and share the link." },
+];
+
+// Collapsible FAQ row. A component, not an inline callback: calling useState
+// inside a .map() callback breaks the rules of hooks and only appears to work
+// while the list length never changes.
+const FaqItem = ({ q, a }) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-b border-purple-100">
+      <button onClick={() => setOpen(!open)}
+        className="w-full text-left flex items-center justify-between py-4 gap-4 hover:text-primary-600 transition-colors">
+        <span className="font-bold" style={{ fontSize:'0.9rem', color:'#1A1035' }}>{q}</span>
+        <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${open?'rotate-45':''}`}>+</span>
+      </button>
+      {open && <p className="text-sm text-warm-600 leading-relaxed pb-4">{a}</p>}
+    </div>
+  );
+};
+
+
 const Home = () => {
  useSEO({
  title:'Thankeeu — Group Cards, Memory Movies & Gift Pools for Every Occasion',
@@ -1012,6 +1046,25 @@ const Home = () => {
    SCHEMAS.softwareApp,
    ...SCHEMAS.siteNavigation(),
    SCHEMAS.breadcrumb([{ name: 'Thankeeu', url: '/' }]),
+   // Built from the SAME array the visible FAQ renders, so the markup can
+   // never describe content a crawler cannot find on the page.
+   SCHEMAS.faqPage(HOME_FAQS),
+   // Mirrors the three visible steps under the homepage input. Answer engines
+   // ("how do I make a group card quickly?") quote a clean procedure far more
+   // readily than marketing prose.
+   SCHEMAS.howTo(
+     'Create a group card in about a minute',
+     'Describe the card in one line on the Thankeeu homepage and the design, recipient, delivery date and gift pot are filled in for you. Review, pay once, and share the signing link.',
+     [
+       { name: 'Describe the card in one line',
+         text: 'Type who the card is for, the occasion, when it should arrive and whether you are collecting for a gift — for example "birthday card for my sister Ada, sending Friday, collecting 50k".' },
+       { name: 'Check the details we filled in',
+         text: 'Thankeeu picks a matching cover design and fills in the recipient, title, delivery date, signing deadline and gift pot. Every field stays editable.' },
+       { name: 'Pay once and share the link',
+         text: 'Pay the one-time card fee to publish the card, then share the signing link by WhatsApp, email or QR code so everyone can add their messages, photos and voice notes.' },
+     ],
+     '/',
+   ),
  ],
  });
 
@@ -1035,9 +1088,10 @@ const Home = () => {
  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-16 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
 
  <div className="relative max-w-6xl mx-auto">
- <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
-
- {/* Left: headline + CTAs + sample card grid */}
+ {/* Hero header spans the full width so the type-to-create band below it can
+    too. Inside the left column the band was ~300px wide and sat 2,395px down
+    the page — past the fold on every screen size, which is no use to a
+    one-minute setup promise. */}
  <div className="text-center lg:text-left">
  <div style={{ display:'inline-block', background:'#EDE9FE', padding:'8px 14px', borderRadius:8, marginBottom:'0.75rem' }}>
  <p style={{ fontSize:'clamp(1.05rem,2.2vw,1.25rem)', lineHeight:1.5, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, margin:0, padding:0, display:'block' }}>
@@ -1070,6 +1124,50 @@ const Home = () => {
    <span className="text-warm-300 text-sm hidden sm:inline">·</span>
    <span className="text-xs font-semibold text-warm-400 hidden sm:inline">No subscription</span>
  </div>
+ </div>
+
+ {/* ── Type-to-create band ────────────────────────────────────────────────
+     Full width of the hero, outside the two-column grid. In the left column
+     it was squeezed to ~300px, which hid most of a sentence the customer was
+     supposed to read and edit. The design tiles and the "Create a card"
+     button both stay — plenty of people would rather browse than type. */}
+ <div className="mt-10 max-w-5xl mx-auto text-center">
+   {/* Compact on purpose: every pixel here pushes the input below the fold,
+       and the three steps underneath already explain the rest. */}
+   <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+     <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em]"
+       style={{ background:'#EDE9FE', color:'#5B21B6' }}>
+       <Icon name="Zap" size={11}/> 1-minute setup
+     </span>
+     <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.15rem,2.6vw,1.6rem)', lineHeight:1.2 }}>
+       Skip the forms — just describe the card
+     </h2>
+   </div>
+
+   <CardIntentBar className="text-left" />
+
+   {/* Visible steps — these mirror the HowTo structured data exactly, which is
+       what Google requires and what answer engines quote. */}
+   <ol className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm text-warm-600">
+     {[
+       'Describe the card in one line',
+       'Check the details we filled in',
+       'Pay once and share the link',
+     ].map((label, i) => (
+       <li key={label} className="inline-flex items-center gap-2">
+         <span className="grid h-5 w-5 place-items-center rounded-full text-[11px] font-extrabold"
+           style={{ background:'#EDE9FE', color:'#5B21B6' }}>{i + 1}</span>
+         <span className="font-medium">{label}</span>
+         {i < 2 && <span className="text-warm-300 px-1 hidden sm:inline">→</span>}
+       </li>
+     ))}
+   </ol>
+ </div>
+
+ <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
+
+ {/* Left: feature cards, CTAs and sample messages */}
+ <div className="text-center lg:text-left">
 
  {/* ── 3 Feature Cards ── */}
  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 max-w-xl mx-auto lg:mx-0">
@@ -1172,6 +1270,7 @@ const Home = () => {
  <LiveCardPreview />
  </div>
  </div>
+
  </div>
  </section>
 
@@ -1730,28 +1829,7 @@ const Home = () => {
  Questions we get all the time
  </h2>
  </div>
- {[
- { q:'Is it really free to create a card?', a:"Yes — creating a card and collecting messages is 100% free. You only pay a small one-time fee when you're ready to activate and send the card to the recipient." },
- { q:'Does the recipient need to create an account?', a:"No. The recipient simply opens a link, reads all the messages and can claim the gift — no sign-up required." },
- { q:'What payment methods are supported?', a:'Visa, Mastercard, American Express, and bank transfers depending on your country. We support USD, GBP, EUR, CAD, AUD and 30+ currencies.' },
- { q:'Can people from other countries contribute to the gift pot?', a:'Yes — signers can contribute from anywhere in the world using Visa, Mastercard or local bank transfer. USD, GBP, EUR and 30+ currencies are all supported.' },
- { q:'What types of media can contributors add?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs — all in one beautiful card.' },
- { q:'How does the gift pot work for companies?', a:"Each celebration card has its own secure gift pot. Team members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account." },
- { q:'Can I schedule the card to send on a specific date?', a:"Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget." },
- { q:'Is there a limit on how many people can sign?', a:'No limit. Invite your entire company if you want. The more signatures, the more meaningful the card.' },
- ].map((item, i) => {
- const [open, setOpen] = useState(false);
- return (
- <div key={i} className="border-b border-purple-100">
- <button onClick={() => setOpen(!open)}
- className="w-full text-left flex items-center justify-between py-4 gap-4 hover:text-primary-600 transition-colors">
- <span className="font-bold" style={{ fontSize:'0.9rem', color:'#1A1035' }}>{item.q}</span>
- <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${open?'rotate-45':''}`}>+</span>
- </button>
- {open && <p className="text-sm text-warm-600 leading-relaxed pb-4">{item.a}</p>}
- </div>
- );
- })}
+ {HOME_FAQS.map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
  <p className="text-center text-xs text-warm-400 mt-8">More questions? <a href="/faq" className="text-primary-500 font-semibold hover:underline">See all FAQs →</a></p>
  </div>
  </section>

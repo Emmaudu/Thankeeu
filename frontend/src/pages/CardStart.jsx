@@ -46,6 +46,10 @@ import { formatNGN, formatCurrency, CURRENCIES } from '../utils/currency';
 import CardCoverPreview from '../components/CardCoverPreview';
 import AlbumStudioPreview, { makeWallPreviewCard } from '../components/AlbumStudioPreview';
 import CoverTextStudio from '../components/CoverTextStudio';
+import InlineAuthPanel from '../components/InlineAuthPanel';
+import IntentSummaryStrip from '../components/IntentSummaryStrip';
+import { takeIntent } from '../utils/cardIntent';
+import { applyCardIntent } from '../utils/applyCardIntent';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const OCCASIONS = [
@@ -115,10 +119,23 @@ const CardStart = () => {
  // from the gallery or a post-login return all still land correctly).
  // Guests stay here — that's the whole point of the public flow. Company and
  // team accounts already render inside their own layouts further down.
- const redirectToDashboardFlow = !!user && !isCompanyUser;
+ // Suspended while the inline panel shows its hand-off countdown; that panel
+ // navigates itself when the countdown ends or the customer skips it.
+ const [handingOff, setHandingOff] = useState(false);
+ const redirectToDashboardFlow = !!user && !isCompanyUser && !handingOff;
  useEffect(() => {
   if (!redirectToDashboardFlow) return;
-  navigate(`/create-card${window.location.search}`, { replace: true });
+  // When a guest signs in from the panel below, this effect fires the moment
+  // `user` appears and races the panel's own navigate — and whichever wins
+  // decides the URL. If a draft snapshot is waiting, resumed=1 is added here
+  // so the customer lands on the review step either way, instead of being
+  // dropped back at step 0 with their card seemingly gone.
+  const params = new URLSearchParams(window.location.search);
+  try {
+    if (localStorage.getItem(PENDING_KEY)) params.set('resumed', '1');
+  } catch { /* private mode — fall through with whatever params exist */ }
+  const qs = params.toString();
+  navigate(`/create-card${qs ? `?${qs}` : ''}`, { replace: true });
  }, [redirectToDashboardFlow, navigate]);
 
  // ── Wizard state ────────────────────────────────────────────────────────
@@ -168,6 +185,31 @@ const CardStart = () => {
  });
  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
  const [selectedCoverField, setSelectedCoverField] = useState('recipient');
+
+ // ── Type-to-create handover ──────────────────────────────────────────────
+ // The homepage box stashes a parsed sentence; ?intent=1 says to pick it up.
+ // Guarded on redirectToDashboardFlow: a signed-in individual is about to be
+ // forwarded to /create-card, and consuming (which clears) the intent here
+ // would leave that page with nothing to apply.
+ const [intentSummary, setIntentSummary] = useState([]);
+ // An email typed into the homepage sentence pre-fills the sign-in field below.
+ // Only the email — never a password. See InlineAuthPanel.
+ const [intentEmail, setIntentEmail] = useState('');
+ useEffect(() => {
+  if (redirectToDashboardFlow) return;
+  if (searchParams.get('intent') !== '1') return;
+  const intent = takeIntent();
+  if (!intent) return;
+  const { patch, step: target, summary } = applyCardIntent(intent, {
+    creatorName, occasionIds: OCCASIONS.map(o => o.id),
+  });
+  if (!Object.keys(patch).length) return;
+  setForm(prev => ({ ...prev, ...patch }));
+  setStep(target);
+  setIntentSummary(summary);
+  if (intent.email) setIntentEmail(intent.email);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, [redirectToDashboardFlow]);
 
  // ── Message form ─────────────────────────────────────────────────────────
  // The creator no longer writes a message during setup — they add theirs after
@@ -687,6 +729,8 @@ const CardStart = () => {
 
  <StepIndicator current={step} />
 
+ <IntentSummaryStrip items={intentSummary} />
+
  <div className="min-w-0">
 
  {/* ══ STEP 0: Occasion ════════════════════════════════════════════════ */}
@@ -1189,7 +1233,7 @@ const CardStart = () => {
  </>)}
 
  {/* ── GUEST: Auth wall (after draft saved) ── */}
- {!user && !isCompanyUser && guestSaved && (<>
+ {((!user && !isCompanyUser && guestSaved) || handingOff) && (<>
  <div className="text-center mb-5">
  <div className="w-14 h-14 rounded-full flex items-center justify-center text-3xl mx-auto mb-3"
  style={{ background: 'linear-gradient(135deg,#EDE9FE,#F5F0FF)' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></div>
@@ -1220,23 +1264,15 @@ const CardStart = () => {
  ))}
  </div>
 
- <div className="flex flex-col gap-3 mb-4">
- <Link
-  to={`/login?returnTo=${encodeURIComponent('/create-card?resumed=1')}`}
- onClick={() => saveSnapshot({ resumeStep: 3 })}
- className="btn-primary w-full py-3.5 text-base font-bold text-center block">
- Sign in &amp; complete payment
- </Link>
- <Link
-  to={`/signup?returnTo=${encodeURIComponent('/create-card?resumed=1')}`}
- onClick={() => saveSnapshot({ resumeStep: 3 })}
- className="btn-secondary w-full py-3.5 text-base font-bold text-center block">
- Create free account &amp; continue
- </Link>
- </div>
+ <InlineAuthPanel
+   beforeAuth={async () => saveSnapshot({ resumeStep: 3 })}
+   redirectTo="/create-card?resumed=1"
+   prefillEmail={intentEmail}
+   onAuthenticated={() => setHandingOff(true)}
+ />
 
- <p className="text-center text-xs text-warm-400 mb-5">
- Draft is safe. After signing in you land in your dashboard, on the payment step — and you can start another card from there any time.
+ <p className="text-center text-xs text-warm-400 mt-3 mb-5">
+ Your draft is safe. No verification code needed — you go straight to the review step.
  </p>
 
  <div className="border-t border-purple-100 pt-4 flex gap-2">

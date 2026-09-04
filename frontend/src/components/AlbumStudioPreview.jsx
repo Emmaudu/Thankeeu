@@ -3,10 +3,10 @@ import CardCoverPreview from './CardCoverPreview';
 import GifPicker from './GifPicker';
 import VoiceRecorder from './VoiceRecorder';
 import Icon from './ui/Icon';
-import { ALBUM_THEMES, getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
+import { ALBUM_THEMES, getAlbumTheme, getContrastTextColor, getAlbumInk } from '../utils/albumThemes';
 import { getFontStyle } from '../utils/cardDesigns';
 
-const PAGE_LABELS = ['Cover', 'Message', 'Review'];
+const PAGE_LABELS = ['Cover', 'Message', 'Everyone'];
 
 const WALL_CARD_COLOURS = ['#7c3aed', '#ec4899', '#0ea5e9', '#f59e0b', '#10b981', '#8b5cf6'];
 
@@ -438,6 +438,106 @@ export function makeWallPreviewCard(sender = '', index = 0) {
  *  - Board mode: when card_layout === 'form', renders the Card-View board style with
  *    an uploadable recipient photo
  */
+
+/* ── Sample signer pages ──────────────────────────────────────────────────────
+ * The third spread used to show a dry "quick review" summary, which did not
+ * tell the creator the one thing that matters: everyone who signs gets their
+ * own page. These are worked-through example pages — real handwriting, real
+ * names, a photo, a voice note, reactions — so the creator can see the finished
+ * keepsake rather than a form recap.
+ */
+const SAMPLE_SIGNERS = [
+  {
+    name: 'Amaka O.', initials: 'AO', tint: '#F472B6',
+    font: "'Caveat', cursive", size: 21,
+    text: 'Three years of sitting beside you and I still steal your ideas. Have the best one yet — you have earned every bit of it. 💛',
+    kind: 'photo', caption: 'Team lunch, March',
+  },
+  {
+    name: 'Daniel K.', initials: 'DK', tint: '#7C3AED',
+    font: "'Kalam', 'Caveat', cursive", size: 19,
+    text: 'You talked me through my first week here and never once made me feel slow. Recorded you something instead of writing it.',
+    kind: 'voice', caption: 'Voice note · 0:24',
+  },
+];
+
+const SamplePhoto = ({ tint }) => (
+  <svg viewBox="0 0 220 150" className="h-full w-full" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="sp-sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#FDE9C8" /><stop offset="55%" stopColor="#F7C9A9" /><stop offset="100%" stopColor="#E9A6A0" />
+      </linearGradient>
+      <linearGradient id="sp-table" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stopColor="#8B5E3C" /><stop offset="100%" stopColor="#5C3A24" />
+      </linearGradient>
+    </defs>
+    <rect width="220" height="150" fill="url(#sp-sky)" />
+    <circle cx="176" cy="34" r="17" fill="#FFF3D6" opacity="0.85" />
+    <rect y="104" width="220" height="46" fill="url(#sp-table)" />
+    {/* three figures round a table — reads as a real photo at thumbnail size */}
+    {[[58, '#3F3552'], [110, tint || '#7C3AED'], [162, '#2F6F63']].map(([cx, fill], i) => (
+      <g key={i}>
+        <ellipse cx={cx} cy={104} rx="27" ry="34" fill={fill} />
+        <circle cx={cx} cy={60} r="15" fill="#C68642" />
+        <path d={`M${cx - 15} 58 a15 15 0 0 1 30 0 z`} fill="#2B2118" />
+      </g>
+    ))}
+    <ellipse cx="110" cy="126" rx="34" ry="7" fill="#F4E4CE" opacity="0.9" />
+    <rect x="0" y="0" width="220" height="150" fill="#000" opacity="0.04" />
+  </svg>
+);
+
+const SampleSignerPage = ({ signer, theme, ink, accent, spread, index }) => (
+  <div
+    className="relative flex flex-col p-5 sm:p-7"
+    style={{ background: theme.page, color: ink, borderRight: index === 0 ? '1px solid rgba(0,0,0,0.12)' : undefined }}
+  >
+    <div className="flex items-center gap-2.5">
+      <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold text-white"
+        style={{ background: signer.tint }}>{signer.initials}</span>
+      <span className="min-w-0">
+        <span className="block truncate text-[13px] font-extrabold leading-tight">{signer.name}</span>
+        <span className="block text-[9px] font-bold uppercase tracking-[0.16em] opacity-45">signed this card</span>
+      </span>
+    </div>
+
+    <p className="mt-4 break-words leading-relaxed" style={{ fontFamily: signer.font, fontSize: signer.size }}>
+      {signer.text}
+    </p>
+
+    {signer.kind === 'photo' ? (
+      <div className="mt-4 self-start rounded-[3px] bg-white p-1.5 pb-5 shadow-[0_3px_14px_rgba(0,0,0,0.16)]"
+        style={{ transform: 'rotate(-1.6deg)', width: '78%' }}>
+        <div className="relative h-[104px] w-full overflow-hidden rounded-[2px]">
+          <SamplePhoto tint={signer.tint} />
+        </div>
+        <p className="mt-1 text-center text-[10px]" style={{ fontFamily: "'Caveat', cursive", color: '#5b5570' }}>{signer.caption}</p>
+        <span className="absolute -top-1.5 left-1/2 h-3 w-9 -translate-x-1/2 rounded-[2px]" style={{ background: `${signer.tint}77` }} />
+      </div>
+    ) : (
+      <div className="mt-4 flex items-center gap-2.5 self-start rounded-2xl border px-3 py-2.5"
+        style={{ borderColor: `${accent}44`, background: `${accent}0f`, width: '82%' }}>
+        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style={{ background: accent }}>
+          <Icon name="Mic" size={14} className="text-white" />
+        </span>
+        <span className="flex flex-1 items-end gap-[3px]" aria-hidden="true">
+          {[7, 13, 20, 11, 24, 16, 9, 19, 13, 22, 8, 15, 11, 6].map((h, i) => (
+            <span key={i} className="w-[3px] rounded-full" style={{ height: h, background: accent, opacity: 0.28 + (i % 4) * 0.18 }} />
+          ))}
+        </span>
+        <span className="text-[10px] font-extrabold opacity-60">0:24</span>
+      </div>
+    )}
+
+    <div className="mt-auto flex items-center justify-between pt-5">
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold opacity-55">
+        <span>❤️</span><span>🎉</span><span className="ml-0.5">{signer.kind === 'photo' ? 6 : 4}</span>
+      </span>
+      <span className="text-[9px] opacity-30">{index + 3}</span>
+    </div>
+  </div>
+);
+
 const AlbumStudioPreview = ({
   design, form, message, occasionLabel, activeStep, creatorName,
   layout, onLayoutChange, onCardLayoutChange, selectedField, onSelectField,
@@ -461,8 +561,11 @@ const AlbumStudioPreview = ({
   const canCompose = !!onMessageChange;
   const NAV_PAGES = useMemo(() => (canCompose ? [0, 1, 2] : [0, 2]), [canCompose]);
   const isLiveWall = ['wall_only', 'card_and_wall'].includes(form.card_experience);
-  const isBoard = form.card_layout === 'form';
+  // Board mode is retired — kept as a constant so the legacy branches below
+  // compile out rather than being deleted in a dozen places.
+  const isBoard = false;
   const theme = getAlbumTheme(form.album_background_theme);
+  const pageInk = getAlbumInk(theme, 'page');
   const coverTextColor = form.cover_text_color && form.cover_text_color !== 'auto'
     ? form.cover_text_color
     : getContrastTextColor(form.background_color, design);
@@ -565,35 +668,8 @@ const AlbumStudioPreview = ({
         .album-page-turn.back { animation:album-leaf-back .6s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; }
       `}</style>
 
-      {/* Group-card layout options. Card experience already decides Group Card vs Live Wall. */}
-      <div className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 rounded-2xl bg-gradient-to-r from-purple-50 via-fuchsia-50 to-sky-50 p-2">
-          {[
-            { id: 'album', label: 'Album flipbook', icon: 'BookOpen', description: 'Turn pages like a real keepsake', recommended: true },
-            { id: 'form',  label: 'Message board', icon: 'LayoutGrid', description: 'See every message in one board', recommended: false },
-          ].map(sub => (
-            <button key={sub.id} type="button"
-              onClick={() => onCardLayoutChange?.(sub.id)}
-              className={`flex min-h-[82px] min-w-0 items-center gap-2 sm:gap-3 rounded-xl border-2 px-2.5 sm:px-4 py-3 text-left transition-all ${
-                (form.card_layout === sub.id || (!form.card_layout && sub.id === 'album'))
-                  ? sub.id === 'album'
-                    ? 'border-primary-500 bg-gradient-to-br from-primary-600 to-fuchsia-600 text-white shadow-lg shadow-primary-200'
-                    : 'border-sky-500 bg-gradient-to-br from-sky-500 to-cyan-600 text-white shadow-lg shadow-sky-200'
-                  : 'border-white bg-white/90 text-warm-700 shadow-sm hover:-translate-y-0.5 hover:border-purple-200'
-              }`}>
-              <span className="flex h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white/20"><Icon name={sub.icon} size={19}/></span>
-              {/* min-w-0 is required here — without it, a flex child refuses to
-                  shrink below its content's natural width and forces the
-                  parent button (and the page) wider than the viewport. */}
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-1 sm:gap-2 text-[13px] font-extrabold leading-tight sm:text-base">
-                  <span className="truncate">{sub.label}</span>
-                  {sub.recommended && <span className="flex-shrink-0 rounded-full bg-white/20 px-1.5 py-0.5 text-[8px] font-extrabold sm:px-2 sm:text-[9px]">Recommended</span>}
-                </span>
-                <span className="mt-1 block text-[10px] font-semibold leading-snug opacity-80 sm:text-xs">{sub.description}</span>
-              </span>
-            </button>
-          ))}
-      </div>
+      {/* The message-board layout was retired: a group card is always an album. */}
+
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
@@ -603,13 +679,34 @@ const AlbumStudioPreview = ({
           <p className="mt-1 text-sm font-bold text-warm-900">
             {isBoard
                 ? 'Messages appear as a scrollable board'
-                : (PAGE_LABELS[page] + (page === 0 ? ' · drag & edit texts' : page === 1 && canCompose ? ' · tap to add media' : ''))}
+                : (PAGE_LABELS[page] + (page === 0 ? ' · drag & edit texts'
+                    : page === 1 && canCompose ? ' · tap to add media'
+                    : page === 2 ? ' · a page per person who signs' : ''))}
           </p>
         </div>
         <span className="rounded-md border border-purple-100 bg-white px-2.5 py-1 text-[10px] font-extrabold text-warm-500">Editable</span>
       </div>
 
       {/* Multi-page hint — tells creator signers will add their own pages */}
+      {page === 2 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-purple-100 bg-white px-3 py-2.5">
+          <p className="flex items-center gap-2 text-xs font-semibold text-warm-700">
+            <Icon name="Users" size={15} className="flex-shrink-0 text-primary-500"/>
+            Every signer gets their own page like these — words, photos and voice notes.
+          </p>
+          {onFormChange && (
+            <button type="button" onClick={() => onFormChange('is_gift_enabled', !form.is_gift_enabled)}
+              className={`flex items-center gap-2 rounded-xl border-2 px-3 py-1.5 text-xs font-bold transition-colors ${form.is_gift_enabled ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-dashed border-purple-200 bg-white text-warm-700 hover:border-primary-300'}`}>
+              <Icon name="Gift" size={14} />
+              {form.is_gift_enabled ? 'Gift collection included' : 'Add a gift pot'}
+              <span className={`relative h-5 w-9 flex-shrink-0 rounded-full transition-colors ${form.is_gift_enabled ? 'bg-amber-400' : 'bg-gray-300'}`}>
+                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${form.is_gift_enabled ? 'translate-x-4' : 'translate-x-0.5'}`}/>
+              </span>
+            </button>
+          )}
+        </div>
+      )}
+
       {!isBoard && page === 1 && (
         <div className="mb-3 flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
           <Icon name="Users" size={15} className="text-amber-600 flex-shrink-0"/>
@@ -647,8 +744,17 @@ const AlbumStudioPreview = ({
             </div>
           ) : (
             <div key={`spread-${page}`} className={`album-page-turn ${flipDirection} relative w-full max-w-[820px]`} style={{ perspective: '1800px' }}>
+              {page === 2 ? (
+                /* "Everyone" spread — what the card becomes once people sign. */
+                <div className="grid grid-cols-2 overflow-hidden rounded-md shadow-2xl" style={{ background: theme.page, minHeight: 'clamp(340px, 48vw, 540px)' }}>
+                  {SAMPLE_SIGNERS.map((signer, i) => (
+                    <SampleSignerPage key={signer.name} signer={signer} theme={theme} ink={pageInk}
+                      accent={design?.accent || '#7C3AED'} index={i} />
+                  ))}
+                </div>
+              ) : (
               <div className="grid grid-cols-2 overflow-hidden rounded-md shadow-2xl" style={{ background: theme.page, minHeight: 'clamp(340px, 48vw, 540px)' }}>
-                <div className="relative flex flex-col border-r border-black/15 p-5 sm:p-7" style={{ color: theme.ink }}>
+                <div className="relative flex flex-col border-r border-black/15 p-5 sm:p-7" style={{ color: pageInk }}>
                   <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] opacity-45">For {recipient}</span>
                   {page === 1 ? (
                     <div className="flex flex-1 flex-col justify-center">
@@ -656,7 +762,7 @@ const AlbumStudioPreview = ({
                         <textarea value={message.content || ''} onChange={(e) => onMessageChange(e.target.value)}
                           placeholder="Click here and write your message…" aria-label="Edit message directly in live preview"
                           className="min-h-[170px] w-full resize-none rounded-xl border border-dashed border-black/15 bg-white/35 p-3 text-lg leading-relaxed outline-none transition focus:border-primary-400 focus:bg-white/60 sm:text-2xl"
-                          style={{ fontFamily: messageFont.family, color: theme.ink }} />
+                          style={{ fontFamily: messageFont.family, color: pageInk }} />
                       ) : <p className="break-words text-lg leading-relaxed sm:text-2xl" style={{ fontFamily: messageFont.family }}>{messageText}</p>}
                       <p className="mt-6 text-xs font-bold opacity-60">— {sender}</p>
                     </div>
@@ -682,7 +788,7 @@ const AlbumStudioPreview = ({
                   <span className="absolute bottom-3 left-0 right-0 text-center text-[9px] opacity-30">1</span>
                 </div>
 
-                <div className="relative flex flex-col p-4 sm:p-6" style={{ color: theme.ink }}>
+                <div className="relative flex flex-col p-4 sm:p-6" style={{ color: pageInk }}>
                   <span className="text-right text-[9px] font-extrabold uppercase tracking-[0.18em] opacity-45">Thankeeu</span>
                   {page === 1 ? (
                     <div className="flex flex-1 flex-col gap-3 py-4">
@@ -759,6 +865,7 @@ const AlbumStudioPreview = ({
                   <span className="absolute bottom-3 left-0 right-0 text-center text-[9px] opacity-30">2</span>
                 </div>
               </div>
+              )}
               <div className="pointer-events-none absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-black/20 shadow-[0_0_10px_rgba(0,0,0,0.25)]" />
             </div>
           )}

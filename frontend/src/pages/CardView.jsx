@@ -11,6 +11,7 @@ import { cardArtClass, getCardDesign, getFontStyle } from '../utils/cardDesigns'
 import { CoverArtwork } from '../utils/coverArtwork.jsx';
 import { normalizeCoverLayout, coverLayoutEqualsDefault } from '../utils/coverLayout';
 import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
+import { readableTextColor, backgroundIsDark, backgroundIsPhoto, legibilityShadow } from '../utils/textContrast';
 import CardCoverPreview from '../components/CardCoverPreview';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
@@ -778,20 +779,32 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
   const preview = isLong ? message.content.slice(0, 220).trimEnd() + '…' : message.content;
   const rotation = index % 3 === 0 ? '-.45deg' : index % 3 === 1 ? '.35deg' : '-.15deg';
   const calliFont = CALLI_FONTS[index % CALLI_FONTS.length];
+  // The note sits on `design.background`. Several presets pair a pale gradient
+  // with ink:'#ffffff', which made every message invisible — so resolve the
+  // ink and accent against the surface we actually paint.
+  // A note is paper. Photo-backed presets would otherwise tile the cover
+  // picture behind every message, which is unreadable at note size.
+  const surface   = backgroundIsPhoto(design.background, design.soft || '#ffffff')
+    ? (design.soft || '#FFFDF8')
+    : design.background;
+  const cardInk   = readableTextColor(design.ink, surface, { ink: design.ink, fallback: design.soft || '#ffffff' });
+  const cardAccent = readableTextColor(design.accent, surface, { ink: cardInk, fallback: design.soft || '#ffffff' });
+  // Badges/avatars sit on their own near-white pills inside the note.
+  const onWhiteAccent = readableTextColor(design.accent, '#ffffff', { ink: '#1A1035' });
 
   const giftBadge = () => {
     if (message.gift_type === 'product' && message.product_name) {
       return (
         <a href={`/c/${message.product_vendor_slug || '#'}`} target="_blank" rel="noopener noreferrer"
           className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/75 border border-white hover:bg-white transition-colors"
-          style={{ color: design.accent }} title={`View ${message.product_vendor_name || 'vendor'} store`}>
+          style={{ color: onWhiteAccent }} title={`View ${message.product_vendor_name || 'vendor'} store`}>
           🎂 {message.product_name}
         </a>
       );
     }
     if (message.contributed_amount > 0) {
       return (
-        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/75 border border-white" style={{ color: design.accent }}>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/75 border border-white" style={{ color: onWhiteAccent }}>
           🎁 {formatNGN(message.contributed_amount)}
         </span>
       );
@@ -803,7 +816,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
     <article
       className={`message-art-card card-art ${cardArtClass(design)} rounded-[1.75rem] border-2 flex flex-col relative`}
       style={{
-        background: design.background, color: design.ink,
+        background: surface, color: cardInk,
         borderColor: highlighted ? design.accent : `${design.accent}40`,
         boxShadow: highlighted ? `0 0 0 3px ${design.accent}, 0 6px 28px ${design.accent}44` : undefined,
         transition: 'box-shadow .35s ease, border-color .35s ease, transform .35s ease',
@@ -811,16 +824,16 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
       }}
     >
       {/* Decorative quote mark */}
-      <div className="absolute top-1 left-3 text-5xl leading-none pointer-events-none select-none font-serif opacity-15" style={{ color: design.accent }}>"</div>
+      <div className="absolute top-1 left-3 text-5xl leading-none pointer-events-none select-none font-serif opacity-15" style={{ color: cardAccent }}>"</div>
 
       {/* ── 1. Author row (avatar, name, date) ── */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-2 flex-shrink-0 relative z-10">
-        <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold bg-white/80 shadow-sm flex-shrink-0" style={{ color: design.accent }}>
+        <div className="w-9 h-9 rounded-full grid place-items-center text-xs font-extrabold bg-white/80 shadow-sm flex-shrink-0" style={{ color: onWhiteAccent }}>
           {message.author_name?.slice(0, 2).toUpperCase() || '??'}
         </div>
         <div className="min-w-0 flex-1">
-          <p className={`font-bold truncate text-xl ${calliFont}`} style={{ color: design.ink }}>{message.author_name}</p>
-          <p className="text-[11px] opacity-60" style={{ color: design.ink }}>{message.created_at ? format(new Date(message.created_at), 'MMM d, yyyy') : ''}</p>
+          <p className={`font-bold truncate text-xl ${calliFont}`} style={{ color: cardInk }}>{message.author_name}</p>
+          <p className="text-[11px] opacity-60" style={{ color: cardInk }}>{message.created_at ? format(new Date(message.created_at), 'MMM d, yyyy') : ''}</p>
         </div>
         {message.is_private && canViewPrivate && (
           <span title="Private message — only visible to you and the recipient"
@@ -860,7 +873,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
           <p
             className="whitespace-pre-wrap break-words"
             style={{
-              color: design.ink,
+              color: cardInk,
               fontFamily: font.family,
               fontSize: message.font_style === 'calligraphy' ? '1.75rem' : message.font_style === 'handwritten' ? '1.45rem' : '1.2rem',
               lineHeight: message.font_style === 'calligraphy' ? 1.5 : 1.7,
@@ -879,7 +892,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
           {(isLong || hasMedia) && (
             <button type="button" onClick={() => setExpanded(e => !e)}
               className="inline-flex items-center gap-1 mt-2 text-xs font-extrabold underline underline-offset-2 opacity-75 hover:opacity-100 transition-opacity"
-              style={{ color: design.accent }}>
+              style={{ color: cardAccent }}>
               {expanded
                 ? <><span>Show less</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 15l-6-6-6 6"/></svg></>
                 : <><span>See more</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M6 9l6 6 6-6"/></svg></>
@@ -899,7 +912,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
             await onReact(message.id).catch(() => {});
           }}
           className="rounded-full bg-white/75 px-3 py-1.5 text-xs font-bold shadow-sm"
-          style={{ color: reacted ? '#e11d48' : design.ink }}
+          style={{ color: reacted ? '#e11d48' : cardInk }}
         >
           ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
         </button>
@@ -1121,7 +1134,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
             </div>
           )}
           <p className="flex-1 whitespace-pre-wrap break-words leading-relaxed"
-            style={{ fontFamily: getFontStyle(msg.font_style)?.family || "'Kalam',cursive", color: msg.font_color || albumTheme.ink, fontSize: 19 }}>
+            style={{ fontFamily: getFontStyle(msg.font_style)?.family || "'Kalam',cursive", color: readableTextColor(msg.font_color || albumTheme.ink, albumTheme.page || '#FFFDF8', { ink: albumTheme.ink, fallback: albumTheme.page || '#FFFDF8' }), fontSize: 19 }}>
             {msg.content}
           </p>
           <p className="mt-4 text-right text-sm font-bold" style={{ fontFamily: "'Dancing Script',cursive", color: accent, fontSize: 22 }}>
@@ -1140,26 +1153,24 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
   return (
     <div className="rounded-2xl p-5 sm:p-8" style={{ background: albumTheme.stage }}>
       <style>{`
-        /* A page turn should read as paper lifting off a spine: it hinges on the
-           binding edge, dips through shadow at the midpoint, then settles flat.
-           The old version rotated a flat element with no perspective and no
-           origin, which looked like a card being wiped in rather than turned. */
+        /* One leaf, one hinge. The spread turns as a single sheet off the
+           binding edge — exactly the motion the album studio preview uses.
+           Previously each half animated on its own transform-origin, so the
+           two pages swung apart like shutters instead of turning as a page. */
         @keyframes cv-album-flip-forward {
-          0%   { opacity:.25; transform: rotateY(-96deg) skewY(-1.5deg); filter: brightness(.72); }
-          58%  { opacity:1;   transform: rotateY(8deg) skewY(.3deg); }
-          100% { opacity:1;   transform: rotateY(0); filter: brightness(1); }
+          0%   { opacity:.2; transform: rotateY(-96deg) skewY(-1.5deg); filter: brightness(.72); }
+          58%  { opacity:1;  transform: rotateY(8deg) skewY(.3deg); }
+          100% { opacity:1;  transform: rotateY(0); filter: brightness(1); }
         }
         @keyframes cv-album-flip-back {
-          0%   { opacity:.25; transform: rotateY(96deg) skewY(1.5deg); filter: brightness(.72); }
-          58%  { opacity:1;   transform: rotateY(-8deg) skewY(-.3deg); }
-          100% { opacity:1;   transform: rotateY(0); filter: brightness(1); }
+          0%   { opacity:.2; transform: rotateY(96deg) skewY(1.5deg); filter: brightness(.72); }
+          58%  { opacity:1;  transform: rotateY(-8deg) skewY(-.3deg); }
+          100% { opacity:1;  transform: rotateY(0); filter: brightness(1); }
         }
-        .cv-book { perspective: 1800px; transform-style: preserve-3d; }
-        .cv-flip-forward, .cv-flip-back {
-          transform-style: preserve-3d; backface-visibility: hidden; will-change: transform;
-        }
-        .cv-flip-forward { animation: cv-album-flip-forward .62s cubic-bezier(.2,.72,.15,1) both; transform-origin: left center; }
-        .cv-flip-back    { animation: cv-album-flip-back    .62s cubic-bezier(.2,.72,.15,1) both; transform-origin: right center; }
+        .cv-book { display:flex; align-items:center; justify-content:center; }
+        .cv-leaf-turn { transform-style: preserve-3d; backface-visibility: hidden; will-change: transform; perspective: 1800px; }
+        .cv-leaf-turn.forward { animation: cv-album-flip-forward .6s cubic-bezier(.2,.72,.15,1) both; transform-origin: left center; }
+        .cv-leaf-turn.back    { animation: cv-album-flip-back    .6s cubic-bezier(.2,.72,.15,1) both; transform-origin: right center; }
         /* Gutter shading + a soft corner curl sell the bound-book depth. */
         .cv-leaf { position: relative; }
         .cv-leaf::before {
@@ -1172,42 +1183,46 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           background: linear-gradient(135deg, transparent 50%, rgba(0,0,0,.06) 50%, rgba(0,0,0,.12));
         }
         @media (prefers-reduced-motion: reduce) {
-          .cv-flip-forward, .cv-flip-back { animation-duration: .01s; }
+          .cv-leaf-turn.forward, .cv-leaf-turn.back { animation-duration: .01s; }
         }
       `}</style>
-      <div className="cv-book flex items-center justify-center" style={{ minHeight: 600 }}
+      <div className="cv-book" style={{ minHeight: 600 }}
         onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {showingCover ? (
-          <div className={flipClass === 'album-flip-forward' ? 'cv-flip-forward' : flipClass === 'album-flip-back' ? 'cv-flip-back' : ''}
-            style={{ width: 424, maxWidth: '86vw', position: 'relative' }}>
-            <div style={{position:'absolute',left:'11%',top:10,width:'89%',height:'100%',borderRadius:8,background:'#fff',boxShadow:'0 18px 58px rgba(0,0,0,.2)'}}/>
-            <div style={{position:'relative'}}>
-              <CardCoverPreview
-                design={design}
-                occasionLabel={(card.occasion || '').replace(/_/g, ' ')}
-                recipientName={card.recipient_name}
-                title={card.title}
-                senderName={card.cover_sender}
-                coverColor={card.background_color?.startsWith('#') ? card.background_color : undefined}
-                textColor={coverTextColor}
-                fontFamily={getFontStyle(card.font_style).family}
-                layout={card.cover_layout}
-              />
+        {(() => {
+          // `key` forces a remount on every turn so the animation actually
+          // replays; the class is derived once for the whole leaf.
+          const turn = flipClass === 'album-flip-forward' ? 'forward'
+                     : flipClass === 'album-flip-back' ? 'back' : '';
+          return showingCover ? (
+            <div key={`cv-cover-${clamped}`} className={`cv-leaf-turn ${turn}`}
+              style={{ width: 424, maxWidth: '86vw', position: 'relative' }}>
+              <div style={{position:'absolute',left:'11%',top:10,width:'89%',height:'100%',borderRadius:8,background:'#fff',boxShadow:'0 18px 58px rgba(0,0,0,.2)'}}/>
+              <div style={{position:'relative'}}>
+                <CardCoverPreview
+                  design={design}
+                  occasionLabel={(card.occasion || '').replace(/_/g, ' ')}
+                  recipientName={card.recipient_name}
+                  title={card.title}
+                  senderName={card.cover_sender}
+                  coverColor={card.background_color?.startsWith('#') ? card.background_color : undefined}
+                  textColor={coverTextColor}
+                  fontFamily={getFontStyle(card.font_style).family}
+                  layout={card.cover_layout}
+                />
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="flex items-stretch" style={{ gap: 2 }}>
-            <div className={`cv-leaf ${flipClass ? (flipClass === 'album-flip-forward' ? 'cv-flip-forward' : 'cv-flip-back') : ''}`}
-              style={{ borderRadius: '14px 0 0 14px', overflow: 'hidden' }}>
-              <Leaf msg={leftMsg}/>
+          ) : (
+            /* The spread is ONE leaf: both pages live inside a single animated
+               element, hinged on the spine, as in the album studio preview. */
+            <div key={`cv-spread-${clamped}`} className={`cv-leaf-turn ${turn} relative`}>
+              <div className="flex items-stretch overflow-hidden rounded-[14px] shadow-2xl">
+                <div className="cv-leaf"><Leaf msg={leftMsg}/></div>
+                <div className="cv-leaf cv-leaf-right"><Leaf msg={rightMsg}/></div>
+              </div>
+              <div className="pointer-events-none absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-black/20 shadow-[0_0_10px_rgba(0,0,0,0.25)]" />
             </div>
-            <div style={{ width: 2, background: 'linear-gradient(90deg,rgba(0,0,0,0.08),rgba(0,0,0,0.02))', flexShrink: 0 }}/>
-            <div className={`cv-leaf cv-leaf-right ${flipClass ? (flipClass === 'album-flip-forward' ? 'cv-flip-forward' : 'cv-flip-back') : ''}`}
-              style={{ borderRadius: '0 14px 14px 0', overflow: 'hidden' }}>
-              <Leaf msg={rightMsg}/>
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Navigation */}
@@ -1217,7 +1232,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           style={{ border: `2px solid ${accent}44`, color: accent }}>
           <Icon name="ChevronLeft" size={20}/>
         </button>
-        <span className="text-xs font-bold" style={{ color: albumTheme.ink === '#F3E8FF' ? '#fff' : '#4B3F72' }}>
+        <span className="text-xs font-bold" style={{ color: readableTextColor('#4B3F72', albumTheme.stage, { ink: albumTheme.ink, fallback: albumTheme.stage }) }}>
           {showingCover ? 'Cover' : `Page ${clamped} of ${totalPages - 1}`}
           <span className="ml-1.5 font-semibold opacity-60">· swipe or use ← →</span>
         </span>
@@ -1450,9 +1465,28 @@ const CardView = () => {
     : isCustomCoverUrl
       ? `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url("${card.background_color}") center/cover no-repeat`
       : (card.background_color || design.background);
-  const coverTextColor = card.cover_text_color && card.cover_text_color !== 'auto'
-    ? card.cover_text_color
-    : getContrastTextColor(card.background_color, design);
+  // Hero text colour. The creator's pick wins *only* when it is actually
+  // legible on the cover we are about to paint — otherwise we substitute the
+  // best-contrasting on-brand colour. Presets that declare `dark: true` over a
+  // pale gradient (all the priority covers) used to render white-on-white.
+  const coverTextColor = readableTextColor(
+    card.cover_text_color && card.cover_text_color !== 'auto' ? card.cover_text_color : 'auto',
+    coverBackground,
+    { ink: design?.ink, fallback: design?.soft || '#ffffff', large: true },
+  );
+  const coverIsDark = backgroundIsDark(coverBackground, design?.soft || '#ffffff');
+  const coverIsPhoto = backgroundIsPhoto(coverBackground, design?.soft || '#ffffff');
+  // Accent used on near-white pills over the hero — dial it down to something
+  // readable if the design's accent is too light against white.
+  const pillAccent = readableTextColor(design?.accent, '#ffffff', { ink: design?.ink });
+  const pillInk = readableTextColor(design?.ink, '#ffffff', { ink: '#1A1035' });
+  // The page body sits on `design.soft`, which is a deep indigo for the dark
+  // presets while every heading below used a fixed light-theme colour.
+  const pageSurface = design?.soft || '#F5F0FF';
+  const pageIsDark  = backgroundIsDark(pageSurface, '#F5F0FF');
+  const pageInk     = readableTextColor('#1A1035', pageSurface, { ink: '#1A1035', fallback: pageSurface });
+  const pageMuted   = pageIsDark ? 'rgba(255,255,255,0.72)' : '#6D5EA0';
+  const pageAccent  = readableTextColor(design?.accent || '#7C3AED', pageSurface, { ink: pageInk, fallback: pageSurface });
   // Navbar theming: for album-layout cards, reflect the interior album theme
   // (album_background_theme) the same way AlbumSign.jsx colors its own top
   // bar — not just the cover art gradient — so the navbar reads consistently
@@ -1463,13 +1497,19 @@ const CardView = () => {
         ? (isCustomCoverUrl ? `url("${card.background_color}") center/cover no-repeat` : design?.image ? `url("${design.image}") center/cover no-repeat` : design?.background)
         : albumNavTheme.stage)
     : design?.background;
-  const navThemeDark = albumNavTheme ? albumNavTheme.id === 'charcoal' : design?.dark;
+  // Derived from the resolved bar colour, not the preset's `dark` flag (which
+  // lies for photo/pale-gradient presets, and 'charcoal' is not a theme id).
+  const navThemeDark = backgroundIsDark(navThemeBg, design?.soft || '#F5F0FF');
   // Movable/recolourable cover text layout (show/hide + per-field colour)
   const coverLayout = normalizeCoverLayout(card.cover_layout);
   const hasCustomCoverLayout = !coverLayoutEqualsDefault(coverLayout);
   const fieldColor = (field) => {
     const c = coverLayout[field]?.color;
-    return !c || c === 'auto' ? coverTextColor : c;
+    if (!c || c === 'auto') return coverTextColor;
+    // Respect the creator's per-field colour only while it stays readable.
+    return readableTextColor(c, coverBackground, {
+      ink: design?.ink, fallback: design?.soft || '#ffffff', large: true,
+    });
   };
   const coverArt = design.artwork;
   const albumTheme = getAlbumTheme(card.album_background_theme);
@@ -1490,12 +1530,17 @@ const CardView = () => {
            themed cover page inside the flipbook viewer itself) ── */}
       {effectiveViewStyle !== 'album' && (
       <header className="relative overflow-hidden" style={{ background: coverBackground, color: coverTextColor }}>
+        {/* Photo covers: the artwork is unknowable, so guarantee legibility with
+            a scrim rather than hoping the picture is dark enough. */}
+        {coverIsPhoto && (
+          <div className="absolute inset-0" style={{ zIndex: 0, background: 'linear-gradient(180deg, rgba(9,7,22,0.52) 0%, rgba(9,7,22,0.58) 55%, rgba(9,7,22,0.66) 100%)' }} />
+        )}
         {/* SVG artwork backdrop for artwork designs */}
         {coverArt && (
           <div className="absolute inset-0" style={{ zIndex: 0, opacity: 0.9 }}>
             <CoverArtwork scene={coverArt.scene} palette={coverArt.palette} seed={coverArt.seed}
               style={{ width: '100%', height: '100%' }} />
-            <div className="absolute inset-0" style={{ background: design.dark ? 'linear-gradient(180deg, rgba(8,6,20,0.35), rgba(8,6,20,0.15))' : 'linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08))' }} />
+            <div className="absolute inset-0" style={{ background: coverIsDark ? 'linear-gradient(180deg, rgba(8,6,20,0.35), rgba(8,6,20,0.15))' : 'linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08))' }} />
           </div>
         )}
         {/* Decorative blurred circles */}
@@ -1507,24 +1552,24 @@ const CardView = () => {
           {hasCustomCoverLayout ? (
             <div style={{position:'relative',width:500,maxWidth:'100%',height:600,maxHeight:'72vh',margin:'0 auto 24px',containerType:'inline-size'}}>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase"
-                style={{position:'absolute',top:12,left:'50%',transform:'translateX(-50%)',zIndex:2,background:'rgba(255,255,255,0.18)',backdropFilter:'blur(8px)',color:coverTextColor,border:'1px solid rgba(255,255,255,0.25)',whiteSpace:'nowrap'}}>
+                style={{position:'absolute',top:12,left:'50%',transform:'translateX(-50%)',zIndex:2,background: coverIsPhoto ? 'rgba(9,7,22,0.55)' : (coverIsDark ? 'rgba(255,255,255,0.18)' : 'rgba(26,16,53,0.08)'),backdropFilter:'blur(8px)',color:coverTextColor,border:`1px solid ${coverIsDark ? 'rgba(255,255,255,0.25)' : 'rgba(26,16,53,0.14)'}`,whiteSpace:'nowrap'}}>
                 Online Group Card
               </div>
               {coverLayout.title.show && (
-                <h1 style={{position:'absolute',left:`${coverLayout.title.x}%`,top:`${coverLayout.title.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Great Vibes', cursive",fontWeight:800,fontSize:`${coverLayout.title.size/210*100}cqw`,lineHeight:1.08,color:fieldColor('title'),wordBreak:'break-word',textShadow:'0 2px 18px rgba(0,0,0,0.35)'}}>{cardTitle}</h1>
+                <h1 style={{position:'absolute',left:`${coverLayout.title.x}%`,top:`${coverLayout.title.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Great Vibes', cursive",fontWeight:800,fontSize:`${coverLayout.title.size/210*100}cqw`,lineHeight:1.08,color:fieldColor('title'),wordBreak:'break-word',textShadow:legibilityShadow(fieldColor('title'),coverBackground,{fallback:design?.soft||'#ffffff',force:true})}}>{cardTitle}</h1>
               )}
               {coverLayout.recipient.show && (
-                <p style={{position:'absolute',left:`${coverLayout.recipient.x}%`,top:`${coverLayout.recipient.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Dancing Script', cursive",fontWeight:800,fontSize:`${coverLayout.recipient.size/210*100}cqw`,lineHeight:1.08,color:fieldColor('recipient'),wordBreak:'break-word',textShadow:'0 2px 18px rgba(0,0,0,0.35)'}}>{card.recipient_name}</p>
+                <p style={{position:'absolute',left:`${coverLayout.recipient.x}%`,top:`${coverLayout.recipient.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Dancing Script', cursive",fontWeight:800,fontSize:`${coverLayout.recipient.size/210*100}cqw`,lineHeight:1.08,color:fieldColor('recipient'),wordBreak:'break-word',textShadow:legibilityShadow(fieldColor('recipient'),coverBackground,{fallback:design?.soft||'#ffffff',force:true})}}>{card.recipient_name}</p>
               )}
               {card.cover_sender && coverLayout.sender.show && (
-                <p style={{position:'absolute',left:`${coverLayout.sender.x}%`,top:`${coverLayout.sender.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Caveat', cursive",fontWeight:600,fontSize:`${coverLayout.sender.size/210*100}cqw`,lineHeight:1.08,letterSpacing:'0.04em',color:fieldColor('sender'),wordBreak:'break-word',textShadow:'0 2px 18px rgba(0,0,0,0.35)'}}>From {card.cover_sender}</p>
+                <p style={{position:'absolute',left:`${coverLayout.sender.x}%`,top:`${coverLayout.sender.y}%`,transform:'translate(-50%,-50%)',width:'86%',margin:0,zIndex:3,fontFamily:"'Caveat', cursive",fontWeight:600,fontSize:`${coverLayout.sender.size/210*100}cqw`,lineHeight:1.08,letterSpacing:'0.04em',color:fieldColor('sender'),wordBreak:'break-word',textShadow:legibilityShadow(fieldColor('sender'),coverBackground,{fallback:design?.soft||'#ffffff',force:true})}}>From {card.cover_sender}</p>
               )}
             </div>
           ) : (
           <>
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold tracking-widest uppercase mb-3"
-            style={{ background:'rgba(255,255,255,0.18)', backdropFilter:'blur(8px)', color: coverTextColor, border:'1px solid rgba(255,255,255,0.25)' }}>
+            style={{ background: coverIsPhoto ? 'rgba(9,7,22,0.55)' : (coverIsDark ? 'rgba(255,255,255,0.18)' : 'rgba(26,16,53,0.08)'), backdropFilter:'blur(8px)', color: coverTextColor, border:`1px solid ${coverIsDark ? 'rgba(255,255,255,0.25)' : 'rgba(26,16,53,0.14)'}` }}>
             ✨ Online Group Card
           </div>
 
@@ -1564,7 +1609,7 @@ const CardView = () => {
               fontSize: 'clamp(2.4rem, 8vw, 5rem)',
               lineHeight: 1.2,
               color: fieldColor('title'),
-              textShadow: fieldColor('title') === '#ffffff' ? '0 2px 24px rgba(0,0,0,0.35)' : '0 1px 18px rgba(255,255,255,0.32)',
+              textShadow: legibilityShadow(fieldColor('title'), coverBackground, { fallback: design?.soft || '#ffffff', force: coverIsPhoto }),
               overflowWrap: 'break-word',
               wordBreak: 'break-word',
               maxWidth: '100%',
@@ -1574,7 +1619,7 @@ const CardView = () => {
           )}
 
           {card.cover_sender && coverLayout.sender.show && (
-            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.16em] mb-3" style={{ color: fieldColor('sender'), opacity: 0.9 }}>
+            <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.16em] mb-3" style={{ color: fieldColor('sender'), opacity: coverIsPhoto ? 1 : 0.9 }}>
               From {card.cover_sender}
             </p>
           )}
@@ -1584,7 +1629,7 @@ const CardView = () => {
           {/* Subtitle */}
           <p className="text-base sm:text-lg max-w-xl mx-auto mb-3" style={{
             color: coverTextColor,
-            opacity: 0.72,
+            opacity: coverIsPhoto ? 0.95 : 0.72,
           }}>
             {(card.signed_count || messages.length)} {(card.signed_count || messages.length) === 1 ? 'person has' : 'people have'} filled this card with love, laughter and warmth just for you.
           </p>
@@ -1592,7 +1637,7 @@ const CardView = () => {
           {/* Stat badges */}
           <div className="flex flex-wrap justify-center gap-3">
             <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm"
-              style={{ background:'rgba(255,255,255,0.82)', color: design.accent }}>
+              style={{ background:'rgba(255,255,255,0.9)', color: pillAccent }}>
               💌 {card.signed_count || messages.length} messages
             </span>
             {totalCollected > 0 && (
@@ -1615,7 +1660,7 @@ const CardView = () => {
                 : utcDt.toLocaleDateString([], { year: 'numeric', month: 'long', day: 'numeric' });
               return (
                 <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm"
-                  style={{ background:'rgba(255,255,255,0.82)', color: design.ink }}>
+                  style={{ background:'rgba(255,255,255,0.9)', color: pillInk }}>
                   📅 {localDate}{card.send_time ? ` · ${localTime}` : ''}
                 </span>
               );
@@ -1654,13 +1699,13 @@ const CardView = () => {
             // white text/borders (invisible). Use the theme ink colour instead.
             const activeCls   = 'shadow-lg scale-105';
             const activeStyle = { background: '#ffffff', borderColor: '#ffffff', color: '#1a1035' };
-            const inactiveStyle = design.dark
+            const inactiveStyle = coverIsDark
               ? { background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.35)', color: 'rgba(255,255,255,0.85)' }
-              : { background: 'rgba(255,255,255,0.55)', borderColor: `${design.accent}55`, color: design.ink };
-            const badgeActive = { background: `${design.accent}1a`, color: design.accent };
-            const badgeInactive = design.dark
+              : { background: 'rgba(255,255,255,0.65)', borderColor: `${pillAccent}55`, color: pillInk };
+            const badgeActive = { background: `${pillAccent}1a`, color: pillAccent };
+            const badgeInactive = coverIsDark
               ? { background: 'rgba(255,255,255,0.2)', color: '#ffffff' }
-              : { background: `${design.accent}22`, color: design.accent };
+              : { background: `${pillAccent}22`, color: pillAccent };
             const tabBase = 'flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold border-2 transition-all hover:opacity-90';
             return (
             <div className="flex justify-center gap-2 mt-6 mb-4 flex-wrap px-4">
@@ -1723,7 +1768,7 @@ const CardView = () => {
                 {(card.signed_count || messages.length) > 10 && (
                   <div style={{
                     width:36, height:36, borderRadius:'50%',
-                    background:'rgba(255,255,255,0.25)', color: design.dark?'#fff':design.accent,
+                    background: coverIsDark ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.85)', color: coverIsDark ? '#fff' : pillAccent,
                     border:'2.5px solid rgba(255,255,255,0.6)',
                     display:'flex', alignItems:'center', justifyContent:'center',
                     fontSize:10, fontWeight:800, marginLeft:-10,
@@ -1953,10 +1998,10 @@ const CardView = () => {
           <div className="mb-8">
             <div className="flex items-center justify-between gap-4 mb-5">
               <div>
-                <span className="text-xs font-extrabold tracking-[.2em] uppercase text-primary-600">The message wall</span>
-                <h2 className="text-3xl text-warm-900 mt-2">Words to keep forever</h2>
+                <span className="text-xs font-extrabold tracking-[.2em] uppercase" style={{ color: pageAccent }}>The message wall</span>
+                <h2 className="text-3xl mt-2" style={{ color: pageInk }}>Words to keep forever</h2>
               </div>
-              <span className="text-xs font-bold text-warm-400">{messages.length} notes</span>
+              <span className="text-xs font-bold" style={{ color: pageMuted }}>{messages.length} notes</span>
             </div>
 
             {/* ── Magic Search Bar ── */}
@@ -2003,9 +2048,11 @@ const CardView = () => {
                     <button key={opt.id} type="button" onClick={() => chooseViewStyle(opt.id)}
                       aria-pressed={effectiveViewStyle === opt.id}
                       className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-extrabold transition-all ${
-                        effectiveViewStyle === opt.id ? 'text-white shadow' : 'text-warm-500 hover:bg-purple-50'
+                        effectiveViewStyle === opt.id ? 'shadow' : 'hover:bg-purple-50'
                       }`}
-                      style={effectiveViewStyle === opt.id ? { background: design.accent } : undefined}>
+                      style={effectiveViewStyle === opt.id
+                        ? { background: design.accent, color: readableTextColor('#ffffff', design.accent, { ink: '#1A1035' }) }
+                        : { color: '#4A3A7A' }}>
                       <Icon name={opt.icon} size={14}/>{opt.label}
                     </button>
                   ))}

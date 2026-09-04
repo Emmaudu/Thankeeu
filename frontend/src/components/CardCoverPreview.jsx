@@ -2,6 +2,7 @@ import { useRef, useCallback, useState } from 'react';
 import Icon from './ui/Icon';
 import { CoverArtwork } from '../utils/coverArtwork.jsx';
 import { normalizeCoverLayout, COVER_FIELDS } from '../utils/coverLayout';
+import { readableTextColor, backgroundIsDark } from '../utils/textContrast';
 
 const withTint = (design, coverColor) => {
   if (!coverColor || !coverColor.startsWith('#')) return design?.background || '#f5f0ff';
@@ -49,8 +50,20 @@ const CardCoverPreview = ({
 
   const hasArtwork = Boolean(design.artwork);
   const hasImage = Boolean(design.image);
-  const ink = textColor || design.ink || '#172033';
-  const accent = design.accent || '#7c3aed';
+  // Flat covers (no photo, no SVG artwork) paint `withTint(...)` — a measurable
+  // surface, so any unreadable ink (several presets ship ink:'#ffffff' over a
+  // pale gradient) gets swapped for a colour that actually reads. Photo and
+  // artwork covers keep their designed ink + scrim: the picture, not the CSS
+  // gradient, is what sits behind the text there.
+  const flatSurface = !hasArtwork && !hasImage ? withTint(design, coverColor) : null;
+  const requestedInk = textColor || design.ink || '#172033';
+  const ink = flatSurface
+    ? readableTextColor(requestedInk, flatSurface, { ink: design.ink, fallback: design.soft || '#ffffff', large: true })
+    : requestedInk;
+  const surfaceIsDark = flatSurface ? backgroundIsDark(flatSurface, design.soft || '#ffffff') : Boolean(design.dark);
+  const accent = flatSurface
+    ? readableTextColor(design.accent || '#7c3aed', flatSurface, { ink, fallback: design.soft || '#ffffff' })
+    : (design.accent || '#7c3aed');
   const displayRecipient = recipientName?.trim() || 'Recipient name';
   const displayTitle = title?.trim() || design.coverTitle || 'A card made together';
   const displaySender = senderName?.trim() || 'Your name';
@@ -62,7 +75,13 @@ const CardCoverPreview = ({
     sender: L.sender ? `From ${displaySender}` : displaySender,
   };
 
-  const resolveColor = (c) => (!c || c === 'auto' ? (textColor || ink) : c);
+  const resolveColor = (c) => {
+    if (!c || c === 'auto') return ink;
+    // Honour a hand-picked field colour only while it stays legible.
+    return flatSurface
+      ? readableTextColor(c, flatSurface, { ink: design.ink, fallback: design.soft || '#ffffff', large: true })
+      : c;
+  };
 
   // ── Drag handling (editor only) ────────────────────────────────────────────
   const onPointerDown = useCallback((e, field) => {
@@ -172,7 +191,7 @@ const CardCoverPreview = ({
         borderRadius: 6,
         background: hasArtwork ? design.background : withTint(design, coverColor),
         color: ink,
-        border: `1px solid ${design.dark ? 'rgba(255,255,255,0.18)' : 'rgba(23,32,51,0.12)'}`,
+        border: `1px solid ${surfaceIsDark ? 'rgba(255,255,255,0.18)' : 'rgba(23,32,51,0.12)'}`,
       }}
       onMouseMove={editable ? onPointerMove : undefined}
       onMouseUp={editable ? onPointerUp : undefined}
@@ -198,8 +217,8 @@ const CardCoverPreview = ({
         <div
           className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] sm:text-[11px] font-extrabold uppercase tracking-[0.2em] z-[2]"
           style={{
-            color: hasArtwork && design.dark ? design.soft : accent,
-            background: design.dark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.72)',
+            color: hasArtwork && design.dark ? design.soft : (surfaceIsDark ? accent : readableTextColor(accent, '#ffffff', { ink: '#1A1035' })),
+            background: surfaceIsDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.72)',
             backdropFilter: 'blur(6px)',
           }}
         >
@@ -211,7 +230,7 @@ const CardCoverPreview = ({
       {!hasArtwork && !hasImage && !compact && (
         <div
           className="absolute top-[14%] left-1/2 -translate-x-1/2 w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center rounded-full border z-[2]"
-          style={{ borderColor: `${accent}66`, background: design.dark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.72)', color: accent }}
+          style={{ borderColor: `${accent}66`, background: surfaceIsDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.72)', color: surfaceIsDark ? accent : readableTextColor(accent, '#ffffff', { ink: '#1A1035' }) }}
         >
           <Icon name={design.icon || 'Sparkles'} size={compact ? 20 : 28} />
         </div>

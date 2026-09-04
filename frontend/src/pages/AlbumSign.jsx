@@ -26,6 +26,7 @@ import { FONT_STYLES, getFontStyle, getCardDesign } from '../utils/cardDesigns';
 const FONT_STYLE_IDS = FONT_STYLES.map(f => f.id);
 const autoFontForPosition = (pos) => FONT_STYLE_IDS[pos % FONT_STYLE_IDS.length];
 import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
+import { readableTextColor, backgroundIsDark } from '../utils/textContrast';
 import CardCoverPreview from '../components/CardCoverPreview';
 import VoiceRecorder from '../components/VoiceRecorder';
 import EmojiPicker from '../components/EmojiPicker';
@@ -193,7 +194,7 @@ const LegacySticker = ({ msg, globalIdx, isOwn, theme, onDragStart }) => {
         boxShadow:isOwn?`0 0 0 2px ${theme?.accent||'#7C3AED'},0 4px 20px rgba(0,0,0,0.1)`:'0 2px 10px rgba(0,0,0,0.07)'}}>
         {!msg.media_url&&<div style={{position:'absolute',top:-7,left:'50%',transform:'translateX(-50%)',width:30,height:12,background:tape+'CC',borderRadius:2}}/>}
         <p style={{fontFamily:fStyle?.family||"'Caveat',cursive",fontSize:Math.min(15,Math.max(11,15-Math.floor((msg.content?.length||0)/60))),
-          color:msg.font_color||(theme?.id==='charcoal'?'#E9D5FF':'#1A1035'),
+          color:readableTextColor(msg.font_color || '#1A1035', theme?.bg || '#FFFDF8', { ink:'#1A1035', fallback: theme?.bg || '#FFFDF8' }),
           margin:'2px 0 6px',lineHeight:1.45,wordBreak:'break-word',maxHeight:95,overflow:'hidden'}}>
           {(msg.content?.length||0)>135?msg.content.slice(0,135)+'…':msg.content}
         </p>
@@ -268,15 +269,20 @@ const NewSignerPage = ({
   draft, onDraftChange, onStartEdit, onSaveEdit, onCancelEdit, saving,
   onMediaSelect, onMediaRemove, spread,
 }) => {
-  const isDark = theme?.id === 'charcoal';
+  // Measure the paper we actually paint rather than matching a theme id
+  // ('charcoal' has never existed, so this was permanently false).
+  const paper  = theme?.bg || '#FFFDF8';
+  const isDark = backgroundIsDark(paper, '#FFFDF8');
   const ink    = isDark ? '#F3E8FF' : '#2a2140';
   const sub    = isDark ? '#A78BFA' : '#8b8299';
   const accentC= theme?.accent || '#7C3AED';
-  const paper  = theme?.bg || '#FFFDF8';
   const fStyle = getFontStyle(editing ? (draft?.font_style || msg?.font_style) : msg?.font_style);
   const content = editing ? (draft?.content ?? '') : (msg?.content ?? '');
   const author  = editing ? (draft?.author_name ?? '') : (msg?.author_name ?? '');
-  const fontColor = editing ? (draft?.font_color || msg?.font_color || ink) : (msg?.font_color || ink);
+  // A signer can pick any handwriting colour — keep it unless it disappears
+  // into the page, in which case fall back to the page's readable ink.
+  const chosenColor = editing ? (draft?.font_color || msg?.font_color || ink) : (msg?.font_color || ink);
+  const fontColor = readableTextColor(chosenColor, paper, { ink, fallback: paper });
   const editMediaInputRef = useRef(null);
   const [showEditGif, setShowEditGif] = useState(false);
   const [expandedMedia, setExpandedMedia] = useState(null);
@@ -423,7 +429,7 @@ const NewSignerPage = ({
 
 // ─── Legacy page (multi-sticker) ─────────────────────────────────────────────
 const LegacyAlbumPage = ({ pageNum, messages, myMsgIds, theme, flipClass, onDragStart, pageRef, spread }) => {
-  const isDark = theme?.id === 'charcoal';
+  const isDark = backgroundIsDark(theme?.bg || '#F5F3FF', '#F5F3FF');
   const accentC= theme?.accent||'#7C3AED';
   return (
     <div ref={pageRef} className={`album-page ${flipClass}`} style={{

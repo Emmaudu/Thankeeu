@@ -1,3 +1,5 @@
+import { readableTextColor } from './textContrast';
+
 export const ALBUM_THEMES = [
   {
     id: 'cover_blur',
@@ -44,20 +46,33 @@ export const ALBUM_THEMES = [
 export const getAlbumTheme = id =>
   ALBUM_THEMES.find(theme => theme.id === id) || ALBUM_THEMES[0];
 
-const expandHex = hex => {
-  const value = hex.replace('#', '');
-  return value.length === 3
-    ? value.split('').map(character => character + character).join('')
-    : value.slice(0, 6);
+/**
+ * Pick a text colour that is actually readable on the cover.
+ *
+ * `backgroundColor` is the creator's cover choice: a hex, an image URL, or
+ * empty (meaning "use the design preset's own background"). Previously, when
+ * it wasn't a hex we trusted `design.dark` — but several presets declare
+ * `dark: true` while painting an opaque pale gradient over their photo, which
+ * produced white-on-white headings. We now measure the surface we will really
+ * paint, and never return an unreadable colour.
+ */
+export const getContrastTextColor = (backgroundColor, design) => {
+  const backdrop = backgroundColor?.startsWith('#')
+    ? backgroundColor
+    : (backgroundColor && /^https?:\/\//.test(backgroundColor)
+        // CardView paints a dark scrim over remote cover photos.
+        ? `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url("${backgroundColor}")`
+        : (design?.background || design?.soft || '#ffffff'));
+
+  return readableTextColor('auto', backdrop, {
+    ink: design?.ink,
+    fallback: design?.soft || '#ffffff',
+    large: true,
+  });
 };
 
-export const getContrastTextColor = (backgroundColor, design) => {
-  if (!backgroundColor?.startsWith('#')) return design?.dark ? '#ffffff' : (design?.ink || '#172033');
-  const value = expandHex(backgroundColor);
-  if (!/^[0-9a-f]{6}$/i.test(value)) return design?.dark ? '#ffffff' : (design?.ink || '#172033');
-
-  const channels = [0, 2, 4].map(index => parseInt(value.slice(index, index + 2), 16) / 255);
-  const linear = channels.map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
-  const luminance = (0.2126 * linear[0]) + (0.7152 * linear[1]) + (0.0722 * linear[2]);
-  return luminance > 0.48 ? '#172033' : '#ffffff';
+/** Readability for an album theme's stage / page surfaces. */
+export const getAlbumInk = (theme, surface = 'stage') => {
+  const bg = theme?.[surface] || '#ffffff';
+  return readableTextColor(theme?.ink, bg, { ink: theme?.ink, fallback: bg });
 };

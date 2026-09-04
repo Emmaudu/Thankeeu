@@ -306,7 +306,7 @@ const CardStart = () => {
     occasion: nextOccasion,
     design_theme: matchedDesign?.id || previous.design_theme,
     background_color: matchedDesign?.background || previous.background_color,
-    card_layout: searchParams.get('layout') === 'album' ? 'album' : previous.card_layout,
+    card_layout: 'album',
     title: previous.recipient_name
      ? `${previous.recipient_name}'s ${nextLabel} Card`
      : `A ${nextLabel} card made together`,

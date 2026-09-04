@@ -92,7 +92,7 @@ const CreateCard = () => {
  // Card form
  const [form, setForm] = useState({
  occasion: 'birthday', design_theme: 'birthday-featured-01', background_color: '#FBEAF0',
- font_style: 'elegant', card_layout: 'form',
+ font_style: 'elegant', card_layout: 'album',
  title: `${creatorName.split(' ')[0]}'s Birthday Card`,
  recipient_name: '', recipient_email: '', send_date: '',
  send_time: '09:00', deadline: '', deadline_time: '23:59',
@@ -192,7 +192,7 @@ const CreateCard = () => {
  title: matchedOccasion?.id === 'leaving' ? `${creatorName.split(' ')[0]}'s Leaving Card` : prev.title,
  design_theme: matchedCardDesign || matchedLeavingDesign ? designParam : prev.design_theme,
  background_color: matchedCardDesign?.background || matchedLeavingDesign?.image || prev.background_color,
- card_layout: layoutParam === 'album' ? 'album' : prev.card_layout,
+ card_layout: 'album',
  }));
 
  if (matchedOccasion?.id === 'leaving' && sourceParam === 'leaving-gallery') {
@@ -263,7 +263,7 @@ const CreateCard = () => {
  design_theme: card.design_theme || prev.design_theme,
  background_color: card.background_color || prev.background_color,
  font_style: card.font_style || prev.font_style,
- card_layout: card.card_layout || prev.card_layout,
+ card_layout: 'album',
  title: card.title || prev.title,
  recipient_name: card.recipient_name || '',
  recipient_email: card.recipient_email || '',
@@ -534,7 +534,7 @@ const CreateCard = () => {
  setMsgForm({ content: '', font_style: 'handwritten', is_private: false }); setCreatorMessageAlreadyPosted(false);
  setGiftAmount(null); setCustomGift(''); setInviteEmails('');
  setRecipientPhoto({ file: null, preview: null });
- setForm({ occasion:'birthday', design_theme:'birthday-art-1', background_color:'#FBEAF0', font_style:'elegant', card_layout:'form',
+ setForm({ occasion:'birthday', design_theme:'birthday-art-1', background_color:'#FBEAF0', font_style:'elegant', card_layout:'album',
  title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
  send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
  allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department',
@@ -728,25 +728,8 @@ const CreateCard = () => {
  />
  )}
 
- <div className="mb-5">
- <p className="text-sm font-bold text-warm-700 mb-2">How should people sign?</p>
- <div className="grid grid-cols-2 gap-3">
- {[
-  {id:'form',  title:'Classic form',  desc:'Easiest for signers — messages in a tidy list', recommended: true },
-  {id:'album', title:'Photo album',   desc:'Flipbook pages with free placement' },
-].map(opt => (
- <button key={opt.id} type="button" onClick={() => set('card_layout', opt.id)}
-   className={`rounded-2xl border-2 p-3 text-left transition-all ${form.card_layout===opt.id?'border-primary-500 bg-primary-50':'border-purple-100 bg-white hover:border-primary-200'}`}>
-   <div className="flex items-center gap-2 mb-1 flex-wrap">
-     <p className="font-bold text-sm text-warm-900">{opt.title}</p>
-     {opt.recommended && <span className="text-xs px-2 py-0.5 rounded-xl bg-primary-100 text-primary-600 font-bold">Recommended</span>}
-   </div>
-   <p className="text-xs text-warm-500">{opt.desc}</p>
- </button>
-))}
- </div>
- </div>
-
+ {/* The message-board layout was retired — every group card is an album
+     flipbook now, so there is no layout choice to make here. */}
  <div className="flex justify-between">
  <button onClick={() => setStep(0)} className="btn-secondary">← Back</button>
  <button onClick={() => {

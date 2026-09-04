@@ -9,6 +9,7 @@
  */
 
 import { useState, useMemo, useRef } from 'react';
+import { readableTextColor, backgroundIsDark } from '../utils/textContrast';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import { useSEO } from '../hooks/useSEO';
@@ -374,9 +375,13 @@ const CardThumbnail = ({ design, isLeaving, isSelected, onClick, badge }) => (
           <div style={{ fontSize: 28, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))' }}>{design.icon}</div>
           <div style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
-            fontSize: 9, color: design.ink, textAlign: 'center',
+            fontSize: 9,
+            // Measured against the gradient we actually paint — several presets
+            // declare ink:'#ffffff' over a near-white surface.
+            color: readableTextColor(design.ink, design.background, { ink: design.ink, fallback: design.soft || '#ffffff' }),
+            textAlign: 'center',
             lineHeight: 1.3, padding: '0 4px',
-            textShadow: design.dark ? '0 1px 3px rgba(0,0,0,0.4)' : 'none',
+            textShadow: backgroundIsDark(design.background, design.soft || '#ffffff') ? '0 1px 3px rgba(0,0,0,0.4)' : 'none',
           }}>{design.name}</div>
         </div>
       ) : null}

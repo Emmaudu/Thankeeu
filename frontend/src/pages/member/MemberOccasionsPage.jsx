@@ -1,4 +1,5 @@
 import { useSEO } from '../../hooks/useSEO';
+import { readableTextColor } from '../../utils/textContrast';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { memberAPI, memberCardsAPI, deductionsAPI } from '../../utils/api';
@@ -269,9 +270,9 @@ const MemberOccasionsPage = () => {
               </div>
 
               <div className={`card-art ${cardArtClass(getCardDesign(cardForm.design_theme))} rounded-3xl p-5 text-center min-h-[150px] flex flex-col justify-center`}
-                style={{ background: getCardDesign(cardForm.design_theme).background, color: getCardDesign(cardForm.design_theme).ink }}>
+                style={{ background: getCardDesign(cardForm.design_theme).background, color: readableTextColor(getCardDesign(cardForm.design_theme).ink, getCardDesign(cardForm.design_theme).background, { ink: getCardDesign(cardForm.design_theme).ink, fallback: getCardDesign(cardForm.design_theme).soft || '#ffffff' }) }}>
                 <span className="text-3xl mb-2">{getCardDesign(cardForm.design_theme).icon}</span>
-                <p className="text-xl" style={{ color: getCardDesign(cardForm.design_theme).ink, fontFamily: getFontStyle(cardForm.font_style).family }}>
+                <p className="text-xl" style={{ color: readableTextColor(getCardDesign(cardForm.design_theme).ink, getCardDesign(cardForm.design_theme).background, { ink: getCardDesign(cardForm.design_theme).ink, fallback: getCardDesign(cardForm.design_theme).soft || '#ffffff' }), fontFamily: getFontStyle(cardForm.font_style).family }}>
                   {cardForm.title || `A special card for ${cardForm.recipient_name || 'your colleague'}`}
                 </p>
               </div>

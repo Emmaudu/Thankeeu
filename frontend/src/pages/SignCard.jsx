@@ -15,6 +15,7 @@ import LiveMemoryWall from '../components/LiveMemoryWall';
 import EmojiPicker from '../components/EmojiPicker';
 import GifPicker from '../components/GifPicker';
 import Navbar from '../components/Navbar';
+import { readableTextColor, backgroundIsDark } from '../utils/textContrast';
 import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
 import { formatNGN, CURRENCIES, formatCurrency, getFLWPaymentParams } from '../utils/currency';
@@ -492,6 +493,15 @@ const SignCard = () => {
   // the flipbook compose surface confused signers and could not be filled in
   // on small screens. AlbumSign is no longer rendered from here.
   const design   = getCardDesign(card.design_theme);
+  // `design.ink` is white on several presets that paint a pale gradient, which
+  // made the whole signing hero invisible. Resolve against the real surface.
+  const heroInk    = readableTextColor(design.ink, design.background, { ink: design.ink, fallback: design.soft || '#ffffff', large: true });
+  const heroIsDark = backgroundIsDark(design.background, design.soft || '#ffffff');
+  const heroAccent = readableTextColor(design.accent, design.background, { ink: heroInk, fallback: design.soft || '#ffffff' });
+  // The live-preview panel paints the same surface as the hero, so it needs the
+  // same resolved ink (it was using design.ink — white on the pale presets).
+  const previewSurface = design.background;
+  const previewInk = readableTextColor(design.ink, previewSurface, { ink: design.ink, fallback: design.soft || '#ffffff' });
   const cardFont = getFontStyle(card.font_style);
   const msgFont  = getFontStyle(form.font_style);
   const deadline = card.deadline ? new Date(card.deadline) : null;
@@ -649,7 +659,7 @@ const SignCard = () => {
         )}
 
         {/* Hero banner */}
-        <section className={`card-art ${cardArtClass(design)} px-4 py-5 sm:py-7`} style={{ background: design.background, color: design.ink }}>
+        <section className={`card-art ${cardArtClass(design)} px-4 py-5 sm:py-7`} style={{ background: design.background, color: heroInk }}>
           <div className="max-w-4xl mx-auto text-center relative z-10">
             {hoursLeft !== null && hoursLeft < 48 && card.status !== 'sent' && (
               <span className="inline-flex bg-white/80 text-amber-800 rounded-full px-4 py-2 text-sm font-extrabold mb-5 shadow-sm">
@@ -657,8 +667,8 @@ const SignCard = () => {
               </span>
             )}
             <div className="text-5xl mb-4">{design.icon}</div>
-            <p className="text-xs font-extrabold tracking-[.24em] uppercase mb-3" style={{ color: design.accent }}>You're invited to celebrate</p>
-            <h1 className="max-w-3xl mx-auto mb-4 text-3xl sm:text-4xl font-bold" style={{ color: design.ink, fontFamily: cardFont.family }}>
+            <p className="text-xs font-extrabold tracking-[.24em] uppercase mb-3" style={{ color: heroAccent }}>You're invited to celebrate</p>
+            <h1 className="max-w-3xl mx-auto mb-4 text-3xl sm:text-4xl font-bold" style={{ color: heroInk, fontFamily: cardFont.family }}>
               {card.title || `A special card for ${card.recipient_name}`}
             </h1>
             <p className="text-lg opacity-80 mb-6">Add your words, a memory, a voice note, and an optional gift. ✨</p>
@@ -674,7 +684,7 @@ const SignCard = () => {
               <div className="mt-5">
                 <a href={`/card/${slug}`}
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105"
-                  style={{ background: 'rgba(255,255,255,0.22)', color: design.ink, border: '1.5px solid rgba(255,255,255,0.35)', backdropFilter: 'blur(8px)' }}>
+                  style={{ background: heroIsDark ? 'rgba(255,255,255,0.22)' : 'rgba(26,16,53,0.07)', color: heroInk, border: `1.5px solid ${heroIsDark ? 'rgba(255,255,255,0.35)' : 'rgba(26,16,53,0.14)'}`, backdropFilter: 'blur(8px)' }}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   View {card.signed_count || 0} messages from others
                 </a>
@@ -895,12 +905,12 @@ const SignCard = () => {
             {/* Live preview — image first, text below, overflow-contained */}
             <div
               className={`card-art ${cardArtClass(design)} celebration-shell rounded-[2rem] overflow-hidden flex flex-col`}
-              style={{ background: design.background, color: design.ink, minWidth: 0, width: '100%' }}
+              style={{ background: previewSurface, color: previewInk, minWidth: 0, width: '100%' }}
             >
               {/* Header badge */}
               <div className="flex justify-between items-center px-5 pt-5 pb-3 flex-shrink-0">
                 <span className="text-2xl">{design.icon}</span>
-                <span className="text-xs font-extrabold tracking-[.18em] uppercase opacity-60" style={{ color: design.ink }}>Live preview</span>
+                <span className="text-xs font-extrabold tracking-[.18em] uppercase opacity-60" style={{ color: previewInk }}>Live preview</span>
               </div>
 
               {/* Media FIRST — shown above text */}
@@ -911,10 +921,10 @@ const SignCard = () => {
                   ) : mediaFiles[0].type === 'video' ? (
                     <video src={mediaFiles[0].preview} className="w-full rounded-2xl max-h-52 object-cover" />
                   ) : (
-                    <div className="flex items-center gap-2 p-3 rounded-2xl text-sm font-medium" style={{background:'rgba(255,255,255,0.3)', color: design.ink}}>🎙️ Voice note attached</div>
+                    <div className="flex items-center gap-2 p-3 rounded-2xl text-sm font-medium" style={{background:'rgba(255,255,255,0.5)', color: previewInk}}>🎙️ Voice note attached</div>
                   )}
                   {mediaFiles.length > 1 && (
-                    <p className="text-xs opacity-60 mt-1 text-center" style={{ color: design.ink }}>+{mediaFiles.length-1} more photo{mediaFiles.length > 2 ? 's' : ''}</p>
+                    <p className="text-xs opacity-60 mt-1 text-center" style={{ color: previewInk }}>+{mediaFiles.length-1} more photo{mediaFiles.length > 2 ? 's' : ''}</p>
                   )}
                 </div>
               )}
@@ -924,7 +934,7 @@ const SignCard = () => {
                 <p
                   className="whitespace-pre-wrap break-words w-full"
                   style={{
-                    color: design.ink,
+                    color: previewInk,
                     fontFamily: msgFont.family,
                     fontSize: form.font_style === 'calligraphy' ? '1.4rem' : form.font_style === 'handwritten' ? '1.1rem' : '0.95rem',
                     lineHeight: 1.55,
@@ -938,7 +948,7 @@ const SignCard = () => {
 
               {/* Author signature */}
               <div className="border-t mx-5 mt-1 mb-4 pt-3 flex-shrink-0" style={{ borderColor: `${design.accent}35` }}>
-                <p className="font-bold text-sm" style={{ color: design.ink }}>{form.author_name || 'Your name'}</p>
+                <p className="font-bold text-sm" style={{ color: previewInk }}>{form.author_name || 'Your name'}</p>
               </div>
             </div>
 

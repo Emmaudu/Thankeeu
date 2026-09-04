@@ -5,11 +5,26 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { paymentsAPI } from '../utils/api';
 import Icon from './ui/Icon';
+import { backgroundIsDark, backgroundIsPhoto, readableTextColor } from '../utils/textContrast';
 
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
 const BANNER_DISMISS_KEY = 'thankeeu_banner_dismissed_code';
 
 const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
+  // The `themeDark` flag comes from the card design preset and is unreliable:
+  // several presets declare dark:true while painting a near-white gradient, so
+  // the wordmark rendered white-on-white. Measure the bar we actually paint.
+  const navIsDark = themeBg ? (backgroundIsPhoto(themeBg, '#F5F0FF') || backgroundIsDark(themeBg, '#F5F0FF')) : Boolean(themeDark);
+  const navInk    = themeBg
+    ? (backgroundIsPhoto(themeBg, '#F5F0FF')
+        ? '#FFFFFF'                                   // scrimmed below — always safe
+        : readableTextColor('auto', themeBg, { ink: '#1A1035', fallback: '#F5F0FF' }))
+    : '#1A1035';
+  const navAccent = navIsDark ? 'rgba(255,255,255,0.82)' : '#7C3AED';
+  // Top-level bar links: on a card-themed bar the fixed `text-warm-700` was
+  // dark-on-dark. Untinted bars keep the default palette colour.
+  const navIsPhoto = themeBg ? backgroundIsPhoto(themeBg, '#F5F0FF') : false;
+  const navLinkStyle = themeBg ? { color: navInk } : { color: '#4A3A7A' };
   const { user, logout }              = useAuth();
   const { company, logout: coLogout } = useCompanyAuth();
   const { member, logout: memLogout } = useMemberAuth();
@@ -92,18 +107,21 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
           </button>
         </div>
       )}
-      <nav className="sticky top-0 z-50 transition-all duration-300 border-b"
+      <nav className="sticky top-0 z-50 transition-all duration-300 border-b relative"
         style={{
           background: themeBg
             ? themeBg  // use the full gradient string directly — matches hero exactly
             : (scrolled ? 'rgba(245,240,255,0.95)' : '#F5F0FF'),
-          borderColor: themeBg ? 'rgba(255,255,255,0.18)' : (scrolled ? '#DDD6FE' : '#EDE9FE'),
+          borderColor: themeBg ? (navIsDark ? 'rgba(255,255,255,0.18)' : 'rgba(26,16,53,0.10)') : (scrolled ? '#DDD6FE' : '#EDE9FE'),
           backdropFilter: themeBg || scrolled ? 'blur(12px)' : undefined,
           WebkitBackdropFilter: themeBg || scrolled ? 'blur(12px)' : undefined,
           boxShadow: scrolled ? '0 2px 20px rgba(0,0,0,0.15)' : undefined,
-          opacity: themeBg ? (scrolled ? 0.97 : 0.88) : 1,
+          opacity: themeBg ? (navIsPhoto ? 1 : (scrolled ? 0.97 : 0.88)) : 1,
         }}>
-        <div className="section-container">
+        {navIsPhoto && (
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'rgba(9,7,22,0.62)' }} />
+        )}
+        <div className="section-container relative">
           <div className="flex items-center justify-between h-16 gap-4">
 
             {/* Logo */}
@@ -111,8 +129,8 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
               <img src="/android-chrome-192x192.png" alt="Thankeeu"
                 className="w-9 h-9 rounded-xl object-cover flex-shrink-0"
                 onError={e => { e.currentTarget.src = '/favicon-96x96.png'; e.currentTarget.onerror = null; }} />
-              <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:"1.25rem", color: themeDark ? '#fff' : '#1A1035', letterSpacing:"-0.01em" }}>
-                thank<span style={{ color: themeDark ? 'rgba(255,255,255,0.8)' : '#7C3AED' }}>eeu</span>
+              <span style={{ fontFamily:"'Nunito',sans-serif", fontWeight:900, fontSize:"1.25rem", color: navInk, letterSpacing:"-0.01em" }}>
+                thank<span style={{ color: navAccent }}>eeu</span>
               </span>
             </Link>
 
@@ -120,7 +138,8 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
             <div className="hidden lg:flex items-center gap-0.5">
               <div className="relative" ref={cardsRef}>
                 <button type="button" onClick={() => setCardsOpen(value => !value)} aria-expanded={cardsOpen}
-                  className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${cardsOpen ? 'bg-primary-50 text-primary-600' : 'text-warm-700 hover:bg-primary-50 hover:text-primary-600'}`}>
+                  className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition-all ${cardsOpen ? 'bg-primary-50 text-primary-600' : 'hover:bg-primary-50 hover:text-primary-600'}`}
+                  style={cardsOpen ? undefined : navLinkStyle}>
                   Cards <Icon name={cardsOpen ? 'ChevronUp' : 'ChevronDown'} size={13} className="opacity-60" />
                 </button>
                 {cardsOpen && <div className="absolute left-0 top-full z-[60] mt-2 w-72 rounded-2xl border border-purple-100 bg-white p-2 shadow-xl">
@@ -144,8 +163,9 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
                     isActive(to)
                       ? 'bg-primary-50 text-primary-600'
-                      : 'text-warm-700 hover:text-primary-600 hover:bg-primary-50'
-                  }`}>
+                      : 'hover:text-primary-600 hover:bg-primary-50'
+                  }`}
+                  style={isActive(to) ? undefined : navLinkStyle}>
                   {label}
                 </Link>
               ))}
@@ -155,8 +175,9 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
                 <button
                   onClick={() => setTeamsOpen(!teamsOpen)}
                   className={`flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl transition-all ${
-                    teamsOpen ? 'bg-primary-50 text-primary-600' : 'text-warm-700 hover:text-primary-600 hover:bg-primary-50'
-                  }`}>
+                    teamsOpen ? 'bg-primary-50 text-primary-600' : 'hover:text-primary-600 hover:bg-primary-50'
+                  }`}
+                  style={teamsOpen ? undefined : navLinkStyle}>
                   Business
                   <Icon name={teamsOpen ? 'ChevronUp' : 'ChevronDown'} size={13} className="opacity-60" style={{ marginLeft: 2 }} />
                 </button>
@@ -275,7 +296,7 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Link to="/login" onClick={scrollTop} className="text-sm font-semibold text-warm-700 hover:text-primary-600 px-3 py-2 transition-colors">Sign in</Link>
+                  <Link to="/login" onClick={scrollTop} className="text-sm font-semibold hover:text-primary-600 px-3 py-2 transition-colors" style={navLinkStyle}>Sign in</Link>
                   <Link to="/signup" onClick={scrollTop} className="btn-primary text-xs py-2.5 px-5 inline-flex items-center gap-1.5">Start free</Link>
                 </div>
               )}

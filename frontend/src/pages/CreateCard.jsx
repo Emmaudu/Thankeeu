@@ -17,6 +17,7 @@ import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/
 import { getOccasionLabel } from '../utils/occasionCardDesigns';
 import CoverTextStudio from '../components/CoverTextStudio';
 import CardCoverPreview from '../components/CardCoverPreview';
+import { ALBUM_THEMES } from '../utils/albumThemes';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 
 const OCCASIONS = [
@@ -73,6 +74,8 @@ const CreateCard = () => {
  const creatorName = user?.full_name || company?.contact_person || company?.name || member?.first_name || 'Someone';
 
  const [step, setStep] = useState(0);
+ // Design gallery starts collapsed to two rows, as on the public flow.
+ const [designsExpanded, setDesignsExpanded] = useState(false);
  // Scroll to top whenever the user advances or goes back a step
  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
  const [loading, setLoading] = useState(false);
@@ -102,6 +105,7 @@ const CreateCard = () => {
  custom_occasion: '',
  cover_sender: creatorName === 'You' ? '' : creatorName,
  cover_text_color: 'auto',
+ album_background_theme: 'cover_blur',
  cover_layout: null,
  card_experience: 'card_only', // the wizard creates group cards; Live Wall is not part of this flow
  });
@@ -264,6 +268,8 @@ const CreateCard = () => {
  background_color: card.background_color || prev.background_color,
  font_style: card.font_style || prev.font_style,
  card_layout: 'album',
+ // Editing an existing card must show the album background it was saved with.
+ album_background_theme: card.album_background_theme || prev.album_background_theme,
  title: card.title || prev.title,
  recipient_name: card.recipient_name || '',
  recipient_email: card.recipient_email || '',
@@ -538,7 +544,7 @@ const CreateCard = () => {
  title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
  send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
  allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department',
- cover_sender: creatorName === 'You' ? '' : creatorName, cover_text_color:'auto', cover_layout:null, card_experience:'card_only' });
+ cover_sender: creatorName === 'You' ? '' : creatorName, cover_text_color:'auto', cover_layout:null, card_experience:'card_only', album_background_theme:'cover_blur' });
  };
 
  // ── LIVE screen ──────────────────────────────────────────────────────────
@@ -662,10 +668,21 @@ const CreateCard = () => {
  <p className="text-warm-500 text-sm mb-5">Choose from our templates</p>
 
  <style>{`
+ /* Kept in step with the public flow (CardStart): the collapsed height and
+    the column count are both derived from the GRID's own width, never the
+    viewport, because this panel is a column inside the page. */
+ .ccg-box { container-type: inline-size; }
  .ccg { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; }
- @media(max-width:640px){.ccg{grid-template-columns:repeat(3,1fr);}}
- @media(max-width:380px){.ccg{grid-template-columns:repeat(2,1fr);}}
- .ccg-item{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;aspect-ratio:3/4;}
+ .ccg-wrap { --cols:5; --gap:10px; position:relative; overflow:hidden;
+   --tile: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols));
+   --row: calc(var(--tile) * 297 / 210);
+   max-height: calc(2 * var(--row) + var(--gap)); }
+ .ccg-wrap.expanded { max-height:none; }
+ @container (max-width: 620px) { .ccg { grid-template-columns:repeat(4,1fr); } .ccg-wrap { --cols:4; } }
+ @container (max-width: 430px) { .ccg { grid-template-columns:repeat(3,1fr); } .ccg-wrap { --cols:3; } }
+ @container (max-width: 290px) { .ccg { grid-template-columns:repeat(2,1fr); } .ccg-wrap { --cols:2; } }
+ @supports not (width: 100cqw) { .ccg-wrap { max-height:none; } }
+ .ccg-item{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;aspect-ratio:210/297;background:#fff;}
  .ccg-item:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.14);}
  .ccg-item.sel{outline:3px solid #7C3AED;outline-offset:2px;}
  .ccg-badge{position:absolute;top:7px;left:7px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:800;z-index:2;}
@@ -675,6 +692,8 @@ const CreateCard = () => {
  .ccg-upload p{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:14px;color:#fff;margin:0;text-align:center;line-height:1.2;}
  `}</style>
 
+ <div className="ccg-box">
+ <div className={`ccg-wrap ${designsExpanded ? 'expanded' : ''}`}>
  <div className="ccg">
  <button type="button" className="ccg-item ccg-upload" onClick={() => document.getElementById('cc-bg-upload')?.click()}>
  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -698,6 +717,58 @@ const CreateCard = () => {
  {idx >= 3 && idx < 7 && <span className="ccg-badge ccg-more">More</span>}
  </button>
  ))}
+ </div>
+ </div>
+ </div>
+ {ccAvailableDesigns.length > 10 && (
+   <button type="button" onClick={() => setDesignsExpanded(e => !e)}
+     className="w-full mt-1 mb-4 text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center justify-center gap-1.5 py-2 rounded-xl hover:bg-primary-50 transition-colors">
+     <Icon name={designsExpanded ? 'ChevronUp' : 'ChevronDown'} size={14}/>
+     {designsExpanded ? 'Show fewer designs' : `Show all ${ccAvailableDesigns.length} designs`}
+   </button>
+ )}
+
+ {/* Album background — same single swatch row as the public flow. Every card
+     is an album flipbook now, so this belongs here too. */}
+ <div className="mb-5 border-t border-purple-100 pt-5">
+  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+   <p className="text-sm font-bold text-warm-700">Album background</p>
+   <p className="text-[11px] text-warm-500">
+    {(() => {
+      const t = ALBUM_THEMES.find(x => x.id === (form.album_background_theme || ALBUM_THEMES[0].id));
+      return t ? `${t.name} · ${t.description}` : 'The setting around the flipbook pages';
+    })()}
+   </p>
+  </div>
+  {/* Swatches only, on one line that never wraps — the names live in the
+      header (for the selected theme) and in each swatch's tooltip, so this
+      row costs one line instead of two rows of labelled pills.
+      NOTE: index.css sets `button { min-height: 44px }` for touch targets, so
+      a bare `h-7 w-7` button renders as a 28x44 OVAL. The button keeps the
+      44px target; the round swatch is an inner span. */}
+  <div className="mt-1 flex flex-nowrap items-center gap-0.5">
+   {ALBUM_THEMES.map(theme => {
+    const isSel = (form.album_background_theme || ALBUM_THEMES[0].id) === theme.id;
+    return (
+     <button
+      key={theme.id}
+      type="button"
+      onClick={() => set('album_background_theme', theme.id)}
+      aria-pressed={isSel}
+      aria-label={`${theme.name} — ${theme.description}`}
+      title={`${theme.name} — ${theme.description}`}
+      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105"
+     >
+      <span
+       className={`block h-7 w-7 rounded-full border transition-all ${
+         isSel ? 'border-primary-500 ring-2 ring-primary-300 ring-offset-1' : 'border-black/15'
+       }`}
+       style={{ background: theme.stage }}
+      />
+     </button>
+    );
+   })}
+  </div>
  </div>
 
  <p className="text-sm font-bold text-warm-700 mb-2">Card lettering</p>

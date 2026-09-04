@@ -1476,10 +1476,13 @@ const CardView = () => {
   );
   const coverIsDark = backgroundIsDark(coverBackground, design?.soft || '#ffffff');
   const coverIsPhoto = backgroundIsPhoto(coverBackground, design?.soft || '#ffffff');
-  // Accent used on near-white pills over the hero — dial it down to something
-  // readable if the design's accent is too light against white.
-  const pillAccent = readableTextColor(design?.accent, '#ffffff', { ink: design?.ink });
-  const pillInk = readableTextColor(design?.ink, '#ffffff', { ink: '#1A1035' });
+  // Accent used on the near-white pills over the hero. The pills are painted at
+  // 90% white OVER the cover, so validating against pure #ffffff overstates the
+  // contrast — an accent that scrapes 4.5:1 on white lands at 4.48 on the real
+  // pill. Composite the pill the way the browser will.
+  const pillBackdrop = `linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), ${coverBackground}`;
+  const pillAccent = readableTextColor(design?.accent, pillBackdrop, { ink: design?.ink, fallback: design?.soft || '#ffffff' });
+  const pillInk = readableTextColor(design?.ink, pillBackdrop, { ink: '#1A1035', fallback: design?.soft || '#ffffff' });
   // The page body sits on `design.soft`, which is a deep indigo for the dark
   // presets while every heading below used a fixed light-theme colour.
   const pageSurface = design?.soft || '#F5F0FF';

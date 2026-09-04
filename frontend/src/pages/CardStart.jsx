@@ -730,13 +730,28 @@ const CardStart = () => {
    <p className="text-warm-500 text-sm mb-5">Choose from our templates</p>
 
  <style>{`
+ /* The collapsed height used to be derived from the VIEWPORT (56vw/5), but
+    this grid lives in the wizard's left column — about 42% of the viewport
+    minus 128px of padding — so the guess was roughly double the real tile
+    size and four rows showed instead of two. Measure the grid's own width
+    with container query units instead, and derive the row height from the
+    tile's 210:297 aspect ratio. */
+ .ccg-box { container-type: inline-size; }
  .ccg { display:grid; grid-template-columns:repeat(5,1fr); gap:10px; margin-bottom:20px; max-height:none; }
- @media(max-width:640px){.ccg{grid-template-columns:repeat(3,1fr);}}
- .ccg-wrap { overflow:hidden; max-height:calc(2 * (56vw/5 * 297/210) + 10px); }
+ .ccg-wrap { --cols:5; --gap:10px; position:relative; overflow:hidden;
+   --tile: calc((100cqw - (var(--cols) - 1) * var(--gap)) / var(--cols));
+   --row: calc(var(--tile) * 297 / 210);
+   max-height: calc(2 * var(--row) + var(--gap)); }
  .ccg-wrap.expanded { max-height:none; }
- @media(max-width:640px){.ccg-wrap{max-height:calc(2 * (33vw * 297/210) + 10px);}}
- @media(max-width:640px){.ccg-wrap.expanded{max-height:none;}}
- @media(max-width:380px){.ccg{grid-template-columns:repeat(2,1fr);}}
+ /* Column count also follows the grid's own width, not the viewport: five
+    columns inside the wizard's 444px column give 81px tiles whose captions
+    wrap onto three lines. */
+ @container (max-width: 620px) { .ccg { grid-template-columns:repeat(4,1fr); } .ccg-wrap { --cols:4; } }
+ @container (max-width: 430px) { .ccg { grid-template-columns:repeat(3,1fr); } .ccg-wrap { --cols:3; } }
+ @container (max-width: 290px) { .ccg { grid-template-columns:repeat(2,1fr); } .ccg-wrap { --cols:2; } }
+ /* Without container-query support, fall back to showing everything rather
+    than clipping at a wrong height. */
+ @supports not (width: 100cqw) { .ccg-wrap { max-height:none; } }
  .ccg-item{position:relative;border-radius:14px;overflow:hidden;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;aspect-ratio:210/297;background:#fff;}
  .ccg-item:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.14);}
  .ccg-item.sel{outline:3px solid #7C3AED;outline-offset:2px;}
@@ -748,6 +763,7 @@ const CardStart = () => {
  `}</style>
 
  <>
+   <div className="ccg-box">
    <div className={`ccg-wrap ${designsExpanded ? 'expanded' : ''}`}>
    <div className="ccg">
    <button type="button" className="ccg-item ccg-upload" onClick={() => document.getElementById('cs-bg-upload')?.click()}>
@@ -788,6 +804,7 @@ const CardStart = () => {
  {idx >= 3 && idx < 7 && <span className="ccg-badge ccg-more">More</span>}
  </button>
  ))}
+ </div>
  </div>
  </div>
  {availableDesigns.length > 10 && (
@@ -851,17 +868,48 @@ const CardStart = () => {
   </div>
  </div>
 
+ {/* Album background — a single non-wrapping row of swatches. As labelled
+     cards this block ran to two rows of ~110px; the selected theme's name and
+     description now sit in the header, and each swatch carries both in its
+     tooltip and aria-label. */}
  <div className="mb-5 border-t border-purple-100 pt-5">
-  <p className="text-sm font-bold text-warm-700">Album background</p>
-  <p className="mt-0.5 text-xs text-warm-500">Choose the setting around the flipbook pages.</p>
-  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-   {ALBUM_THEMES.map(theme => (
-    <button key={theme.id} type="button" onClick={() => set('album_background_theme', theme.id)} className={`rounded-lg border-2 p-2.5 text-left ${form.album_background_theme === theme.id ? 'border-primary-500 bg-primary-50' : 'border-purple-100 bg-white hover:border-primary-200'}`}>
-     <span className="block h-10 rounded-md border border-black/5" style={{ background: theme.stage }} />
-     <span className="mt-2 block text-xs font-bold text-warm-800">{theme.name}</span>
-     <span className="mt-0.5 block text-[10px] text-warm-500">{theme.description}</span>
-    </button>
-   ))}
+  <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+   <p className="text-sm font-bold text-warm-700">Album background</p>
+   <p className="text-[11px] text-warm-500">
+    {(() => {
+      const t = ALBUM_THEMES.find(x => x.id === (form.album_background_theme || ALBUM_THEMES[0].id));
+      return t ? `${t.name} · ${t.description}` : 'The setting around the flipbook pages';
+    })()}
+   </p>
+  </div>
+  {/* Swatches only, on one line that never wraps — the names live in the
+      header (for the selected theme) and in each swatch's tooltip, so this
+      row costs one line instead of two rows of labelled pills.
+      NOTE: index.css sets `button { min-height: 44px }` for touch targets, so
+      a bare `h-7 w-7` button renders as a 28x44 OVAL. The button keeps the
+      44px target; the round swatch is an inner span. */}
+  <div className="mt-1 flex flex-nowrap items-center gap-0.5">
+   {ALBUM_THEMES.map(theme => {
+    const isSel = (form.album_background_theme || ALBUM_THEMES[0].id) === theme.id;
+    return (
+     <button
+      key={theme.id}
+      type="button"
+      onClick={() => set('album_background_theme', theme.id)}
+      aria-pressed={isSel}
+      aria-label={`${theme.name} — ${theme.description}`}
+      title={`${theme.name} — ${theme.description}`}
+      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105"
+     >
+      <span
+       className={`block h-7 w-7 rounded-full border transition-all ${
+         isSel ? 'border-primary-500 ring-2 ring-primary-300 ring-offset-1' : 'border-black/15'
+       }`}
+       style={{ background: theme.stage }}
+      />
+     </button>
+    );
+   })}
   </div>
  </div>
 

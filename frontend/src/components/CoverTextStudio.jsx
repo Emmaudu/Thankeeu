@@ -176,17 +176,25 @@ const CoverTextStudio = ({
                     >
                       Auto
                     </button>
+                    {/* index.css forces `button { min-height: 44px }` for touch
+                        targets, so a bare h-7 button renders as a 28x44 oval.
+                        Keep the 44px target on the button, draw the circle in
+                        an inner span. */}
                     {COVER_TEXT_SWATCHES.map((c) => (
                       <button
                         key={c}
                         type="button"
                         onClick={() => update(active, { color: c })}
-                        className={`h-7 w-7 flex-shrink-0 rounded-full border-2 ${cfg.color === c ? 'ring-2 ring-primary-300 border-primary-500' : 'border-warm-200 shadow-sm'}`}
-                        style={{ backgroundColor: c }}
+                        className="flex h-11 w-8 flex-shrink-0 items-center justify-center"
                         aria-label={`Use ${c}`}
-                      />
+                      >
+                        <span
+                          className={`block h-7 w-7 rounded-full border-2 ${cfg.color === c ? 'ring-2 ring-primary-300 border-primary-500' : 'border-warm-200 shadow-sm'}`}
+                          style={{ backgroundColor: c }}
+                        />
+                      </button>
                     ))}
-                    <label className="relative h-7 w-7 flex-shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-white shadow-sm"
+                    <label className="relative my-2 h-7 w-7 flex-shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-warm-200 shadow-sm"
                       title="Custom colour"
                       style={{ background: 'conic-gradient(from 0deg,#f87171,#fbbf24,#34d399,#60a5fa,#a78bfa,#f472b6,#f87171)' }}>
                       <input
@@ -286,12 +294,16 @@ const CoverTextStudio = ({
                           key={c}
                           type="button"
                           onClick={() => update(active, { shadowColor: c })}
-                          className={`h-7 w-7 flex-shrink-0 rounded-full border-2 ${cfg.shadowColor === c ? 'ring-2 ring-primary-300 border-primary-500' : 'border-warm-200 shadow-sm'}`}
-                          style={{ backgroundColor: c }}
+                          className="flex h-11 w-8 flex-shrink-0 items-center justify-center"
                           aria-label={`Shadow colour ${c}`}
-                        />
+                        >
+                          <span
+                            className={`block h-7 w-7 rounded-full border-2 ${cfg.shadowColor === c ? 'ring-2 ring-primary-300 border-primary-500' : 'border-warm-200 shadow-sm'}`}
+                            style={{ backgroundColor: c }}
+                          />
+                        </button>
                       ))}
-                      <label className="relative h-7 w-7 flex-shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-white shadow-sm"
+                      <label className="relative my-2 h-7 w-7 flex-shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-warm-200 shadow-sm"
                         title="Custom shadow colour"
                         style={{ background: 'conic-gradient(from 0deg,#f87171,#fbbf24,#34d399,#60a5fa,#a78bfa,#f472b6,#f87171)' }}>
                         <input type="color" value={cfg.shadowColor || '#000000'}

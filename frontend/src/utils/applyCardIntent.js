@@ -49,6 +49,18 @@ export const coversForOccasion = (occasion) => {
 };
 
 /**
+ * Covers we are willing to apply WITHOUT being asked.
+ * No design carries occasion 'other', so the generic fallback above returns
+ * birthday covers — which is how "sympathy card, her mum passed away" ended up
+ * pre-selecting balloons and confetti. When we cannot match the occasion we
+ * choose nothing and let the customer pick.
+ */
+const autoCoverFor = (occasion) => {
+  const real = CARD_DESIGNS.filter(d => (d.artwork || d.image) && d.occasion === occasion);
+  return real[0] || null;
+};
+
+/**
  * @param intent    the object from parseCardIntent()
  * @param options   { creatorName, occasionIds }  occasionIds = the calling
  *                  wizard's own supported occasion ids
@@ -85,7 +97,7 @@ export const applyCardIntent = (intent, { creatorName = 'You', occasionIds = [] 
     const chosen = intent.design_theme
       ? CARD_DESIGNS.find(d => d.id === intent.design_theme)
       : null;
-    const cover = chosen || coversForOccasion(occasion)[0];
+    const cover = chosen || autoCoverFor(occasion);
     if (cover) {
       patch.design_theme = cover.id;
       patch.background_color = cover.background || cover.image || '#F5F0FF';
@@ -99,6 +111,11 @@ export const applyCardIntent = (intent, { creatorName = 'You', occasionIds = [] 
   if (intent.recipient_name) {
     patch.recipient_name = intent.recipient_name;
     summary.push({ key: 'recipient', label: `For ${intent.recipient_name}` });
+  }
+
+  if (intent.recipient_email) {
+    patch.recipient_email = intent.recipient_email;
+    summary.push({ key: 'recipient_email', label: intent.recipient_email });
   }
 
   // Title: prefer the parser's, else build one, else leave the default.

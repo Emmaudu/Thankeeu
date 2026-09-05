@@ -33,7 +33,7 @@ const usernameFrom = (email) => {
 
 const FIELD = 'w-full rounded-xl border-2 border-purple-100 px-3.5 py-3 text-warm-900 placeholder:text-warm-400 focus:border-primary-400 focus:outline-none';
 
-const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?resumed=1', beforeAuth, prefillEmail = '' }) => {
+const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?resumed=1', beforeAuth, afterAuth, prefillEmail = '' }) => {
   const { login, signup } = useAuth();
   const navigate = useNavigate();
 
@@ -42,6 +42,7 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
   const [error, setError] = useState('');
   const [f, setF] = useState({ full_name: '', email: prefillEmail || '', password: '' });
   const [countdown, setCountdown] = useState(null);   // null until authenticated
+  const [outcome, setOutcome]     = useState(null);   // { mode:'live'|'review', slug? }
   const set = (k, v) => setF(p => ({ ...p, [k]: v }));
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim());
@@ -60,15 +61,27 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
     // instant the account exists and the hand-off is never seen.
     onAuthenticated?.();
     onDone?.();
-    setCountdown(10);
+
+    // Every new account gets a free credit, so the common first-time path is
+    // "already live" rather than "go and pay". A card that went live needs a
+    // two-second hand-off, not ten — there is nothing left for them to do.
+    let result = { mode: 'review' };
+    try { result = (await afterAuth?.()) || result; } catch { /* fall back to review */ }
+    setOutcome(result);
+    setCountdown(result.mode === 'live' ? 2 : 10);
   };
 
   useEffect(() => {
     if (countdown === null) return;
-    if (countdown <= 0) { navigate(redirectTo); return; }
+    if (countdown <= 0) {
+      navigate(outcome?.mode === 'live'
+        ? `/create-card?live=${encodeURIComponent(outcome.slug)}`
+        : redirectTo);
+      return;
+    }
     const t = window.setTimeout(() => setCountdown(c => c - 1), 1000);
     return () => window.clearTimeout(t);
-  }, [countdown, navigate, redirectTo]);
+  }, [countdown, navigate, redirectTo, outcome]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -106,28 +119,38 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
 
   /* ── Signed in — hand over ─────────────────────────────────────────────── */
   if (countdown !== null) {
+    const live = outcome?.mode === 'live';
+    const total = live ? 2 : 10;
     return (
-      <div className="overflow-hidden rounded-2xl border-2 border-emerald-200 bg-white">
-        <div className="px-5 py-6 text-center" style={{ background: 'linear-gradient(135deg,#ECFDF5,#F0FDFA)' }}>
-          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-white text-2xl shadow-sm">✓</div>
-          <h3 className="mb-1 text-xl font-bold text-warm-900">You're in — card saved</h3>
+      <div className={`overflow-hidden rounded-2xl border-2 bg-white ${live ? 'border-emerald-300' : 'border-emerald-200'}`}>
+        <div className="px-5 py-6 text-center"
+          style={{ background: live ? 'linear-gradient(135deg,#ECFDF5,#EDE9FE)' : 'linear-gradient(135deg,#ECFDF5,#F0FDFA)' }}>
+          <div className="mx-auto mb-3 grid h-14 w-14 place-items-center rounded-full bg-white text-2xl shadow-sm">
+            {live ? '🎉' : '✓'}
+          </div>
+          <h3 className="mb-1 text-xl font-bold text-warm-900">
+            {live ? 'Your card is live!' : "You're in — card saved"}
+          </h3>
           <p className="mx-auto max-w-sm text-sm text-warm-600">
-            Taking you to your dashboard to review your card and pay. You'll land on the
-            review step, with <strong>Back</strong> and <strong>Next</strong> to check everything first.
+            {live
+              ? <>We used your <strong>free credit</strong>, so there was nothing to pay. Taking you to your
+                 sharing link now — we have emailed it to you too.</>
+              : <>Taking you to your dashboard to review your card and pay. You'll land on the
+                 review step, with <strong>Back</strong> and <strong>Next</strong> to check everything first.</>}
           </p>
         </div>
         <div className="flex flex-col items-center gap-3 px-5 py-4">
           <div className="flex w-full items-center gap-3">
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-purple-100">
               <div className="h-full rounded-full transition-all duration-1000 ease-linear"
-                style={{ width: `${(countdown / 10) * 100}%`, background: 'linear-gradient(90deg,#7C3AED,#EC4899)' }} />
+                style={{ width: `${(countdown / total) * 100}%`, background: 'linear-gradient(90deg,#7C3AED,#EC4899)' }} />
             </div>
-            <span className="w-24 shrink-0 text-right text-xs font-bold text-warm-500">
-              {countdown}s to go
-            </span>
+            <span className="w-24 shrink-0 text-right text-xs font-bold text-warm-500">{countdown}s to go</span>
           </div>
-          <button type="button" onClick={() => navigate(redirectTo)} className="btn-primary w-full py-3 font-bold">
-            Continue now →
+          <button type="button"
+            onClick={() => navigate(live ? `/create-card?live=${encodeURIComponent(outcome.slug)}` : redirectTo)}
+            className="btn-primary w-full py-3 font-bold">
+            {live ? 'See my card now →' : 'Continue now →'}
           </button>
         </div>
       </div>
@@ -139,9 +162,18 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
     return (
       <div className="rounded-2xl border border-purple-100 bg-white p-5">
         <h3 className="mb-1 text-lg font-bold text-warm-900">Almost there — is this your first card?</h3>
-        <p className="mb-4 text-sm text-warm-500">
+        <p className="mb-3 text-sm text-warm-500">
           We just need to know where to save it. No verification codes, no waiting.
         </p>
+        <div className="mb-4 flex items-start gap-2.5 rounded-xl px-3.5 py-2.5"
+          style={{ background:'#FEF3C7' }}>
+          <span className="text-base leading-none">🎁</span>
+          <p className="text-xs leading-relaxed" style={{ color:'#92400E' }}>
+            <strong>New accounts get 1 free credit.</strong> If this is your first card we'll
+            use it automatically — nothing to pay, and it goes live straight away so you can
+            see exactly how it works.
+          </p>
+        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <button type="button" onClick={() => setMode('new')}
             className="flex items-center gap-3 rounded-2xl border-2 border-primary-200 bg-primary-50/50 p-4 text-left transition-all hover:border-primary-400 hover:bg-primary-50">

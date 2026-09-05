@@ -4,7 +4,7 @@ const {
   signup, login, getMe, updateProfile, searchUsers,
   changePassword, uploadAvatar, forgotPassword, resetPassword,
   seedAdmin, verifyEmail, resendVerification,
-  sendVerificationCode, verifyCodeAndSignup,
+  sendVerificationCode, verifyCodeAndSignup, quickStart,
 } = require('../controllers/authController');
 const { auth } = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
@@ -13,6 +13,9 @@ const { upload } = require('../utils/cloudinary');
 
 router.post('/signup', signup);
 router.post('/login', login);
+// One-field account creation for the free test card. Rate-limited like signup:
+// it creates accounts, so it is exactly as abusable as /signup.
+router.post('/quick-start', authLimiterMiddleware, quickStart);
 router.get('/me', auth, getMe);
 router.put('/profile', auth, updateProfile);
 router.put('/password', auth, changePassword);

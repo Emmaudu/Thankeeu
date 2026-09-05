@@ -160,6 +160,28 @@ const verifyCodeAndSignup = async (req, res) => {
     // Clean up pending record
     await supabase.from('pending_signups').delete().eq('email', cleanEmail);
 
+    // ── Welcome credit ──────────────────────────────────────────────────
+    // One free credit per new account, so a first card can go out without a
+    // payment step. Granted at signup rather than lazily on first use, so the
+    // balance endpoint reports it honestly from the moment they land.
+    //
+    // NOTE: this is one free card per EMAIL ADDRESS, not per person — see
+    // DEPLOY_NOTES §5. If farming shows up, gate it on is_verified.
+    try {
+      // supabase-js RESOLVES with { error } rather than throwing, so the catch
+      // alone would never fire and a failed grant would be invisible.
+      const { error: creditErr } = await supabase.from('card_credits').insert({
+        user_id:           user.id,
+        credits_remaining: 1,
+        total_purchased:   0,            // granted, never bought
+        plan_type_v2:      'welcome_free',
+      });
+      if (creditErr) console.error('signup: welcome credit failed for', user.id, creditErr.message);
+    } catch (thrown) {
+      // A missing welcome credit must never block a signup — they can still pay.
+      console.error('signup: welcome credit threw for', user.id, thrown.message);
+    }
+
     // Mark any matching guest visitor record as converted (for admin Guests tab)
     try {
       await supabase.from('visitors')
@@ -242,6 +264,28 @@ const signup = async (req, res) => {
       throw error;
     }
 
+    // ── Welcome credit ──────────────────────────────────────────────────
+    // One free credit per new account, so a first card can go out without a
+    // payment step. Granted at signup rather than lazily on first use, so the
+    // balance endpoint reports it honestly from the moment they land.
+    //
+    // NOTE: this is one free card per EMAIL ADDRESS, not per person — see
+    // DEPLOY_NOTES §5. If farming shows up, gate it on is_verified.
+    try {
+      // supabase-js RESOLVES with { error } rather than throwing, so the catch
+      // alone would never fire and a failed grant would be invisible.
+      const { error: creditErr } = await supabase.from('card_credits').insert({
+        user_id:           user.id,
+        credits_remaining: 1,
+        total_purchased:   0,            // granted, never bought
+        plan_type_v2:      'welcome_free',
+      });
+      if (creditErr) console.error('signup: welcome credit failed for', user.id, creditErr.message);
+    } catch (thrown) {
+      // A missing welcome credit must never block a signup — they can still pay.
+      console.error('signup: welcome credit threw for', user.id, thrown.message);
+    }
+
     // Mark any matching guest visitor record as converted (for admin Guests tab)
     try {
       await supabase.from('visitors')
@@ -285,6 +329,92 @@ const signup = async (req, res) => {
     if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
     console.error('Signup error:', err);
     res.status(500).json({ error: 'Server error during signup' });
+  }
+};
+
+/**
+ * POST /auth/quick-start — one field, no password, for the free test card.
+ *
+ * The visitor types only an email. We create the account, sign them in, and
+ * email them a link to choose a password later.
+ *
+ * The password we set here is CRYPTOGRAPHICALLY RANDOM and is never shown to
+ * anyone, not even the user. A shared default (testcard@#2026#, say) would
+ * ship inside the frontend bundle, where anyone can read it, and would then
+ * open every quick-start account to whoever can guess an email address —
+ * along with that person's cards, their recipients' addresses, and any credits
+ * or Send Money history on the account. Random-and-unknown gives the identical
+ * one-field experience with none of that.
+ *
+ * An email that ALREADY has an account is never signed in here: knowing
+ * someone's address must not be enough to get into their account. Those get
+ * { existing: true } and are asked for their password on the client.
+ */
+const quickStart = async (req, res) => {
+  try {
+    const cleanEmail = validateEmail(req.body?.email);
+    const cleanName  = req.body?.full_name
+      ? sanitizeName(req.body.full_name, 'Full name')
+      : (cleanEmail.split('@')[0] || 'Friend');
+
+    const { data: existing } = await supabase
+      .from('users').select('id').eq('email', cleanEmail).maybeSingle();
+    if (existing) {
+      return res.json({ existing: true, message: 'That email already has an account — please sign in.' });
+    }
+
+    // 32 random bytes, hashed like any other password and immediately forgotten.
+    const throwaway = crypto.randomBytes(32).toString('hex');
+    const password_hash = await hashPassword(throwaway);
+    const verification_token = crypto.randomBytes(32).toString('hex');
+    const reset_token = crypto.randomBytes(32).toString('hex');
+    // Generous: they have not chosen a password yet, so this link is their way in.
+    const reset_token_expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    let username = `${(cleanEmail.split('@')[0] || 'friend').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 14) || 'friend'}${Math.floor(1000 + Math.random() * 9000)}`;
+    let user = null;
+    for (let attempt = 0; attempt < 3 && !user; attempt++) {
+      const { data, error } = await supabase.from('users').insert({
+        full_name: cleanName, email: cleanEmail, username,
+        password_hash, verification_token, reset_token, reset_token_expires,
+        must_set_password: true, terms_accepted_at: new Date(),
+      }).select('id, email, full_name, username, role, avatar_url, is_verified').maybeSingle();
+      if (data) { user = data; break; }
+      if (error && error.code === '23505') {
+        username = `${username.slice(0, 14)}${Math.floor(1000 + Math.random() * 9000)}`;
+        continue;                                   // username clash — try another
+      }
+      if (error) { console.error('quickStart insert error:', error.message); break; }
+    }
+    if (!user) return res.status(500).json({ error: 'Could not start your card. Please try again.' });
+
+    // Welcome credit, same as every other new account.
+    const { error: creditErr } = await supabase.from('card_credits').insert({
+      user_id: user.id, credits_remaining: 1, total_purchased: 0, plan_type_v2: 'welcome_free',
+    });
+    if (creditErr) console.error('quickStart: welcome credit failed for', user.id, creditErr.message);
+
+    // Tell them how to take ownership of the account. Best effort.
+    try {
+      await sendEmail({
+        to: cleanEmail,
+        template: 'testCardWelcome',
+        data: {
+          name: String(cleanName).split(' ')[0],
+          resetUrl: `${process.env.FRONTEND_URL || 'https://www.thankeeu.com'}/reset-password?token=${reset_token}`,
+        },
+      });
+    } catch (mailErr) {
+      console.error('quickStart: welcome email failed:', mailErr.message);
+    }
+
+    const token = generateToken(user.id);
+    setCookie(res, 'tk_user', token, process.env.JWT_EXPIRES_IN || '7d');
+    return res.json({ token, user, must_set_password: true });
+  } catch (err) {
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+    console.error('quickStart error:', err.message);
+    return res.status(500).json({ error: 'Could not start your card. Please try again.' });
   }
 };
 
@@ -641,6 +771,7 @@ const resendVerification = async (req, res) => {
 
 // Single export at the end — after ALL functions are defined
 module.exports = {
+  quickStart,
   sendVerificationCode,
   verifyCodeAndSignup,
   signup, login, getMe, updateProfile, searchUsers,

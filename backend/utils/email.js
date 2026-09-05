@@ -558,6 +558,65 @@ const teamsTemplates = {
     `)
   }),
 
+  // Quick-start account: created from an email alone for a free test card.
+  // They have no password yet, so this is how they get one.
+  testCardWelcome: (data) => ({
+    subject: 'Your Thankeeu account is ready — set your password',
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Welcome, ${data.name}!</h2>
+      <p style="color:#555;line-height:1.8;">
+        We created your Thankeeu account so you could send your free test card without filling in a form.
+      </p>
+      <div style="background:#FEF3C7;border-radius:8px;padding:14px;margin:16px 0;">
+        <p style="color:#92400E;font-size:13px;margin:0;">
+          <strong>You do not have a password yet.</strong> We signed you in automatically this once —
+          choose a password now so you can get back in whenever you like.
+        </p>
+      </div>
+      ${btn('Set my password', data.resetUrl, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:12px;">This link works for 7 days. If you did not create this account, you can ignore this email.</p>
+    `)
+  }),
+
+  // Day 1 and day 2 nudge for quick-start accounts still without a password.
+  setPasswordReminder: (data) => ({
+    subject: data.lastCall
+      ? 'Last reminder — set your Thankeeu password'
+      : 'Set your Thankeeu password',
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Hi ${data.name}, one thing left</h2>
+      <p style="color:#555;line-height:1.8;">
+        Your account still has no password of your own, which means the only way back in is this link.
+        It takes about ten seconds to fix.
+      </p>
+      ${btn('Set my password', data.resetUrl, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:12px;">
+        ${data.lastCall ? 'This is the last reminder we will send about this.' : 'We will remind you once more tomorrow, then stop.'}
+      </p>
+    `)
+  }),
+
+  // Sent to the CREATOR the moment their card goes live — the receipt for
+  // "my card exists and here is the link to share".
+  cardCreated: (data) => ({
+    subject: `Your card for ${data.recipientName} is live 🎉`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Your card is live!</h2>
+      <p style="color:#555;line-height:1.8;">
+        Hi ${data.creatorName || 'there'} — your card for <strong>${data.recipientName}</strong> has been
+        created and is ready for everyone to sign.
+      </p>
+      ${data.usedFreeCredit ? `<div style="background:#EDE9FE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#5B21B6;font-size:13px;margin:0;">✨ This one was on us — your free credit has been used. Cards after this are ${data.feeLabel || '₦5,000'} each, or cheaper with a credit pack.</p></div>` : ''}
+      ${data.sendDate ? `<p style="color:#555;line-height:1.8;">It will be delivered to ${data.recipientName} on <strong>${data.sendDate}</strong>.</p>` : ''}
+      ${btn('Share the signing link', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#7C3AED')}
+      <p style="color:#555;line-height:1.6;font-size:13px;margin-top:16px;">
+        Share this link so everyone can add messages, photos and voice notes:<br>
+        <a href="${FRONTEND_URL}/sign/${data.cardSlug}" style="color:#7C3AED;">${FRONTEND_URL}/sign/${data.cardSlug}</a>
+      </p>
+      <p style="color:#aaa;font-size:12px;margin-top:12px;">Manage this card any time from your Thankeeu dashboard.</p>
+    `)
+  }),
+
   memberCardCreated: (data) => ({
     subject: `${data.creatorName} created a card for ${data.recipientName} — sign it!`,
     html: BASE(`

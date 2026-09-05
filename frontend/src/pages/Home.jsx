@@ -1123,6 +1123,10 @@ const Home = () => {
    </span>
    <span className="text-warm-300 text-sm hidden sm:inline">·</span>
    <span className="text-xs font-semibold text-warm-400 hidden sm:inline">No subscription</span>
+   <span className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold"
+     style={{ background:'#FEF3C7', color:'#92400E' }}>
+     <Icon name="Gift" size={13}/>1 free credit — send a free test card
+   </span>
  </div>
  </div>
 
@@ -1148,7 +1152,19 @@ const Home = () => {
 
    {/* Visible steps — these mirror the HowTo structured data exactly, which is
        what Google requires and what answer engines quote. */}
-   <ol className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm text-warm-600">
+   <div className="mt-4 inline-flex items-start gap-2.5 rounded-2xl px-4 py-3 text-left"
+     style={{ background:'#FEF3C7', border:'1px solid #FDE68A' }}>
+     <span className="text-lg leading-none">🎁</span>
+     <p className="text-sm font-semibold" style={{ color:'#92400E' }}>
+       You have <strong>1 free credit</strong> waiting — send a test card for free.<br />
+       <span className="font-medium">
+         Create your account at the end and we'll use it automatically. No card details,
+         nothing to pay, and it goes live straight away so you can see exactly how it works.
+       </span>
+     </p>
+   </div>
+
+   <ol className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm text-warm-600">
      {[
        'Describe the card in one line',
        'Check the details we filled in',

@@ -156,6 +156,7 @@ export const authAPI = {
   sendVerificationCode: (data)  => axios.post(`${BASE_URL}/auth/send-code`, data),
   verifyCode:           (data)  => axios.post(`${BASE_URL}/auth/verify-code`, data),
   signup:               (data)   => api.post('/auth/signup', data),
+  quickStart:           (data)   => api.post('/auth/quick-start', data),
   login:                (data)   => api.post('/auth/login', data),
   getMe:                ()       => api.get('/auth/me'),
   updateProfile:        (data)   => api.put('/auth/profile', data),

@@ -21,6 +21,8 @@ import { ALBUM_THEMES } from '../utils/albumThemes';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 import IntentSummaryStrip from '../components/IntentSummaryStrip';
 import ResumeDraftAlert from '../components/ResumeDraftAlert';
+import TestCardCountdown from '../components/TestCardCountdown';
+import AlbumStudioPreview from '../components/AlbumStudioPreview';
 import { takeIntent } from '../utils/cardIntent';
 import { applyCardIntent } from '../utils/applyCardIntent';
 
@@ -178,16 +180,105 @@ const CreateCard = () => {
  window.history.replaceState({}, '', url.toString());
  }, [searchParams]);
 
+ // ── Card already went live elsewhere ─────────────────────────────────────
+ // The homepage flow activates with a credit and hands over with ?live=<slug>,
+ // so the customer lands on the same congratulations-and-share screen the
+ // normal payment path ends on rather than an empty wizard.
+ // Only the granted welcome credit is spendable without a click; a purchased
+ // pack is the customer's money and needs the normal payment step.
+ useEffect(() => {
+  if (!user) return;
+  creditsAPI.getBalance()
+   .then(r => setFreeCredits((r.data?.total_purchased || 0) > 0 ? 0 : (r.data?.credits || 0)))
+   .catch(() => setFreeCredits(0));
+ }, [user]);
+
+ /** Claim the draft if needed, spend the free credit, return the live slug. */
+ const publishWithFreeCredit = async () => {
+  const slug = draftSlug;
+  if (!slug) return null;
+  try {
+   const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
+   if (pending.draft_edit_token) await cardsAPI.claimDraft(slug, pending.draft_edit_token);
+  } catch { /* already claimed */ }
+  try {
+   const res = await creditsAPI.spend(slug);
+   if (!res.data?.ok) return null;
+   const emails = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
+   if (emails.length) await cardsAPI.activate(slug, { inviteEmails: emails }).catch(() => {});
+   localStorage.removeItem('thankeeu_pending_card');
+   return slug;
+  } catch (err) {
+   console.warn('[free credit] publish failed:', err?.response?.status, err?.message);
+   return null;
+  }
+ };
+
+
+
+ useEffect(() => {
+  const live = searchParams.get('live');
+  if (!live) return;
+  let alive = true;
+  (async () => {
+   try {
+    // Verified, not trusted. The parameter is user-controlled, and this screen
+    // presents the card as the viewer's own and hands out its signing link —
+    // so confirm the card really is theirs and really is active before
+    // showing it. A bad or foreign slug just starts a normal new card.
+    const { data: card } = await cardsAPI.getOne(live);
+    if (!alive) return;
+    // The server computes ownership and returns it as isCreator — trusting
+    // that is both simpler and safer than re-deriving it here from ids that
+    // are only present on the privileged response shape anyway.
+    if (card?.isCreator && card.status === 'active') {
+     setLiveSlug(live);
+     localStorage.removeItem('thankeeu_pending_card');
+    }
+   } catch { /* not found or not permitted — fall through to the wizard */ }
+  })();
+  return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+ }, []);
+
  // ── Type-to-create handover ──────────────────────────────────────────────
  // Set by the homepage box (or carried here when CardStart forwarded a
  // signed-in user). The ?occasion=/?design= effect below returns early unless
  // those params are present, so the two cannot fight over the same form.
  const [intentSummary, setIntentSummary] = useState([]);
  const [resumedDraft, setResumedDraft] = useState(false);
+ // Test-card mode arrives with the typed sentence; the customer is already
+ // signed in by then (the homepage quick-start does that), so there is no
+ // payment step for them — just a visible countdown and their free credit.
+ const [intentMode, setIntentMode]   = useState(null);
+ const [countdownOn, setCountdownOn] = useState(false);
+ const autoStartedRef = useRef(false);
+ // The dashboard wizard only ever creates card_only cards, so the Live Wall
+ // drafts the preview accepts are always empty here.
+ const [wallDrafts, setWallDrafts] = useState([]);
+ const [freeCredits, setFreeCredits] = useState(null);
+
+ // A test card publishes itself: once the draft exists and a free credit is
+ // confirmed, the docked timer starts on its own. It is non-blocking and can
+ // be stopped, so nothing is taken away from anyone who wants longer.
+ useEffect(() => {
+  if (intentMode !== 'test' || autoStartedRef.current) return;
+  if (!draftSlug || !(freeCredits > 0) || liveSlug) return;
+  autoStartedRef.current = true;
+  setCountdownOn(true);
+ }, [intentMode, draftSlug, freeCredits, liveSlug]);
+
  useEffect(() => {
   if (searchParams.get('intent') !== '1') return;
   const intent = takeIntent();
   if (!intent) return;
+  // A typed sentence describes a NEW card. If an abandoned draft was also
+  // restored on this load (?resumed=1 is added whenever a snapshot exists),
+  // its recipient email, deadline and slug are still in state — and paying
+  // would then update and send that OLD card to its old recipient. Clear it.
+  localStorage.removeItem('thankeeu_pending_card');
+  setDraftSlug(null);
+  setResumedDraft(false);
   const { patch, step: target, summary } = applyCardIntent(intent, {
     creatorName, occasionIds: OCCASIONS.map(o => o.id),
   });
@@ -195,6 +286,10 @@ const CreateCard = () => {
   setForm(prev => ({ ...prev, ...patch }));
   setStep(target);
   setIntentSummary(summary);
+  if (intent.card_mode) setIntentMode(intent.card_mode);
+  if (Array.isArray(intent.invite_emails) && intent.invite_emails.length) {
+   setInviteEmails(intent.invite_emails.join(', '));
+  }
   // eslint-disable-next-line react-hooks/exhaustive-deps
  }, []);
 
@@ -642,7 +737,13 @@ const CreateCard = () => {
  }
 
  const inner = (
- <div className={`max-w-2xl mx-auto px-4 sm:px-6 ${(user || company || member) ? 'pt-2 pb-10' : 'py-10'}`}>
+ <div className={`mx-auto px-4 sm:px-6 ${(user || company || member) ? 'pt-2 pb-10' : 'py-10'}`}
+      style={{ maxWidth: 1200 }}>
+ {/* Same two-column studio the public wizard uses: the steps on the left, the
+     live album preview alongside them. Signed-in creators were the only ones
+     who could not see their card while building it. */}
+ <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,440px)]">
+ <div className="min-w-0">
  {!company && !member && !user && (
  <div className="mb-8">
  <h1 className="text-3xl font-bold text-warm-900 mb-1">Create a Thankeeu card</h1>
@@ -658,6 +759,43 @@ const CreateCard = () => {
      recipient={form.recipient_name}
      onPay={() => setStep(3)}
    />
+ )}
+
+ {countdownOn && (
+  <TestCardCountdown
+   recipientName={form.recipient_name}
+   onCancel={() => setCountdownOn(false)}
+   onComplete={async () => {
+    const slug = await publishWithFreeCredit();
+    setCountdownOn(false);
+    if (slug) setLiveSlug(slug);
+    else toast.error('We could not use your free credit — you can still pay for this card below.');
+   }}
+  />
+ )}
+
+ {intentMode === 'test' && freeCredits === 0 && !liveSlug && (
+  <div className="mb-6 rounded-2xl border border-purple-100 bg-purple-50/60 px-4 py-3 text-sm text-warm-700">
+   <strong className="text-warm-900">You've already used your free test card.</strong>{' '}
+   This one is a normal card — finish below and pay once to publish it.
+  </div>
+ )}
+
+ {intentMode === 'test' && freeCredits > 0 && !liveSlug && (
+  <div className="mb-6 rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 text-center">
+   <p className="mb-1 text-lg font-bold text-warm-900">🎁 Your free test card is ready</p>
+   <p className="mx-auto mb-4 max-w-md text-sm text-warm-600">
+    Check the details below, then publish it with your free credit. Nothing to pay,
+    and it is a real card — really delivered.
+   </p>
+   <button type="button" className="btn-primary px-6 py-3 font-bold"
+    onClick={async () => {
+     if (!draftSlug) { await handleCreateDraft().catch(() => {}); }
+     setCountdownOn(true);
+    }}>
+    Publish my free card →
+   </button>
+  </div>
  )}
 
  <IntentSummaryStrip items={intentSummary} />
@@ -1425,6 +1563,29 @@ const CreateCard = () => {
  </p>
  </div>
  )}
+ </div>
+
+ <aside className="min-w-0 lg:sticky lg:top-4">
+  <AlbumStudioPreview
+   design={selectedDesign}
+   form={form}
+   message={msgForm}
+   occasionLabel={form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : getOccasionLabel(form.occasion)}
+   activeStep={step >= 3 ? 4 : step}
+   creatorName={creatorName}
+   layout={form.cover_layout}
+   onLayoutChange={(next) => set('cover_layout', next)}
+   onCardLayoutChange={(layout) => set('card_layout', layout)}
+   selectedField={selectedCoverField}
+   onSelectField={setSelectedCoverField}
+   onFormChange={set}
+   wallDrafts={wallDrafts}
+   onWallDraftsChange={setWallDrafts}
+   recipientPhoto={recipientPhoto}
+   onRecipientPhoto={(f) => setRecipientPhoto({ file: f, preview: URL.createObjectURL(f) })}
+  />
+ </aside>
+ </div>
  </div>
  );
 

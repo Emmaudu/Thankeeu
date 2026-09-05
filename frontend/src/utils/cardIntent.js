@@ -16,6 +16,32 @@
  * that every id produced here exists in the wizard.
  */
 
+/* Shorthand and common misspellings, matched as whole words BEFORE the main
+ * table. These are the things a keyword list never catches: "hbd", a half-typed
+ * "birthd", a doubled letter, a missing vowel. Each entry is an exact word the
+ * customer might type, so there is no fuzzy guessing at this stage. */
+const OCCASION_SHORTHAND = [
+  ['birthday', ['hbd', 'hbday', 'bday', 'bdy', 'b-day', 'bday', 'birthd', 'birthdy', 'birtday',
+                'birhday', 'brithday', 'birthdate', 'bithday', 'birthaday', 'bda', 'borthday',
+                'birtjday', 'happybirthday', 'birth', 'bd']],
+  ['leaving',  ['farwell', 'farewel', 'fairwell', 'leavin', 'leving', 'sendoff', 'send-off',
+                'send off', 'sendforth', 'gudbye', 'goodby', 'bye']],
+  ['wedding',  ['weding', 'weddin', 'wedd', 'marraige', 'marrige', 'nikah', 'wed']],
+  ['retirement', ['retirment', 'retiremnt', 'retiring', 'retiree']],
+  ['graduation', ['graduaton', 'gradution', 'grad', 'graduatn', 'convocaton']],
+  ['anniversary', ['aniversary', 'anniversry', 'anniv', 'annivarsary']],
+  ['congratulations', ['congrat', 'congratz', 'congrats', 'congratulation', 'gratz', 'kudos']],
+  ['baby_shower', ['babyshower', 'babby shower', 'naming', 'christning']],
+  ['valentine', ['val', 'valentin', 'valentines', 'vals']],
+  ['christmas', ['chrismas', 'christmass', 'xmas', 'crismas', 'chrismass']],
+  ['get_well',  ['getwell', 'get-well', 'recover', 'sick']],
+  ['sympathy',  ['condolence', 'condolance', 'sympaty', 'symapthy', 'rip']],
+  ['thank_you', ['thanks', 'thankyou', 'thnx', 'ty']],
+  ['promotion', ['promo', 'promoton', 'promotin']],
+  ['new_year',  ['newyear', 'nye', 'happynewyear']],
+  ['good_luck', ['goodluck', 'gl', 'best wishes']],
+];
+
 /* ── Occasion keywords ─────────────────────────────────────────────────────
  * Ordered most-specific first: "baby shower" must beat "shower", and
  * "leaving" must be checked before generic congratulation words, since
@@ -407,7 +433,11 @@ export const parseSender = (text) => {
   return firstGoodName(m[1]);
 };
 
-/** An email typed into the sentence — used only to pre-fill the sign-in field. */
+/**
+ * An email typed into the sentence is the RECIPIENT's — it is who the card gets
+ * delivered to. It must never be used to pre-fill the sign-in field: doing that
+ * would have people creating Thankeeu accounts under their recipient's address.
+ */
 export const parseEmail = (text) => {
   const m = String(text || '').match(/[\w.+-]+@[\w-]+\.[\w.-]{2,}/);
   return m ? m[0].toLowerCase().replace(/[.,;]$/, '') : null;
@@ -419,10 +449,70 @@ export const parseEmail = (text) => {
  * explicitly in the table above rather than caught by a trailing wildcard.
  * The email is stripped first — an address is a handle, not a description of
  * the occasion, and its domain words are a rich source of false matches. */
+/**
+ * Levenshtein distance, capped — we only ever care whether it is 1 or 2, so
+ * the full matrix is never worth building for long strings.
+ */
+const editDistance = (a, b) => {
+  if (Math.abs(a.length - b.length) > 2) return 9;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      cur[j] = Math.min(
+        prev[j] + 1,
+        cur[j - 1] + 1,
+        prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+};
+
+/* The single words worth fuzzy-matching against, longest first. Only the
+ * distinctive head word of each occasion — matching "card" or "the" loosely
+ * would fire on everything. */
+const FUZZY_TARGETS = [
+  ['birthday', 'birthday'], ['anniversary', 'anniversary'], ['retirement', 'retirement'],
+  ['graduation', 'graduation'], ['congratulations', 'congratulations'], ['wedding', 'wedding'],
+  ['leaving', 'farewell'], ['leaving', 'leaving'], ['christmas', 'christmas'],
+  ['valentine', 'valentine'], ['promotion', 'promotion'], ['sympathy', 'sympathy'],
+  ['baby_shower', 'shower'], ['good_luck', 'goodluck'], ['new_year', 'newyear'],
+];
+
+/**
+ * Whole-word matching at BOTH ends, in three passes of decreasing certainty:
+ *
+ *   1. the shorthand table  — "hbd", "bday", "birthd"
+ *   2. the keyword table    — "birthday", "send-forth", "owambe"
+ *   3. a fuzzy pass         — anything within one or two edits of a head word,
+ *                             so "birhday", "weding" and "retirment" land
+ *
+ * A leading word boundary alone is not enough — "exam" then matches inside
+ * "ada@example.com" — so emails are stripped first and both ends are anchored.
+ */
 const detectOccasion = (text) => {
   const t = text.toLowerCase().replace(/[\w.+-]+@[\w-]+\.[\w.-]{2,}/g, ' ');
+
+  // Keyword table FIRST: it holds the multi-word, high-specificity phrases, and
+  // specificity has to win. Shorthand ahead of it would read "congrats on the
+  // new job, we'll miss you" as a congratulations card rather than a leaving one.
   for (const [id, words] of OCCASION_PATTERNS) {
     if (words.some(w => new RegExp(`\\b${escapeRe(w)}\\b`, 'i').test(t))) return id;
+  }
+  for (const [id, words] of OCCASION_SHORTHAND) {
+    if (words.some(w => new RegExp(`\\b${escapeRe(w)}\\b`, 'i').test(t))) return id;
+  }
+
+  // Fuzzy, last and most cautious. Words shorter than five letters are skipped:
+  // at that length two edits reaches half the dictionary.
+  const words = t.split(/[^a-z]+/).filter(w => w.length >= 5);
+  for (const w of words) {
+    for (const [id, target] of FUZZY_TARGETS) {
+      const budget = target.length >= 9 ? 2 : 1;
+      if (editDistance(w, target) <= budget) return id;
+    }
   }
   return null;
 };
@@ -485,7 +575,7 @@ export const parseCardIntent = (input, now = new Date()) => {
   if (deadline)       intent.deadline = deadline;
   if (send_time)      intent.send_time = send_time;
   if (deadline_time)  intent.deadline_time = deadline_time;
-  if (email)          intent.email = email;
+  if (email)          intent.recipient_email = email;
   if (recipient_name && occasion) intent.title = `${recipient_name}'s ${OCCASION_LABELS[occasion] || 'Special'} Card`;
 
   return intent;

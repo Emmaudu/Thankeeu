@@ -105,7 +105,7 @@ const CardStart = () => {
   noIndex: false,
 });
 
- const { user } = useAuth();
+ const { user, loading: authLoading } = useAuth();
  const { member } = useMemberAuth();
  const { company } = useCompanyAuth();
  const isCompanyUser = !!(member || company);
@@ -192,10 +192,15 @@ const CardStart = () => {
  // forwarded to /create-card, and consuming (which clears) the intent here
  // would leave that page with nothing to apply.
  const [intentSummary, setIntentSummary] = useState([]);
- // An email typed into the homepage sentence pre-fills the sign-in field below.
- // Only the email — never a password. See InlineAuthPanel.
- const [intentEmail, setIntentEmail] = useState('');
+ // 'test' spends the free credit and goes live; 'real' goes to payment. Chosen
+ // explicitly on the homepage, so nothing is ever spent without being asked.
+ const [intentMode, setIntentMode] = useState(null);
  useEffect(() => {
+  // Wait for the session to resolve. On a cold load of /card/customize?intent=1
+  // AuthContext starts at user=null and child effects run before the parent's,
+  // so without this a signed-in customer's intent would be consumed here (which
+  // CLEARS it) and then thrown away by the redirect to /create-card.
+  if (authLoading) return;
   if (redirectToDashboardFlow) return;
   if (searchParams.get('intent') !== '1') return;
   const intent = takeIntent();
@@ -207,9 +212,12 @@ const CardStart = () => {
   setForm(prev => ({ ...prev, ...patch }));
   setStep(target);
   setIntentSummary(summary);
-  if (intent.email) setIntentEmail(intent.email);
+  if (intent.card_mode) setIntentMode(intent.card_mode);
+  if (Array.isArray(intent.invite_emails) && intent.invite_emails.length) {
+   setInviteEmails(intent.invite_emails.join(', '));
+  }
   // eslint-disable-next-line react-hooks/exhaustive-deps
- }, [redirectToDashboardFlow]);
+ }, [redirectToDashboardFlow, authLoading]);
 
  // ── Message form ─────────────────────────────────────────────────────────
  // The creator no longer writes a message during setup — they add theirs after
@@ -384,6 +392,80 @@ const CardStart = () => {
  }, [form.occasion]);
 
  // ── Save localStorage snapshot ───────────────────────────────────────────
+ /**
+  * Straight after sign-in: if this account has a credit — every new account is
+  * given one — spend it and take the card live immediately, so a first-time
+  * customer sees a finished card instead of a payment screen.
+  *
+  * Returns { mode:'live', slug } or { mode:'review' }. Anything that goes wrong
+  * falls back to 'review': the customer still has their draft and can pay
+  * normally, which is strictly better than an error on their first visit.
+  */
+ const activateWithCreditIfPossible = async () => {
+  try {
+   const slug = draftSlug;
+   if (!slug) return { mode: 'review' };
+
+   // They chose "real card" on the homepage — take them to payment even if a
+   // free credit is sitting there. Their choice, not ours.
+   if (intentMode === 'real') return { mode: 'review' };
+
+   // CLAIM FIRST. The draft was created anonymously, so its creator_id is
+   // null; spendCredit refuses with 403 unless the card already belongs to
+   // the account that just signed in. Without this the whole free-credit path
+   // silently falls back to "go and pay" — the request fails, the catch below
+   // swallows it, and nothing anywhere says why.
+   try {
+    const pending = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
+    const editToken = pending.draft_edit_token;
+    if (editToken) await cardsAPI.claimDraft(slug, editToken);
+   } catch { /* already claimed, or claimed by the resume path later — carry on */ }
+
+   // The endpoint returns { credits }, not { credits_remaining } — reading the
+   // wrong key here would silently mean "no credits" for everybody.
+   const { data: bal } = await creditsAPI.getBalance();
+   if ((bal?.credits || 0) < 1) return { mode: 'review' };
+
+   // ONLY the free welcome credit is spent automatically. Someone who bought a
+   // credit pack must click to spend one — silently drawing down credits a
+   // customer paid for, on a card they have not reviewed, is spending their
+   // money for them. They go to the review step and choose, exactly as before.
+   if ((bal?.total_purchased || 0) > 0) return { mode: 'review' };
+
+   // spend() deducts the credit AND activates the card server-side; it also
+   // arms delivery scheduling and emails the creator their sharing link.
+   const res = await creditsAPI.spend(slug);
+   if (!res.data?.ok) return { mode: 'review' };
+
+   // Invites are a separate call and must not undo a successful activation.
+   const emailList = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
+   if (emailList.length) {
+    await cardsAPI.activate(slug, { inviteEmails: emailList }).catch(() => {});
+   }
+   // Carry the recipient photo across, the way every other activation path
+   // does. saveRecipientPhoto() itself lives inside handlePayAndLaunch's scope
+   // and is not reachable from here, so the upload is repeated rather than
+   // called — deliberately, and kept to the one attachment guests can add at
+   // this point. Best effort: a failed upload must not turn a live card into
+   // an error screen.
+   if (recipientPhoto?.file) {
+    try {
+     const pfd = new FormData();
+     pfd.append('photo', recipientPhoto.file);
+     await cardsAPI.uploadRecipientPhoto(slug, pfd, undefined);
+    } catch (e) { console.warn('[recipient-photo] upload failed:', e?.message); }
+   }
+
+   localStorage.removeItem(PENDING_KEY);
+   return { mode: 'live', slug };
+  } catch (err) {
+   // Logged, not swallowed. This path failing silently is exactly how the
+   // free-credit activation went unnoticed the first time.
+   console.warn('[free credit] activation fell back to review:', err?.response?.status, err?.message);
+   return { mode: 'review' };
+  }
+ };
+
  const saveSnapshot = (extra = {}) => {
  const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
  localStorage.setItem(PENDING_KEY, JSON.stringify({
@@ -729,7 +811,7 @@ const CardStart = () => {
 
  <StepIndicator current={step} />
 
- <IntentSummaryStrip items={intentSummary} />
+  <IntentSummaryStrip items={intentSummary} />
 
  <div className="min-w-0">
 
@@ -1239,7 +1321,9 @@ const CardStart = () => {
  style={{ background: 'linear-gradient(135deg,#EDE9FE,#F5F0FF)' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></div>
  <h2 className="text-2xl font-bold text-warm-900 mb-2">Card saved as draft!</h2>
  <p className="text-warm-500 text-sm max-w-sm mx-auto">
- Sign in or create a free account to pay the card fee, make it live, and get your sharing link.
+ Sign in or create a free account to make it live and get your sharing link —
+ new accounts get <strong className="text-warm-700">1 free credit</strong>, so your first
+ card costs nothing.
  </p>
  </div>
 
@@ -1267,8 +1351,8 @@ const CardStart = () => {
  <InlineAuthPanel
    beforeAuth={async () => saveSnapshot({ resumeStep: 3 })}
    redirectTo="/create-card?resumed=1"
-   prefillEmail={intentEmail}
    onAuthenticated={() => setHandingOff(true)}
+   afterAuth={activateWithCreditIfPossible}
  />
 
  <p className="text-center text-xs text-warm-400 mt-3 mb-5">
@@ -1291,7 +1375,10 @@ const CardStart = () => {
  </>)}
 
  {/* ── AUTHENTICATED: Normal Gift & Pay ── */}
- {(user || isCompanyUser) && (<>
+ {/* Hidden during the hand-off: the panel above is already counting down to
+     an activated card, and leaving a live pay button under it lets someone
+     pay ₦5,000 for a card that was just activated with a free credit. */}
+ {(user || isCompanyUser) && !handingOff && (<>
  <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & activate</h2>
  <p className="text-warm-500 text-sm mb-5">Enable a gift collection and launch your card</p>
 

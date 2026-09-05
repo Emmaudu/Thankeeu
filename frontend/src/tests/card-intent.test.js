@@ -70,7 +70,7 @@ describe('occasion detection', () => {
   it('an email address in the sentence cannot change the occasion', () => {
     const r = parseCardIntent('birthday card for my sister Ada, from Emmanuel, ada@example.com', THU);
     expect(r.occasion).toBe('birthday');
-    expect(r.email).toBe('ada@example.com');
+    expect(r.recipient_email).toBe('ada@example.com');
   });
 
   it('matches whole words only, at both ends', () => {
@@ -81,6 +81,67 @@ describe('occasion detection', () => {
   it('does not match occasion words inside other words', () => {
     expect(parseCardIntent('maybe a card for Ada', THU).occasion).not.toBe('may');
     expect(parseCardIntent('the value of a card', THU).occasion).not.toBe('valentine');
+  });
+});
+
+describe('typos, shorthand and half-typed words', () => {
+  const cases = [
+    ['hbd card for Ada',                'birthday'],
+    ['HBD Ada',                         'birthday'],
+    ['bday card for my sister',         'birthday'],
+    ['birthd card for Ada',             'birthday'],
+    ['birhday card for Ada',            'birthday'],
+    ['brithday card for Ada',           'birthday'],
+    ['bithday card for Ada',            'birthday'],
+    ['birth card for Ada',              'birthday'],
+    ['weding card for Ada & Tunde',     'wedding'],
+    ['farwell card for Emeka',          'leaving'],
+    ['retirment card for Mr Okafor',    'retirement'],
+    ['graduaton card for Chidi',        'graduation'],
+    ['aniversary card for my wife',     'anniversary'],
+    ['chrismas card for the team',      'christmas'],
+    ['congratz card for Ada',           'congratulations'],
+    ['sendoff card for Emeka',          'leaving'],
+  ];
+  cases.forEach(([text, expected]) => {
+    it(`${text} → ${expected}`, () => {
+      expect(parseCardIntent(text, THU).occasion).toBe(expected);
+    });
+  });
+
+  it('still prefers the specific phrase over shorthand', () => {
+    // "congrats" is birthday-adjacent shorthand, but the phrase wins.
+    expect(parseCardIntent("congrats on the new job, we'll miss you", THU).occasion).toBe('leaving');
+  });
+
+  it('does not fuzzy-match short or unrelated words into an occasion', () => {
+    expect(parseCardIntent('card for Ada', THU).occasion).toBeUndefined();
+    expect(parseCardIntent('please make something nice', THU).occasion).toBeUndefined();
+    expect(parseCardIntent('order for the office', THU).occasion).toBeUndefined();
+  });
+});
+
+describe("the recipient's email", () => {
+  it('is read from the sentence', () => {
+    const r = parseCardIntent('birthday card for Ada, ada@gmail.com, sending Friday', THU);
+    expect(r.recipient_email).toBe('ada@gmail.com');
+    expect(r.occasion).toBe('birthday');
+    expect(r.recipient_name).toBe('Ada');
+  });
+
+  it('is never exposed as a login email', () => {
+    // Regression guard: prefilling sign-in with this would have customers
+    // creating accounts under their recipient's address.
+    const r = parseCardIntent('birthday card for Ada, ada@gmail.com', THU);
+    expect(r.email).toBeUndefined();
+  });
+
+  it('tolerates trailing punctuation and case', () => {
+    expect(parseCardIntent('card for Ada, Ada@Gmail.Com.', THU).recipient_email).toBe('ada@gmail.com');
+  });
+
+  it('is absent when no email was typed', () => {
+    expect(parseCardIntent('birthday card for Ada', THU).recipient_email).toBeUndefined();
   });
 });
 

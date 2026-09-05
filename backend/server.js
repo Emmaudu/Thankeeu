@@ -52,29 +52,84 @@ const {
 } = require('./utils/paramGuard');
 app.use(securityHeaders);
 app.use(cookieParser(process.env.COOKIE_SECRET || process.env.JWT_SECRET));
+/**
+ * CORS.
+ *
+ * This used to build an allowlist and then `return callback(null, true)`
+ * unconditionally on the last line, so every origin on the internet was
+ * allowed — with `credentials: true` and `sameSite: 'none'` cookies behind it.
+ * Any page anywhere could make authenticated calls as a signed-in user.
+ *
+ * The allowlist is now actually enforced. It is deliberately generous about
+ * the things that legitimately vary — Vercel preview deployments, workspace
+ * subdomains, local dev — and closed to everything else.
+ *
+ * The old bare substring test for our brand name is gone: it matched
+ * evil-thankeeu.com and thankeeu.attacker.net just as happily as our own
+ * domains. Suffix and exact matches only, https everywhere but localhost.
+ *
+ * If a legitimate origin is ever missing, CORS_EXTRA_ORIGINS (comma-separated)
+ * adds it without a code change, and every rejection is logged with the exact
+ * value to add.
+ */
+const APEX = ['https://thankeeu.com', 'https://www.thankeeu.com'];
+
+const staticOrigins = new Set([
+  ...APEX,
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'http://127.0.0.1:5173',
+  ...String(process.env.CORS_EXTRA_ORIGINS || '')
+    .split(',').map(o => o.trim()).filter(Boolean),
+].filter(Boolean));
+
+const originAllowed = (origin) => {
+  if (staticOrigins.has(origin)) return true;
+
+  let url;
+  try { url = new URL(origin); } catch { return false; }
+  const host = url.hostname;
+
+  // Local development, including *.localhost workspace testing. The only place
+  // plain http is acceptable.
+  const isLocal = host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1';
+  if (isLocal) return url.protocol === 'http:' || url.protocol === 'https:';
+
+  // Everything else must be https. Session cookies here are `secure` and
+  // `sameSite: none`; honouring an http origin on our own domain would invite
+  // a downgrade and hand a network attacker a foothold.
+  if (url.protocol !== 'https:') return false;
+
+  // Our own wildcard subdomains: company workspaces, games, mentorship, admin.
+  if (host === 'thankeeu.com' || host.endsWith('.thankeeu.com')) return true;
+  // Vercel preview deployments for this project.
+  if (host.endsWith('.vercel.app')) return true;
+
+  return false;
+};
+
+const rejectedOrigins = new Set();   // log each unknown origin once, not per request
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, Postman)
+    // No Origin header: same-origin, curl, server-to-server, native apps and
+    // the Flutterwave webhook. These are not browser cross-origin requests and
+    // are not what CORS protects against.
     if (!origin) return callback(null, true);
-    const allowed = [
-      process.env.FRONTEND_URL,
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:5000',
-    ].filter(Boolean);
-    // Also allow any Vercel deployment preview URLs
-    if (
-      allowed.includes(origin) ||
-      origin.endsWith('.vercel.app') ||
-      origin.endsWith('.thankeeu.com') ||
-      /^https?:\/\/[a-z0-9-]+\.localhost(?::\d+)?$/i.test(origin) ||
-      origin.includes('thankeeu')
-    ) {
-      return callback(null, true);
+    if (originAllowed(origin)) return callback(null, true);
+
+    if (!rejectedOrigins.has(origin)) {
+      rejectedOrigins.add(origin);
+      console.warn(`[cors] blocked origin: ${origin} — if this is yours, add it to CORS_EXTRA_ORIGINS`);
     }
-    return callback(null, true); // permissive — tighten after confirmed working
+    // `false`, not an Error: the request is answered without CORS headers, so
+    // the browser blocks it. Passing an Error would surface a 500 in logs for
+    // what is ordinary, expected traffic.
+    return callback(null, false);
   },
-  credentials: true
+  credentials: true,
 }));
 
 // Query-string sanitisation
@@ -285,6 +340,17 @@ app.use((err, req, res, next) => {
 // CRON: Auto-send cards on scheduled date + send reminders 2 days before deadline
 // Visitor nurture emails — weekly Mondays
 cron.schedule('0 9 * * 1', () => sendNudgeEmails().catch(console.error));
+
+// "Set your password" reminders for quick-start test-card accounts: once a day,
+// at most twice, then it stops. Runs mid-morning so it does not land overnight.
+cron.schedule('0 10 * * *', async () => {
+  try {
+    const { sweepPasswordNudges } = require('./utils/passwordNudge');
+    await sweepPasswordNudges();
+  } catch (err) {
+    console.error('[cron] password nudge sweep failed:', err.message);
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CARD DELIVERY ENGINE

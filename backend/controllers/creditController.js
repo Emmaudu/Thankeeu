@@ -23,6 +23,17 @@
 
 const axios    = require('axios');
 const supabase = require('../utils/supabase');
+const { sendEmail } = require('../utils/email');
+
+/** ISO timestamp → "Friday, 11 September 2026". Null when there is no date. */
+const humanDate = (iso) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString('en-GB', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
+  });
+};
 const { safeTxRef } = require('../utils/paramGuard');
 const { validateDiscountCode, applyDiscountToFeeNGN, recordDiscountRedemption } = require('./discountCodeController');
 
@@ -333,7 +344,7 @@ const spendCredit = async (req, res) => {
 
     // Check balance
     const { data: balance } = await supabase.from('card_credits')
-      .select('id, credits_remaining').eq('user_id', userId).maybeSingle();
+      .select('id, credits_remaining, total_purchased').eq('user_id', userId).maybeSingle();
 
     if (!balance || (balance.credits_remaining || 0) < 1) {
       return res.status(400).json({
@@ -379,10 +390,14 @@ const spendCredit = async (req, res) => {
     const { error: activateErr } = await supabase.from('cards')
       .update({ status: 'active' }).eq('slug', card_slug);
     if (activateErr) {
-      // Refund the credit if activation fails
+      // Refund the credit if activation fails. Conditional on the balance still
+      // being what our own deduction left it at — a blind write back to the
+      // pre-deduction figure would hand back credits another tab had spent in
+      // between, creating credits from nothing.
       await supabase.from('card_credits')
         .update({ credits_remaining: balance.credits_remaining, updated_at: new Date() })
-        .eq('id', balance.id);
+        .eq('id', balance.id)
+        .eq('credits_remaining', balance.credits_remaining - 1);
       return res.status(500).json({ error: 'Card activation failed. Credit has been refunded.' });
     }
 
@@ -400,6 +415,32 @@ const spendCredit = async (req, res) => {
         scheduler.scheduleCardDelivery({ ...freshCard, status: 'active' });
         console.log('[spendCredit] Scheduled delivery for', card_slug, 'at', freshCard.send_date);
       } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
+    }
+
+    // Tell the creator their card exists, with the link to share. Best effort:
+    // a mail failure must never make a paid-for activation look like it failed.
+    try {
+      const { data: creator } = await supabase.from('users')
+        .select('email, full_name').eq('id', userId).maybeSingle();
+      if (creator?.email) {
+        await sendEmail({
+          to: creator.email,
+          template: 'cardCreated',
+          data: {
+            creatorName:   (creator.full_name || '').split(' ')[0],
+            recipientName: freshCard?.recipient_name || card.recipient_name || 'your recipient',
+            cardSlug:      card_slug,
+            // send_date is stored as a full ISO string; printed raw the email
+            // reads "2026-09-11T08:00:00.000Z".
+            sendDate:      humanDate(freshCard?.send_date),
+            // The free credit is the one granted at signup: they still had
+            // their welcome credit and nothing had been purchased.
+            usedFreeCredit: (balance.credits_remaining === 1) && !(balance.total_purchased > 0),
+          },
+        });
+      }
+    } catch (mailErr) {
+      console.error('[spendCredit] cardCreated email failed:', mailErr.message);
     }
 
     return res.json({

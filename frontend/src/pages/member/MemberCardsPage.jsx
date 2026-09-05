@@ -5,6 +5,7 @@ import MemberLayout from '../../components/member/MemberLayout';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../../utils/currency';
+import { asArray } from '../../utils/asArray';
 
 const occasionEmoji = { birthday:'🎂',leaving:'👋',promotion:'🌟',anniversary:'💍',graduation:'🎓',wedding:'💒',other:'🎉' };
 
@@ -43,7 +44,7 @@ export default function MemberCardsPage() {
 
   useEffect(() => {
     memberCardsAPI.getHistory()
-      .then(r => setCards(r.data || []))
+      .then(r => setCards(asArray(r.data)))
       .catch(() => toast.error('Failed to load cards'))
       .finally(() => setLoading(false));
   }, []);

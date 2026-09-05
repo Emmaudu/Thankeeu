@@ -3,6 +3,7 @@ import VendorLayout from './VendorLayout';
 import Icon from '../../components/ui/Icon';
 import { vendorAxios } from '../../utils/api';
 import { formatNGN } from '../../utils/currency';
+import { asArray } from '../../utils/asArray';
 
 export default function VendorCustomers() {
   const [orders, setOrders] = useState([]);
@@ -10,7 +11,7 @@ export default function VendorCustomers() {
 
   useEffect(() => {
     vendorAxios.get('/vendor/orders')
-      .then(r => setOrders(r.data || []))
+      .then(r => setOrders(asArray(r.data)))
       .finally(() => setLoading(false));
   }, []);
 

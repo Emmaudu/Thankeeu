@@ -5,6 +5,7 @@ import Icon from '../../components/ui/Icon';
 import { vendorAxios } from '../../utils/api';
 import { formatNGN } from '../../utils/currency';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 const StatCard = ({ icon, label, value, sub, accent, color = '#7C3AED' }) => (
   <div className="bg-white rounded-2xl border border-purple-100 p-5 relative overflow-hidden">
@@ -35,7 +36,7 @@ export default function VendorDashboard() {
       vendorAxios.get('/vendor/orders'),
     ]).then(([a, o]) => {
       setData(a.data);
-      setOrders((o.data || []).slice(0, 8));
+      setOrders((asArray(o.data)).slice(0, 8));
     }).catch(() => toast.error('Failed to load dashboard'))
       .finally(() => setLoading(false));
   }, []);

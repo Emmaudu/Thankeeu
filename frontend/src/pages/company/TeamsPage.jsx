@@ -5,6 +5,7 @@ import { occasionsAPI, subscriptionAPI, hrisAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import Icon from '../../components/ui/Icon';
+import { asArray } from '../../utils/asArray';
 
 const daysUntil = (dateStr) => {
   const today = new Date();
@@ -31,7 +32,7 @@ const TeamsPage = () => {
   useEffect(() => {
     Promise.all([occasionsAPI.getTypes(), subscriptionAPI.get()])
       .then(([t, s]) => {
-        setTypes(t.data || []);
+        setTypes(asArray(t.data));
         setSub(s.data);
         if (t.data?.length > 0) setSelected(t.data[0]);
       })
@@ -45,7 +46,7 @@ const TeamsPage = () => {
     setMembersLoading(true);
     try {
       const res = await occasionsAPI.getMembers(selected.id, { search, department: deptFilter });
-      setMembers(res.data || []);
+      setMembers(asArray(res.data));
     } catch { toast.error('Failed to load members'); }
     finally { setMembersLoading(false); }
   };

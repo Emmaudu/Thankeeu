@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { dashboardAPI } from '../../utils/api';
 import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
+import { asArray } from '../../utils/asArray';
 
 const EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
 
 export default function DashboardPending() {
   const [items,   setItems]   = useState([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { dashboardAPI.getPendingToSign().then(r=>setItems(r.data||[])).finally(()=>setLoading(false)); }, []);
+  useEffect(() => { dashboardAPI.getPendingToSign().then(r=>setItems(asArray(r.data))).finally(()=>setLoading(false)); }, []);
 
   return (
     <DashboardLayout title="Pending to Sign" subtitle="Cards you've been invited to sign">

@@ -6,6 +6,7 @@ import { adminAPI, adminCompanyAPI, adminSupportAPI, demoAPI, blogAPI } from '..
 import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
 import Icon from '../components/ui/Icon';
+import { asArray } from '../utils/asArray';
 
 // ── Mini helpers ──────────────────────────────────────────────────────────────
 const Badge = ({ children, color = 'purple' }) => {
@@ -1124,22 +1125,22 @@ const Admin = () => {
       ]);
       const statsData = statsRes.data || {};
       setStats(statsData.stats || statsData); // support both {stats:{...}} and flat shape
-      setUsers(usersRes.data || []);
-      setCards(cardsRes.data || []);
+      setUsers(asArray(usersRes.data));
+      setCards(asArray(cardsRes.data));
     } catch { toast.error('Failed to load admin data'); }
     finally { setLoading(false); }
   };
 
   const fetchTickets = async () => {
     setTicketsLoading(true);
-    try { const r = await adminSupportAPI.getAll(); setTickets(r.data || []); }
+    try { const r = await adminSupportAPI.getAll(); setTickets(asArray(r.data)); }
     catch { toast.error('Failed to load tickets'); }
     finally { setTicketsLoading(false); }
   };
 
   const fetchCompanies = async () => {
     setCompaniesLoading(true);
-    try { const r = await adminCompanyAPI.getAll(); setCompanies(r.data || []); }
+    try { const r = await adminCompanyAPI.getAll(); setCompanies(asArray(r.data)); }
     catch { toast.error('Failed to load companies'); }
     finally { setCompaniesLoading(false); }
   };
@@ -1357,7 +1358,7 @@ const Admin = () => {
 
   const fetchBlog = async () => {
     setBlogLoading(true);
-    try { const r = await blogAPI.admin.getPosts('all'); setBlogPosts(r.data || []); }
+    try { const r = await blogAPI.admin.getPosts('all'); setBlogPosts(asArray(r.data)); }
     catch { toast.error('Failed to load blog posts'); }
     finally { setBlogLoading(false); }
   };
@@ -1763,7 +1764,7 @@ const Admin = () => {
                     setOpenCompany(co.id);
                     if (!companyMembers[co.id]) {
                       const r = await adminCompanyAPI.getMembers(co.id).catch(()=>({data:[]}));
-                      setCompanyMembers(p=>({...p,[co.id]: r.data||[]}));
+                      setCompanyMembers(p=>({...p,[co.id]: asArray(r.data)}));
                     }
                   }}>
                   <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-lg flex-shrink-0">

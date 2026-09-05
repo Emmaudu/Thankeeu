@@ -5,6 +5,7 @@ import CompanyLayout from '../../components/company/CompanyLayout';
 import { useCompanyAuth } from '../../context/CompanyAuthContext';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { asArray } from '../../utils/asArray';
 
 const STATUS_COLORS = {
   pending:  'bg-amber-100 text-amber-700',
@@ -29,7 +30,7 @@ const MembersApprovalPage = () => {
   const fetchMembers = async () => {
     try {
       const res = await hrMembersAPI.getAll();
-      setMembers(res.data || []);
+      setMembers(asArray(res.data));
     } catch { toast.error('Failed to load members'); }
     finally { setLoading(false); }
   };

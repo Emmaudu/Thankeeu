@@ -1108,12 +1108,12 @@ const Home = () => {
  <span style={{ color:'#1A1035' }}>Card that will be Read and Watched</span>
  </h1>
 
- <p className="text-warm-600 mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.1rem,2.4vw,1.3rem)', lineHeight:1.6 }}>
+ <p className="text-warm-600 mb-2 sm:mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.1rem,2.4vw,1.3rem)', lineHeight:1.6 }}>
  The card that collects everyone's love — messages, photos, voice notes and a gift — then turns it all into a group card and movie video memory they keep forever.
  </p>
 
  {/* Price — visible before any scrolling, same pattern as leaving card hero */}
- <div className="flex flex-wrap items-center gap-2 mb-5 justify-center lg:justify-start">
+ <div className="flex flex-wrap items-center gap-2 mb-3 sm:mb-5 justify-center lg:justify-start">
    <span className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold" style={{background:'#EDE9FE',color:'#5B21B6'}}>
      <Icon name="Check" size={13} className="text-emerald-600"/>Free to start
    </span>
@@ -1135,10 +1135,10 @@ const Home = () => {
      it was squeezed to ~300px, which hid most of a sentence the customer was
      supposed to read and edit. The design tiles and the "Create a card"
      button both stay — plenty of people would rather browse than type. */}
- <div className="mt-10 max-w-5xl mx-auto text-center">
+ <div className="mt-2 sm:mt-5 max-w-5xl mx-auto text-center">
    {/* Compact on purpose: every pixel here pushes the input below the fold,
        and the three steps underneath already explain the rest. */}
-   <div className="mb-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5">
+   <div className="mb-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
      <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em]"
        style={{ background:'#EDE9FE', color:'#5B21B6' }}>
        <Icon name="Zap" size={11}/> 1-minute setup

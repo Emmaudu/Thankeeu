@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { memberAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
+import { asArray } from '../../utils/asArray';
 
 const occasionEmoji = { birthday:'🎂',leaving:'👋',promotion:'🌟',anniversary:'💍',graduation:'🎓',wedding:'💒',other:'🎉' };
 
@@ -11,7 +12,7 @@ export default function MemberPendingPage() {
 
   useEffect(() => {
     memberAPI.getPendingToSign?.()
-      .then(r => setItems(r.data || []))
+      .then(r => setItems(asArray(r.data)))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

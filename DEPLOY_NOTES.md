@@ -93,6 +93,23 @@ The delivery time and the signing-deadline time come from their own clauses, so
 *"sending next Friday morning, deadline this Wednesday evening"* fills four
 separate fields correctly.
 
+### One malformed API response can no longer white-screen a page
+`res.data || []` guards null and undefined only. When an endpoint answers with
+an **object** — an error body, a paginated envelope, a shape change — it sails
+through `||`, the next `.map()` throws, and React renders a blank page with the
+error only in the console. This had already happened twice (the notification
+bell taking down every dashboard page; then `/dashboard/received`,
+`/dashboard/delivered` and `/dashboard/finances`, caught by a new route smoke
+test).
+
+`utils/asArray.js` is now the single guard, applied at **68 call sites across
+45 files**. It returns arrays untouched, coerces anything else to `[]`, and
+unwraps a common envelope (`items`/`data`/`rows`/`results`/…) so an endpoint
+that starts paginating keeps working instead of silently showing "nothing here".
+
+`harness/routes.mjs` smoke-tests **36 routes** (25 public, 11 authenticated) and
+fails on any page error or empty render. All 36 are clean.
+
 ### CORS is now actually enforced
 `server.js` built an allowlist and then ended the callback with an
 unconditional `callback(null, true)`, so **every origin on the internet was
@@ -120,17 +137,34 @@ there.
 `tests/cors.test.js` covers both directions: ten origins that must keep
 working, ten that must be refused.
 
-### Test card vs real card — an explicit choice
-Pressing **Set up my card** no longer jumps straight to the wizard. It opens a
-second slide on the homepage asking the one question worth asking while the
-sentence is still on screen:
+### One input, three steps — no panels
+Everything the box needs is asked in the **same field**, one thing at a time,
+because a sentence, an email address and a list of invitees do not fit on one
+line:
+
+1. **Describe the card** — the sentence.
+2. **Your own email** — skipped entirely when already signed in.
+3. **Invitees** — optional, comma separated, with a Skip link.
+
+Each step clears the field, changes the placeholder and shows a step badge,
+with **Back** always available.
+
+The strip above the input carries the choices so none of them needs a panel.
+**Cover suggestions are showing the moment the page loads** — the box starts
+pre-filled with a real sentence, so the occasion is already known and the covers
+are the first thing worth seeing. Tap one and they **collapse into a compact
+`Cover ✓ · Free test card · Real card` row** in the same place.
+
+The strip is deliberately tight (40×50 tiles, label folded onto the same row) so
+the input itself stays above the fold: 754px on desktop and laptop, against
+folds of 900 and 768. On a 390×844 phone the input sits about 11px below the
+fold — the headline, price row and covers are all visible and the input needs a
+small scroll. Getting it fully above the fold there would mean shrinking the
+hero headline, which is a bigger call than this change.
 
 - **Test card — free.** Uses the welcome credit. A real card, really delivered,
   nothing to pay.
 - **Real card — paid.** The normal one-time fee at the end.
-
-Plus an optional comma-separated **invitee emails** box, which pre-fills the
-wizard's own invite field.
 
 Choosing *test* while signed out asks for **one field — an email** — and creates
 the account through the new `POST /auth/quick-start`. They land in the dashboard
@@ -215,6 +249,9 @@ Signal copy sits on the hero price row, under the homepage input, on the
 | Recipient photo silently dropped on the free-credit path | `CardStart.jsx` |
 | TDZ: the auto-start effect's dependency array referenced `intentMode` above its declaration | `CreateCard.jsx` |
 | `occasionLabel` did not exist in `CreateCard` — the ported preview crashed the page | `CreateCard.jsx` |
+| Three dashboard pages white-screened on a non-array API response | `asArray` across 45 files |
+| Advancing to step 2 silently discarded the cover the customer had just picked | `CardIntentBar.jsx` |
+| `applyCardIntent` compared dates against the wall clock, so a test passing at 23:59 failed at 00:01 | `applyCardIntent.js` |
 
 ---
 
@@ -222,7 +259,7 @@ Signal copy sits on the hero price row, under the homepage input, on the
 
 ```
 cd backend  && node --test "tests/**/*.test.js"     # 463 passing
-cd frontend && npx vitest run                        # 667 passing
+cd frontend && npx vitest run                        # 675 passing
 ```
 
 Browser checks live in `/root/harness` (not shipped) and all pass with zero

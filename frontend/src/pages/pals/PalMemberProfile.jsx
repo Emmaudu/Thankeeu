@@ -4,6 +4,7 @@ import PalLayout from './PalLayout';
 import Icon from '../../components/ui/Icon';
 import { palAPI, palAxios, banksAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 const EVENTS = [
   { key: 'resignation', label: 'Resignation', dateField: 'resignation_date', noteField: 'resignation_note' },
@@ -43,7 +44,7 @@ export default function PalMemberProfile() {
     if (data.bank_details?.account_number && data.bank_details?.account_name) setVerified(true);
   }).finally(() => setLoading(false));
   useEffect(() => { load(); }, [id]);
-  useEffect(() => { banksAPI.getList().then(r => setBanks((r.data || []).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {}); }, []);
+  useEffect(() => { banksAPI.getList().then(r => setBanks((asArray(r.data)).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {}); }, []);
 
   const set = (k, v) => setMember(p => ({ ...p, [k]: v }));
   const setBank = (k, v) => setMember(p => ({ ...p, bank_details: { ...(p.bank_details||{}), [k]: v } }));

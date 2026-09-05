@@ -4,6 +4,7 @@ import Icon from '../../components/ui/Icon';
 import { vendorAxios } from '../../utils/api';
 import { formatNGN } from '../../utils/currency';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 export default function VendorAnalytics() {
   const [data, setData] = useState(null);
@@ -15,7 +16,7 @@ export default function VendorAnalytics() {
       vendorAxios.get('/vendor/orders'),
     ]).then(([a, o]) => {
       setData(a.data);
-      setOrders(o.data || []);
+      setOrders(asArray(o.data));
     }).catch(()=>toast.error('Failed to load analytics'));
   }, []);
 

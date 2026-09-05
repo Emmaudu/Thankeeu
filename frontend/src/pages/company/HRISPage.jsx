@@ -5,6 +5,7 @@ import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { asArray } from '../../utils/asArray';
 
 const PROVIDERS = [
   // ── OAuth2 — HR just clicks Connect, no keys needed ──────────────────────
@@ -262,8 +263,8 @@ const HRISPage = () => {
   const fetchAll = async () => {
     try {
       const [connRes, logRes] = await Promise.all([hrisAPI.getConnections(), hrisAPI.getSyncLogs()]);
-      setConnections(connRes.data || []);
-      setLogs(logRes.data || []);
+      setConnections(asArray(connRes.data));
+      setLogs(asArray(logRes.data));
     } catch { toast.error('Failed to load HRIS data'); }
     finally { setLoading(false); }
   };

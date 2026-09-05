@@ -4,13 +4,14 @@ import PalLayout from './PalLayout';
 import Icon from '../../components/ui/Icon';
 import { palAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 export default function PalMembers() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [groupSize, setGroupSize] = useState(15);
 
-  const load = () => palAPI.getMembers().then(r => setMembers(r.data || [])).finally(() => setLoading(false));
+  const load = () => palAPI.getMembers().then(r => setMembers(asArray(r.data))).finally(() => setLoading(false));
   useEffect(() => {
     load();
     try {

@@ -5,6 +5,7 @@ import { companyAxios } from '../../utils/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../../utils/currency';
+import { asArray } from '../../utils/asArray';
 
 // Convert stored UTC date + time to local timezone for display.
 const fmtScheduled = (card) => {
@@ -179,7 +180,7 @@ export default function CompanyMyCardsPage() {
         : tab === 'received' ? '/cards/company/received'
         : '/cards/company/delivered';
       const r = await companyAxios.get(endpoint);
-      setCards(r.data || []);
+      setCards(asArray(r.data));
     } catch { toast.error('Failed to load cards'); setCards([]); }
     finally { setLoading(false); }
   };

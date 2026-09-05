@@ -5,6 +5,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
+import { asArray } from '../../utils/asArray';
 
 const EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
 
@@ -12,7 +13,7 @@ export default function DashboardReceived() {
   const { user }  = useAuth();
   const [cards,   setCards]   = useState([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { dashboardAPI.getReceivedCards().then(r=>setCards(r.data||[])).finally(()=>setLoading(false)); }, []);
+  useEffect(() => { dashboardAPI.getReceivedCards().then(r=>setCards(asArray(r.data))).finally(()=>setLoading(false)); }, []);
 
   return (
     <DashboardLayout title="Received Cards" subtitle="Card boxes transferred to you by others">

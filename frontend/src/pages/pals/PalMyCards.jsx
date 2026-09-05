@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 
 
 import QRButton from '../../components/QRButton';
+import { asArray } from '../../utils/asArray';
 const OCCASION_ICON = { birthday: '🎂', farewell: '👋', graduation: '🎓', milestone: '🎉', promotion: '🎊' };
 const STATUS_COLOR = s => ({ active:'bg-green-100 text-green-700', sent:'bg-blue-100 text-blue-700', draft:'bg-gray-100 text-gray-600' }[s]||'bg-gray-100 text-gray-600');
 
@@ -16,7 +17,7 @@ export default function PalMyCards() {
   const [togglingId, setTogglingId] = useState(null);
 
   useEffect(() => {
-    palAPI.getMyCards().then(r => setCards(r.data||[])).catch(()=>toast.error('Failed to load cards')).finally(()=>setLoading(false));
+    palAPI.getMyCards().then(r => setCards(asArray(r.data))).catch(()=>toast.error('Failed to load cards')).finally(()=>setLoading(false));
   }, []);
 
   const handleToggleHideAmounts = async (card) => {

@@ -68,7 +68,7 @@ const autoCoverFor = (occasion) => {
  *                                    summary is chips for the "we understood"
  *                                    strip, already human-readable.
  */
-export const applyCardIntent = (intent, { creatorName = 'You', occasionIds = [] } = {}) => {
+export const applyCardIntent = (intent, { creatorName = 'You', occasionIds = [], now = new Date() } = {}) => {
   const patch = {};
   const summary = [];
   if (!intent || typeof intent !== 'object') return { patch, step: 0, summary };
@@ -139,7 +139,8 @@ export const applyCardIntent = (intent, { creatorName = 'You', occasionIds = [] 
     patch.send_date = intent.send_date;
     if (intent.send_time) patch.send_time = intent.send_time;
     // A card must not be scheduled into the past if the tab sat open overnight.
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    // `now` is injectable so this cannot silently depend on the wall clock.
+    const today = new Date(now); today.setHours(0, 0, 0, 0);
     if (new Date(`${intent.send_date}T00:00:00`) < today) delete patch.send_date;
     else summary.push({ key: 'date',
       label: `${formatDateChip(intent.send_date)}${intent.send_time ? ` · ${prettyTime(intent.send_time)}` : ''}` });
@@ -147,7 +148,7 @@ export const applyCardIntent = (intent, { creatorName = 'You', occasionIds = [] 
 
   // ── Signing deadline ────────────────────────────────────────────────────
   if (intent.deadline) {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const today = new Date(now); today.setHours(0, 0, 0, 0);
     if (new Date(`${intent.deadline}T00:00:00`) >= today) {
       patch.deadline = intent.deadline;
       if (intent.deadline_time) patch.deadline_time = intent.deadline_time;

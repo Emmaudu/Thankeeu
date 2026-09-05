@@ -4,6 +4,7 @@ import Icon from '../../components/ui/Icon';
 import { vendorAxios, vendorAPI } from '../../utils/api';
 import { formatNGN } from '../../utils/currency';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 const BLANK = { name:'', description:'', price:'', category:'', stock:'', images:[], is_available:true };
 
@@ -15,7 +16,7 @@ export default function VendorProducts() {
   const [saving, setSaving] = useState(false);
   const [uploadingImg, setUploadingImg] = useState(false);
 
-  const load = () => vendorAxios.get('/vendor/products').then(r => setProducts(r.data || [])).finally(() => setLoading(false));
+  const load = () => vendorAxios.get('/vendor/products').then(r => setProducts(asArray(r.data))).finally(() => setLoading(false));
   useEffect(() => { load(); }, []);
 
   const openAdd  = () => { setForm(BLANK); setModal('add'); };

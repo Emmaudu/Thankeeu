@@ -3,6 +3,7 @@ import { memberAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import Icon from '../../components/ui/Icon';
+import { asArray } from '../../utils/asArray';
 
 const FREQS = [
   { id:'once',label:'Once only'},{id:'yearly',label:'Every year'},{id:'quarterly',label:'Every 3 months'},
@@ -21,7 +22,7 @@ export default function MemberRemindersPage() {
   useEffect(() => {
     // Use member-aware reminders API
     memberAPI.getReminders()
-      .then(r => setReminders(r.data || []))
+      .then(r => setReminders(asArray(r.data)))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

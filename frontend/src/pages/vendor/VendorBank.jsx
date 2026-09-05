@@ -3,6 +3,7 @@ import VendorLayout from './VendorLayout';
 import Icon from '../../components/ui/Icon';
 import { vendorAxios, banksAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 export default function VendorBank() {
   const [banks, setBanks] = useState([]);
@@ -13,7 +14,7 @@ export default function VendorBank() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    banksAPI.getList().then(r => setBanks((r.data || []).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
+    banksAPI.getList().then(r => setBanks((asArray(r.data)).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
     vendorAxios.get('/vendor/me').then(r => {
       const bd = r.data.bank_details;
       if (bd) {

@@ -195,6 +195,10 @@ const CardStart = () => {
  // 'test' spends the free credit and goes live; 'real' goes to payment. Chosen
  // explicitly on the homepage, so nothing is ever spent without being asked.
  const [intentMode, setIntentMode] = useState(null);
+ // The sender's OWN email, typed at step 2 of the homepage box. Safe to
+ // pre-fill the sign-in field with — unlike the recipient's address, which is
+ // parsed from the sentence and must never end up here.
+ const [senderEmail, setSenderEmail] = useState('');
  useEffect(() => {
   // Wait for the session to resolve. On a cold load of /card/customize?intent=1
   // AuthContext starts at user=null and child effects run before the parent's,
@@ -213,6 +217,7 @@ const CardStart = () => {
   setStep(target);
   setIntentSummary(summary);
   if (intent.card_mode) setIntentMode(intent.card_mode);
+  if (intent.sender_email) setSenderEmail(intent.sender_email);
   if (Array.isArray(intent.invite_emails) && intent.invite_emails.length) {
    setInviteEmails(intent.invite_emails.join(', '));
   }
@@ -1351,6 +1356,7 @@ const CardStart = () => {
  <InlineAuthPanel
    beforeAuth={async () => saveSnapshot({ resumeStep: 3 })}
    redirectTo="/create-card?resumed=1"
+   prefillEmail={senderEmail}
    onAuthenticated={() => setHandingOff(true)}
    afterAuth={activateWithCreditIfPossible}
  />

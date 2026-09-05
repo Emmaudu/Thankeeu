@@ -4,6 +4,7 @@ import { memberAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import { formatNGN } from '../../utils/currency';
+import { asArray } from '../../utils/asArray';
 
 export default function MemberReceivedPage() {
   const { member } = useMemberAuth();
@@ -13,7 +14,7 @@ export default function MemberReceivedPage() {
   useEffect(() => {
     // Backend returns: [{ id, transferred_at, opened_at, note, card: { id, slug, title, ... } }]
     memberAPI.getReceived()
-      .then(r => setRows(r.data || []))
+      .then(r => setRows(asArray(r.data)))
       .catch(err => console.error('Received cards error:', err))
       .finally(() => setLoading(false));
   }, []);

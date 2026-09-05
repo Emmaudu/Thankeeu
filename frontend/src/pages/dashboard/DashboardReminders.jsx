@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { asArray } from '../../utils/asArray';
 
 const OCCASIONS = ['birthday','anniversary','wedding','graduation','promotion','holiday','other'];
 const FREQS = [
@@ -22,7 +23,7 @@ export default function DashboardReminders() {
   const [form,      setForm]      = useState(EMPTY);
   const [saving,    setSaving]    = useState(false);
 
-  useEffect(() => { remindersAPI.getAll().then(r=>setReminders(r.data||[])).finally(()=>setLoading(false)); }, []);
+  useEffect(() => { remindersAPI.getAll().then(r=>setReminders(asArray(r.data))).finally(()=>setLoading(false)); }, []);
 
   const openNew  = () => { setForm(EMPTY); setEditing(null); setShowForm(true); };
   const openEdit = r  => { setForm({recipient_name:r.recipient_name,recipient_email:r.recipient_email||'',occasion:r.occasion,occasion_date:r.occasion_date,frequency:r.frequency,notes:r.notes||''}); setEditing(r.id); setShowForm(true); };

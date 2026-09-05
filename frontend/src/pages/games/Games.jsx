@@ -6,6 +6,7 @@ import { gamesAPI } from '../../utils/api';
 import { isGamesHost } from '../../utils/workspace';
 import { openFlwCheckout } from '../../utils/flwInline';
 import Icon from '../../components/ui/Icon';
+import { asArray } from '../../utils/asArray';
 
 const themes = {
   indigo: 'from-indigo-600 to-violet-700',
@@ -1080,7 +1081,7 @@ const CompanyBankSettings = ({ company, onSaved }) => {
   const [form, setForm] = useState(company || {});
   const [verifying, setVerifying] = useState(false);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { gamesAPI.companyListBanks().then(res => setBanks(res.data || [])).catch(() => {}); }, []);
+  useEffect(() => { gamesAPI.companyListBanks().then(res => setBanks(asArray(res.data))).catch(() => {}); }, []);
   useEffect(() => setForm(company || {}), [company]);
   const verify = async () => {
     const bank = banks.find(item => String(item.code) === String(form.bank_code));
@@ -1688,7 +1689,7 @@ const GameBankSettings = ({ initialBank, onSaved }) => {
   const [form, setForm] = useState(initialBank || { bank_code: '', bank_name: '', account_number: '', account_name: '' });
   const [verifying, setVerifying] = useState(false);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { gamesAPI.listBanks().then(res => setBanks(res.data || [])).catch(() => {}); }, []);
+  useEffect(() => { gamesAPI.listBanks().then(res => setBanks(asArray(res.data))).catch(() => {}); }, []);
   useEffect(() => {
     if (initialBank) setForm(initialBank);
   }, [initialBank]);

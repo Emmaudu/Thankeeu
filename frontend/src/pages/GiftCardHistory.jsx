@@ -3,6 +3,7 @@ import { giftcardsAPI } from '../utils/api';
 import { formatNGN } from '../utils/currency';
 import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
+import { asArray } from '../utils/asArray';
 
 const STATUS_STYLE = {
   paid:       'bg-green-100 text-green-700',
@@ -29,7 +30,7 @@ export default function GiftCardHistory() {
 
   useEffect(() => {
     giftcardsAPI.myHistory()
-      .then(r => setHistory(r.data || []))
+      .then(r => setHistory(asArray(r.data)))
       .catch(err => {
         const msg = err?.response?.data?.error || 'Could not load gift history';
         toast.error(msg);

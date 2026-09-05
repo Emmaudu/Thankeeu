@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { banksAPI } from '../utils/api';
 import toast from 'react-hot-toast';
 import Icon from './ui/Icon';
+import { asArray } from '../utils/asArray';
 
 const BankAccountTab = ({ compact = false, onSaved = () => {} }) => {
   const [banks,    setBanks]    = useState([]);
@@ -21,8 +22,8 @@ const BankAccountTab = ({ compact = false, onSaved = () => {} }) => {
   const [showAdd, setShowAdd] = useState(compact);
 
   useEffect(() => {
-    banksAPI.getList().then(r => setBanks((r.data || []).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
-    banksAPI.getMy().then(r => setAccounts(r.data || [])).catch(() => {}).finally(() => setLoading(false));
+    banksAPI.getList().then(r => setBanks((asArray(r.data)).slice().sort((a, b) => a.name.localeCompare(b.name)))).catch(() => {});
+    banksAPI.getMy().then(r => setAccounts(asArray(r.data))).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const handleBankChange = (e) => {
@@ -57,8 +58,8 @@ const BankAccountTab = ({ compact = false, onSaved = () => {} }) => {
       setVerified(false);
       setShowAdd(false);
       const res = await banksAPI.getMy();
-      setAccounts(res.data || []);
-      onSaved(res.data || []);
+      setAccounts(asArray(res.data));
+      onSaved(asArray(res.data));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to save bank account');
     } finally { setSaving(false); }

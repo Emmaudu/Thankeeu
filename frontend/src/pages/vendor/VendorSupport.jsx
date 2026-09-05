@@ -3,6 +3,7 @@ import VendorLayout from './VendorLayout';
 import Icon from '../../components/ui/Icon';
 import { vendorAxios } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 export default function VendorSupport() {
   const [tickets, setTickets] = useState([]);
@@ -10,7 +11,7 @@ export default function VendorSupport() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const load = () => vendorAxios.get('/vendor/support').then(r=>setTickets(r.data||[])).finally(()=>setLoading(false));
+  const load = () => vendorAxios.get('/vendor/support').then(r=>setTickets(asArray(r.data))).finally(()=>setLoading(false));
   useEffect(() => { load(); }, []);
 
   const submit = async () => {

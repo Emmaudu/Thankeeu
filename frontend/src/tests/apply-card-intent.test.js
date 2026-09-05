@@ -14,7 +14,10 @@ const WIZARD = ['birthday', 'valentine', 'leaving', 'anniversary', 'wedding', 'b
   'get_well', 'new_year', 'thank_you', 'sympathy', 'good_luck', 'other'];
 const CREATECARD = WIZARD.filter(o => !['thank_you', 'sympathy', 'good_luck'].includes(o));
 
-const opts = (ids = WIZARD) => ({ creatorName: 'Emmanuel U.', occasionIds: ids });
+// A fixed clock, so a date that is valid when the test is written does not
+// become "in the past" the next morning.
+const THU = new Date(2026, 8, 3);
+const opts = (ids = WIZARD) => ({ creatorName: 'Emmanuel U.', occasionIds: ids, now: THU });
 
 describe('cover ink', () => {
   it('white on a dark cover', () => {
@@ -57,7 +60,7 @@ describe('cover ink', () => {
 
 describe('form patch', () => {
   it('fills occasion, design, ink, recipient, title and date together', () => {
-    const intent = parseCardIntent('birthday card for my sister Ada, sending Friday', new Date(2026, 8, 3));
+    const intent = parseCardIntent('birthday card for my sister Ada, sending Friday', THU);
     const { patch, step } = applyCardIntent(intent, opts());
     expect(patch.occasion).toBe('birthday');
     expect(patch.design_theme).toBeTruthy();
@@ -69,14 +72,14 @@ describe('form patch', () => {
   });
 
   it('falls back to "other" for an occasion the wizard lacks, keeping the word', () => {
-    const intent = parseCardIntent('sympathy card for Emeka', new Date(2026, 8, 3));
+    const intent = parseCardIntent('sympathy card for Emeka', THU);
     const { patch } = applyCardIntent(intent, opts(CREATECARD));
     expect(patch.occasion).toBe('other');
     expect(patch.custom_occasion).toBe('Sympathy');
   });
 
   it('keeps the occasion when the wizard does support it', () => {
-    const intent = parseCardIntent('sympathy card for Emeka', new Date(2026, 8, 3));
+    const intent = parseCardIntent('sympathy card for Emeka', THU);
     expect(applyCardIntent(intent, opts(WIZARD)).patch.occasion).toBe('sympathy');
   });
 

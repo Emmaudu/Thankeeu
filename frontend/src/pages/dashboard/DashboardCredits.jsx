@@ -7,6 +7,7 @@ import {CurrencyToggle, RotatingPrice} from '../../utils/currencyUI';
 import { CURRENCIES, formatCurrency } from '../../utils/currency';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { asArray } from '../../utils/asArray';
 
 // Pack of N options — plan_id, credits, priceNGN, per-card price, savings label
 const PACK_OPTIONS = [
@@ -61,7 +62,7 @@ export default function DashboardCredits() {
       try {
         const [balRes, histRes] = await Promise.all([creditsAPI.getBalance(), creditsAPI.getHistory()]);
         setBalance(balRes.data);
-        setHistory(histRes.data || []);
+        setHistory(asArray(histRes.data));
       } catch { toast.error('Failed to load credits'); }
       finally { setLoading(false); }
     };

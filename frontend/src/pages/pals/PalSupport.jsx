@@ -3,6 +3,7 @@ import PalLayout from './PalLayout';
 import Icon from '../../components/ui/Icon';
 import { palAPI } from '../../utils/api';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 export default function PalSupport() {
   const [tickets, setTickets] = useState([]);
@@ -10,7 +11,7 @@ export default function PalSupport() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const load = () => palAPI.getTickets().then(r=>setTickets(r.data||[])).finally(()=>setLoading(false));
+  const load = () => palAPI.getTickets().then(r=>setTickets(asArray(r.data))).finally(()=>setLoading(false));
   useEffect(() => { load(); }, []);
 
   const submit = async () => {

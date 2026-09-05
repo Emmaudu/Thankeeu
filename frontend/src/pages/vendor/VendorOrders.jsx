@@ -4,6 +4,7 @@ import Icon from '../../components/ui/Icon';
 import { vendorAxios } from '../../utils/api';
 import { formatNGN } from '../../utils/currency';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 const STATUSES = ['pending','confirmed','processing','shipped','delivered','cancelled'];
 const COLOR = s => ({ delivered:'bg-green-100 text-green-700', shipped:'bg-blue-100 text-blue-700',
@@ -22,7 +23,7 @@ export default function VendorOrders() {
   const load = (status='') => {
     const q = status ? `?status=${status}` : '';
     vendorAxios.get(`/vendor/orders${q}`)
-      .then(r => setOrders(r.data||[]))
+      .then(r => setOrders(asArray(r.data)))
       .finally(() => setLoading(false));
   };
   useEffect(() => { load(); }, []);

@@ -6,6 +6,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import { format } from 'date-fns';
 import { formatNGN } from '../../utils/currency';
+import { asArray } from '../../utils/asArray';
 
 const EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
 
@@ -13,7 +14,7 @@ export default function DashboardDelivered() {
   const [cards,     setCards]     = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [resending, setResending] = useState(null); // slug of card being resent
-  useEffect(() => { dashboardAPI.getDeliveredCards().then(r=>setCards(r.data||[])).finally(()=>setLoading(false)); }, []);
+  useEffect(() => { dashboardAPI.getDeliveredCards().then(r=>setCards(asArray(r.data))).finally(()=>setLoading(false)); }, []);
 
   const handleResend = async (e, slug) => {
     e.preventDefault(); e.stopPropagation();

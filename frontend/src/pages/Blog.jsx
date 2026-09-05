@@ -6,6 +6,7 @@ import Icon from '../components/ui/Icon';
 import { blogAPI } from '../utils/api';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { format } from 'date-fns';
+import { asArray } from '../utils/asArray';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const CATEGORY_ICONS = {
@@ -232,7 +233,7 @@ const Blog = () => {
 
   useEffect(() => {
     blogAPI.getCategories()
-      .then(r => setCategories(r.data || []))
+      .then(r => setCategories(asArray(r.data)))
       .catch(() => {});
   }, []);
 

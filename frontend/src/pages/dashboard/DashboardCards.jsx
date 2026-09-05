@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../../utils/currency';
 import QRCode from 'qrcode';
+import { asArray } from '../../utils/asArray';
 
 const EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
 const FILTERS = ['all','draft','active','sent'];
@@ -165,7 +166,7 @@ export default function DashboardCards() {
   const [openQrId,   setOpenQrId]   = useState(null);
 
   useEffect(() => {
-    cardsAPI.getAll().then(r=>setCards(r.data||[])).catch(()=>toast.error('Failed to load')).finally(()=>setLoading(false));
+    cardsAPI.getAll().then(r=>setCards(asArray(r.data))).catch(()=>toast.error('Failed to load')).finally(()=>setLoading(false));
   }, []);
 
   const handleDelete = async (card) => {

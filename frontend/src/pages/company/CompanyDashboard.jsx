@@ -8,6 +8,7 @@ import NotificationBell from '../../components/NotificationBell';
 import toast from 'react-hot-toast';
 import { format, differenceInDays } from 'date-fns';
 import { companyPath, getWorkspaceUrl } from '../../utils/workspace';
+import { asArray } from '../../utils/asArray';
 
 const statCard = (icon, label, value, sub, accent) => (
   <div key={label} className="rounded-2xl p-4 border-2 min-w-0"
@@ -49,8 +50,8 @@ const CompanyDashboard = () => {
         // Backend returns flat: { total_members, teams, upcoming_occasions, active_cards, ... }
         setData(d.data);
         setSub(s.data);
-        setPending((p.data||[]).filter(m => m.status === 'pending'));
-        const pending_scope = (cards.data || []).filter(c =>
+        setPending((asArray(p.data)).filter(m => m.status === 'pending'));
+        const pending_scope = (asArray(cards.data)).filter(c =>
           c.notification_scope === 'company_wide' && !c.scope_approved_at
         );
         setScopeApprovals(pending_scope);

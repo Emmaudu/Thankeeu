@@ -6,6 +6,7 @@ import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../../utils/currency';
 import { format, parseISO } from 'date-fns';
+import { asArray } from '../../utils/asArray';
 
 const occasionEmoji = {
   birthday:'🎂',leaving:'👋',work_anniversary:'🏆',promotion:'🌟',
@@ -47,9 +48,9 @@ const MemberDeductionsPage = () => {
       deductionsAPI.getLeaderRequests(),
       banksAPI.getMy(),
     ]).then(([occ, req, banks]) => {
-      setOccasions(occ.data || []);
-      setMyRequests(req.data || []);
-      setAccounts(banks.data || []);
+      setOccasions(asArray(occ.data));
+      setMyRequests(asArray(req.data));
+      setAccounts(asArray(banks.data));
     }).catch(err => {
       toast.error('Failed to load deductions: ' + (err.response?.data?.error || err.message));
     }).finally(() => setLoading(false));
@@ -71,8 +72,8 @@ const MemberDeductionsPage = () => {
       toast.success('Deduction request sent to HR for approval ✓');
       setForm({ amount: '', reason: '' });
       setSelectedCard(null);
-      deductionsAPI.getLeaderRequests().then(r => setMyRequests(r.data || []));
-      deductionsAPI.getLeaderOccasions().then(r => setOccasions(r.data || []));
+      deductionsAPI.getLeaderRequests().then(r => setMyRequests(asArray(r.data)));
+      deductionsAPI.getLeaderOccasions().then(r => setOccasions(asArray(r.data)));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to submit request');
     } finally { setSaving(false); }
@@ -93,7 +94,7 @@ const MemberDeductionsPage = () => {
         bank_account_id: defaultAccount.id,
       });
       toast.success(res.data.message || `₦${req.amount.toLocaleString()} transfer initiated!`);
-      deductionsAPI.getLeaderRequests().then(r => setMyRequests(r.data || []));
+      deductionsAPI.getLeaderRequests().then(r => setMyRequests(asArray(r.data)));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Withdrawal failed. Check your bank account details.');
     } finally { setWithdrawing(null); }

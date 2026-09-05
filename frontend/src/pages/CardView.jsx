@@ -24,6 +24,7 @@ import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
+import { asArray } from '../utils/asArray';
 
 // ── Calligraphic font styles for signer names (decorative only — the actual
 // message text uses the signee's chosen font_style via getFontStyle) ────────
@@ -348,7 +349,7 @@ const GiftClaimPanel = ({ slug, token, amount, user, member, onWithdrawn }) => {
     setBusy(true);
     try {
       const r = await banksAPI.getMy();
-      setAccounts(r.data || []);
+      setAccounts(asArray(r.data));
     } catch { setAccounts([]); }
     finally { setBusy(false); setStep('bank'); }
   };

@@ -5,6 +5,7 @@ import { deductionsAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { asArray } from '../../utils/asArray';
 
 const statusColors = {
   pending:  'bg-amber-100 text-amber-700',
@@ -31,8 +32,8 @@ const DeductionRequestsPage = () => {
         deductionsAPI.getPending(),
         deductionsAPI.getCrossDeptPending(),
       ]);
-      setDeductions(dRes.data || []);
-      setCrossDept(cRes.data || []);
+      setDeductions(asArray(dRes.data));
+      setCrossDept(asArray(cRes.data));
     } catch { toast.error('Failed to load requests'); }
     finally { setLoading(false); }
   };

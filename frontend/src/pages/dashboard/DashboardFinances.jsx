@@ -4,11 +4,12 @@ import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import { format } from 'date-fns';
 import { formatNGN } from '../../utils/currency';
+import { asArray } from '../../utils/asArray';
 
 export default function DashboardFinances() {
   const [items,   setItems]   = useState([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => { dashboardAPI.getFinancialHistory().then(r=>setItems(r.data||[])).finally(()=>setLoading(false)); }, []);
+  useEffect(() => { dashboardAPI.getFinancialHistory().then(r=>setItems(asArray(r.data))).finally(()=>setLoading(false)); }, []);
   const total = items.reduce((s,i)=>s+(i.amount||0),0);
 
   return (

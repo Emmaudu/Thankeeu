@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import { formatNGN } from '../../utils/currency';
 import { format, parseISO } from 'date-fns';
 import Icon from '../../components/ui/Icon';
+import { asArray } from '../../utils/asArray';
 
 const occasionEmoji = {
   birthday:'🎂', leaving:'👋', work_anniversary:'🏆', promotion:'🌟',
@@ -185,7 +186,7 @@ const TabMyCards = () => {
   }, []);
 
   useEffect(() => {
-    memberAPI.getMyCards().then(r => setCards(r.data || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
+    memberAPI.getMyCards().then(r => setCards(asArray(r.data))).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
   }, []);
   return (
     <div>
@@ -227,7 +228,7 @@ const TabPending = () => {
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    memberAPI.getPendingToSign().then(r => setCards(r.data || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
+    memberAPI.getPendingToSign().then(r => setCards(asArray(r.data))).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
   }, []);
   return (
     <div>
@@ -271,7 +272,7 @@ const TabReceived = ({ member }) => {
   const [showTransfer, setShowTransfer] = useState(false);
 
   useEffect(() => {
-    memberAPI.getReceived().then(r => setReceived(r.data || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
+    memberAPI.getReceived().then(r => setReceived(asArray(r.data))).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
   }, []);
 
   const handleTransfer = async (e) => {
@@ -284,7 +285,7 @@ const TabReceived = ({ member }) => {
       toast.success(res.data.message || 'Card transferred! ✓');
       setTransferSlug(''); setRecipientUsername(''); setTransferNote('');
       setShowTransfer(false);
-      memberAPI.getReceived().then(r => setReceived(r.data || []));
+      memberAPI.getReceived().then(r => setReceived(asArray(r.data)));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Transfer failed');
     } finally { setTransferring(false); }
@@ -459,7 +460,7 @@ const TabReminders = () => {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ recipient_name:'', recipient_email:'', occasion:'birthday', occasion_date:'', frequency:'yearly', notes:'' });
 
-  const fetch = () => memberAPI.getReminders().then(r => setReminders(r.data || [])).catch(() => {}).finally(() => setLoading(false));
+  const fetch = () => memberAPI.getReminders().then(r => setReminders(asArray(r.data))).catch(() => {}).finally(() => setLoading(false));
   useEffect(() => { fetch(); }, []);
 
   const handleAdd = async (e) => {

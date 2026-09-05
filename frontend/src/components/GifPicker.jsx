@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { getCachedResults, setCachedResults, getCachedBlob, setCachedBlob } from '../utils/gifCache';
+import { asArray } from '../utils/asArray';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -62,7 +63,7 @@ const GifPicker = ({ onSelect, onClose, compact = false }) => {
         throw new Error(errData.error || `GIF service error (${res.status})`);
       }
       const data = await res.json();
-      const results = data?.data || [];
+      const results = asArray(data?.data);
 
       // Store in both caches
       sessionResultsCache.set(cacheKey, results);

@@ -5,6 +5,7 @@ import { useMemberAuth } from '../../context/MemberAuthContext';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { asArray } from '../../utils/asArray';
 
 const SUBJECTS = [
   'Card notification not received',
@@ -40,7 +41,7 @@ const MemberSupportPage = () => {
   const fetchTickets = async () => {
     try {
       const res = await memberSupportAPI.getMine();
-      setTickets(res.data || []);
+      setTickets(asArray(res.data));
     } catch {}
     finally { setLoading(false); }
   };

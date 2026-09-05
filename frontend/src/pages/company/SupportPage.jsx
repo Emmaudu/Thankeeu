@@ -4,6 +4,7 @@ import { supportAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { asArray } from '../../utils/asArray';
 
 const SUBJECTS = [
   'Subscription & billing',
@@ -38,7 +39,7 @@ const SupportPage = () => {
   const fetchTickets = async () => {
     try {
       const res = await supportAPI.getMine();
-      setTickets(res.data || []);
+      setTickets(asArray(res.data));
     } catch {}
     finally { setLoading(false); }
   };

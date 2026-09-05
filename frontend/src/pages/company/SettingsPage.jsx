@@ -4,6 +4,7 @@ import { useCompanyAuth } from '../../context/CompanyAuthContext';
 import { companyAPI, hrisAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 const SettingsPage = () => {
   useSEO({ title: 'Settings — Thankeeu for Teams', noIndex: true });
@@ -18,7 +19,7 @@ const SettingsPage = () => {
   const fileRef = useRef();
 
   useEffect(() => {
-    hrisAPI.getBranches().then(r => setBranches(r.data || [])).catch(() => {});
+    hrisAPI.getBranches().then(r => setBranches(asArray(r.data))).catch(() => {});
   }, []);
 
   const [profile, setProfile] = useState({

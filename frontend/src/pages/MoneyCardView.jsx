@@ -23,6 +23,7 @@ import { messageMediaItems } from '../utils/messageMedia';
 import { getCardDesign, getFontStyle } from '../utils/cardDesigns';
 import { getAlbumTheme, getAlbumInk, getContrastTextColor } from '../utils/albumThemes';
 import { formatNGN } from '../utils/currency';
+import { asArray } from '../utils/asArray';
 
 const PAYOUT_FEE_PCT = 0.03;
 
@@ -68,12 +69,12 @@ export default function MoneyCardView() {
 
   useEffect(() => {
     if (mode !== 'bank' || banks.length) return;
-    banksAPI.getList().then(r => setBanks(r.data || [])).catch(() => toast.error('Could not load the bank list.'));
+    banksAPI.getList().then(r => setBanks(asArray(r.data))).catch(() => toast.error('Could not load the bank list.'));
   }, [mode, banks.length]);
 
   useEffect(() => {
     if (mode !== 'giftcard' || products.length) return;
-    giftcardsAPI.getProducts('NG', 'NGN').then(r => setProducts(r.data || [])).catch(() => {});
+    giftcardsAPI.getProducts('NG', 'NGN').then(r => setProducts(asArray(r.data))).catch(() => {});
   }, [mode, products.length]);
 
   // Resolve the account name as soon as a 10-digit NUBAN and a bank are chosen,

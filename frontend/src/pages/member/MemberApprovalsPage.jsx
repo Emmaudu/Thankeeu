@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { memberAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 const MemberApprovalsPage = () => {
   useSEO({ title: 'Approvals — Thankeeu for Teams', noIndex: true });
@@ -11,7 +12,7 @@ const MemberApprovalsPage = () => {
 
   useEffect(() => {
     memberAPI.getDeptPending()
-      .then(r => setMembers(r.data || []))
+      .then(r => setMembers(asArray(r.data)))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

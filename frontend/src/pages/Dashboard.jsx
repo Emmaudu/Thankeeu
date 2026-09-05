@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
 import Icon from '../components/ui/Icon';
+import { asArray } from '../utils/asArray';
 
 const statusConfig = {
   draft:    { label:'Draft',    style:'bg-warm-100 text-warm-500 border border-warm-300' },
@@ -127,7 +128,7 @@ const Dashboard = () => {
         creditsAPI.getBalance().catch(() => ({ data: { credits: 0 } })),
       ]);
       setDashData(dashRes.data);
-      setCards(cardsRes.data || []);
+      setCards(asArray(cardsRes.data));
       setCredits(credRes.data?.credits ?? 0);
     } catch { toast.error('Failed to load dashboard'); }
     finally { setLoading(false); }

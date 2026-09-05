@@ -3,6 +3,7 @@ import CompanyLayout from '../../components/company/CompanyLayout';
 import { companyAxios } from '../../utils/api';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
+import { asArray } from '../../utils/asArray';
 
 const ACTION_ICONS = {
   created: '✨', updated: '✏️', deleted: '🗑️', approved: '✅',
@@ -24,7 +25,7 @@ export default function ActivityLogPage() {
 
   useEffect(() => {
     companyAxios.get('/activity-log?limit=200')
-      .then(r => setLogs(r.data || []))
+      .then(r => setLogs(asArray(r.data)))
       .catch(() => toast.error('Failed to load activity log'))
       .finally(() => setLoading(false));
   }, []);

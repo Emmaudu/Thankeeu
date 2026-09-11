@@ -1088,18 +1088,23 @@ const Home = () => {
  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-16 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
 
  <div className="relative max-w-6xl mx-auto">
- {/* Hero header spans the full width. The type-to-create band that used to sit
-    directly under it has been removed: two competing entry points (describe-it
-    box + "Create a card") in one viewport made the hero read as two different
-    products. The band still lives in "What do you need today?" further down,
-    for anyone who would rather type than browse. */}
+ {/* Hero is two columns: the copy and CTAs on the left, the signable demo card
+    on the right, both starting at the same top edge. The headline used to span
+    the full width above the grid, which pushed the demo card a full screen
+    down — the one thing that shows what the product actually is. The
+    type-to-create band is gone for the same reason: two competing entry points
+    made the hero read as two different products. It still lives in "What do
+    you need today?" further down. */}
+ <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-12 items-start">
+
+ {/* Left: headline, CTAs, feature cards and sample messages */}
  <div className="text-center lg:text-left">
- <div style={{ display:'inline-block', background:'#EDE9FE', padding:'8px 14px', borderRadius:8, marginBottom:'0.75rem' }}>
- <p style={{ fontSize:'clamp(1.05rem,2.2vw,1.25rem)', lineHeight:1.5, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, margin:0, padding:0, display:'block' }}>
+ <div style={{ display:'inline-block', background:'#EDE9FE', padding:'6px 12px', borderRadius:8, marginBottom:'0.6rem' }}>
+ <p style={{ fontSize:'clamp(0.9rem,1.8vw,1.02rem)', lineHeight:1.45, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, margin:0, padding:0, display:'block' }}>
  More than a group card. More than Instagram Stories. One place for everyone.
  </p>
  </div>
- <h1 className="font-extrabold text-warm-900 mb-4" style={{ fontSize:'clamp(2.2rem,5.5vw,4rem)', lineHeight:1.1, letterSpacing:'-0.02em' }}>
+ <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(2rem,4.4vw,3.15rem)', lineHeight:1.08, letterSpacing:'-0.02em' }}>
  <span style={{ color:'#1A1035' }}>Send an Online Group</span>
  <br />
  <span style={{ display:'inline-block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px' }}>
@@ -1109,7 +1114,7 @@ const Home = () => {
  <span style={{ color:'#1A1035' }}>Card that will be Read and Watched</span>
  </h1>
 
- <p className="text-warm-600 mb-2 sm:mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1.1rem,2.4vw,1.3rem)', lineHeight:1.6 }}>
+ <p className="text-warm-600 mb-3 sm:mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1rem,2vw,1.12rem)', lineHeight:1.55 }}>
  The card that collects everyone's love — messages, photos, voice notes and a gift — then turns it all into a group card and movie video memory they keep forever.
  </p>
 
@@ -1124,17 +1129,7 @@ const Home = () => {
    </span>
    <span className="text-warm-300 text-sm hidden sm:inline">·</span>
    <span className="text-xs font-semibold text-warm-400 hidden sm:inline">No subscription</span>
-   <span className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold"
-     style={{ background:'#FEF3C7', color:'#92400E' }}>
-     <Icon name="Gift" size={13}/>1 free credit — send a free test card
-   </span>
  </div>
- </div>
-
- <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
-
- {/* Left: feature cards, CTAs and sample messages */}
- <div className="text-center lg:text-left">
 
  {/* ── 3 Feature Cards ── */}
  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 max-w-xl mx-auto lg:mx-0">
@@ -1169,10 +1164,10 @@ const Home = () => {
  <p className="text-sm font-medium text-warm-500 text-center lg:text-left">Free to create and share. Pay only when you send. No commitment.</p>
 
  {/* Sample card grid — large, rich tiles matching GroupCards style */}
- <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: 660 }}>
+ <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: '100%' }}>
  {SAMPLE_MESSAGES.map((m, i) => (
  <div key={m.name} className="bg-white rounded-3xl border-2 border-purple-100 overflow-hidden shadow-md hover:shadow-lg transition-shadow"
- style={{ marginTop: i % 2 === 1 ? 44 : 0, minHeight: 400 }}>
+ style={{ marginTop: i % 2 === 1 ? 32 : 0, minHeight: 340 }}>
  {/* Media — large, fills top of card */}
  {m.media === 'photo' && (
  <div style={{ height: 160, overflow:'hidden' }}>

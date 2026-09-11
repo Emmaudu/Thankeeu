@@ -1088,10 +1088,11 @@ const Home = () => {
  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-16 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
 
  <div className="relative max-w-6xl mx-auto">
- {/* Hero header spans the full width so the type-to-create band below it can
-    too. Inside the left column the band was ~300px wide and sat 2,395px down
-    the page — past the fold on every screen size, which is no use to a
-    one-minute setup promise. */}
+ {/* Hero header spans the full width. The type-to-create band that used to sit
+    directly under it has been removed: two competing entry points (describe-it
+    box + "Create a card") in one viewport made the hero read as two different
+    products. The band still lives in "What do you need today?" further down,
+    for anyone who would rather type than browse. */}
  <div className="text-center lg:text-left">
  <div style={{ display:'inline-block', background:'#EDE9FE', padding:'8px 14px', borderRadius:8, marginBottom:'0.75rem' }}>
  <p style={{ fontSize:'clamp(1.05rem,2.2vw,1.25rem)', lineHeight:1.5, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, margin:0, padding:0, display:'block' }}>
@@ -1128,56 +1129,6 @@ const Home = () => {
      <Icon name="Gift" size={13}/>1 free credit — send a free test card
    </span>
  </div>
- </div>
-
- {/* ── Type-to-create band ────────────────────────────────────────────────
-     Full width of the hero, outside the two-column grid. In the left column
-     it was squeezed to ~300px, which hid most of a sentence the customer was
-     supposed to read and edit. The design tiles and the "Create a card"
-     button both stay — plenty of people would rather browse than type. */}
- <div className="mt-2 sm:mt-5 max-w-5xl mx-auto text-center">
-   {/* Compact on purpose: every pixel here pushes the input below the fold,
-       and the three steps underneath already explain the rest. */}
-   <div className="mb-2 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">
-     <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.14em]"
-       style={{ background:'#EDE9FE', color:'#5B21B6' }}>
-       <Icon name="Zap" size={11}/> 1-minute setup
-     </span>
-     <h2 className="font-bold text-warm-900" style={{ fontSize:'clamp(1.15rem,2.6vw,1.6rem)', lineHeight:1.2 }}>
-       Skip the forms — just describe the card
-     </h2>
-   </div>
-
-   <CardIntentBar className="text-left" />
-
-   {/* Visible steps — these mirror the HowTo structured data exactly, which is
-       what Google requires and what answer engines quote. */}
-   <div className="mt-4 inline-flex items-start gap-2.5 rounded-2xl px-4 py-3 text-left"
-     style={{ background:'#FEF3C7', border:'1px solid #FDE68A' }}>
-     <span className="text-lg leading-none">🎁</span>
-     <p className="text-sm font-semibold" style={{ color:'#92400E' }}>
-       You have <strong>1 free credit</strong> waiting — send a test card for free.<br />
-       <span className="font-medium">
-         Create your account at the end and we'll use it automatically. No card details,
-         nothing to pay, and it goes live straight away so you can see exactly how it works.
-       </span>
-     </p>
-   </div>
-
-   <ol className="mt-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm text-warm-600">
-     {[
-       'Describe the card in one line',
-       'Check the details we filled in',
-       'Pay once and share the link',
-     ].map((label, i) => (
-       <li key={label} className="inline-flex items-center gap-2">
-         <span className="grid h-5 w-5 place-items-center rounded-full text-[11px] font-extrabold"
-           style={{ background:'#EDE9FE', color:'#5B21B6' }}>{i + 1}</span>
-         <span className="font-medium">{label}</span>
-         {i < 2 && <span className="text-warm-300 px-1 hidden sm:inline">→</span>}
-       </li>
-     ))}
-   </ol>
  </div>
 
  <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-16 items-start">
@@ -1443,13 +1394,16 @@ const Home = () => {
  {/* ══ USE-CASE SLIDESHOW ══ */}
  <section className="py-12 md:py-16 px-4 gc-font" style={{ background:'linear-gradient(180deg,#FDFCFF 0%,#F5F0FF 100%)' }}>
  <div className="max-w-6xl mx-auto">
- <div className="text-center mb-10">
+ {/* The only type-to-create box on the page now that the hero band is gone, so
+     it takes the canonical `card-intent` input id. */}
+ <div className="text-center mb-8">
  <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
  What do you need today?
  </h2>
- <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
- Thankeeu works for every occasion. Pick yours and start in seconds.
+ <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto mb-6">
+ Just type it below — we build the card for you. Your first test card is free.
  </p>
+ <CardIntentBar className="text-left" />
  </div>
  <HeroSlideshow />
  </div>

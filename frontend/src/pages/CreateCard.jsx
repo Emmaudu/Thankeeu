@@ -195,7 +195,9 @@ const CreateCard = () => {
 
  /** Claim the draft if needed, spend the free credit, return the live slug. */
  const publishWithFreeCredit = async () => {
-  const slug = draftSlug;
+  // The timer runs while the customer is still on step 2, so there is usually
+  // no draft yet — create one from whatever they have edited into the form.
+  const slug = draftSlug || await handleCreateDraft({ silent: true });
   if (!slug) return null;
   try {
    const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
@@ -263,10 +265,14 @@ const CreateCard = () => {
  // be stopped, so nothing is taken away from anyone who wants longer.
  useEffect(() => {
   if (intentMode !== 'test' || autoStartedRef.current) return;
-  if (!draftSlug || !(freeCredits > 0) || liveSlug) return;
+  if (!(freeCredits > 0) || liveSlug) return;
+  // No draft is needed to start counting — the draft is created when the timer
+  // fires. What IS needed is a recipient name, or the card cannot be saved at
+  // all; without one we leave the timer off and the banner's button showing.
+  if (!form.recipient_name?.trim()) return;
   autoStartedRef.current = true;
   setCountdownOn(true);
- }, [intentMode, draftSlug, freeCredits, liveSlug]);
+ }, [intentMode, freeCredits, liveSlug, form.recipient_name]);
 
  useEffect(() => {
   if (searchParams.get('intent') !== '1') return;
@@ -282,11 +288,14 @@ const CreateCard = () => {
   const { patch, step: target, summary } = applyCardIntent(intent, {
     creatorName, occasionIds: OCCASIONS.map(o => o.id),
   });
+  // The mode is set before the "did we understand anything?" bail-out: a
+  // sentence we could make nothing of is still a test card the customer chose,
+  // and dropping it here is what hides the free-credit banner and the timer.
+  if (intent.card_mode) setIntentMode(intent.card_mode);
   if (!Object.keys(patch).length) return;
   setForm(prev => ({ ...prev, ...patch }));
   setStep(target);
   setIntentSummary(summary);
-  if (intent.card_mode) setIntentMode(intent.card_mode);
   if (Array.isArray(intent.invite_emails) && intent.invite_emails.length) {
    setInviteEmails(intent.invite_emails.join(', '));
   }
@@ -475,10 +484,12 @@ const CreateCard = () => {
  const handleDesignSelect = (d) => { set('design_theme', d.id); set('background_color', d.background || d.bg || '#F5F0FF'); };
 
  // Step 3: create card draft (no payment yet) then allow creator to add first message
- const handleCreateDraft = async () => {
- if (!form.recipient_name) return toast.error('Recipient name is required');
- setLoading(true);
- setPaymentStage('creating');
+ // `silent` is used by the free-credit countdown, which needs the slug back but
+ // must not yank the customer to the payment step while they are still editing.
+ const handleCreateDraft = async ({ silent = false } = {}) => {
+ if (!form.recipient_name) { if (!silent) toast.error('Recipient name is required'); return null; }
+ if (!silent) setLoading(true);
+ if (!silent) setPaymentStage('creating');
  try {
  // Strip status from updates so we never downgrade an active card back to draft
  const { status: _s, ...safeForm } = form;
@@ -511,11 +522,12 @@ const CreateCard = () => {
  formSnapshot: form,
  msgSnapshot: msgForm,
  }));
- setPaymentStage('idle');
- setStep(3);
+ if (!silent) { setPaymentStage('idle'); setStep(3); }
+ return slug;
  } catch (err) {
- toast.error(err.response?.data?.error || 'Could not save your card. Please try again.');
- } finally { setLoading(false); }
+ if (!silent) toast.error(err.response?.data?.error || 'Could not save your card. Please try again.');
+ return null;
+ } finally { if (!silent) setLoading(false); }
  };
 
  // Step 3: pay / activate
@@ -790,7 +802,7 @@ const CreateCard = () => {
    </p>
    <button type="button" className="btn-primary px-6 py-3 font-bold"
     onClick={async () => {
-     if (!draftSlug) { await handleCreateDraft().catch(() => {}); }
+     autoStartedRef.current = true;
      setCountdownOn(true);
     }}>
     Publish my free card →

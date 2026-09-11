@@ -46,7 +46,9 @@ const prefersReducedMotion = () => {
   catch { return false; }
 };
 
-const CardIntentBar = ({ className = '' }) => {
+// `inputId` keeps a second copy of this box on the same page valid: two
+// elements sharing one id would break the label and focus for both.
+const CardIntentBar = ({ className = '', inputId = 'card-intent' }) => {
   const navigate = useNavigate();
   const { user, loginWithToken } = useAuth();
 
@@ -340,7 +342,7 @@ const CardIntentBar = ({ className = '' }) => {
           style={{ boxShadow: focused ? '0 14px 40px -10px rgba(124,58,237,.45)'
                                       : '0 8px 26px -12px rgba(124,58,237,.30)' }}>
           <div className="flex flex-col gap-2 rounded-2xl bg-white p-2 sm:flex-row sm:items-center sm:gap-2">
-            <label htmlFor="card-intent" className="sr-only">{STEP.placeholder}</label>
+            <label htmlFor={inputId} className="sr-only">{STEP.placeholder}</label>
             <div className="flex flex-1 items-center gap-2.5 px-2.5 py-2 sm:py-1">
               {stage === 'describe'
                 ? <Icon name="Sparkles" size={18}
@@ -348,7 +350,7 @@ const CardIntentBar = ({ className = '' }) => {
                 : <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full text-[11px] font-extrabold"
                     style={{ background: '#EDE9FE', color: '#5B21B6' }}>{STEP.n}</span>}
               <input
-                id="card-intent"
+                id={inputId}
                 ref={inputRef}
                 data-stage={stage}
                 type={stage === 'sender' ? 'email' : 'text'}

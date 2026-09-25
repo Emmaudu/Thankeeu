@@ -13,7 +13,6 @@ import { normalizeCoverLayout } from '../utils/coverLayout';
 import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
 import { readableTextColor, backgroundIsDark, backgroundIsPhoto, legibilityShadow } from '../utils/textContrast';
 import { messageMediaItems, messageGift } from '../utils/messageMedia';
-import { ALBUM_FLIP_CSS, ALBUM_FLIP_DURATION_MS } from '../utils/albumFlip';
 import CardCoverPreview from '../components/CardCoverPreview';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
@@ -26,7 +25,7 @@ import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
 import { asArray } from '../utils/asArray';
 import occasionEmoji from '../utils/occasionEmoji';
-import { PAGE_TURN_CSS, PAGE_TURN_MS, playPageTurn } from '../utils/pageTurn';
+import NaturalFlipBook from '../components/NaturalFlipBook';
 import SignerReplies from '../components/SignerReplies';
 
 // ── Calligraphic font styles for signer names (decorative only — the actual
@@ -1047,80 +1046,7 @@ const TransferCardButton = ({ slug, compact = false }) => {
  * and what signers saw when they added their pages. Read-only: no compose,
  * no editing — just the cover, then every signed message as its own page,
  * shown two at a time as a genuine spread. */
-const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackground, coverTextColor, replyKit }) => {
-  const [page, setPage] = useState(0);
-  const [flipClass, setFlipClass] = useState('');
-  const pages = messages; // one page per signed message
-  const totalPages = pages.length + 1; // +1 for the cover
-  const clamped = Math.min(page, totalPages - 1);
-  const showingCover = clamped === 0;
-  const accent = albumTheme.accent || design?.accent || '#7C3AED';
-
-  // Which two messages a given page index shows as a spread.
-  const spreadFor = (idx) => {
-    if (idx <= 0) return [null, null];
-    const l = idx % 2 === 1 ? idx : idx - 1;
-    return [l >= 1 ? pages[l - 1] || null : null, l + 1 < totalPages ? pages[l] || null : null];
-  };
-  // Spread → spread turns use a real two-sided leaf (see utils/pageTurn);
-  // turns to or from the cover keep the single-cover swing.
-  const [leafTurn, setLeafTurn] = useState(null);
-  const leafTimer = useRef(null);
-  useEffect(() => () => clearTimeout(leafTimer.current), []);
-  const flipTo = (target) => {
-    const next = Math.max(0, Math.min(totalPages - 1, target));
-    if (next === clamped || leafTurn) return;
-    playPageTurn();
-    if (clamped > 0 && next > 0) {
-      const [fromLeft, fromRight] = spreadFor(clamped);
-      const [toLeft, toRight] = spreadFor(next);
-      setLeafTurn({ dir: next > clamped ? 'fwd' : 'bwd', fromLeft, fromRight, toLeft, toRight });
-      setPage(next);
-      clearTimeout(leafTimer.current);
-      leafTimer.current = setTimeout(() => setLeafTurn(null), PAGE_TURN_MS);
-      return;
-    }
-    setFlipClass(next > clamped ? 'album-flip-forward' : 'album-flip-back');
-    setPage(next);
-    window.setTimeout(() => setFlipClass(''), ALBUM_FLIP_DURATION_MS);
-  };
-  const stepBack = () => flipTo(clamped - (showingCover ? 1 : 2));
-  const stepFwd  = () => flipTo(showingCover ? 1 : clamped + 2);
-
-  // Arrow keys turn pages, the way a real book responds to a nudge.
-  useEffect(() => {
-    const onKey = (e) => {
-      const tag = (e.target?.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable) return;
-      if (e.key === 'ArrowRight') { e.preventDefault(); stepFwd(); }
-      if (e.key === 'ArrowLeft')  { e.preventDefault(); stepBack(); }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-
-  // Swipe on touch devices.
-  const swipeRef = useRef(null);
-  const onTouchStart = (e) => {
-    const t = e.touches?.[0];
-    swipeRef.current = t ? { x: t.clientX, y: t.clientY } : null;
-  };
-  const onTouchEnd = (e) => {
-    const s = swipeRef.current; swipeRef.current = null;
-    const t = e.changedTouches?.[0];
-    if (!s || !t) return;
-    const dx = t.clientX - s.x, dy = t.clientY - s.y;
-    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-      if (dx < 0) stepFwd(); else stepBack();
-    }
-  };
-
-  const leftIdx  = showingCover ? null : (clamped % 2 === 1 ? clamped : clamped - 1);
-  const rightIdx = showingCover ? null : leftIdx + 1;
-  const leftMsg  = leftIdx  != null && leftIdx  >= 1 ? pages[leftIdx  - 1] : null;
-  const rightMsg = rightIdx != null && rightIdx < totalPages ? pages[rightIdx - 1] : null;
-
-  const Leaf = ({ msg, fill = false }) => {
+const AlbumLeaf = ({ msg, accent, albumTheme, replyKit, pageNo }) => {
     const [carouselIdx, setCarouselIdx] = useState(0);
     // Attachments are read with the shared reader. This used to build the list
     // itself using `{url,type}`, but the backend stores `{media_url,media_type}`
@@ -1131,15 +1057,10 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
     const gift = messageGift(msg);
 
     return (
-    <div className="relative flex flex-col overflow-hidden rounded-2xl border shadow-xl"
-      style={{
-        width: 420, maxWidth: '44vw', minHeight: fill ? 0 : 560, height: fill ? '100%' : undefined,
-        background: albumTheme.page || '#FFFDF8',
-        borderColor: 'rgba(120,90,200,0.16)',
-        boxShadow: '0 22px 70px rgba(76,29,149,0.16)',
-      }}>
+    <div className="relative flex h-full w-full flex-col overflow-hidden"
+      style={{ background: albumTheme.page || '#FFFDF8' }}>
       {msg ? (
-        <div className="flex flex-1 flex-col p-6 sm:p-7">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-5 sm:p-7" style={{ overscrollBehavior: 'contain' }}>
           <div className="mb-3 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full opacity-70" style={{ background: accent }}/>
             <span className="text-xs font-bold" style={{ fontFamily: "'Kalam',cursive", color: albumTheme.ink, opacity: 0.6 }}>
@@ -1197,10 +1118,9 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           <p className="mt-4 text-right text-sm font-bold" style={{ fontFamily: "'Dancing Script',cursive", color: accent, fontSize: 22 }}>
             — {msg.author_name}
           </p>
-          {!fill && (
-            <SignerReplies messageId={msg.id} signerName={msg.author_name} kit={replyKit}
-              ink={albumTheme.ink || '#1f2937'} accent={accent} compact />
-          )}
+          <SignerReplies messageId={msg.id} signerName={msg.author_name} kit={replyKit}
+            ink={albumTheme.ink || '#1f2937'} accent={accent} compact />
+          {pageNo != null && <p className="mt-2 text-center text-[10px] opacity-30" style={{ color: albumTheme.ink }}>{pageNo}</p>}
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">
@@ -1211,15 +1131,20 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
     );
   };
 
+
+/** AlbumFlipbookViewer — the finished album card as a real book: the cover,
+ * then every signed message on its own page, turned by hand (drag a corner,
+ * tap, swipe, arrows or ← →) with a natural paper fold — see NaturalFlipBook. */
+const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackground, coverTextColor, replyKit }) => {
+  const bookRef = useRef(null);
+  const accent = albumTheme.accent || design?.accent || '#7C3AED';
+
   // "Cover blur" is meant to echo the artwork, exactly as AlbumSign and the
-  // album studio resolve it. Using albumTheme.stage flat made every cover_blur
-  // card render as the same pale green, so the chosen background never showed.
+  // album studio resolve it.
   const customCoverUrl = typeof card?.background_color === 'string' && /^https?:\/\//.test(card.background_color)
     ? card.background_color
     : null;
-  // A creator-uploaded cover replaces the template's artwork entirely — this
-  // mirrors AlbumSign's CoverPage, which CardView was not doing, so uploaded
-  // covers fell back to the original template image.
+  // A creator-uploaded cover replaces the template's artwork entirely.
   const coverDesign = customCoverUrl
     ? { ...design, id: 'custom_upload', image: customCoverUrl, artwork: null, background: '#1a1035', ink: '#ffffff', dark: true }
     : design;
@@ -1231,104 +1156,92 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           : (design?.background || albumTheme.stage))
     : albumTheme.stage;
 
+  const pages = useMemo(() => {
+    const list = [{
+      key: 'cover', hard: true,
+      content: (
+        <div className="h-full w-full overflow-hidden" style={{ background: '#1a1035' }}>
+          <CardCoverPreview
+            design={coverDesign}
+            occasionLabel={(card.occasion || '').replace(/_/g, ' ')}
+            recipientName={card.recipient_name}
+            title={card.title}
+            senderName={card.cover_sender}
+            coverColor={card.background_color?.startsWith('#') ? card.background_color : undefined}
+            textColor={coverTextColor}
+            fontFamily={getFontStyle(card.font_style).family}
+            layout={card.cover_layout}
+            inBook
+          />
+        </div>
+      ),
+    }];
+    messages.forEach((m, i) => list.push({
+      key: `m-${m.id}`,
+      content: <AlbumLeaf msg={m} accent={accent} albumTheme={albumTheme} replyKit={replyKit} pageNo={i + 1} />,
+    }));
+    // An even number of pages lets the back cover close the book on its own.
+    if (list.length % 2 === 1) {
+      list.push({ key: 'end', content: <AlbumLeaf msg={null} accent={accent} albumTheme={albumTheme} replyKit={replyKit} /> });
+    }
+    list.push({
+      key: 'back', hard: true,
+      content: (
+        <div className="flex h-full w-full flex-col items-center justify-center p-6 text-center"
+          style={{ background: coverDesign?.background || '#1a1035', color: '#fff' }}>
+          <p style={{ fontFamily: "'Great Vibes',cursive", fontSize: 38 }}>With love</p>
+          <p className="mt-1 text-xs font-bold opacity-80">
+            {messages.length} {messages.length === 1 ? 'person' : 'people'} signed this card
+          </p>
+        </div>
+      ),
+    });
+    return list;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, card, coverDesign, coverTextColor, albumTheme, accent, replyKit]);
+
+  const labelFor = (i, single) => {
+    if (i === 0) return 'Cover';
+    if (i === pages.length - 1) return 'Back cover';
+    const total = messages.length;
+    const a = i, b = single ? i : Math.min(i + 1, total);
+    if (a > total) return 'The end';
+    return a === b ? `Page ${a} of ${total}` : `Pages ${a}–${b} of ${total}`;
+  };
+  const inkOnStage = readableTextColor('#4B3F72', albumTheme.stage, { ink: albumTheme.ink, fallback: albumTheme.stage });
+
   return (
-    <div className="relative overflow-hidden rounded-2xl p-5 sm:p-8" style={{ background: stageBackground }}>
+    <div className="relative overflow-hidden rounded-2xl px-3 py-6 sm:p-8" style={{ background: stageBackground }}>
       {albumTheme.id === 'cover_blur' && (customCoverUrl || design?.image) && (
         <div className="pointer-events-none absolute inset-0 backdrop-blur-xl" style={{ background: 'rgba(255,255,255,0.22)' }} />
       )}
       <div className="relative">
-      <style>{`
-        ${ALBUM_FLIP_CSS}
-        ${PAGE_TURN_CSS}
-        .cv-book { display:flex; align-items:center; justify-content:center; }
-      `}</style>
-      <div className="cv-book album-stage" style={{ minHeight: 600 }}
-        onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-        {(() => {
-          // `key` forces a remount on every turn so the animation actually
-          // replays; the class is derived once for the whole leaf.
-          const turn = flipClass === 'album-flip-forward' ? 'forward'
-                     : flipClass === 'album-flip-back' ? 'back' : '';
-          return showingCover ? (
-            <div key={`cv-cover-${clamped}`} className={`album-page-turn ${turn}`}
-              style={{ width: 424, maxWidth: '86vw', position: 'relative' }}>
-              <div style={{position:'absolute',left:'11%',top:10,width:'89%',height:'100%',borderRadius:8,background:'#fff',boxShadow:'0 18px 58px rgba(0,0,0,.2)'}}/>
-              <div style={{position:'relative'}}>
-                <CardCoverPreview
-                  design={coverDesign}
-                  occasionLabel={(card.occasion || '').replace(/_/g, ' ')}
-                  recipientName={card.recipient_name}
-                  title={card.title}
-                  senderName={card.cover_sender}
-                  coverColor={card.background_color?.startsWith('#') ? card.background_color : undefined}
-                  textColor={coverTextColor}
-                  fontFamily={getFontStyle(card.font_style).family}
-                  layout={card.cover_layout}
-                />
-              </div>
+        <NaturalFlipBook
+          ref={bookRef}
+          pages={pages}
+          maxPageWidth={440}
+          minPageWidth={250}
+          maxPageHeight={typeof window !== 'undefined' ? Math.max(420, window.innerHeight - 170) : 640}
+          showCover
+          controls={({ index: i, single, api }) => (
+            <div className="mt-7 flex items-center justify-center gap-3">
+              <button type="button" onClick={() => api.prev()} disabled={i === 0} aria-label="Previous page"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow disabled:opacity-30"
+                style={{ border: `2px solid ${accent}44`, color: accent }}>
+                <Icon name="ChevronLeft" size={20}/>
+              </button>
+              <span className="text-center text-xs font-bold" style={{ color: inkOnStage }}>
+                {labelFor(i, single)}
+                <span className="ml-1.5 hidden font-semibold opacity-60 sm:inline">· drag a corner, swipe or use ← →</span>
+              </span>
+              <button type="button" onClick={() => api.next()} disabled={i >= pages.length - 1} aria-label="Next page"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow disabled:opacity-30"
+                style={{ border: `2px solid ${accent}44`, color: accent }}>
+                <Icon name="ChevronRight" size={20}/>
+              </button>
             </div>
-          ) : (
-            /* The spread is ONE leaf: both pages live inside a single animated
-               element, hinged on the spine, as in the album studio preview. */
-            <div key={leafTurn ? 'cv-spread-turning' : `cv-spread-${clamped}`} className={`${leafTurn ? '' : `album-page-turn ${turn}`} relative`}>
-              {(() => {
-                // While a leaf turns, the book underneath already shows the
-                // pages being uncovered on each side.
-                const baseL = leafTurn ? (leafTurn.dir === 'fwd' ? leafTurn.fromLeft : leafTurn.toLeft) : leftMsg;
-                const baseR = leafTurn ? (leafTurn.dir === 'fwd' ? leafTurn.toRight : leafTurn.fromRight) : rightMsg;
-                return (
-                  <div className="pt-book">
-                    <div className="flex items-stretch overflow-hidden rounded-[14px] shadow-2xl">
-                      <div><Leaf msg={baseL}/></div>
-                      <div><Leaf msg={baseR}/></div>
-                    </div>
-                    <div className="pt-spine" style={{ left: '50%' }} />
-                    {leafTurn && (
-                      <>
-                        <div className="pt-cast" style={{
-                          left: leafTurn.dir === 'fwd' ? '50%' : 0, width: '50%',
-                          background: leafTurn.dir === 'fwd'
-                            ? 'linear-gradient(90deg, rgba(0,0,0,0.32), rgba(0,0,0,0) 70%)'
-                            : 'linear-gradient(270deg, rgba(0,0,0,0.32), rgba(0,0,0,0) 70%)',
-                        }} />
-                        <div className={`pt-leaf ${leafTurn.dir === 'fwd' ? 'pt-fwd' : 'pt-bwd'}`}
-                          style={{ left: leafTurn.dir === 'fwd' ? '50%' : 0, width: '50%' }}>
-                          <div className="pt-face pt-front">
-                            <Leaf msg={leafTurn.dir === 'fwd' ? leafTurn.fromRight : leafTurn.fromLeft} fill/>
-                            <div className="pt-shade" />
-                          </div>
-                          <div className="pt-face pt-back">
-                            <Leaf msg={leafTurn.dir === 'fwd' ? leafTurn.toLeft : leafTurn.toRight} fill/>
-                            <div className="pt-shade" />
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
-          );
-        })()}
-      </div>
-
-      {/* Navigation */}
-      <div className="mt-6 flex items-center justify-center gap-3">
-        <button type="button" onClick={stepBack} disabled={clamped === 0}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow disabled:opacity-30"
-          style={{ border: `2px solid ${accent}44`, color: accent }}>
-          <Icon name="ChevronLeft" size={20}/>
-        </button>
-        <span className="text-xs font-bold" style={{ color: readableTextColor('#4B3F72', albumTheme.stage, { ink: albumTheme.ink, fallback: albumTheme.stage }) }}>
-          {showingCover ? 'Cover' : `Page ${clamped} of ${totalPages - 1}`}
-          <span className="ml-1.5 font-semibold opacity-60">· swipe or use ← →</span>
-        </span>
-        <button type="button" onClick={stepFwd} disabled={clamped >= totalPages - 1}
-          className="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow disabled:opacity-30"
-          style={{ border: `2px solid ${accent}44`, color: accent }}>
-          <Icon name="ChevronRight" size={20}/>
-        </button>
-      </div>
+          )}
+        />
       </div>
     </div>
   );
@@ -1616,8 +1529,16 @@ const CardView = () => {
   const coverBackground = card.background_color?.startsWith('#')
     ? `linear-gradient(145deg, ${card.background_color}26, transparent 68%), ${design.background}`
     : isCustomCoverUrl
-      ? `linear-gradient(180deg, rgba(0,0,0,0.15), rgba(0,0,0,0.45)), url("${card.background_color}") center/cover no-repeat`
+      // An uploaded cover photo is usually a portrait — stretched across a
+      // full-width banner it was blown up far past its size (a face filling
+      // the whole header). The banner is a bright, cheerful colour instead
+      // and the photo sits in a neat circular frame in the middle
+      // (see heroPhotoUrl below).
+      ? 'linear-gradient(135deg, #FFE4F1 0%, #F1E8FF 45%, #E3F2FF 100%)'
       : (card.background_color || design.background);
+  // The picture shown in the hero's circular frame: the recipient's photo if
+  // one was added, otherwise the uploaded cover photo.
+  const heroPhotoUrl = card.recipient_photo_url || (isCustomCoverUrl ? card.background_color : null);
   // Hero text colour. The creator's pick wins *only* when it is actually
   // legible on the cover we are about to paint — otherwise we substitute the
   // best-contrasting on-brand colour. Presets that declare `dark: true` over a
@@ -1719,25 +1640,27 @@ const CardView = () => {
           </div>
 
           {/* Recipient photo — circular frame in hero center, or floating emoji if no photo */}
-          {card.recipient_photo_url ? (
+          {heroPhotoUrl ? (
             <div className="flex justify-center mb-3">
               <div style={{
                 position: 'relative',
-                width: 110,
-                height: 110,
+                width: 'clamp(96px, 22vw, 128px)',
+                height: 'clamp(96px, 22vw, 128px)',
                 borderRadius: '50%',
                 boxShadow: `0 0 0 4px rgba(255,255,255,0.55), 0 0 0 7px ${design.accent}55, 0 8px 32px rgba(0,0,0,0.22)`,
                 overflow: 'hidden',
                 flexShrink: 0,
               }}>
                 <img
-                  src={card.recipient_photo_url}
+                  src={heroPhotoUrl}
                   alt={`${card.recipient_name || 'Recipient'}'s photo`}
+                  loading="eager"
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    objectPosition: 'center top',
+                    // Portraits: keep the face in frame rather than the very top edge.
+                    objectPosition: 'center 28%',
                     display: 'block',
                   }}
                 />

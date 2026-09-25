@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import CardCoverPreview from './CardCoverPreview';
 import GifPicker from './GifPicker';
 import VoiceRecorder from './VoiceRecorder';
@@ -6,8 +6,7 @@ import Icon from './ui/Icon';
 import Switch from './ui/Switch';
 import { ALBUM_THEMES, getAlbumTheme, getContrastTextColor, getAlbumInk } from '../utils/albumThemes';
 import { getFontStyle } from '../utils/cardDesigns';
-import { ALBUM_FLIP_CSS } from '../utils/albumFlip';
-import { playPageTurn } from '../utils/pageTurn';
+import NaturalFlipBook, { flipViews, viewOf } from './NaturalFlipBook';
 
 const PAGE_LABELS = ['Cover', 'Message', 'Everyone'];
 
@@ -454,13 +453,37 @@ const SAMPLE_SIGNERS = [
     name: 'Amaka O.', initials: 'AO', tint: '#F472B6',
     font: "'Caveat', cursive", size: 21,
     text: 'Three years of sitting beside you and I still steal your ideas. Have the best one yet — you have earned every bit of it. 💛',
-    kind: 'photo', caption: 'Team lunch, March',
+    kind: 'photo', caption: 'Team lunch, March', reactions: 6,
   },
   {
     name: 'Daniel K.', initials: 'DK', tint: '#7C3AED',
     font: "'Kalam', 'Caveat', cursive", size: 19,
     text: 'You talked me through my first week here and never once made me feel slow. Recorded you something instead of writing it.',
-    kind: 'voice', caption: 'Voice note · 0:24',
+    kind: 'voice', reactions: 4,
+  },
+  {
+    name: 'Tolu A.', initials: 'TA', tint: '#0EA5E9',
+    font: "'Dancing Script', cursive", size: 21,
+    text: 'Made you a tiny video from the whole design team. Watch it with the volume up! 🎬',
+    kind: 'video', reactions: 9,
+  },
+  {
+    name: 'Grace M.', initials: 'GM', tint: '#10B981',
+    font: "'Caveat', cursive", size: 22,
+    text: 'This is exactly how we all feel about you today 🎉',
+    kind: 'gif', reactions: 11,
+  },
+  {
+    name: 'Ifeanyi C.', initials: 'IC', tint: '#F59E0B',
+    font: "'Kalam', 'Caveat', cursive", size: 18,
+    text: 'I still remember the night before the big launch — you stayed until 2am so none of us had to. The coffee, the jokes, the calm voice when everything broke. Thank you for being the kind of person everyone wants on their team. Enjoy every second of your day.',
+    kind: 'text', reactions: 7,
+  },
+  {
+    name: 'Sophie L.', initials: 'SL', tint: '#EC4899',
+    font: "'Dancing Script', cursive", size: 20,
+    text: 'Sent a little something to the gift pot — go treat yourself properly this time!',
+    kind: 'gift', reactions: 5,
   },
 ];
 
@@ -490,11 +513,8 @@ const SamplePhoto = ({ tint }) => (
   </svg>
 );
 
-const SampleSignerPage = ({ signer, theme, ink, accent, spread, index }) => (
-  <div
-    className="relative flex flex-col p-5 sm:p-7"
-    style={{ background: theme.page, color: ink, borderRight: index === 0 ? '1px solid rgba(0,0,0,0.12)' : undefined }}
-  >
+const SampleSignerPage = ({ signer, theme, ink, accent, number }) => (
+  <div className="relative flex h-full flex-col overflow-hidden p-5 sm:p-6" style={{ background: theme.page, color: ink }}>
     <div className="flex items-center gap-2.5">
       <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold text-white"
         style={{ background: signer.tint }}>{signer.initials}</span>
@@ -508,8 +528,8 @@ const SampleSignerPage = ({ signer, theme, ink, accent, spread, index }) => (
       {signer.text}
     </p>
 
-    {signer.kind === 'photo' ? (
-      <div className="mt-4 self-start rounded-[3px] bg-white p-1.5 pb-5 shadow-[0_3px_14px_rgba(0,0,0,0.16)]"
+    {signer.kind === 'photo' && (
+      <div className="relative mt-4 self-start rounded-[3px] bg-white p-1.5 pb-5 shadow-[0_3px_14px_rgba(0,0,0,0.16)]"
         style={{ transform: 'rotate(-1.6deg)', width: '78%' }}>
         <div className="relative h-[104px] w-full overflow-hidden rounded-[2px]">
           <SamplePhoto tint={signer.tint} />
@@ -517,28 +537,29 @@ const SampleSignerPage = ({ signer, theme, ink, accent, spread, index }) => (
         <p className="mt-1 text-center text-[10px]" style={{ fontFamily: "'Caveat', cursive", color: '#5b5570' }}>{signer.caption}</p>
         <span className="absolute -top-1.5 left-1/2 h-3 w-9 -translate-x-1/2 rounded-[2px]" style={{ background: `${signer.tint}77` }} />
       </div>
-    ) : (
-      <>
-      {/* Video still — a real frame with a play badge, so "videos" is shown
-          rather than only claimed in the caption. */}
-      <div className="mt-4 self-start overflow-hidden rounded-xl shadow-[0_3px_14px_rgba(0,0,0,0.14)]" style={{ width: '74%' }}>
-        <div className="relative h-[92px] w-full">
+    )}
+    {(signer.kind === 'video' || signer.kind === 'gif') && (
+      <div className="mt-4 self-start overflow-hidden rounded-xl shadow-[0_3px_14px_rgba(0,0,0,0.14)]" style={{ width: '82%' }}>
+        <div className="relative h-[104px] w-full">
           <SamplePhoto tint={signer.tint} />
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur-sm">
-              <Icon name="Play" size={15} className="ml-0.5 text-white" />
-            </span>
-          </span>
-          <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[8px] font-extrabold text-white">0:12</span>
+          {signer.kind === 'video' ? (
+            <>
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 backdrop-blur-sm">
+                  <Icon name="Play" size={15} className="ml-0.5 text-white" />
+                </span>
+              </span>
+              <span className="absolute bottom-1.5 right-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[8px] font-extrabold text-white">0:38</span>
+            </>
+          ) : (
+            <span className="absolute left-1.5 top-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[8px] font-extrabold text-white">GIF</span>
+          )}
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5 self-start">
-        <span className="inline-flex items-center gap-1 rounded-md border border-black/10 bg-white/70 px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wide"
-          style={{ color: accent }}>GIF</span>
-        <span className="text-[10px] font-semibold opacity-45">reaction added</span>
-      </div>
-      <div className="mt-2.5 flex items-center gap-2.5 self-start rounded-2xl border px-3 py-2.5"
-        style={{ borderColor: `${accent}44`, background: `${accent}0f`, width: '82%' }}>
+    )}
+    {signer.kind === 'voice' && (
+      <div className="mt-4 flex items-center gap-2.5 self-start rounded-2xl border px-3 py-2.5"
+        style={{ borderColor: `${accent}44`, background: `${accent}0f`, width: '88%' }}>
         <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full" style={{ background: accent }}>
           <Icon name="Mic" size={14} className="text-white" />
         </span>
@@ -549,14 +570,18 @@ const SampleSignerPage = ({ signer, theme, ink, accent, spread, index }) => (
         </span>
         <span className="text-[10px] font-extrabold opacity-60">0:24</span>
       </div>
-      </>
+    )}
+    {signer.kind === 'gift' && (
+      <div className="mt-4 inline-flex items-center gap-2 self-start rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-extrabold text-white shadow">
+        🎁 Added to the gift pot
+      </div>
     )}
 
-    <div className="mt-auto flex items-center justify-between pt-5">
+    <div className="mt-auto flex items-center justify-between pt-4">
       <span className="inline-flex items-center gap-1 text-[11px] font-bold opacity-55">
-        <span>❤️</span><span>🎉</span><span className="ml-0.5">{signer.kind === 'photo' ? 6 : 4}</span>
+        <span>❤️</span><span>🎉</span><span className="ml-0.5">{signer.reactions}</span>
       </span>
-      <span className="text-[9px] opacity-30">{index + 3}</span>
+      <span className="text-[9px] opacity-30">{number}</span>
     </div>
   </div>
 );
@@ -567,13 +592,10 @@ const AlbumStudioPreview = ({
   media = [], onAddMedia, onRemoveMedia, onMessageChange, recipientPhoto, onRecipientPhoto, onFormChange,
   wallDrafts = [], onWallDraftsChange,
 }) => {
-  const [page, setPage] = useState(0);
+  const bookRef = useRef(null);
   const [lightbox, setLightbox] = useState(null);
   const [gifPickerFor, setGifPickerFor] = useState(false);
   const [voiceRecorderOpen, setVoiceRecorderOpen] = useState(false);
-  const [flipDirection, setFlipDirection] = useState('');
-  const audioCtxRef = useRef(null);
-  const flipTimerRef = useRef(null);
   const photoInputRef = useRef(null);
   const videoInputRef = useRef(null);
   const recipientInputRef = useRef(null);
@@ -582,7 +604,6 @@ const AlbumStudioPreview = ({
   // no message/media handlers any more (creators write on the live card, with
   // everyone else), so the Message leaf is preview-only there and is hidden.
   const canCompose = !!onMessageChange;
-  const NAV_PAGES = useMemo(() => (canCompose ? [0, 1, 2] : [0, 2]), [canCompose]);
   const isLiveWall = ['wall_only', 'card_and_wall'].includes(form.card_experience);
   // Board mode is retired — kept as a constant so the legacy branches below
   // compile out rather than being deleted in a dozen places.
@@ -594,12 +615,20 @@ const AlbumStudioPreview = ({
     : getContrastTextColor(form.background_color, design);
   const messageFont = getFontStyle(message.font_style);
 
+  // Book pages: 0 cover · 1–2 the organiser's spread · 3–8 six sample
+  // signers · 9 back cover. Each wizard step opens the book where it matters.
+  const SIGNERS_START = 3;
+  const targetForStep = (step) => (step === 3 ? (canCompose ? 1 : SIGNERS_START) : step === 4 ? SIGNERS_START : 0);
+  const [bookIndex, setBookIndex] = useState(() => targetForStep(activeStep));
+  const firstStep = useRef(true);
   useEffect(() => {
-    if (isLiveWall || isBoard) { setPage(0); return; }
-    if (activeStep === 3) setPage(canCompose ? 1 : 2);
-    else if (activeStep === 4) setPage(2);
-    else setPage(0);
+    if (firstStep.current) { firstStep.current = false; return; }
+    if (isLiveWall || isBoard) return;
+    bookRef.current?.flipTo(targetForStep(activeStep), false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStep, isBoard, isLiveWall, canCompose]);
+  // What the header describes: cover, the organiser's spread, or everyone's pages.
+  const page = bookIndex === 0 ? 0 : bookIndex < SIGNERS_START ? 1 : 2;
 
   const stageBackground = useMemo(() => {
     if (theme.id !== 'cover_blur') return theme.stage;
@@ -611,29 +640,6 @@ const AlbumStudioPreview = ({
     return design?.background || theme.stage;
   }, [design, theme, form.background_color]);
 
-  const playFlipSound = useCallback(() => {
-    playPageTurn();   // shared realistic paper page-turn (utils/pageTurn)
-  }, []);
-  const goToPage = useCallback((target) => {
-    // Snap to the nearest *navigable* leaf, so the Message page is skipped
-    // whenever this preview is read-only.
-    const clampedTarget = Math.min(2, Math.max(0, target));
-    const next = NAV_PAGES.includes(clampedTarget)
-      ? clampedTarget
-      : NAV_PAGES.reduce((best, candidate) =>
-          Math.abs(candidate - clampedTarget) < Math.abs(best - clampedTarget) ? candidate : best, NAV_PAGES[0]);
-    if (next === page) return;
-    setFlipDirection(next > page ? 'forward' : 'back');
-    playFlipSound();
-    setPage(next);
-    clearTimeout(flipTimerRef.current);
-    flipTimerRef.current = setTimeout(() => setFlipDirection(''), 820);
-  }, [page, playFlipSound, NAV_PAGES]);
-  const movePage = (d) => {
-    const at = NAV_PAGES.indexOf(page);
-    const next = NAV_PAGES[Math.min(NAV_PAGES.length - 1, Math.max(0, (at === -1 ? 0 : at) + d))];
-    goToPage(next);
-  };
   const recipient = form.recipient_name?.trim() || 'Recipient name';
   const sender = form.cover_sender?.trim() || creatorName || 'Your name';
   const messageText = message.content?.trim()
@@ -658,6 +664,162 @@ const AlbumStudioPreview = ({
   const pick = ref => ref.current?.click();
   const handleFiles = (e) => { const fs = e.target.files; if (fs?.length && onAddMedia) onAddMedia(fs); e.target.value = ''; };
 
+  const accentColour = design?.accent || '#7C3AED';
+  const bookPages = [
+    {
+      key: 'cover', hard: true,
+      content: (
+        // While the cover is editable, pressing it drags the texts — it must
+        // not start a page turn.
+        <div className="h-full w-full overflow-hidden" style={{ background: '#1a1035' }} data-noflip={onLayoutChange ? '' : undefined}>
+          <CardCoverPreview
+            design={design} occasionLabel={occasionLabel}
+            recipientName={form.recipient_name} title={form.title} senderName={sender}
+            coverColor={form.background_color?.startsWith('#') ? form.background_color : undefined}
+            textColor={coverTextColor} fontFamily={getFontStyle(form.font_style).family}
+            layout={layout} editable={!!onLayoutChange} selected={selectedField}
+            onSelect={onSelectField} onLayoutChange={onLayoutChange}
+            inBook
+          />
+        </div>
+      ),
+    },
+    {
+      key: 'organiser-left',
+      content: (
+        <div className="relative flex h-full flex-col p-5 sm:p-7" style={{ color: pageInk, background: theme.page }}>
+          <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] opacity-45">For {recipient}</span>
+          {page === 1 ? (
+            <div className="flex flex-1 flex-col justify-center">
+              {onMessageChange ? (
+                <textarea value={message.content || ''} onChange={(e) => onMessageChange(e.target.value)}
+                  placeholder="Click here and write your message…" aria-label="Edit message directly in live preview"
+                  className="min-h-[170px] w-full resize-none rounded-xl border border-dashed border-black/15 bg-white/35 p-3 text-lg leading-relaxed outline-none transition focus:border-primary-400 focus:bg-white/60 sm:text-2xl"
+                  style={{ fontFamily: messageFont.family, color: pageInk }} />
+              ) : <p className="break-words text-lg leading-relaxed sm:text-2xl" style={{ fontFamily: messageFont.family }}>{messageText}</p>}
+              <p className="mt-6 text-xs font-bold opacity-60">— {sender}</p>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col justify-center">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] opacity-45">Ready to bring everyone together</p>
+              <p className="mt-3 text-2xl font-extrabold leading-tight sm:text-4xl">{form.title || `${recipient}'s card`}</p>
+              <div className="mt-7 space-y-3 text-xs sm:text-sm">
+                <p className="flex items-center gap-2"><Icon name="Calendar" size={14} /> {form.send_date || 'Send whenever you are ready'}</p>
+                <button type="button" onClick={() => onFormChange?.('is_gift_enabled', !form.is_gift_enabled)}
+                  className={`flex w-full items-center justify-between gap-2 rounded-xl border-2 px-3 py-2 text-left transition-colors ${form.is_gift_enabled ? 'border-amber-300 bg-amber-50' : 'border-dashed border-black/15 bg-white/40 hover:border-primary-300'}`}>
+                  <span className="flex items-center gap-2">
+                    <Icon name="Gift" size={14} />
+                    <span className="font-bold">{form.is_gift_enabled ? 'Gift collection included' : 'Messages only — tap to add a gift pot'}</span>
+                  </span>
+                  <Switch on={!!form.is_gift_enabled} />
+                </button>
+              </div>
+            </div>
+          )}
+          <span className="absolute bottom-3 left-0 right-0 text-center text-[9px] opacity-30">1</span>
+        </div>
+      ),
+    },
+    {
+      key: 'organiser-right',
+      content: (
+        <div className="relative flex h-full flex-col p-4 sm:p-6" style={{ color: pageInk, background: theme.page }}>
+          <span className="text-right text-[9px] font-extrabold uppercase tracking-[0.18em] opacity-45">Thankeeu</span>
+          {page === 1 ? (
+            <div className="flex flex-1 flex-col gap-3 py-4">
+              <MediaTile big filled={!!activePhoto} accent={design?.accent}
+                onClick={() => activePhoto ? setLightbox({ type: activePhoto.type, src: activePhoto.preview }) : setGifPickerFor(true)}
+                onRemove={activePhoto ? () => { onRemoveMedia?.(media.indexOf(activePhoto)); setPhotoCarouselIdx(0); } : null}>
+                {activePhoto ? (
+                  <div className="relative h-full w-full">
+                    {activePhoto.type === 'video'
+                      ? <video src={activePhoto.preview} className="h-full w-full object-cover" />
+                      : <img src={activePhoto.preview} alt="" className="h-full w-full object-cover" />}
+                    {allPhotos.length > 1 && (
+                      <div className="absolute inset-x-0 bottom-1 flex items-center justify-center gap-1">
+                        <button type="button" onClick={e => { e.stopPropagation(); setPhotoCarouselIdx(i => Math.max(0, i - 1)); }}
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white" disabled={photoCarouselIdx === 0}>
+                          <Icon name="ChevronLeft" size={10}/>
+                        </button>
+                        <span className="rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-bold text-white">{photoCarouselIdx + 1}/{allPhotos.length}</span>
+                        <button type="button" onClick={e => { e.stopPropagation(); setPhotoCarouselIdx(i => Math.min(allPhotos.length - 1, i + 1)); }}
+                          className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white" disabled={photoCarouselIdx >= allPhotos.length - 1}>
+                          <Icon name="ChevronRight" size={10}/>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : <><Icon name="Image" size={22} className="opacity-45" /><span className="mt-1.5 text-[10px] font-bold opacity-55">Photo / GIF</span><span className="text-[8px] opacity-40">tap to add · add multiple</span></>}
+              </MediaTile>
+
+              <div className="grid grid-cols-2 gap-3">
+                <MediaTile filled={!!activeVideo} accent={design?.accent}
+                  onClick={() => activeVideo ? setLightbox({ type: 'video', src: activeVideo.preview }) : pick(videoInputRef)}
+                  onRemove={activeVideo ? () => { onRemoveMedia?.(media.indexOf(activeVideo)); setVideoCarouselIdx(0); } : null}>
+                  {activeVideo ? (
+                    <div className="relative h-full w-full">
+                      <video src={activeVideo.preview} className="h-full w-full object-cover" />
+                      {allVideos.length > 1 && (
+                        <div className="absolute inset-x-0 bottom-0.5 flex items-center justify-center gap-0.5">
+                          <button type="button" onClick={e => { e.stopPropagation(); setVideoCarouselIdx(i => Math.max(0, i - 1)); }}
+                            className="flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white" disabled={videoCarouselIdx === 0}>
+                            <Icon name="ChevronLeft" size={8}/>
+                          </button>
+                          <span className="rounded-full bg-black/60 px-1 py-0 text-[7px] font-bold text-white">{videoCarouselIdx + 1}/{allVideos.length}</span>
+                          <button type="button" onClick={e => { e.stopPropagation(); setVideoCarouselIdx(i => Math.min(allVideos.length - 1, i + 1)); }}
+                            className="flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white" disabled={videoCarouselIdx >= allVideos.length - 1}>
+                            <Icon name="ChevronRight" size={8}/>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : <><Icon name="Film" size={18} className="opacity-45" /><span className="mt-1 text-[9px] font-bold opacity-50">Video</span></>}
+                </MediaTile>
+                <MediaTile filled={!!voiceMedia} accent={design?.accent}
+                  onClick={() => voiceMedia ? setLightbox({ type: 'voice', src: voiceMedia.preview }) : setVoiceRecorderOpen(true)}
+                  onRemove={voiceMedia ? () => onRemoveMedia?.(media.indexOf(voiceMedia)) : null}>
+                {voiceMedia ? <><Icon name="Mic" size={18} style={{ color: design?.accent || '#7c3aed' }} /><span className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold" style={{ color: design?.accent || '#7c3aed' }}>Voice added <Icon name="Check" size={9} /></span></> : <><Icon name="Mic" size={18} className="opacity-45" /><span className="mt-1 text-[9px] font-bold opacity-50">Voice note</span></>}
+                </MediaTile>
+              </div>
+
+              <div className={`flex items-center justify-center gap-2 rounded-md border ${giftActive ? 'border-amber-200 bg-amber-50' : 'border-dashed border-black/15 bg-black/[0.025]'}`} style={{ minHeight: 32 }}>
+                {giftActive ? <><span className="text-base">{giftEmoji}</span><span className="text-[10px] font-extrabold text-amber-700">{giftLabel}</span></> : <><Icon name="Heart" size={13} className="opacity-35" /><span className="text-[9px] font-bold opacity-40">More love</span></>}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-1 flex-col justify-center">
+              <p className="text-xs font-bold opacity-50">A quick review</p>
+              <dl className="mt-4 space-y-4 text-xs sm:text-sm">
+                <div><dt className="opacity-45">Occasion</dt><dd className="mt-1 font-bold">{occasionLabel}</dd></div>
+                <div><dt className="opacity-45">Recipient</dt><dd className="mt-1 font-bold">{recipient}</dd></div>
+                <div><dt className="opacity-45">Cover from</dt><dd className="mt-1 font-bold">{sender}</dd></div>
+                <div><dt className="opacity-45">First message</dt><dd className="mt-1 line-clamp-3 font-medium">{messageText}</dd></div>
+              </dl>
+            </div>
+          )}
+          <span className="absolute bottom-3 left-0 right-0 text-center text-[9px] opacity-30">2</span>
+        </div>
+      ),
+    },
+    ...SAMPLE_SIGNERS.map((signer, i) => ({
+      key: `sample-${signer.initials}`,
+      content: <SampleSignerPage signer={signer} theme={theme} ink={pageInk} accent={accentColour} number={i + 3} />,
+    })),
+    {
+      key: 'back', hard: true,
+      content: (
+        <div className="relative flex h-full w-full flex-col items-center justify-center p-6 text-center text-white"
+          style={{ background: design?.background || 'linear-gradient(160deg,#2a1260,#120a2a)' }}>
+          <div className="absolute inset-0 bg-black/35" />
+          <div className="relative">
+            <p style={{ fontFamily: "'Great Vibes', cursive", fontSize: 38 }}>With love</p>
+            <p className="mt-1 text-xs font-bold opacity-85">…and a page from everyone who signs</p>
+          </div>
+        </div>
+      ),
+    },
+  ];
+
   // A Live Wall is its own experience, so it takes priority over the album
   // and message-board layouts in the large studio preview whenever enabled.
   if (isLiveWall) {
@@ -667,10 +829,6 @@ const AlbumStudioPreview = ({
   // ── Album-style preview ─────────────────────────────────────────────────────
   return (
     <div className="w-full">
-      <style>{`
-        ${ALBUM_FLIP_CSS}
-      `}</style>
-
       {/* The message-board layout was retired: a group card is always an album. */}
 
 
@@ -682,7 +840,7 @@ const AlbumStudioPreview = ({
           <p className="mt-1 text-sm font-bold text-warm-900">
             {isBoard
                 ? 'Messages appear as a scrollable board'
-                : (PAGE_LABELS[page] + (page === 0 ? ' · drag & edit texts'
+                : ((page === 1 && !canCompose ? 'Overview' : PAGE_LABELS[page]) + (page === 0 ? ' · drag & edit texts'
                     : page === 1 && canCompose ? ' · tap to add media'
                     : page === 2 ? ' · a page per person who signs' : ''))}
           </p>
@@ -723,168 +881,49 @@ const AlbumStudioPreview = ({
           onMessageChange={onMessageChange} onAddMedia={onAddMedia} media={media} onRemoveMedia={onRemoveMedia} onFormChange={onFormChange} />
       )}
 
-      {!isBoard && <div className="relative overflow-hidden border border-black/5 shadow-[0_24px_70px_rgba(27,34,48,0.16)]"
-        style={{ minHeight: 'clamp(430px, 69vh, 710px)', borderRadius: 8, background: stageBackground }}>
-        {theme.id === 'cover_blur' && !design?.artwork && <div className="absolute inset-0 bg-white/20 backdrop-blur-xl" />}
-        <div className="absolute inset-0 bg-black/5" />
-
-        <div className="album-stage relative z-10 flex min-h-[clamp(430px,69vh,710px)] items-center justify-center p-5 sm:p-8 lg:p-10">
-          {page === 0 ? (
-            <div key={`cover-${page}`} className={`album-page-turn ${flipDirection} relative w-full max-w-[360px]`}>
-              <div className="absolute left-[12%] top-3 h-full w-[88%] rounded-md bg-white shadow-xl" />
-              <div className="relative">
-                <CardCoverPreview
-                  design={design} occasionLabel={occasionLabel}
-                  recipientName={form.recipient_name} title={form.title} senderName={sender}
-                  coverColor={form.background_color?.startsWith('#') ? form.background_color : undefined}
-                  textColor={coverTextColor} fontFamily={getFontStyle(form.font_style).family}
-                  layout={layout} editable={!!onLayoutChange} selected={selectedField}
-                  onSelect={onSelectField} onLayoutChange={onLayoutChange}
-                />
-              </div>
-              {onLayoutChange && <p className="mt-2 text-center text-[11px] font-semibold text-warm-500">Drag the title, name or sender anywhere · hidden fields won't show</p>}
-            </div>
-          ) : (
-            <div key={`spread-${page}`} className={`album-page-turn ${flipDirection} relative w-full max-w-[820px]`}>
-              {page === 2 ? (
-                /* "Everyone" spread — what the card becomes once people sign. */
-                <div className="grid grid-cols-2 overflow-hidden rounded-md shadow-2xl" style={{ background: theme.page, minHeight: 'clamp(340px, 48vw, 540px)' }}>
-                  {SAMPLE_SIGNERS.map((signer, i) => (
-                    <SampleSignerPage key={signer.name} signer={signer} theme={theme} ink={pageInk}
-                      accent={design?.accent || '#7C3AED'} index={i} />
-                  ))}
-                </div>
-              ) : (
-              <div className="grid grid-cols-2 overflow-hidden rounded-md shadow-2xl" style={{ background: theme.page, minHeight: 'clamp(340px, 48vw, 540px)' }}>
-                <div className="relative flex flex-col border-r border-black/15 p-5 sm:p-7" style={{ color: pageInk }}>
-                  <span className="text-[9px] font-extrabold uppercase tracking-[0.18em] opacity-45">For {recipient}</span>
-                  {page === 1 ? (
-                    <div className="flex flex-1 flex-col justify-center">
-                      {onMessageChange ? (
-                        <textarea value={message.content || ''} onChange={(e) => onMessageChange(e.target.value)}
-                          placeholder="Click here and write your message…" aria-label="Edit message directly in live preview"
-                          className="min-h-[170px] w-full resize-none rounded-xl border border-dashed border-black/15 bg-white/35 p-3 text-lg leading-relaxed outline-none transition focus:border-primary-400 focus:bg-white/60 sm:text-2xl"
-                          style={{ fontFamily: messageFont.family, color: pageInk }} />
-                      ) : <p className="break-words text-lg leading-relaxed sm:text-2xl" style={{ fontFamily: messageFont.family }}>{messageText}</p>}
-                      <p className="mt-6 text-xs font-bold opacity-60">— {sender}</p>
+      {!isBoard && (
+        <div className="relative overflow-hidden border border-black/5 px-3 pb-5 pt-6 shadow-[0_24px_70px_rgba(27,34,48,0.16)] sm:px-8"
+          style={{ borderRadius: 8, background: stageBackground }}>
+          {theme.id === 'cover_blur' && !design?.artwork && <div className="absolute inset-0 bg-white/20 backdrop-blur-xl" />}
+          <div className="absolute inset-0 bg-black/5" />
+          <div className="relative z-10">
+            <NaturalFlipBook
+              ref={bookRef}
+              pages={bookPages}
+              startPage={bookIndex}
+              maxPageWidth={380}
+              minPageWidth={230}
+              maxPageHeight={typeof window !== 'undefined' ? Math.max(420, Math.round(window.innerHeight * 0.66)) : 620}
+              showCover
+              onPageChange={setBookIndex}
+              controls={({ index, single, count, api }) => {
+                const views = flipViews(count, single);
+                const cur = viewOf(index, count, single);
+                return (
+                  <div className="mx-auto mt-6 flex w-fit items-center gap-3 rounded-full border border-purple-100 bg-white px-3 py-2 shadow-sm">
+                    <button type="button" onClick={() => api.prev()} disabled={index === 0} aria-label="Previous page"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30" style={{ minHeight: 0 }}><Icon name="ChevronLeft" size={17} /></button>
+                    <div className="flex items-center gap-1.5">
+                      {views.map((start, v) => (
+                        <button key={start} type="button" aria-label={v === 0 ? 'Show the cover' : `Show page ${start + 1}`} onClick={() => api.flipTo(start)}
+                          className={`h-2 rounded-full transition-all ${v === cur ? 'w-8 bg-primary-500' : 'w-2 bg-warm-300'}`} style={{ minHeight: 0 }} />
+                      ))}
                     </div>
-                  ) : (
-                    <div className="flex flex-1 flex-col justify-center">
-                      <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] opacity-45">Ready to bring everyone together</p>
-                      <p className="mt-3 text-2xl font-extrabold leading-tight sm:text-4xl">{form.title || `${recipient}'s card`}</p>
-                      <div className="mt-7 space-y-3 text-xs sm:text-sm">
-                        <p className="flex items-center gap-2"><Icon name="Calendar" size={14} /> {form.send_date || 'Send whenever you are ready'}</p>
-                        <button type="button" onClick={() => onFormChange?.('is_gift_enabled', !form.is_gift_enabled)}
-                          className={`flex w-full items-center justify-between gap-2 rounded-xl border-2 px-3 py-2 text-left transition-colors ${form.is_gift_enabled ? 'border-amber-300 bg-amber-50' : 'border-dashed border-black/15 bg-white/40 hover:border-primary-300'}`}>
-                          <span className="flex items-center gap-2">
-                            <Icon name="Gift" size={14} />
-                            <span className="font-bold">{form.is_gift_enabled ? 'Gift collection included' : 'Messages only — tap to add a gift pot'}</span>
-                          </span>
-                          <Switch on={!!form.is_gift_enabled} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  <span className="absolute bottom-3 left-0 right-0 text-center text-[9px] opacity-30">1</span>
-                </div>
-
-                <div className="relative flex flex-col p-4 sm:p-6" style={{ color: pageInk }}>
-                  <span className="text-right text-[9px] font-extrabold uppercase tracking-[0.18em] opacity-45">Thankeeu</span>
-                  {page === 1 ? (
-                    <div className="flex flex-1 flex-col gap-3 py-4">
-                      <MediaTile big filled={!!activePhoto} accent={design?.accent}
-                        onClick={() => activePhoto ? setLightbox({ type: activePhoto.type, src: activePhoto.preview }) : setGifPickerFor(true)}
-                        onRemove={activePhoto ? () => { onRemoveMedia?.(media.indexOf(activePhoto)); setPhotoCarouselIdx(0); } : null}>
-                        {activePhoto ? (
-                          <div className="relative h-full w-full">
-                            {activePhoto.type === 'video'
-                              ? <video src={activePhoto.preview} className="h-full w-full object-cover" />
-                              : <img src={activePhoto.preview} alt="" className="h-full w-full object-cover" />}
-                            {allPhotos.length > 1 && (
-                              <div className="absolute inset-x-0 bottom-1 flex items-center justify-center gap-1">
-                                <button type="button" onClick={e => { e.stopPropagation(); setPhotoCarouselIdx(i => Math.max(0, i - 1)); }}
-                                  className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white" disabled={photoCarouselIdx === 0}>
-                                  <Icon name="ChevronLeft" size={10}/>
-                                </button>
-                                <span className="rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-bold text-white">{photoCarouselIdx + 1}/{allPhotos.length}</span>
-                                <button type="button" onClick={e => { e.stopPropagation(); setPhotoCarouselIdx(i => Math.min(allPhotos.length - 1, i + 1)); }}
-                                  className="flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white" disabled={photoCarouselIdx >= allPhotos.length - 1}>
-                                  <Icon name="ChevronRight" size={10}/>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ) : <><Icon name="Image" size={22} className="opacity-45" /><span className="mt-1.5 text-[10px] font-bold opacity-55">Photo / GIF</span><span className="text-[8px] opacity-40">tap to add · add multiple</span></>}
-                      </MediaTile>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <MediaTile filled={!!activeVideo} accent={design?.accent}
-                          onClick={() => activeVideo ? setLightbox({ type: 'video', src: activeVideo.preview }) : pick(videoInputRef)}
-                          onRemove={activeVideo ? () => { onRemoveMedia?.(media.indexOf(activeVideo)); setVideoCarouselIdx(0); } : null}>
-                          {activeVideo ? (
-                            <div className="relative h-full w-full">
-                              <video src={activeVideo.preview} className="h-full w-full object-cover" />
-                              {allVideos.length > 1 && (
-                                <div className="absolute inset-x-0 bottom-0.5 flex items-center justify-center gap-0.5">
-                                  <button type="button" onClick={e => { e.stopPropagation(); setVideoCarouselIdx(i => Math.max(0, i - 1)); }}
-                                    className="flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white" disabled={videoCarouselIdx === 0}>
-                                    <Icon name="ChevronLeft" size={8}/>
-                                  </button>
-                                  <span className="rounded-full bg-black/60 px-1 py-0 text-[7px] font-bold text-white">{videoCarouselIdx + 1}/{allVideos.length}</span>
-                                  <button type="button" onClick={e => { e.stopPropagation(); setVideoCarouselIdx(i => Math.min(allVideos.length - 1, i + 1)); }}
-                                    className="flex h-4 w-4 items-center justify-center rounded-full bg-black/60 text-white" disabled={videoCarouselIdx >= allVideos.length - 1}>
-                                    <Icon name="ChevronRight" size={8}/>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          ) : <><Icon name="Film" size={18} className="opacity-45" /><span className="mt-1 text-[9px] font-bold opacity-50">Video</span></>}
-                        </MediaTile>
-                        <MediaTile filled={!!voiceMedia} accent={design?.accent}
-                          onClick={() => voiceMedia ? setLightbox({ type: 'voice', src: voiceMedia.preview }) : setVoiceRecorderOpen(true)}
-                          onRemove={voiceMedia ? () => onRemoveMedia?.(media.indexOf(voiceMedia)) : null}>
-                        {voiceMedia ? <><Icon name="Mic" size={18} style={{ color: design?.accent || '#7c3aed' }} /><span className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold" style={{ color: design?.accent || '#7c3aed' }}>Voice added <Icon name="Check" size={9} /></span></> : <><Icon name="Mic" size={18} className="opacity-45" /><span className="mt-1 text-[9px] font-bold opacity-50">Voice note</span></>}
-                        </MediaTile>
-                      </div>
-
-                      <div className={`flex items-center justify-center gap-2 rounded-md border ${giftActive ? 'border-amber-200 bg-amber-50' : 'border-dashed border-black/15 bg-black/[0.025]'}`} style={{ minHeight: 32 }}>
-                        {giftActive ? <><span className="text-base">{giftEmoji}</span><span className="text-[10px] font-extrabold text-amber-700">{giftLabel}</span></> : <><Icon name="Heart" size={13} className="opacity-35" /><span className="text-[9px] font-bold opacity-40">More love</span></>}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 flex-col justify-center">
-                      <p className="text-xs font-bold opacity-50">A quick review</p>
-                      <dl className="mt-4 space-y-4 text-xs sm:text-sm">
-                        <div><dt className="opacity-45">Occasion</dt><dd className="mt-1 font-bold">{occasionLabel}</dd></div>
-                        <div><dt className="opacity-45">Recipient</dt><dd className="mt-1 font-bold">{recipient}</dd></div>
-                        <div><dt className="opacity-45">Cover from</dt><dd className="mt-1 font-bold">{sender}</dd></div>
-                        <div><dt className="opacity-45">First message</dt><dd className="mt-1 line-clamp-3 font-medium">{messageText}</dd></div>
-                      </dl>
-                    </div>
-                  )}
-                  <span className="absolute bottom-3 left-0 right-0 text-center text-[9px] opacity-30">2</span>
-                </div>
-              </div>
-              )}
-              <div className="pointer-events-none absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-black/20 shadow-[0_0_10px_rgba(0,0,0,0.25)]" />
-            </div>
-          )}
+                    <button type="button" onClick={() => api.next()} disabled={index >= count - 1} aria-label="Next page"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30" style={{ minHeight: 0 }}><Icon name="ChevronRight" size={17} /></button>
+                  </div>
+                );
+              }}
+            />
+            {onLayoutChange && bookIndex === 0 && (
+              <p className="mt-2 text-center text-[11px] font-semibold text-warm-600">Drag the title, name or sender anywhere · use the arrows to open the card</p>
+            )}
+          </div>
         </div>
-      </div>}
+      )}
 
       <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handleFiles} />
       <input ref={videoInputRef} type="file" accept="video/*" className="hidden" onChange={handleFiles} />
-
-      {/* Pager dots — only for album flipbook */}
-      {!isBoard && (
-      <div className="mx-auto mt-4 flex w-fit items-center gap-3 rounded-full border border-purple-100 bg-white px-3 py-2 shadow-sm">
-        <button type="button" onClick={() => movePage(-1)} disabled={page === NAV_PAGES[0]} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronLeft" size={17} /></button>
-        <div className="flex items-center gap-1.5">
-          {NAV_PAGES.map(i => <button key={PAGE_LABELS[i]} type="button" aria-label={`Show ${PAGE_LABELS[i]} page`} onClick={() => goToPage(i)} className={`h-2 rounded-full transition-all ${page === i ? 'w-8 bg-primary-500' : 'w-2 bg-warm-300'}`} />)}
-        </div>
-        <button type="button" onClick={() => movePage(1)} disabled={page === NAV_PAGES[NAV_PAGES.length - 1]} className="flex h-8 w-8 items-center justify-center rounded-full text-primary-600 disabled:opacity-30"><Icon name="ChevronRight" size={17} /></button>
-      </div>
-      )}
 
       {gifPickerFor && (
         <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 p-4 sm:items-center" onClick={() => setGifPickerFor(false)}>

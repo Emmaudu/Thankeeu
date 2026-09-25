@@ -20,7 +20,6 @@ import CardCoverPreview from '../components/CardCoverPreview';
 import { ALBUM_THEMES } from '../utils/albumThemes';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 import IntentSummaryStrip from '../components/IntentSummaryStrip';
-import ResumeDraftAlert from '../components/ResumeDraftAlert';
 import AlbumStudioPreview from '../components/AlbumStudioPreview';
 import { takeIntent } from '../utils/cardIntent';
 import { applyCardIntent } from '../utils/applyCardIntent';
@@ -775,14 +774,6 @@ const CreateCard = () => {
  )}
 
  <StepIndicator current={step} />
-
- {resumedDraft && (
-   <ResumeDraftAlert
-     cardTitle={form.title}
-     recipient={form.recipient_name}
-     onPay={() => setStep(3)}
-   />
- )}
 
  <IntentSummaryStrip items={intentSummary} />
 

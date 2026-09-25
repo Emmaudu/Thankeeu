@@ -121,3 +121,20 @@ Backend unit: 371 pass, 2 pre-existing HRIS time-zone failures (fail on the orig
 - Games pages (`/games/:slug`, `/games/gifts`, `/admin/games`) hardened against empty or partial API responses.
 - `MediaCarousel` can no longer read past the end when live refresh removes media.
 - Automated sweep: all 214 routes loaded with the API returning empty objects, empty arrays, 500 errors, and logged-out → 0 crash screens.
+
+## Round 10e — Natural page turning, board hero photo, preview pages
+- **New page turn everywhere:** the homepage book, the album card view and the live preview in both creation flows (public `/card/customize` and signed-in `/create-card`) all use `components/NaturalFlipBook.jsx`.
+  - You can hover over a corner and it lifts; drag it and the page folds where you pull.
+  - Tap, swipe, the arrows or ← → keys also turn the page.
+  - Covers are stiff and inner pages bend.
+  - It is built on StPageFlip (MIT), vendored in `src/vendor/`. I patched it so its animation loop and resize listener stop when a book is closed; the original keeps running forever.
+- The page-turn sound is quieter by default, and quieter again on the homepage.
+- **Homepage book on phones:** nothing turns until the book is on screen. The cover then stays up for 5 seconds, and after that a page turns every 2 seconds. Desktop is unchanged. The book hands control to the visitor as soon as they turn a page themselves.
+- **Voice note on the sample page:** it now speaks when pressed, using the browser's built-in voice to read an original movie-trailer-style birthday line.
+- **Live preview:** now shows 6 sample signer pages (photo, voice, video, GIF, long letter, gift) instead of 2, plus a back cover.
+- **Create-card step 4:** removed the "Your card is saved for … — one step left" box. `ResumeDraftAlert.jsx` is deleted.
+- **Board view hero:** an uploaded cover photo is no longer stretched across the whole banner.
+  - The banner uses a bright pastel colour.
+  - The photo sits in a circular frame, framed so the face stays in view.
+  - The recipient photo is used for the frame if there is one; otherwise the cover photo.
+- `CardCoverPreview` has a new `inBook` prop so a cover fills a book page exactly.

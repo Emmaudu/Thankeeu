@@ -36,6 +36,8 @@ const CardCoverPreview = ({
   textColor,
   fontFamily,
   compact = false,
+  // Rendered as the cover page of a flip book: fills the page exactly.
+  inBook = false,
   // Optional override for the occasion chip ({ color, background }).
   occasionStyle,
   layout,
@@ -188,15 +190,16 @@ const CardCoverPreview = ({
   return (
     <div
       ref={boxRef}
-      className="relative overflow-hidden w-full shadow-[0_24px_65px_rgba(31,23,62,0.18)]"
+      className={`relative overflow-hidden w-full ${inBook ? '' : 'shadow-[0_24px_65px_rgba(31,23,62,0.18)]'}`}
       style={{
-        aspectRatio: '210 / 297',
+        aspectRatio: inBook ? undefined : '210 / 297',
+        height: inBook ? '100%' : undefined,
         containerType: 'inline-size',
-        maxHeight: compact ? undefined : '70vh',
-        borderRadius: 6,
+        maxHeight: compact || inBook ? undefined : '70vh',
+        borderRadius: inBook ? 0 : 6,
         background: hasArtwork ? design.background : withTint(design, coverColor),
         color: ink,
-        border: `1px solid ${surfaceIsDark ? 'rgba(255,255,255,0.18)' : 'rgba(23,32,51,0.12)'}`,
+        border: inBook ? 'none' : `1px solid ${surfaceIsDark ? 'rgba(255,255,255,0.18)' : 'rgba(23,32,51,0.12)'}`,
       }}
       onMouseMove={editable ? onPointerMove : undefined}
       onMouseUp={editable ? onPointerUp : undefined}

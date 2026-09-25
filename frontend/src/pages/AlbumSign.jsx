@@ -36,7 +36,7 @@ import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
 import { formatNGN, getFLWPaymentParams } from '../utils/currency';
-import { playPageTurn } from '../utils/pageTurn';
+import NaturalFlipBook from '../components/NaturalFlipBook';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -100,6 +100,10 @@ ${ALBUM_FLIP_CSS}
   background:linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.06) 50%, rgba(0,0,0,0.12));
   border-radius:0 0 14px 0;
 }
+.nfb .album-page{ width:100% !important; max-width:none !important; height:100% !important; min-height:0 !important;
+  aspect-ratio:auto !important; border-radius:0 !important; border:none !important; box-shadow:none !important; }
+.nfb .album-page::before, .nfb .album-page::after, .nfb .album-cover-back{ display:none !important; }
+.nfb .album-cover-fill{ height:100%; background:#1a1035; }
 .album-inline-input{
   width:100%; background:transparent; border:none; outline:none; resize:none;
   font-family:inherit; color:inherit; line-height:inherit; letter-spacing:inherit;
@@ -131,8 +135,8 @@ const CoverPage = ({ card, design, flipClass }) => {
 
   return (
     <div className={`album-page ${flipClass}`} style={{ position:'relative', width:424, maxWidth:'86vw' }}>
-      <div style={{position:'absolute',left:'11%',top:10,width:'89%',height:'100%',borderRadius:8,background:'#fff',boxShadow:'0 18px 58px rgba(0,0,0,.2)'}}/>
-      <div style={{position:'relative'}}>
+      <div className="album-cover-back" style={{position:'absolute',left:'11%',top:10,width:'89%',height:'100%',borderRadius:8,background:'#fff',boxShadow:'0 18px 58px rgba(0,0,0,.2)'}}/>
+      <div style={{position:'relative',height:'100%'}}>
         <CardCoverPreview
           design={effectiveDesign}
           occasionLabel={(card.occasion || '').replace(/_/g,' ')}
@@ -143,6 +147,7 @@ const CoverPage = ({ card, design, flipClass }) => {
           textColor={coverTextColor}
           fontFamily={getFontStyle(card.font_style).family}
           layout={card.cover_layout}
+          inBook
         />
       </div>
     </div>
@@ -476,7 +481,6 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   // (mobileSidebar state removed — the side pane it opened no longer exists)
   const [showHelp,   setShowHelp]   = useState(false);
   const [signaturesOpen, setSignaturesOpen] = useState(true);
-  const [flipClass,  setFlipClass]  = useState('');
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [customAmount,   setCustomAmount]   = useState('');
   const [giftCurrency,   setGiftCurrency]   = useState('NGN');
@@ -604,26 +608,17 @@ const AlbumSign = ({ card: initialCard, slug }) => {
         : design?.background || albumTheme.stage)
     : albumTheme.stage;
 
-  // ─ Page flip sound (Web Audio — a short filtered-noise "paper" swish) ─
-  const audioCtxRef = useRef(null);
-  const soundOnRef = useRef(true);
-  useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
-  const playFlipSound = useCallback(() => {
-    if (!soundOnRef.current) return;
-    playPageTurn();   // shared realistic paper page-turn (utils/pageTurn)
-  }, []);
-
-  // ─ Page flip animation ─
-  const flipTo = useCallback((newPage, direction='forward') => {
+  // ─ Page turns — performed by the book (NaturalFlipBook), which also plays
+  //   the paper sound when sound is on. A target past the current last page
+  //   (a page that was just added) is remembered and opened once it exists.
+  const bookRef = useRef(null);
+  const flipTo = useCallback((newPage) => {
     if (newPage === clampedPage) return;
-    playFlipSound();
-    setPage(newPage);
-    setFlipClass(direction==='forward' ? 'album-flip-forward' : 'album-flip-back');
-    window.setTimeout(()=>{ setFlipClass(''); }, 820);
-  }, [clampedPage, playFlipSound]);
+    bookRef.current?.flipTo(newPage);
+  }, [clampedPage]);
 
-  const goNext = () => { if (clampedPage < totalPages-1) flipTo(clampedPage+1,'forward'); };
-  const goPrev = () => { if (clampedPage > 0) flipTo(clampedPage-1,'back'); };
+  const goNext = () => { bookRef.current?.next(); };
+  const goPrev = () => { bookRef.current?.prev(); };
 
   // Keyboard arrows flip pages freely (ignored while typing/editing)
   useEffect(() => {
@@ -637,23 +632,6 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [clampedPage, totalPages, showEditor, editingMsgId, inlineCompose]);
-
-  // Swipe left/right to flip on touch devices (only when not dragging a sticker/editing)
-  const swipeRef = useRef(null);
-  const onSwipeStart = useCallback((e) => {
-    if (dragging.current || editingMsgId || inlineCompose) { swipeRef.current = null; return; }
-    const t = e.touches?.[0]; if (!t) return;
-    swipeRef.current = { x: t.clientX, y: t.clientY };
-  }, [editingMsgId, inlineCompose]);
-  const onSwipeEnd = useCallback((e) => {
-    const s = swipeRef.current; swipeRef.current = null;
-    if (!s) return;
-    const t = e.changedTouches?.[0]; if (!t) return;
-    const dx = t.clientX - s.x, dy = t.clientY - s.y;
-    if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
-      if (dx < 0) goNext(); else goPrev();
-    }
-  }, [clampedPage, totalPages]);
 
   // ─ Drag (legacy only) ─
   const startDrag = useCallback((e,msgId,initialX,initialY)=>{
@@ -975,53 +953,190 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const showingCover = clampedPage===0;
   const bgColor = stageBackground || albumTheme.stage;
 
-  // ─ Full-spread: pair pages into a left/right open-book spread (post-cover).
-  // The "active" side is whichever one clampedPage points at — that's the only
-  // side that gets the compose overlay / edit affordances / flip animation.
-  // The other side renders the same page components in pure read-only mode,
-  // so both pages are genuinely visible at once without duplicating any of
-  // the interaction logic above (which is already parameterized by pageDef,
-  // not by clampedPage directly).
-  const spreadLeftIdx  = showingCover ? null : (clampedPage % 2 === 1 ? clampedPage : clampedPage - 1);
-  const spreadRightIdx = showingCover ? null : spreadLeftIdx + 1;
-  const leftDef  = spreadLeftIdx  != null && spreadLeftIdx  >= 1 && spreadLeftIdx  < totalPages ? pageList[spreadLeftIdx]  : null;
-  const rightDef = spreadRightIdx != null && spreadRightIdx < totalPages ? pageList[spreadRightIdx] : null;
-  const activeSide = clampedPage === spreadRightIdx ? 'right' : 'left';
-
-  const renderLeaf = (def, idx, isActive) => {
-    if (!def) {
-      // Inside cover / end of book — a quiet closed-leaf placeholder rather than empty space
-      return (
-        <div style={{width:424,maxWidth:'44vw',minHeight:600,borderRadius:'0 16px 16px 0',background:currentTheme.bg||'#fff',
-          border:'1.5px solid rgba(200,180,240,0.25)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-          <span style={{fontFamily:"'Caveat',cursive",fontSize:18,color:'#C4B5FD'}}>The end ✦</span>
+  // The "sign here" page's compose surface — lives on that page of the book.
+  const composeOverlay = () => (
+    <div style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none'}}>
+      {inlineCompose ? (
+        /* Direct-on-page notebook compose */
+        <div style={{position:'absolute',inset:0,pointerEvents:'auto',display:'flex',flexDirection:'column',padding:'22px 24px 20px 34px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+            <span style={{width:9,height:9,borderRadius:'50%',background:accentC,opacity:0.7}}/>
+            <span style={{fontFamily:"'Kalam',cursive",fontSize:13,color:accentC,fontWeight:700}}>Your page — write freely</span>
+          </div>
+          {mediaFiles.length>0 && (()=>{const item=mediaFiles[Math.min(carouselIdx,mediaFiles.length-1)];return (
+            <div style={{position:'relative',height:135,flexShrink:0,marginBottom:9,borderRadius:12,overflow:'hidden',background:'rgba(26,16,53,.9)',border:`2px solid ${accentC}44`}}>
+              {item.type==='video' ? <video src={item.preview} controls style={{width:'100%',height:'100%',objectFit:'contain'}}/>
+                : item.type==='voice' ? <div style={{height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:7,background:'rgba(255,255,255,.92)'}}><span style={{fontSize:26}}>🎙️</span><audio src={item.preview} controls style={{width:'80%',height:34}}/></div>
+                : <button type="button" onClick={()=>setExpandedComposeMedia(item)} style={{width:'100%',height:'100%',padding:0,border:0,background:'transparent',cursor:'zoom-in'}}><img src={item.preview} alt="Selected attachment" style={{width:'100%',height:'100%',objectFit:'contain'}}/></button>}
+              <button type="button" onClick={()=>setExpandedComposeMedia(item)} style={{position:'absolute',right:7,top:7,border:0,borderRadius:999,background:'rgba(17,24,39,.78)',color:'#fff',fontSize:9,fontWeight:800,padding:'5px 8px',cursor:'zoom-in'}}>Expand</button>
+              {mediaFiles.length>1 && <span style={{position:'absolute',left:7,bottom:7,borderRadius:999,background:'rgba(17,24,39,.72)',color:'#fff',fontSize:9,fontWeight:800,padding:'4px 7px'}}>{carouselIdx+1}/{mediaFiles.length}</span>}
+            </div>
+          );})()}
+          <textarea
+            ref={textareaRef}
+            autoFocus
+            className="album-inline-input"
+            value={form.content}
+            onChange={e=>setForm(p=>({...p,content:e.target.value}))}
+            placeholder="Dear friend…"
+            style={{flex:1,fontFamily:getFontStyle(form.font_style).family,fontSize:22,color:form.font_color,lineHeight:'34px',minHeight:150}}
+          />
+          <div style={{borderTop:`1px dashed ${accentC}33`,paddingTop:10,marginTop:6}}>
+            <input
+              className="album-inline-input"
+              value={form.author_name}
+              onChange={e=>setForm(p=>({...p,author_name:e.target.value}))}
+              placeholder="your name"
+              style={{fontFamily:"'Dancing Script',cursive",fontWeight:700,fontSize:24,color:accentC,marginTop:2}}
+            />
+            <input type="email" value={form.author_email} onChange={e=>setForm(p=>({...p,author_email:e.target.value}))}
+              placeholder="Your email (for your signature)" aria-label="Your email"
+              style={{width:'100%',marginTop:6,border:`1px solid ${accentC}33`,borderRadius:8,padding:'7px 9px',fontSize:12,color:'#374151',background:'rgba(255,255,255,.75)',outline:'none'}}/>
+          </div>
+          <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
+            <button type="button" onClick={handleSubmit} disabled={submitting}
+              style={{flex:'1 1 auto',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',border:'none',borderRadius:12,padding:'11px 16px',fontWeight:800,fontSize:14,cursor:'pointer',boxShadow:'0 4px 16px rgba(124,58,237,0.35)'}}>
+              {submitting ? 'Signing…' : (card.is_gift_enabled ? 'Sign & add gift →' : 'Add to card ✓')}
+            </button>
+            <button type="button" onClick={()=>fileInputRef.current?.click()} title="Add photo"
+              style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontSize:17}}>🖼️</button>
+            <button type="button" onClick={()=>setShowGif(s=>!s)} title="Add GIF"
+              style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontWeight:800,fontSize:11,color:accentC}}>GIF</button>
+            <div style={{width:44,height:44}}><VoiceRecorder onRecorded={f=>addMedia([f])} disabled={submitting}/></div>
+            <button type="button" onClick={()=>setInlineCompose(false)}
+              style={{width:44,height:44,borderRadius:12,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',color:'#9CA3AF'}}>✕</button>
+          </div>
+          {card.is_gift_enabled && (
+            <div id="album-gift-section" style={{background:'linear-gradient(135deg,#FFF7ED,#FEF3C7)',border:'1.5px solid #FDE68A',borderRadius:14,padding:'12px 14px',marginTop:12}}>
+              <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:8}}>
+                <span style={{fontSize:16}}>🎁</span>
+                <span style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:12,color:'#92400E'}}>Add a gift (optional)</span>
+              </div>
+              <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                {[1000,2500,5000,10000].map(amt=>(
+                  <button key={amt} type="button" onClick={()=>{setSelectedAmount(amt);setCustomAmount('');}}
+                    style={{border:`2px solid ${selectedAmount===amt?'#F59E0B':'#FDE68A'}`,background:selectedAmount===amt?'#FEF3C7':'#fff',borderRadius:10,padding:'6px 10px',fontSize:12,fontWeight:800,color:'#92400E',cursor:'pointer'}}>
+                    {formatNGN(amt)}
+                  </button>
+                ))}
+              </div>
+              <input type="number" min="100" value={customAmount}
+                onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}}
+                placeholder="Or enter a custom amount (₦)"
+                style={{width:'100%',marginTop:8,border:'1px solid #FDE68A',borderRadius:8,padding:'7px 9px',fontSize:12,outline:'none'}}/>
+            </div>
+          )}
+          {showGif && (
+            // Fixed, centered overlay — the page card this button lives in has
+            // overflow:hidden for its paper/flip-animation look, so an absolutely
+            // positioned picker anchored to the button would get silently clipped
+            // instead of showing. Escaping to a viewport-level overlay guarantees
+            // it's always visible regardless of where on the page the button sits.
+            <div style={{position:'fixed',inset:0,zIndex:150,display:'flex',alignItems:'center',justifyContent:'center',padding:16,background:'rgba(26,16,53,0.55)',backdropFilter:'blur(4px)'}}
+              onClick={()=>setShowGif(false)}>
+              <div style={{position:'relative',width:'min(380px,92vw)'}} onClick={e=>e.stopPropagation()}>
+                <GifPicker onSelect={f=>{addMedia([f]);setShowGif(false);}} onClose={()=>setShowGif(false)} compact/>
+              </div>
+            </div>
+          )}
+          {mediaFiles.length>0 && (
+            <p style={{fontSize:11,color:accentC,fontWeight:700,marginTop:8}}>{mediaFiles.length} attachment{mediaFiles.length>1?'s':''} ready ✓</p>
+          )}
         </div>
-      );
+      ) : (
+        <div style={{position:'absolute',inset:0,pointerEvents:'auto',display:'flex',flexDirection:'column',padding:'22px 24px 20px 34px',gap:12}}>
+          {/* Primary CTA — write the message */}
+          <button type="button" onClick={()=>setInlineCompose(true)}
+            style={{flex:1,minHeight:0,border:'2px dashed rgba(124,58,237,0.42)',background:'rgba(255,255,255,0.6)',borderRadius:16,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:'text',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,padding:16}}>
+            <span style={{display:'flex',width:48,height:48,borderRadius:14,alignItems:'center',justifyContent:'center',background:accentC+'18',flexShrink:0}}><Icon name="PenLine" size={23} style={{color:accentC}}/></span>
+            <span style={{fontSize:17,fontWeight:800,color:accentC}}>This page is yours</span>
+            <span style={{fontSize:12,fontWeight:600,color:'#6B7280',maxWidth:260,lineHeight:1.5,textAlign:'center'}}>Tap here to write your message. Everything below is optional.</span>
+          </button>
+
+          {/* Optional add-ons — icon grid, clearly secondary to the CTA above */}
+          <div style={{flexShrink:0}}>
+            <p style={{fontSize:10,fontWeight:800,letterSpacing:'0.08em',textTransform:'uppercase',color:'#9CA3AF',margin:'0 0 8px 4px'}}>Optional extras</p>
+            <div style={{display:'grid',gridTemplateColumns:card.is_gift_enabled?'repeat(4,1fr)':'repeat(3,1fr)',gap:8}}>
+              {[
+                { action:'media', icon:'Image',  label:'Photo/Video', color:accentC,     bg:accentC+'12' },
+                { action:'gif',   icon:'Sparkles',label:'GIF',         color:accentC,     bg:accentC+'12' },
+                { action:'voice', icon:'Mic',     label:'Voice note',  color:accentC,     bg:accentC+'12' },
+                ...(card.is_gift_enabled ? [{ action:'gift', icon:'Gift', label:'Gift', color:'#92400E', bg:'rgba(254,243,199,0.9)' }] : []),
+              ].map(opt=>(
+                <button key={opt.action} type="button" onClick={()=>openEditorFor(opt.action)}
+                  style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5,border:`1.5px solid ${opt.color}33`,background:opt.bg,borderRadius:12,padding:'10px 6px',cursor:'pointer'}}>
+                  <Icon name={opt.icon} size={17} style={{color:opt.color}}/>
+                  <span style={{fontSize:10,fontWeight:800,color:opt.color,textAlign:'center',lineHeight:1.2}}>{opt.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // Every page of the book. Pages keep their own edit / compose controls, and
+  // the engine turns them by hand (see NaturalFlipBook).
+  const bookPages = (() => {
+    const list = pageList.map((def, i) => {
+      if (i === 0) return { key: 'cover', hard: true, content: <CoverPage card={card} design={design} flipClass=""/> };
+      if (def.type === 'legacy') {
+        return { key: `legacy-${def.pageNum}`, content: (
+          // Stickers on legacy pages are dragged around, so a press here must not turn the page.
+          <div data-noflip="" style={{ width: '100%', height: '100%' }}>
+            <LegacyAlbumPage pageRef={pageRef} pageNum={def.pageNum} messages={def.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass="" onDragStart={startDrag} spread/>
+          </div>
+        ) };
+      }
+      if (def.type === 'blank') {
+        return { key: 'sign-here', content: (
+          <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+            <NewSignerPage msg={null} theme={currentTheme} isOwn={false} flipClass="" canEdit={false} editing={false} spread />
+            {composeOverlay()}
+          </div>
+        ) };
+      }
+      const m = def?.msg || null;
+      return { key: `m-${m?.id || i}`, content: (
+        <NewSignerPage
+          msg={m}
+          theme={currentTheme}
+          isOwn={m && myMsgIds.includes(m.id)}
+          flipClass=""
+          canEdit={canEditMsg(m)}
+          editing={!!m && editingMsgId === m.id}
+          draft={editDraft}
+          saving={savingEdit}
+          onDraftChange={(patch)=>setEditDraft(d=>({...d,...patch}))}
+          onStartEdit={()=>startEdit(m)}
+          onSaveEdit={saveEdit}
+          onCancelEdit={cancelEdit}
+          onMediaSelect={selectEditMedia}
+          onMediaRemove={removeEditMedia}
+          spread
+        />
+      ) };
+    });
+    const paper = currentTheme.bg || '#FFFDF8';
+    if (list.length % 2 === 1) {
+      list.push({ key: 'end', content: (
+        <div style={{ width:'100%', height:'100%', background: paper, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <span style={{ fontFamily:"'Caveat',cursive", fontSize:18, color:'#C4B5FD' }}>The end ✦</span>
+        </div>
+      ) });
     }
-    const leafFlip = isActive ? flipClass : '';
-    if (def.type==='legacy') {
-      return <LegacyAlbumPage pageRef={isActive?pageRef:undefined} pageNum={def.pageNum} messages={def.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass={leafFlip} onDragStart={isActive?startDrag:undefined} spread/>;
-    }
-    return (
-      <NewSignerPage
-        msg={def?.msg||null}
-        theme={currentTheme}
-        isOwn={def?.msg&&myMsgIds.includes(def.msg.id)}
-        flipClass={leafFlip}
-        canEdit={isActive && canEditMsg(def?.msg)}
-        editing={isActive && !!def?.msg && editingMsgId===def.msg.id}
-        draft={editDraft}
-        saving={savingEdit}
-        onDraftChange={isActive?(patch)=>setEditDraft(d=>({...d,...patch})):undefined}
-        onStartEdit={isActive?()=>startEdit(def?.msg):undefined}
-        onSaveEdit={isActive?saveEdit:undefined}
-        onCancelEdit={isActive?cancelEdit:undefined}
-        onMediaSelect={isActive?selectEditMedia:undefined}
-        onMediaRemove={isActive?removeEditMedia:undefined}
-        spread
-      />
-    );
-  };
+    list.push({ key: 'back', hard: true, content: (
+      <div style={{ width:'100%', height:'100%', background: design?.background || 'linear-gradient(160deg,#2a1260,#120a2a)', position:'relative', display:'flex', alignItems:'center', justifyContent:'center', textAlign:'center', color:'#fff' }}>
+        <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.35)' }}/>
+        <div style={{ position:'relative' }}>
+          <p style={{ fontFamily:"'Great Vibes',cursive", fontSize:40, margin:0 }}>With love</p>
+          <p style={{ fontSize:12, fontWeight:700, opacity:0.85, margin:'4px 0 0' }}>for {card.recipient_name}</p>
+        </div>
+      </div>
+    ) });
+    return list;
+  })();
 
   return(
     <div className="section-dots" style={{minHeight:'100vh',background:bgColor,fontFamily:"'Plus Jakarta Sans',system-ui,sans-serif",transition:'background 0.4s'}}>
@@ -1086,190 +1201,20 @@ const AlbumSign = ({ card: initialCard, slug }) => {
 
         {/* ── Book ── */}
         <div>
-          <div className="album-stage" style={{position:'relative',display:'flex',justifyContent:'center',alignItems:'center',minHeight:640,userSelect:'none'}}
-            onMouseMove={onDragMove} onMouseUp={onDragEnd}
-            onTouchStart={onSwipeStart}
-            onTouchMove={onDragMove} onTouchEnd={(e)=>{ onDragEnd(e); onSwipeEnd(e); }}>
-
-            {/* Stacked shadows */}
-            {clampedPage>0&&[2,1].map(off=>(
-              <div key={off} style={{position:'absolute',left:'50%',top:'50%',
-                transform:`translate(calc(-50% - ${off*18}px),calc(-50% + ${off*4}px)) rotate(${-off*2}deg)`,
-                width:500,maxWidth:'90vw',height:600,borderRadius:20,
-                background:currentTheme.bg||'#fff',
-                border:'1.5px solid rgba(200,180,240,0.25)',boxShadow:'0 4px 20px rgba(0,0,0,0.05)',zIndex:0}}/>
-            ))}
-            {clampedPage<totalPages-1&&[1,2].map(off=>(
-              <div key={off} style={{position:'absolute',left:'50%',top:'50%',
-                transform:`translate(calc(-50% + ${off*18}px),calc(-50% + ${off*4}px)) rotate(${off*2}deg)`,
-                width:500,maxWidth:'90vw',height:600,borderRadius:20,
-                background:currentTheme.bg||'#fff',
-                border:'1.5px solid rgba(200,180,240,0.25)',boxShadow:'0 4px 20px rgba(0,0,0,0.05)',zIndex:0}}/>
-            ))}
-
-            {/* Active page + peek page — full open-book spread.
-                perspective on this wrapper is what gives the 3D depth to the
-                rotateY animation — exactly what the live preview does at line 630
-                of AlbumStudioPreview.jsx. Without it the keyframes run in 2D. */}
-            <div style={{position:'relative',zIndex:1,display:'flex',alignItems:'stretch',perspective:'1800px',transformStyle:'preserve-3d'}}>
-              {!showingCover && activeSide==='right' && (
-                <div style={{position:'relative',borderRadius:'14px 0 0 14px',overflow:'hidden',boxShadow:'inset -8px 0 20px -12px rgba(0,0,0,0.25)'}}>
-                  {renderLeaf(leftDef, spreadLeftIdx, false)}
-                </div>
-              )}
-              {!showingCover && <div style={{width:2,alignSelf:'stretch',background:'linear-gradient(90deg,rgba(0,0,0,0.08),rgba(0,0,0,0.02))',flexShrink:0}}/>}
-            <div style={{position:'relative',zIndex:1,borderRadius:!showingCover?(activeSide==='left'?'0 14px 14px 0':'14px 0 0 14px'):undefined,overflow:!showingCover?'hidden':undefined,boxShadow:!showingCover?(activeSide==='left'?'inset 8px 0 20px -12px rgba(0,0,0,0.25)':'inset -8px 0 20px -12px rgba(0,0,0,0.25)'):undefined}}>
-                {showingCover
-                  ? <CoverPage card={card} design={design} flipClass={flipClass}/>
-                  : pageDef?.type==='legacy'
-                    ? <LegacyAlbumPage pageRef={pageRef} pageNum={pageDef.pageNum} messages={pageDef.msgs||[]} myMsgIds={myMsgIds} theme={currentTheme} flipClass={flipClass} onDragStart={startDrag} spread/>
-                    : <NewSignerPage
-                        msg={pageDef?.msg||null}
-                        theme={currentTheme}
-                        isOwn={pageDef?.msg&&myMsgIds.includes(pageDef.msg.id)}
-                        flipClass={flipClass}
-                        canEdit={canEditMsg(pageDef?.msg)}
-                        editing={!!pageDef?.msg && editingMsgId===pageDef.msg.id}
-                        draft={editDraft}
-                        saving={savingEdit}
-                        onDraftChange={(patch)=>setEditDraft(d=>({...d,...patch}))}
-                        onStartEdit={()=>startEdit(pageDef?.msg)}
-                        onSaveEdit={saveEdit}
-                        onCancelEdit={cancelEdit}
-                        onMediaSelect={selectEditMedia}
-                        onMediaRemove={removeEditMedia}
-                        spread={!showingCover}
-                      />
-                }
-                {!showingCover && pageDef?.type === 'blank' && (
-                  <div style={{position:'absolute',inset:0,zIndex:5,pointerEvents:'none'}}>
-                    {inlineCompose ? (
-                      /* Direct-on-page notebook compose */
-                      <div style={{position:'absolute',inset:0,pointerEvents:'auto',display:'flex',flexDirection:'column',padding:'22px 24px 20px 34px'}}>
-                        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
-                          <span style={{width:9,height:9,borderRadius:'50%',background:accentC,opacity:0.7}}/>
-                          <span style={{fontFamily:"'Kalam',cursive",fontSize:13,color:accentC,fontWeight:700}}>Your page — write freely</span>
-                        </div>
-                        {mediaFiles.length>0 && (()=>{const item=mediaFiles[Math.min(carouselIdx,mediaFiles.length-1)];return (
-                          <div style={{position:'relative',height:135,flexShrink:0,marginBottom:9,borderRadius:12,overflow:'hidden',background:'rgba(26,16,53,.9)',border:`2px solid ${accentC}44`}}>
-                            {item.type==='video' ? <video src={item.preview} controls style={{width:'100%',height:'100%',objectFit:'contain'}}/>
-                              : item.type==='voice' ? <div style={{height:'100%',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:7,background:'rgba(255,255,255,.92)'}}><span style={{fontSize:26}}>🎙️</span><audio src={item.preview} controls style={{width:'80%',height:34}}/></div>
-                              : <button type="button" onClick={()=>setExpandedComposeMedia(item)} style={{width:'100%',height:'100%',padding:0,border:0,background:'transparent',cursor:'zoom-in'}}><img src={item.preview} alt="Selected attachment" style={{width:'100%',height:'100%',objectFit:'contain'}}/></button>}
-                            <button type="button" onClick={()=>setExpandedComposeMedia(item)} style={{position:'absolute',right:7,top:7,border:0,borderRadius:999,background:'rgba(17,24,39,.78)',color:'#fff',fontSize:9,fontWeight:800,padding:'5px 8px',cursor:'zoom-in'}}>Expand</button>
-                            {mediaFiles.length>1 && <span style={{position:'absolute',left:7,bottom:7,borderRadius:999,background:'rgba(17,24,39,.72)',color:'#fff',fontSize:9,fontWeight:800,padding:'4px 7px'}}>{carouselIdx+1}/{mediaFiles.length}</span>}
-                          </div>
-                        );})()}
-                        <textarea
-                          ref={textareaRef}
-                          autoFocus
-                          className="album-inline-input"
-                          value={form.content}
-                          onChange={e=>setForm(p=>({...p,content:e.target.value}))}
-                          placeholder="Dear friend…"
-                          style={{flex:1,fontFamily:getFontStyle(form.font_style).family,fontSize:22,color:form.font_color,lineHeight:'34px',minHeight:150}}
-                        />
-                        <div style={{borderTop:`1px dashed ${accentC}33`,paddingTop:10,marginTop:6}}>
-                          <input
-                            className="album-inline-input"
-                            value={form.author_name}
-                            onChange={e=>setForm(p=>({...p,author_name:e.target.value}))}
-                            placeholder="your name"
-                            style={{fontFamily:"'Dancing Script',cursive",fontWeight:700,fontSize:24,color:accentC,marginTop:2}}
-                          />
-                          <input type="email" value={form.author_email} onChange={e=>setForm(p=>({...p,author_email:e.target.value}))}
-                            placeholder="Your email (for your signature)" aria-label="Your email"
-                            style={{width:'100%',marginTop:6,border:`1px solid ${accentC}33`,borderRadius:8,padding:'7px 9px',fontSize:12,color:'#374151',background:'rgba(255,255,255,.75)',outline:'none'}}/>
-                        </div>
-                        <div style={{display:'flex',gap:8,marginTop:12,flexWrap:'wrap'}}>
-                          <button type="button" onClick={handleSubmit} disabled={submitting}
-                            style={{flex:'1 1 auto',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',border:'none',borderRadius:12,padding:'11px 16px',fontWeight:800,fontSize:14,cursor:'pointer',boxShadow:'0 4px 16px rgba(124,58,237,0.35)'}}>
-                            {submitting ? 'Signing…' : (card.is_gift_enabled ? 'Sign & add gift →' : 'Add to card ✓')}
-                          </button>
-                          <button type="button" onClick={()=>fileInputRef.current?.click()} title="Add photo"
-                            style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontSize:17}}>🖼️</button>
-                          <button type="button" onClick={()=>setShowGif(s=>!s)} title="Add GIF"
-                            style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontWeight:800,fontSize:11,color:accentC}}>GIF</button>
-                          <div style={{width:44,height:44}}><VoiceRecorder onRecorded={f=>addMedia([f])} disabled={submitting}/></div>
-                          <button type="button" onClick={()=>setInlineCompose(false)}
-                            style={{width:44,height:44,borderRadius:12,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',color:'#9CA3AF'}}>✕</button>
-                        </div>
-                        {card.is_gift_enabled && (
-                          <div id="album-gift-section" style={{background:'linear-gradient(135deg,#FFF7ED,#FEF3C7)',border:'1.5px solid #FDE68A',borderRadius:14,padding:'12px 14px',marginTop:12}}>
-                            <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:8}}>
-                              <span style={{fontSize:16}}>🎁</span>
-                              <span style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:12,color:'#92400E'}}>Add a gift (optional)</span>
-                            </div>
-                            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                              {[1000,2500,5000,10000].map(amt=>(
-                                <button key={amt} type="button" onClick={()=>{setSelectedAmount(amt);setCustomAmount('');}}
-                                  style={{border:`2px solid ${selectedAmount===amt?'#F59E0B':'#FDE68A'}`,background:selectedAmount===amt?'#FEF3C7':'#fff',borderRadius:10,padding:'6px 10px',fontSize:12,fontWeight:800,color:'#92400E',cursor:'pointer'}}>
-                                  {formatNGN(amt)}
-                                </button>
-                              ))}
-                            </div>
-                            <input type="number" min="100" value={customAmount}
-                              onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}}
-                              placeholder="Or enter a custom amount (₦)"
-                              style={{width:'100%',marginTop:8,border:'1px solid #FDE68A',borderRadius:8,padding:'7px 9px',fontSize:12,outline:'none'}}/>
-                          </div>
-                        )}
-                        {showGif && (
-                          // Fixed, centered overlay — the page card this button lives in has
-                          // overflow:hidden for its paper/flip-animation look, so an absolutely
-                          // positioned picker anchored to the button would get silently clipped
-                          // instead of showing. Escaping to a viewport-level overlay guarantees
-                          // it's always visible regardless of where on the page the button sits.
-                          <div style={{position:'fixed',inset:0,zIndex:150,display:'flex',alignItems:'center',justifyContent:'center',padding:16,background:'rgba(26,16,53,0.55)',backdropFilter:'blur(4px)'}}
-                            onClick={()=>setShowGif(false)}>
-                            <div style={{position:'relative',width:'min(380px,92vw)'}} onClick={e=>e.stopPropagation()}>
-                              <GifPicker onSelect={f=>{addMedia([f]);setShowGif(false);}} onClose={()=>setShowGif(false)} compact/>
-                            </div>
-                          </div>
-                        )}
-                        {mediaFiles.length>0 && (
-                          <p style={{fontSize:11,color:accentC,fontWeight:700,marginTop:8}}>{mediaFiles.length} attachment{mediaFiles.length>1?'s':''} ready ✓</p>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{position:'absolute',inset:0,pointerEvents:'auto',display:'flex',flexDirection:'column',padding:'22px 24px 20px 34px',gap:12}}>
-                        {/* Primary CTA — write the message */}
-                        <button type="button" onClick={()=>setInlineCompose(true)}
-                          style={{flex:1,minHeight:0,border:'2px dashed rgba(124,58,237,0.42)',background:'rgba(255,255,255,0.6)',borderRadius:16,fontFamily:"'Plus Jakarta Sans',sans-serif",cursor:'text',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:8,padding:16}}>
-                          <span style={{display:'flex',width:48,height:48,borderRadius:14,alignItems:'center',justifyContent:'center',background:accentC+'18',flexShrink:0}}><Icon name="PenLine" size={23} style={{color:accentC}}/></span>
-                          <span style={{fontSize:17,fontWeight:800,color:accentC}}>This page is yours</span>
-                          <span style={{fontSize:12,fontWeight:600,color:'#6B7280',maxWidth:260,lineHeight:1.5,textAlign:'center'}}>Tap here to write your message. Everything below is optional.</span>
-                        </button>
-
-                        {/* Optional add-ons — icon grid, clearly secondary to the CTA above */}
-                        <div style={{flexShrink:0}}>
-                          <p style={{fontSize:10,fontWeight:800,letterSpacing:'0.08em',textTransform:'uppercase',color:'#9CA3AF',margin:'0 0 8px 4px'}}>Optional extras</p>
-                          <div style={{display:'grid',gridTemplateColumns:card.is_gift_enabled?'repeat(4,1fr)':'repeat(3,1fr)',gap:8}}>
-                            {[
-                              { action:'media', icon:'Image',  label:'Photo/Video', color:accentC,     bg:accentC+'12' },
-                              { action:'gif',   icon:'Sparkles',label:'GIF',         color:accentC,     bg:accentC+'12' },
-                              { action:'voice', icon:'Mic',     label:'Voice note',  color:accentC,     bg:accentC+'12' },
-                              ...(card.is_gift_enabled ? [{ action:'gift', icon:'Gift', label:'Gift', color:'#92400E', bg:'rgba(254,243,199,0.9)' }] : []),
-                            ].map(opt=>(
-                              <button key={opt.action} type="button" onClick={()=>openEditorFor(opt.action)}
-                                style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5,border:`1.5px solid ${opt.color}33`,background:opt.bg,borderRadius:12,padding:'10px 6px',cursor:'pointer'}}>
-                                <Icon name={opt.icon} size={17} style={{color:opt.color}}/>
-                                <span style={{fontSize:10,fontWeight:800,color:opt.color,textAlign:'center',lineHeight:1.2}}>{opt.label}</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              {!showingCover && activeSide==='left' && (
-                <div style={{position:'relative',borderRadius:'0 14px 14px 0',overflow:'hidden',boxShadow:'inset 8px 0 20px -12px rgba(0,0,0,0.25)'}}>
-                  {renderLeaf(rightDef, spreadRightIdx, false)}
-                </div>
-              )}
-            </div>
-            </div>
+          <div onMouseMove={onDragMove} onMouseUp={onDragEnd} onTouchMove={onDragMove} onTouchEnd={onDragEnd}>
+          <NaturalFlipBook
+            ref={bookRef}
+            pages={bookPages}
+            startPage={clampedPage}
+            maxPageWidth={500}
+            minPageWidth={330}
+            maxPageHeight={typeof window !== 'undefined' ? Math.max(460, window.innerHeight - 190) : 640}
+            showCover
+            sound={soundOn}
+            onPageChange={setPage}
+            className="album-book"
+          />
+          </div>
 
           {/* ── Page navigation (jump freely to any page) ── */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,marginTop:22,width:'100%',minWidth:0}}>

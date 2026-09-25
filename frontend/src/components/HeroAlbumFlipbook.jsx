@@ -1,29 +1,22 @@
 /**
  * HeroAlbumFlipbook — the homepage hero's sample card, as a real book.
  *
- * Sits directly on the hero background (no panel of its own). Two-page
- * spreads on wide containers, one page at a time on narrow ones (measured on
- * the component's own width, so it is right on laptops, tablets and every
- * phone size alike).
- *
- * The page turn is a genuine 3D leaf: a double-sided page hinged on the spine
- * rotates through 180° in perspective — its front is the page you were
- * reading, its back is the next page — with light and shadow moving across it
- * and onto the pages beneath. A synthesised paper-flip sound plays on every
- * turn the visitor makes (auto-turns stay silent: browsers only allow sound
- * after a tap/click anyway, and silence is politer).
+ * Sits directly on the hero background (no panel of its own). Pages are turned
+ * by hand with NaturalFlipBook: drag a corner and the paper folds where you
+ * pull it, or tap / swipe / use the arrows for an animated corner-lift turn.
+ * Two-page spreads on wide containers, one page at a time on phones. A gentle,
+ * silent auto-turn runs until the visitor touches the book.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './ui/Icon';
 import CardCoverPreview from './CardCoverPreview';
 import { CARD_DESIGNS } from '../utils/cardDesigns';
-import { PAGE_TURN_CSS, PAGE_TURN_MS, playPageTurn } from '../utils/pageTurn';
+import NaturalFlipBook, { flipViews, viewOf } from './NaturalFlipBook';
 
 const PAGE_BG = '#fffdf8';
 const INK = '#1f2937';
 const ACCENT = '#7C3AED';
-const TURN_MS = PAGE_TURN_MS;
 const RECIPIENT = 'Jane';
 
 // Real celebration GIFs (Giphy CDN).
@@ -43,7 +36,7 @@ const SIGNERS = [
     media: { kind: 'gif', src: GIF.clap }, reactions: 5 },
   { name: 'Sarah C.', role: 'Design', initials: 'SC', tint: '#7C3AED', font: 'font-sacramento', size: 25,
     text: 'I could not put this in writing, so I recorded it for you instead.',
-    media: { kind: 'voice', length: 24, gif: GIF.love }, reactions: 9 },
+    media: { kind: 'voice', length: 12, gif: GIF.love }, reactions: 9 },
   { name: 'Marcus W.', role: 'Sales', initials: 'MW', tint: '#F59E0B', font: 'font-dancing', size: 20,
     text: 'From the conference in Nairobi to every late deadline — thank you for always having our backs.',
     media: { kind: 'photo', src: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=640&q=70', caption: 'Team offsite 🌍' }, reactions: 6 },
@@ -55,32 +48,71 @@ const SIGNERS = [
     media: { kind: 'video', src: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=640&q=70', length: '0:38' }, reactions: 11 },
 ];
 
+// Even page count so the back cover closes the book on its own.
 const PAGES = [
   { type: 'cover' },
-  ...SIGNERS.map((s, i) => ({ type: 'signer', signer: s, number: i + 2 })),
+  { type: 'inside' },
+  ...SIGNERS.map((s, i) => ({ type: 'signer', signer: s, number: i + 3 })),
   { type: 'gift' },
   { type: 'back' },
 ];
 
-/* ── Voice note — plays a visual demo (waveform + timer) ─────────────────── */
+/* ── Voice note — actually speaks when pressed ────────────────────────────
+ * An original, movie-trailer style line read by the browser's own speech
+ * voice (no recording of a real actor is used — that would need their
+ * permission). The waveform and timer follow the speech. Falls back to the
+ * visual demo on browsers without speech synthesis. */
+const VOICE_LINE = `In a world full of ordinary days… one person made every single one of them better. ${'Jane'}… happy birthday. From all of us — with love.`;
+
+const pickVoice = () => {
+  const list = window.speechSynthesis?.getVoices?.() || [];
+  const en = list.filter(v => /^en(-|_|$)/i.test(v.lang));
+  const prefer = [/Google UK English Male/i, /Daniel/i, /Arthur/i, /Guy/i, /Ryan/i, /Male/i, /Google US English/i, /Alex/i];
+  for (const re of prefer) { const v = en.find(x => re.test(x.name)); if (v) return v; }
+  return en[0] || list[0] || null;
+};
+
 const VoiceNote = ({ length, accent }) => {
   const [playing, setPlaying] = useState(false);
   const [t, setT] = useState(0);
+  const uttRef = useRef(null);
   useEffect(() => {
     if (!playing) return undefined;
-    const id = setInterval(() => setT(v => {
-      if (v + 1 >= length) { setPlaying(false); return 0; }
-      return v + 1;
-    }), 1000);
+    const id = setInterval(() => setT(v => Math.min(length, v + 1)), 1000);
     return () => clearInterval(id);
   }, [playing, length]);
+  // Stop talking if the page unmounts mid-sentence.
+  useEffect(() => () => { try { if (uttRef.current) window.speechSynthesis.cancel(); } catch { /* ignore */ } }, []);
+
+  const stop = () => {
+    try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+    uttRef.current = null; setPlaying(false); setT(0);
+  };
+  const play = () => {
+    const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
+    setT(0); setPlaying(true);
+    if (!synth || typeof window.SpeechSynthesisUtterance === 'undefined') {
+      setTimeout(() => { setPlaying(false); setT(0); }, length * 1000);
+      return;
+    }
+    synth.cancel();
+    const u = new window.SpeechSynthesisUtterance(VOICE_LINE);
+    const v = pickVoice(); if (v) u.voice = v;
+    u.lang = v?.lang || 'en-GB';
+    u.rate = 0.86; u.pitch = 0.82; u.volume = 1;
+    u.onend = () => { if (uttRef.current === u) { uttRef.current = null; setPlaying(false); setT(0); } };
+    u.onerror = u.onend;
+    uttRef.current = u;
+    synth.speak(u);
+  };
+
   const bars = [7, 13, 20, 11, 24, 16, 9, 19, 13, 22, 8, 15, 11, 18, 6, 14, 21, 10];
   const fmt = (s) => `0:${String(s).padStart(2, '0')}`;
   return (
-    <button type="button" onClick={(e) => { e.stopPropagation(); setPlaying(p => !p); }}
+    <button type="button" onClick={(e) => { e.stopPropagation(); if (playing) stop(); else play(); }}
       className="mt-3 flex w-full items-center gap-3 rounded-2xl border px-3 py-2 text-left"
       style={{ borderColor: `${accent}44`, background: `${accent}10`, minHeight: 0 }}
-      aria-label={playing ? 'Pause voice note' : 'Play voice note'}>
+      aria-label={playing ? 'Stop voice note' : 'Play voice note'}>
       <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white" style={{ background: accent }}>
         <Icon name={playing ? 'Pause' : 'Play'} size={14} className={playing ? '' : 'ml-0.5'} />
       </span>
@@ -166,6 +198,15 @@ const GiftPage = () => (
   </div>
 );
 
+const InsidePage = () => (
+  <div className="flex h-full flex-col items-center justify-center p-6 text-center" style={{ background: 'linear-gradient(160deg,#FFFDF8,#FBF5FF)', color: INK }}>
+    <p className="text-[10px] font-extrabold uppercase tracking-[0.24em] text-primary-500">For</p>
+    <p className="font-vibes text-5xl leading-tight text-primary-700">{RECIPIENT}</p>
+    <p className="mt-3 max-w-[14rem] text-sm leading-relaxed text-warm-500">Every page in this book was written by someone who loves working with you.</p>
+    <p className="mt-5 text-xs font-bold text-warm-400">Turn the page →</p>
+  </div>
+);
+
 const BackPage = () => (
   <div className="flex h-full flex-col items-center justify-center p-5 text-center" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FFF0F7)', color: INK }}>
     <p className="font-vibes text-4xl text-primary-700">With love,</p>
@@ -179,245 +220,138 @@ const BackPage = () => (
   </div>
 );
 
-// Plain paper, for the back of a single page on phones.
-const PaperBack = () => (
-  <div className="h-full w-full" style={{ background: 'linear-gradient(90deg,#f3eee3,#fffdf8 30%,#fbf7ee)' }} />
-);
-
-const CSS = `${PAGE_TURN_CSS}
-.haf-spine { background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.14) 46%, rgba(0,0,0,.22) 50%, rgba(0,0,0,.14) 54%, rgba(0,0,0,0) 100%); }
-@keyframes haf-in { 0% { transform: rotateY(-180deg) } 50% { transform: rotateY(-90deg) translateZ(30px) } 100% { transform: rotateY(0deg) } }
-`;
-
 export default function HeroAlbumFlipbook() {
-  const wrapRef = useRef(null);
-  const [width, setWidth] = useState(560);
-  const [index, setIndex] = useState(0);
-  const [turn, setTurn] = useState(null); // { from, to, dir: 'fwd'|'bwd' }
+  const bookRef = useRef(null);
   const [auto, setAuto] = useState(true);
   const [hover, setHover] = useState(false);
-  const touch = useRef(null);
-  const turnTimer = useRef(null);
-  const playSound = playPageTurn;
+  const [index, setIndex] = useState(0);
 
   const design = useMemo(() => (
     CARD_DESIGNS.find(d => d.occasion === 'birthday' && (d.image || d.artwork))
     || CARD_DESIGNS.find(d => d.id === 'starry_night') || CARD_DESIGNS[0]
   ), []);
 
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return undefined;
-    const measure = () => setWidth(el.clientWidth || 560);
-    measure();
-    if (typeof ResizeObserver === 'undefined') { window.addEventListener('resize', measure); return () => window.removeEventListener('resize', measure); }
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  // Spreads when two pages fit at a readable size; otherwise one page.
-  const single = width < 540;
-  const pageW = single ? Math.min(width - 72, 360) : Math.min(Math.floor((width - 72) / 2), 340);
-  // A4 portrait, the same ratio as the card cover (210 × 297).
-  const pageH = Math.round(pageW * 297 / 210);
-
-  // A view is [left, right]; null = no page there (inside of the cover).
-  const views = useMemo(() => {
-    if (single) return PAGES.map(p => [null, p]);
-    const rest = PAGES.slice(1);
-    const out = [[null, PAGES[0]]];
-    for (let i = 0; i < rest.length; i += 2) out.push([rest[i] || null, rest[i + 1] || null]);
-    return out;
-  }, [single]);
-
-  useEffect(() => { setIndex(i => Math.min(i, views.length - 1)); setTurn(null); }, [views.length]);
-  useEffect(() => () => clearTimeout(turnTimer.current), []);
-
-  const go = useCallback((next, byUser = true) => {
-    if (turn) return;                                   // one leaf at a time
-    const to = ((next % views.length) + views.length) % views.length;
-    if (to === index) return;
-    if (byUser) { setAuto(false); playSound(); }
-    setTurn({ from: index, to, dir: to > index ? 'fwd' : 'bwd' });
-    clearTimeout(turnTimer.current);
-    turnTimer.current = setTimeout(() => { setIndex(to); setTurn(null); }, TURN_MS);
-  }, [turn, index, views.length, playSound]);
-
-  // Gentle auto-turn until the visitor interacts.
-  useEffect(() => {
-    if (!auto || hover || turn) return undefined;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
-    const id = setTimeout(() => go(index + 1, false), index === 0 ? 3000 : 4800);
-    return () => clearTimeout(id);
-  }, [auto, hover, index, turn, go]);
-
   const renderPage = (p) => {
-    if (!p) return null;
     if (p.type === 'cover') {
       return (
         <div className="h-full w-full overflow-hidden" style={{ background: '#1a1035' }}>
-          <div style={{ height: '100%', display: 'flex', alignItems: 'stretch' }}>
-            <div style={{ width: '100%' }}>
-              <CardCoverPreview
-                design={design}
-                occasionLabel="Birthday"
-                occasionStyle={{ color: '#ffffff', background: 'rgba(0,0,0,0.32)' }}
-                recipientName={RECIPIENT}
-                title={`Happy Birthday, ${RECIPIENT}!`}
-                senderName="The Product Team"
-              />
-            </div>
-          </div>
+          <CardCoverPreview
+            design={design}
+            occasionLabel="Birthday"
+            occasionStyle={{ color: '#ffffff', background: 'rgba(0,0,0,0.32)' }}
+            recipientName={RECIPIENT}
+            title={`Happy Birthday, ${RECIPIENT}!`}
+            senderName="The Product Team"
+            inBook
+          />
         </div>
       );
     }
+    if (p.type === 'inside') return <InsidePage />;
     if (p.type === 'signer') return <SignerPage signer={p.signer} number={p.number} />;
     if (p.type === 'gift') return <GiftPage />;
-    if (p.type === 'back') return <BackPage />;
-    return null;
+    return <BackPage />;
   };
 
-  // What the static book shows underneath while a leaf turns.
-  // The layout can switch between spreads and single pages at any moment
-  // (resize, phone rotation, scrollbar appearing). `views` then has a
-  // different length for one render before the effect above re-clamps the
-  // state — so never index it with a stale value.
-  const last = views.length - 1;
-  const safeIndex = Math.min(Math.max(index, 0), last);
-  const turnOk = !!turn && turn.from <= last && turn.to <= last;
-  const cur = views[safeIndex] || [null, null];
-  let baseLeft = cur[0];
-  let baseRight = cur[1];
-  let leaf = null;
-  if (turnOk) {
-    const A = views[turn.from];
-    const B = views[turn.to];
-    if (single) {
-      // Phone: the page lifts off its left edge to reveal the next one
-      // (forward), or the previous page swings back over it (back).
-      if (turn.dir === 'fwd') { baseRight = B[1]; leaf = { side: 'right', front: A[1], back: 'paper' }; }
-      else { baseRight = A[1]; leaf = { side: 'right-in', front: B[1], back: 'paper' }; }
-      baseLeft = null;
-    } else if (turn.dir === 'fwd') {
-      baseLeft = A[0]; baseRight = B[1];
-      leaf = { side: 'right', front: A[1], back: B[0] };
-    } else {
-      baseLeft = B[0]; baseRight = A[1];
-      leaf = { side: 'left', front: A[0], back: B[1] };
-    }
-  }
+  const pages = useMemo(() => PAGES.map((p, i) => ({
+    key: `${p.type}-${i}`,
+    hard: p.type === 'cover' || p.type === 'back',
+    content: renderPage(p),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), [design]);
 
-  // Closed book (cover only) is centred; open spreads use the full width.
-  const closed = !single && !turnOk && cur[0] === null;
-  const bookW = single ? pageW : pageW * 2;
-  const shift = closed ? -pageW / 2 : (!single && turnOk && views[turn.to][0] === null && turn.dir === 'bwd' ? -pageW / 2 : 0);
+  // ── Auto-turn (silent) until the visitor turns a page themselves ──────────
+  // Desktop: the book is in view with the hero, so it starts right away.
+  // Phones: the book sits below the headline, so nothing turns until it is
+  // actually on screen — the visitor first sees the COVER for 5 seconds, then
+  // a page turns every 2 seconds. Scrolling away pauses it.
+  const wrapRef = useRef(null);
+  const [inView, setInView] = useState(false);
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia?.('(max-width: 767px)');
+    if (!mq) return undefined;
+    const on = () => setMobile(mq.matches);
+    mq.addEventListener?.('change', on);
+    return () => mq.removeEventListener?.('change', on);
+  }, []);
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') { setInView(true); return undefined; }
+    const io = new IntersectionObserver(([e]) => setInView(e.isIntersecting && e.intersectionRatio >= 0.6), { threshold: [0, 0.6, 1] });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
-  const pageBox = (content, extra = {}) => (
-    <div className="absolute top-0 overflow-hidden" style={{ width: pageW, height: pageH, ...extra }}>{content}</div>
-  );
+  const autoTurning = useRef(false);
+  useEffect(() => {
+    if (!auto || (!mobile && hover)) return undefined;
+    if (mobile && !inView) return undefined;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const delay = index === 0 ? (mobile ? 5000 : 3200) : (mobile ? 2000 : 5200);
+    const id = setTimeout(() => {
+      const api = bookRef.current;
+      if (!api) return;
+      autoTurning.current = true;
+      if (index >= PAGES.length - 1) { api.flipTo(0, false); autoTurning.current = false; } // a jump, not a turn
+      else api.next(false);
+    }, delay);
+    return () => clearTimeout(id);
+  }, [auto, hover, index, mobile, inView]);
 
-  const leafEl = leaf && (() => {
-    const isIncoming = leaf.side === 'right-in';
-    const left = leaf.side === 'left' ? 0 : (single ? 0 : pageW);
-    const cls = leaf.side === 'left' ? 'pt-bwd' : 'pt-fwd';
-    const backContent = leaf.back === 'paper' ? <PaperBack /> : renderPage(leaf.back);
-    if (isIncoming) {
-      // Previous page swings in from the left over the current one.
-      return (
-        <div className="pt-leaf" style={{ left: 0, width: pageW, transformOrigin: 'left center', animation: `haf-in ${TURN_MS}ms cubic-bezier(.42,.08,.22,1) forwards` }}>
-          <div className="pt-face">{renderPage(leaf.front)}</div>
-          <div className="pt-face pt-back"><PaperBack /></div>
-        </div>
-      );
-    }
-    return (
-      <div className={`pt-leaf ${cls}`} style={{ left, width: pageW }}>
-        <div className="pt-face pt-front">{renderPage(leaf.front)}<div className="pt-shade" /></div>
-        <div className="pt-face pt-back">{backContent}<div className="pt-shade" /></div>
-      </div>
-    );
-  })();
-
-  const pageNo = views.slice(0, index).reduce((n, v) => n + v.filter(Boolean).length, 0) + 1;
-  const showing = cur.filter(Boolean).length;
+  // Any turn the visitor makes (drag, tap, swipe) hands the book over to them.
+  const onBookState = (s) => {
+    if (s === 'read') { autoTurning.current = false; return; }
+    if ((s === 'user_fold' || s === 'flipping') && !autoTurning.current) setAuto(false);
+  };
+  const stopAuto = () => setAuto(false);
 
   return (
-    <div ref={wrapRef} className="w-full select-none" style={{ overflowX: 'clip' }}>
-      <style>{CSS}</style>
-
-      <div
-        role="region"
-        aria-roledescription="carousel"
-        aria-label={`Sample Thankeeu card for ${RECIPIENT}, page ${pageNo}${showing > 1 ? `–${pageNo + 1}` : ''} of ${PAGES.length}`}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'ArrowRight') { e.preventDefault(); go(index + 1); }
-          if (e.key === 'ArrowLeft') { e.preventDefault(); go(index - 1); }
-        }}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        onTouchStart={(e) => { touch.current = e.touches[0].clientX; setAuto(false); }}
-        onTouchEnd={(e) => {
-          if (touch.current == null) return;
-          const dx = e.changedTouches[0].clientX - touch.current;
-          touch.current = null;
-          if (Math.abs(dx) > 40) go(index + (dx < 0 ? 1 : -1));
-        }}
-        className="relative flex items-center justify-center rounded-2xl outline-none focus-visible:ring-4 focus-visible:ring-primary-200"
-        style={{ padding: '18px 0 40px' }}
-      >
-        {/* The book */}
-        <div className="pt-book" style={{ width: bookW, height: pageH, transform: `translateX(${shift}px)`, transition: 'transform .6s cubic-bezier(.4,0,.2,1)' }}
-          onClick={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            go(index + (e.clientX - r.left > r.width / 2 ? 1 : -1));
-          }}>
-          {/* Soft drop shadow under the open pages */}
-          <div className="pointer-events-none absolute -bottom-4 left-[4%] right-[4%] h-8 rounded-[50%]" style={{ background: 'radial-gradient(ellipse at center, rgba(49,24,99,0.28), transparent 70%)', filter: 'blur(4px)' }} />
-
-          {!single && baseLeft && pageBox(renderPage(baseLeft), { left: 0, borderRadius: '10px 0 0 10px', boxShadow: '-6px 14px 34px rgba(49,24,99,0.18)' })}
-          {baseRight && pageBox(renderPage(baseRight), { left: single ? 0 : pageW, borderRadius: single ? 10 : '0 10px 10px 0', boxShadow: '6px 14px 34px rgba(49,24,99,0.18)' })}
-
-          {/* Shadow cast by the turning leaf onto the page it uncovers */}
-          {leaf && leaf.side !== 'right-in' && (
-            <div className="pt-cast" style={{
-              left: leaf.side === 'left' ? 0 : (single ? 0 : pageW), width: pageW,
-              background: leaf.side === 'left'
-                ? 'linear-gradient(270deg, rgba(0,0,0,0.30), rgba(0,0,0,0) 70%)'
-                : 'linear-gradient(90deg, rgba(0,0,0,0.30), rgba(0,0,0,0) 70%)',
-            }} />
-          )}
-
-          {/* Spine */}
-          {!single && baseLeft && <div className="haf-spine pointer-events-none absolute top-0 z-[3]" style={{ left: pageW - 14, width: 28, height: pageH }} />}
-
-          {leafEl}
-        </div>
-
-        {/* Arrows — outside the pages so they never cover the content */}
-        <button type="button" onClick={() => go(index - 1)} aria-label="Previous page" disabled={index === 0}
-          className="absolute left-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-purple-100 bg-white/95 text-primary-600 shadow-md transition hover:scale-105 disabled:opacity-40 sm:h-11 sm:w-11">
-          <Icon name="ChevronLeft" size={20} />
-        </button>
-        <button type="button" onClick={() => go(index + 1)} aria-label={index === views.length - 1 ? 'Back to the cover' : 'Next page'}
-          className="absolute right-0 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-purple-100 bg-white/95 text-primary-600 shadow-md transition hover:scale-105 sm:h-11 sm:w-11">
-          <Icon name={index === views.length - 1 ? 'Refresh' : 'ChevronRight'} size={20} />
-        </button>
-
-        {/* Dots */}
-        <div className="absolute bottom-1 left-1/2 flex -translate-x-1/2 items-center gap-1.5">
-          {views.map((_, i) => (
-            <button key={i} type="button" onClick={() => go(i)} aria-label={i === 0 ? 'Go to cover' : `Go to page ${i + 1}`}
-              className="flex items-center justify-center" style={{ minHeight: 0, height: 20, width: i === index ? 26 : 12 }}>
-              <span className="block h-2 rounded-full transition-all" style={{ width: i === index ? 22 : 8, background: i === index ? ACCENT : '#D8CCF7' }} />
-            </button>
-          ))}
-        </div>
+    <div ref={wrapRef} className="w-full" style={{ overflowX: 'clip' }}
+      onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      onKeyDown={stopAuto}>
+      <div role="region" aria-roledescription="book" tabIndex={0}
+        aria-label={`Sample Thankeeu card for ${RECIPIENT}, page ${index + 1} of ${PAGES.length}`}
+        className="relative rounded-2xl px-12 pb-2 pt-4 outline-none focus-visible:ring-4 focus-visible:ring-primary-200 sm:px-14">
+        <NaturalFlipBook
+          ref={bookRef}
+          pages={pages}
+          maxPageWidth={340}
+          minPageWidth={210}
+          showCover
+          onPageChange={setIndex}
+          onStateChange={onBookState}
+          volume={0.45}
+          controls={({ index: i, single, count, api }) => {
+            const views = flipViews(count, single);
+            const cur = viewOf(i, count, single);
+            const atEnd = cur === views.length - 1;
+            return (
+              <>
+                <button type="button" onClick={() => { stopAuto(); api.prev(); }} aria-label="Previous page" disabled={i === 0}
+                  className="absolute left-0 top-[42%] z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-purple-100 bg-white/95 text-primary-600 shadow-md transition hover:scale-105 disabled:opacity-40 sm:h-11 sm:w-11">
+                  <Icon name="ChevronLeft" size={20} />
+                </button>
+                <button type="button" onClick={() => { stopAuto(); if (atEnd) api.flipTo(0); else api.next(); }} aria-label={atEnd ? 'Back to the cover' : 'Next page'}
+                  className="absolute right-0 top-[42%] z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-purple-100 bg-white/95 text-primary-600 shadow-md transition hover:scale-105 sm:h-11 sm:w-11">
+                  <Icon name={atEnd ? 'Refresh' : 'ChevronRight'} size={20} />
+                </button>
+                <div className="mt-6 flex items-center justify-center gap-1.5">
+                  {views.map((start, v) => (
+                    <button key={start} type="button" onClick={() => { stopAuto(); api.flipTo(start); }} aria-label={v === 0 ? 'Go to cover' : `Go to page ${start + 1}`}
+                      className="flex items-center justify-center" style={{ minHeight: 0, height: 20, width: v === cur ? 26 : 12 }}>
+                      <span className="block h-2 rounded-full transition-all" style={{ width: v === cur ? 22 : 8, background: v === cur ? ACCENT : '#D8CCF7' }} />
+                    </button>
+                  ))}
+                </div>
+              </>
+            );
+          }}
+        />
       </div>
 
-      <p className="mt-2 text-center text-xs text-warm-400">
-        Tap a page or swipe to flip · every signer gets a page with messages, photos, GIFs, videos &amp; voice notes
+      <p className="mt-1 text-center text-xs text-warm-400">
+        Drag a page corner, tap or swipe to turn · every signer gets a page with messages, photos, GIFs, videos &amp; voice notes
       </p>
     </div>
   );

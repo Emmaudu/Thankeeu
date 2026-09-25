@@ -49,6 +49,14 @@ function scheduleCardDelivery(card) {
     cancelSchedule(card.slug);
     return;
   }
+  // Create Now, Pay Later: an unpaid card is never armed. Paying it re-arms
+  // it (utils/cardPayment.markCardFeePaid). deliverCard re-checks the flag
+  // fresh from the database as well, so a card object that simply lacks the
+  // field can never slip through.
+  if (card.payment_pending === true) {
+    cancelSchedule(card.slug);
+    return;
+  }
   if (!_deliverCard) return; // scheduler not yet initialised — cron will catch it
 
   const fireAt = new Date(card.send_date);

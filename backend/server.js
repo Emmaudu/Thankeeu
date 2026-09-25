@@ -269,6 +269,8 @@ app.use('/api/movies', require('./routes/movies'));
 app.use('/api/wall',   require('./routes/wall'));
 app.use('/api/reminders', require('./routes/reminders'));
 app.use('/api/pals', require('./routes/pals'));
+// Public site content — homepage hero text edited in Admin → Header
+app.use('/api/site', require('./routes/site'));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', app: 'Thankeeu API', time: new Date() }));
@@ -357,16 +359,23 @@ cron.schedule('0 10 * * *', async () => {
 // ─────────────────────────────────────────────────────────────────────────────
 const crypto = require('crypto');
 const scheduler = require('./utils/scheduler');
+const { isPaymentPending, queryExcludingUnpaid } = require('./utils/cardPayment');
 
 // In-memory lock: prevent two concurrent deliveries of the same card
 // (e.g. startup autoSendDueCards + scheduler firing at the same time)
 const _delivering = new Set();
+// slug → epoch ms before which a failed delivery is not retried (the minute
+// sweep would otherwise hammer a bad address / email outage every minute).
+const _deliveryBackoff = new Map();
+const DELIVERY_RETRY_MIN = 15;
 
 async function deliverCard(card) {
   const now = new Date();
   const slug = card?.slug || 'unknown';
 
   // In-memory lock: if another async path is already delivering this card, skip
+  const retryAt = _deliveryBackoff.get(slug);
+  if (retryAt && Date.now() < retryAt) return { skipped: true, reason: 'backoff' };
   if (_delivering.has(slug)) {
     console.log(`[deliver] Already in progress for ${slug}, skipping duplicate`);
     return { skipped: true };
@@ -395,6 +404,16 @@ async function deliverCard(card) {
     if (!fresh || fresh.status !== 'active' || fresh.recipient_notified) {
       console.log(`[deliver] Skipping ${slug}: status=${fresh?.status}, notified=${fresh?.recipient_notified}`);
       return { skipped: true };
+    }
+
+    // Create Now, Pay Later: an unpaid card is held — never delivered. Paying
+    // it (markCardFeePaid) re-arms delivery, immediately if already overdue.
+    // Read fresh here, on the authoritative path, rather than trusting the
+    // flag on whatever card object armed this timer.
+    if (await isPaymentPending(fresh.id)) {
+      console.log(`[deliver] Holding ${slug}: card fee not paid yet (pay-later)`);
+      scheduler.cancelSchedule(slug);
+      return { skipped: true, reason: 'awaiting_payment' };
     }
 
     // Due-date guard. A timer armed before the creator rescheduled the card
@@ -473,8 +492,10 @@ async function deliverCard(card) {
     const movieAlreadyDone = fresh.movie_status === 'completed';
     const hasMessages      = (count || 0) > 0;
 
-    // 4. Send delivery email
-    await sendEmail({
+    // 4. Send delivery email — checked and retried. If it still fails the
+    // card is put back to 'active' (undelivered) so it is retried later,
+    // instead of being marked delivered with nothing in the inbox.
+    const deliveryEmail = {
       to: fresh.recipient_email,
       template: 'cardDelivery',
       data: {
@@ -497,7 +518,23 @@ async function deliverCard(card) {
         hasMovie:    movieAlreadyDone,
         movieComing: hasMessages && !movieAlreadyDone,
       },
-    });
+    };
+    let mailResult = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      mailResult = await sendEmail(deliveryEmail);
+      if (mailResult?.success) break;
+      if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000));
+    }
+    if (!mailResult?.success) {
+      console.error(`[deliver] ❌ Email to ${fresh.recipient_email} failed 3 times for ${slug} — reverting to undelivered, retrying in ${DELIVERY_RETRY_MIN} min`);
+      await supabase.from('cards')
+        .update({ status: 'active', recipient_notified: false })
+        .eq('id', fresh.id).eq('status', 'sent');
+      _deliveryBackoff.set(slug, Date.now() + DELIVERY_RETRY_MIN * 60 * 1000);
+      _delivering.delete(slug);
+      return { error: 'delivery email failed' };
+    }
+    _deliveryBackoff.delete(slug);
 
     console.log(`[deliver] Delivered ${slug} -> ${fresh.recipient_email}${movieAlreadyDone ? ' (movie ready)' : ''}`);
 
@@ -551,14 +588,20 @@ async function autoSendDueCards() {
 
   let cardsToSend, cardsToSendErr;
   try {
-    ({ data: cardsToSend, error: cardsToSendErr } = await supabase
-      .from('cards')
-      .select('*, users!creator_id(email, full_name)')
-      .eq('status', 'active')
-      .eq('recipient_notified', false)
-      .not('recipient_email', 'is', null)
-      .not('send_date', 'is', null)
-      .lte('send_date', nowISO));
+    // Unpaid (pay-later) cards are excluded at the query so they are not
+    // re-examined every minute; deliverCard re-checks regardless.
+    ({ data: cardsToSend, error: cardsToSendErr } = await queryExcludingUnpaid((excludeUnpaid) => {
+      let q = supabase
+        .from('cards')
+        .select('*, users!creator_id(email, full_name)')
+        .eq('status', 'active')
+        .eq('recipient_notified', false)
+        .not('recipient_email', 'is', null)
+        .not('send_date', 'is', null)
+        .lte('send_date', nowISO);
+      if (excludeUnpaid) q = q.eq('payment_pending', false);
+      return q;
+    }, 'autoSendDueCards'));
   } catch (queryErr) {
     console.error('[auto-send] Supabase query threw:', queryErr.message);
     return;
@@ -581,13 +624,17 @@ async function autoSendDueCards() {
 // scheduleAllActive: on startup, load every future-scheduled active card
 // and register a precise setTimeout for each one.
 async function scheduleAllActive() {
-  const { data: cards, error } = await supabase
-    .from('cards')
-    .select('id, slug, send_date, send_time, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, status, recipient_notified')
-    .eq('status', 'active')
-    .eq('recipient_notified', false)
-    .not('send_date', 'is', null)
-    .not('recipient_email', 'is', null);
+  const { data: cards, error } = await queryExcludingUnpaid((excludeUnpaid) => {
+    let q = supabase
+      .from('cards')
+      .select('id, slug, send_date, send_time, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, status, recipient_notified')
+      .eq('status', 'active')
+      .eq('recipient_notified', false)
+      .not('send_date', 'is', null)
+      .not('recipient_email', 'is', null);
+    if (excludeUnpaid) q = q.eq('payment_pending', false);
+    return q;
+  }, 'scheduleAllActive');
 
   if (error) { console.error('[scheduleAllActive] Query error:', error.message); return; }
 
@@ -628,15 +675,22 @@ async function preRenderUpcomingMovies() {
   // Find active, undelivered cards with a send_date in the next 45 minutes
   // whose movie hasn't been started (movie_status is null, 'none', or 'failed').
   // We exclude 'queued', 'rendering', 'completed' to avoid duplicate jobs.
-  const { data: cards, error } = await supabase
-    .from('cards')
-    .select('id, slug, movie_status, movie_pre_render_at, recipient_email')
-    .eq('status', 'active')
-    .eq('recipient_notified', false)
-    .not('recipient_email', 'is', null)
-    .not('send_date', 'is', null)
-    .gte('send_date', now.toISOString())
-    .lte('send_date', soon.toISOString());
+  // Unpaid pay-later cards are skipped: they will not be delivered at
+  // send_date, and the movie renders once they are paid (at delivery, or by
+  // this cron if the date is still ahead).
+  const { data: cards, error } = await queryExcludingUnpaid((excludeUnpaid) => {
+    let q = supabase
+      .from('cards')
+      .select('id, slug, movie_status, movie_pre_render_at, recipient_email')
+      .eq('status', 'active')
+      .eq('recipient_notified', false)
+      .not('recipient_email', 'is', null)
+      .not('send_date', 'is', null)
+      .gte('send_date', now.toISOString())
+      .lte('send_date', soon.toISOString());
+    if (excludeUnpaid) q = q.eq('payment_pending', false);
+    return q;
+  }, 'preRenderUpcomingMovies');
 
   if (error) {
     console.error('[pre-render] Query error:', error.message);
@@ -680,10 +734,16 @@ async function preRenderUpcomingMovies() {
 
       // Stamp the attempt time before firing so repeated cron ticks don't
       // re-queue a 'failed' card more than once every 10 minutes.
-      await supabase.from('cards')
-        .update({ movie_pre_render_at: new Date().toISOString() })
-        .eq('id', card.id)
-        .catch(() => {}); // non-fatal if column doesn't exist yet
+      // Supabase query builders are thenables WITHOUT a .catch method, so the
+      // old `.eq(...).catch(() => {})` threw a TypeError here — which the
+      // catch below swallowed, silently skipping runMovieJob on every tick.
+      // A failed stamp (e.g. the optional column is missing) is non-fatal.
+      try {
+        const { error: stampErr } = await supabase.from('cards')
+          .update({ movie_pre_render_at: new Date().toISOString() })
+          .eq('id', card.id);
+        if (stampErr) console.warn(`[pre-render] could not stamp ${card.slug}:`, stampErr.message);
+      } catch (_) { /* non-fatal */ }
 
       // Fire-and-forget — don't await, cron must not block
       runMovieJob(card.id).catch(e =>
@@ -757,6 +817,21 @@ cron.schedule('0 8 * * *', async () => {
   } catch (cronErr) {
     console.error('[daily-cron] Unhandled error — job stopped early:', cronErr.message, cronErr.stack);
   }
+});
+
+// Create Now, Pay Later — hourly nudge to creators of unpaid live cards:
+// "pay so it can be delivered on the date" (and "it's on hold" once the date
+// passes). At minute 17 so it does not pile onto the top-of-hour jobs.
+cron.schedule('17 * * * *', async () => {
+  try { await require('./utils/payLaterEmails').sweepPayLaterReminders(); }
+  catch (err) { console.error('[pay-later reminders] sweep failed:', err.message); }
+});
+
+// Abandoned drafts — reminders 1 day, 3 days and (final) 8 days after the
+// creator stopped working on an unpublished card.
+cron.schedule('37 * * * *', async () => {
+  try { await require('./utils/abandonedCardReminders').sweepAbandonedCards(); }
+  catch (err) { console.error('[abandoned] sweep failed:', err.message); }
 });
 
 // Thankeeu Pals automation — auto-create cards, send reminders, settle gift pots

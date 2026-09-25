@@ -265,6 +265,11 @@ export const paymentsAPI = {
   verify:              (txRef)     => anyAxios.get(`/payments/verify/${encodeURIComponent(txRef)}`),
 };
 
+// ─── Public site content ───────────────────────────────────────────────────
+export const siteAPI = {
+  getHero: () => publicAxios.get('/site/hero', { timeout: 6000 }),
+};
+
 // ─── Dashboard ─────────────────────────────────────────────────────────────
 export const dashboardAPI = {
   get:                   ()      => api.get('/dashboard'),
@@ -302,6 +307,9 @@ export const adminAPI = {
   getSettings:  ()                      => api.get('/admin/settings'),
   uploadMusic:  (formData)              => api.post('/admin/music-upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
   removeMusic:  ()                      => api.delete('/admin/music'),
+  // Homepage hero header (Admin → Header)
+  getHero:      ()                      => api.get('/admin/hero'),
+  saveHero:     (data)                  => api.put('/admin/hero', data),
   // Cover designs (bulk upload per occasion)
   getCoverDesignOccasions: ()                => api.get('/admin/cover-designs/occasions'),
   getCoverDesigns:         (occasion)         => api.get('/admin/cover-designs', { params: occasion ? { occasion } : {} }),

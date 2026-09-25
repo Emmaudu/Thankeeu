@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { formatNGN } from '../../utils/currency';
 import QRCode from 'qrcode';
 import { asArray } from '../../utils/asArray';
+import useLiveRefresh from '../../hooks/useLiveRefresh';
 
 const EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
 const FILTERS = ['all','draft','active','sent'];
@@ -168,6 +169,8 @@ export default function DashboardCards() {
   useEffect(() => {
     cardsAPI.getAll().then(r=>setCards(asArray(r.data))).catch(()=>toast.error('Failed to load')).finally(()=>setLoading(false));
   }, []);
+  // Keep statuses, signatures and payments current without a reload.
+  useLiveRefresh(() => { cardsAPI.getAll().then(r => setCards(asArray(r.data))).catch(() => {}); }, 20000);
 
   const handleDelete = async (card) => {
     if (!window.confirm(`Delete "${card.title}"? This cannot be undone.`)) return;
@@ -242,9 +245,13 @@ export default function DashboardCards() {
                         <div className="section-dots w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{background:'#F5F0FF'}}>
                           {EMOJI[card.occasion]||'💌'}
                         </div>
+                        {card.status==='active' && card.payment_pending ? (
+                          <span className="db-badge" style={{ background:'#FEF3C7', color:'#92400E' }}>Awaiting payment</span>
+                        ) : (
                         <span className={`db-badge db-badge-${card.status||'draft'}`}>
                           {card.status==='active'?'Active':card.status==='sent'?'Sent':'Draft'}
                         </span>
+                        )}
                       </div>
                       <p className="db-card-item-title">{card.title}</p>
                       <p className="db-card-item-meta mb-2">For {card.recipient_name}</p>
@@ -255,6 +262,11 @@ export default function DashboardCards() {
                       </div>
                     </div>
                     <div className="db-card-item-footer">
+                      {card.status==='active' && card.payment_pending && (
+                        <Link to={`/pay/${card.slug}`} className="db-card-item-action" style={{ color:'#fff', background:'linear-gradient(135deg,#7C3AED,#EC4899)', borderRadius:10 }}>
+                          <Icon name="CreditCard" size={13}/>Pay Now
+                        </Link>
+                      )}
                       {card.status==='active' && (
                         <button className="db-card-item-action" onClick={()=>{navigator.clipboard.writeText(`${location.origin}/sign/${card.slug}`);toast.success('Copied!');}}>
                           <Icon name="Share" size={13}/>Copy link
@@ -280,7 +292,7 @@ export default function DashboardCards() {
                           <Icon name="Trash" size={13}/>{deleting===card.slug?'Deleting…':'Delete'}
                         </button>
                       )}
-                      {card.status==='active' && card.recipient_email && (
+                      {card.status==='active' && !card.payment_pending && card.recipient_email && (
                         <button
                           className="db-card-item-action"
                           disabled={resending===card.slug}

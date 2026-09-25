@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import { formatNGN } from '../utils/currency';
 import Icon from '../components/ui/Icon';
 import { asArray } from '../utils/asArray';
+import { DEFAULT_HERO, splitHeroTitle, HERO_WORD_TOKEN } from '../utils/heroDefaults';
 
 // ── Mini helpers ──────────────────────────────────────────────────────────────
 const Badge = ({ children, color = 'purple' }) => {
@@ -218,6 +219,110 @@ const SEGMENTS = [
 ];
 
 // ── Settings Tab ─────────────────────────────────────────────────────────────
+// ── Header Tab — edit the homepage hero title / subtitle / tagline ──────────
+const HERO_LIMITS = { tagline: 160, title: 160, subtitle: 400 };
+const HeaderTab = () => {
+  const [form, setForm]       = React.useState({ tagline: '', title: '', subtitle: '' });
+  const [saved, setSaved]     = React.useState({ tagline: '', title: '', subtitle: '' });
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving]   = React.useState(false);
+  const [updatedAt, setUpdatedAt] = React.useState(null);
+
+  const applyServer = (h = {}) => {
+    const v = { tagline: h.tagline || '', title: h.title || '', subtitle: h.subtitle || '' };
+    setForm(v); setSaved(v); setUpdatedAt(h.updated_at || null);
+  };
+
+  React.useEffect(() => {
+    adminAPI.getHero()
+      .then(r => applyServer(r.data?.hero))
+      .catch(e => toast.error(e.response?.data?.error || 'Could not load the hero text'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const dirty = ['tagline', 'title', 'subtitle'].some(k => form[k] !== saved[k]);
+  const save = async (next = form) => {
+    if (next.title.split(HERO_WORD_TOKEN).length > 2) { toast.error(`Use ${HERO_WORD_TOKEN} at most once in the title`); return; }
+    setSaving(true);
+    try {
+      const r = await adminAPI.saveHero({ tagline: next.tagline, title: next.title, subtitle: next.subtitle });
+      applyServer(r.data?.hero);
+      toast.success('Homepage header updated — live within a minute');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not save');
+    } finally { setSaving(false); }
+  };
+
+  const preview = {
+    tagline: form.tagline.trim() || DEFAULT_HERO.tagline,
+    subtitle: form.subtitle.trim() || DEFAULT_HERO.subtitle,
+    ...splitHeroTitle(form.title.trim() || DEFAULT_HERO.title),
+  };
+
+  // Called as a function (not <Field/>) so inputs keep focus while typing.
+  const field = ({ k, label, hint, rows }) => (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:6 }}>
+        <label htmlFor={`hero-${k}`} style={{ fontWeight:700, fontSize:13, color:'#1A1035' }}>{label}</label>
+        <span style={{ fontSize:11, color:'#9CA3AF' }}>{form[k].length}/{HERO_LIMITS[k]}</span>
+      </div>
+      {rows ? (
+        <textarea id={`hero-${k}`} className="input" rows={rows} value={form[k]} placeholder={DEFAULT_HERO[k]} maxLength={HERO_LIMITS[k]}
+          onChange={e => { const v = e.target.value; setForm(f => ({ ...f, [k]: v })); }} />
+      ) : (
+        <input id={`hero-${k}`} className="input" value={form[k]} placeholder={DEFAULT_HERO[k]} maxLength={HERO_LIMITS[k]}
+          onChange={e => { const v = e.target.value; setForm(f => ({ ...f, [k]: v })); }} />
+      )}
+      <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:4 }}>
+        <p style={{ fontSize:11, color:'#9CA3AF', margin:0 }}>{hint}</p>
+        {form[k] && <button type="button" onClick={() => setForm(f => ({ ...f, [k]: '' }))} style={{ fontSize:11, fontWeight:700, color:'#7C3AED', background:'none', border:'none', cursor:'pointer', minHeight:0 }}>Use default</button>}
+      </div>
+    </div>
+  );
+
+  if (loading) return <div style={{ padding:40, textAlign:'center', color:'#9CA3AF' }}>Loading…</div>;
+
+  return (
+    <div style={{ maxWidth: 1000, margin: '0 auto', padding: '28px 16px' }}>
+      <h2 style={{ fontWeight: 800, fontSize: 22, color: '#1A1035', marginBottom: 6 }}>Homepage header</h2>
+      <p style={{ color: '#7A6CA8', fontSize: 14, marginBottom: 24 }}>
+        Edit the hero title and subtitle visitors see first on the homepage. Leave a field empty to use the built-in text.
+        {updatedAt && <> Last saved {new Date(updatedAt).toLocaleString()}.</>}
+      </p>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div style={{ background:'#fff', border:'2px solid #EDE9FE', borderRadius:20, padding:22 }}>
+          {field({ k:'title', label:'Hero title', hint:`Optional: put ${HERO_WORD_TOKEN} where the rotating word (Birthday, Farewell…) appears.` })}
+          {field({ k:'subtitle', label:'Hero subtitle', hint:'The paragraph under the title.', rows:4 })}
+          {field({ k:'tagline', label:'Tagline (small badge above the title)', hint:'Optional short line.' })}
+          <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+            <button type="button" disabled={!dirty || saving} onClick={() => save()}
+              style={{ padding:'10px 20px', borderRadius:12, border:'none', background: dirty ? 'linear-gradient(135deg,#7C3AED,#EC4899)' : '#E5E7EB', color: dirty ? '#fff' : '#9CA3AF', fontWeight:800, fontSize:13, cursor: dirty ? 'pointer' : 'default' }}>
+              {saving ? 'Saving…' : 'Save header'}
+            </button>
+            <button type="button" disabled={saving} onClick={() => { if (window.confirm('Reset the title, subtitle and tagline to the built-in text?')) save({ tagline:'', title:'', subtitle:'' }); }}
+              style={{ padding:'10px 16px', borderRadius:12, border:'1px solid #DDD6FE', background:'#fff', color:'#7C3AED', fontWeight:700, fontSize:13, cursor:'pointer' }}>
+              Reset all to default
+            </button>
+            {dirty && <button type="button" onClick={() => setForm(saved)} style={{ padding:'10px 12px', background:'none', border:'none', color:'#6B7280', fontSize:12, fontWeight:700, cursor:'pointer' }}>Discard changes</button>}
+          </div>
+        </div>
+        <div style={{ background:'linear-gradient(180deg,#F5F0FF,#FDFCFF)', border:'2px dashed #DDD6FE', borderRadius:20, padding:22 }}>
+          <p style={{ fontSize:11, fontWeight:800, letterSpacing:'0.14em', textTransform:'uppercase', color:'#A78BFA', margin:'0 0 12px' }}>Live preview</p>
+          <div style={{ display:'inline-block', background:'#EDE9FE', padding:'6px 12px', borderRadius:8, marginBottom:10 }}>
+            <p style={{ fontSize:13, color:'#4B3F72', margin:0, fontWeight:500 }}>{preview.tagline}</p>
+          </div>
+          <h1 style={{ fontSize:28, lineHeight:1.1, fontWeight:800, color:'#1A1035', margin:'0 0 10px', letterSpacing:'-0.02em' }}>
+            {preview.before}
+            {preview.hasWord && <><br/><span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent' }}>Birthday</span>{preview.after && <br/>}</>}
+            {preview.after}
+          </h1>
+          <p style={{ fontSize:14, lineHeight:1.55, color:'#6B5B95', margin:0 }}>{preview.subtitle}</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const SettingsTab = () => {
   const [currentUrl, setCurrentUrl] = React.useState(null);
   const [loading,    setLoading]    = React.useState(true);
@@ -1476,6 +1581,7 @@ const Admin = () => {
             { id:'vendors',   icon:'🏪', label:'Vendors',       badge:null },
             { id:'pals',      icon:'🤝', label:'Pals',          badge:palApplications.filter(p=>p.status==='pending').length||null },
             { id:'discounts', icon:'🎟', label:'Discount Codes', badge:null },
+            { id:'header',    icon:'🏠', label:'Header',        badge:null },
             { id:'coverdesigns', icon:'🎨', label:'Cover Design', badge:null },
             { id:'settings',  icon:'🎵', label:'Settings',       badge:null },
           ].map(item => {
@@ -1540,6 +1646,7 @@ const Admin = () => {
             { id:'vendors',   icon:'Store', label:'Vendors', badge:null },
             { id:'pals',      icon:'HeartHandshake', label:'Pals', badge:palApplications.filter(p=>p.status==='pending').length||null },
             { id:'discounts', icon:'Tag', label:'Discount Codes', badge:null },
+            { id:'header',    icon:'Home', label:'Header', badge:null },
             { id:'coverdesigns', icon:'Image', label:'Cover Design', badge:null },
             { id:'settings',  icon:'Settings', label:'Settings', badge:null },
           ].map(item => {
@@ -1572,7 +1679,7 @@ const Admin = () => {
         <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <div>
             <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
-              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','discounts':'Discount Codes','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
+              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','discounts':'Discount Codes','header':'Homepage Header','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
             </h1>
             <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
           </div>
@@ -1669,7 +1776,7 @@ const Admin = () => {
                       <p className="text-sm font-semibold text-warm-800 truncate">{c.title || `For ${c.recipient_name}`}</p>
                       <p className="text-xs text-warm-400 truncate">{c.occasion} · {c.creator_name}</p>
                     </div>
-                    <Badge color={c.status==='sent'?'green':c.status==='active'?'blue':'gray'}>{c.status}</Badge>
+                    <Badge color={c.status==='sent'?'green':c.status==='active'?'blue':'gray'}>{c.status}</Badge>{c.status==='active' && c.payment_pending && <> <Badge color="amber">unpaid</Badge></>}
                   </div>
                 ))}
               </div>
@@ -1700,7 +1807,7 @@ const Admin = () => {
                       <td className="px-4 py-3 text-xs text-warm-500">{c.creator_name}</td>
                       <td className="px-4 py-3 text-xs text-warm-500 capitalize">{c.occasion?.replace('_',' ')}</td>
                       <td className="px-4 py-3">
-                        <Badge color={c.status==='sent'?'green':c.status==='active'?'blue':'gray'}>{c.status}</Badge>
+                        <Badge color={c.status==='sent'?'green':c.status==='active'?'blue':'gray'}>{c.status}</Badge>{c.status==='active' && c.payment_pending && <> <Badge color="amber">unpaid</Badge></>}
                         {c.redelivery_count > 0 && (
                           <span className="ml-1.5 text-[10px] font-semibold text-warm-400" title={c.last_redelivered_at ? `Last re-delivered ${format(new Date(c.last_redelivered_at), 'MMM d, h:mma')}` : undefined}>
                             ↻{c.redelivery_count}
@@ -2681,6 +2788,7 @@ const Admin = () => {
         )}
 
         {/* ── SETTINGS TAB ── */}
+        {tab === 'header' && <HeaderTab />}
         {tab === 'coverdesigns' && <CoverDesignTab />}
         {tab === 'settings' && <SettingsTab />}
 

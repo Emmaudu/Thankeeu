@@ -1888,6 +1888,19 @@ const CardView = () => {
 
         {/* ── Share your card ──────────────────────────────────────────── */}
         <div className="no-print mb-9 space-y-3">
+          {/* Box 0 — Create Now, Pay Later: the creator's reminder to pay. The
+              card collects signatures meanwhile but is not delivered. */}
+          {card.isCreatorPersonal && card.status === 'active' && card.payment_pending && (
+            <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 sm:p-5">
+              <p className="text-xs font-extrabold tracking-[.15em] uppercase text-amber-700 mb-1">⏳ Payment pending — not delivered yet</p>
+              <p className="text-sm text-amber-900 mb-3">
+                Keep collecting signatures and gifts. When you're happy, pay the one-time card fee and it's delivered to {card.recipient_name}
+                {card.send_date ? ' automatically on the scheduled date' : ''} — Memory Movie and gifts included.
+              </p>
+              <a href={`/pay/${slug}`} className="btn-primary text-sm inline-flex items-center gap-2">💳 Pay Now</a>
+            </div>
+          )}
+
           {/* Box 1 — Public signing link — open while active AND after delivery (sent) */}
           {(card.status === 'active' || card.status === 'sent') && (
             <div className="rounded-2xl border-2 p-4 sm:p-5" style={{ borderColor: '#A855F740', background: 'linear-gradient(135deg,#F5F3FF,#FCE7F3)' }}>

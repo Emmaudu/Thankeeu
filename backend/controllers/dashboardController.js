@@ -15,12 +15,9 @@ const getDashboard = async (req, res) => {
     const [cardsRes, creditsRes, notificationsRes] = await Promise.all([
       supabase
         .from('cards')
-        .select(`
-          id, slug, title, recipient_name, occasion, design_theme,
-          background_color, status, is_gift_enabled, total_collected,
-          send_date, send_time, deadline, created_at, updated_at,
-          messages(count)
-        `)
+        // '*' so payment_pending / fee_paid_at come back once the pay-later
+        // migration has run, without breaking the dashboard before it has.
+        .select('*, messages(count)')
         .eq('creator_id', userId)
         .order('created_at', { ascending: false }),
 
@@ -49,6 +46,9 @@ const getDashboard = async (req, res) => {
       active_cards: cards.filter(c => c.status === 'active').length,
       draft_cards: cards.filter(c => c.status === 'draft').length,
       sent_cards: cards.filter(c => c.status === 'sent').length,
+      // Live "Create Now, Pay Later" cards collecting signatures but not yet
+      // paid for — they will not be delivered until they are.
+      awaiting_payment: cards.filter(c => c.status === 'active' && c.payment_pending).length,
       total_collected: cards.reduce((sum, c) => sum + (c.total_collected || 0), 0),
       total_messages: cards.reduce((sum, c) => sum + (c.messages?.[0]?.count || 0), 0),
       credits_remaining: creditsRes.data?.credits_remaining || 0,

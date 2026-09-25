@@ -353,9 +353,10 @@ const spendCredit = async (req, res) => {
       });
     }
 
-    // Verify card belongs to this user — fetch full card so we have send_date for scheduling
+    // Verify card belongs to this user. select('*') so payment_pending comes
+    // back when the pay-later migration has run, without breaking when not.
     const { data: card, error: cardErr } = await supabase.from('cards')
-      .select('id, slug, status, creator_id, send_date, send_time, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, recipient_notified')
+      .select('*')
       .eq('slug', card_slug).maybeSingle();
 
     if (cardErr) {
@@ -364,7 +365,16 @@ const spendCredit = async (req, res) => {
     }
     if (!card) return res.status(404).json({ error: `Card not found: ${card_slug}` });
     if (card.creator_id !== userId) return res.status(403).json({ error: 'This card was not created by your account' });
-    if (card.status === 'active') return res.status(400).json({ error: 'This card is already active' });
+    // A draft (pay now) or a live "Create Now, Pay Later" card can be paid
+    // with a credit. A card that is live and already paid cannot — that would
+    // silently burn a credit for nothing.
+    const isLive = card.status === 'active' || card.status === 'sent';
+    if (isLive && !card.payment_pending) {
+      return res.status(400).json({ error: 'This card is already paid for' });
+    }
+    if (card.status !== 'draft' && !isLive) {
+      return res.status(400).json({ error: 'This card cannot be paid for in its current state' });
+    }
 
     // Deduct credit first, then activate
     const { data: deducted, error: deductErr } = await supabase.from('card_credits')
@@ -386,10 +396,18 @@ const spendCredit = async (req, res) => {
       return res.status(409).json({ error: 'Your credit balance just changed — please try again.' });
     }
 
-    // Activate the card
-    const { error: activateErr } = await supabase.from('cards')
-      .update({ status: 'active' }).eq('slug', card_slug);
+    // Activate the card — mark the fee paid: publishes a draft, or unlocks
+    // delivery of a pay-later card (and arms it — overdue cards go out
+    // straight away).
+    let activateErr = null;
+    let feeResult = null;
+    try {
+      feeResult = await require('../utils/cardPayment').markCardFeePaid(card_slug);
+    } catch (e) {
+      activateErr = e;
+    }
     if (activateErr) {
+      console.error('spendCredit activation error:', activateErr.message);
       // Refund the credit if activation fails. Conditional on the balance still
       // being what our own deduction left it at — a blind write back to the
       // pre-deduction figure would hand back credits another tab had spent in
@@ -401,25 +419,29 @@ const spendCredit = async (req, res) => {
       return res.status(500).json({ error: 'Card activation failed. Credit has been refunded.' });
     }
 
-    // Re-fetch the card with the LATEST data (including any send_date saved by
-    // the frontend's pre-payment update which ran just before this request).
-    const { data: freshCard } = await supabase.from('cards')
-      .select('id, slug, status, send_date, send_time, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, recipient_notified')
-      .eq('slug', card_slug).maybeSingle();
-
-    // Arm precise delivery setTimeout if the card has a scheduled date.
-    // Must happen BEFORE the return statement — code after return never runs.
-    if (freshCard?.send_date && freshCard?.recipient_email && !freshCard?.recipient_notified) {
-      try {
-        const scheduler = require('../utils/scheduler');
-        scheduler.scheduleCardDelivery({ ...freshCard, status: 'active' });
-        console.log('[spendCredit] Scheduled delivery for', card_slug, 'at', freshCard.send_date);
-      } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
+    // Neither published a draft nor cleared "pay later": another payment (a
+    // double click, the Flutterwave webhook) got there first. Give the credit
+    // back rather than charging twice for one card.
+    if (!feeResult?.wasDraft && !feeResult?.wasPending) {
+      await supabase.from('card_credits')
+        .update({ credits_remaining: balance.credits_remaining, updated_at: new Date() })
+        .eq('id', balance.id)
+        .eq('credits_remaining', balance.credits_remaining - 1);
+      return res.status(409).json({ error: 'This card was already paid for — your credit was not used.' });
     }
 
-    // Tell the creator their card exists, with the link to share. Best effort:
-    // a mail failure must never make a paid-for activation look like it failed.
-    try {
+    // The card with the LATEST data (including any send_date saved by the
+    // frontend's pre-payment update which ran just before this request).
+    // Delivery was armed inside markCardFeePaid.
+    const freshCard = feeResult?.card || null;
+    const wasPayLater = !!feeResult?.wasPending;
+
+    if (wasPayLater) {
+      // Already live and already announced — send the "payment received" email.
+      if (freshCard) require('../utils/payLaterEmails').sendCardFeePaidEmail(freshCard).catch(() => {});
+    } else try {
+      // Tell the creator their card exists, with the link to share. Best effort:
+      // a mail failure must never make a paid-for activation look like it failed.
       const { data: creator } = await supabase.from('users')
         .select('email, full_name').eq('id', userId).maybeSingle();
       if (creator?.email) {
@@ -432,7 +454,7 @@ const spendCredit = async (req, res) => {
             cardSlug:      card_slug,
             // send_date is stored as a full ISO string; printed raw the email
             // reads "2026-09-11T08:00:00.000Z".
-            sendDate:      humanDate(freshCard?.send_date),
+            sendDate:      require('../utils/cardPayment').humanSendDate(freshCard?.send_date, freshCard?.delivery_timezone),
             // The free credit is the one granted at signup: they still had
             // their welcome credit and nothing had been purchased.
             usedFreeCredit: (balance.credits_remaining === 1) && !(balance.total_purchased > 0),
@@ -447,7 +469,8 @@ const spendCredit = async (req, res) => {
       ok: true,
       card_slug,
       credits_remaining: balance.credits_remaining - 1,
-      message: '1 credit used. Card is now active!',
+      was_pay_later: wasPayLater,
+      message: wasPayLater ? '1 credit used. Card is paid and will be delivered on schedule.' : '1 credit used. Card is now active!',
     });
 
   } catch (err) {

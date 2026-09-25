@@ -36,17 +36,17 @@ const ResumeDraftAlert = ({ cardTitle, recipient, onPay }) => {
 
         <p className="text-sm leading-relaxed text-warm-600">
           {cardTitle ? <><strong className="text-warm-800">{cardTitle}</strong> is ready. </> : null}
-          Complete payment to publish it and get your sharing link, so everyone can start signing.
+          Launch it now to get your sharing link so everyone can start signing — you pay later, only when you're happy and ready for it to be delivered.
         </p>
         <p className="mt-1.5 text-xs text-warm-500">
-          Nothing is sent until you pay — use <strong>Back</strong> and <strong>Next</strong> to check
+          Nothing is delivered until you pay — use <strong>Back</strong> and <strong>Next</strong> to check
           every detail first.
         </p>
 
         {onPay && (
           <button type="button" onClick={onPay}
             className="btn-primary mt-4 flex w-full items-center justify-center gap-2 py-3 font-bold">
-            Continue to payment <Icon name="ArrowRight" size={15} />
+            Continue to launch <Icon name="ArrowRight" size={15} />
           </button>
         )}
       </div>

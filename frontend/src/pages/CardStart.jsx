@@ -50,6 +50,11 @@ import InlineAuthPanel from '../components/InlineAuthPanel';
 import IntentSummaryStrip from '../components/IntentSummaryStrip';
 import { takeIntent } from '../utils/cardIntent';
 import { applyCardIntent } from '../utils/applyCardIntent';
+import DeliveryCountryField from '../components/DeliveryCountryField';
+import CoverFieldToggle from '../components/CoverFieldToggle';
+import { zonedToUTC, guessCountryFromBrowser } from '../utils/timezones';
+
+const DEFAULT_PLACE = guessCountryFromBrowser();
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const OCCASIONS = [
@@ -182,6 +187,8 @@ const CardStart = () => {
  card_experience: 'card_only',
  custom_occasion: '',
  cover_layout: null, // {title,recipient,sender} positions/size/colour/show — null = defaults
+ recipient_country: DEFAULT_PLACE.country,
+ delivery_timezone: DEFAULT_PLACE.timezone,
  });
  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
  const [selectedCoverField, setSelectedCoverField] = useState('recipient');
@@ -248,6 +255,9 @@ const CardStart = () => {
  const utcTime = localDatetime.toISOString().slice(11, 19); // "HH:MM:SS"
  return { send_date: utcDate, send_time: utcTime };
  };
+
+ // Delivery date/time are typed in the RECIPIENT's time zone.
+ const toUTCDelivery = (dateStr, timeStr) => zonedToUTC(dateStr, timeStr, form.delivery_timezone);
 
  const [customCoverUrl, setCustomCoverUrl] = useState(null); // Cloudinary URL for uploaded cover
  const [uploadingCover, setUploadingCover] = useState(false);
@@ -510,7 +520,7 @@ const CardStart = () => {
  setLoading(true);
  try {
  const { status: _s, ...safeForm } = form;
- const { send_date: utcSendDate, send_time: utcSendTime } = toUTCSendTime(safeForm.send_date, safeForm.send_time);
+ const { send_date: utcSendDate, send_time: utcSendTime } = toUTCDelivery(safeForm.send_date, safeForm.send_time);
  const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card`, send_date: utcSendDate, send_time: utcSendTime };
  let slug;
 
@@ -602,10 +612,12 @@ const CardStart = () => {
  try {
  const pending2 = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
  const editToken = pending2.draft_edit_token;
- const { send_date: utcSD, send_time: utcST } = toUTCSendTime(form.send_date, form.send_time);
+ const { send_date: utcSD, send_time: utcST } = toUTCDelivery(form.send_date, form.send_time);
  const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
  const fullUpdate = {
  is_gift_enabled: form.is_gift_enabled,
+ recipient_country: form.recipient_country,
+ delivery_timezone: form.delivery_timezone,
  suggested_amount: form.suggested_amount,
  gift_type: form.gift_type,
  send_date: utcSD || null,
@@ -751,6 +763,7 @@ const CardStart = () => {
  suggested_amount: 2500, allow_private_messages: true, send_reminders: true,
  hide_amounts: false, notification_scope: 'department', card_experience: 'card_only',
  cover_layout: null,
+ recipient_country: DEFAULT_PLACE.country, delivery_timezone: DEFAULT_PLACE.timezone,
  });
  };
 
@@ -1094,16 +1107,25 @@ const CardStart = () => {
 
  <div className="space-y-4 mb-6">
  <div>
- <label className="block text-sm font-semibold text-warm-700 mb-1.5">Card title</label>
+ <div className="flex items-center justify-between gap-2 mb-1.5">
+  <label className="block text-sm font-semibold text-warm-700">Card title</label>
+  <CoverFieldToggle field="title" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+ </div>
  <input className="input" placeholder="e.g. Amaka's Birthday Card " value={form.title} onChange={e => set('title', e.target.value)}/>
  </div>
  <div>
-  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Sender name on cover</label>
+  <div className="flex items-center justify-between gap-2 mb-1.5">
+   <label className="block text-sm font-semibold text-warm-700">Sender name on cover</label>
+   <CoverFieldToggle field="sender" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+  </div>
   <input className="input" placeholder="e.g. Tola and the whole team" value={form.cover_sender || ''} onChange={e => set('cover_sender', e.target.value)}/>
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
  <div>
- <label className="block text-sm font-semibold text-warm-700 mb-1.5">Recipient's name *</label>
+ <div className="flex items-center justify-between gap-2 mb-1.5">
+  <label className="block text-sm font-semibold text-warm-700">Recipient's name *</label>
+  <CoverFieldToggle field="recipient" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+ </div>
  <input className="input" placeholder="e.g. Amaka" value={form.recipient_name}
  onChange={e => { set('recipient_name', e.target.value); if (form.title.includes("Someone's") || form.title.endsWith('Card')) set('title', `${e.target.value}'s ${form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o=>o.id===form.occasion)?.label||'Card')} Card`); }} required/>
  </div>
@@ -1113,12 +1135,20 @@ const CardStart = () => {
  </div>
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+ <DeliveryCountryField
+  country={form.recipient_country}
+  timezone={form.delivery_timezone}
+  onChange={v => setForm(p => ({ ...p, ...v }))}
+  sendDate={form.send_date}
+  sendTime={form.send_time}
+  recipientName={form.recipient_name}
+ />
  <div>
- <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery date</label>
+ <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery date <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
  <input type="date" className="input" value={form.send_date} min={new Date().toISOString().split('T')[0]} onChange={e => set('send_date', e.target.value)}/>
  </div>
  <div>
- <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery time</label>
+ <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery time <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
  <input type="time" className="input" value={form.send_time || '09:00'} onChange={e => set('send_time', e.target.value)}/>
  </div>
  <div>
@@ -1179,7 +1209,7 @@ const CardStart = () => {
  className="btn-primary inline-flex items-center gap-2">
  {loading
  ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving…</span>
- : 'Gift & pay →'}
+ : 'Review & launch →'}
  </button>
  </div>
  </div>
@@ -1192,7 +1222,7 @@ const CardStart = () => {
 
  {/* ── GUEST: Configure gift (before draft saved) ── */}
  {!user && !isCompanyUser && !guestSaved && (<>
- <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & Pay </h2>
+ <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & Launch</h2>
  <p className="text-warm-500 text-sm mb-5">
  Choose your gift options, review your card, then save it as a draft.
  </p>
@@ -1247,7 +1277,7 @@ const CardStart = () => {
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time || '09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time || '23:59'}` : 'Not set'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount || 2500)} suggested` : 'No'],
- ['Card fee', `${formatCurrency(5000, 'NGN')} one-time`],
+ ['Card fee', `${formatCurrency(5000, 'NGN')} one-time — pay later, before delivery`],
  ].map(([k, v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1267,7 +1297,7 @@ const CardStart = () => {
  setLoading(true);
  try {
  const { status: _s, ...safeForm } = form;
- const { send_date: utcSendDate, send_time: utcSendTime } = toUTCSendTime(safeForm.send_date, safeForm.send_time);
+ const { send_date: utcSendDate, send_time: utcSendTime } = toUTCDelivery(safeForm.send_date, safeForm.send_time);
  const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card`, send_date: utcSendDate, send_time: utcSendTime };
  const existing = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
  let slug = draftSlug || existing.slug;
@@ -1326,7 +1356,8 @@ const CardStart = () => {
  style={{ background: 'linear-gradient(135deg,#EDE9FE,#F5F0FF)' }}><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></div>
  <h2 className="text-2xl font-bold text-warm-900 mb-2">Card saved as draft!</h2>
  <p className="text-warm-500 text-sm max-w-sm mx-auto">
- Sign in or create a free account to make it live and get your sharing link —
+ Sign in or create a free account to launch it and get your sharing link — collect
+ signatures first and pay only when you're ready for it to be delivered. And
  new accounts get <strong className="text-warm-700">1 free credit</strong>, so your first
  card costs nothing.
  </p>
@@ -1343,8 +1374,8 @@ const CardStart = () => {
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time || '09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time || '23:59'}` : 'Not set'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount || 2500)} suggested` : 'No'],
- ['Card fee', `${formatCurrency(5000, 'NGN')} one-time`],
- ['Status', 'Draft — sign in to pay & launch'],
+ ['Card fee', `${formatCurrency(5000, 'NGN')} one-time — pay later, before delivery`],
+ ['Status', 'Draft — sign in to launch (pay later)'],
  ].map(([k, v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>

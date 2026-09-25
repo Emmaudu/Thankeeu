@@ -395,8 +395,16 @@ const sendEmail = async ({ to, template, data, subject, html, text, reply_to, he
     if (reply_to) payload.replyTo = reply_to;
     if (headers)  payload.headers = headers;
 
+    // Resend v4 does NOT throw on API failures (invalid address, unverified
+    // domain, rate limit, bad key) — it resolves { data: null, error }. This
+    // used to report success regardless, so a card could be marked delivered
+    // while the recipient never got anything.
     const result = await resend.emails.send(payload);
-    return { success: true, id: result.id };
+    if (result?.error) {
+      console.error(`Email error (${template || 'custom'} → ${to}):`, result.error?.message || JSON.stringify(result.error));
+      return { success: false, error: result.error };
+    }
+    return { success: true, id: result?.data?.id || result?.id };
   } catch (error) {
     console.error('Email error:', error?.message || error);
     return { success: false, error };
@@ -1270,4 +1278,138 @@ Object.assign(emailTemplates, {
       ${d.redemptionCode ? `<p style="color:#4A3A7A;font-size:14px;">Your code: <strong style="font-family:monospace;font-size:16px;">${esc(d.redemptionCode)}</strong></p>` : ''}
     `)
   }),
+});
+
+// ── CREATE NOW, PAY LATER (creator emails) ─────────────────────────────────
+// Sent to the creator of an individual card that was published before paying.
+// While unpaid the card collects signatures and gifts but is never delivered.
+const payLaterSummary = (d) => {
+  const rows = [];
+  if (d.sendDate) rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Scheduled delivery</td><td align="right" style="padding:4px 0;"><strong>${esc(d.sendDate)}</strong></td></tr>`);
+  if (typeof d.signedCount === 'number') rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Signatures so far</td><td align="right" style="padding:4px 0;"><strong>${d.signedCount}</strong></td></tr>`);
+  if (d.giftTotal > 0) rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Gift pot</td><td align="right" style="padding:4px 0;"><strong>${fmtNGN(d.giftTotal)}</strong></td></tr>`);
+  rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Card fee</td><td align="right" style="padding:4px 0;"><strong>${esc(d.feeLabel || '₦5,000')} one-time</strong></td></tr>`);
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;background:#F9F5FF;border:1px solid #EDE9FE;border-radius:10px;padding:12px 16px;margin:16px 0;">${rows.join('')}</table>`;
+};
+
+Object.assign(emailTemplates, {
+  cardCreatedPayLater: (d) => ({
+    subject: `🎉 Congratulations — ${d.recipientName}'s card is ready to receive signatures`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Congratulations, ${esc(d.creatorName || 'there')}! 🎉</h2>
+      <p style="color:#555;line-height:1.8;">
+        You have successfully created a card for <strong>${esc(d.recipientName)}</strong>, and it is now
+        <strong>ready to receive signatures</strong>. Share the link below so friends and colleagues can add
+        their messages, photos, videos, voice notes${d.giftEnabled ? ' and chip in to the gift pot' : ''}.
+      </p>
+      ${btn('Share the signing link', `${FRONTEND_URL}/sign/${d.cardSlug}`, '#E84393')}
+      <div style="background:#FEF3C7;border:1px solid #FDE68A;border-radius:10px;padding:14px 16px;margin:22px 0 8px;">
+        <p style="color:#92400E;font-size:14px;margin:0 0 6px;font-weight:700;">One last step: pay when you're happy</p>
+        <p style="color:#92400E;font-size:13px;line-height:1.7;margin:0;">
+          Collect signatures first, then pay the one-time card fee whenever you're happy with how it's going.
+          ${d.sendDate
+            ? `Once it's paid, the card is delivered to ${esc(d.recipientName)} <strong>automatically on ${esc(d.sendDate)}</strong> — with every message, the Memory Movie and all the gifts signed into it.`
+            : `Once it's paid, it's delivered to ${esc(d.recipientName)} with every message, the Memory Movie and all the gifts signed into it.`}
+          Until then the card stays open for signing but is <strong>not delivered</strong>.
+        </p>
+      </div>
+      ${payLaterSummary(d)}
+      ${btn('Pay now & lock in delivery', `${FRONTEND_URL}/pay/${d.cardSlug}`, '#7C3AED')}
+      <p style="color:#aaa;font-size:12px;margin-top:14px;">You can also pay any time from your Thankeeu dashboard — look for the <strong>Pay Now</strong> button on the card.</p>
+    `)
+  }),
+
+  payLaterReminder: (d) => {
+    const subject = d.stage === 'overdue'
+      ? `⏰ ${d.recipientName}'s card is waiting — pay to deliver it now`
+      : d.stage === 'soon'
+        ? `Reminder: pay for ${d.recipientName}'s card so it arrives on time`
+        : `${d.signedCount > 0 ? `${d.signedCount} ${d.signedCount === 1 ? 'person has' : 'people have'} signed` : 'Your card for'} ${d.recipientName}${d.signedCount > 0 ? "'s card" : ' is ready'} — pay when you're ready`;
+    const lead = d.stage === 'overdue'
+      ? `The delivery time for <strong>${esc(d.recipientName)}</strong>'s card has passed, but it is on hold because the card fee hasn't been paid yet. Pay now and it is delivered <strong>straight away</strong>.`
+      : d.stage === 'soon'
+        ? `<strong>${esc(d.recipientName)}</strong>'s card is due to be delivered ${d.sendDate ? `on <strong>${esc(d.sendDate)}</strong>` : 'soon'}. Pay the card fee now so it goes out automatically, on time.`
+        : `Your card for <strong>${esc(d.recipientName)}</strong> is collecting signatures. When you're happy with it, pay the one-time card fee so it can be delivered${d.sendDate ? ` automatically on <strong>${esc(d.sendDate)}</strong>` : ''}.`;
+    return {
+      subject,
+      html: BASE(`
+        <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Hi ${esc(d.creatorName || 'there')},</h2>
+        <p style="color:#555;line-height:1.8;">${lead}</p>
+        ${payLaterSummary(d)}
+        ${btn(d.stage === 'overdue' ? 'Pay & deliver now' : 'Pay now', `${FRONTEND_URL}/pay/${d.cardSlug}`, '#7C3AED')}
+        <p style="color:#555;line-height:1.6;font-size:13px;margin-top:18px;">
+          Still collecting? Keep sharing the signing link:
+          <a href="${FRONTEND_URL}/sign/${d.cardSlug}" style="color:#7C3AED;">${FRONTEND_URL}/sign/${d.cardSlug}</a>
+        </p>
+        <p style="color:#aaa;font-size:12px;margin-top:12px;">The card will not be delivered to ${esc(d.recipientName)} until it is paid.</p>
+      `)
+    };
+  },
+
+  cardFeePaid: (d) => ({
+    subject: `✅ Payment received — ${d.recipientName}'s card is all set`,
+    html: BASE(`
+      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Thank you — payment received ✅</h2>
+      <p style="color:#555;line-height:1.8;">
+        ${!d.hasRecipientEmail
+          ? `Your card for <strong>${esc(d.recipientName)}</strong> is paid. Add ${esc(d.recipientName)}'s email address to the card so we can deliver it.`
+          : d.deliveringNow
+            ? `Your card for <strong>${esc(d.recipientName)}</strong> is paid and is being delivered <strong>right now</strong> — with every message, the Memory Movie and all the gifts signed into it.`
+            : d.sendDate
+              ? `Your card for <strong>${esc(d.recipientName)}</strong> is paid and will be delivered <strong>automatically on ${esc(d.sendDate)}</strong> — with every message, the Memory Movie and all the gifts signed into it.`
+              : `Your card for <strong>${esc(d.recipientName)}</strong> is paid. Send it from your dashboard whenever you're ready.`}
+      </p>
+      <p style="color:#555;line-height:1.8;">Until it goes out, people can keep signing:</p>
+      ${btn('Share the signing link', `${FRONTEND_URL}/sign/${d.cardSlug}`, '#E84393')}
+      <p style="color:#aaa;font-size:12px;margin-top:12px;">Manage this card any time from your Thankeeu dashboard.</p>
+    `)
+  }),
+});
+
+// ── ABANDONED DRAFT REMINDERS (day 1, day 3, final on day 8) ───────────────
+Object.assign(emailTemplates, {
+  abandonedCardReminder: (d) => {
+    const who = esc(d.recipientName || 'your recipient');
+    const continueUrl = `${FRONTEND_URL}/create-card?edit=${encodeURIComponent(d.cardSlug)}`;
+    const dashUrl = `${FRONTEND_URL}/dashboard/cards`;
+    if (d.stage === 'final') {
+      return {
+        subject: `Should we let ${d.recipientName || 'your'} card go?`,
+        html: BASE(`
+          <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Hi ${esc(d.creatorName || 'there')},</h2>
+          <p style="color:#555;line-height:1.8;">
+            We'll be honest — we're a little sad. You started a lovely card for <strong>${who}</strong>
+            but it was never finished, and we haven't heard from you since our last two reminders.
+          </p>
+          <p style="color:#555;line-height:1.8;">
+            If you no longer need it, it's completely fine to delete it from your dashboard so it doesn't clutter
+            your cards. But if you'd still like to make ${who} smile, it's all saved exactly as you left it —
+            you can pick up where you stopped in a minute.
+          </p>
+          ${btn('Continue my card', continueUrl, '#7C3AED')}
+          <p style="color:#555;line-height:1.7;font-size:13px;margin-top:16px;">
+            Or <a href="${dashUrl}" style="color:#7C3AED;">open your dashboard</a> to delete it.
+          </p>
+          <p style="color:#aaa;font-size:12px;margin-top:12px;">This is the last reminder we'll send about this card.</p>
+        `),
+      };
+    }
+    return {
+      subject: d.stage === 1
+        ? `You're almost done — finish ${d.recipientName ? `${d.recipientName}'s` : 'your'} card`
+        : `${d.recipientName ? `${d.recipientName}'s` : 'Your'} card is still waiting for you`,
+      html: BASE(`
+        <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Hi ${esc(d.creatorName || 'there')},</h2>
+        <p style="color:#555;line-height:1.8;">
+          ${d.stage === 1
+            ? `You started a card for <strong>${who}</strong> yesterday but didn't get to finish it. Everything is saved — continue in one click, publish it, and start collecting signatures. You only pay when you're happy and ready to deliver.`
+            : `Your card for <strong>${who}</strong> is still a draft. Publish it now so friends and colleagues can start signing — pay later, when you're ready for it to be delivered.`}
+        </p>
+        ${btn('Continue my card', continueUrl, '#7C3AED')}
+        <p style="color:#555;line-height:1.7;font-size:13px;margin-top:16px;">
+          You can also find it in <a href="${dashUrl}" style="color:#7C3AED;">your dashboard</a>.
+        </p>
+      `),
+    };
+  },
 });

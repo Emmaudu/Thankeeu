@@ -82,6 +82,34 @@ router.get('/settings', async (req, res) => {
   }
 });
 
+// ── Homepage hero header (Admin → Header tab) ──────────────────────────────
+// GET  /admin/hero → { hero: { title, subtitle, tagline, updated_at } }
+// PUT  /admin/hero { title?, subtitle?, tagline? } — '' or null resets a field
+//      to the homepage's built-in default.
+router.get('/hero', async (req, res) => {
+  try {
+    const { readHero } = require('../utils/heroSettings');
+    res.json({ ok: true, hero: await readHero() });
+  } catch (err) {
+    console.error('[admin/hero] GET error:', err.message);
+    res.status(500).json({ error: 'Could not load the hero text. Has database/migration_pay_later_and_hero.sql been run?' });
+  }
+});
+
+router.put('/hero', async (req, res) => {
+  try {
+    const { validateHeroInput, writeHero } = require('../utils/heroSettings');
+    const { values, error } = validateHeroInput(req.body || {});
+    if (error) return res.status(400).json({ error });
+    const hero = await writeHero(values);
+    console.log(`[admin] Hero header updated by ${req.user?.email}:`, JSON.stringify(values));
+    res.json({ ok: true, hero });
+  } catch (err) {
+    console.error('[admin/hero] PUT error:', err.message);
+    res.status(500).json({ error: 'Could not save the hero text. Has database/migration_pay_later_and_hero.sql been run?' });
+  }
+});
+
 // POST /admin/music-upload — upload an MP3 to Cloudinary, save URL to site_settings
 router.post('/music-upload', uploadMusic.single('music'), async (req, res) => {
   try {

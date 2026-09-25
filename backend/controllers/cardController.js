@@ -12,6 +12,51 @@ const { sendEmail } = require('../utils/email');
 const { pushNotification, pushNotificationBulk } = require('../utils/notify');
 const { nanoid } = require('nanoid');
 
+// Cover text layout (movable/resizable/recolourable title, recipient, sender,
+// each individually shown or removed from the cover). Stored as JSONB. Accepts
+// an object or a JSON string; guards size + shape. Keeps the per-field shadow
+// settings the cover studio edits — they used to be dropped on save, so a
+// shadow the creator added vanished from the delivered card.
+const HEX6 = /^#[0-9a-f]{6}$/i;
+const sanitizeCoverLayout = (input) => {
+  if (input == null) return null;
+  let obj = input;
+  if (typeof input === 'string') {
+    try { obj = JSON.parse(input); } catch { return null; }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  const num = (v, lo, hi, dflt) => {
+    const n = Number(v);
+    return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
+  };
+  const out = {};
+  for (const key of ['title', 'recipient', 'sender']) {
+    const f = obj[key];
+    if (!f || typeof f !== 'object') continue;
+    out[key] = {
+      x: num(f.x, 0, 100, 50),
+      y: num(f.y, 0, 100, 50),
+      size: num(f.size, 7, 120, 18),
+      color: typeof f.color === 'string' && (f.color === 'auto' || HEX6.test(f.color)) ? f.color : 'auto',
+      // Missing `show` means "shown" (the frontend default); only an explicit
+      // false removes the text from the cover.
+      show: f.show === undefined ? true : !!f.show,
+      shadow: !!f.shadow,
+      shadowColor: typeof f.shadowColor === 'string' && HEX6.test(f.shadowColor) ? f.shadowColor : '#000000',
+      shadowOpacity: num(f.shadowOpacity, 0, 1, 0.55),
+    };
+  }
+  return Object.keys(out).length ? out : null;
+};
+
+// Recipient country (ISO-3166 alpha-2) + IANA time zone the delivery time was
+// picked in. send_date itself is always UTC; these only record the choice.
+const cleanCountry = (v) => (typeof v === 'string' && /^[A-Z]{2}$/.test(v.trim().toUpperCase()) ? v.trim().toUpperCase() : null);
+const cleanTimeZone = (v) => {
+  if (typeof v !== 'string' || !v.trim() || v.length > 64) return null;
+  try { new Intl.DateTimeFormat('en-US', { timeZone: v.trim() }); return v.trim(); } catch { return null; }
+};
+
 const generateSlug = (recipientName, occasion) => {
   const base = `${recipientName}-${occasion}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
   return `${base}-${nanoid(6)}`;
@@ -63,7 +108,8 @@ const createCard = async (req, res) => {
       send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts, card_experience,
       custom_occasion, cover_sender, cover_text_color, album_background_theme, board_background_theme, cover_layout,
       // Member-created card extras
-      company_id, created_by_member_id, notification_scope, status: reqStatus
+      company_id, created_by_member_id, notification_scope, status: reqStatus,
+      recipient_country, delivery_timezone,
     } = req.body;
 
     if (!recipient_name?.trim() || !occasion) {
@@ -95,35 +141,7 @@ const createCard = async (req, res) => {
       ? board_background_theme
       : null; // null → frontend falls back to album_background_theme
 
-    // Cover text layout (movable/resizable/recolourable title, recipient, sender).
-    // Stored as JSONB. Accept an object or a JSON string; guard size + shape.
-    const cleanCoverLayout = (() => {
-      if (cover_layout == null) return null;
-      let obj = cover_layout;
-      if (typeof cover_layout === 'string') {
-        try { obj = JSON.parse(cover_layout); } catch { return null; }
-      }
-      if (typeof obj !== 'object' || Array.isArray(obj)) return null;
-      const pickField = (f) => {
-        if (typeof f !== 'object' || f == null) return undefined;
-        const num = (v, lo, hi, dflt) => {
-          const n = Number(v);
-          return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
-        };
-        const colour = typeof f.color === 'string' && (f.color === 'auto' || /^#[0-9a-f]{6}$/i.test(f.color))
-          ? f.color : 'auto';
-        return {
-          x: num(f.x, 0, 100, 50), y: num(f.y, 0, 100, 50),
-        size: num(f.size, 7, 120, 18), color: colour, show: !!f.show,
-        };
-      };
-      const out = {};
-      for (const key of ['title', 'recipient', 'sender']) {
-        const v = pickField(obj[key]);
-        if (v) out[key] = v;
-      }
-      return Object.keys(out).length ? out : null;
-    })();
+    const cleanCoverLayout = sanitizeCoverLayout(cover_layout);
 
     // Validate numeric fields
     const cleanSuggestedAmount = suggested_amount != null ? parseFloat(suggested_amount) : null;
@@ -181,7 +199,12 @@ const createCard = async (req, res) => {
       allow_private_messages, send_reminders, hide_amounts,
       card_experience: card_experience || 'card_only',
       ...(cleanCustomOccasion && { custom_occasion: cleanCustomOccasion }),
-      status: reqStatus || 'draft',
+      ...(cleanCountry(recipient_country) && { recipient_country: cleanCountry(recipient_country) }),
+      ...(cleanTimeZone(delivery_timezone) && { delivery_timezone: cleanTimeZone(delivery_timezone) }),
+      // Only drafts are created here. Publishing goes through activate /
+      // payment so an individual card can never be created already-live and
+      // unpaid (a client-sent status used to be trusted as-is).
+      status: (reqStatus === 'active' && (req.company || req.member)) ? 'active' : 'draft',
       ...(effectiveCompanyId && { company_id: effectiveCompanyId }),
       ...(effectiveMemberId && { created_by_member_id: effectiveMemberId }),
       ...(notification_scope && { notification_scope }),
@@ -203,7 +226,8 @@ const createCard = async (req, res) => {
     };
     // Longest names first so 'cover_layout' isn't shadowed by 'card_layout' etc.
     const optionalColumns = ['board_background_theme', 'album_background_theme', 'cover_text_color', 'custom_occasion',
-      'cover_layout', 'card_layout', 'cover_sender', 'card_experience', 'font_style']
+      'cover_layout', 'card_layout', 'cover_sender', 'card_experience', 'font_style',
+      'recipient_country', 'delivery_timezone']
       .sort((a, b) => b.length - a.length);
 
     // Extract the exact missing column name from the Postgres error, if any.
@@ -509,7 +533,7 @@ const updateCard = async (req, res) => {
       'cover_layout', 'is_gift_enabled', 'gift_type', 'suggested_amount',
       'send_date', 'send_time', 'deadline', 'deadline_time',
       'allow_private_messages', 'send_reminders', 'hide_amounts', 'notification_scope',
-      'recipient_photo_url',
+      'recipient_photo_url', 'recipient_country', 'delivery_timezone',
     ];
     const safeUpdates = {};
     for (const key of UPDATABLE_FIELDS) {
@@ -519,6 +543,8 @@ const updateCard = async (req, res) => {
       const { data: unchanged } = await supabase.from('cards').select().eq('slug', slug).maybeSingle();
       return res.json(unchanged);
     }
+    if ('recipient_country' in safeUpdates) safeUpdates.recipient_country = cleanCountry(safeUpdates.recipient_country);
+    if ('delivery_timezone' in safeUpdates) safeUpdates.delivery_timezone = cleanTimeZone(safeUpdates.delivery_timezone);
     // An empty custom occasion is meaningless — store NULL rather than ''.
     if ('custom_occasion' in safeUpdates && !String(safeUpdates.custom_occasion || '').trim()) {
       safeUpdates.custom_occasion = null;
@@ -534,22 +560,7 @@ const updateCard = async (req, res) => {
 
     // Guard cover_layout shape on update (same rules as create)
     if ('cover_layout' in safeUpdates) {
-      let obj = safeUpdates.cover_layout;
-      if (typeof obj === 'string') { try { obj = JSON.parse(obj); } catch { obj = null; } }
-      if (obj && typeof obj === 'object' && !Array.isArray(obj)) {
-        const num = (v, lo, hi, d) => { const n = Number(v); return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
-        const out = {};
-        for (const key of ['title', 'recipient', 'sender']) {
-          const f = obj[key];
-          if (f && typeof f === 'object') {
-            const colour = typeof f.color === 'string' && (f.color === 'auto' || /^#[0-9a-f]{6}$/i.test(f.color)) ? f.color : 'auto';
-        out[key] = { x: num(f.x, 0, 100, 50), y: num(f.y, 0, 100, 50), size: num(f.size, 7, 120, 18), color: colour, show: !!f.show };
-          }
-        }
-        safeUpdates.cover_layout = Object.keys(out).length ? out : null;
-      } else {
-        safeUpdates.cover_layout = null;
-      }
+      safeUpdates.cover_layout = sanitizeCoverLayout(safeUpdates.cover_layout);
     }
 
     // If send_date is being updated, combine with send_time into a full UTC TIMESTAMPTZ
@@ -628,7 +639,7 @@ const updateCard = async (req, res) => {
     // deliverable (schedule cleared, recipient removed, or no longer active).
     try {
       const scheduler = require('../utils/scheduler');
-      if (updated && updated.status === 'active' && !updated.recipient_notified) {
+      if (updated && updated.status === 'active' && !updated.recipient_notified && !updated.payment_pending) {
         scheduler.scheduleCardDelivery(updated);
       } else if (updated?.slug) {
         scheduler.cancelSchedule(updated.slug);
@@ -657,17 +668,52 @@ const activateCard = async (req, res) => {
     // Auth check: works for regular user, member, HR company, or an
     // anonymous draft presenting its edit token
     const presentedToken = req.headers['x-draft-edit-token'] || req.body.draft_edit_token;
-    const isOwner =
+    const isAccountOwner =
       (req.user   && card.creator_id            === req.user.id)   ||
       (req.member && card.created_by_member_id  === req.member.id) ||
-      (req.company && card.company_id           === req.company.id) ||
-      (card.is_draft && card.draft_edit_token && presentedToken && card.draft_edit_token === presentedToken);
-    if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
+      (req.company && card.company_id           === req.company.id);
+    const isTokenOwner =
+      !!(card.is_draft && card.draft_edit_token && presentedToken && card.draft_edit_token === presentedToken);
+    if (!isAccountOwner && !isTokenOwner) return res.status(403).json({ error: 'Not authorized' });
 
-    if (card.status !== 'active') {
-      const { error } = await supabase.from('cards').update({ status: 'active' }).eq('slug', slug);
-      if (error) throw error;
+    // ── Publishing ──────────────────────────────────────────────────────────
+    // Company / team cards are free and go live straight away.
+    // An individual card published here has NOT been paid for (payment,
+    // credits and 100%-off codes publish through markCardFeePaid instead), so
+    // it goes live as "Create Now, Pay Later": open for signatures and gifts,
+    // but never delivered until the fee is paid.
+    // Re-calling activate on a live card (e.g. to send invites after paying)
+    // never touches its payment state.
+    const { cardRequiresFee, publishUnpaid } = require('../utils/cardPayment');
+    let publishedUnpaid = false;
+    if (card.status === 'draft') {
+      if (cardRequiresFee(card)) {
+        // Needs a signed-in owner: someone must be reachable to pay for it,
+        // and an ownerless live card could never be paid or managed.
+        if (!isAccountOwner || !card.creator_id) {
+          return res.status(401).json({ error: 'Please sign in to publish your card.', code: 'SIGN_IN_REQUIRED' });
+        }
+        try {
+          ({ published: publishedUnpaid } = await publishUnpaid(slug));
+        } catch (pubErr) {
+          if (pubErr.code === 'PAY_LATER_SCHEMA_MISSING') {
+            return res.status(503).json({
+              error: 'Publishing before payment needs the latest database migration. Run database/migration_pay_later_and_hero.sql, then try again — or pay now to publish.',
+              code: pubErr.code,
+            });
+          }
+          throw pubErr;
+        }
+      } else {
+        const { error } = await supabase.from('cards').update({ status: 'active' }).eq('slug', slug).eq('status', 'draft');
+        if (error) throw error;
+      }
     }
+
+    // What the card looks like now (a concurrent payment may have raced us).
+    const { data: current } = await supabase.from('cards').select('*').eq('slug', slug).maybeSingle();
+    const liveCard = current || card;
+    const paymentPending = !!liveCard.payment_pending;
 
     // Resolve creator display name for invite emails
     const creatorName =
@@ -702,18 +748,31 @@ const activateCard = async (req, res) => {
       });
     }
 
-    res.json({ message: 'Card activated', slug });
+    res.json({
+      message: paymentPending ? 'Card published — pay any time before delivery' : 'Card activated',
+      slug,
+      status: liveCard.status,
+      payment_pending: paymentPending,
+    });
+
+    // Congratulations + "pay when you're happy" email, once, on the publish.
+    if (publishedUnpaid) {
+      require('../utils/payLaterEmails').sendPayLaterCreatedEmail(liveCard).catch(() => {});
+    }
 
     // If this card has a scheduled delivery date, arm the precise setTimeout now.
     // This is the primary delivery trigger — more reliable than waiting for the cron.
-    if (card.send_date && card.recipient_email && !card.recipient_notified) {
+    // An unpaid card is never armed; paying it arms delivery (markCardFeePaid).
+    if (liveCard.status === 'active' && !paymentPending && liveCard.send_date
+        && liveCard.recipient_email && !liveCard.recipient_notified) {
       try {
         const scheduler = require('../utils/scheduler');
-        scheduler.scheduleCardDelivery({ ...card, status: 'active' });
+        scheduler.scheduleCardDelivery(liveCard);
       } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
     }
   } catch (err) {
-    res.status(500).json({ error: 'Failed to activate card' });
+    console.error('[activateCard] error:', err.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to activate card' });
   }
 };
 
@@ -738,6 +797,24 @@ const sendCard = async (req, res) => {
 
     if (!card.recipient_email)
       return res.status(400).json({ error: 'Recipient email required to send card' });
+
+    // Create Now, Pay Later: an unpaid card is never delivered.
+    if (card.payment_pending) {
+      return res.status(402).json({
+        error: 'Pay for this card first — it will be delivered as soon as it is paid.',
+        code: 'PAYMENT_REQUIRED',
+        payment_required: true,
+        pay_url: `/pay/${card.slug}`,
+      });
+    }
+    // An unpublished individual card has not been paid for either.
+    if (card.status === 'draft' && require('../utils/cardPayment').cardRequiresFee(card)) {
+      return res.status(402).json({
+        error: 'Publish and pay for this card before sending it.',
+        code: 'PAYMENT_REQUIRED',
+        payment_required: true,
+      });
+    }
 
     const { data: messages } = await supabase
       .from('messages').select('count').eq('card_id', card.id);
@@ -768,7 +845,7 @@ const sendCard = async (req, res) => {
       }, { onConflict: 'card_id,recipient_user_id' });
     }
 
-    await sendEmail({
+    const mailResult = await sendEmail({
       to: card.recipient_email,
       template: 'cardDelivery',
       data: {
@@ -789,6 +866,14 @@ const sendCard = async (req, res) => {
         isCompanyCard: !!card.company_id,
       }
     });
+
+    // A failed email must not leave the card looking delivered.
+    if (!mailResult?.success) {
+      if (card.status !== 'sent') {
+        await supabase.from('cards').update({ status: card.status, recipient_notified: false }).eq('slug', slug);
+      }
+      return res.status(502).json({ error: `We couldn't email ${card.recipient_email} just now. Check the address and try again.` });
+    }
 
     res.json({ message: 'Card sent to recipient!' });
   } catch (err) {
@@ -1527,6 +1612,7 @@ module.exports = {
   deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards,
   getClaimGate, getCardLoginType, markClaimed, claimMemberPassword,
   approveCardScope, notifyAllCompany, uploadRecipientPhoto, uploadCoverImage,
+  sanitizeCoverLayout,
 };
 
 // ── Generic custom cover image upload ───────────────────────────────────────

@@ -58,13 +58,24 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
 
     // ── 4. card_fee: activate the card ────────────────────────────────────────
     if (type === 'card_fee' && meta.card_slug) {
-      const { data: card, error } = await supabase.from('cards')
-        .update({ status: 'active' })
-        .eq('slug', meta.card_slug)
-        .select('slug').maybeSingle();
-
-      if (error) console.error('Webhook card_fee activation error:', error.message);
-      else console.log('Webhook: card activated:', card?.slug || meta.card_slug);
+      // Same checks as the redirect verify: the charge must cover the fee (in
+      // the currency actually charged). markCardFeePaid is idempotent, so the
+      // webhook and the browser redirect can both land without harm — and it
+      // unlocks delivery for a "Create Now, Pay Later" card.
+      const { markCardFeePaid, isCardFeeAmountOk } = require('../utils/cardPayment');
+      if (!isCardFeeAmountOk(txn)) {
+        console.error(`Webhook card_fee UNDERPAYMENT: ${txn.amount} ${txn.currency} for ${meta.card_slug} (${txRef})`);
+        return;
+      }
+      try {
+        const { card, wasPending } = await markCardFeePaid(meta.card_slug);
+        console.log('Webhook: card fee paid:', card?.slug || meta.card_slug, wasPending ? '(pay-later unlocked)' : '');
+        if (wasPending && card) {
+          require('../utils/payLaterEmails').sendCardFeePaidEmail(card).catch(() => {});
+        }
+      } catch (e) {
+        console.error('Webhook card_fee activation error:', e.message);
+      }
       return;
     }
 

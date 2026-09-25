@@ -36,6 +36,8 @@ const CardCoverPreview = ({
   textColor,
   fontFamily,
   compact = false,
+  // Optional override for the occasion chip ({ color, background }).
+  occasionStyle,
   layout,
   editable = false,
   selected = null,
@@ -115,6 +117,9 @@ const CardCoverPreview = ({
   const renderText = (field) => {
     const cfg = L[field];
     if (!cfg.show) return null;
+    // On a real card (not the editor) an empty sender line is left off
+    // entirely rather than printing the "From Your name" placeholder.
+    if (!editable && field === 'sender' && !senderName?.trim()) return null;
     const isSel = editable && selected === field;
     const col = resolveColor(cfg.color);
     return (
@@ -220,6 +225,7 @@ const CardCoverPreview = ({
             color: hasArtwork && design.dark ? design.soft : (surfaceIsDark ? accent : readableTextColor(accent, '#ffffff', { ink: '#1A1035' })),
             background: surfaceIsDark ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.72)',
             backdropFilter: 'blur(6px)',
+            ...(occasionStyle || {}),
           }}
         >
           {occasionLabel}

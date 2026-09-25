@@ -7,8 +7,10 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import CardIntentBar from '../components/CardIntentBar';
-import VoiceRecorder from '../components/VoiceRecorder';
-import { demoAPI } from '../utils/api';
+import { demoAPI, siteAPI } from '../utils/api';
+import HeroAlbumFlipbook from '../components/HeroAlbumFlipbook';
+import { FlagBackdrop, SupportedCountries } from '../components/WorldFlags';
+import { resolveHero, splitHeroTitle, readCachedHero, writeCachedHero } from '../utils/heroDefaults';
 import toast from 'react-hot-toast';
 
 const HERO_FONT_INJECT = `
@@ -77,34 +79,6 @@ const TESTIMONIALS = [
 const TEAM_SIZE_OPTIONS = ['1–10','11–50','51–200','201–500','500+'];
 
 /* ─── Demo messages for the hero flipbook ───────────────────────────── */
-const DEMO_MESSAGES = [
- { initials: 'AO', name: 'Adaeze O.', color: '#7C3AED', bg: '#EDE9FE',
- text: "Happy birthday!! You're the reason our whole team smiles every day ",
- gif: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' },
- { initials: 'EK', name: 'Emeka K.', color: '#0D9488', bg: '#CCFBF1',
- text: 'Wishing you all the joy this year, boss! You deserve every bit of it',
- gif: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
- { initials: 'KI', name: 'Kemi I.', color: '#DB2777', bg: '#FCE7F3',
- text: 'Another year wiser and still the coolest person in the office',
- gif: 'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' },
- { initials: 'BD', name: 'Bolu D.', color: '#92400E', bg: '#FEF3C7',
- text: 'From the whole team — we are so lucky to have you. Keep shining!',
- gif: 'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
- { initials: 'TN', name: 'Tunde N.', color: '#1D4ED8', bg: '#DBEAFE',
- text: 'You have no idea how much we appreciate everything you do.',
- gif: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
-];
-
-/* Giphy URLs available in the sign form GIF picker */
-const GIPHY_OPTIONS = [
- { url: 'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif', label: 'Celebrate' },
- { url: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif', label: 'Star' },
- { url: 'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif', label: 'Birthday' },
- { url: 'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif', label: 'Clap' },
- { url: 'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif', label: 'Love' },
- { url: 'https://media.giphy.com/media/RrVzUOXldFe8M/giphy.gif', label: 'Party' },
-];
-
 /* ─── B2B demo modal ─────────────────────────────────────────────────── */
 const DemoModal = ({ onClose }) => {
  const [form, setForm] = useState({ contact_name:'', email:'', company_name:'', phone:'', team_size:'', message:'' });
@@ -186,235 +160,6 @@ const DemoModal = ({ onClose }) => {
  </>
  )}
  </div>
- </div>
- );
-};
-
-/* ─── Live flipbook card preview (hero) ─────────────────────────────── */
-const LiveCardPreview = () => {
- const [activeIdx, setActiveIdx] = useState(0);
- const [signerName, setSignerName] = useState('');
- const [signerMsg, setSignerMsg] = useState('');
- const [signerGif, setSignerGif] = useState('');
- const [messages, setMessages] = useState(DEMO_MESSAGES);
- const [signed, setSigned] = useState(false);
- const [flipping, setFlipping] = useState(false);
- const [showGifPick, setShowGifPick] = useState(false);
- const [showEmoji, setShowEmoji] = useState(false);
- const [signerPhoto, setSignerPhoto] = useState(null); // { url, file }
- const photoInputRef = useRef();
-
- const handleSign = () => {
- if (!signerName.trim() || !signerMsg.trim()) return;
- const colors = ['#7C3AED','#0D9488','#DB2777','#92400E','#1D4ED8'];
- const bgs = ['#EDE9FE','#CCFBF1','#FCE7F3','#FEF3C7','#DBEAFE'];
- const idx = messages.length % colors.length;
- setMessages(prev => [...prev, {
- initials: signerName.trim().split(' ').map(w=>w[0].toUpperCase()).join('').slice(0,2),
- name: signerName.trim(), color: colors[idx], bg: bgs[idx],
- text: signerMsg.trim(),
- gif: signerGif || undefined,
- photo: signerPhoto?.url || undefined,
- }]);
- setSigned(true);
- setActiveIdx(messages.length);
- };
-
- const goTo = (dir) => {
- if (flipping) return;
- setFlipping(true);
- setTimeout(() => {
- setActiveIdx(i =>Math.max(0, Math.min(messages.length - 1, i + dir)));
- setFlipping(false);
- }, 220);
- };
-
- const msg = messages[activeIdx];
-
- return (
- <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: '1.25rem', boxSizing: 'border-box' }}>
-
- {/* ── Album card ── */}
- {/* margin:0 52px creates the space the arrows (left:-26, right:-26) sit in */}
- <div style={{ position: 'relative', width: 'calc(100% - 104px)', margin: '0 auto', overflow: 'visible' }}>
- {/* Stack shadows */}
- <div style={{ position:'absolute', left:'50%', transform:'translateX(calc(-50% - 16px)) rotate(-3deg)', width:'calc(100% - 28px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
- <div style={{ position:'absolute', left:'50%', transform:'translateX(calc(-50% + 16px)) rotate(3deg)', width:'calc(100% - 14px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
-
- {/* Main card */}
- <div style={{
- position: 'relative', zIndex: 1,
- borderRadius: 20, border: '2px solid #DDD6FE',
- padding: '1.25rem 1.5rem 3rem',
- background: msg.bg,
- boxShadow: '0 8px 40px rgba(124,58,237,0.12)',
- transition: 'all 0.22s ease',
- transform: flipping ? 'rotateY(90deg)' : 'rotateY(0deg)',
- opacity: flipping ? 0 : 1,
- minHeight: 340,
- display: 'flex',
- flexDirection: 'column',
- }}>
- {/* Header */}
- <div style={{ display:'flex', alignItems:'center', gap:'0.75rem', marginBottom:'0.875rem', flexShrink:0 }}>
- <div style={{ width:40, height:40, borderRadius:'50%', background:msg.color, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:'0.875rem', flexShrink:0 }}>
- {msg.initials}
- </div>
- <div>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.9375rem', color:'#1A1035', margin:0, lineHeight:1.3 }}>{msg.name}</p>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.75rem', color:'#7C5CBF', margin:0 }}>signed this card</p>
- </div>
- </div>
-
- {/* Photo or GIF */}
- {(msg.gif || msg.photo) && (
- <div style={{ borderRadius:12, overflow:'hidden', marginBottom:'0.75rem', flexShrink:0, lineHeight:0 }}>
- <img src={msg.photo || msg.gif} alt="" style={{ width:'100%', height:140, objectFit:'cover', display:'block' }} loading="lazy"/>
- </div>
- )}
-
- {/* Message */}
- <p style={{ fontFamily:"'Caveat', cursive", fontSize:'1.25rem', lineHeight:1.6, color:'#1A1035', margin:'0 0 auto', flex:1 }}>
- {msg.text}
- </p>
-
- {/* Dots */}
- <div style={{ display:'flex', gap:6, justifyContent:'center', marginTop:'0.75rem', flexShrink:0 }}>
- {messages.map((_,i) => (
- <button key={i} onClick={()=>setActiveIdx(i)} aria-label={`Page ${i+1}`}
- style={{ width: i===activeIdx ? 22 : 8, height:8, borderRadius: i===activeIdx ? 4 : '50%', background: i===activeIdx ? msg.color : '#DDD6FE', border:'none', cursor:'pointer', padding:0, transition:'all 0.2s' }}/>
- ))}
- </div>
-
- </div>
-
- {/* Nav arrows — on the WRAPPER (overflow:visible), NOT inside the card (overflow:hidden) */}
- <button onClick={()=>goTo(-1)} disabled={activeIdx===0}
- style={{ position:'absolute', left:-26, top:'50%', transform:'translateY(-50%)', width:48, height:48, borderRadius:'50%', background:'#fff', border:'2.5px solid #C4B5FD', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===0 ? 0.25 : 1, zIndex:20, boxShadow:'0 4px 20px rgba(124,58,237,0.22)', flexShrink:0 }}>
- <Icon name="ChevronLeft" size={22}/>
- </button>
- <button onClick={()=>goTo(1)} disabled={activeIdx===messages.length-1}
- style={{ position:'absolute', right:-26, top:'50%', transform:'translateY(-50%)', width:48, height:48, borderRadius:'50%', background:'#fff', border:'2.5px solid #C4B5FD', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity: activeIdx===messages.length-1 ? 0.25 : 1, zIndex:20, boxShadow:'0 4px 20px rgba(124,58,237,0.22)', flexShrink:0 }}>
- <Icon name="ChevronRight" size={22}/>
- </button>
-
- {/* Count badge */}
- <div style={{ position:'absolute', top:-12, right:16, background:'#fff', border:'1.5px solid #DDD6FE', borderRadius:20, padding:'3px 10px', fontSize:'0.75rem', fontWeight:700, color:'#7C3AED', display:'flex', alignItems:'center', gap:5, zIndex:2 }}>
- <Icon name="FileText" size={12}/> {activeIdx+1} / {messages.length}
- </div>
- </div>
-
- {/* ── Sign panel ── */}
- {!signed ? (
- <div style={{ background:'#fff', border:'2px solid #EDE5FF', borderRadius:20, padding:'1.25rem', display:'flex', flexDirection:'column', gap:'0.75rem' }}>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.875rem', fontWeight:700, color:'#4A3A7A', margin:0, display:'flex', alignItems:'center', gap:6 }}>
- <Icon name="PenLine" size={14}/> <strong>Sign this demo card</strong> — no account needed
- </p>
-
- {/* Name */}
- <input className="lcp-input" placeholder="Your name" value={signerName} onChange={e=>setSignerName(e.target.value)} maxLength={60}/>
-
- {/* Message textarea + emoji button */}
- <div style={{ position:'relative' }}>
- <textarea className="lcp-textarea" placeholder="Write your message here…" rows={3}
- value={signerMsg} onChange={e=>setSignerMsg(e.target.value)} maxLength={500}
- style={{ resize:'none', paddingRight:'2.5rem' }}/>
- {/* Emoji toggle */}
- <button type="button" onClick={()=>{ setShowEmoji(s=>!s); setShowGifPick(false); }}
- style={{ position:'absolute', bottom:8, right:8, width:32, height:32, borderRadius:'50%', background:'#F5F0FF', border:'1.5px solid #DDD6FE', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center', zIndex:2 }}>
- 
- </button>
- {/* Emoji picker */}
- {showEmoji && (
- <div style={{ position:'absolute', bottom:'calc(100% + 4px)', right:0, zIndex:50, background:'#fff', border:'1.5px solid #EDE9FE', borderRadius:16, padding:12, boxShadow:'0 8px 32px rgba(0,0,0,0.12)', display:'flex', flexWrap:'wrap', gap:6, maxWidth:220 }}>
- {['','','','','','','','','','','','','','','','','','','',''].map(emoji => (
- <button key={emoji} type="button" onClick={()=>{ setSignerMsg(m=>m+emoji); setShowEmoji(false); }}
- style={{ width:34, height:34, borderRadius:8, border:'none', background:'#F5F0FF', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>
- {emoji}
- </button>
- ))}
- </div>
- )}
- </div>
-
- {/* Media buttons row */}
- <div style={{ display:'flex', flexWrap:'wrap', gap:6, position:'relative' }}>
- {/* Photos */}
- <button type="button" onClick={()=>photoInputRef.current?.click()}
- style={{ background: signerPhoto ? '#EDE9FE' : '#F5F0FF', border:`1.5px solid ${signerPhoto?'#A78BFA':'#DDD6FE'}`, borderRadius:12, padding:'6px 12px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.8125rem', color:'#7C3AED', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
- {signerPhoto ? 'Change photo' : 'Add photo'}
- </button>
- <input ref={photoInputRef} type="file" accept="image/*" className="hidden"
- onChange={e => {
- const f = e.target.files?.[0];
- if (f) setSignerPhoto({ url: URL.createObjectURL(f), file: f });
- }}/>
- {signerPhoto && (
- <button type="button" onClick={()=>setSignerPhoto(null)}
- style={{ background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#DC2626', fontWeight:700, alignSelf:'center' }}></button>
- )}
-
- {/* GIF */}
- <button type="button" onClick={()=>{ setShowGifPick(s=>!s); setShowEmoji(false); }}
- style={{ background: signerGif ? '#EDE9FE' : '#F5F0FF', border:`1.5px solid ${signerGif?'#A78BFA':'#DDD6FE'}`, borderRadius:12, padding:'6px 12px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.8125rem', color:'#7C3AED', cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
- {signerGif ? 'Change GIF' : 'Add a GIF'}
- </button>
- {signerGif && (
- <button type="button" onClick={()=>setSignerGif('')}
- style={{ background:'none', border:'none', cursor:'pointer', fontSize:'0.8rem', color:'#DC2626', fontWeight:700, alignSelf:'center' }}></button>
- )}
-
- {/* Voice note */}
- <VoiceRecorder onRecorded={f => {
- // Store voice as a local URL for demo purposes
- const url = URL.createObjectURL(f);
- setSignerMsg(m => m + (m ? ' ' : '') + '');
- // show a brief toast-like indicator
- }}/>
-
- {/* GIF grid */}
- {showGifPick && (
- <div style={{ width:'100%', marginTop:4, display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
- {GIPHY_OPTIONS.map(g => (
- <button key={g.url} type="button"
- onClick={()=>{ setSignerGif(g.url); setShowGifPick(false); }}
- style={{ position:'relative', borderRadius:10, overflow:'hidden', border:`2.5px solid ${signerGif===g.url?'#7C3AED':'transparent'}`, cursor:'pointer', padding:0, lineHeight:0 }}>
- <img src={g.url} alt={g.label} style={{ width:'100%', height:60, objectFit:'cover', display:'block' }} loading="lazy"/>
- <span style={{ position:'absolute', bottom:3, left:0, right:0, textAlign:'center', fontSize:10, fontWeight:700, color:'#fff', textShadow:'0 1px 3px rgba(0,0,0,0.6)' }}>{g.label}</span>
- </button>
- ))}
- </div>
- )}
- </div>
-
- {/* Photo preview */}
- {signerPhoto && (
- <div style={{ borderRadius:12, overflow:'hidden', lineHeight:0 }}>
- <img src={signerPhoto.url} alt="Your photo" style={{ width:'100%', height:90, objectFit:'cover', display:'block', borderRadius:12 }}/>
- </div>
- )}
-
- {/* GIF preview */}
- {signerGif && !showGifPick && (
- <div style={{ borderRadius:10, overflow:'hidden', lineHeight:0 }}>
- <img src={signerGif} alt="Selected GIF" style={{ width:'100%', height:80, objectFit:'cover', display:'block', borderRadius:10 }}/>
- </div>
- )}
-
- <button className="lcp-sign-btn" onClick={handleSign} disabled={!signerName.trim()||!signerMsg.trim()}>
- <Icon name="Heart" size={15}/>Add my message
- </button>
- </div>
- ) : (
- <div style={{ background:'#F0FDF4', border:'2px solid #BBF7D0', borderRadius:20, padding:'1.25rem', textAlign:'center' }}>
- <div style={{ fontSize:'2rem', marginBottom:'0.5rem' }}></div>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:'1.125rem', color:'#14532D', margin:'0 0 0.25rem' }}>You signed it!</p>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.875rem', color:'#166534', margin:'0 0 0.75rem' }}>Your message is on page {activeIdx + 1}. Ready to create your own?</p>
- <Link to="/card/new" className="btn-primary w-full text-center py-3 inline-flex items-center justify-center gap-2">
- <Icon name="Sparkles" size={15}/>Create a card — it's free
- </Link>
- </div>
- )}
  </div>
  );
 };
@@ -1013,7 +758,7 @@ const HOME_FAQS = [
  { q:'How does the gift pot work for companies?', a:"Each celebration card has its own secure gift pot. Team members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account." },
  { q:'Can I schedule the card to send on a specific date?', a:"Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget." },
  { q:'Is there a limit on how many people can sign?', a:'No limit. Invite your entire company if you want. The more signatures, the more meaningful the card.' },
-  { q:'How fast can I create a group card?', a:"About a minute. Describe the card in one line on the homepage — who it's for, when to send it, whether you're collecting for a gift — and Thankeeu fills in the design, the details and the dates for you. Review it, pay once, and share the link." },
+  { q:'How fast can I create a group card?', a:"About a minute. Describe the card in one line on the homepage — who it's for, when to send it, whether you're collecting for a gift — and Thankeeu fills in the design, the details and the dates for you. Review it, share the link, and pay once when you're ready for it to be delivered." },
 ];
 
 // Collapsible FAQ row. A component, not an inline callback: calling useState
@@ -1054,14 +799,14 @@ const Home = () => {
    // readily than marketing prose.
    SCHEMAS.howTo(
      'Create a group card in about a minute',
-     'Describe the card in one line on the Thankeeu homepage and the design, recipient, delivery date and gift pot are filled in for you. Review, pay once, and share the signing link.',
+     'Describe the card in one line on the Thankeeu homepage and the design, recipient, delivery date and gift pot are filled in for you. Review, share the signing link, and pay once when you are ready for it to be delivered.',
      [
        { name: 'Describe the card in one line',
          text: 'Type who the card is for, the occasion, when it should arrive and whether you are collecting for a gift — for example "birthday card for my sister Ada, sending Friday, collecting 50k".' },
        { name: 'Check the details we filled in',
          text: 'Thankeeu picks a matching cover design and fills in the recipient, title, delivery date, signing deadline and gift pot. Every field stays editable.' },
-       { name: 'Pay once and share the link',
-         text: 'Pay the one-time card fee to publish the card, then share the signing link by WhatsApp, email or QR code so everyone can add their messages, photos and voice notes.' },
+       { name: 'Share the link, pay when you are happy',
+         text: 'Publish the card for free and share the signing link by WhatsApp, email or QR code so everyone can add their messages, photos and voice notes. Pay the one-time card fee when you are happy, and it is delivered automatically on the date you chose.' },
      ],
      '/',
    ),
@@ -1071,6 +816,18 @@ const Home = () => {
  const [showDemo, setShowDemo] = useState(false);
  const [homeCurrency, setHomeCurrency] = useState('USD');
  const [wordIndex, setWordIndex] = useState(0);
+ // Hero text is editable in Admin → Header. Start from the last copy this
+ // browser saw (no flash on repeat visits), else the built-in default; the
+ // server's current version replaces it as soon as it arrives.
+ const [hero, setHero] = useState(() => resolveHero(readCachedHero()));
+ useEffect(() => {
+   let alive = true;
+   siteAPI.getHero()
+     .then(r => { if (!alive || !r.data?.hero) return; writeCachedHero(r.data.hero); setHero(resolveHero(r.data.hero)); })
+     .catch(() => { /* defaults stay */ });
+   return () => { alive = false; };
+ }, []);
+ const heroTitle = splitHeroTitle(hero.title);
 
  useEffect(() => {
  const id = setInterval(() => setWordIndex(i => (i + 1) % ROTATING_WORDS.length), 2200);
@@ -1087,7 +844,10 @@ const Home = () => {
 
  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-16 pointer-events-none" style={{ background:'radial-gradient(ellipse,rgba(139,92,246,0.12) 0%,transparent 70%)' }}/>
 
- <div className="relative max-w-6xl mx-auto">
+ {/* Transparent world flags behind the hero — "my country is supported" */}
+ <FlagBackdrop />
+
+ <div className="relative max-w-6xl mx-auto" style={{ zIndex: 1 }}>
  {/* Hero is two columns: the copy and CTAs on the left, the signable demo card
     on the right, both starting at the same top edge. The headline used to span
     the full width above the grid, which pushed the demo card a full screen
@@ -1101,21 +861,23 @@ const Home = () => {
  <div className="text-center lg:text-left">
  <div style={{ display:'inline-block', background:'#EDE9FE', padding:'6px 12px', borderRadius:8, marginBottom:'0.6rem' }}>
  <p style={{ fontSize:'clamp(0.9rem,1.8vw,1.02rem)', lineHeight:1.45, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, margin:0, padding:0, display:'block' }}>
- More than a group card. More than Instagram Stories. One place for everyone.
+ {hero.tagline}
  </p>
  </div>
  <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(2rem,4.4vw,3.15rem)', lineHeight:1.08, letterSpacing:'-0.02em' }}>
- <span style={{ color:'#1A1035' }}>Send an Online Group</span>
- <br />
+ {heroTitle.before && <span style={{ color:'#1A1035' }}>{heroTitle.before}</span>}
+ {heroTitle.hasWord && (<>
+ {heroTitle.before && <br />}
  <span style={{ display:'inline-block', background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text', minWidth:'1px' }}>
  {ROTATING_WORDS[wordIndex]}
  </span>
- <br />
- <span style={{ color:'#1A1035' }}>Card that will be Read and Watched</span>
+ {heroTitle.after && <br />}
+ </>)}
+ {heroTitle.after && <span style={{ color:'#1A1035' }}>{heroTitle.after}</span>}
  </h1>
 
  <p className="text-warm-600 mb-3 sm:mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1rem,2vw,1.12rem)', lineHeight:1.55 }}>
- The card that collects everyone's love — messages, photos, voice notes and a gift — then turns it all into a group card and movie video memory they keep forever.
+ {hero.subtitle}
  </p>
 
  {/* Price — visible before any scrolling, same pattern as leaving card hero */}
@@ -1162,6 +924,9 @@ const Home = () => {
  </Link>
  </div>
  <p className="text-sm font-medium text-warm-500 text-center lg:text-left">Free to create and share. Pay only when you send. No commitment.</p>
+
+ {/* Countries we deliver to — colourful, labelled, scannable */}
+ <SupportedCountries className="mt-6 max-w-xl mx-auto lg:mx-0" />
 
  {/* Sample card grid — large, rich tiles matching GroupCards style */}
  <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: '100%' }}>
@@ -1227,9 +992,9 @@ const Home = () => {
  </div>
  </div>
 
- {/* Right: live flipbook demo */}
- <div className="lcp-outer-wrap" style={{ paddingTop: '0.5rem', paddingLeft: '1.5rem', paddingRight: '1.5rem' }}>
- <LiveCardPreview />
+ {/* Right: the album flipbook — a full sample card to flip through */}
+ <div className="lg:sticky lg:top-24" style={{ paddingTop: '0.5rem' }}>
+ <HeroAlbumFlipbook />
  </div>
  </div>
 

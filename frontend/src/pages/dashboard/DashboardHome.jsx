@@ -6,6 +6,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { formatNGN } from '../../utils/currency';
+import useLiveRefresh from '../../hooks/useLiveRefresh';
 
 const OCCASION_EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
 
@@ -54,13 +55,19 @@ export default function DashboardHome() {
     } else { fetchData(); }
   }, []);
 
-  const fetchData = async () => {
-    try { const r=await dashboardAPI.get(); setData(r.data); }
-    catch { toast.error('Failed to load dashboard'); }
-    finally { setLoading(false); }
+  const [lastSync, setLastSync] = useState(null);
+  // `silent` = background refresh: never flashes skeletons or error toasts.
+  const fetchData = async ({ silent = false } = {}) => {
+    try { const r=await dashboardAPI.get(); setData(r.data); setLastSync(new Date()); }
+    catch { if (!silent) toast.error('Failed to load dashboard'); }
+    finally { if (!silent) setLoading(false); }
   };
+  // Real-time overview: signatures, gifts, status and payment changes appear
+  // on their own (every 15s while the tab is open, and on returning to it).
+  useLiveRefresh(() => { if (!completingPayment.current) fetchData({ silent: true }); }, 15000);
 
   const stats   = data?.stats||{};
+  const awaitingPayment = (data?.all_cards||[]).filter(c => c.status==='active' && c.payment_pending);
   const cards   = data?.recent_cards||[];
   const notifs  = data?.notifications||[];
   const [dismissed, setDismissed] = useState([]);
@@ -153,9 +160,36 @@ export default function DashboardHome() {
         }
       </div>
 
+      {/* Create Now, Pay Later — live cards that will not be delivered until paid */}
+      {!loading && awaitingPayment.length > 0 && (
+        <div className="mb-6 rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 sm:p-5">
+          <p className="flex items-center gap-2 text-sm font-extrabold text-amber-900">
+            <Icon name="Clock" size={16}/>
+            {awaitingPayment.length === 1 ? '1 card is' : `${awaitingPayment.length} cards are`} collecting signatures and waiting for payment
+          </p>
+          <p className="mt-1 text-xs text-amber-800">Pay when you're happy — each card is then delivered automatically on its date, Memory Movie and gifts included.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {awaitingPayment.slice(0, 4).map(c => (
+              <Link key={c.id} to={`/pay/${c.slug}`}
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-amber-900 shadow-sm ring-1 ring-amber-200 hover:ring-amber-400">
+                <Icon name="CreditCard" size={13}/>Pay Now · {c.recipient_name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Recent cards */}
       <div className="flex items-center justify-between mb-4">
-        <p className="db-section-title">Recent cards</p>
+        <p className="db-section-title flex items-center gap-2">
+          Recent cards
+          {lastSync && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700" title={`Updated ${lastSync.toLocaleTimeString()}`}>
+              <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"/><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"/></span>
+              Live
+            </span>
+          )}
+        </p>
         <Link to="/dashboard/cards" style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.875rem', fontWeight:700, color:'#7C3AED' }}>
           View all <Icon name="ArrowRight" size={14} className="inline" />
         </Link>
@@ -183,9 +217,13 @@ export default function DashboardHome() {
                   <div className="section-dots w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{background:'#F5F0FF'}}>
                     {OCCASION_EMOJI[card.occasion]||'💌'}
                   </div>
+                  {card.status==='active' && card.payment_pending ? (
+                    <span className="db-badge" style={{ background:'#FEF3C7', color:'#92400E' }}>Awaiting payment</span>
+                  ) : (
                   <span className={`db-badge db-badge-${card.status||'draft'}`}>
                     {card.status==='active'?'Active':card.status==='sent'?'Sent':'Draft'}
                   </span>
+                  )}
                 </div>
                 <p className="db-card-item-title">{card.title}</p>
                 <p className="db-card-item-meta">For {card.recipient_name}</p>
@@ -203,6 +241,14 @@ export default function DashboardHome() {
                 </div>
               </div>
               <div className="db-card-item-footer">
+                {card.status==='active' && card.payment_pending && (
+                  <Link to={`/pay/${card.slug}`} className="db-card-item-action" style={{ color:'#fff', background:'linear-gradient(135deg,#7C3AED,#EC4899)', borderRadius:10 }}>
+                    <Icon name="CreditCard" size={13}/>Pay Now
+                  </Link>
+                )}
+                {card.status==='draft' && (
+                  <Link to={`/create-card?edit=${card.slug}`} className="db-card-item-action"><Icon name="Edit" size={13}/>Continue</Link>
+                )}
                 <Link to={`/card/${card.slug}`} className="db-card-item-action"><Icon name="Eye" size={13}/>View</Link>
                 {card.status==='active' && (
                   <button className="db-card-item-action" onClick={()=>{navigator.clipboard.writeText(`${location.origin}/sign/${card.slug}`);toast.success('Copied!');}}>

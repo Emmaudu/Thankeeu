@@ -16,7 +16,7 @@ import {
   Twitter, Linkedin, Instagram, GraduationCap, Baby,
   Sun, Flower2, HeartPulse, Snowflake, Sunrise, ThumbsUp as ThumbsUpDup,
   TrendingDown, TrendingUp as TrendingUpIcon, LayoutGrid, Archive, AlertTriangle,
-  Film, Loader2, Play, Video, Music, CheckCircle,
+  Film, Loader2, Play, Pause, Video, Music, CheckCircle,
   Diamond, QrCode, Radio, HeartHandshake, Monitor, Presentation, PenLine, LogIn,
   Volume2, VolumeX, Images, Moon, Printer, Reply, Square,
 } from 'lucide-react';
@@ -45,7 +45,7 @@ const ICONS = {
   Twitter, Linkedin, Instagram, GraduationCap, Baby,
   Sun, Flower: Flower2, HeartPulse, Snowflake, Sunrise,
   TrendingDown, LayoutGrid, Archive, AlertTriangle,
-  Film, Loader: Loader2, Play, Video, Music, CheckCircle,
+  Film, Loader: Loader2, Play, Pause, Video, Music, CheckCircle,
   Diamond, QrCode, Radio, HeartHandshake, Monitor, Presentation, PenLine, LogIn,
   Volume2, VolumeX, Images, Moon, Printer, Reply, Square,
   // Semantic aliases used by data-driven navigation and dashboard cards.

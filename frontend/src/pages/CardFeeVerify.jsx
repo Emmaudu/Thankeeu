@@ -44,7 +44,14 @@ export default function CardFeeVerify() {
           // ── Card fee payment ─────────────────────────────────────────────
           setMsg('Activating your card…');
           const res = await paymentsAPI.verifyCardFee(txRef);
-          const { card_slug, already_active } = res.data;
+          const { card_slug, already_active, was_pay_later } = res.data;
+          if (was_pay_later) {
+            // "Create Now, Pay Later" card: it was already live — this payment
+            // unlocks delivery. The pay page shows when it will be delivered.
+            toast.success('Payment received — your card will be delivered 🎉');
+            navigate(`/pay/${card_slug}`, { replace: true });
+            return;
+          }
           if (already_active) {
             toast('Your card was already active ✓');
           } else {
@@ -53,7 +60,10 @@ export default function CardFeeVerify() {
 
           // Restore pending creator message + send invite emails
           try {
-            const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || localStorage.getItem('thankeeu_card_draft') || '{}');
+            const saved = JSON.parse(localStorage.getItem('thankeeu_pending_card') || localStorage.getItem('thankeeu_card_draft') || '{}');
+            // Only use saved invites/message if they belong to THIS card — a
+            // stale snapshot from another card must never be applied here.
+            const pending = (saved?.slug && saved.slug === card_slug) ? saved : {};
 
             // Send invite emails to signers
             const emailList = pending?.inviteEmails || [];

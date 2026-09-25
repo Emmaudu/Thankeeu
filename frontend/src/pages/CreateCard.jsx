@@ -25,6 +25,12 @@ import TestCardCountdown from '../components/TestCardCountdown';
 import AlbumStudioPreview from '../components/AlbumStudioPreview';
 import { takeIntent } from '../utils/cardIntent';
 import { applyCardIntent } from '../utils/applyCardIntent';
+import DeliveryCountryField from '../components/DeliveryCountryField';
+import CoverFieldToggle from '../components/CoverFieldToggle';
+import { zonedToUTC, utcToZoned, guessCountryFromBrowser } from '../utils/timezones';
+
+// Default recipient country = the creator's own (from the browser's zone).
+const DEFAULT_PLACE = guessCountryFromBrowser();
 
 const OCCASIONS = [
  { id: 'birthday',        icon: 'Cake',         label: 'Birthday' },
@@ -44,7 +50,7 @@ const OCCASIONS = [
 ];
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000];
-const STEPS = ['Occasion', 'Design', 'Details', 'Gift & Pay'];
+const STEPS = ['Occasion', 'Design', 'Details', 'Gift & Launch'];
 
 const StepIndicator = ({ current }) => (
  <div className="flex items-center mb-8">
@@ -91,6 +97,8 @@ const CreateCard = () => {
  const [payMode, setPayMode] = useState('direct');
  const [inviteEmails, setInviteEmails] = useState('');
  const [liveSlug, setLiveSlug] = useState(null); // set when card is live
+ const [livePayPending, setLivePayPending] = useState(false); // live but not paid yet (Create Now, Pay Later)
+ const [showPayNow, setShowPayNow] = useState(false); // the optional "pay now instead" panel
  const [draftSlug, setDraftSlug] = useState(null); // slug of the draft currently being created/edited
  const [loadingDraft, setLoadingDraft] = useState(false);
  const [isActiveEdit, setIsActiveEdit] = useState(false); // true when editing an already-active card
@@ -114,6 +122,8 @@ const CreateCard = () => {
  album_background_theme: 'cover_blur',
  cover_layout: null,
  card_experience: 'card_only', // the wizard creates group cards; Live Wall is not part of this flow
+ recipient_country: DEFAULT_PLACE.country,
+ delivery_timezone: DEFAULT_PLACE.timezone,
  });
  const [selectedCoverField, setSelectedCoverField] = useState('recipient');
 
@@ -383,8 +393,15 @@ const CreateCard = () => {
  return { localDate, localTime };
  };
 
- const { localDate: sendDateLocal, localTime: sendTimeLocal } =
- utcToLocalDate(card.send_date, card.send_time);
+ // The delivery time is shown in the zone it was picked in (the
+ // recipient's), falling back to this browser for older cards.
+ const { localDate: sendDateLocal, localTime: sendTimeLocal } = (() => {
+   if (!card.send_date || !card.delivery_timezone) return utcToLocalDate(card.send_date, card.send_time);
+   const d = String(card.send_date).slice(0, 10);
+   const t = card.send_time ? String(card.send_time).slice(0, 8) : '00:00:00';
+   const z = utcToZoned(`${d}T${t}Z`, card.delivery_timezone);
+   return z.date ? { localDate: z.date, localTime: z.time } : utcToLocalDate(card.send_date, card.send_time);
+ })();
  const { localDate: deadlineLocal, localTime: deadlineTimeLocal } =
  utcToLocalDate(card.deadline, card.deadline_time);
 
@@ -413,6 +430,10 @@ const CreateCard = () => {
  send_reminders: card.send_reminders ?? prev.send_reminders,
  hide_amounts: card.hide_amounts ?? prev.hide_amounts,
  notification_scope: card.notification_scope || prev.notification_scope,
+ cover_sender: card.cover_sender ?? prev.cover_sender,
+ cover_layout: card.cover_layout ?? prev.cover_layout,
+ recipient_country: card.recipient_country || prev.recipient_country,
+ delivery_timezone: card.delivery_timezone || prev.delivery_timezone,
  }));
 
  // Restore recipient photo preview — show the existing photo so the user
@@ -433,6 +454,7 @@ const CreateCard = () => {
 
  const wasActive = card.status === 'active';
  setIsActiveEdit(wasActive);
+ setLivePayPending(!!card.payment_pending);
  toast.success(wasActive ? 'Editing your live card — changes save immediately.' : 'Continuing your draft — your progress is right where you left it.');
  setStep(2);
  } catch (err) {
@@ -461,6 +483,9 @@ const CreateCard = () => {
  return { send_date: utcDate, send_time: utcTime };
  };
 
+
+ // Delivery date/time are typed in the RECIPIENT's time zone.
+ const toUTCDelivery = (dateStr, timeStr) => zonedToUTC(dateStr, timeStr, form.delivery_timezone);
 
  const selectedDesign = form.design_theme === 'custom_upload'
    ? { id:'custom_upload', occasion:form.occasion, name:'Your design',
@@ -493,7 +518,7 @@ const CreateCard = () => {
  try {
  // Strip status from updates so we never downgrade an active card back to draft
  const { status: _s, ...safeForm } = form;
- const { send_date: utcSendDate, send_time: utcSendTime } = toUTCSendTime(safeForm.send_date, safeForm.send_time);
+ const { send_date: utcSendDate, send_time: utcSendTime } = toUTCDelivery(safeForm.send_date, safeForm.send_time);
  const cardData = { ...safeForm, title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card`, send_date: utcSendDate, send_time: utcSendTime };
  let slug;
  if (draftSlug) {
@@ -530,14 +555,22 @@ const CreateCard = () => {
  } finally { if (!silent) setLoading(false); }
  };
 
- // Step 3: pay / activate
- const handlePayAndLaunch = async () => {
+ // Step 3: launch. `payLater` = "Create Now, Pay Later": the card goes live
+ // for signatures and gifts right away; it is delivered only once paid.
+ const handlePayAndLaunch = async ({ payLater = false } = {}) => {
  setLoading(true);
  setPaymentStage('sending');
  try {
  const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
  const slug = draftSlug || pending?.slug;
  if (!slug) { toast.error('Card draft not found. Please go back and try again.'); setLoading(false); setPaymentStage('idle'); return; }
+ // A draft started as a guest must belong to this account before it can be
+ // saved, published or paid for — the resume path claims it in the
+ // background, so make sure that has happened (idempotent; "already yours"
+ // errors are ignored).
+ if (user && pending?.draft_edit_token && pending.slug === slug) {
+ await cardsAPI.claimDraft(slug, pending.draft_edit_token).catch(() => {});
+ }
 
  // ── Active card edit: just save changes & redirect back to card ──────
  if (isActiveEdit) {
@@ -551,10 +584,12 @@ const CreateCard = () => {
  // Persist gift toggle + scheduling fields BEFORE payment.
  // This is critical — if this fails, warn loudly so the user can retry.
  try {
- const { send_date: utcSD, send_time: utcST } = toUTCSendTime(form.send_date, form.send_time);
+ const { send_date: utcSD, send_time: utcST } = toUTCDelivery(form.send_date, form.send_time);
  const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
  const fullUpdate = {
  is_gift_enabled: form.is_gift_enabled,
+ recipient_country: form.recipient_country,
+ delivery_timezone: form.delivery_timezone,
  card_experience: form.card_experience || 'card_only',
  suggested_amount: form.suggested_amount,
  gift_type: form.gift_type,
@@ -596,6 +631,19 @@ const CreateCard = () => {
  await messagesAPI.add(activeSlug, fd).catch(e => console.warn('[creator-msg] failed to save:', e?.message));
  };
 
+ // ── Create Now, Pay Later (individuals) ─────────────────────────────
+ if (payLater && !isCompanyUser) {
+ setPaymentStage('publishing');
+ const actRes = await cardsAPI.activate(slug, { inviteEmails: inviteEmails.split(/[,\n]/).map(e=>e.trim()).filter(Boolean) });
+ await saveCreatorMessage(slug);
+ localStorage.removeItem('thankeeu_pending_card');
+ setLivePayPending(actRes.data?.payment_pending !== false);
+ toast.success('Congratulations — your card is ready to receive signatures! 🎉');
+ setLiveSlug(slug);
+ setLoading(false); setPaymentStage('idle');
+ return;
+ }
+
  // Company/member: activate free
  if (isCompanyUser) {
  await cardsAPI.activate(slug, { inviteEmails: inviteEmails.split(/[,\n]/).map(e=>e.trim()).filter(Boolean), signing_deadline: signingDeadline || null, delivery_scheduled: deliveryDate || null });
@@ -612,6 +660,7 @@ const CreateCard = () => {
  setPaymentStage('verifying');
  const res = await creditsAPI.spend(slug);
  if (res.data?.ok) {
+ setLivePayPending(false);
  // Send invite emails after activation
  const emailList = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
  if (emailList.length) {
@@ -640,6 +689,7 @@ const CreateCard = () => {
  await saveCreatorMessage(activatedSlug || slug);
  localStorage.removeItem('thankeeu_pending_card');
  toast.success('Your card is already live! ');
+ setLivePayPending(false);
  setLiveSlug(activatedSlug || slug);
  setLoading(false); setPaymentStage('idle');
  return;
@@ -666,7 +716,7 @@ const CreateCard = () => {
 
  const handleReset = () => {
  localStorage.removeItem('thankeeu_pending_card');
- setStep(0); setLiveSlug(null); setDraftSlug(null); setIsActiveEdit(false); setGuestPhase('configure');
+ setStep(0); setLiveSlug(null); setLivePayPending(false); setShowPayNow(false); setDraftSlug(null); setIsActiveEdit(false); setGuestPhase('configure');
  setLoading(false); setPaymentStage('idle');
  setMsgForm({ content: '', font_style: 'handwritten', is_private: false }); setCreatorMessageAlreadyPosted(false);
  setGiftAmount(null); setCustomGift(''); setInviteEmails('');
@@ -675,7 +725,7 @@ const CreateCard = () => {
  title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
  send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
  allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department',
- cover_sender: creatorName === 'You' ? '' : creatorName, cover_text_color:'auto', cover_layout:null, card_experience:'card_only', album_background_theme:'cover_blur' });
+ cover_sender: creatorName === 'You' ? '' : creatorName, cover_text_color:'auto', cover_layout:null, card_experience:'card_only', album_background_theme:'cover_blur', recipient_country: DEFAULT_PLACE.country, delivery_timezone: DEFAULT_PLACE.timezone });
  };
 
  // ── LIVE screen ──────────────────────────────────────────────────────────
@@ -684,11 +734,29 @@ const CreateCard = () => {
  <div className="flex flex-col items-center justify-center min-h-[70vh] px-4 py-16 text-center">
  <div className="w-24 h-24 rounded-xl flex items-center justify-center text-5xl mb-6 animate-pop" style={{ background:'linear-gradient(135deg,#7C3AED,#EC4899)' }}><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg></div>
  <h1 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:'clamp(1.75rem,5vw,2.75rem)', color:'#1A1035', marginBottom:12 }}>
- Your card is live!
+ {livePayPending ? 'Congratulations — your card is ready!' : 'Your card is live!'}
  </h1>
  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', color:'#7A6CA8', fontSize:18, marginBottom:24 }}>
- Sign it first, then share the link so everyone else can too.
+ {livePayPending
+   ? 'It is ready to receive signatures. Sign it first, then share the link so everyone else can too.'
+   : 'Sign it first, then share the link so everyone else can too.'}
  </p>
+ {livePayPending && (
+  <div className="mb-8 w-full max-w-lg rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 text-left">
+   <p className="mb-1 flex items-center gap-2 text-sm font-extrabold text-amber-900">
+    <Icon name="Clock" size={15}/> Payment pending — pay when you're happy
+   </p>
+   <p className="mb-3 text-sm leading-relaxed text-amber-800">
+    Collect signatures, photos, voice notes and gifts first. When you're happy with how it's going, pay the
+    one-time {formatCurrency(5000, 'NGN')} fee and the card is delivered to {form.recipient_name || 'the recipient'} automatically
+    {form.send_date ? ' on the date you scheduled' : ''} — with the Memory Movie and every gift. Until it's paid it won't be delivered.
+    We've emailed you the details.
+   </p>
+   <Link to={`/pay/${liveSlug}`} className="btn-primary inline-flex items-center gap-2 px-6 py-2.5 text-sm">
+    <Icon name="CreditCard" size={15}/>Pay now
+   </Link>
+  </div>
+ )}
 
  {/* The creator writes their message here, not during setup — this is the
      one place anyone signs, so it has to be the first thing offered. */}
@@ -1060,12 +1128,25 @@ const CreateCard = () => {
  )}
  <div className="space-y-4 mb-6">
  <div>
- <label className="block text-sm font-semibold text-warm-700 mb-1.5">Card title</label>
+ <div className="flex items-center justify-between gap-2 mb-1.5">
+  <label className="block text-sm font-semibold text-warm-700">Card title</label>
+  <CoverFieldToggle field="title" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+ </div>
  <input className="input" placeholder="e.g. Amaka's Birthday Card " value={form.title} onChange={e => set('title', e.target.value)}/>
+ </div>
+ <div>
+ <div className="flex items-center justify-between gap-2 mb-1.5">
+  <label className="block text-sm font-semibold text-warm-700">Sender name on cover</label>
+  <CoverFieldToggle field="sender" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+ </div>
+ <input className="input" placeholder="e.g. Tola and the whole team" value={form.cover_sender || ''} onChange={e => set('cover_sender', e.target.value)}/>
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
  <div>
- <label className="block text-sm font-semibold text-warm-700 mb-1.5">Recipient's name *</label>
+ <div className="flex items-center justify-between gap-2 mb-1.5">
+  <label className="block text-sm font-semibold text-warm-700">Recipient's name *</label>
+  <CoverFieldToggle field="recipient" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+ </div>
  <input className="input" placeholder="e.g. Amaka" value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)} required/>
  </div>
  <div>
@@ -1143,12 +1224,20 @@ const CreateCard = () => {
  )}
  </div>
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+ <DeliveryCountryField
+  country={form.recipient_country}
+  timezone={form.delivery_timezone}
+  onChange={v => setForm(p => ({ ...p, ...v }))}
+  sendDate={form.send_date}
+  sendTime={form.send_time}
+  recipientName={form.recipient_name}
+ />
  <div>
- <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery date</label>
+ <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery date <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
  <input type="date" className="input" value={form.send_date} min={new Date().toISOString().split('T')[0]} onChange={e => set('send_date', e.target.value)}/>
  </div>
  <div>
- <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery time</label>
+ <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery time <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
  <input type="time" className="input" value={form.send_time||'09:00'} onChange={e => set('send_time', e.target.value)}/>
  </div>
  <div>
@@ -1211,7 +1300,7 @@ const CreateCard = () => {
  className="btn-primary inline-flex items-center gap-2">
  {loading
  ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving…</span>
- : 'Gift & pay →'}
+ : 'Review & launch →'}
  </button>
  </div>
  </div>
@@ -1224,9 +1313,9 @@ const CreateCard = () => {
  /* ── Phase 1: Configure gift pot ── */
  guestPhase === 'configure' ? (
  <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
- <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & Pay </h2>
+ <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & Launch</h2>
  <p className="text-warm-500 text-sm mb-5">
- Choose whether to include a gift pot, then we'll save your card as a draft.
+ Choose whether to include a gift pot, then save your card — you pay later, only before it is delivered.
  </p>
 
  {/* Gift toggle */}
@@ -1278,7 +1367,7 @@ const CreateCard = () => {
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount||2500)} suggested` : 'No'],
- ['Card fee', `${formatCurrency(5000,'NGN')} one-time`],
+ ['Card fee', `${formatCurrency(5000,'NGN')} one-time — pay later, before delivery`],
  ].map(([k,v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1301,7 +1390,7 @@ const CreateCard = () => {
  const { status: _s, ...safeForm } = form;
  // Convert local time to UTC — same as authenticated path — so the
  // cron fires at the user's intended local time, not 1 hour off.
- const { send_date: utcSendDate, send_time: utcSendTime } = toUTCSendTime(safeForm.send_date, safeForm.send_time);
+ const { send_date: utcSendDate, send_time: utcSendTime } = toUTCDelivery(safeForm.send_date, safeForm.send_time);
  const cardData = {
  ...safeForm,
  title: safeForm.title.trim() || `${safeForm.recipient_name}'s Card`,
@@ -1361,7 +1450,7 @@ const CreateCard = () => {
  </div>
 
  <p className="text-xs text-center text-warm-400 mt-3">
- Your card is saved as a draft. You'll need to sign in to pay and make it live.
+ Your card is saved as a draft. Sign in to launch it and start collecting signatures — you pay later, only when you're ready to deliver.
  </p>
 
  <div className="border-t border-purple-100 mt-4 pt-4 flex gap-2">
@@ -1388,7 +1477,7 @@ const CreateCard = () => {
  style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)' }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></div>
  <h2 className="text-2xl font-bold text-warm-900 mb-2">Card saved as draft!</h2>
  <p className="text-warm-500 text-sm leading-relaxed max-w-sm mx-auto">
- Sign in or create a free account to pay the one-time card fee, make it live, and get your sharing link.
+ Sign in or create a free account to launch it and get your sharing link. Collect signatures first — pay the one-time fee later, when you're happy and ready for it to be delivered.
  </p>
  </div>
 
@@ -1403,8 +1492,8 @@ const CreateCard = () => {
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount||2500)} suggested` : 'No'],
- ['Card fee', `${formatCurrency(5000,'NGN')} one-time`],
- ['Status', 'Draft — sign in to pay & launch'],
+ ['Card fee', `${formatCurrency(5000,'NGN')} one-time — pay later, before delivery`],
+ ['Status', 'Draft — sign in to launch (pay later)'],
  ].map(([k,v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1425,7 +1514,7 @@ const CreateCard = () => {
  }));
  }}
  className="btn-primary w-full py-3.5 text-base font-bold text-center block">
- Sign in & complete payment
+ Sign in & launch my card
  </Link>
  <Link
  to={`/signup?returnTo=${encodeURIComponent('/card/new?resumed=1')}`}
@@ -1442,7 +1531,7 @@ const CreateCard = () => {
  </div>
 
  <p className="text-center text-xs text-warm-400 mb-5">
- Draft is saved. After signing in you'll land straight on the payment step — no re-entry needed.
+ Draft is saved. After signing in you'll land straight on the launch step — no re-entry needed.
  </p>
 
  {/* Edit or Reset */}
@@ -1468,8 +1557,8 @@ const CreateCard = () => {
 
  {step === 3 && (user || isCompanyUser) && (
  <div className="bg-white rounded-3xl border border-purple-100 p-6 sm:p-8 animate-fade-in">
- <h2 className="text-xl font-bold text-warm-900 mb-1">{isActiveEdit ? 'Save your changes' : 'Gift & activate'}</h2>
- <p className="text-warm-500 text-sm mb-5">{isActiveEdit ? 'Your card is already live — updates apply immediately' : 'Enable a gift collection and launch your card'}</p>
+ <h2 className="text-xl font-bold text-warm-900 mb-1">{isActiveEdit ? 'Save your changes' : 'Gift & launch'}</h2>
+ <p className="text-warm-500 text-sm mb-5">{isActiveEdit ? 'Your card is already live — updates apply immediately' : isCompanyUser ? 'Enable a gift collection and launch your card' : 'Launch your card now and start collecting signatures — pay later, before it is delivered'}</p>
 
  {/* Gift toggle */}
  <div className="grid grid-cols-2 gap-3 mb-4">
@@ -1512,6 +1601,8 @@ const CreateCard = () => {
  ['Recipient', form.recipient_name],
  ['Gift', form.is_gift_enabled?`Yes — ${formatNGN(form.suggested_amount)} suggested`:'No'],
  ...(isCompanyUser?[['Card fee','Free (company)']]:
+ isActiveEdit?[]:
+ !showPayNow?[['Card fee',`${formatCurrency(5000,'NGN')} one-time — pay later, before delivery`]]:
  payMode==='credit'&&creditBalance>0?[['Card fee',`1 credit (${creditBalance} remaining)`]]:
  [['Card fee',`${formatCurrency(5000,selectedCurrency)} one-time`]]),
  ].map(([k,v]) => (
@@ -1522,8 +1613,35 @@ const CreateCard = () => {
  ))}
  </div>
 
- {/* Payment mode for individuals */}
- {!isCompanyUser && (
+ {/* ── Create Now, Pay Later — the default for individuals ── */}
+ {!isCompanyUser && !isActiveEdit && (
+ <div className="mb-4">
+  <div className="flex gap-3">
+   <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
+   <button onClick={() => handlePayAndLaunch({ payLater: true })} disabled={loading}
+    className="btn-primary flex-1 inline-flex items-center justify-center gap-2 py-3.5 text-base font-extrabold">
+    {loading && !showPayNow
+     ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Creating your card…</>
+     : <><Icon name="Sparkles" size={17}/>Create Now, Pay Later</>}
+   </button>
+  </div>
+  <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+   <Icon name="Heart" size={16} className="mt-0.5 flex-shrink-0 text-emerald-600"/>
+   <p className="text-xs leading-relaxed text-emerald-800">
+    <strong>Pay when you're happy</strong> with the signatures coming in from friends and colleagues. Your card goes live now
+    so everyone can sign and add gifts; once you pay, it's delivered to {form.recipient_name || 'the recipient'} automatically
+    {form.send_date ? ' on the scheduled date' : ''} — Memory Movie and gifts included.
+   </p>
+  </div>
+  <button type="button" onClick={() => setShowPayNow(v => !v)}
+   className="mt-3 w-full text-center text-xs font-bold text-primary-600 hover:text-primary-700" style={{ minHeight: 32 }}>
+   {showPayNow ? 'Hide pay-now options' : 'Prefer to pay now instead?'}
+  </button>
+ </div>
+ )}
+
+ {/* Payment mode for individuals (optional "pay now") */}
+ {!isCompanyUser && !isActiveEdit && showPayNow && (
  <div className="mb-4">
  {creditBalance > 0 && (
  <div className="grid grid-cols-2 gap-2 mb-3">
@@ -1556,22 +1674,24 @@ const CreateCard = () => {
  </div>
  )}
 
+ {(isCompanyUser || isActiveEdit || showPayNow) && (
  <div className="flex gap-3">
- <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>
- <button onClick={handlePayAndLaunch} disabled={loading} className="btn-primary flex-1">
+ {(isCompanyUser || isActiveEdit) && <button onClick={() => setStep(2)} className="btn-secondary px-4">← Back</button>}
+ <button onClick={() => handlePayAndLaunch()} disabled={loading} className={(isCompanyUser || isActiveEdit) ? 'btn-primary flex-1' : 'btn-secondary flex-1'}>
  {loading
  ? <span className="flex items-center justify-center gap-2">
  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
- {paymentStage==='sending'?'Saving…':paymentStage==='verifying'?'Using credit…':paymentStage==='redirecting'?'Opening payment…':'Creating card…'}
+ {paymentStage==='sending'?'Saving…':paymentStage==='publishing'?'Creating your card…':paymentStage==='verifying'?'Using credit…':paymentStage==='redirecting'?'Opening payment…':'Creating card…'}
  </span>
  : isActiveEdit ? 'Save changes'
  : isCompanyUser ? 'Create Card (Free)'
  : payMode==='credit' ? 'Use 1 Credit & Launch'
- : `Pay ${formatCurrency(5000, selectedCurrency)} & Launch Card`}
+ : `Pay ${formatCurrency(5000, selectedCurrency)} now & launch`}
  </button>
  </div>
+ )}
  <p className="text-xs text-center text-warm-400 mt-3">
- {isActiveEdit ? 'Changes apply to your live card immediately' : isCompanyUser ? 'Company account · Card creation is free' : 'Secured by Flutterwave · Card link will be ready immediately'}
+ {isActiveEdit ? 'Changes apply to your live card immediately' : isCompanyUser ? 'Company account · Card creation is free' : showPayNow ? 'Secured by Flutterwave · Card link will be ready immediately' : 'No payment needed to start · You will get a Pay Now link by email and on your dashboard'}
  </p>
  </div>
  )}

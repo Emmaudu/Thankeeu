@@ -66,6 +66,7 @@ import MemberGiftCardsPage from './pages/member/MemberGiftCardsPage';
 import CompanyGiftCardsPage from './pages/company/CompanyGiftCardsPage';
 import CreateCard       from './pages/CreateCard';
 import CardStart        from './pages/CardStart';
+import PayForCard       from './pages/PayForCard';
 import CardView              from './pages/CardView';
 import RecipientClaimGate   from './pages/RecipientClaimGate';
 import SignCard         from './pages/SignCard';
@@ -350,7 +351,9 @@ const AnyAuthRoute = ({ children }) => {
   const location = useLocation();
   if (uL || cL || mL) return <Spinner />;
   if (!user && !company && !member)
-    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname)}`} replace />;
+    // Keep the query string (e.g. /create-card?edit=<slug> from a reminder
+    // email) so the creator lands back on the right card after signing in.
+    return <Navigate to={`/login?redirect=${encodeURIComponent(`${location.pathname}${location.search || ''}`)}`} replace />;
   return children;
 };
 
@@ -576,6 +579,7 @@ const App = () => {
             <Route path="/card/new" element={<CardGallery />} />
             <Route path="/card/customize" element={<CardStart />} />
             <Route path="/create-card" element={<AnyAuthRoute><CreateCard /></AnyAuthRoute>} />
+            <Route path="/pay/:slug" element={<ProtectedRoute><PayForCard /></ProtectedRoute>} />
             <Route path="/admin"     element={<ProtectedRoute adminOnly><Admin /></ProtectedRoute>} />
             <Route path="/admin/games" element={<ProtectedRoute adminOnly><AdminGames /></ProtectedRoute>} />
 

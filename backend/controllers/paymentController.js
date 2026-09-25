@@ -36,6 +36,10 @@ const axios    = require('axios');
 const supabase = require('../utils/supabase');
 const { safeTxRef, safeError } = require('../utils/paramGuard');
 const { validateDiscountCode, applyDiscountToFeeNGN, recordDiscountRedemption } = require('./discountCodeController');
+const {
+  CARD_FEE_NGN, CARD_FEE_CURRENCIES, CARD_FEE_FX,
+  markCardFeePaid, isCardFeeAmountOk,
+} = require('../utils/cardPayment');
 
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
@@ -156,21 +160,26 @@ const initCardFee = async (req, res) => {
     const { card_slug, currency: reqCurrency, discount_code } = req.body;
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
 
-    // Guard against double-charging: if the card is already active (previous payment
-    // succeeded but CardFeeVerify failed to navigate), return a synthetic success so
-    // the frontend can redirect to the card view without generating a new FLW charge.
+    // Guard against double-charging: a card that is live AND paid (previous
+    // payment succeeded but CardFeeVerify failed to navigate) gets a synthetic
+    // success so the frontend can go to the card without a new FLW charge.
+    // A live card that is still payment_pending ("Create Now, Pay Later") is
+    // exactly the card this endpoint exists to charge — it falls through.
+    // select('*') rather than naming payment_pending: on a database without
+    // the pay-later migration the column is simply absent (= not pending).
     const { data: existingCard } = await supabase.from('cards')
-      .select('slug, status').eq('slug', card_slug).maybeSingle();
-    if (existingCard?.status === 'active' || existingCard?.status === 'sent') {
-      console.log('initCardFee: card already active, skipping charge. card:', card_slug);
-      return res.json({ already_active: true, card_slug });
+      .select('*').eq('slug', card_slug).maybeSingle();
+    if (!existingCard) return res.status(404).json({ error: 'Card not found' });
+    const isLive = existingCard.status === 'active' || existingCard.status === 'sent';
+    if (isLive && !existingCard.payment_pending) {
+      console.log('initCardFee: card already paid/active, skipping charge. card:', card_slug);
+      return res.json({ already_active: true, already_paid: true, card_slug });
     }
     // Currency: default NGN, support USD/GBP/EUR etc. for international users
-    const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
-    const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
+    const currency = CARD_FEE_CURRENCIES.includes(reqCurrency) ? reqCurrency : 'NGN';
     // FX rates (approximate — FLW uses live rates at checkout)
-    const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
-    const baseFeeNGN = 5000;
+    const FX = CARD_FEE_FX;
+    const baseFeeNGN = CARD_FEE_NGN;
 
     // Discount code — validated server-side only; the frontend never decides the price.
     let feeNGN = baseFeeNGN;
@@ -190,7 +199,11 @@ const initCardFee = async (req, res) => {
     // would send FLW a ₦0 charge, which payment gateways generally reject or
     // mishandle. Treat a fully-discounted fee as an instant free activation.
     if (feeNGN <= 0 || feeInCurrency <= 0) {
-      await supabase.from('cards').update({ status: 'active' }).eq('slug', card_slug);
+      const { wasPending } = await markCardFeePaid(card_slug);
+      if (wasPending) {
+        const { data: paidCard } = await supabase.from('cards').select('*').eq('slug', card_slug).maybeSingle();
+        if (paidCard) require('../utils/payLaterEmails').sendCardFeePaidEmail(paidCard).catch(() => {});
+      }
       if (appliedDiscount) {
         recordDiscountRedemption({
           discountId: appliedDiscount.id,
@@ -235,6 +248,11 @@ const initCardFee = async (req, res) => {
         type: 'card_fee',
         card_slug,
         expected_ngn: feeNGN,
+        // What was actually charged, in the charged currency — lets verify
+        // compare like with like for USD/GBP/EUR payments.
+        expected_amount: feeInCurrency,
+        currency,
+        was_pay_later: !!existingCard.payment_pending,
         discount_code_id: appliedDiscount?.id || null,
         discount_code: appliedDiscount?.code || null,
       },
@@ -296,17 +314,22 @@ const verifyCardFee = async (req, res) => {
     }
 
     // Verify amount paid matches what was expected (prevents ₦1 payment activating card).
-    // Uses meta.expected_ngn set at init time so a legitimately discounted payment
-    // isn't mistaken for underpayment against the undiscounted base fee.
-    const CARD_FEE = Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn) : 5000;
-    const paidAmount = txn.amount;
-    if (paidAmount < CARD_FEE * 0.90) {
-      console.error(`[verifyCardFee] UNDERPAYMENT: expected ₦${CARD_FEE}, got ₦${paidAmount}. card: ${cardSlug}, ref: ${txRef}`);
+    // Uses meta.expected_ngn / expected_amount set at init time so a legitimately
+    // discounted payment isn't mistaken for underpayment, and compares in the
+    // currency actually charged (txn.amount is USD for a USD payment).
+    const CARD_FEE = Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn) : CARD_FEE_NGN;
+    if (!isCardFeeAmountOk(txn)) {
+      console.error(`[verifyCardFee] UNDERPAYMENT: expected ₦${CARD_FEE} (${meta.expected_amount || '?'} ${meta.currency || ''}), got ${txn.amount} ${txn.currency}. card: ${cardSlug}, ref: ${txRef}`);
       return res.status(400).json({ error: 'Payment amount does not match. Please contact support.' });
     }
 
-    await supabase.from('cards').update({ status: 'active' }).eq('slug', cardSlug);
-    console.log('Card activated:', cardSlug);
+    // Publishes a draft, or clears "pay later" on a live card, and arms
+    // delivery — an overdue pay-later card is delivered right away.
+    const { card: paidCard, wasPending } = await markCardFeePaid(cardSlug);
+    console.log('Card fee paid:', cardSlug, wasPending ? '(pay-later card — delivery unlocked)' : '');
+    if (wasPending && paidCard) {
+      require('../utils/payLaterEmails').sendCardFeePaidEmail(paidCard).catch(() => {});
+    }
 
     // Record discount redemption now that payment is confirmed — not at init
     // time, so an abandoned checkout never burns a use.
@@ -321,19 +344,13 @@ const verifyCardFee = async (req, res) => {
       }).catch(() => {});
     }
 
-    // Arm precise delivery setTimeout if the card has a scheduled date.
-    const { data: activatedCard } = await supabase
-      .from('cards')
-      .select('id, slug, send_date, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, recipient_notified')
-      .eq('slug', cardSlug).maybeSingle();
-    if (activatedCard?.send_date && activatedCard?.recipient_email && !activatedCard?.recipient_notified) {
-      try {
-        const scheduler = require('../utils/scheduler');
-        scheduler.scheduleCardDelivery({ ...activatedCard, status: 'active' });
-      } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
-    }
-
-    return res.json({ ok: true, card_slug: cardSlug });
+    // (Delivery is armed inside markCardFeePaid.)
+    return res.json({
+      ok: true,
+      card_slug: cardSlug,
+      was_pay_later: !!(wasPending || meta.was_pay_later),
+      status: paidCard?.status || 'active',
+    });
 
   } catch (err) {
     console.error('verifyCardFee error:', err.response?.data?.message || err.message);

@@ -21,7 +21,6 @@ import { ALBUM_THEMES } from '../utils/albumThemes';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 import IntentSummaryStrip from '../components/IntentSummaryStrip';
 import ResumeDraftAlert from '../components/ResumeDraftAlert';
-import TestCardCountdown from '../components/TestCardCountdown';
 import AlbumStudioPreview from '../components/AlbumStudioPreview';
 import { takeIntent } from '../utils/cardIntent';
 import { applyCardIntent } from '../utils/applyCardIntent';
@@ -191,43 +190,8 @@ const CreateCard = () => {
  }, [searchParams]);
 
  // ── Card already went live elsewhere ─────────────────────────────────────
- // The homepage flow activates with a credit and hands over with ?live=<slug>,
- // so the customer lands on the same congratulations-and-share screen the
- // normal payment path ends on rather than an empty wizard.
- // Only the granted welcome credit is spendable without a click; a purchased
- // pack is the customer's money and needs the normal payment step.
- useEffect(() => {
-  if (!user) return;
-  creditsAPI.getBalance()
-   .then(r => setFreeCredits((r.data?.total_purchased || 0) > 0 ? 0 : (r.data?.credits || 0)))
-   .catch(() => setFreeCredits(0));
- }, [user]);
-
- /** Claim the draft if needed, spend the free credit, return the live slug. */
- const publishWithFreeCredit = async () => {
-  // The timer runs while the customer is still on step 2, so there is usually
-  // no draft yet — create one from whatever they have edited into the form.
-  const slug = draftSlug || await handleCreateDraft({ silent: true });
-  if (!slug) return null;
-  try {
-   const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card') || '{}');
-   if (pending.draft_edit_token) await cardsAPI.claimDraft(slug, pending.draft_edit_token);
-  } catch { /* already claimed */ }
-  try {
-   const res = await creditsAPI.spend(slug);
-   if (!res.data?.ok) return null;
-   const emails = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
-   if (emails.length) await cardsAPI.activate(slug, { inviteEmails: emails }).catch(() => {});
-   localStorage.removeItem('thankeeu_pending_card');
-   return slug;
-  } catch (err) {
-   console.warn('[free credit] publish failed:', err?.response?.status, err?.message);
-   return null;
-  }
- };
-
-
-
+ // A link with ?live=<slug> lands on the same congratulations-and-share
+ // screen the launch path ends on, rather than an empty wizard.
  useEffect(() => {
   const live = searchParams.get('live');
   if (!live) return;
@@ -244,6 +208,7 @@ const CreateCard = () => {
     // that is both simpler and safer than re-deriving it here from ids that
     // are only present on the privileged response shape anyway.
     if (card?.isCreator && card.status === 'active') {
+     setLivePayPending(!!card.payment_pending);
      setLiveSlug(live);
      localStorage.removeItem('thankeeu_pending_card');
     }
@@ -259,30 +224,9 @@ const CreateCard = () => {
  // those params are present, so the two cannot fight over the same form.
  const [intentSummary, setIntentSummary] = useState([]);
  const [resumedDraft, setResumedDraft] = useState(false);
- // Test-card mode arrives with the typed sentence; the customer is already
- // signed in by then (the homepage quick-start does that), so there is no
- // payment step for them — just a visible countdown and their free credit.
- const [intentMode, setIntentMode]   = useState(null);
- const [countdownOn, setCountdownOn] = useState(false);
- const autoStartedRef = useRef(false);
  // The dashboard wizard only ever creates card_only cards, so the Live Wall
  // drafts the preview accepts are always empty here.
  const [wallDrafts, setWallDrafts] = useState([]);
- const [freeCredits, setFreeCredits] = useState(null);
-
- // A test card publishes itself: once the draft exists and a free credit is
- // confirmed, the docked timer starts on its own. It is non-blocking and can
- // be stopped, so nothing is taken away from anyone who wants longer.
- useEffect(() => {
-  if (intentMode !== 'test' || autoStartedRef.current) return;
-  if (!(freeCredits > 0) || liveSlug) return;
-  // No draft is needed to start counting — the draft is created when the timer
-  // fires. What IS needed is a recipient name, or the card cannot be saved at
-  // all; without one we leave the timer off and the banner's button showing.
-  if (!form.recipient_name?.trim()) return;
-  autoStartedRef.current = true;
-  setCountdownOn(true);
- }, [intentMode, freeCredits, liveSlug, form.recipient_name]);
 
  useEffect(() => {
   if (searchParams.get('intent') !== '1') return;
@@ -301,7 +245,6 @@ const CreateCard = () => {
   // The mode is set before the "did we understand anything?" bail-out: a
   // sentence we could make nothing of is still a test card the customer chose,
   // and dropping it here is what hides the free-credit banner and the timer.
-  if (intent.card_mode) setIntentMode(intent.card_mode);
   if (!Object.keys(patch).length) return;
   setForm(prev => ({ ...prev, ...patch }));
   setStep(target);
@@ -839,43 +782,6 @@ const CreateCard = () => {
      recipient={form.recipient_name}
      onPay={() => setStep(3)}
    />
- )}
-
- {countdownOn && (
-  <TestCardCountdown
-   recipientName={form.recipient_name}
-   onCancel={() => setCountdownOn(false)}
-   onComplete={async () => {
-    const slug = await publishWithFreeCredit();
-    setCountdownOn(false);
-    if (slug) setLiveSlug(slug);
-    else toast.error('We could not use your free credit — you can still pay for this card below.');
-   }}
-  />
- )}
-
- {intentMode === 'test' && freeCredits === 0 && !liveSlug && (
-  <div className="mb-6 rounded-2xl border border-purple-100 bg-purple-50/60 px-4 py-3 text-sm text-warm-700">
-   <strong className="text-warm-900">You've already used your free test card.</strong>{' '}
-   This one is a normal card — finish below and pay once to publish it.
-  </div>
- )}
-
- {intentMode === 'test' && freeCredits > 0 && !liveSlug && (
-  <div className="mb-6 rounded-2xl border-2 border-amber-200 bg-amber-50 p-5 text-center">
-   <p className="mb-1 text-lg font-bold text-warm-900">🎁 Your free test card is ready</p>
-   <p className="mx-auto mb-4 max-w-md text-sm text-warm-600">
-    Check the details below, then publish it with your free credit. Nothing to pay,
-    and it is a real card — really delivered.
-   </p>
-   <button type="button" className="btn-primary px-6 py-3 font-bold"
-    onClick={async () => {
-     autoStartedRef.current = true;
-     setCountdownOn(true);
-    }}>
-    Publish my free card →
-   </button>
-  </div>
  )}
 
  <IntentSummaryStrip items={intentSummary} />

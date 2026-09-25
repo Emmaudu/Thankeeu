@@ -36,6 +36,7 @@ import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
 import { formatNGN, getFLWPaymentParams } from '../utils/currency';
+import { playPageTurn } from '../utils/pageTurn';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -84,8 +85,8 @@ const ALBUM_CSS = `
    signing album, the studio preview and the card view, so they cannot drift.
    `.album-flip-forward/back` are kept as aliases for this page's own markup. */
 ${ALBUM_FLIP_CSS}
-.album-flip-forward { animation:album-leaf-forward .62s cubic-bezier(.2,.72,.15,1) both; transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
-.album-flip-back    { animation:album-leaf-back    .62s cubic-bezier(.2,.72,.15,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
+.album-flip-forward { animation:album-leaf-forward .82s cubic-bezier(.3,.6,.18,1) both; transform-origin:left center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
+.album-flip-back    { animation:album-leaf-back    .82s cubic-bezier(.3,.6,.18,1) both; transform-origin:right center; transform-style:preserve-3d; backface-visibility:hidden; will-change:transform; }
 .album-page{ position:relative; }
 /* subtle inner shadow toward the spine to sell the "bound book" look */
 .album-page::before{
@@ -609,27 +610,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   useEffect(() => { soundOnRef.current = soundOn; }, [soundOn]);
   const playFlipSound = useCallback(() => {
     if (!soundOnRef.current) return;
-    try {
-      let ctx = audioCtxRef.current;
-      if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); audioCtxRef.current = ctx; }
-      if (ctx.state === 'suspended') ctx.resume();
-      const dur = 0.26;
-      const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < data.length; i++) {
-        const t = i / data.length;
-        // envelope: quick attack, decay — mimics a page swish
-        const env = Math.pow(1 - t, 2.2) * Math.min(1, t * 12);
-        data[i] = (Math.random() * 2 - 1) * env * 0.5;
-      }
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
-      const bp = ctx.createBiquadFilter();
-      bp.type = 'bandpass'; bp.frequency.value = 2600; bp.Q.value = 0.7;
-      const gain = ctx.createGain(); gain.gain.value = 0.35;
-      src.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
-      src.start();
-    } catch { /* audio not available — silent */ }
+    playPageTurn();   // shared realistic paper page-turn (utils/pageTurn)
   }, []);
 
   // ─ Page flip animation ─
@@ -638,7 +619,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     playFlipSound();
     setPage(newPage);
     setFlipClass(direction==='forward' ? 'album-flip-forward' : 'album-flip-back');
-    window.setTimeout(()=>{ setFlipClass(''); }, 620);
+    window.setTimeout(()=>{ setFlipClass(''); }, 820);
   }, [clampedPage, playFlipSound]);
 
   const goNext = () => { if (clampedPage < totalPages-1) flipTo(clampedPage+1,'forward'); };

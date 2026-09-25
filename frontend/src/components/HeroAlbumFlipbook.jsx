@@ -18,11 +18,12 @@ import { Link } from 'react-router-dom';
 import Icon from './ui/Icon';
 import CardCoverPreview from './CardCoverPreview';
 import { CARD_DESIGNS } from '../utils/cardDesigns';
+import { PAGE_TURN_CSS, PAGE_TURN_MS, playPageTurn } from '../utils/pageTurn';
 
 const PAGE_BG = '#fffdf8';
 const INK = '#1f2937';
 const ACCENT = '#7C3AED';
-const TURN_MS = 950;
+const TURN_MS = PAGE_TURN_MS;
 const RECIPIENT = 'Jane';
 
 // Real celebration GIFs (Giphy CDN).
@@ -60,60 +61,6 @@ const PAGES = [
   { type: 'gift' },
   { type: 'back' },
 ];
-
-/* ── Paper page-turn sound (Web Audio, no file to download) ──────────────── */
-function usePageSound() {
-  const ctxRef = useRef(null);
-  return useCallback(() => {
-    try {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return;
-      const ctx = ctxRef.current || (ctxRef.current = new AC());
-      if (ctx.state === 'suspended') ctx.resume();
-      const now = ctx.currentTime;
-      const dur = 0.62;
-      // Brown-ish noise = the rustle of paper.
-      const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
-      const data = buf.getChannelData(0);
-      let last = 0;
-      for (let i = 0; i < data.length; i++) {
-        const white = Math.random() * 2 - 1;
-        last = (last + 0.035 * white) / 1.035;
-        data[i] = last * 3.2 + white * 0.18;
-      }
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      // Swept band-pass: the "whoosh" as the leaf lifts, swings and falls.
-      const band = ctx.createBiquadFilter();
-      band.type = 'bandpass';
-      band.Q.value = 0.9;
-      band.frequency.setValueAtTime(700, now);
-      band.frequency.exponentialRampToValueAtTime(2600, now + 0.22);
-      band.frequency.exponentialRampToValueAtTime(900, now + dur);
-      const gain = ctx.createGain();
-      gain.gain.setValueAtTime(0.0001, now);
-      gain.gain.exponentialRampToValueAtTime(0.32, now + 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.3);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-      src.connect(band).connect(gain).connect(ctx.destination);
-      src.start(now);
-      src.stop(now + dur);
-      // Soft "slap" as the page lands.
-      const land = ctx.createBufferSource();
-      land.buffer = buf;
-      const low = ctx.createBiquadFilter();
-      low.type = 'lowpass';
-      low.frequency.value = 1100;
-      const lg = ctx.createGain();
-      const t = now + TURN_MS / 1000 - 0.1;
-      lg.gain.setValueAtTime(0.0001, t);
-      lg.gain.exponentialRampToValueAtTime(0.4, t + 0.012);
-      lg.gain.exponentialRampToValueAtTime(0.0001, t + 0.12);
-      land.connect(low).connect(lg).connect(ctx.destination);
-      land.start(t, 0.1, 0.14);
-    } catch { /* audio is a nicety, never an error */ }
-  }, []);
-}
 
 /* ── Voice note — plays a visual demo (waveform + timer) ─────────────────── */
 const VoiceNote = ({ length, accent }) => {
@@ -237,44 +184,9 @@ const PaperBack = () => (
   <div className="h-full w-full" style={{ background: 'linear-gradient(90deg,#f3eee3,#fffdf8 30%,#fbf7ee)' }} />
 );
 
-const CSS = `
-.haf-book { perspective: 2200px; perspective-origin: 50% 40%; }
-.haf-leaf { position:absolute; top:0; bottom:0; transform-style:preserve-3d; z-index:5; will-change:transform; }
-.haf-face { position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; overflow:hidden; }
-.haf-face.back { transform: rotateY(180deg); }
-/* Forward: leaf hinged on its LEFT edge (the spine) swings right → left. */
-.haf-leaf.fwd { transform-origin: left center; animation: haf-fwd ${TURN_MS}ms cubic-bezier(.45,.05,.25,1) forwards; }
-/* Back: leaf hinged on its RIGHT edge swings left → right. */
-.haf-leaf.bwd { transform-origin: right center; animation: haf-bwd ${TURN_MS}ms cubic-bezier(.45,.05,.25,1) forwards; }
-@keyframes haf-fwd {
-  0%   { transform: rotateY(0deg)    translateZ(0); }
-  12%  { transform: rotateY(-14deg)  translateZ(8px) skewY(-1.2deg); }
-  50%  { transform: rotateY(-90deg)  translateZ(22px) skewY(-2deg); }
-  88%  { transform: rotateY(-172deg) translateZ(6px) skewY(-.6deg); }
-  100% { transform: rotateY(-180deg) translateZ(0); }
-}
-@keyframes haf-bwd {
-  0%   { transform: rotateY(0deg)    translateZ(0); }
-  12%  { transform: rotateY(14deg)   translateZ(8px) skewY(1.2deg); }
-  50%  { transform: rotateY(90deg)   translateZ(22px) skewY(2deg); }
-  88%  { transform: rotateY(172deg)  translateZ(6px) skewY(.6deg); }
-  100% { transform: rotateY(180deg)  translateZ(0); }
-}
-/* Light across the turning paper: darkest as it stands on edge. */
-.haf-shade { position:absolute; inset:0; pointer-events:none; }
-.haf-leaf.fwd .haf-face.front .haf-shade { background:linear-gradient(90deg,rgba(0,0,0,.28),rgba(0,0,0,0) 60%); animation: haf-shade-a ${TURN_MS}ms ease-in forwards; }
-.haf-leaf.fwd .haf-face.back .haf-shade  { background:linear-gradient(270deg,rgba(0,0,0,.28),rgba(0,0,0,0) 60%); animation: haf-shade-b ${TURN_MS}ms ease-out forwards; }
-.haf-leaf.bwd .haf-face.front .haf-shade { background:linear-gradient(270deg,rgba(0,0,0,.28),rgba(0,0,0,0) 60%); animation: haf-shade-a ${TURN_MS}ms ease-in forwards; }
-.haf-leaf.bwd .haf-face.back .haf-shade  { background:linear-gradient(90deg,rgba(0,0,0,.28),rgba(0,0,0,0) 60%); animation: haf-shade-b ${TURN_MS}ms ease-out forwards; }
-@keyframes haf-shade-a { 0%{opacity:0} 50%{opacity:1} 100%{opacity:1} }
-@keyframes haf-shade-b { 0%{opacity:1} 50%{opacity:1} 100%{opacity:0} }
-/* Shadow the leaf casts on the page it is uncovering. */
-.haf-cast { position:absolute; top:0; bottom:0; pointer-events:none; z-index:4; animation: haf-cast ${TURN_MS}ms ease-in-out forwards; }
-@keyframes haf-cast { 0%{opacity:0} 45%{opacity:.9} 100%{opacity:0} }
+const CSS = `${PAGE_TURN_CSS}
 .haf-spine { background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.14) 46%, rgba(0,0,0,.22) 50%, rgba(0,0,0,.14) 54%, rgba(0,0,0,0) 100%); }
-@media (prefers-reduced-motion: reduce) {
-  .haf-leaf.fwd, .haf-leaf.bwd { animation-duration: 1ms; }
-}
+@keyframes haf-in { 0% { transform: rotateY(-180deg) } 50% { transform: rotateY(-90deg) translateZ(30px) } 100% { transform: rotateY(0deg) } }
 `;
 
 export default function HeroAlbumFlipbook() {
@@ -286,7 +198,7 @@ export default function HeroAlbumFlipbook() {
   const [hover, setHover] = useState(false);
   const touch = useRef(null);
   const turnTimer = useRef(null);
-  const playSound = usePageSound();
+  const playSound = playPageTurn;
 
   const design = useMemo(() => (
     CARD_DESIGNS.find(d => d.occasion === 'birthday' && (d.image || d.artwork))
@@ -367,11 +279,18 @@ export default function HeroAlbumFlipbook() {
   };
 
   // What the static book shows underneath while a leaf turns.
-  const cur = views[index];
+  // The layout can switch between spreads and single pages at any moment
+  // (resize, phone rotation, scrollbar appearing). `views` then has a
+  // different length for one render before the effect above re-clamps the
+  // state — so never index it with a stale value.
+  const last = views.length - 1;
+  const safeIndex = Math.min(Math.max(index, 0), last);
+  const turnOk = !!turn && turn.from <= last && turn.to <= last;
+  const cur = views[safeIndex] || [null, null];
   let baseLeft = cur[0];
   let baseRight = cur[1];
   let leaf = null;
-  if (turn) {
+  if (turnOk) {
     const A = views[turn.from];
     const B = views[turn.to];
     if (single) {
@@ -390,9 +309,9 @@ export default function HeroAlbumFlipbook() {
   }
 
   // Closed book (cover only) is centred; open spreads use the full width.
-  const closed = !single && !turn && cur[0] === null;
+  const closed = !single && !turnOk && cur[0] === null;
   const bookW = single ? pageW : pageW * 2;
-  const shift = closed ? -pageW / 2 : (!single && turn && ((views[turn.to][0] === null && turn.dir === 'bwd') ) ? -pageW / 2 : 0);
+  const shift = closed ? -pageW / 2 : (!single && turnOk && views[turn.to][0] === null && turn.dir === 'bwd' ? -pageW / 2 : 0);
 
   const pageBox = (content, extra = {}) => (
     <div className="absolute top-0 overflow-hidden" style={{ width: pageW, height: pageH, ...extra }}>{content}</div>
@@ -401,22 +320,21 @@ export default function HeroAlbumFlipbook() {
   const leafEl = leaf && (() => {
     const isIncoming = leaf.side === 'right-in';
     const left = leaf.side === 'left' ? 0 : (single ? 0 : pageW);
-    const cls = leaf.side === 'left' ? 'bwd' : isIncoming ? 'fwd-in' : 'fwd';
+    const cls = leaf.side === 'left' ? 'pt-bwd' : 'pt-fwd';
     const backContent = leaf.back === 'paper' ? <PaperBack /> : renderPage(leaf.back);
     if (isIncoming) {
       // Previous page swings in from the left over the current one.
       return (
-        <div className="haf-leaf" style={{ left: 0, width: pageW, transformOrigin: 'left center', animation: `haf-in ${TURN_MS}ms cubic-bezier(.45,.05,.25,1) forwards` }}>
-          <style>{`@keyframes haf-in { 0%{transform:rotateY(-180deg)} 50%{transform:rotateY(-90deg) translateZ(20px)} 100%{transform:rotateY(0deg)} }`}</style>
-          <div className="haf-face front">{renderPage(leaf.front)}</div>
-          <div className="haf-face back"><PaperBack /></div>
+        <div className="pt-leaf" style={{ left: 0, width: pageW, transformOrigin: 'left center', animation: `haf-in ${TURN_MS}ms cubic-bezier(.42,.08,.22,1) forwards` }}>
+          <div className="pt-face">{renderPage(leaf.front)}</div>
+          <div className="pt-face pt-back"><PaperBack /></div>
         </div>
       );
     }
     return (
-      <div className={`haf-leaf ${cls}`} style={{ left, width: pageW }}>
-        <div className="haf-face front">{renderPage(leaf.front)}<div className="haf-shade" /></div>
-        <div className="haf-face back">{backContent}<div className="haf-shade" /></div>
+      <div className={`pt-leaf ${cls}`} style={{ left, width: pageW }}>
+        <div className="pt-face pt-front">{renderPage(leaf.front)}<div className="pt-shade" /></div>
+        <div className="pt-face pt-back">{backContent}<div className="pt-shade" /></div>
       </div>
     );
   })();
@@ -450,7 +368,7 @@ export default function HeroAlbumFlipbook() {
         style={{ padding: '18px 0 40px' }}
       >
         {/* The book */}
-        <div className="haf-book relative" style={{ width: bookW, height: pageH, transform: `translateX(${shift}px)`, transition: 'transform .6s cubic-bezier(.4,0,.2,1)' }}
+        <div className="pt-book" style={{ width: bookW, height: pageH, transform: `translateX(${shift}px)`, transition: 'transform .6s cubic-bezier(.4,0,.2,1)' }}
           onClick={(e) => {
             const r = e.currentTarget.getBoundingClientRect();
             go(index + (e.clientX - r.left > r.width / 2 ? 1 : -1));
@@ -463,7 +381,7 @@ export default function HeroAlbumFlipbook() {
 
           {/* Shadow cast by the turning leaf onto the page it uncovers */}
           {leaf && leaf.side !== 'right-in' && (
-            <div className="haf-cast" style={{
+            <div className="pt-cast" style={{
               left: leaf.side === 'left' ? 0 : (single ? 0 : pageW), width: pageW,
               background: leaf.side === 'left'
                 ? 'linear-gradient(270deg, rgba(0,0,0,0.30), rgba(0,0,0,0) 70%)'

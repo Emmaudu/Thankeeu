@@ -3,7 +3,7 @@ const router  = express.Router();
 const { adminAuth } = require('../middleware/auth');
 const {
   getStats, getAllUsers, updateUserRole, deleteUser, giftCredits,
-  getAllCards, deleteCard, redeliverCard,
+  getAllCards, getCardDetails, deleteCard, redeliverCard,
   getAllCompanies, deleteCompany, getCompanyTeamMembers,
   getVisitors, setCompanyMultiplier, grantPilot,
   listPalApplications, approvePalGroup, rejectPalGroup,
@@ -39,6 +39,7 @@ router.delete('/users/:userId',       validateUUIDParam('userId'), deleteUser);
 
 // Cards
 router.get('/cards',                                    getAllCards);
+router.get('/cards/:cardId/details', validateUUIDParam('cardId'), getCardDetails);
 router.post('/cards/:cardId/redeliver', validateUUIDParam('cardId'), redeliverCard);
 router.delete('/cards/:cardId',     validateUUIDParam('cardId'),    deleteCard);
 
@@ -107,6 +108,35 @@ router.put('/hero', async (req, res) => {
   } catch (err) {
     console.error('[admin/hero] PUT error:', err.message);
     res.status(500).json({ error: 'Could not save the hero text. Has database/migration_pay_later_and_hero.sql been run?' });
+  }
+});
+
+// ── Announcement banner (Admin → Discount Codes) ───────────────────────────
+// GET /admin/announcement → { announcement } (full settings, live or not)
+// PUT /admin/announcement { enabled, text, link_url, link_label, new_tab,
+//     theme, dismissible, starts_at, ends_at }
+router.get('/announcement', async (req, res) => {
+  try {
+    const { readAnnouncement, isLive } = require('../utils/announcementSettings');
+    const a = await readAnnouncement();
+    res.json({ ok: true, announcement: a, live: isLive(a) });
+  } catch (err) {
+    console.error('[admin/announcement] GET error:', err.message);
+    res.status(500).json({ error: 'Could not load the announcement. Is the site_settings table set up?' });
+  }
+});
+
+router.put('/announcement', async (req, res) => {
+  try {
+    const { validateAnnouncementInput, writeAnnouncement, isLive } = require('../utils/announcementSettings');
+    const { values, error } = validateAnnouncementInput(req.body || {});
+    if (error) return res.status(400).json({ error });
+    const a = await writeAnnouncement(values);
+    console.log(`[admin] Announcement ${values.enabled ? 'ON' : 'OFF'} by ${req.user?.email}: ${values.text}`);
+    res.json({ ok: true, announcement: a, live: isLive(a) });
+  } catch (err) {
+    console.error('[admin/announcement] PUT error:', err.message);
+    res.status(500).json({ error: 'Could not save the announcement. Is the site_settings table set up?' });
   }
 });
 

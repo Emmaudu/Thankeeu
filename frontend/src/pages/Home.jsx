@@ -1161,7 +1161,7 @@ const Home = () => {
  What do you need today?
  </h2>
  <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto mb-6">
- Just type it below — we build the card for you. Your first test card is free.
+ Just type it below — we build the card for you. Free to create and share; pay only when you send.
  </p>
  <CardIntentBar className="text-left" />
  </div>

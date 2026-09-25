@@ -5,6 +5,7 @@ import { useCompanyAuth } from '../context/CompanyAuthContext';
 import { useMemberAuth } from '../context/MemberAuthContext';
 import { paymentsAPI } from '../utils/api';
 import Icon from './ui/Icon';
+import AnnouncementBar from './AnnouncementBar';
 import { backgroundIsDark, backgroundIsPhoto, readableTextColor } from '../utils/textContrast';
 
 const scrollTop = () => window.scrollTo({ top: 0, behavior: 'instant' });
@@ -88,6 +89,7 @@ const Navbar = ({ onBookDemo, themeBg, themeDark }) => {
 
   return (
     <>
+      <AnnouncementBar />
       {banner && (
         <div className="relative bg-gradient-to-r from-primary-600 to-purple-600 text-white text-center text-xs sm:text-sm font-semibold">
           <Link

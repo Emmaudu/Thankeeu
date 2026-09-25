@@ -227,7 +227,7 @@ export default function GroupGreetingAlternative() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-purple-50">
-                {COMPARISON_ROWS.map(({ feature, canva }) => (
+                {COMPARISON_ROWS.map(({ feature, other }) => (
                   <tr key={feature} className="hover:bg-purple-50/40 transition-colors">
                     <td className="p-4 text-sm text-warm-700">{feature}</td>
                     <td className="p-4 text-center">

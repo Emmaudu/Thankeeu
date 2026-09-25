@@ -597,9 +597,10 @@ export const GamesProfile = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
-  useEffect(() => { gamesAPI.getDepartment(slug).then(res => setData(res.data)).catch(() => toast.error('Game not found')); }, [slug]);
+  useEffect(() => { gamesAPI.getDepartment(slug).then(res => { if (res.data?.department) setData(res.data); else toast.error('Game not found'); }).catch(() => toast.error('Game not found')); }, [slug]);
   if (!data) return <div className={lightPageClass}><GamesNav /><div className={`${mainClass} p-10 text-center text-[#201a33]`}>Loading game...</div><GamesFooter /></div>;
-  const { department, week, registrations } = data;
+  const { department, week } = data;
+  const registrations = Array.isArray(data.registrations) ? data.registrations : [];
   const register = async () => {
     if (!localStorage.getItem('thankeeu_games_token')) return navigate(gamesPath('signup'));
     try {
@@ -632,7 +633,7 @@ export const GamesProfile = () => {
         </section>
         <aside className="rounded-3xl bg-white p-6 shadow-sm">
           <p className="text-sm font-bold uppercase tracking-widest text-primary-500">Registered players</p>
-          <p className="mt-1 text-sm text-[#5f5672]">{week.week_key} - Friday 2pm</p>
+          <p className="mt-1 text-sm text-[#5f5672]">{week?.week_key || "This week"} - Friday 2pm</p>
           <div className="mt-5 space-y-3">
             {registrations.map(r => (
               <div key={r.id} className="flex items-center gap-3 rounded-xl border border-purple-100 p-3">
@@ -868,7 +869,7 @@ export const GamesGifts = () => {
   const [data, setData] = useState({ sponsors: [], week_key: '' });
   useSEO({ title: 'Thankeeu Games Gifts - Sponsored Employee Rewards', description: 'See weekly sponsorship gifts pledged by companies for Thankeeu Games department winners.', canonical: 'https://www.thankeeu.com/games/gifts' });
   useEffect(() => {
-    gamesAPI.sponsorships().then(res => setData(res.data)).catch(() => toast.error('Could not load sponsorship gifts'));
+    gamesAPI.sponsorships().then(res => setData({ week_key: res.data?.week_key || '', sponsors: Array.isArray(res.data?.sponsors) ? res.data.sponsors : [] })).catch(() => toast.error('Could not load sponsorship gifts'));
   }, []);
   return (
     <div className={lightPageClass}>

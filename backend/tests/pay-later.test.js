@@ -21,12 +21,13 @@ process.env.RESEND_API_KEY = process.env.RESEND_API_KEY || 're_test';
 process.env.JWT_SECRET = process.env.JWT_SECRET || 'test';
 
 // ── In-memory Supabase ───────────────────────────────────────────────────────
-function makeDb({ cards = [], users = [], missingColumns = [] } = {}) {
-  const tables = { cards, users, messages: [], site_settings: [], card_credits: [] };
+function makeDb({ cards = [], users = [], missingColumns = [], messages = [], missingTables = [] } = {}) {
+  const tables = { cards, users, messages, site_settings: [], card_credits: [], message_replies: [], received_cards: [], member_received_cards: [] };
   const missing = new Set(missingColumns);
   const from = (table) => {
     const st = { op: 'select', filters: [], keys: [], payload: null, cols: '*' };
     const exec = async (single) => {
+      if (missingTables.includes(table)) return { data: null, error: { code: '42P01', message: `relation "${table}" does not exist` } };
       const touched = [...st.keys, ...Object.keys(st.payload || {})];
       if (st.op === 'select' && st.cols && st.cols !== '*') {
         touched.push(...st.cols.split(',').map(c => c.trim().split('(')[0]).filter(c => c && c !== '*'));
@@ -42,6 +43,12 @@ function makeDb({ cards = [], users = [], missingColumns = [] } = {}) {
         return { data: null, error: null };
       }
       const hits = rows.filter(r => st.filters.every(f => f(r)));
+      if (st.op === 'insert') {
+        const row = { id: `id-${rows.length + 1}`, created_at: new Date().toISOString(), ...st.payload };
+        rows.push(row);
+        return single ? { data: { ...row }, error: null } : { data: [{ ...row }], error: null };
+      }
+      if (st.op === 'delete') { hits.forEach(h => rows.splice(rows.indexOf(h), 1)); return { data: null, error: null }; }
       if (st.op === 'update') hits.forEach(r => Object.assign(r, st.payload));
       const data = hits.map(r => ({ ...r }));
       if (single) {
@@ -55,6 +62,7 @@ function makeDb({ cards = [], users = [], missingColumns = [] } = {}) {
       update(p) { st.op = 'update'; st.payload = p; return b; },
       upsert(p) { st.op = 'upsert'; st.payload = p; return b; },
       insert(p) { st.op = 'insert'; st.payload = p; return b; },
+      delete() { st.op = 'delete'; return b; },
       eq(k, v) { st.keys.push(k); st.filters.push(r => r[k] === v); return b; },
       neq(k, v) { st.keys.push(k); st.filters.push(r => r[k] !== v); return b; },
       is(k, v) { st.keys.push(k); st.filters.push(r => (r[k] ?? null) === v); return b; },
@@ -381,5 +389,177 @@ describe('email send failures are reported (Resend v4 resolves { error })', () =
     const r = await sendEmail({ to: 'a@b.test', subject: 's', html: '<p>x</p>' });
     assert.equal(r.success, false);
     delete require.cache[resendPath];
+  });
+});
+
+
+describe('replies to individual signers', () => {
+  const card = () => ({ id: 'c1', slug: 'ada-bday', title: "Ada's card", recipient_name: 'Ada', recipient_email: 'ada@x.test',
+    access_token: 'tok123', creator_id: 'u1', created_by_member_id: null, company_id: null });
+  const msgs = () => [
+    { id: '11111111-1111-4111-8111-111111111111', card_id: 'c1', author_name: 'Tunde', author_email: 'tunde@x.test', is_private: false },
+    { id: '22222222-2222-4222-8222-222222222222', card_id: 'c1', author_name: 'Kemi', author_email: 'kemi@x.test', is_private: true },
+    { id: '33333333-3333-4333-8333-333333333333', card_id: 'OTHER', author_name: 'X', author_email: null, is_private: false },
+  ];
+  const ctl = () => require(path.join(ROOT, 'controllers/replyController'));
+  const req = (over = {}) => ({ params: { card_slug: 'ada-bday', message_id: msgs()[0].id }, query: {}, body: { content: 'Thank you!' }, headers: {}, ...over });
+
+  it('the creator can reply; the signer is emailed', async () => {
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    const res = resMock();
+    await ctl().addReply(req({ user: { id: 'u1', full_name: 'Tola Ade', email: 'tola@x.test' } }), res);
+    await flush();
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.reply.author_role, 'creator');
+    assert.equal(db.tables.message_replies.length, 1);
+    assert.ok(sentEmails.some(m => m.to === 'tunde@x.test'));
+  });
+
+  it('the recipient can reply with the private-link token (no login)', async () => {
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    const res = resMock();
+    await ctl().addReply(req({ query: { access_token: 'tok123' } }), res);
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.reply.author_role, 'recipient');
+    assert.equal(res.body.reply.author_name, 'Ada');
+  });
+
+  it('anyone else is refused', async () => {
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    const res = resMock();
+    await ctl().addReply(req({ user: { id: 'u9', email: 'someone@x.test' }, query: { access_token: 'wrong' } }), res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(db.tables.message_replies.length, 0);
+  });
+
+  it('cannot reply to a message from another card', async () => {
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    const res = resMock();
+    await ctl().addReply(req({ user: { id: 'u1' }, params: { card_slug: 'ada-bday', message_id: msgs()[2].id } }), res);
+    assert.equal(res.statusCode, 404);
+  });
+
+  it('outsiders do not see replies on private messages; creator sees all', async () => {
+    const d = makeDb({ cards: [card()], messages: msgs() });
+    d.tables.message_replies.push(
+      { id: 'r1', card_id: 'c1', message_id: msgs()[0].id, author_role: 'creator', author_name: 'Tola', content: 'a', created_at: '2026-01-01' },
+      { id: 'r2', card_id: 'c1', message_id: msgs()[1].id, author_role: 'recipient', author_name: 'Ada', content: 'b', created_at: '2026-01-02' });
+    install(d);
+    const pub = resMock();
+    await ctl().listReplies(req(), pub);
+    assert.deepEqual(pub.body.replies.map(r => r.id), ['r1']);
+    assert.equal(pub.body.can_reply, false);
+    const own = resMock();
+    await ctl().listReplies(req({ user: { id: 'u1' } }), own);
+    assert.deepEqual(own.body.replies.map(r => r.id), ['r1', 'r2']);
+    assert.equal(own.body.can_reply, true);
+  });
+
+  it('without the migration: the card still loads (empty list) and replying says why', async () => {
+    install(makeDb({ cards: [card()], messages: msgs(), missingTables: ['message_replies'] }));
+    const list = resMock();
+    await ctl().listReplies(req(), list);
+    assert.equal(list.statusCode, 200);
+    assert.deepEqual(list.body.replies, []);
+    const add = resMock();
+    await ctl().addReply(req({ user: { id: 'u1' } }), add);
+    assert.equal(add.statusCode, 503);
+  });
+
+  it('only the author role can delete a reply', async () => {
+    const d = makeDb({ cards: [card()], messages: msgs() });
+    d.tables.message_replies.push({ id: 'r1', card_id: 'c1', message_id: msgs()[0].id, author_role: 'recipient', author_name: 'Ada', content: 'a' });
+    install(d);
+    const asCreator = resMock();
+    await ctl().deleteReply(req({ user: { id: 'u1' }, params: { card_slug: 'ada-bday', reply_id: 'r1' } }), asCreator);
+    assert.equal(asCreator.statusCode, 403);
+    const asRecipient = resMock();
+    await ctl().deleteReply(req({ query: { access_token: 'tok123' }, params: { card_slug: 'ada-bday', reply_id: 'r1' } }), asRecipient);
+    assert.equal(asRecipient.statusCode, 200);
+    assert.equal(db.tables.message_replies.length, 0);
+  });
+
+  it('reply-all still works for the recipient and is refused for strangers', async () => {
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    const { sendReply } = require(path.join(ROOT, 'controllers/messageController'));
+    const ok = resMock();
+    await sendReply({ params: { card_slug: 'ada-bday' }, query: { access_token: 'tok123' }, body: { content: 'Thank you all!' }, headers: {}, accessTokenReply: true, recipientName: 'Ada' }, ok);
+    assert.equal(ok.statusCode, 200);
+    assert.ok(sentEmails.filter(m => /thank-you/i.test(m.html || '')).length >= 2, 'every signer is emailed');
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    const no = resMock();
+    await sendReply({ params: { card_slug: 'ada-bday' }, query: {}, body: { content: 'hi' }, headers: {}, user: { id: 'u9', email: 'x@y.test', full_name: 'X' } }, no);
+    assert.equal(no.statusCode, 403);
+  });
+});
+
+describe('admin card details', () => {
+  it('returns creator, links, signers, gift total and a timeline', async () => {
+    const d = makeDb({
+      cards: [{ id: 'c1', slug: 'ada-bday', title: "Ada's card", recipient_name: 'Ada', recipient_email: 'ada@x.test', access_token: 'tok',
+        creator_id: 'u1', users: { full_name: 'Tola Ade', email: 'tola@x.test' }, status: 'sent', created_at: '2026-09-01T10:00:00Z',
+        delivered_at: '2026-09-10T08:00:00Z', total_collected: 7500, send_date: '2026-09-10T08:00:00Z' }],
+      messages: [
+        { id: 'm1', card_id: 'c1', author_name: 'Tunde', author_email: 't@x.test', content: 'hi', created_at: '2026-09-02T10:00:00Z' },
+        { id: 'm2', card_id: 'c1', author_name: 'Kemi', author_email: 'k@x.test', content: 'yo', created_at: '2026-09-03T10:00:00Z', is_private: true },
+      ],
+    });
+    d.tables.contributions = [
+      { id: 'g1', card_id: 'c1', amount: 5000, status: 'success', contributor_name: 'Tunde', created_at: '2026-09-02T11:00:00Z' },
+      { id: 'g2', card_id: 'c1', amount: 2500, status: 'success', contributor_name: 'Kemi', created_at: '2026-09-03T11:00:00Z' },
+      { id: 'g3', card_id: 'c1', amount: 1000, status: 'pending', contributor_name: 'X', created_at: '2026-09-04T11:00:00Z' },
+    ];
+    install(d);
+    const { getCardDetails } = require(path.join(ROOT, 'controllers/adminController'));
+    const res = resMock();
+    await getCardDetails({ params: { cardId: 'c1' } }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.body.card.creator_name, 'Tola Ade');
+    assert.equal(res.body.card.creator_type, 'individual');
+    assert.equal(res.body.links.private_view, '/card/ada-bday?token=tok');
+    assert.equal(res.body.stats.signers, 2);
+    assert.equal(res.body.stats.gift_total, 7500);
+    assert.equal(res.body.stats.pending_gifts, 1);
+    const types = res.body.timeline.map(e => e.type);
+    assert.deepEqual(types.slice(0, 2), ['created', 'signed']);
+    assert.ok(types.includes('delivered'));
+  });
+});
+
+describe('announcement banner settings', () => {
+  const db = makeDb();
+  const A = (() => { install(db); return require(path.join(ROOT, 'utils/announcementSettings')); })();
+  it('rejects unsafe links and accepts https / site paths', () => {
+    for (const bad of ['javascript:alert(1)', 'data:text/html,x', '//evil.com', 'ftp://x.com', 'hello world']) {
+      assert.ok(A.validateAnnouncementInput({ text: 'Hi', link_url: bad }).error, bad);
+    }
+    assert.equal(A.validateAnnouncementInput({ text: 'Hi', link_url: '/pricing' }).values.link_url, '/pricing');
+    assert.equal(A.validateAnnouncementInput({ text: 'Hi', link_url: 'https://thankeeu.com/blog' }).values.link_url, 'https://thankeeu.com/blog');
+  });
+  it('needs text to go live, enforces limits and date order', () => {
+    assert.ok(A.validateAnnouncementInput({ enabled: true, text: '  ' }).error);
+    assert.ok(A.validateAnnouncementInput({ text: 'x'.repeat(201) }).error);
+    assert.ok(A.validateAnnouncementInput({ text: 'Hi', starts_at: '2026-10-02', ends_at: '2026-10-01' }).error);
+    const v = A.validateAnnouncementInput({ enabled: true, text: 'New\nfeature', link_label: 'See', theme: 'nope', new_tab: true }).values;
+    assert.equal(v.text, 'New feature');
+    assert.equal(v.theme, 'purple');
+    assert.equal(v.link_label, '');   // no link → no button text
+    assert.equal(v.new_tab, false);
+  });
+  it('round-trips through site_settings and is only public while live', async () => {
+    const { values } = A.validateAnnouncementInput({ enabled: true, text: 'Voice notes are here', link_url: '/blog', link_label: 'Read more' });
+    const saved = await A.writeAnnouncement(values);
+    assert.equal(saved.text, 'Voice notes are here');
+    const pub = A.publicView(await A.readAnnouncement());
+    assert.equal(pub.link_url, '/blog');
+    assert.ok(pub.version);
+    assert.equal(A.publicView({ ...saved, enabled: false }), null);
+    assert.equal(A.publicView({ ...saved, ends_at: '2000-01-01T00:00:00Z' }), null);
+    assert.equal(A.publicView({ ...saved, starts_at: '2999-01-01T00:00:00Z' }), null);
+  });
+  it('treats a corrupt stored value as no announcement', async () => {
+    db.tables.site_settings.length = 0;
+    db.tables.site_settings.push({ key: A.KEY, value: '{broken' });
+    assert.equal(A.publicView(await A.readAnnouncement()), null);
   });
 });

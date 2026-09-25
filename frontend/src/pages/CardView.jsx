@@ -1,5 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { cardsAPI, memberCardsAPI, messagesAPI, dashboardAPI, authAPI, banksAPI, giftcardsAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +25,9 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { formatNGN } from '../utils/currency';
 import { asArray } from '../utils/asArray';
+import occasionEmoji from '../utils/occasionEmoji';
+import { PAGE_TURN_CSS, PAGE_TURN_MS, playPageTurn } from '../utils/pageTurn';
+import SignerReplies from '../components/SignerReplies';
 
 // ── Calligraphic font styles for signer names (decorative only — the actual
 // message text uses the signee's chosen font_style via getFontStyle) ────────
@@ -614,7 +617,8 @@ const occasionLabel = {
 const MediaCarousel = ({ items, large = false }) => {
   const [idx, setIdx] = useState(0);
   if (!items || items.length === 0) return null;
-  const item = items[idx];
+  // Live refresh can shrink `items` under a stale idx — never read past the end.
+  const item = items[Math.min(idx, items.length - 1)];
   // Card media: tall enough to look good, object-cover fills every pixel
   const containerStyle = large ? {} : { height: '260px', background: '#111' };
   return (
@@ -767,7 +771,7 @@ const CelebrationBackground = ({ design }) => {
   );
 };
 
-const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, highlighted }) => {
+const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, highlighted, replyKit }) => {
   const [reacted, setReacted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const font = getFontStyle(message.font_style);
@@ -904,6 +908,12 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
         </div>
       </div>
 
+      {/* ── Replies from the creator / recipient ── */}
+      <div className="px-4 relative z-10">
+        <SignerReplies messageId={message.id} signerName={message.author_name} kit={replyKit}
+          ink={cardInk} accent={cardAccent} compact />
+      </div>
+
       {/* ── 4. Gift badge + reaction at bottom ── */}
       <div className="px-4 pb-4 pt-2 flex items-center justify-between flex-shrink-0 relative z-10">
         <button
@@ -924,7 +934,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
   );
 };
 
-const TransferCardButton = ({ slug }) => {
+const TransferCardButton = ({ slug, compact = false }) => {
   const [open, setOpen]           = useState(false);
   const [query, setQuery]         = useState('');
   const [results, setResults]     = useState([]);
@@ -981,7 +991,13 @@ const TransferCardButton = ({ slug }) => {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="btn-secondary inline-flex items-center gap-2 text-sm"><Icon name="Gift" size={15} />Transfer card</button>
+      <button type="button" onClick={() => setOpen(true)}
+        className={compact
+          ? 'inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border border-purple-200 bg-white px-3 text-xs font-bold text-primary-700 hover:bg-purple-50'
+          : 'btn-secondary inline-flex items-center gap-2 text-sm'}
+        style={compact ? { minHeight: 0 } : undefined}>
+        <Icon name="Gift" size={compact ? 13 : 15} />Transfer card
+      </button>
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(0,0,0,0.5)' }}>
           <div className="w-full max-w-sm bg-white rounded-2xl p-6 shadow-2xl">
@@ -1031,7 +1047,7 @@ const TransferCardButton = ({ slug }) => {
  * and what signers saw when they added their pages. Read-only: no compose,
  * no editing — just the cover, then every signed message as its own page,
  * shown two at a time as a genuine spread. */
-const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackground, coverTextColor }) => {
+const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackground, coverTextColor, replyKit }) => {
   const [page, setPage] = useState(0);
   const [flipClass, setFlipClass] = useState('');
   const pages = messages; // one page per signed message
@@ -1040,9 +1056,30 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
   const showingCover = clamped === 0;
   const accent = albumTheme.accent || design?.accent || '#7C3AED';
 
+  // Which two messages a given page index shows as a spread.
+  const spreadFor = (idx) => {
+    if (idx <= 0) return [null, null];
+    const l = idx % 2 === 1 ? idx : idx - 1;
+    return [l >= 1 ? pages[l - 1] || null : null, l + 1 < totalPages ? pages[l] || null : null];
+  };
+  // Spread → spread turns use a real two-sided leaf (see utils/pageTurn);
+  // turns to or from the cover keep the single-cover swing.
+  const [leafTurn, setLeafTurn] = useState(null);
+  const leafTimer = useRef(null);
+  useEffect(() => () => clearTimeout(leafTimer.current), []);
   const flipTo = (target) => {
     const next = Math.max(0, Math.min(totalPages - 1, target));
-    if (next === clamped) return;
+    if (next === clamped || leafTurn) return;
+    playPageTurn();
+    if (clamped > 0 && next > 0) {
+      const [fromLeft, fromRight] = spreadFor(clamped);
+      const [toLeft, toRight] = spreadFor(next);
+      setLeafTurn({ dir: next > clamped ? 'fwd' : 'bwd', fromLeft, fromRight, toLeft, toRight });
+      setPage(next);
+      clearTimeout(leafTimer.current);
+      leafTimer.current = setTimeout(() => setLeafTurn(null), PAGE_TURN_MS);
+      return;
+    }
     setFlipClass(next > clamped ? 'album-flip-forward' : 'album-flip-back');
     setPage(next);
     window.setTimeout(() => setFlipClass(''), ALBUM_FLIP_DURATION_MS);
@@ -1083,7 +1120,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
   const leftMsg  = leftIdx  != null && leftIdx  >= 1 ? pages[leftIdx  - 1] : null;
   const rightMsg = rightIdx != null && rightIdx < totalPages ? pages[rightIdx - 1] : null;
 
-  const Leaf = ({ msg }) => {
+  const Leaf = ({ msg, fill = false }) => {
     const [carouselIdx, setCarouselIdx] = useState(0);
     // Attachments are read with the shared reader. This used to build the list
     // itself using `{url,type}`, but the backend stores `{media_url,media_type}`
@@ -1096,7 +1133,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
     return (
     <div className="relative flex flex-col overflow-hidden rounded-2xl border shadow-xl"
       style={{
-        width: 420, maxWidth: '44vw', minHeight: 560,
+        width: 420, maxWidth: '44vw', minHeight: fill ? 0 : 560, height: fill ? '100%' : undefined,
         background: albumTheme.page || '#FFFDF8',
         borderColor: 'rgba(120,90,200,0.16)',
         boxShadow: '0 22px 70px rgba(76,29,149,0.16)',
@@ -1160,6 +1197,10 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           <p className="mt-4 text-right text-sm font-bold" style={{ fontFamily: "'Dancing Script',cursive", color: accent, fontSize: 22 }}>
             — {msg.author_name}
           </p>
+          {!fill && (
+            <SignerReplies messageId={msg.id} signerName={msg.author_name} kit={replyKit}
+              ink={albumTheme.ink || '#1f2937'} accent={accent} compact />
+          )}
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">
@@ -1198,6 +1239,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
       <div className="relative">
       <style>{`
         ${ALBUM_FLIP_CSS}
+        ${PAGE_TURN_CSS}
         .cv-book { display:flex; align-items:center; justify-content:center; }
       `}</style>
       <div className="cv-book album-stage" style={{ minHeight: 600 }}
@@ -1228,12 +1270,43 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
           ) : (
             /* The spread is ONE leaf: both pages live inside a single animated
                element, hinged on the spine, as in the album studio preview. */
-            <div key={`cv-spread-${clamped}`} className={`album-page-turn ${turn} relative`}>
-              <div className="flex items-stretch overflow-hidden rounded-[14px] shadow-2xl">
-                <div><Leaf msg={leftMsg}/></div>
-                <div><Leaf msg={rightMsg}/></div>
-              </div>
-              <div className="pointer-events-none absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2 bg-black/20 shadow-[0_0_10px_rgba(0,0,0,0.25)]" />
+            <div key={leafTurn ? 'cv-spread-turning' : `cv-spread-${clamped}`} className={`${leafTurn ? '' : `album-page-turn ${turn}`} relative`}>
+              {(() => {
+                // While a leaf turns, the book underneath already shows the
+                // pages being uncovered on each side.
+                const baseL = leafTurn ? (leafTurn.dir === 'fwd' ? leafTurn.fromLeft : leafTurn.toLeft) : leftMsg;
+                const baseR = leafTurn ? (leafTurn.dir === 'fwd' ? leafTurn.toRight : leafTurn.fromRight) : rightMsg;
+                return (
+                  <div className="pt-book">
+                    <div className="flex items-stretch overflow-hidden rounded-[14px] shadow-2xl">
+                      <div><Leaf msg={baseL}/></div>
+                      <div><Leaf msg={baseR}/></div>
+                    </div>
+                    <div className="pt-spine" style={{ left: '50%' }} />
+                    {leafTurn && (
+                      <>
+                        <div className="pt-cast" style={{
+                          left: leafTurn.dir === 'fwd' ? '50%' : 0, width: '50%',
+                          background: leafTurn.dir === 'fwd'
+                            ? 'linear-gradient(90deg, rgba(0,0,0,0.32), rgba(0,0,0,0) 70%)'
+                            : 'linear-gradient(270deg, rgba(0,0,0,0.32), rgba(0,0,0,0) 70%)',
+                        }} />
+                        <div className={`pt-leaf ${leafTurn.dir === 'fwd' ? 'pt-fwd' : 'pt-bwd'}`}
+                          style={{ left: leafTurn.dir === 'fwd' ? '50%' : 0, width: '50%' }}>
+                          <div className="pt-face pt-front">
+                            <Leaf msg={leafTurn.dir === 'fwd' ? leafTurn.fromRight : leafTurn.fromLeft} fill/>
+                            <div className="pt-shade" />
+                          </div>
+                          <div className="pt-face pt-back">
+                            <Leaf msg={leafTurn.dir === 'fwd' ? leafTurn.toLeft : leafTurn.toRight} fill/>
+                            <div className="pt-shade" />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })()}
@@ -1424,6 +1497,69 @@ const CardView = () => {
     return () => window.removeEventListener('keydown', close);
   }, []);
 
+  // ── Replies to individual signers (creator / recipient) ─────────────────
+  const [signerReplies, setSignerReplies] = useState([]);
+  const [replyAccess, setReplyAccess] = useState({ can: false, role: null });
+  const [replyOpenFor, setReplyOpenFor] = useState(null);
+  const [replyDrafts, setReplyDrafts] = useState({});
+  const [replySendingFor, setReplySendingFor] = useState(null);
+  const replyFetch = useCallback((path, opts = {}) => {
+    const savedTok = localStorage.getItem('thankeeu_token') || localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_company_token');
+    const base = import.meta.env.VITE_API_URL || '/api';
+    const qs = token ? `?access_token=${encodeURIComponent(token)}` : '';
+    const headers = { 'Content-Type': 'application/json', ...(savedTok ? { Authorization: `Bearer ${savedTok}` } : {}) };
+    return fetch(`${base}/messages/${slug}${path}${qs}`, { ...opts, headers });
+  }, [slug, token]);
+  const loadSignerReplies = useCallback(async () => {
+    try {
+      const r = await replyFetch('/replies');
+      if (!r.ok) return;
+      const d = await r.json();
+      setSignerReplies(Array.isArray(d.replies) ? d.replies : []);
+      setReplyAccess({ can: !!d.can_reply, role: d.role || null });
+    } catch { /* replies are an extra — the card still works without them */ }
+  }, [replyFetch]);
+  useEffect(() => { if (card?.id) loadSignerReplies(); }, [card?.id, loadSignerReplies]);
+  const replyKit = useMemo(() => {
+    const byMsg = {};
+    for (const r of signerReplies) (byMsg[r.message_id] = byMsg[r.message_id] || []).push(r);
+    return {
+      byMsg,
+      can: replyAccess.can,
+      role: replyAccess.role,
+      open: replyOpenFor,
+      setOpen: setReplyOpenFor,
+      drafts: replyDrafts,
+      setDraft: (id, v) => setReplyDrafts(d => ({ ...d, [id]: v })),
+      sending: replySendingFor,
+      send: async (messageId) => {
+        const text = (replyDrafts[messageId] || '').trim();
+        if (!text) return;
+        setReplySendingFor(messageId);
+        try {
+          const r = await replyFetch(`/replies/${messageId}`, { method: 'POST', body: JSON.stringify({ content: text }) });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.error || 'Could not send your reply');
+          if (d.reply) setSignerReplies(list => [...list, d.reply]);
+          setReplyDrafts(dr => ({ ...dr, [messageId]: '' }));
+          setReplyOpenFor(null);
+          toast.success('Reply sent 💬');
+        } catch (err) {
+          toast.error(err.message || 'Could not send your reply');
+        } finally { setReplySendingFor(null); }
+      },
+      remove: async (replyId) => {
+        if (!window.confirm('Delete this reply?')) return;
+        try {
+          const r = await replyFetch(`/replies/${replyId}`, { method: 'DELETE' });
+          const d = await r.json().catch(() => ({}));
+          if (!r.ok) throw new Error(d.error || 'Could not delete');
+          setSignerReplies(list => list.filter(x => x.id !== replyId));
+        } catch (err) { toast.error(err.message || 'Could not delete'); }
+      },
+    };
+  }, [signerReplies, replyAccess, replyOpenFor, replyDrafts, replySendingFor, replyFetch]);
+
   const handleReply = async () => {
     if (!replyText.trim()) return;
     setReplyLoading(true);
@@ -1431,7 +1567,9 @@ const CardView = () => {
       // Smart auth: use saved token if logged in, pass URL access_token as fallback
       const savedTok = localStorage.getItem('thankeeu_token') || localStorage.getItem('thankeeu_member_token');
       const base = import.meta.env.VITE_API_URL || '/api';
-      const url = `${base}/messages/${slug}/reply${token && !savedTok ? `?access_token=${token}` : ''}`;
+      // Send the private-link token whenever we have it: a signed-in viewer
+      // (e.g. the creator's own account) still proves recipient access with it.
+      const url = `${base}/messages/${slug}/reply${token ? `?access_token=${encodeURIComponent(token)}` : ''}`;
       const headers = { 'Content-Type': 'application/json' };
       if (savedTok) headers['Authorization'] = `Bearer ${savedTok}`;
       const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ content: replyText }) });
@@ -1606,7 +1744,7 @@ const CardView = () => {
               </div>
             </div>
           ) : (
-            <div className="text-4xl sm:text-5xl mb-1.5 animate-float select-none">{design.icon}</div>
+            <div className="text-4xl sm:text-5xl mb-1.5 animate-float select-none">{occasionEmoji(card?.occasion, design)}</div>
           )}
 
           {/* Big calligraphic title */}
@@ -1703,18 +1841,18 @@ const CardView = () => {
             }
             // Theme-aware inactive tab styling: on light-background themes we must NOT use
             // white text/borders (invisible). Use the theme ink colour instead.
-            const activeCls   = 'shadow-lg scale-105';
-            const activeStyle = { background: '#ffffff', borderColor: '#ffffff', color: '#1a1035' };
+            const activeCls   = 'shadow-md';
+            const activeStyle = { background: '#ffffff', borderColor: '#ffffff', color: '#1a1035', minHeight: 34 };
             const inactiveStyle = coverIsDark
-              ? { background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.35)', color: 'rgba(255,255,255,0.85)' }
-              : { background: 'rgba(255,255,255,0.65)', borderColor: `${pillAccent}55`, color: pillInk };
+              ? { minHeight: 34, background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.35)', color: 'rgba(255,255,255,0.85)' }
+              : { minHeight: 34, background: 'rgba(255,255,255,0.65)', borderColor: `${pillAccent}55`, color: pillInk };
             const badgeActive = { background: `${pillAccent}1a`, color: pillAccent };
             const badgeInactive = coverIsDark
               ? { background: 'rgba(255,255,255,0.2)', color: '#ffffff' }
               : { background: `${pillAccent}22`, color: pillAccent };
-            const tabBase = 'flex items-center gap-2 px-5 py-3 rounded-2xl text-sm font-bold border-2 transition-all hover:opacity-90';
+            const tabBase = 'flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-bold border transition-all hover:opacity-90';
             return (
-            <div className="flex justify-center gap-2 mt-4 mb-3 flex-wrap px-4">
+            <div className="flex justify-center gap-1.5 mt-3 mb-2 flex-wrap px-4">
               {showMessages && (
                 <button onClick={() => setCardViewTab('messages')}
                   className={`${tabBase} ${cardViewTab === 'messages' ? activeCls : ''}`}
@@ -1886,78 +2024,71 @@ const CardView = () => {
           </section>
         )}
 
-        {/* ── Share your card ──────────────────────────────────────────── */}
-        <div className="no-print mb-9 space-y-3">
-          {/* Box 0 — Create Now, Pay Later: the creator's reminder to pay. The
-              card collects signatures meanwhile but is not delivered. */}
-          {card.isCreatorPersonal && card.status === 'active' && card.payment_pending && (
-            <div className="rounded-2xl border-2 border-amber-200 bg-amber-50 p-4 sm:p-5">
-              <p className="text-xs font-extrabold tracking-[.15em] uppercase text-amber-700 mb-1">⏳ Payment pending — not delivered yet</p>
-              <p className="text-sm text-amber-900 mb-3">
-                Keep collecting signatures and gifts. When you're happy, pay the one-time card fee and it's delivered to {card.recipient_name}
-                {card.send_date ? ' automatically on the scheduled date' : ''} — Memory Movie and gifts included.
-              </p>
-              <a href={`/pay/${slug}`} className="btn-primary text-sm inline-flex items-center gap-2">💳 Pay Now</a>
+        {/* ── Share your card — one slim panel, so the card itself keeps the
+             space. Rows: pay reminder (creator, unpaid), signing link, private
+             link (creator / token-holding recipient only). ─────────────── */}
+        {(() => {
+          const showPay = card.isCreatorPersonal && card.status === 'active' && card.payment_pending;
+          const showSign = card.status === 'active' || card.status === 'sent';
+          // Private link: the actual creator, or a token-holding recipient.
+          // card.isCreator is broader (any teammate on the company account), so
+          // it must not be used here.
+          const showPrivate = card.isCreatorPersonal || (card.isRecipient && Boolean(token));
+          if (!showPay && !showSign && !showPrivate) return null;
+          const chip = 'inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-bold transition-colors whitespace-nowrap';
+          const row = 'flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-3.5 py-2.5 sm:px-4';
+          return (
+            <div className="no-print mb-8 overflow-hidden rounded-2xl border border-purple-100 bg-white/85 shadow-sm backdrop-blur divide-y divide-purple-50">
+              {showPay && (
+                <div className={row} style={{ background: '#FFFBEB' }}>
+                  <p className="min-w-0 text-xs text-amber-900">
+                    <strong>⏳ Payment pending</strong>
+                    <span className="hidden sm:inline"> — not delivered until paid{card.send_date ? '; goes out on the scheduled date once paid' : ''}.</span>
+                  </p>
+                  <a href={`/pay/${slug}`} className={`${chip} text-white`} style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)', minHeight: 0 }}>💳 Pay Now</a>
+                </div>
+              )}
+              {showSign && (
+                <div className={row}>
+                  <p className="min-w-0 text-xs text-warm-600">
+                    <strong className="text-primary-700">{card.status === 'sent' ? '🎁 Still open for messages & gifts' : '✍️ Signing link'}</strong>
+                    <span className="hidden md:inline text-warm-400"> · anyone with it can add a message</span>
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" style={{ minHeight: 0 }}
+                      onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${slug}`); toast.success('✓ Signing link copied!'); }}
+                      className={`${chip} bg-primary-600 text-white hover:bg-primary-700`}>🔗 Copy link</button>
+                    <button type="button" style={{ minHeight: 0 }}
+                      onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Add your message to ${card.recipient_name}'s card: ${window.location.origin}/sign/${slug}`)}`, '_blank')}
+                      className={`${chip} bg-[#25D366] text-white`}>WhatsApp</button>
+                  </div>
+                </div>
+              )}
+              {showPrivate && (
+                <div className={row}>
+                  <p className="min-w-0 text-xs text-warm-600">
+                    <strong className="text-warm-700">👁 Private link</strong>
+                    <span className="text-warm-400"> · for you and {card.recipient_name} only</span>
+                  </p>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <button type="button" style={{ minHeight: 0 }}
+                      onClick={() => {
+                        const url = card.access_token
+                          ? `${window.location.origin}/card/${slug}?token=${card.access_token}`
+                          : `${window.location.origin}/card/${slug}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success('✓ Private link copied!');
+                      }}
+                      className={`${chip} border border-purple-200 bg-white text-primary-700 hover:bg-purple-50`}>Copy</button>
+                    <button type="button" style={{ minHeight: 0 }} onClick={() => window.print()}
+                      className={`${chip} border border-purple-200 bg-white text-primary-700 hover:bg-purple-50`}>Save / print</button>
+                    {card.isCreatorPersonal && <TransferCardButton slug={slug} compact />}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-
-          {/* Box 1 — Public signing link — open while active AND after delivery (sent) */}
-          {(card.status === 'active' || card.status === 'sent') && (
-            <div className="rounded-2xl border-2 p-4 sm:p-5" style={{ borderColor: '#A855F740', background: 'linear-gradient(135deg,#F5F3FF,#FCE7F3)' }}>
-              <p className="text-xs font-extrabold tracking-[.15em] uppercase text-primary-600 mb-1">
-                {card.status === 'sent' ? '🎁 Still open — messages & gifts welcome' : '✍️ Signing link — for everyone'}
-              </p>
-              <p className="text-sm text-warm-600 mb-3">
-                {card.status === 'sent'
-                  ? `The card was delivered to ${card.recipient_name} but the signing link is still open — colleagues can still add a message or contribute a late gift.`
-                  : 'This link lets anyone write a message on the card. Share it with colleagues, friends or family so they can add their wishes before delivery.'}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/sign/${slug}`); toast.success('✓ Signing link copied!'); }}
-                  className="btn-primary text-sm"
-                >
-                  🔗 Copy signing link
-                </button>
-                <button
-                  onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(`Add your message to ${card.recipient_name}'s card: ${window.location.origin}/sign/${slug}`)}`, '_blank')}
-                  className="px-5 py-3 rounded-2xl bg-[#25D366] text-white text-sm font-bold"
-                >
-                  Share on WhatsApp
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Box 2 — Private view link (actual card creator, or a token-holding recipient, only).
-              Note: card.isCreator is intentionally broader (any teammate on the same company
-              account) for other permissions; this banner must stay narrow so a colleague who
-              didn't create this specific card never sees the private link / Transfer button. */}
-          {(card.isCreatorPersonal || (card.isRecipient && Boolean(token))) && (
-            <div className="rounded-2xl border border-purple-100 bg-white p-4 sm:p-5">
-              <p className="text-xs font-extrabold tracking-[.15em] uppercase text-warm-400 mb-1">👁 Private view link — for you and {card.recipient_name} only</p>
-              <p className="text-sm text-warm-600 mb-3">
-                This is the private card view link. Share it only with <strong>{card.recipient_name}</strong> so they can see all the messages and access any gift.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => {
-                    const url = card.access_token
-                      ? `${window.location.origin}/card/${slug}?token=${card.access_token}`
-                      : `${window.location.origin}/card/${slug}`;
-                    navigator.clipboard.writeText(url);
-                    toast.success('✓ Private link copied!');
-                  }}
-                  className="btn-secondary"
-                >
-                  Copy private link
-                </button>
-                <button onClick={() => window.print()} className="btn-secondary">Save or print</button>
-                {card.isCreatorPersonal && <TransferCardButton slug={slug} />}
-              </div>
-            </div>
-          )}
-        </div>
+          );
+        })()}
 
         {/* Wall tab in main */}
         {cardViewTab === 'wall' && (
@@ -2079,6 +2210,7 @@ const CardView = () => {
               </div>
               {effectiveViewStyle === 'album' ? (
                 <AlbumFlipbookViewer
+                  replyKit={replyKit}
                   card={card}
                   messages={displayMessages}
                   design={design}
@@ -2102,6 +2234,7 @@ const CardView = () => {
                         onOpen={setOpenMessage}
                         onReact={id => messagesAPI.react(id, { emoji: 'heart' })}
                         highlighted={!!searchQuery && filteredMessages.includes(message)}
+                        replyKit={replyKit}
                       />
                     </div>
                   ))}
@@ -2186,6 +2319,12 @@ const CardView = () => {
               <div className="mt-5 bg-white/75 rounded-2xl px-4 py-3 flex justify-between font-bold" style={{ color: design.ink }}>
                 <span>{'\uD83C\uDF81'} Gift attached to this message</span>
                 <span style={{ color: design.accent }}>{formatNGN(openMessage.contributed_amount)}</span>
+              </div>
+            )}
+            {(replyKit.can || (replyKit.byMsg[openMessage.id] || []).length > 0) && (
+              <div className="mt-4 rounded-2xl bg-white/80 p-3">
+                <SignerReplies messageId={openMessage.id} signerName={openMessage.author_name} kit={replyKit}
+                  ink="#1f2937" accent={design.accent || '#7C3AED'} />
               </div>
             )}
           </div>

@@ -15,19 +15,15 @@ const AUTH   = read('controllers/authController.js');
 const CREDIT = read('controllers/creditController.js');
 const EMAIL  = read('utils/email.js');
 
-describe('welcome credit', () => {
-  it('is granted on EVERY signup path', () => {
-    // /auth/signup, /auth/verify-code and /auth/quick-start each create a user;
-    // a credit granted on only some means those accounts silently get nothing.
-    const grants = AUTH.match(/plan_type_v2:\s*'welcome_free'/g) || [];
-    assert.equal(grants.length, 3, 'expected a welcome credit on all three signup paths');
-    assert.match(AUTH, /const quickStart = async/);
+describe('no welcome credit (retired — cards are Create Now, Pay Later)', () => {
+  it('no signup path grants a free credit any more', () => {
+    assert.equal((AUTH.match(/plan_type_v2:\s*'welcome_free'/g) || []).length, 0);
+    assert.ok(!/credits_remaining:\s*1\b/.test(AUTH), 'a signup path still grants a credit');
   });
 
   it('quick-start never uses a shared or guessable password', () => {
     const start = AUTH.indexOf('const quickStart = async');
     const body  = AUTH.slice(start, start + 3000);
-    // The password must come from crypto, and must not be a literal.
     assert.match(body, /crypto\.randomBytes\(32\)/);
     assert.ok(!/password[_a-z]*\s*[:=]\s*['"][^'"]{4,}['"]/i.test(body),
       'a hard-coded password literal in the quick-start path');
@@ -36,22 +32,8 @@ describe('welcome credit', () => {
   it('quick-start refuses to sign in an email that already has an account', () => {
     const start = AUTH.indexOf('const quickStart = async');
     const body  = AUTH.slice(start, start + 3000);
-    // Otherwise knowing someone's address would be enough to enter their account.
     assert.match(body, /existing/);
     assert.match(body, /return res\.json\(\{ existing: true/);
-  });
-
-  it('grants exactly one credit, and records it as granted rather than purchased', () => {
-    assert.match(AUTH, /credits_remaining:\s*1/);
-    assert.match(AUTH, /total_purchased:\s*0/);
-  });
-
-  it('cannot block a signup if the credit insert fails', () => {
-    // The grant must be inside a try/catch — a credits table hiccup must never
-    // stop someone creating an account.
-    const idx = AUTH.indexOf("plan_type_v2:      'welcome_free'");
-    const before = AUTH.slice(Math.max(0, idx - 600), idx);
-    assert.match(before, /try\s*\{/);
   });
 });
 

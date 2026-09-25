@@ -268,6 +268,7 @@ export const paymentsAPI = {
 // ─── Public site content ───────────────────────────────────────────────────
 export const siteAPI = {
   getHero: () => publicAxios.get('/site/hero', { timeout: 6000 }),
+  getAnnouncement: () => publicAxios.get('/site/announcement', { timeout: 6000 }),
 };
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────
@@ -299,6 +300,7 @@ export const adminAPI = {
   giftCredits:  (userId, credits, reason) => api.post(`/admin/users/${userId}/gift-credits`, { credits, reason }),
   deleteUser:   (userId)                 => api.delete(`/admin/users/${userId}`),
   getCards:     ()                       => api.get('/admin/cards'),
+  getCardDetails: (cardId)               => api.get(`/admin/cards/${cardId}/details`),
   redeliverCard: (cardId)               => api.post(`/admin/cards/${cardId}/redeliver`),
   deleteCard:   (cardId)                => api.delete(`/admin/cards/${cardId}`),
   broadcastPreview: (segment)           => api.get(`/admin/broadcast/preview?segment=${segment}`),
@@ -310,6 +312,8 @@ export const adminAPI = {
   // Homepage hero header (Admin → Header)
   getHero:      ()                      => api.get('/admin/hero'),
   saveHero:     (data)                  => api.put('/admin/hero', data),
+  getAnnouncement:  ()                  => api.get('/admin/announcement'),
+  saveAnnouncement: (data)              => api.put('/admin/announcement', data),
   // Cover designs (bulk upload per occasion)
   getCoverDesignOccasions: ()                => api.get('/admin/cover-designs/occasions'),
   getCoverDesigns:         (occasion)         => api.get('/admin/cover-designs', { params: occasion ? { occasion } : {} }),

@@ -417,3 +417,39 @@ CREATE INDEX IF NOT EXISTS idx_cards_abandoned_drafts
   ON cards(created_at) WHERE status = 'draft';
 
 NOTIFY pgrst, 'reload schema';
+
+-- ══════════════════════════════════════════════════════════════════════════
+-- Replies to each signer (2026-09-25) — full notes: migration_message_replies.sql
+-- ══════════════════════════════════════════════════════════════════════════
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS message_replies (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id      UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  card_id         UUID NOT NULL REFERENCES cards(id)    ON DELETE CASCADE,
+  author_role     TEXT NOT NULL CHECK (author_role IN ('creator', 'recipient')),
+  author_name     TEXT NOT NULL,
+  author_user_id  UUID,
+  content         TEXT NOT NULL CHECK (char_length(content) BETWEEN 1 AND 1000),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_message_replies_card    ON message_replies(card_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_message_replies_message ON message_replies(message_id);
+
+-- The API uses the service role; nothing else should read this table directly.
+ALTER TABLE message_replies ENABLE ROW LEVEL SECURITY;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== migration_announcement_banner.sql =====
+-- Announcement banner (Admin → Discount Codes → Announcement banner).
+-- Stored as one JSON row in site_settings; safe to run more than once.
+CREATE TABLE IF NOT EXISTS site_settings (
+  key         TEXT PRIMARY KEY,
+  value       TEXT,
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+INSERT INTO site_settings (key, value) VALUES ('announcement_banner', NULL)
+ON CONFLICT (key) DO NOTHING;
+NOTIFY pgrst, 'reload schema';

@@ -12,7 +12,12 @@ const flexAuth = async (req, res, next) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (!token) return next();
     const d = jwt.verify(token, process.env.JWT_SECRET);
-    if (d.type === 'company_member') {
+    if (d.type === 'company') {
+      // HR / company account — may reply to signers on its own company's cards.
+      const { data } = await supabase.from('companies')
+        .select('id,name,email,contact_person').eq('id', d.companyId).maybeSingle();
+      if (data) req.company = data;
+    } else if (d.type === 'company_member') {
       const { data } = await supabase.from('company_members')
         .select('id,first_name,last_name,email,status').eq('id', d.memberId).maybeSingle();
       if (data?.status === 'approved') req.member = data;
@@ -27,7 +32,7 @@ const flexAuth = async (req, res, next) => {
 
 // Reply requires auth OR valid access_token (for email-link recipients)
 const requireAuth = async (req, res, next) => {
-  if (req.user || req.member) return next();
+  if (req.user || req.member || req.company) return next();
 
   // Allow reply via URL access_token (card recipient opened via email link)
   const accessToken = req.query.access_token;
@@ -92,5 +97,13 @@ router.patch('/position/:message_id', validateUUIDParam('message_id'), flexAuth,
 router.post('/:card_slug',        validateSlugParam('card_slug'), flexAuth, handleUpload, addMessage);
 // Access-token recipients can reply without a login session
 router.post('/:card_slug/reply',  validateSlugParam('card_slug'), flexAuth, requireAuth, sendReply);
+
+// Per-signer replies from the creator / recipient (see replyController).
+// Authorisation (creator or recipient, incl. the private access_token) is
+// decided inside the controller, so anonymous readers can still GET.
+const { listReplies, addReply, deleteReply } = require('../controllers/replyController');
+router.get('/:card_slug/replies', validateSlugParam('card_slug'), flexAuth, listReplies);
+router.post('/:card_slug/replies/:message_id', validateSlugParam('card_slug'), validateUUIDParam('message_id'), flexAuth, addReply);
+router.delete('/:card_slug/replies/:reply_id', validateSlugParam('card_slug'), validateUUIDParam('reply_id'), flexAuth, deleteReply);
 
 module.exports = router;

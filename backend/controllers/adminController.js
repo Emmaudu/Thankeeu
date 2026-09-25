@@ -255,17 +255,122 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Who made each card: an individual account, a company (HR) account or a team
+// member. Looked up separately and merged in JS — embedding the company /
+// member relations would fail the whole list on a schema without those FKs.
+const attachCreators = async (cards) => {
+  const companyIds = [...new Set(cards.map(c => c.company_id).filter(Boolean))];
+  const memberIds = [...new Set(cards.map(c => c.created_by_member_id).filter(Boolean))];
+  const [companiesRes, membersRes] = await Promise.all([
+    companyIds.length ? supabase.from('companies').select('id, name, email, contact_person').in('id', companyIds) : { data: [] },
+    memberIds.length ? supabase.from('company_members').select('id, first_name, last_name, email').in('id', memberIds) : { data: [] },
+  ]);
+  const companies = new Map((companiesRes.data || []).map(c => [c.id, c]));
+  const members = new Map((membersRes.data || []).map(m => [m.id, m]));
+  return cards.map(c => {
+    const u = c.users;
+    const m = c.created_by_member_id ? members.get(c.created_by_member_id) : null;
+    const co = c.company_id ? companies.get(c.company_id) : null;
+    let creator_type = 'guest', creator_name = 'Guest (not signed in)', creator_email = null;
+    if (u) { creator_type = 'individual'; creator_name = u.full_name || u.email; creator_email = u.email; }
+    else if (m) { creator_type = 'team_member'; creator_name = `${m.first_name || ''} ${m.last_name || ''}`.trim() || m.email; creator_email = m.email; }
+    else if (co) { creator_type = 'company'; creator_name = co.contact_person ? `${co.contact_person} (${co.name})` : co.name; creator_email = co.email; }
+    else if (c.pal_group_id) { creator_type = 'pal_group'; creator_name = 'Thankeeu Pals group'; }
+    return { ...c, creator_type, creator_name, creator_email, company_name: co?.name || null };
+  });
+};
+
 const getAllCards = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('cards')
-      .select('*, users(full_name, email)')
+      .select('*, users(full_name, email), messages(count)')
       .order('created_at', { ascending: false })
       .limit(2000);
     if (error) throw error;
-    res.json(data);
+    const withCreators = await attachCreators(data || []);
+    res.json(withCreators.map(c => ({ ...c, signed_count: c.messages?.[0]?.count || 0, messages: undefined })));
   } catch (err) {
+    console.error('[admin] getAllCards error:', err.message);
     res.status(500).json({ error: 'Failed to fetch cards' });
+  }
+};
+
+// GET /admin/cards/:cardId/details — everything about one card for the admin
+// card page: links, schedule, signers, gifts, claims, replies and a timeline.
+// Each optional source is read independently so one missing table never
+// blanks the page.
+const getCardDetails = async (req, res) => {
+  try {
+    const { cardId } = req.params;
+    const { data: card, error } = await supabase.from('cards')
+      .select('*, users(full_name, email)').eq('id', cardId).maybeSingle();
+    if (error) throw error;
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const [withCreator] = await attachCreators([card]);
+
+    const safe = async (q) => { try { const r = await q; return r.error ? [] : (r.data || []); } catch { return []; } };
+    const [messages, contributions, claims, replies, visitors, logs, wallet] = await Promise.all([
+      safe(supabase.from('messages')
+        .select('id, author_name, author_email, content, is_private, created_at, contributed_amount, payment_verified, media_url, media_type, media_gallery, reactions, gift_type, product_name')
+        .eq('card_id', cardId).order('created_at', { ascending: true })),
+      safe(supabase.from('contributions').select('*').eq('card_id', cardId).order('created_at', { ascending: true })),
+      safe(supabase.from('gift_claims').select('*').eq('card_id', cardId).order('created_at', { ascending: true })),
+      safe(supabase.from('message_replies').select('id, message_id, author_role, author_name, content, created_at').eq('card_id', cardId).order('created_at', { ascending: true })),
+      safe(supabase.from('card_visitors').select('*').eq('card_id', cardId)),
+      safe(supabase.from('activity_logs').select('actor_name, actor_type, action, details, created_at').eq('entity_id', String(cardId)).order('created_at', { ascending: true })),
+      safe(supabase.from('contribution_wallets').select('*').eq('card_id', cardId)),
+    ]);
+
+    const okContribs = contributions.filter(c => c.status === 'success');
+    const giftTotal = okContribs.reduce((n, c) => n + (Number(c.amount) || 0), 0);
+
+    // Timeline built from what the database actually records.
+    const ev = [];
+    const push = (at, type, text, extra = {}) => { if (at) ev.push({ at, type, text, ...extra }); };
+    push(card.created_at, 'created', `Card created by ${withCreator.creator_name}`);
+    push(card.claimed_at, 'claimed', 'Guest draft linked to an account');
+    if (card.status !== 'draft' && card.payment_pending) push(card.payment_reminder_sent_at, 'published', 'Published — Create Now, Pay Later (awaiting payment)');
+    if (card.payment_reminder_count > 1) push(card.payment_reminder_sent_at, 'reminder', `Payment reminder #${card.payment_reminder_count - 1} emailed to the creator`);
+    push(card.fee_paid_at, 'paid', 'Card fee paid');
+    if (card.abandoned_reminder_count > 0) push(card.abandoned_reminder_sent_at, 'reminder', `Unfinished-card reminder #${card.abandoned_reminder_count} emailed`);
+    for (const m of messages) push(m.created_at, 'signed', `${m.author_name} signed${m.is_private ? ' (private)' : ''}${m.media_type ? ` · ${m.media_type}` : ''}`);
+    for (const c of contributions) push(c.created_at, c.status === 'success' ? 'gift' : 'gift_pending',
+      `${c.contributor_name || 'Someone'} ${c.status === 'success' ? 'gave' : 'started a gift of'} ₦${Number(c.amount || 0).toLocaleString('en-NG')}${c.status === 'success' ? '' : ` (${c.status})`}`);
+    for (const r of replies) push(r.created_at, 'reply', `${r.author_name} (${r.author_role}) replied to a signer`);
+    for (const g of claims) push(g.created_at, 'claim', `Gift claim: ${g.claim_type || 'claim'} ₦${Number(g.amount || 0).toLocaleString('en-NG')} — ${g.status}`);
+    push(card.delivered_at, 'delivered', `Delivered to ${card.recipient_email || 'recipient'}`);
+    push(card.opened_at, 'opened', 'Recipient opened the card');
+    push(card.last_redelivered_at, 'redelivered', `Re-delivered (${card.redelivery_count || 1}×)`);
+    for (const l of logs) push(l.created_at, 'log', `${l.actor_name}: ${String(l.action || '').replace(/_/g, ' ')}`);
+    ev.sort((a, b) => new Date(a.at) - new Date(b.at));
+
+    const { messages: _m, users: _u, ...cardFields } = withCreator;
+    res.json({
+      card: cardFields,
+      links: {
+        sign: `/sign/${card.slug}`,
+        view: `/card/${card.slug}`,
+        private_view: card.access_token ? `/card/${card.slug}?token=${card.access_token}` : null,
+      },
+      stats: {
+        signers: messages.length,
+        unique_signers: new Set(messages.map(m => (m.author_email || m.author_name || '').toLowerCase())).size,
+        private_messages: messages.filter(m => m.is_private).length,
+        media_messages: messages.filter(m => m.media_url || (Array.isArray(m.media_gallery) && m.media_gallery.length)).length,
+        gifts_count: okContribs.length,
+        gift_total: giftTotal,
+        card_total_collected: card.total_collected || 0,
+        pending_gifts: contributions.filter(c => c.status === 'pending').length,
+        replies: replies.length,
+        visitors: visitors.length,
+      },
+      messages, contributions, claims, replies, wallet: wallet[0] || null,
+      timeline: ev,
+    });
+  } catch (err) {
+    console.error('[admin] getCardDetails error:', err.message);
+    res.status(500).json({ error: 'Failed to load card details' });
   }
 };
 
@@ -800,4 +905,4 @@ const rejectPalGroup = async (req, res) => {
   } catch (err) { safeError(res, err, 'Admin operation failed'); }
 };
 
-module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, giftCredits, getAllCards, deleteCard, redeliverCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot, listPalApplications, approvePalGroup, rejectPalGroup };
+module.exports = { getStats, getAllUsers, updateUserRole, deleteUser, giftCredits, getAllCards, getCardDetails, deleteCard, redeliverCard, getAllCompanies, deleteCompany, getCompanyTeamMembers, getVisitors, setCompanyMultiplier, grantPilot, listPalApplications, approvePalGroup, rejectPalGroup };

@@ -16,6 +16,7 @@ import { useSEO } from '../hooks/useSEO';
 import { CARD_DESIGNS } from '../utils/cardDesigns';
 import { CoverArtwork } from '../utils/coverArtwork.jsx';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
+import occasionEmoji from '../utils/occasionEmoji';
 
 // ─── Occasion list ────────────────────────────────────────────────────────────
 const OCCASIONS = [
@@ -265,7 +266,7 @@ const CardCoverPreview = ({
       <foreignObject x="135" y="55" width="150" height="120">
         <div xmlns="http://www.w3.org/1999/xhtml"
           style={{ width:'100%', height:'100%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'68px', filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.18))' }}>
-          {design.icon}
+          {occasionEmoji(design.occasion, design)}
         </div>
       </foreignObject>
 
@@ -372,7 +373,7 @@ const CardThumbnail = ({ design, isLeaving, isSelected, onClick, badge }) => (
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 6, padding: 8,
         }}>
-          <div style={{ fontSize: 28, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))' }}>{design.icon}</div>
+          <div style={{ fontSize: 28, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.15))' }}>{occasionEmoji(design.occasion, design)}</div>
           <div style={{
             fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700,
             fontSize: 9,

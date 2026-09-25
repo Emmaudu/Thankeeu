@@ -21,7 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import Icon from './ui/Icon';
 import { parseCardIntent, stashIntent, OCCASION_LABELS } from '../utils/cardIntent';
 import { coversForOccasion, coverInkFor } from '../utils/applyCardIntent';
-import { authAPI, creditsAPI } from '../utils/api';
+import { authAPI } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 
 // Real, editable sentences — the box starts with one already in it so the
@@ -59,8 +59,9 @@ const CardIntentBar = ({ className = '', inputId = 'card-intent' }) => {
   const [invites, setInvites]   = useState('');
   const [touched, setTouched]   = useState(false);
   const [picked, setPicked]     = useState(null);
-  const [cardMode, setCardMode] = useState('test');
-  const [usedTest, setUsedTest] = useState(false);
+  // The free test card (and its free credit) is retired: every card is a real
+  // card, published free and paid for before delivery.
+  const cardMode = 'real';
   const [busy, setBusy]         = useState(false);
   const [focused, setFocused]   = useState(false);
   const [err, setErr]           = useState('');
@@ -71,21 +72,6 @@ const CardIntentBar = ({ className = '', inputId = 'card-intent' }) => {
   // Without this, submitting and then navigating away leaves a pending timeout
   // that yanks the customer to the wizard from wherever they went.
   useEffect(() => () => { if (goTimer.current) window.clearTimeout(goTimer.current); }, []);
-
-  // A returning tester has no free credit left, so the test option is closed
-  // rather than offered and then refused two screens later.
-  useEffect(() => {
-    if (!user) { setUsedTest(false); return undefined; }
-    let alive = true;
-    creditsAPI.getBalance()
-      .then(r => {
-        if (!alive) return;
-        const free = (r.data?.total_purchased || 0) > 0 ? 0 : (r.data?.credits || 0);
-        if (free < 1) { setUsedTest(true); setCardMode('real'); }
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [user]);
 
   // Re-read the sentence as they type so the suggestions follow the occasion.
   // Pure string work, so it is cheap enough to run on every keystroke.
@@ -310,29 +296,7 @@ const CardIntentBar = ({ className = '', inputId = 'card-intent' }) => {
               Cover ✓
             </button>
           )}
-          {[
-            { id: 'test', label: '🎁 Free test card', ink: '#92400E', tint: '#FEF3C7' },
-            { id: 'real', label: '💳 Real card',      ink: '#5B21B6', tint: '#F5F3FF' },
-          ].map(o => {
-            const spent = o.id === 'test' && usedTest;
-            const on = cardMode === o.id && !spent;
-            return (
-              <button key={o.id} type="button" data-mode={o.id} disabled={spent}
-                onClick={() => !spent && setCardMode(o.id)} aria-pressed={on}
-                title={spent ? "You've already used your free test card" : undefined}
-                className="tk-opt rounded-full border-2 px-3 py-1 text-xs font-bold disabled:cursor-not-allowed"
-                style={{ minHeight: 0, opacity: spent ? 0.5 : 1,
-                         background: on ? o.tint : '#fff',
-                         borderColor: on ? o.ink : '#E9D5FF', color: o.ink }}>
-                {spent ? '🎁 Test used' : o.label}{on ? ' ✓' : ''}
-              </button>
-            );
-          })}
-          <span className="text-xs text-warm-400">
-            {usedTest ? 'Your free test card is used — this one is a real card'
-              : cardMode === 'test' ? 'Uses your 1 free credit — nothing to pay'
-              : 'One-time card fee at the end'}
-          </span>
+          <span className="text-xs text-warm-400">Free to create and share · pay once, before it's delivered</span>
         </div>
       )}
 

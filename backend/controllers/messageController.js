@@ -340,10 +340,16 @@ const sendReply = async (req, res) => {
     ).slice(0, 80));
 
     const { data: card } = await supabase
-      .from('cards').select('id, creator_id, recipient_name, title, slug, created_by_member_id')
+      .from('cards').select('id, creator_id, recipient_name, recipient_email, access_token, title, slug, created_by_member_id, company_id, cover_sender')
       .eq('slug', card_slug).maybeSingle();
 
     if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    // Only the recipient (or the card's creator) may email every signer —
+    // being signed in to ANY account used to be enough.
+    const { resolveReplier, esc } = require('./replyController');
+    const who = await resolveReplier(req, card);
+    if (!who.role) return res.status(403).json({ error: 'Only the recipient or the card creator can reply to all signers.' });
 
     // Get all unique emails of people who signed (contributors)
     const { data: messages } = await supabase
@@ -373,12 +379,12 @@ const sendReply = async (req, res) => {
           <div style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;">
             <div style="text-align:center;margin-bottom:20px;">
               <div style="font-size:40px;">💌</div>
-              <h2 style="color:#5B4BDF;margin:8px 0;">${senderName} sent you a thank-you!</h2>
-              <p style="color:#888;font-size:14px;">In response to your message on "${cardTitle}"</p>
+              <h2 style="color:#5B4BDF;margin:8px 0;">${esc(senderName)} sent you a thank-you!</h2>
+              <p style="color:#888;font-size:14px;">In response to your message on "${esc(cardTitle)}"</p>
             </div>
             <div style="background:#F5F3FF;border-radius:16px;padding:20px 24px;margin:20px 0;border-left:4px solid #7C6EFF;">
               <p style="color:#1A1730;font-size:16px;line-height:1.7;margin:0;">"${cleanReplyContent}"</p>
-              <p style="color:#888;font-size:13px;margin-top:12px 0 0;">— ${senderName}</p>
+              <p style="color:#888;font-size:13px;margin:12px 0 0;">— ${esc(senderName)}</p>
             </div>
             <div style="text-align:center;margin-top:24px;">
               <a href="${appUrl}/card/${card_slug}" style="background:#6C5CE7;color:white;padding:12px 28px;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;">View the card</a>

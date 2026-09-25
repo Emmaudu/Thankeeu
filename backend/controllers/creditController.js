@@ -457,7 +457,7 @@ const spendCredit = async (req, res) => {
             sendDate:      require('../utils/cardPayment').humanSendDate(freshCard?.send_date, freshCard?.delivery_timezone),
             // The free credit is the one granted at signup: they still had
             // their welcome credit and nothing had been purchased.
-            usedFreeCredit: (balance.credits_remaining === 1) && !(balance.total_purchased > 0),
+            usedFreeCredit: false, // free welcome credits are retired
           },
         });
       }

@@ -19,6 +19,7 @@ import { readableTextColor, backgroundIsDark } from '../utils/textContrast';
 import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
 import { formatNGN, CURRENCIES, formatCurrency, getFLWPaymentParams } from '../utils/currency';
+import occasionEmoji from '../utils/occasionEmoji';
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
 
@@ -505,7 +506,13 @@ const SignCard = () => {
   const cardFont = getFontStyle(card.font_style);
   const msgFont  = getFontStyle(form.font_style);
   const deadline = card.deadline ? new Date(card.deadline) : null;
-  const hoursLeft = deadline ? Math.max(0, Math.round((deadline - new Date()) / 3600000)) : null;
+  const msLeft = deadline && !isNaN(deadline.getTime()) ? deadline - new Date() : null;
+  const hoursLeft = msLeft !== null ? Math.max(0, Math.floor(msLeft / 3600000)) : null;
+  // "0h" read like it had already closed. Under an hour shows minutes; a
+  // passed deadline shows nothing (the card may still accept messages).
+  const closesLabel = msLeft === null || msLeft <= 0 ? null
+    : msLeft < 3600000 ? `${Math.max(1, Math.ceil(msLeft / 60000))} min`
+    : hoursLeft < 24 ? `${hoursLeft}h` : `${Math.round(hoursLeft / 24)}d`;
 
   // ── Success / congrats screen ──────────────────────────────────────────────
   if (submitted) return (
@@ -661,12 +668,12 @@ const SignCard = () => {
         {/* Hero banner */}
         <section className={`card-art ${cardArtClass(design)} px-4 py-5 sm:py-7`} style={{ background: design.background, color: heroInk }}>
           <div className="max-w-4xl mx-auto text-center relative z-10">
-            {hoursLeft !== null && hoursLeft < 48 && card.status !== 'sent' && (
+            {closesLabel && hoursLeft < 48 && card.status !== 'sent' && (
               <span className="inline-flex bg-white/80 text-amber-800 rounded-full px-4 py-2 text-sm font-extrabold mb-5 shadow-sm">
-                ⏰ Signing closes in {hoursLeft < 24 ? `${hoursLeft}h` : `${Math.round(hoursLeft/24)}d`}
+                ⏰ Signing closes in {closesLabel}
               </span>
             )}
-            <div className="text-5xl mb-4">{design.icon}</div>
+            <div className="text-5xl mb-4">{occasionEmoji(card?.occasion, design)}</div>
             <p className="text-xs font-extrabold tracking-[.24em] uppercase mb-3" style={{ color: heroAccent }}>You're invited to celebrate</p>
             <h1 className="max-w-3xl mx-auto mb-4 text-3xl sm:text-4xl font-bold" style={{ color: heroInk, fontFamily: cardFont.family }}>
               {card.title || `A special card for ${card.recipient_name}`}
@@ -909,7 +916,7 @@ const SignCard = () => {
             >
               {/* Header badge */}
               <div className="flex justify-between items-center px-5 pt-5 pb-3 flex-shrink-0">
-                <span className="text-2xl">{design.icon}</span>
+                <span className="text-2xl">{occasionEmoji(card?.occasion, design)}</span>
                 <span className="text-xs font-extrabold tracking-[.18em] uppercase opacity-60" style={{ color: previewInk }}>Live preview</span>
               </div>
 

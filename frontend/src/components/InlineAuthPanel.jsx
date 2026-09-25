@@ -62,13 +62,11 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
     onAuthenticated?.();
     onDone?.();
 
-    // Every new account gets a free credit, so the common first-time path is
-    // "already live" rather than "go and pay". A card that went live needs a
-    // two-second hand-off, not ten — there is nothing left for them to do.
+    // Next stop is the launch step (Create Now, Pay Later).
     let result = { mode: 'review' };
     try { result = (await afterAuth?.()) || result; } catch { /* fall back to review */ }
     setOutcome(result);
-    setCountdown(result.mode === 'live' ? 2 : 10);
+    setCountdown(result.mode === 'live' ? 2 : 5);
   };
 
   useEffect(() => {
@@ -120,7 +118,7 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
   /* ── Signed in — hand over ─────────────────────────────────────────────── */
   if (countdown !== null) {
     const live = outcome?.mode === 'live';
-    const total = live ? 2 : 10;
+    const total = live ? 2 : 5;
     return (
       <div className={`overflow-hidden rounded-2xl border-2 bg-white ${live ? 'border-emerald-300' : 'border-emerald-200'}`}>
         <div className="px-5 py-6 text-center"
@@ -133,10 +131,9 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
           </h3>
           <p className="mx-auto max-w-sm text-sm text-warm-600">
             {live
-              ? <>We used your <strong>free credit</strong>, so there was nothing to pay. Taking you to your
-                 sharing link now — we have emailed it to you too.</>
-              : <>Taking you to your dashboard to review your card and pay. You'll land on the
-                 review step, with <strong>Back</strong> and <strong>Next</strong> to check everything first.</>}
+              ? <>Taking you to your sharing link now — we have emailed it to you too.</>
+              : <>Taking you to your dashboard to launch your card. Collect signatures first —
+                 you only pay when you're happy and ready for it to be delivered.</>}
           </p>
         </div>
         <div className="flex flex-col items-center gap-3 px-5 py-4">
@@ -161,19 +158,10 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
   if (!mode) {
     return (
       <div className="rounded-2xl border border-purple-100 bg-white p-5">
-        <h3 className="mb-1 text-lg font-bold text-warm-900">Almost there — is this your first card?</h3>
-        <p className="mb-3 text-sm text-warm-500">
+        <h3 className="mb-1 text-lg font-bold text-warm-900">Almost there — new here or returning?</h3>
+        <p className="mb-4 text-sm text-warm-500">
           We just need to know where to save it. No verification codes, no waiting.
         </p>
-        <div className="mb-4 flex items-start gap-2.5 rounded-xl px-3.5 py-2.5"
-          style={{ background:'#FEF3C7' }}>
-          <span className="text-base leading-none">🎁</span>
-          <p className="text-xs leading-relaxed" style={{ color:'#92400E' }}>
-            <strong>New accounts get 1 free credit.</strong> If this is your first card we'll
-            use it automatically — nothing to pay, and it goes live straight away so you can
-            see exactly how it works.
-          </p>
-        </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <button type="button" onClick={() => setMode('new')}
             className="flex items-center gap-3 rounded-2xl border-2 border-primary-200 bg-primary-50/50 p-4 text-left transition-all hover:border-primary-400 hover:bg-primary-50">
@@ -247,7 +235,7 @@ const InlineAuthPanel = ({ onDone, onAuthenticated, redirectTo = '/create-card?r
 
       <p className="mt-3 text-center text-xs text-warm-500">
         Next you'll land in your dashboard on the review step — check everything with{' '}
-        <strong className="text-warm-700">Back</strong> and <strong className="text-warm-700">Next</strong>, then hit pay.
+        <strong className="text-warm-700">Back</strong> and <strong className="text-warm-700">Next</strong>, then Create Now, Pay Later.
       </p>
 
       {mode === 'returning' && (

@@ -54,7 +54,7 @@ export default function AdminGames() {
           <div>
             <Link to="/admin" className="text-sm font-semibold text-primary-600">Back to Thankeeu admin</Link>
             <h1 className="mt-2 text-3xl font-black text-warm-900">Thankeeu Games Admin</h1>
-            <p className="text-warm-500">Control thankeeu.com/games from the normal Thankeeu admin account. Current week: {data.week.week_key}</p>
+            <p className="text-warm-500">Control thankeeu.com/games from the normal Thankeeu admin account. Current week: {data.week?.week_key || '—'}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={sendReminders} className="btn-secondary px-5 py-3">Send Friday reminders</button>
@@ -77,7 +77,7 @@ export default function AdminGames() {
           <section className="rounded-3xl bg-white p-6 shadow-sm">
             <h2 className="font-black text-warm-900">Department games</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              {data.departments.map(dept => (
+              {(data.departments || []).map(dept => (
                 <div key={dept.id} className="rounded-2xl border border-purple-100 p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -123,7 +123,7 @@ export default function AdminGames() {
             <table className="w-full text-sm">
               <thead><tr className="text-left text-warm-500"><th className="p-3">Employee</th><th className="p-3">Email</th><th className="p-3">Company</th><th className="p-3">Game</th></tr></thead>
               <tbody>
-                {data.registrations.map(r => (
+                {(data.registrations || []).map(r => (
                   <tr key={r.id} className="border-t border-purple-50">
                     <td className="p-3 font-semibold">{r.games_players?.full_name}</td>
                     <td className="p-3">{r.games_players?.email}</td>
@@ -139,7 +139,7 @@ export default function AdminGames() {
         <section className="mt-6 rounded-3xl bg-white p-6 shadow-sm">
           <h2 className="font-black text-warm-900">Leaderboard</h2>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {data.leaderboard.map((row, index) => (
+            {(data.leaderboard || []).map((row, index) => (
               <div key={row.id} className="flex items-center justify-between rounded-2xl bg-primary-50 p-4">
                 <div>
                   <p className="font-bold text-warm-900">#{index + 1} {row.full_name}</p>

@@ -19,4 +19,18 @@ router.get('/hero', async (req, res) => {
   }
 });
 
+// GET /api/site/announcement — the announcement bar above the navbar
+// (Admin → Discount Codes). { announcement: null } when nothing is live.
+router.get('/announcement', async (req, res) => {
+  try {
+    const { readAnnouncement, publicView } = require('../utils/announcementSettings');
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+    res.json({ ok: true, announcement: publicView(await readAnnouncement()) });
+  } catch (err) {
+    console.error('[site/announcement] read failed:', err.message);
+    res.set('Cache-Control', 'no-store');
+    res.json({ ok: false, announcement: null });
+  }
+});
+
 module.exports = router;

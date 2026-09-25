@@ -24,7 +24,7 @@
  * `flipDirection` is '' | 'forward' | 'back'. Changing the `key` on every turn
  * is what replays the animation.
  */
-export const ALBUM_FLIP_DURATION_MS = 620;
+export const ALBUM_FLIP_DURATION_MS = 820;
 
 export const ALBUM_FLIP_CSS = `
   /* The stage owns the perspective, so the leaf actually rotates through
@@ -43,27 +43,27 @@ export const ALBUM_FLIP_CSS = `
      back off the right. The brightness dip is the shadow the page casts on
      itself as it passes through the vertical. */
   .album-page-turn.forward {
-    animation: album-leaf-forward .62s cubic-bezier(.2,.72,.15,1) both;
+    animation: album-leaf-forward .82s cubic-bezier(.3,.6,.18,1) both;
     transform-origin: left center;
   }
   .album-page-turn.back {
-    animation: album-leaf-back .62s cubic-bezier(.2,.72,.15,1) both;
+    animation: album-leaf-back .82s cubic-bezier(.3,.6,.18,1) both;
     transform-origin: right center;
   }
 
   @keyframes album-leaf-forward {
-    0%   { opacity:.25; transform: rotateY(-96deg) skewY(-1.6deg) scale(.985); filter: brightness(.70); }
-    42%  { opacity:1;                                                          filter: brightness(.86); }
-    64%  {              transform: rotateY(9deg)   skewY(.35deg)  scale(1.004); }
-    82%  {              transform: rotateY(-3deg)  skewY(-.12deg) scale(1); }
-    100% { opacity:1;   transform: rotateY(0)      skewY(0)       scale(1);     filter: brightness(1); }
+    0%   { opacity:.2;  transform: rotateY(-110deg) translateZ(70px) skewY(-2.4deg) scale(.97); filter: brightness(.55) drop-shadow(-18px 20px 30px rgba(0,0,0,.35)); }
+    35%  { opacity:1;   transform: rotateY(-55deg)  translateZ(46px) skewY(-1.6deg) scale(.99); filter: brightness(.78) drop-shadow(-14px 18px 26px rgba(0,0,0,.28)); }
+    68%  {              transform: rotateY(8deg)    translateZ(8px)  skewY(.4deg)   scale(1.005); filter: brightness(.97) drop-shadow(-6px 10px 16px rgba(0,0,0,.16)); }
+    86%  {              transform: rotateY(-2.5deg) translateZ(0)    skewY(-.1deg)  scale(1); }
+    100% { opacity:1;   transform: rotateY(0)       translateZ(0)    skewY(0)       scale(1); filter: brightness(1) drop-shadow(0 0 0 rgba(0,0,0,0)); }
   }
   @keyframes album-leaf-back {
-    0%   { opacity:.25; transform: rotateY(96deg)  skewY(1.6deg)  scale(.985); filter: brightness(.70); }
-    42%  { opacity:1;                                                          filter: brightness(.86); }
-    64%  {              transform: rotateY(-9deg)  skewY(-.35deg) scale(1.004); }
-    82%  {              transform: rotateY(3deg)   skewY(.12deg)  scale(1); }
-    100% { opacity:1;   transform: rotateY(0)      skewY(0)       scale(1);     filter: brightness(1); }
+    0%   { opacity:.2;  transform: rotateY(110deg)  translateZ(70px) skewY(2.4deg)  scale(.97); filter: brightness(.55) drop-shadow(18px 20px 30px rgba(0,0,0,.35)); }
+    35%  { opacity:1;   transform: rotateY(55deg)   translateZ(46px) skewY(1.6deg)  scale(.99); filter: brightness(.78) drop-shadow(14px 18px 26px rgba(0,0,0,.28)); }
+    68%  {              transform: rotateY(-8deg)   translateZ(8px)  skewY(-.4deg)  scale(1.005); filter: brightness(.97) drop-shadow(6px 10px 16px rgba(0,0,0,.16)); }
+    86%  {              transform: rotateY(2.5deg)  translateZ(0)    skewY(.1deg)   scale(1); }
+    100% { opacity:1;   transform: rotateY(0)       translateZ(0)    skewY(0)       scale(1); filter: brightness(1) drop-shadow(0 0 0 rgba(0,0,0,0)); }
   }
 
   @media (prefers-reduced-motion: reduce) {

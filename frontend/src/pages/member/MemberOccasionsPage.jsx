@@ -8,6 +8,7 @@ import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../../utils/cardDesigns';
 import Icon from '../../components/ui/Icon';
+import occasionEmoji from '../../utils/occasionEmoji';
 
 const OCCASION_ICONS = {
   birthday: '🎂', leaving: '👋', work_anniversary: '🏆', promotion: '🌟',
@@ -250,7 +251,7 @@ const MemberOccasionsPage = () => {
                       onClick={() => setCardForm(p => ({ ...p, design_theme: design.id, background_color: design.background }))}
                       className={`rounded-2xl overflow-hidden border-2 transition-all ${cardForm.design_theme === design.id ? 'border-primary-500 shadow-md' : 'border-white'}`}
                       title={design.name}>
-                      <span className={`card-art ${cardArtClass(design)} h-14 grid place-items-center text-2xl`} style={{ background: design.background }}>{design.icon}</span>
+                      <span className={`card-art ${cardArtClass(design)} h-14 grid place-items-center text-2xl`} style={{ background: design.background }}>{occasionEmoji(null, design)}</span>
                     </button>
                   ))}
                 </div>

@@ -8,6 +8,8 @@ import { formatNGN } from '../utils/currency';
 import Icon from '../components/ui/Icon';
 import { asArray } from '../utils/asArray';
 import { DEFAULT_HERO, splitHeroTitle, HERO_WORD_TOKEN } from '../utils/heroDefaults';
+import AdminCardDetails from '../components/admin/AdminCardDetails';
+import AnnouncementEditor from '../components/admin/AnnouncementEditor';
 
 // ── Mini helpers ──────────────────────────────────────────────────────────────
 const Badge = ({ children, color = 'purple' }) => {
@@ -961,6 +963,7 @@ const DiscountCodesTab = ({ codes, loading, onCreate, onToggle, onDelete, redemp
 
   return (
     <div className="space-y-6">
+      <AnnouncementEditor />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl border border-purple-100 p-4">
           <p className="text-xs text-warm-400 mb-1">Total Codes</p>
@@ -1149,6 +1152,8 @@ const Admin = () => {
   const { user } = useAuth();
   const [loading, setLoading]           = useState(true);
   const [tab, setTab]                   = useState('overview');
+  const [detailCardId, setDetailCardId] = useState(null);
+  const [cardSearch, setCardSearch]     = useState('');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Core data
@@ -1770,11 +1775,11 @@ const Admin = () => {
               </div>
               <div className="divide-y divide-purple-50">
                 {cards.slice(0, 8).map(c => (
-                  <div key={c.id} className="flex items-center gap-3 px-5 py-3 hover:bg-purple-50/30">
+                  <div key={c.id} onClick={() => setDetailCardId(c.id)} className="flex cursor-pointer items-center gap-3 px-5 py-3 hover:bg-purple-50/30">
                     <div className="w-8 h-8 bg-pink-100 rounded-xl flex items-center justify-center text-pink-600 text-sm flex-shrink-0">💌</div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-warm-800 truncate">{c.title || `For ${c.recipient_name}`}</p>
-                      <p className="text-xs text-warm-400 truncate">{c.occasion} · {c.creator_name}</p>
+                      <p className="text-xs text-warm-400 truncate">{c.occasion} · {c.creator_name}{c.creator_email ? ` (${c.creator_email})` : ''}</p>
                     </div>
                     <Badge color={c.status==='sent'?'green':c.status==='active'?'blue':'gray'}>{c.status}</Badge>{c.status==='active' && c.payment_pending && <> <Badge color="amber">unpaid</Badge></>}
                   </div>
@@ -1793,18 +1798,32 @@ const Admin = () => {
         {/* ─────────────── CARDS ─────────────── */}
         {tab === 'cards' && (
           <div className="bg-white rounded-2xl border border-purple-100 overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-50 px-4 py-3">
+              <p className="text-xs text-warm-500">Click any card to see its full stats page.</p>
+              <input value={cardSearch} onChange={e => setCardSearch(e.target.value)}
+                placeholder="Search card, recipient, creator or email…" className="input w-full max-w-sm py-2 text-sm" />
+            </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead style={{ background:'#F8F6FF' }}>
-                  <tr>{['Card','Creator','Occasion','Status','Gift','Created',''].map(h=>(
+                  <tr>{['Card','Creator','Occasion','Status','Signers','Gift','Delivery','Created',''].map(h=>(
                     <th key={h} className="text-left px-4 py-3 text-xs font-bold text-warm-500 uppercase tracking-wide">{h}</th>
                   ))}</tr>
                 </thead>
                 <tbody className="divide-y divide-purple-50">
-                  {cards.map(c => (
-                    <tr key={c.id} className="hover:bg-purple-50/30">
-                      <td className="px-4 py-3 text-sm font-semibold text-warm-800 max-w-[180px] truncate">{c.title || `For ${c.recipient_name}`}</td>
-                      <td className="px-4 py-3 text-xs text-warm-500">{c.creator_name}</td>
+                  {cards.filter(c => {
+                    const q = cardSearch.trim().toLowerCase();
+                    return !q || `${c.title || ''} ${c.recipient_name || ''} ${c.recipient_email || ''} ${c.creator_name || ''} ${c.creator_email || ''} ${c.slug || ''}`.toLowerCase().includes(q);
+                  }).map(c => (
+                    <tr key={c.id} className="cursor-pointer hover:bg-purple-50/40" onClick={() => setDetailCardId(c.id)}>
+                      <td className="px-4 py-3 max-w-[200px]">
+                        <p className="text-sm font-semibold text-primary-700 truncate underline-offset-2 hover:underline">{c.title || `For ${c.recipient_name}`}</p>
+                        <p className="text-[11px] text-warm-400 truncate">To {c.recipient_name}</p>
+                      </td>
+                      <td className="px-4 py-3 text-xs max-w-[200px]">
+                        <p className="font-semibold text-warm-700 truncate">{c.creator_name}</p>
+                        <p className="text-[11px] text-warm-400 truncate">{c.creator_email || ({ company:'Company', team_member:'Team member', guest:'Guest', pal_group:'Pals' }[c.creator_type] || '')}</p>
+                      </td>
                       <td className="px-4 py-3 text-xs text-warm-500 capitalize">{c.occasion?.replace('_',' ')}</td>
                       <td className="px-4 py-3">
                         <Badge color={c.status==='sent'?'green':c.status==='active'?'blue':'gray'}>{c.status}</Badge>{c.status==='active' && c.payment_pending && <> <Badge color="amber">unpaid</Badge></>}
@@ -1814,9 +1833,11 @@ const Admin = () => {
                           </span>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-xs font-semibold text-warm-700">{c.signed_count ?? '—'}</td>
                       <td className="px-4 py-3 text-xs font-semibold text-green-700">{c.total_collected ? formatNGN(c.total_collected) : '—'}</td>
-                      <td className="px-4 py-3 text-xs text-warm-400">{c.created_at ? format(new Date(c.created_at),'MMM d') : '—'}</td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-warm-500 whitespace-nowrap">{c.send_date ? format(new Date(c.send_date),'MMM d, HH:mm') : '—'}</td>
+                      <td className="px-4 py-3 text-xs text-warm-400 whitespace-nowrap">{c.created_at ? format(new Date(c.created_at),'MMM d, yyyy') : '—'}</td>
+                      <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
                         {c.status === 'sent' && (
                           <button
                             disabled={redeliveringId === c.id}
@@ -2789,6 +2810,7 @@ const Admin = () => {
 
         {/* ── SETTINGS TAB ── */}
         {tab === 'header' && <HeaderTab />}
+        {detailCardId && <AdminCardDetails cardId={detailCardId} onClose={() => setDetailCardId(null)} />}
         {tab === 'coverdesigns' && <CoverDesignTab />}
         {tab === 'settings' && <SettingsTab />}
 

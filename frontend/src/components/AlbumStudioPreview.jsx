@@ -7,6 +7,7 @@ import Switch from './ui/Switch';
 import { ALBUM_THEMES, getAlbumTheme, getContrastTextColor, getAlbumInk } from '../utils/albumThemes';
 import { getFontStyle } from '../utils/cardDesigns';
 import { ALBUM_FLIP_CSS } from '../utils/albumFlip';
+import { playPageTurn } from '../utils/pageTurn';
 
 const PAGE_LABELS = ['Cover', 'Message', 'Everyone'];
 
@@ -611,23 +612,7 @@ const AlbumStudioPreview = ({
   }, [design, theme, form.background_color]);
 
   const playFlipSound = useCallback(() => {
-    try {
-      let ctx = audioCtxRef.current;
-      if (!ctx) { ctx = new (window.AudioContext || window.webkitAudioContext)(); audioCtxRef.current = ctx; }
-      if (ctx.state === 'suspended') ctx.resume();
-      const duration = 0.25;
-      const buffer = ctx.createBuffer(1, ctx.sampleRate * duration, ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < data.length; i += 1) {
-        const t = i / data.length;
-        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.1) * Math.min(1, t * 13) * 0.45;
-      }
-      const source = ctx.createBufferSource();
-      const filter = ctx.createBiquadFilter();
-      const gain = ctx.createGain();
-      source.buffer = buffer; filter.type = 'bandpass'; filter.frequency.value = 2500; filter.Q.value = 0.75; gain.gain.value = 0.3;
-      source.connect(filter); filter.connect(gain); gain.connect(ctx.destination); source.start();
-    } catch { /* Browsers may block audio until the first interaction. */ }
+    playPageTurn();   // shared realistic paper page-turn (utils/pageTurn)
   }, []);
   const goToPage = useCallback((target) => {
     // Snap to the nearest *navigable* leaf, so the Message page is skipped
@@ -642,7 +627,7 @@ const AlbumStudioPreview = ({
     playFlipSound();
     setPage(next);
     clearTimeout(flipTimerRef.current);
-    flipTimerRef.current = setTimeout(() => setFlipDirection(''), 620);
+    flipTimerRef.current = setTimeout(() => setFlipDirection(''), 820);
   }, [page, playFlipSound, NAV_PAGES]);
   const movePage = (d) => {
     const at = NAV_PAGES.indexOf(page);

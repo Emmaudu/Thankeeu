@@ -199,8 +199,8 @@ const CardStart = () => {
  // forwarded to /create-card, and consuming (which clears) the intent here
  // would leave that page with nothing to apply.
  const [intentSummary, setIntentSummary] = useState([]);
- // 'test' spends the free credit and goes live; 'real' goes to payment. Chosen
- // explicitly on the homepage, so nothing is ever spent without being asked.
+ // Intent mode from the homepage box (kept for old links; no free test card)
+
  const [intentMode, setIntentMode] = useState(null);
  // The sender's OWN email, typed at step 2 of the homepage box. Safe to
  // pre-fill the sign-in field with — unlike the recipient's address, which is
@@ -416,69 +416,16 @@ const CardStart = () => {
   * falls back to 'review': the customer still has their draft and can pay
   * normally, which is strictly better than an error on their first visit.
   */
+ // Straight after sign-in: attach the guest draft to the new account, then
+ // hand over to the launch step (Create Now, Pay Later). There is no free
+ // credit any more, so nothing is ever spent or published automatically.
  const activateWithCreditIfPossible = async () => {
   try {
    const slug = draftSlug;
-   if (!slug) return { mode: 'review' };
-
-   // They chose "real card" on the homepage — take them to payment even if a
-   // free credit is sitting there. Their choice, not ours.
-   if (intentMode === 'real') return { mode: 'review' };
-
-   // CLAIM FIRST. The draft was created anonymously, so its creator_id is
-   // null; spendCredit refuses with 403 unless the card already belongs to
-   // the account that just signed in. Without this the whole free-credit path
-   // silently falls back to "go and pay" — the request fails, the catch below
-   // swallows it, and nothing anywhere says why.
-   try {
-    const pending = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
-    const editToken = pending.draft_edit_token;
-    if (editToken) await cardsAPI.claimDraft(slug, editToken);
-   } catch { /* already claimed, or claimed by the resume path later — carry on */ }
-
-   // The endpoint returns { credits }, not { credits_remaining } — reading the
-   // wrong key here would silently mean "no credits" for everybody.
-   const { data: bal } = await creditsAPI.getBalance();
-   if ((bal?.credits || 0) < 1) return { mode: 'review' };
-
-   // ONLY the free welcome credit is spent automatically. Someone who bought a
-   // credit pack must click to spend one — silently drawing down credits a
-   // customer paid for, on a card they have not reviewed, is spending their
-   // money for them. They go to the review step and choose, exactly as before.
-   if ((bal?.total_purchased || 0) > 0) return { mode: 'review' };
-
-   // spend() deducts the credit AND activates the card server-side; it also
-   // arms delivery scheduling and emails the creator their sharing link.
-   const res = await creditsAPI.spend(slug);
-   if (!res.data?.ok) return { mode: 'review' };
-
-   // Invites are a separate call and must not undo a successful activation.
-   const emailList = inviteEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
-   if (emailList.length) {
-    await cardsAPI.activate(slug, { inviteEmails: emailList }).catch(() => {});
-   }
-   // Carry the recipient photo across, the way every other activation path
-   // does. saveRecipientPhoto() itself lives inside handlePayAndLaunch's scope
-   // and is not reachable from here, so the upload is repeated rather than
-   // called — deliberately, and kept to the one attachment guests can add at
-   // this point. Best effort: a failed upload must not turn a live card into
-   // an error screen.
-   if (recipientPhoto?.file) {
-    try {
-     const pfd = new FormData();
-     pfd.append('photo', recipientPhoto.file);
-     await cardsAPI.uploadRecipientPhoto(slug, pfd, undefined);
-    } catch (e) { console.warn('[recipient-photo] upload failed:', e?.message); }
-   }
-
-   localStorage.removeItem(PENDING_KEY);
-   return { mode: 'live', slug };
-  } catch (err) {
-   // Logged, not swallowed. This path failing silently is exactly how the
-   // free-credit activation went unnoticed the first time.
-   console.warn('[free credit] activation fell back to review:', err?.response?.status, err?.message);
-   return { mode: 'review' };
-  }
+   const pending = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
+   if (slug && pending.draft_edit_token) await cardsAPI.claimDraft(slug, pending.draft_edit_token);
+  } catch { /* already claimed — the launch step claims again if needed */ }
+  return { mode: 'review' };
  };
 
  const saveSnapshot = (extra = {}) => {
@@ -1357,9 +1304,7 @@ const CardStart = () => {
  <h2 className="text-2xl font-bold text-warm-900 mb-2">Card saved as draft!</h2>
  <p className="text-warm-500 text-sm max-w-sm mx-auto">
  Sign in or create a free account to launch it and get your sharing link — collect
- signatures first and pay only when you're ready for it to be delivered. And
- new accounts get <strong className="text-warm-700">1 free credit</strong>, so your first
- card costs nothing.
+ signatures first and pay only when you're ready for it to be delivered.
  </p>
  </div>
 
@@ -1414,7 +1359,7 @@ const CardStart = () => {
  {/* ── AUTHENTICATED: Normal Gift & Pay ── */}
  {/* Hidden during the hand-off: the panel above is already counting down to
      an activated card, and leaving a live pay button under it lets someone
-     pay ₦5,000 for a card that was just activated with a free credit. */}
+     launch the card twice while the hand-off is taking them to it. */}
  {(user || isCompanyUser) && !handingOff && (<>
  <h2 className="text-xl font-bold text-warm-900 mb-1">Gift & activate</h2>
  <p className="text-warm-500 text-sm mb-5">Enable a gift collection and launch your card</p>

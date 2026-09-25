@@ -160,27 +160,8 @@ const verifyCodeAndSignup = async (req, res) => {
     // Clean up pending record
     await supabase.from('pending_signups').delete().eq('email', cleanEmail);
 
-    // ── Welcome credit ──────────────────────────────────────────────────
-    // One free credit per new account, so a first card can go out without a
-    // payment step. Granted at signup rather than lazily on first use, so the
-    // balance endpoint reports it honestly from the moment they land.
-    //
-    // NOTE: this is one free card per EMAIL ADDRESS, not per person — see
-    // DEPLOY_NOTES §5. If farming shows up, gate it on is_verified.
-    try {
-      // supabase-js RESOLVES with { error } rather than throwing, so the catch
-      // alone would never fire and a failed grant would be invisible.
-      const { error: creditErr } = await supabase.from('card_credits').insert({
-        user_id:           user.id,
-        credits_remaining: 1,
-        total_purchased:   0,            // granted, never bought
-        plan_type_v2:      'welcome_free',
-      });
-      if (creditErr) console.error('signup: welcome credit failed for', user.id, creditErr.message);
-    } catch (thrown) {
-      // A missing welcome credit must never block a signup — they can still pay.
-      console.error('signup: welcome credit threw for', user.id, thrown.message);
-    }
+    // (No welcome credit: new accounts start with 0 credits. Cards are
+    //  published free and paid for before delivery — Create Now, Pay Later.)
 
     // Mark any matching guest visitor record as converted (for admin Guests tab)
     try {
@@ -264,27 +245,8 @@ const signup = async (req, res) => {
       throw error;
     }
 
-    // ── Welcome credit ──────────────────────────────────────────────────
-    // One free credit per new account, so a first card can go out without a
-    // payment step. Granted at signup rather than lazily on first use, so the
-    // balance endpoint reports it honestly from the moment they land.
-    //
-    // NOTE: this is one free card per EMAIL ADDRESS, not per person — see
-    // DEPLOY_NOTES §5. If farming shows up, gate it on is_verified.
-    try {
-      // supabase-js RESOLVES with { error } rather than throwing, so the catch
-      // alone would never fire and a failed grant would be invisible.
-      const { error: creditErr } = await supabase.from('card_credits').insert({
-        user_id:           user.id,
-        credits_remaining: 1,
-        total_purchased:   0,            // granted, never bought
-        plan_type_v2:      'welcome_free',
-      });
-      if (creditErr) console.error('signup: welcome credit failed for', user.id, creditErr.message);
-    } catch (thrown) {
-      // A missing welcome credit must never block a signup — they can still pay.
-      console.error('signup: welcome credit threw for', user.id, thrown.message);
-    }
+    // (No welcome credit: new accounts start with 0 credits. Cards are
+    //  published free and paid for before delivery — Create Now, Pay Later.)
 
     // Mark any matching guest visitor record as converted (for admin Guests tab)
     try {
@@ -388,11 +350,7 @@ const quickStart = async (req, res) => {
     }
     if (!user) return res.status(500).json({ error: 'Could not start your card. Please try again.' });
 
-    // Welcome credit, same as every other new account.
-    const { error: creditErr } = await supabase.from('card_credits').insert({
-      user_id: user.id, credits_remaining: 1, total_purchased: 0, plan_type_v2: 'welcome_free',
-    });
-    if (creditErr) console.error('quickStart: welcome credit failed for', user.id, creditErr.message);
+    // (No welcome credit any more — see signup.)
 
     // Tell them how to take ownership of the account. Best effort.
     try {

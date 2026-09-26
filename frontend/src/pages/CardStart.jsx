@@ -183,6 +183,7 @@ const CardStart = () => {
  deadline: '', deadline_time: '23:59',
  is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
  allow_private_messages: true, send_reminders: true, hide_amounts: false,
+ hide_view_messages_button: false,
  notification_scope: 'department',
  card_experience: 'card_only',
  custom_occasion: '',
@@ -708,7 +709,7 @@ const CardStart = () => {
  recipient_name: '', recipient_email: '', send_date: '', send_time: '09:00',
  deadline: '', deadline_time: '23:59', is_gift_enabled: true, gift_type: 'pot',
  suggested_amount: 2500, allow_private_messages: true, send_reminders: true,
- hide_amounts: false, notification_scope: 'department', card_experience: 'card_only',
+ hide_amounts: false, hide_view_messages_button: false, notification_scope: 'department', card_experience: 'card_only',
  cover_layout: null,
  recipient_country: DEFAULT_PLACE.country, delivery_timezone: DEFAULT_PLACE.timezone,
  });
@@ -1126,6 +1127,7 @@ const CardStart = () => {
  { key: 'allow_private_messages', label: 'Allow private messages', desc: 'Contributors can mark messages visible only to recipient' },
  { key: 'send_reminders', label: 'Auto-send reminders', desc: "Nudge people who haven't signed 2 days before deadline" },
  { key: 'hide_amounts', label: 'Hide gift amounts', desc: "Contributors won't see how much others gave" },
+ { key: 'hide_view_messages_button', label: 'Hide "view others\' messages" button', desc: "People signing won't be able to peek at other messages first, even if none are marked private" },
  ].map(({ key, label, desc }) => (
  <div key={key} className="flex items-center justify-between p-4">
  <div><p className="text-sm font-semibold text-warm-800">{label}</p><p className="text-xs text-warm-500 mt-0.5">{desc}</p></div>

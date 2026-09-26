@@ -686,8 +686,10 @@ const SignCard = () => {
               )}
             </div>
 
-            {/* View messages button */}
-            {(card.signed_count || 0) > 0 && (
+            {/* View messages button — the creator can hide this so people
+                signing can't peek at other signers' messages first, even
+                when those messages aren't individually marked private. */}
+            {(card.signed_count || 0) > 0 && !card.hide_view_messages_button && (
               <div className="mt-5">
                 <a href={`/card/${slug}`}
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105"

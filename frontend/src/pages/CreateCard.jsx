@@ -113,6 +113,7 @@ const CreateCard = () => {
  send_time: '09:00', deadline: '', deadline_time: '23:59',
  is_gift_enabled: true, gift_type: 'pot', suggested_amount: 2500,
  allow_private_messages: true, send_reminders: true, hide_amounts: false,
+ hide_view_messages_button: false,
  notification_scope: 'department',
  custom_occasion: '',
  cover_sender: creatorName === 'You' ? '' : creatorName,
@@ -371,6 +372,7 @@ const CreateCard = () => {
  allow_private_messages: card.allow_private_messages ?? prev.allow_private_messages,
  send_reminders: card.send_reminders ?? prev.send_reminders,
  hide_amounts: card.hide_amounts ?? prev.hide_amounts,
+ hide_view_messages_button: card.hide_view_messages_button ?? prev.hide_view_messages_button,
  notification_scope: card.notification_scope || prev.notification_scope,
  cover_sender: card.cover_sender ?? prev.cover_sender,
  cover_layout: card.cover_layout ?? prev.cover_layout,
@@ -666,7 +668,7 @@ const CreateCard = () => {
  setForm({ occasion:'birthday', design_theme:'birthday-art-1', background_color:'#FBEAF0', font_style:'elegant', card_layout:'album',
  title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
  send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
- allow_private_messages:true, send_reminders:true, hide_amounts:false, notification_scope:'department',
+ allow_private_messages:true, send_reminders:true, hide_amounts:false, hide_view_messages_button:false, notification_scope:'department',
  cover_sender: creatorName === 'You' ? '' : creatorName, cover_text_color:'auto', cover_layout:null, card_experience:'card_only', album_background_theme:'cover_blur', recipient_country: DEFAULT_PLACE.country, delivery_timezone: DEFAULT_PLACE.timezone });
  };
 
@@ -1164,6 +1166,7 @@ const CreateCard = () => {
  { key:'allow_private_messages', label:'Allow private messages', desc:'Contributors can mark messages visible only to recipient' },
  { key:'send_reminders', label:'Auto-send reminders', desc:"Nudge people who haven't signed 2 days before deadline" },
  { key:'hide_amounts', label:'Hide gift amounts', desc:"Contributors won't see how much others gave" },
+ { key:'hide_view_messages_button', label:'Hide "view others\' messages" button', desc:"People signing won't be able to peek at other messages first, even if none are marked private" },
  ].map(({ key, label, desc }) => (
  <div key={key} className="flex items-center justify-between p-4">
  <div><p className="text-sm font-semibold text-warm-800">{label}</p><p className="text-xs text-warm-500 mt-0.5">{desc}</p></div>

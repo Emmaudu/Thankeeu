@@ -24,7 +24,10 @@ const addMessage = async (req, res) => {
       return res.status(400).json({ error: 'Invalid product price' });
 
     const { data: card } = await supabase
-      .from('cards').select('id, status, allow_private_messages, pal_group_id, pal_member_id')
+      .from('cards').select(`
+        id, status, allow_private_messages, pal_group_id, pal_member_id,
+        title, recipient_name, slug, creator_id, created_by_member_id, company_id
+      `)
       .eq('slug', card_slug).maybeSingle();
 
     if (!card) return res.status(404).json({ error: 'Card not found' });
@@ -248,6 +251,10 @@ const addMessage = async (req, res) => {
     }
 
     res.status(201).json(message);
+
+    // Let the card creator know someone new just signed — best-effort,
+    // never blocks the response the signer is waiting on.
+    notifyCreatorNewSignature(card, message).catch(e => console.warn('[addMessage] creator notify failed:', e.message));
   } catch (err) {
     console.error('[addMessage] error:', err?.message || err, '| code:', err?.code, '| detail:', err?.details || err?.hint);
     // Return the actual DB/validation error so the frontend can show something useful
@@ -255,6 +262,59 @@ const addMessage = async (req, res) => {
     res.status(500).json({ error: errMsg });
   }
 };
+
+// Tell the card creator whenever someone new signs their card — so they
+// know who has signed without having to keep checking the card themselves.
+// Only the creator is emailed (not the recipient, not other signers).
+// Best-effort; never blocks the signer's request.
+async function notifyCreatorNewSignature(card, message) {
+  if (!card || !message) return;
+
+  // Resolve the creator's email/name across all three ways a card can be
+  // created: an individual user, a team member, or a company (HR) account.
+  let creatorEmail = null;
+  let creatorName  = null;
+  if (card.creator_id) {
+    const { data: creator } = await supabase.from('users')
+      .select('email, full_name').eq('id', card.creator_id).maybeSingle();
+    if (creator) { creatorEmail = creator.email; creatorName = creator.full_name; }
+  } else if (card.created_by_member_id) {
+    const { data: creator } = await supabase.from('company_members')
+      .select('email, first_name, last_name').eq('id', card.created_by_member_id).maybeSingle();
+    if (creator) { creatorEmail = creator.email; creatorName = `${creator.first_name || ''} ${creator.last_name || ''}`.trim(); }
+  } else if (card.company_id) {
+    const { data: creator } = await supabase.from('companies')
+      .select('email, contact_person, name').eq('id', card.company_id).maybeSingle();
+    if (creator) { creatorEmail = creator.email; creatorName = creator.contact_person || creator.name; }
+  }
+  if (!creatorEmail) return;
+
+  // Don't email the creator about their own signature.
+  if (message.author_email && message.author_email.toLowerCase() === creatorEmail.toLowerCase()) return;
+
+  const cardTitle = card.title || `${card.recipient_name || 'a'}'s card`;
+  const excerpt = String(message.content || '').slice(0, 140) + (String(message.content || '').length > 140 ? '…' : '');
+  await sendEmail({
+    to: creatorEmail,
+    subject: `✍️ ${message.author_name || 'Someone'} just signed "${cardTitle}"`,
+    html: `
+      <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+        <div style="text-align:center;margin-bottom:18px;">
+          <div style="font-size:40px;">✍️</div>
+          <h2 style="color:#4B3F72;margin:8px 0;">New signature on your card!</h2>
+          <p style="color:#888;font-size:14px;margin:0;">${creatorName ? `Hi ${escHtml(creatorName)}, ` : ''}"${escHtml(cardTitle)}" just got a new message</p>
+        </div>
+        <div style="background:#F5F3FF;border-radius:16px;padding:16px 20px;margin:18px 0;border-left:4px solid #7C6EFF;">
+          <p style="color:#1A1730;font-size:15px;line-height:1.7;margin:0;">${excerpt ? `"${escHtml(excerpt)}"` : '<em>(no written message — media or gift only)</em>'}</p>
+          <p style="color:#888;font-size:13px;margin:8px 0 0;">— ${escHtml(message.author_name || 'Someone')}</p>
+        </div>
+        <div style="text-align:center;margin-top:22px;">
+          <a href="${FRONTEND_URL}/card/${encodeURIComponent(card.slug)}" style="background:#6C5CE7;color:#fff;padding:12px 28px;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;">View the card</a>
+        </div>
+        <p style="color:#ccc;font-size:12px;text-align:center;margin-top:20px;">Thankeeu &middot; <a href="${FRONTEND_URL}" style="color:#7C6EFF;">thankeeu.com</a></p>
+      </div>`,
+  });
+}
 
 // ── "Someone liked your message" emails ────────────────────────────────────
 // A heart can be tapped again and again, so a signer is emailed at most once

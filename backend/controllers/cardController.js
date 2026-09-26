@@ -105,7 +105,8 @@ const createCard = async (req, res) => {
     const {
       recipient_name, recipient_email, occasion, title, design_theme,
       background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
-      send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts, card_experience,
+      send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts,
+      hide_view_messages_button, card_experience,
       custom_occasion, cover_sender, cover_text_color, album_background_theme, board_background_theme, cover_layout,
       // Member-created card extras
       company_id, created_by_member_id, notification_scope, status: reqStatus,
@@ -196,7 +197,7 @@ const createCard = async (req, res) => {
         : null,
       send_time: send_time || null,
       deadline: deadline || null,
-      allow_private_messages, send_reminders, hide_amounts,
+      allow_private_messages, send_reminders, hide_amounts, hide_view_messages_button,
       card_experience: card_experience || 'card_only',
       ...(cleanCustomOccasion && { custom_occasion: cleanCustomOccasion }),
       ...(cleanCountry(recipient_country) && { recipient_country: cleanCountry(recipient_country) }),
@@ -227,7 +228,7 @@ const createCard = async (req, res) => {
     // Longest names first so 'cover_layout' isn't shadowed by 'card_layout' etc.
     const optionalColumns = ['board_background_theme', 'album_background_theme', 'cover_text_color', 'custom_occasion',
       'cover_layout', 'card_layout', 'cover_sender', 'card_experience', 'font_style',
-      'recipient_country', 'delivery_timezone']
+      'recipient_country', 'delivery_timezone', 'hide_view_messages_button']
       .sort((a, b) => b.length - a.length);
 
     // Extract the exact missing column name from the Postgres error, if any.
@@ -532,7 +533,7 @@ const updateCard = async (req, res) => {
       'cover_sender', 'cover_text_color', 'album_background_theme', 'board_background_theme',
       'cover_layout', 'is_gift_enabled', 'gift_type', 'suggested_amount',
       'send_date', 'send_time', 'deadline', 'deadline_time',
-      'allow_private_messages', 'send_reminders', 'hide_amounts', 'notification_scope',
+      'allow_private_messages', 'send_reminders', 'hide_amounts', 'hide_view_messages_button', 'notification_scope',
       'recipient_photo_url', 'recipient_country', 'delivery_timezone',
     ];
     const safeUpdates = {};
@@ -1515,6 +1516,24 @@ const markClaimed = async (req, res) => {
 
     if (!card) return res.status(403).json({ error: 'Invalid token' });
 
+    // The access_token is the "view my card" link's credential, and a
+    // recipient will often show/forward that link to other people (family,
+    // coworkers on a group card) so they can see it too. Whoever holds the
+    // link can still VIEW the card, but only the actual recipient — the
+    // logged-in account whose email matches recipient_email — should have
+    // it silently added to their Received tab. Without this check, every
+    // signed-in person who ever opened the link ended up with the (shared)
+    // group card claimed into their own Received tab.
+    // No recipient_email on file: fall back to trusting the token alone
+    // (link-only cards have no email to verify against).
+    const requesterEmail = (req.user?.email || req.member?.email || '').toLowerCase().trim();
+    const isVerifiedRecipient = !card.recipient_email
+      || (requesterEmail && requesterEmail === card.recipient_email.toLowerCase().trim());
+
+    if (!isVerifiedRecipient) {
+      return res.json({ ok: true, claimed: false });
+    }
+
     await supabase.from('cards')
       .update({ recipient_claimed: true, recipient_claimed_at: new Date() })
       .eq('id', card.id);
@@ -1537,7 +1556,7 @@ const markClaimed = async (req, res) => {
       }, { onConflict: 'card_id,recipient_member_id' });
     }
 
-    res.json({ ok: true });
+    res.json({ ok: true, claimed: true });
   } catch (err) {
     console.error('markClaimed error:', err.message);
     res.status(500).json({ error: 'Failed to mark claimed' });

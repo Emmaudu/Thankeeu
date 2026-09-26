@@ -2,8 +2,8 @@
  * HeroAlbumStack — three group-card albums stacked in the homepage hero.
  * All three are birthday cards now (Jane, Sarah, Jackson).
  *
- * Jane's album is in the front (straight). Jackson's tilts left behind it.
- * Sarah's tilts right behind it. Clicking any back album brings it to
+ * Jane's album is in the front (straight). Sarah's tilts left behind it.
+ * Jackson's tilts right behind it. Clicking any back album brings it to
  * the front with a smooth CSS transition — the previously-front album
  * slides behind with the appropriate tilt.
  *
@@ -438,10 +438,8 @@ const ALBUMS = [
 // wheel one way, clicking right rotates it the other way — the album you
 // clicked always ends up in the middle, and the other two settle either
 // side, so it reads as one continuous turn rather than an unrelated swap.
-// Jackson sits left, Sarah sits right of Jane (front) — Sarah's card was
-// previously on the far left, disconnected from Jane's card; this puts
-// it directly beside Jane instead.
-const INITIAL_ORDER = ['jackson', 'jane', 'sarah'];
+// Sarah sits left, Jackson sits right of Jane (front), tucked behind it.
+const INITIAL_ORDER = ['sarah', 'jane', 'jackson'];
 
 export default function HeroAlbumStack() {
   const [order, setOrder] = useState(INITIAL_ORDER);
@@ -483,18 +481,18 @@ export default function HeroAlbumStack() {
     };
     if (role === 'left') return {
       position: 'absolute', top: '3%', left: '-6%', right: 'auto', width: '90%',
-      zIndex: 1, transform: 'rotate(-13deg) translate(-8%, 2%) scale(1)', opacity: 0.82,
+      zIndex: 1, transform: 'rotate(-13deg) translate(-8%, 2%) scale(1)', opacity: 1,
       pointerEvents: 'all', cursor: 'pointer', filter: 'drop-shadow(-6px 8px 18px rgba(0,0,0,0.18))',
     };
     return {
       position: 'absolute', top: '3%', left: 'auto', right: '-6%', width: '90%',
-      zIndex: 1, transform: 'rotate(13deg) translate(8%, 2%) scale(1)', opacity: 0.82,
+      zIndex: 1, transform: 'rotate(13deg) translate(8%, 2%) scale(1)', opacity: 1,
       pointerEvents: 'all', cursor: 'pointer', filter: 'drop-shadow(6px 8px 18px rgba(0,0,0,0.18))',
     };
   };
 
   return (
-    <div className="relative w-full select-none" style={{ minHeight: 480 }}>
+    <div className="relative w-full select-none" style={{ minHeight: 480, overflow: 'hidden' }}>
       {ALBUMS.map((album) => {
         const role = roleOf(album.id);
         const style = roleStyle(role);

@@ -59,7 +59,8 @@ const requireAuth = async (req, res, next) => {
 // IMPORTANT: /react/:message_id and /:message_id (delete) are fixed-segment
 // routes that MUST be registered before the /:card_slug wildcard — otherwise
 // Express matches 'react' as card_slug and routes to addMessage instead.
-router.post('/react/:message_id', validateUUIDParam('message_id'), reactToMessage);
+// flexAuth (never blocks): lets the like email name a signed-in liker.
+router.post('/react/:message_id', validateUUIDParam('message_id'), flexAuth, reactToMessage);
 router.delete('/:message_id',     validateUUIDParam('message_id'), auth, deleteMessage);
 
 // upload.any() reports failures (Cloudinary errors, oversized files, etc.) via

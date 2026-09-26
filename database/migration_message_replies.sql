@@ -8,9 +8,11 @@ CREATE TABLE IF NOT EXISTS message_replies (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   message_id      UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
   card_id         UUID NOT NULL REFERENCES cards(id)    ON DELETE CASCADE,
-  author_role     TEXT NOT NULL CHECK (author_role IN ('creator', 'recipient')),
+  author_role     TEXT NOT NULL CHECK (author_role IN ('creator', 'recipient', 'guest')),
   author_name     TEXT NOT NULL,
   author_user_id  UUID,
+  author_email    TEXT,
+  delete_token_hash TEXT,
   content         TEXT NOT NULL CHECK (char_length(content) BETWEEN 1 AND 1000),
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

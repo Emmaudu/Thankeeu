@@ -256,6 +256,62 @@ const addMessage = async (req, res) => {
   }
 };
 
+// ── "Someone liked your message" emails ────────────────────────────────────
+// A heart can be tapped again and again, so a signer is emailed at most once
+// per person (account, or IP when signed out) per message per day, and at most
+// 10 like emails per message per day in total.
+const LIKE_DAY_MS = 24 * 60 * 60 * 1000;
+const likeSeen = new Map();     // `${messageId}|${who}` → time
+const likeCount = new Map();    // messageId → [times]
+function shouldEmailLike(messageId, who, now = Date.now()) {
+  const key = `${messageId}|${who}`;
+  const last = likeSeen.get(key);
+  if (last && now - last < LIKE_DAY_MS) return false;
+  const times = (likeCount.get(messageId) || []).filter(t => now - t < LIKE_DAY_MS);
+  if (times.length >= 10) { likeCount.set(messageId, times); return false; }
+  times.push(now); likeCount.set(messageId, times); likeSeen.set(key, now);
+  if (likeSeen.size > 20000) { for (const [k, t] of likeSeen) if (now - t >= LIKE_DAY_MS) likeSeen.delete(k); }
+  return true;
+}
+const escHtml = (v) => String(v == null ? '' : v)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+async function notifyLike(req, messageId) {
+  const { data: msg } = await supabase.from('messages')
+    .select('id, card_id, author_name, author_email, content').eq('id', messageId).maybeSingle();
+  if (!msg?.author_email) return;
+  const likerEmail = (req.user?.email || req.member?.email || req.company?.email || '').toLowerCase();
+  if (likerEmail && likerEmail === String(msg.author_email).toLowerCase()) return; // liked their own
+  const likerName = (req.user?.full_name
+    || (req.member ? `${req.member.first_name || ''} ${req.member.last_name || ''}`.trim() : '')
+    || req.company?.contact_person || req.company?.name || '').trim();
+  const whoKey = req.user?.id || req.member?.id || req.company?.id
+    || String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'anon';
+  if (!shouldEmailLike(messageId, whoKey)) return;
+  const { data: card } = await supabase.from('cards')
+    .select('slug, title, recipient_name').eq('id', msg.card_id).maybeSingle();
+  if (!card) return;
+  const cardTitle = card.title || `${card.recipient_name}'s card`;
+  const who = likerName || 'Someone';
+  const excerpt = String(msg.content || '').slice(0, 140) + (String(msg.content || '').length > 140 ? '…' : '');
+  await sendEmail({
+    to: msg.author_email,
+    subject: `${who} liked your message on "${cardTitle}" ❤️`,
+    html: `
+      <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+        <div style="text-align:center;margin-bottom:18px;"><div style="font-size:44px;">❤️</div>
+          <h2 style="color:#E11D48;margin:8px 0;">${escHtml(who)} liked your message</h2>
+          <p style="color:#888;font-size:14px;margin:0;">on "${escHtml(cardTitle)}"</p></div>
+        ${excerpt ? `<div style="background:#FFF1F2;border-radius:16px;padding:16px 20px;margin:18px 0;border-left:4px solid #FB7185;">
+          <p style="color:#1A1730;font-size:15px;line-height:1.7;margin:0;">"${escHtml(excerpt)}"</p>
+          <p style="color:#888;font-size:13px;margin:8px 0 0;">— you, ${escHtml(msg.author_name || '')}</p></div>` : ''}
+        <div style="text-align:center;margin-top:22px;">
+          <a href="${FRONTEND_URL}/card/${encodeURIComponent(card.slug)}" style="background:#6C5CE7;color:#fff;padding:12px 28px;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;">See the card</a>
+        </div>
+      </div>`,
+  });
+}
+
 const reactToMessage = async (req, res) => {
   try {
     const { message_id } = req.params;
@@ -279,8 +335,11 @@ const reactToMessage = async (req, res) => {
     }
 
     res.json({ reactions });
+
+    // Tell the signer — best effort, after the response.
+    if (emoji === 'heart') notifyLike(req, message_id).catch(e => console.error('[like email]', e.message));
   } catch (err) {
-    res.status(500).json({ error: 'Failed to react' });
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to react' });
   }
 };
 
@@ -509,4 +568,4 @@ const updatePosition = async (req, res) => {
   }
 };
 
-module.exports = { addMessage, reactToMessage, deleteMessage, sendReply, updatePosition, upload };
+module.exports = { addMessage, reactToMessage, deleteMessage, sendReply, updatePosition, upload, _shouldEmailLike: shouldEmailLike };

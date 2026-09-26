@@ -424,11 +424,62 @@ describe('replies to individual signers', () => {
     assert.equal(res.body.reply.author_name, 'Ada');
   });
 
-  it('anyone else is refused', async () => {
+  it('a visitor must give a name; then their reply reaches only that signer', async () => {
     install(makeDb({ cards: [card()], messages: msgs() }));
+    ctl()._guestHits.clear();
+    const noName = resMock();
+    await ctl().addReply(req({ user: { id: 'u9', email: 'someone@x.test' }, query: { access_token: 'wrong' } }), noName);
+    assert.equal(noName.statusCode, 400);
+    assert.equal(db.tables.message_replies.length, 0);
     const res = resMock();
-    await ctl().addReply(req({ user: { id: 'u9', email: 'someone@x.test' }, query: { access_token: 'wrong' } }), res);
-    assert.equal(res.statusCode, 403);
+    await ctl().addReply(req({ body: { content: 'Lovely words!', author_name: '  Bola  ' }, ip: '1.1.1.1' }), res);
+    await flush();
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.reply.author_role, 'guest');
+    assert.equal(res.body.reply.author_name, 'Bola');
+    assert.ok(res.body.delete_token);
+    assert.ok(db.tables.message_replies[0].delete_token_hash);
+    assert.notEqual(db.tables.message_replies[0].delete_token_hash, res.body.delete_token);
+    const mails = sentEmails.filter(m => /Bola replied/.test(m.subject));
+    assert.deepEqual(mails.map(m => m.to), ['tunde@x.test']);
+  });
+
+  it('a signed-in visitor replies under their account name', async () => {
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    ctl()._guestHits.clear();
+    const res = resMock();
+    await ctl().addReply(req({ user: { id: 'u7', full_name: 'Grace M.', email: 'grace@x.test' }, body: { content: 'So true', author_name: 'Fake' } }), res);
+    assert.equal(res.statusCode, 201);
+    assert.equal(res.body.reply.author_name, 'Grace M.');
+    assert.equal(db.tables.message_replies[0].author_user_id, 'u7');
+  });
+
+  it('visitors cannot reply to private messages, and are rate-limited', async () => {
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    ctl()._guestHits.clear();
+    const priv = resMock();
+    await ctl().addReply(req({ params: { card_slug: 'ada-bday', message_id: msgs()[1].id }, body: { content: 'hi', author_name: 'Bo' } }), priv);
+    assert.equal(priv.statusCode, 403);
+    let last;
+    for (let i = 0; i < 9; i++) { last = resMock(); await ctl().addReply(req({ body: { content: 'hi ' + i, author_name: 'Bo' }, ip: '9.9.9.9' }), last); }
+    assert.equal(last.statusCode, 429);
+    assert.equal(db.tables.message_replies.length, 8);
+  });
+
+  it('guest delete: own token works, a stranger cannot, the creator can moderate', async () => {
+    install(makeDb({ cards: [card()], messages: msgs() }));
+    ctl()._guestHits.clear();
+    const a = resMock(); await ctl().addReply(req({ body: { content: 'one', author_name: 'Bo' } }), a);
+    const b = resMock(); await ctl().addReply(req({ body: { content: 'two', author_name: 'Bo' } }), b);
+    const stranger = resMock();
+    await ctl().deleteReply(req({ params: { card_slug: 'ada-bday', reply_id: a.body.reply.id }, body: { delete_token: 'nope' } }), stranger);
+    assert.equal(stranger.statusCode, 403);
+    const own = resMock();
+    await ctl().deleteReply(req({ params: { card_slug: 'ada-bday', reply_id: a.body.reply.id }, body: { delete_token: a.body.delete_token } }), own);
+    assert.equal(own.statusCode, 200);
+    const mod = resMock();
+    await ctl().deleteReply(req({ user: { id: 'u1' }, params: { card_slug: 'ada-bday', reply_id: b.body.reply.id } }), mod);
+    assert.equal(mod.statusCode, 200);
     assert.equal(db.tables.message_replies.length, 0);
   });
 
@@ -448,11 +499,13 @@ describe('replies to individual signers', () => {
     const pub = resMock();
     await ctl().listReplies(req(), pub);
     assert.deepEqual(pub.body.replies.map(r => r.id), ['r1']);
-    assert.equal(pub.body.can_reply, false);
+    assert.equal(pub.body.can_reply, true);
+    assert.equal(pub.body.can_moderate, false);
     const own = resMock();
     await ctl().listReplies(req({ user: { id: 'u1' } }), own);
     assert.deepEqual(own.body.replies.map(r => r.id), ['r1', 'r2']);
     assert.equal(own.body.can_reply, true);
+    assert.equal(own.body.can_moderate, true);
   });
 
   it('without the migration: the card still loads (empty list) and replying says why', async () => {
@@ -561,5 +614,35 @@ describe('announcement banner settings', () => {
     db.tables.site_settings.length = 0;
     db.tables.site_settings.push({ key: A.KEY, value: '{broken' });
     assert.equal(A.publicView(await A.readAnnouncement()), null);
+  });
+});
+
+describe('like emails to the signer', () => {
+  const msg = { id: '11111111-1111-4111-8111-111111111111', card_id: 'c1', author_name: 'Tunde', author_email: 'tunde@x.test', content: 'Happy birthday!', reactions: {} };
+  const cardRow = { id: 'c1', slug: 'ada-bday', title: "Ada's card", recipient_name: 'Ada' };
+  const ctl = () => require(path.join(ROOT, 'controllers/messageController'));
+  const like = (over = {}) => ({ params: { message_id: msg.id }, body: { emoji: 'heart' }, headers: {}, ip: '5.5.5.5', ...over });
+
+  it('names a signed-in liker, says "Someone" otherwise, once per person per day', async () => {
+    install(makeDb({ cards: [cardRow], messages: [{ ...msg }] }));
+    const r1 = resMock(); await ctl().reactToMessage(like({ user: { id: 'u7', full_name: 'Grace M.', email: 'grace@x.test' } }), r1);
+    await flush();
+    assert.ok(sentEmails.some(m => m.to === 'tunde@x.test' && /Grace M\. liked your message/.test(m.subject)));
+    const before = sentEmails.length;
+    const r2 = resMock(); await ctl().reactToMessage(like({ user: { id: 'u7', full_name: 'Grace M.', email: 'grace@x.test' } }), r2);
+    await flush();
+    assert.equal(sentEmails.length, before);           // same person again → no second email
+    const r3 = resMock(); await ctl().reactToMessage(like({ ip: '6.6.6.6' }), r3);
+    await flush();
+    assert.ok(sentEmails.some(m => /^Someone liked your message/.test(m.subject)));
+    assert.equal(db.tables.messages[0].reactions.heart, 3);
+  });
+
+  it('never emails a signer about liking their own message', async () => {
+    install(makeDb({ cards: [cardRow], messages: [{ ...msg, id: '22222222-2222-4222-8222-222222222222' }] }));
+    const before = sentEmails.length;
+    const r = resMock(); await ctl().reactToMessage(like({ params: { message_id: '22222222-2222-4222-8222-222222222222' }, user: { id: 'u8', full_name: 'Tunde', email: 'TUNDE@x.test' } }), r);
+    await flush();
+    assert.equal(sentEmails.length, before);
   });
 });

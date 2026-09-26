@@ -138,3 +138,23 @@ Backend unit: 371 pass, 2 pre-existing HRIS time-zone failures (fail on the orig
   - The photo sits in a circular frame, framed so the face stays in view.
   - The recipient photo is used for the frame if there is one; otherwise the cover photo.
 - `CardCoverPreview` has a new `inBook` prop so a cover fills a book page exactly.
+
+## Round 10f — Anyone can reply to a signer, and signers get emailed about likes
+- **Reply pill:** under every board card and album page there is now a small "💬 Reply to Tunde… tap to reply" pill, styled like the board's "Find …" search pill. Tapping it opens a box with a send button (Enter sends, Esc closes).
+- **Who can reply:** anyone viewing the card, while signing is open and afterwards.
+  - The creator and recipient reply as before.
+  - Signed-in visitors reply under their account name.
+  - Signed-out visitors type their name once, and it is remembered in their browser.
+- **Where replies go:** each reply is emailed only to that one signer. Nobody else is emailed.
+- **Limits on visitors:**
+  - They cannot reply to private messages.
+  - They are limited to 8 replies per 10 minutes per IP on each card.
+  - They can delete their own reply (from their account, or with a delete token kept in their browser).
+  - The creator and recipient can delete any visitor reply.
+- **Likes:** when someone likes a card or album page, the signer gets an email. It names the person if they are signed in, and says "Someone" otherwise.
+  - Each person triggers at most one email per message per day.
+  - Each message sends at most 10 like emails per day.
+  - Nobody is emailed for liking their own message.
+- **Hearts:** album pages now have a ❤️ button too. A heart counts once per browser, so reloading the page doesn't allow another like.
+- **Migration:** `database/migration_public_replies.sql` (also appended to `RUN_THIS_IN_SUPABASE.sql`). Until it is run, visitor replies return a clear 503 and creator/recipient replies keep working.
+- **Tests:** backend pay-later suite 53/53, unit suites 410 passing (plus the 2 older HRIS failures), frontend 683/683, and all 214 routes load with no crash screen.

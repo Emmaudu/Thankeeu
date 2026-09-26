@@ -770,8 +770,36 @@ const CelebrationBackground = ({ design }) => {
   );
 };
 
+// A heart per person per message, remembered in this browser so a reload
+// doesn't invite a second like. The server emails the signer (throttled).
+const LIKED_KEY = 'thankeeu_liked_messages';
+const readLiked = () => { try { return new Set(JSON.parse(localStorage.getItem(LIKED_KEY) || '[]')); } catch { return new Set(); } };
+const useLike = (message, onReact) => {
+  const [liked, setLiked] = useState(() => !!message?.id && readLiked().has(message.id));
+  const [justLiked, setJustLiked] = useState(false);
+  const like = async () => {
+    if (!message?.id || liked) return;
+    setLiked(true); setJustLiked(true);
+    try { const set = readLiked(); set.add(message.id); localStorage.setItem(LIKED_KEY, JSON.stringify([...set].slice(-500))); } catch { /* private mode */ }
+    try { await onReact?.(message.id); } catch { /* the heart still shows */ }
+  };
+  const count = (message?.reactions?.heart || 0) + (justLiked ? 1 : 0);
+  return { liked, like, count };
+};
+
+const LikeButton = ({ message, onReact, ink = '#374151', className = '' }) => {
+  const { liked, like, count } = useLike(message, onReact);
+  return (
+    <button type="button" onClick={(e) => { e.stopPropagation(); like(); }} disabled={liked}
+      aria-pressed={liked} aria-label={liked ? 'You liked this' : 'Like this message'}
+      className={`rounded-full bg-white/80 px-3 py-1.5 text-xs font-bold shadow-sm transition ${liked ? '' : 'hover:scale-105'} ${className}`}
+      style={{ color: liked ? '#e11d48' : ink, minHeight: 0, cursor: liked ? 'default' : 'pointer' }}>
+      {liked ? '❤️' : '🤍'} {count}
+    </button>
+  );
+};
+
 const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, highlighted, replyKit }) => {
-  const [reacted, setReacted] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const font = getFontStyle(message.font_style);
   const hasMedia = !!(message.media_url || message.media_gallery);
@@ -910,23 +938,12 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
       {/* ── Replies from the creator / recipient ── */}
       <div className="px-4 relative z-10">
         <SignerReplies messageId={message.id} signerName={message.author_name} kit={replyKit}
-          ink={cardInk} accent={cardAccent} compact />
+          ink={cardInk} accent={cardAccent} compact isPrivate={!!message.is_private} />
       </div>
 
       {/* ── 4. Gift badge + reaction at bottom ── */}
       <div className="px-4 pb-4 pt-2 flex items-center justify-between flex-shrink-0 relative z-10">
-        <button
-          type="button"
-          onClick={async () => {
-            if (reacted) return;
-            setReacted(true);
-            await onReact(message.id).catch(() => {});
-          }}
-          className="rounded-full bg-white/75 px-3 py-1.5 text-xs font-bold shadow-sm"
-          style={{ color: reacted ? '#e11d48' : onWhiteInk }}
-        >
-          ❤️ {(message.reactions?.heart || 0) + (reacted ? 1 : 0)}
-        </button>
+        <LikeButton message={message} onReact={onReact} ink={onWhiteInk} />
         {giftBadge()}
       </div>
     </article>
@@ -1046,7 +1063,7 @@ const TransferCardButton = ({ slug, compact = false }) => {
  * and what signers saw when they added their pages. Read-only: no compose,
  * no editing — just the cover, then every signed message as its own page,
  * shown two at a time as a genuine spread. */
-const AlbumLeaf = ({ msg, accent, albumTheme, replyKit, pageNo }) => {
+const AlbumLeaf = ({ msg, accent, albumTheme, replyKit, pageNo, onReact }) => {
     const [carouselIdx, setCarouselIdx] = useState(0);
     // Attachments are read with the shared reader. This used to build the list
     // itself using `{url,type}`, but the backend stores `{media_url,media_type}`
@@ -1119,8 +1136,11 @@ const AlbumLeaf = ({ msg, accent, albumTheme, replyKit, pageNo }) => {
             — {msg.author_name}
           </p>
           <SignerReplies messageId={msg.id} signerName={msg.author_name} kit={replyKit}
-            ink={albumTheme.ink || '#1f2937'} accent={accent} compact />
-          {pageNo != null && <p className="mt-2 text-center text-[10px] opacity-30" style={{ color: albumTheme.ink }}>{pageNo}</p>}
+            ink={albumTheme.ink || '#1f2937'} accent={accent} compact isPrivate={!!msg.is_private} />
+          <div className="mt-2 flex items-center justify-between">
+            <LikeButton message={msg} onReact={onReact} ink={albumTheme.ink || '#374151'} />
+            {pageNo != null && <span className="text-[10px] opacity-30" style={{ color: albumTheme.ink }}>{pageNo}</span>}
+          </div>
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">
@@ -1135,7 +1155,7 @@ const AlbumLeaf = ({ msg, accent, albumTheme, replyKit, pageNo }) => {
 /** AlbumFlipbookViewer — the finished album card as a real book: the cover,
  * then every signed message on its own page, turned by hand (drag a corner,
  * tap, swipe, arrows or ← →) with a natural paper fold — see NaturalFlipBook. */
-const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackground, coverTextColor, replyKit }) => {
+const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackground, coverTextColor, replyKit, onReact }) => {
   const bookRef = useRef(null);
   const accent = albumTheme.accent || design?.accent || '#7C3AED';
 
@@ -1178,7 +1198,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
     }];
     messages.forEach((m, i) => list.push({
       key: `m-${m.id}`,
-      content: <AlbumLeaf msg={m} accent={accent} albumTheme={albumTheme} replyKit={replyKit} pageNo={i + 1} />,
+      content: <AlbumLeaf msg={m} accent={accent} albumTheme={albumTheme} replyKit={replyKit} pageNo={i + 1} onReact={onReact} />,
     }));
     // An even number of pages lets the back cover close the book on its own.
     if (list.length % 2 === 1) {
@@ -1198,7 +1218,7 @@ const AlbumFlipbookViewer = ({ card, messages, design, albumTheme, coverBackgrou
     });
     return list;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, card, coverDesign, coverTextColor, albumTheme, accent, replyKit]);
+  }, [messages, card, coverDesign, coverTextColor, albumTheme, accent, replyKit, onReact]);
 
   const labelFor = (i, single) => {
     if (i === 0) return 'Cover';
@@ -1412,7 +1432,15 @@ const CardView = () => {
 
   // ── Replies to individual signers (creator / recipient) ─────────────────
   const [signerReplies, setSignerReplies] = useState([]);
-  const [replyAccess, setReplyAccess] = useState({ can: false, role: null });
+  const [replyAccess, setReplyAccess] = useState({ can: false, role: null, canModerate: false, signedInName: null });
+  // Visitors (not creator/recipient, not signed in) type a name once; it's
+  // remembered in this browser. Their delete tokens are kept here too.
+  const REPLY_NAME_KEY = 'thankeeu_reply_name';
+  const REPLY_TOKENS_KEY = 'thankeeu_reply_tokens';
+  const [guestName, setGuestNameState] = useState(() => { try { return localStorage.getItem(REPLY_NAME_KEY) || ''; } catch { return ''; } });
+  const setGuestName = useCallback((v) => { setGuestNameState(v); try { localStorage.setItem(REPLY_NAME_KEY, v); } catch { /* private mode */ } }, []);
+  const readReplyTokens = () => { try { return JSON.parse(localStorage.getItem(REPLY_TOKENS_KEY) || '{}') || {}; } catch { return {}; } };
+  const writeReplyToken = (id, tok) => { try { const m = readReplyTokens(); if (tok) m[id] = tok; else delete m[id]; localStorage.setItem(REPLY_TOKENS_KEY, JSON.stringify(m)); } catch { /* ignore */ } };
   const [replyOpenFor, setReplyOpenFor] = useState(null);
   const [replyDrafts, setReplyDrafts] = useState({});
   const [replySendingFor, setReplySendingFor] = useState(null);
@@ -1429,10 +1457,11 @@ const CardView = () => {
       if (!r.ok) return;
       const d = await r.json();
       setSignerReplies(Array.isArray(d.replies) ? d.replies : []);
-      setReplyAccess({ can: !!d.can_reply, role: d.role || null });
+      setReplyAccess({ can: !!d.can_reply, role: d.role || null, canModerate: !!d.can_moderate, signedInName: d.signed_in_name || null });
     } catch { /* replies are an extra — the card still works without them */ }
   }, [replyFetch]);
   useEffect(() => { if (card?.id) loadSignerReplies(); }, [card?.id, loadSignerReplies]);
+  const reactToMessage = useCallback((id) => messagesAPI.react(id, { emoji: 'heart' }), []);
   const replyKit = useMemo(() => {
     const byMsg = {};
     for (const r of signerReplies) (byMsg[r.message_id] = byMsg[r.message_id] || []).push(r);
@@ -1440,6 +1469,12 @@ const CardView = () => {
       byMsg,
       can: replyAccess.can,
       role: replyAccess.role,
+      canModerate: replyAccess.canModerate,
+      needsName: !replyAccess.role && !replyAccess.signedInName,
+      guestName,
+      setGuestName,
+      canRemove: (r) => !!r.mine || !!readReplyTokens()[r.id]
+        || (replyAccess.canModerate && (r.author_role === 'guest' || r.author_role === replyAccess.role)),
       open: replyOpenFor,
       setOpen: setReplyOpenFor,
       drafts: replyDrafts,
@@ -1450,9 +1485,12 @@ const CardView = () => {
         if (!text) return;
         setReplySendingFor(messageId);
         try {
-          const r = await replyFetch(`/replies/${messageId}`, { method: 'POST', body: JSON.stringify({ content: text }) });
+          const body = { content: text };
+          if (!replyAccess.role && !replyAccess.signedInName) body.author_name = (guestName || '').trim();
+          const r = await replyFetch(`/replies/${messageId}`, { method: 'POST', body: JSON.stringify(body) });
           const d = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(d.error || 'Could not send your reply');
+          if (d.delete_token && d.reply?.id) writeReplyToken(d.reply.id, d.delete_token);
           if (d.reply) setSignerReplies(list => [...list, d.reply]);
           setReplyDrafts(dr => ({ ...dr, [messageId]: '' }));
           setReplyOpenFor(null);
@@ -1461,17 +1499,21 @@ const CardView = () => {
           toast.error(err.message || 'Could not send your reply');
         } finally { setReplySendingFor(null); }
       },
-      remove: async (replyId) => {
+      remove: async (reply) => {
+        const replyId = reply?.id || reply;
         if (!window.confirm('Delete this reply?')) return;
         try {
-          const r = await replyFetch(`/replies/${replyId}`, { method: 'DELETE' });
+          const tok = readReplyTokens()[replyId];
+          const r = await replyFetch(`/replies/${replyId}`, { method: 'DELETE', ...(tok ? { body: JSON.stringify({ delete_token: tok }) } : {}) });
           const d = await r.json().catch(() => ({}));
           if (!r.ok) throw new Error(d.error || 'Could not delete');
+          writeReplyToken(replyId, null);
           setSignerReplies(list => list.filter(x => x.id !== replyId));
         } catch (err) { toast.error(err.message || 'Could not delete'); }
       },
     };
-  }, [signerReplies, replyAccess, replyOpenFor, replyDrafts, replySendingFor, replyFetch]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signerReplies, replyAccess, replyOpenFor, replyDrafts, replySendingFor, replyFetch, guestName, setGuestName]);
 
   const handleReply = async () => {
     if (!replyText.trim()) return;
@@ -2134,6 +2176,7 @@ const CardView = () => {
               {effectiveViewStyle === 'album' ? (
                 <AlbumFlipbookViewer
                   replyKit={replyKit}
+                  onReact={reactToMessage}
                   card={card}
                   messages={displayMessages}
                   design={design}
@@ -2155,7 +2198,7 @@ const CardView = () => {
                         design={design}
                         canViewPrivate={canViewPrivate}
                         onOpen={setOpenMessage}
-                        onReact={id => messagesAPI.react(id, { emoji: 'heart' })}
+                        onReact={reactToMessage}
                         highlighted={!!searchQuery && filteredMessages.includes(message)}
                         replyKit={replyKit}
                       />
@@ -2247,7 +2290,7 @@ const CardView = () => {
             {(replyKit.can || (replyKit.byMsg[openMessage.id] || []).length > 0) && (
               <div className="mt-4 rounded-2xl bg-white/80 p-3">
                 <SignerReplies messageId={openMessage.id} signerName={openMessage.author_name} kit={replyKit}
-                  ink="#1f2937" accent={design.accent || '#7C3AED'} />
+                  ink="#1f2937" accent={design.accent || '#7C3AED'} isPrivate={!!openMessage.is_private} />
               </div>
             )}
           </div>

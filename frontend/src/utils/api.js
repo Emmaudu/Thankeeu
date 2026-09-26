@@ -231,7 +231,12 @@ export const messagesAPI = {
     headers: { 'Content-Type': undefined },
     timeout: 180000, // 3 minutes — enough for multiple large files
   }),
-  react:          (messageId, data) => publicAxios.post(`/messages/react/${messageId}`, data),
+  // Sends whichever account token the viewer has (if any) so the signer's
+  // "liked your message" email can name them. Public endpoint — never 401s.
+  react:          (messageId, data) => {
+    const t = localStorage.getItem('thankeeu_token') || localStorage.getItem('thankeeu_member_token') || localStorage.getItem('thankeeu_company_token');
+    return publicAxios.post(`/messages/react/${messageId}`, data, t ? { headers: { Authorization: `Bearer ${t}` } } : undefined);
+  },
   updatePosition: (messageId, data) => smartAxios.patch(`/messages/position/${messageId}`, data),
   // Inline content/style edit (notebook direct typing). Same endpoint as position;
   // author proves identity via author_email, card owner via JWT.

@@ -1,18 +1,25 @@
-// replyController.js — the creator and the recipient replying to individual
-// signers (one reply thread under each board card / album page).
+// replyController.js — replies to individual signers (one reply thread under
+// each board card / album page).
 //
 // Who may reply:
 //   • the recipient — a valid access_token (the private link), or signed in
 //     with the recipient's email, or the card was transferred to them;
 //   • the creator — the individual user, the team member who made it, or the
-//     company (HR) account that owns it.
+//     company (HR) account that owns it;
+//   • anyone else viewing the card ("guest") — while signing is open and
+//     afterwards — with their account name, or a name they type. Guests cannot
+//     reply to private messages, and are rate-limited per IP.
+// Every reply emails that one signer (never the whole card).
 // Everyone who can see a message can read its replies; replies on a private
 // message are only shown to the creator and the recipient.
+// Moderation: the creator and the recipient can remove guest replies; a guest
+// can remove their own (account, or the delete token their browser kept).
 //
 // Schema tolerance: if the message_replies table has not been created yet the
 // read endpoint returns an empty list (the card still loads) and writes return
 // a clear 503 instead of a crash.
 
+const crypto = require('crypto');
 const supabase = require('../utils/supabase');
 const { sendEmail } = require('../utils/email');
 const { stripHtml } = require('../utils/sanitize');
@@ -35,6 +42,31 @@ const isMissingTable = (err) => !!err && (
 );
 
 const MIGRATION_HINT = 'Replies need the latest database migration (database/migration_message_replies.sql).';
+const GUEST_MIGRATION_HINT = 'Public replies need the latest database migration (database/migration_public_replies.sql).';
+const isSchemaTooOld = (err) => !!err && (
+  err.code === '23514' || err.code === 'PGRST204' || err.code === '42703' ||
+  /author_role_check|delete_token_hash|author_email/i.test(err.message || '')
+);
+const sha = (v) => crypto.createHash('sha256').update(String(v)).digest('hex');
+
+// Simple per-IP limiter for guest replies (per card): 8 per 10 minutes.
+const GUEST_WINDOW_MS = 10 * 60 * 1000;
+const GUEST_MAX = 8;
+const guestHits = new Map();
+function guestLimited(ip, cardId, now = Date.now()) {
+  const key = `${ip}|${cardId}`;
+  const list = (guestHits.get(key) || []).filter(t => now - t < GUEST_WINDOW_MS);
+  if (list.length >= GUEST_MAX) { guestHits.set(key, list); return true; }
+  list.push(now); guestHits.set(key, list);
+  if (guestHits.size > 5000) { for (const [k, v] of guestHits) if (!v.some(t => now - t < GUEST_WINDOW_MS)) guestHits.delete(k); }
+  return false;
+}
+const clientIp = (req) => String(req.headers?.['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'unknown';
+
+/** A viewer's display name when signed in (user / team member / company). */
+const signedInName = (req) => (req.user?.full_name
+  || (req.member ? `${req.member.first_name || ''} ${req.member.last_name || ''}`.trim() : '')
+  || req.company?.contact_person || req.company?.name || '').trim();
 
 /**
  * Work out whether the requester is this card's creator or recipient.
@@ -98,12 +130,12 @@ const listReplies = async (req, res) => {
     const who = await resolveReplier(req, card);
 
     const { data: replies, error } = await supabase.from('message_replies')
-      .select('id, message_id, author_role, author_name, content, created_at')
+      .select('*')
       .eq('card_id', card.id)
       .order('created_at', { ascending: true })
       .limit(2000);
     if (error) {
-      if (isMissingTable(error)) return res.json({ replies: [], role: who.role, can_reply: false, unavailable: true });
+      if (isMissingTable(error)) return res.json({ replies: [], role: who.role, can_reply: false, can_moderate: false, unavailable: true });
       throw error;
     }
 
@@ -115,48 +147,84 @@ const listReplies = async (req, res) => {
       const hidden = new Set((priv || []).map(m => m.id));
       visible = visible.filter(r => !hidden.has(r.message_id));
     }
-    res.json({ replies: visible, role: who.role, can_reply: !!who.role });
+    const uid = req.user?.id || req.member?.id || null;
+    const out = visible.map(({ author_user_id, ...r }) => ({ ...r, mine: !!(uid && author_user_id === uid) }));
+    res.json({
+      replies: out,
+      role: who.role,
+      // Everyone can reply to a signer (guests on public messages only).
+      can_reply: true,
+      can_moderate: !!who.role,
+      signed_in_name: signedInName(req) || null,
+    });
   } catch (err) {
     console.error('[listReplies]', err.message);
     res.status(500).json({ error: 'Could not load replies' });
   }
 };
 
-// POST /api/messages/:card_slug/replies/:message_id  { content }
+// POST /api/messages/:card_slug/replies/:message_id  { content, author_name?, author_email? }
 const addReply = async (req, res) => {
   try {
     const card = await loadCard(req.params.card_slug);
     if (!card) return res.status(404).json({ error: 'Card not found' });
     const who = await resolveReplier(req, card);
-    if (!who.role) return res.status(403).json({ error: 'Only the card creator or the recipient can reply to messages.' });
+    const isGuest = !who.role;
 
     const content = stripHtml(String(req.body?.content || '')).slice(0, 1000).trim();
     if (!content) return res.status(400).json({ error: 'Write a reply first' });
 
     const { data: msg } = await supabase.from('messages')
-      .select('id, card_id, author_name, author_email')
+      .select('id, card_id, author_name, author_email, is_private')
       .eq('id', req.params.message_id).maybeSingle();
     if (!msg || msg.card_id !== card.id) return res.status(404).json({ error: 'Message not found on this card' });
 
-    const authorName = stripHtml(String(who.name)).slice(0, 80) || (who.role === 'recipient' ? 'The recipient' : 'The card creator');
-    const { data: reply, error } = await supabase.from('message_replies').insert({
+    let authorName;
+    let guestEmail = null;
+    if (isGuest) {
+      if (msg.is_private) return res.status(403).json({ error: 'Only the card creator or the recipient can reply to a private message.' });
+      authorName = signedInName(req) || stripHtml(String(req.body?.author_name || '')).replace(/\s+/g, ' ').trim();
+      authorName = authorName.slice(0, 60);
+      if (!authorName) return res.status(400).json({ error: 'Add your name so they know who replied' });
+      const e = String(req.body?.author_email || req.user?.email || req.member?.email || '').trim().toLowerCase();
+      if (e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && e.length <= 200) guestEmail = e;
+      if (guestLimited(clientIp(req), card.id)) {
+        return res.status(429).json({ error: 'You are replying very quickly — please wait a few minutes.' });
+      }
+    } else {
+      authorName = stripHtml(String(who.name)).slice(0, 80) || (who.role === 'recipient' ? 'The recipient' : 'The card creator');
+    }
+
+    const row = {
       message_id: msg.id,
       card_id: card.id,
-      author_role: who.role,
+      author_role: isGuest ? 'guest' : who.role,
       author_name: authorName,
-      author_user_id: who.userId,
+      author_user_id: isGuest ? (req.user?.id || req.member?.id || null) : who.userId,
       content,
-    }).select('id, message_id, author_role, author_name, content, created_at').maybeSingle();
+    };
+    let deleteToken = null;
+    if (isGuest) {
+      deleteToken = crypto.randomBytes(18).toString('hex');
+      row.delete_token_hash = sha(deleteToken);
+      if (guestEmail) row.author_email = guestEmail;
+    }
+    const { data: reply, error } = await supabase.from('message_replies').insert(row)
+      .select('id, message_id, author_role, author_name, content, created_at').maybeSingle();
     if (error) {
       if (isMissingTable(error)) return res.status(503).json({ error: MIGRATION_HINT });
+      if (isGuest && isSchemaTooOld(error)) return res.status(503).json({ error: GUEST_MIGRATION_HINT });
       throw error;
     }
 
-    res.status(201).json({ reply });
+    res.status(201).json({ reply: { ...reply, mine: true }, ...(deleteToken ? { delete_token: deleteToken } : {}) });
 
-    // Let the signer know — best effort, never blocks the reply.
-    if (msg.author_email) {
+    // Let THIS signer know — best effort, never blocks the reply.
+    const selfReply = msg.author_email && guestEmail && msg.author_email.toLowerCase() === guestEmail;
+    if (msg.author_email && !selfReply) {
       const cardTitle = card.title || `${card.recipient_name}'s card`;
+      const roleNote = who.role === 'recipient' ? ` (${esc(card.recipient_name || 'the recipient')})`
+        : who.role === 'creator' ? ' (card organiser)' : '';
       sendEmail({
         to: msg.author_email,
         subject: `${authorName} replied to your message on "${cardTitle}" 💬`,
@@ -167,7 +235,7 @@ const addReply = async (req, res) => {
               <p style="color:#888;font-size:14px;margin:0;">on "${esc(cardTitle)}"</p></div>
             <div style="background:#F5F3FF;border-radius:16px;padding:18px 22px;margin:18px 0;border-left:4px solid #7C6EFF;">
               <p style="color:#1A1730;font-size:16px;line-height:1.7;margin:0;">"${esc(content)}"</p>
-              <p style="color:#888;font-size:13px;margin:10px 0 0;">— ${esc(authorName)}${who.role === 'recipient' ? '' : ' (card organiser)'}</p>
+              <p style="color:#888;font-size:13px;margin:10px 0 0;">— ${esc(authorName)}${roleNote}</p>
             </div>
             <div style="text-align:center;margin-top:22px;">
               <a href="${FRONTEND_URL}/card/${encodeURIComponent(card.slug)}" style="background:#6C5CE7;color:#fff;padding:12px 28px;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;">See the card</a>
@@ -181,22 +249,36 @@ const addReply = async (req, res) => {
   }
 };
 
-// DELETE /api/messages/:card_slug/replies/:reply_id — creator or recipient,
-// on replies written in their own role.
+// DELETE /api/messages/:card_slug/replies/:reply_id  { delete_token? }
+//   • creator / recipient: their own role's replies, and any guest reply
+//     (moderation);
+//   • a guest: their own reply (same account, or the delete token their
+//     browser got back when they posted it).
 const deleteReply = async (req, res) => {
   try {
     const card = await loadCard(req.params.card_slug);
     if (!card) return res.status(404).json({ error: 'Card not found' });
     const who = await resolveReplier(req, card);
-    if (!who.role) return res.status(403).json({ error: 'Not allowed' });
     const { data: reply, error } = await supabase.from('message_replies')
-      .select('id, card_id, author_role').eq('id', req.params.reply_id).maybeSingle();
+      .select('*').eq('id', req.params.reply_id).maybeSingle();
     if (error) {
       if (isMissingTable(error)) return res.status(503).json({ error: MIGRATION_HINT });
       throw error;
     }
     if (!reply || reply.card_id !== card.id) return res.status(404).json({ error: 'Reply not found' });
-    if (reply.author_role !== who.role) return res.status(403).json({ error: 'You can only delete your own replies' });
+
+    const uid = req.user?.id || req.member?.id || null;
+    const token = req.body?.delete_token || req.query?.delete_token;
+    const ownsGuestReply = reply.author_role === 'guest' && (
+      (uid && reply.author_user_id === uid) ||
+      (token && reply.delete_token_hash && sha(token) === reply.delete_token_hash)
+    );
+    const allowed = ownsGuestReply
+      || (who.role && reply.author_role === who.role)
+      || (who.role && reply.author_role === 'guest');
+    if (!allowed) {
+      return res.status(403).json({ error: who.role ? 'You can only delete your own replies' : 'Not allowed' });
+    }
     const { error: delErr } = await supabase.from('message_replies').delete().eq('id', reply.id);
     if (delErr) throw delErr;
     res.json({ ok: true });
@@ -206,4 +288,4 @@ const deleteReply = async (req, res) => {
   }
 };
 
-module.exports = { resolveReplier, listReplies, addReply, deleteReply, esc };
+module.exports = { resolveReplier, listReplies, addReply, deleteReply, esc, signedInName, _guestHits: guestHits };

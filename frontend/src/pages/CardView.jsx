@@ -799,7 +799,7 @@ const LikeButton = ({ message, onReact, ink = '#374151', className = '' }) => {
   );
 };
 
-const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, highlighted, replyKit }) => {
+const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, highlighted, replyKit, canDelete, onDelete, deleting }) => {
   const [expanded, setExpanded] = useState(false);
   const font = getFontStyle(message.font_style);
   const hasMedia = !!(message.media_url || message.media_gallery);
@@ -858,6 +858,22 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
     >
       {/* Decorative quote mark */}
       <div className="absolute top-1 left-3 text-5xl leading-none pointer-events-none select-none font-serif opacity-15" style={{ color: cardAccent }}>"</div>
+
+      {/* Creator-only: remove a mistaken/duplicate signature. The signer is
+          emailed automatically so they know it wasn't just lost. */}
+      {canDelete && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onDelete?.(message); }}
+          disabled={deleting}
+          title="Delete this signature"
+          aria-label={`Delete ${message.author_name || 'this'}'s signature`}
+          className="absolute top-2 right-2 z-20 grid h-6 w-6 place-items-center rounded-full text-xs font-extrabold shadow-sm transition-transform hover:scale-110 disabled:opacity-50"
+          style={{ background: '#EF4444', color: '#fff' }}
+        >
+          {deleting ? '…' : '✕'}
+        </button>
+      )}
 
       {/* ── 1. Author row (avatar, name, date) ── */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-2 flex-shrink-0 relative z-10">
@@ -1462,6 +1478,24 @@ const CardView = () => {
   }, [replyFetch]);
   useEffect(() => { if (card?.id) loadSignerReplies(); }, [card?.id, loadSignerReplies]);
   const reactToMessage = useCallback((id) => messagesAPI.react(id, { emoji: 'heart' }), []);
+
+  // Card creator can remove a mistaken/duplicate signature. Backend also
+  // notifies the signer by email — see deleteMessage on the server.
+  const [deletingMessageId, setDeletingMessageId] = useState(null);
+  const deleteSignature = useCallback(async (message) => {
+    if (!window.confirm(`Delete ${message.author_name || 'this signer'}'s signature?\n\nThey'll get an email letting them know, in case it's needed again.`)) return;
+    setDeletingMessageId(message.id);
+    try {
+      await messagesAPI.delete(message.id);
+      setCard(prev => prev ? { ...prev, messages: (prev.messages || []).filter(m => m.id !== message.id) } : prev);
+      toast.success('Signature deleted');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not delete this signature');
+    } finally {
+      setDeletingMessageId(null);
+    }
+  }, []);
+
   const replyKit = useMemo(() => {
     const byMsg = {};
     for (const r of signerReplies) (byMsg[r.message_id] = byMsg[r.message_id] || []).push(r);
@@ -2201,6 +2235,9 @@ const CardView = () => {
                         onReact={reactToMessage}
                         highlighted={!!searchQuery && filteredMessages.includes(message)}
                         replyKit={replyKit}
+                        canDelete={Boolean(card.isCreatorPersonal)}
+                        onDelete={deleteSignature}
+                        deleting={deletingMessageId === message.id}
                       />
                     </div>
                   ))}

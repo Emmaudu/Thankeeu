@@ -10,8 +10,8 @@
  * Each album is a full NaturalFlipBook with its own cover design, signers,
  * and page set — exactly like HeroAlbumFlipbook but parameterised.
  *
- * Visible on both mobile and desktop. On narrow screens the tilt+offset is
- * reduced so nothing bleeds out of view.
+ * Visible on both mobile and desktop, same tilt/offset on every size —
+ * the percentages are relative to the container so it scales cleanly.
  */
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -473,21 +473,26 @@ export default function HeroAlbumStack() {
   // style values change as its role changes, so the transition below
   // actually animates a single continuous object rather than swapping DOM
   // nodes at the moment of the click.
+  //
+  // "left" and "right" are exact mirror images of each other (every value
+  // is the same magnitude, sign-flipped) so Sarah (left) and Jackson
+  // (right) always tuck in behind Jane with identical size and tilt.
+  // The offset is generous enough (14% / 12%) that both are clearly
+  // visible peeking out from behind the front card, not hidden under it.
+  // Full opacity + a small saturate/contrast boost keeps their covers
+  // reading as vivid as the front card instead of looking washed out.
   const roleStyle = (role) => {
     if (role === 'front') return {
       position: 'relative', top: 0, left: 'auto', right: 'auto', width: '100%',
       zIndex: 10, transform: 'rotate(0deg) translate(0,0) scale(1)', opacity: 1,
       pointerEvents: 'all', cursor: 'default', filter: 'none',
     };
-    if (role === 'left') return {
-      position: 'absolute', top: '3%', left: '-6%', right: 'auto', width: '90%',
-      zIndex: 1, transform: 'rotate(-13deg) translate(-8%, 2%) scale(1)', opacity: 1,
-      pointerEvents: 'all', cursor: 'pointer', filter: 'drop-shadow(-6px 8px 18px rgba(0,0,0,0.18))',
-    };
+    const mirror = role === 'left' ? -1 : 1;
     return {
-      position: 'absolute', top: '3%', left: 'auto', right: '-6%', width: '90%',
-      zIndex: 1, transform: 'rotate(13deg) translate(8%, 2%) scale(1)', opacity: 1,
-      pointerEvents: 'all', cursor: 'pointer', filter: 'drop-shadow(6px 8px 18px rgba(0,0,0,0.18))',
+      position: 'absolute', top: '3%', left: mirror < 0 ? '-14%' : 'auto', right: mirror < 0 ? 'auto' : '-14%', width: '90%',
+      zIndex: 1, transform: `rotate(${mirror * 12}deg) translate(${mirror * 12}%, 2%) scale(0.96)`, opacity: 1,
+      pointerEvents: 'all', cursor: 'pointer',
+      filter: `saturate(1.15) contrast(1.05) drop-shadow(${mirror * 6}px 8px 18px rgba(0,0,0,0.22))`,
     };
   };
 
@@ -508,28 +513,12 @@ export default function HeroAlbumStack() {
             aria-label={isBack ? `Bring ${album.recipient}'s card to the front` : undefined}
             onKeyDown={isBack ? (e => (e.key === 'Enter' || e.key === ' ') && bringToFront(album.id)) : undefined}
           >
-            {isBack && (
-              <div style={{
-                position: 'absolute', bottom: 38, left: '50%',
-                transform: `translateX(-50%) rotate(${role === 'left' ? 13 : -13}deg)`,
-                background: album.accent, color: '#fff', borderRadius: 20, padding: '4px 14px',
-                fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap', zIndex: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                pointerEvents: 'none',
-              }}>
-                {album.recipient}'s card · click to view
-              </div>
-            )}
             <div style={{ pointerEvents: isBack ? 'none' : 'all' }}>
               <AlbumFlipbook config={album} isActive={role === 'front'} fullyLoad={loaded.has(album.id)} />
             </div>
           </div>
         );
       })}
-
-      {/* ── Caption ── */}
-      <p className="relative mt-2 text-center text-xs text-warm-400" style={{ zIndex: 20 }}>
-        Drag a corner to turn · tap Sarah or Jackson's card to bring it forward
-      </p>
     </div>
   );
 }

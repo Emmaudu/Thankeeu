@@ -348,13 +348,13 @@ const deleteMessage = async (req, res) => {
     const { message_id } = req.params;
     const { data: msg } = await supabase
       .from('messages')
-      .select('card_id, author_email')
+      .select('card_id, author_email, author_name, content')
       .eq('id', message_id).maybeSingle();
     if (!msg) return res.status(404).json({ error: 'Message not found' });
 
     const { data: card } = await supabase
       .from('cards')
-      .select('creator_id, recipient_email, company_id')
+      .select('creator_id, recipient_email, recipient_name, company_id, title, slug, users:creator_id(full_name)')
       .eq('id', msg.card_id).maybeSingle();
 
     const isAdmin      = req.user.role === 'admin';
@@ -371,11 +371,56 @@ const deleteMessage = async (req, res) => {
 
     await supabase.from('messages').delete().eq('id', message_id);
     res.json({ message: 'Deleted' });
+
+    // Let the signer know — but only when someone else removed it on their
+    // behalf (a mistaken/duplicate signature, a moderation call, etc.).
+    // If they deleted their own message, they already know.
+    if (!isAuthor && msg.author_email && card) {
+      notifyDeleted(msg, card, { isAdmin, isCardOwner, isRecipient })
+        .catch(e => console.warn('[deleteMessage] notify email failed:', e.message));
+    }
   } catch (err) {
     console.error('[deleteMessage]', err.message);
     res.status(500).json({ error: 'Failed to delete message' });
   }
 };
+
+// Tell a signer their message/signature was removed from a card by someone
+// other than themselves — the card's creator, its recipient, or a Thankeeu
+// admin acting on the creator's behalf. Best-effort; never blocks the delete.
+async function notifyDeleted(msg, card, { isAdmin, isCardOwner, isRecipient }) {
+  const cardTitle = card.title || `${card.recipient_name || 'a'}'s card`;
+  const removedBy = isAdmin
+    ? 'the Thankeeu team, on the card creator\u2019s request'
+    : isCardOwner
+      ? (card.users?.full_name ? `${card.users.full_name}, the card's creator` : 'the card\u2019s creator')
+      : (card.recipient_name ? `${card.recipient_name}, the card's recipient` : 'the card\u2019s recipient');
+  const excerpt = String(msg.content || '').slice(0, 140) + (String(msg.content || '').length > 140 ? '…' : '');
+  await sendEmail({
+    to: msg.author_email,
+    subject: `Your message on "${cardTitle}" was removed`,
+    html: `
+      <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;">
+        <div style="text-align:center;margin-bottom:18px;">
+          <div style="font-size:40px;">✍️</div>
+          <h2 style="color:#4B3F72;margin:8px 0;">Your signature was removed</h2>
+          <p style="color:#888;font-size:14px;margin:0;">from "${escHtml(cardTitle)}"</p>
+        </div>
+        ${excerpt ? `<div style="background:#F5F3FF;border-radius:16px;padding:16px 20px;margin:18px 0;border-left:4px solid #7C6EFF;">
+          <p style="color:#1A1730;font-size:15px;line-height:1.7;margin:0;">"${escHtml(excerpt)}"</p>
+          <p style="color:#888;font-size:13px;margin:8px 0 0;">— ${escHtml(msg.author_name || 'you')}, previously</p></div>` : ''}
+        <p style="color:#4A3A7A;font-size:14px;line-height:1.6;">
+          This was removed by ${escHtml(removedBy)} — often just to fix a duplicate or a
+          mistaken entry. If this doesn't seem right, or you'd like to sign again,
+          just visit the card below.
+        </p>
+        <div style="text-align:center;margin-top:22px;">
+          <a href="${FRONTEND_URL}/card/${encodeURIComponent(card.slug)}" style="background:#6C5CE7;color:#fff;padding:12px 28px;border-radius:12px;text-decoration:none;font-weight:600;font-size:14px;">View the card</a>
+        </div>
+        <p style="color:#ccc;font-size:12px;text-align:center;margin-top:20px;">Thankeeu &middot; <a href="${FRONTEND_URL}" style="color:#7C6EFF;">thankeeu.com</a></p>
+      </div>`,
+  });
+}
 
 const sendReply = async (req, res) => {
   try {

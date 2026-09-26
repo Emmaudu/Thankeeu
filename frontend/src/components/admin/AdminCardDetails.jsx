@@ -6,7 +6,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { adminAPI } from '../../utils/api';
+import { adminAPI, messagesAPI } from '../../utils/api';
 import { formatNGN } from '../../utils/currency';
 
 const fmt = (v, withTime = true) => {
@@ -50,6 +50,7 @@ export default function AdminCardDetails({ cardId, onClose }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -67,6 +68,33 @@ export default function AdminCardDetails({ cardId, onClose }) {
 
   const origin = window.location.origin;
   const copy = (path, label) => { navigator.clipboard.writeText(`${origin}${path}`); toast.success(`${label} copied`); };
+
+  const deleteSignature = async (m) => {
+    if (!window.confirm(`Delete ${m.author_name || 'this signer'}'s signature?\n\nThey'll get an email letting them know it was removed, in case it's needed again.`)) return;
+    setDeletingId(m.id);
+    try {
+      await messagesAPI.delete(m.id);
+      setData(prev => {
+        const messages = prev.messages.filter(x => x.id !== m.id);
+        return {
+          ...prev,
+          messages,
+          stats: {
+            ...prev.stats,
+            signers: messages.length,
+            unique_signers: new Set(messages.map(x => (x.author_email || x.author_name || '').toLowerCase())).size,
+            private_messages: messages.filter(x => x.is_private).length,
+            media_messages: messages.filter(x => x.media_url || (Array.isArray(x.media_gallery) && x.media_gallery.length)).length,
+          },
+        };
+      });
+      toast.success('Signature deleted — the signer has been notified by email');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not delete this signature');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const repliesByMessage = useMemo(() => {
     const m = {};
@@ -198,7 +226,7 @@ export default function AdminCardDetails({ cardId, onClose }) {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead><tr className="text-left text-[11px] uppercase tracking-wide text-warm-400">
-                      <th className="py-1.5 pr-3">Signer</th><th className="py-1.5 pr-3">Message</th><th className="py-1.5 pr-3">Media</th><th className="py-1.5 pr-3">Gift</th><th className="py-1.5">Signed</th>
+                      <th className="py-1.5 pr-3">Signer</th><th className="py-1.5 pr-3">Message</th><th className="py-1.5 pr-3">Media</th><th className="py-1.5 pr-3">Gift</th><th className="py-1.5 pr-3">Signed</th><th className="py-1.5"></th>
                     </tr></thead>
                     <tbody className="divide-y divide-purple-50">
                       {signers.map(m => (
@@ -216,7 +244,15 @@ export default function AdminCardDetails({ cardId, onClose }) {
                             {Array.isArray(m.media_gallery) && m.media_gallery.length > 1 ? ` +${m.media_gallery.length - 1}` : ''}
                           </td>
                           <td className="py-2 pr-3 font-bold text-emerald-700">{m.contributed_amount > 0 ? formatNGN(m.contributed_amount) : m.product_name || '—'}</td>
-                          <td className="whitespace-nowrap py-2 text-warm-500">{fmt(m.created_at)}</td>
+                          <td className="whitespace-nowrap py-2 pr-3 text-warm-500">{fmt(m.created_at)}</td>
+                          <td className="whitespace-nowrap py-2">
+                            <button type="button" onClick={() => deleteSignature(m)} disabled={deletingId === m.id}
+                              title="Delete this signature — the signer will be emailed"
+                              className="rounded-lg border border-rose-100 px-2 py-1 text-[11px] font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                              style={{ minHeight: 0 }}>
+                              {deletingId === m.id ? '…' : 'Delete'}
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

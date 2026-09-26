@@ -1,5 +1,5 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { RotatingPrice, CurrencyToggle } from '../utils/currencyUI';
 import { formatCurrency } from '../utils/currency';
 import { Link } from 'react-router-dom';
@@ -8,7 +8,7 @@ import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import CardIntentBar from '../components/CardIntentBar';
 import { demoAPI, siteAPI } from '../utils/api';
-import HeroAlbumFlipbook from '../components/HeroAlbumFlipbook';
+import HeroAlbumStack from '../components/HeroAlbumStack';
 import { FlagBackdrop, SupportedCountries } from '../components/WorldFlags';
 import { resolveHero, splitHeroTitle, readCachedHero, writeCachedHero } from '../utils/heroDefaults';
 import toast from 'react-hot-toast';
@@ -158,277 +158,6 @@ const DemoModal = ({ onClose }) => {
  </button>
  </form>
  </>
- )}
- </div>
- </div>
- );
-};
-
-/* ─── Hero Slideshow ─────────────────────────────────────────────────── */
-const SLIDES = [
- {
- occasion: 'birthday',
- title: 'Birthday this weekend?',
- description: 'Collect messages, photos, videos and gifts from everyone in one place.',
- cta: 'Create Birthday Card',
- color: '#7C3AED',
- accent: '#EDE9FE',
- emoji: '',
- messages: [
- { name:'Adaeze O.', role:'HR Manager', color:'#7C3AED', bg:'#EDE9FE', text:'Happy birthday!! You are the reason our whole team smiles every day', emoji:'' },
- { name:'Emeka K.', role:'Team Lead', color:'#0D9488', bg:'#CCFBF1', text:'Wishing you all the joy this year! You deserve every bit of it', emoji:'' },
- { name:'Kemi I.', role:'Designer', color:'#DB2777', bg:'#FCE7F3', text:'Another year wiser and still the coolest person in the office', emoji:'' },
- { name:'Bolu D.', role:'Engineer', color:'#D97706', bg:'#FEF3C7', text:'From the whole team — we are so lucky to have you. Keep shining!', emoji:'' },
- ],
- gift: '$120',
- count: 24,
- },
- {
- occasion: 'farewell',
- title: 'Colleague leaving tomorrow?',
- description: 'Create a farewell card the whole team can sign.',
- cta: 'Create Farewell Card',
- color: '#0D9488',
- accent: '#CCFBF1',
- emoji: '',
- messages: [
- { name:'Tunde N.', role:'CTO', color:'#1D4ED8', bg:'#DBEAFE', text:'You built this team. The culture you created will outlive your time here.', emoji:'' },
- { name:'Ngozi A.', role:'Product Manager', color:'#7C3AED', bg:'#EDE9FE', text:'Working with you was the highlight of my career. See you at the top', emoji:'' },
- { name:'Chidi M.', role:'Dev', color:'#0D9488', bg:'#CCFBF1', text:'You were always the calmest person in every storm. Thank you for everything.', emoji:'' },
- { name:'Sola B.', role:'Finance', color:'#DB2777', bg:'#FCE7F3', text:'Meetings will never be the same without your energy. We\'ll miss you so much!', emoji:'' },
- ],
- gift: null,
- count: 18,
- },
- {
- occasion: 'graduation',
- title: 'Friend graduating?',
- description: 'Get 20 friends to surprise one person.',
- cta: 'Create Graduation Card',
- color: '#7C3AED',
- accent: '#F3E8FF',
- emoji: '',
- messages: [
- { name:'Amara T.', role:'Best friend', color:'#7C3AED', bg:'#EDE9FE', text:'4 years of late nights, terrible food and big dreams — you did it!', emoji:'' },
- { name:'Femi O.', role:'Classmate', color:'#1D4ED8', bg:'#DBEAFE', text:'The hardest worker I know. Your success is 100% earned. Congratulations!', emoji:'' },
- { name:'Chisom R.', role:'Roommate', color:'#DB2777', bg:'#FCE7F3', text:'You made it look easy even when it wasn\'t. So proud of you today!', emoji:'' },
- { name:'Deola F.', role:'Study group', color:'#0D9488', bg:'#CCFBF1', text:'The world doesn\'t know what\'s coming. Watch this space. Proud of you!', emoji:'' },
- ],
- gift: '$85',
- count: 22,
- },
- {
- occasion: 'anniversary',
- title: 'Anniversary coming up?',
- description: 'Make it unforgettable with messages and memories.',
- cta: 'Create Anniversary Card',
- color: '#BE185D',
- accent: '#FCE7F3',
- emoji: '',
- messages: [
- { name:'Funmi A.', role:'Team member', color:'#BE185D', bg:'#FCE7F3', text:'5 years of showing up every single day with a smile. We see you!', emoji:'' },
- { name:'Kunle O.', role:'Manager', color:'#7C3AED', bg:'#EDE9FE', text:'Your dedication is the reason this team works. Happy work anniversary!', emoji:'' },
- { name:'Zara P.', role:'Colleague', color:'#0D9488', bg:'#CCFBF1', text:'From the very first day you brought nothing but good energy. Thank you!', emoji:'' },
- { name:'Ayo B.', role:'HR', color:'#D97706', bg:'#FEF3C7', text:'Half a decade of excellence. The bar has always been you. Congrats!', emoji:'' },
- ],
- gift: null,
- count: 16,
- },
- {
- occasion: 'celebration',
- title: 'Celebrating someone special?',
- description: 'Create a card in under 1 minute.',
- cta: 'Create Card',
- color: '#7C3AED',
- accent: '#EDE9FE',
- emoji: '',
- messages: [
- { name:'Damilola A.',role:'Friend', color:'#7C3AED', bg:'#EDE9FE', text:'You deserve every single good thing coming your way. So proud!', emoji:'' },
- { name:'Seun K.', role:'Colleague', color:'#0D9488', bg:'#CCFBF1', text:'The kindest, most thoughtful person I know. Today is all about you!', emoji:'' },
- { name:'Lola M.', role:'Best friend', color:'#DB2777', bg:'#FCE7F3', text:'Couldn\'t let today pass without telling you how special you are to us.', emoji:'' },
- { name:'Tope R.', role:'Team', color:'#D97706', bg:'#FEF3C7', text:'From everyone here — thank you for being you. Celebrate big today!', emoji:'' },
- ],
- gift: '$200',
- count: 31,
- },
-];
-
-const CardPreview = ({ slide }) => (
- <div className="relative w-full max-w-lg mx-auto select-none" style={{ fontFamily:'Plus Jakarta Sans, sans-serif' }}>
- {/* Card outer */}
- <div className="rounded-3xl overflow-hidden shadow-2xl border border-purple-100 bg-white">
- {/* Card header */}
- <div className="px-6 pt-5 pb-4 flex items-center justify-between"
- style={{ background:`linear-gradient(135deg,${slide.accent},white)` }}>
- <div>
- <p className="text-xs font-bold uppercase tracking-widest mb-1" style={{ color: slide.color, opacity:0.7 }}>
- {slide.occasion} card
- </p>
- <h3 className="font-extrabold text-warm-900 text-lg leading-tight">
- {slide.emoji} For {slide.messages[0].name.split(' ')[0]}
- </h3>
- </div>
- <div className="text-right">
- <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold"
- style={{ background: slide.color, color:'#fff' }}>
- {slide.count} signed
- </div>
- {slide.gift && (
- <p className="text-xs font-bold mt-1.5" style={{ color:'#059669' }}> {slide.gift} gifted</p>
- )}
- </div>
- </div>
-
- {/* Messages grid */}
- <div className="grid grid-cols-2 gap-2 p-3">
- {slide.messages.map((m, i) => (
- <div key={m.name}
- className="rounded-2xl p-3.5 flex flex-col gap-2"
- style={{ background: m.bg, minHeight: i < 2 ? 130 : 110 }}>
- <div className="flex items-center gap-2">
- <div className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
- style={{ background: m.color, color:'#fff' }}>
- {m.name[0]}
- </div>
- <div className="min-w-0">
- <p className="font-bold text-xs text-warm-900 truncate">{m.name}</p>
- <p className="text-[10px] text-warm-400 truncate">{m.role}</p>
- </div>
- </div>
- <p className="text-xs text-warm-700 leading-relaxed" style={{ fontSize:'0.72rem' }}>
- {m.text.length > 90 ? m.text.slice(0,90)+'…' : m.text}
- </p>
- </div>
- ))}
- </div>
-
- {/* Footer */}
- <div className="px-4 pb-4 pt-1 flex items-center justify-between">
- <div className="flex -space-x-1">
- {slide.messages.map((m,i) => (
- <div key={m.name} className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold"
- style={{ background: m.color, color:'#fff', zIndex: 4-i }}>
- {m.name[0]}
- </div>
- ))}
- <div className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold bg-warm-200 text-warm-600">
- +{slide.count - 4}
- </div>
- </div>
- <div className="text-[10px] font-semibold text-warm-400">thankeeu.com</div>
- </div>
- </div>
-
- {/* Floating badge */}
- <div className="absolute -top-3 -right-3 w-12 h-12 rounded-2xl shadow-lg flex items-center justify-center text-2xl"
- style={{ background: slide.color }}>
- {slide.emoji}
- </div>
- </div>
-);
-
-const HeroSlideshow = () => {
- const [idx, setIdx] = useState(0);
- const [fading, setFading] = useState(false);
- const [paused, setPaused] = useState(false);
- const timerRef = useRef(null);
-
- const goTo = useCallback((next) => {
- setFading(true);
- setTimeout(() => {
- setIdx(next);
- setFading(false);
- }, 320);
- }, []);
-
- const prev = () => goTo((idx - 1 + SLIDES.length) % SLIDES.length);
- const next = () => goTo((idx + 1) % SLIDES.length);
-
- useEffect(() => {
- if (paused) return;
- timerRef.current = setInterval(() => {
- goTo((prev) => (prev + 1) % SLIDES.length);
- }, 5500);
- return () => clearInterval(timerRef.current);
- }, [paused, goTo]);
-
- const slide = SLIDES[idx];
-
- return (
- <div
- onMouseEnter={() => setPaused(true)}
- onMouseLeave={() => setPaused(false)}
- className="relative mb-10">
-
- {/* Slide content */}
- <div
- className="transition-all duration-300"
- style={{ opacity: fading ? 0 : 1, transform: fading ? 'translateY(6px)' : 'translateY(0)' }}>
-
- <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center rounded-3xl px-6 py-8 sm:px-10 sm:py-10"
- style={{ background:`linear-gradient(135deg,${slide.accent}cc,white)`, border:`1.5px solid ${slide.accent}` }}>
-
- {/* Left: occasion text */}
- <div className="text-center lg:text-left">
- <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold mb-5"
- style={{ background: slide.color, color:'#fff' }}>
- {slide.emoji && <span>{slide.emoji}</span>} {slide.occasion}
- </div>
- <h2 className="font-extrabold text-warm-900 mb-4 leading-tight"
- style={{ fontSize:'clamp(1.7rem,4vw,2.5rem)', letterSpacing:'-0.025em' }}>
- {slide.title}
- </h2>
- <p className="text-warm-500 mb-7 text-base sm:text-lg leading-relaxed max-w-md mx-auto lg:mx-0">
- {slide.description}
- </p>
- <Link
- to={`/card/new?occasion=${slide.occasion}`}
- className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-2xl font-bold text-white text-base transition-all hover:scale-105 hover:shadow-xl"
- style={{ background:`linear-gradient(135deg,${slide.color},${slide.color}cc)`, boxShadow:`0 8px 24px ${slide.color}44` }}>
- {slide.cta} →
- </Link>
- <p className="text-xs text-warm-400 mt-4">Free to start · No signup needed</p>
- </div>
-
- {/* Right: card preview */}
- <div className="flex items-center justify-center">
- <CardPreview slide={slide} />
- </div>
- </div>
- </div>
-
- {/* Controls row */}
- <div className="flex items-center justify-center gap-4 mt-5">
- {/* Prev */}
- <button onClick={prev}
- className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-purple-200 text-warm-500 hover:bg-purple-50 hover:border-primary-400 hover:text-primary-600 transition-all font-bold text-sm">
- ‹
- </button>
-
- {/* Dots */}
- <div className="flex items-center gap-2">
- {SLIDES.map((s, i) => (
- <button key={i} onClick={() => goTo(i)}
- className="transition-all rounded-xl"
- style={{
- width: i === idx ? 24 : 8,
- height: 8,
- background: i === idx ? slide.color : '#DDD6FE',
- }}
- aria-label={`Go to slide ${i + 1}`}
- />
- ))}
- </div>
-
- {/* Next */}
- <button onClick={next}
- className="w-9 h-9 rounded-full flex items-center justify-center border-2 border-purple-200 text-warm-500 hover:bg-purple-50 hover:border-primary-400 hover:text-primary-600 transition-all font-bold text-sm">
- ›
- </button>
-
- {/* Pause indicator */}
- {paused && (
- <span className="text-[10px] text-warm-300 font-semibold ml-1">paused</span>
  )}
  </div>
  </div>
@@ -992,9 +721,9 @@ const Home = () => {
  </div>
  </div>
 
- {/* Right: the album flipbook — a full sample card to flip through */}
+ {/* Right: three stacked album flipbooks — Jane (front), Sarah (left), Jackson (right) */}
  <div className="lg:sticky lg:top-24" style={{ paddingTop: '0.5rem' }}>
- <HeroAlbumFlipbook />
+ <HeroAlbumStack />
  </div>
  </div>
 
@@ -1165,7 +894,6 @@ const Home = () => {
  </p>
  <CardIntentBar className="text-left" />
  </div>
- <HeroSlideshow />
  </div>
  </section>
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>

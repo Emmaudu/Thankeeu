@@ -1,8 +1,9 @@
 /**
  * HeroAlbumStack — three group-card albums stacked in the homepage hero.
+ * All three are birthday cards now (Jane, Sarah, Jackson).
  *
- * Jane's album is in the front (straight). Sarah's tilts left behind it.
- * Jackson's tilts right behind it. Clicking any back album brings it to
+ * Jane's album is in the front (straight). Jackson's tilts left behind it.
+ * Sarah's tilts right behind it. Clicking any back album brings it to
  * the front with a smooth CSS transition — the previously-front album
  * slides behind with the appropriate tilt.
  *
@@ -16,7 +17,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './ui/Icon';
 import CardCoverPreview from './CardCoverPreview';
-import { buildOccasionArtCovers } from '../utils/coverArtwork.jsx';
+import { BIRTHDAY_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
 import NaturalFlipBook, { flipViews, viewOf } from './NaturalFlipBook';
 
 /* ── shared typography ───────────────────────────────────────────────────── */
@@ -211,22 +212,22 @@ const JANE_SIGNERS = [
     media:{ kind:'video', src:'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=640&q=70', length:'0:38' }, reactions:11 },
 ];
 
-// Sarah — Valentine's (hearts_drift artwork, warm rose palette)
+// Sarah — Birthday (music-studio photo cover, birthday_08)
 const SARAH_SIGNERS = [
   { name:'Emeka J.', role:'Backend Eng', initials:'EJ', tint:'#E11D48', font:'font-vibes', size:24,
-    text:`Sarah, working alongside you is one of those rare gifts. Happy Valentine's 💕`,
-    media:{ kind:'gif', src:GIF.love }, reactions:14 },
+    text:`Sarah, working alongside you is one of those rare gifts. Happy birthday 🎂`,
+    media:{ kind:'gif', src:GIF.party }, reactions:14 },
   { name:'Ngozi A.', role:'Product', initials:'NA', tint:'#DB2777', font:'font-dancing', size:20,
-    text:'You bring kindness into every room you walk into. The whole team feels it.',
+    text:'You bring kindness into every room you walk into. The whole team feels it. Happy birthday!',
     media:{ kind:'gif', src:GIF.hug }, reactions:8 },
   { name:'Damilola F.', role:'Design', initials:'DF', tint:'#9333EA', font:'font-sacramento', size:26,
     text:"Your warmth is the team's secret ingredient. So grateful for you.",
-    media:{ kind:'voice', length:10, gif:GIF.love, line:`Sarah… this Valentine's Day, the whole team just wants you to know — you are absolutely wonderful. Thank you for being you.` }, reactions:11 },
+    media:{ kind:'voice', length:10, gif:GIF.love, line:`Sarah… on your birthday, the whole team just wants you to know — you are absolutely wonderful. Thank you for being you.` }, reactions:11 },
   { name:'Temi O.', role:'Marketing', initials:'TO', tint:'#F43F5E', font:'font-dancing', size:20,
-    text:'From a Valentine card designed with love — you deserve every good thing 🌹',
+    text:'From a card designed with love — you deserve every good thing on your day 🎈',
     media:{ kind:'photo', src:'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=640&q=70', caption:'Rooftop picnic 🌸' }, reactions:9 },
   { name:'Kofi B.', role:'Strategy', initials:'KB', tint:'#EC4899', font:'font-dancing', size:20,
-    text:"Heart full of gratitude for you. Happy Valentine's from the whole crew.",
+    text:"Heart full of gratitude for you. Happy birthday from the whole crew.",
     media:{ kind:'gif', src:GIF.confetti }, reactions:7 },
 ];
 
@@ -250,9 +251,9 @@ const JACKSON_SIGNERS = [
 ];
 
 /* ── Pick cover designs ──────────────────────────────────────────────────── */
-// We use the SVG artwork covers from buildOccasionArtCovers so they look
-// gorgeous without needing real photos. Jane: birthday/balloons (warm+festive).
-// Sarah: valentine/hearts_drift (rose + pink). Jackson: birthday/celestial (dark cosmic).
+// All three use real featured photo covers from priority/birthday:
+// Jane → birthday_02 (cake & gold balloons), Jackson → birthday_01 (rocket
+// launch), Sarah → birthday_08 (music studio).
 
 /* ── Single-album flipbook (parameterised) ────────────────────────────────── */
 function AlbumFlipbook({ config, isActive, fullyLoad }) {
@@ -395,10 +396,13 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
 
 /* ── Three-album stack ────────────────────────────────────────────────────── */
 
-// Pre-build designs once
-const JANE_DESIGN    = (() => { const c = buildOccasionArtCovers('birthday', { id:'birthday', label:'Birthday', title:'Happy Birthday', subtitle:'A brilliant year starts here' }); return c.find(x => x.artwork?.scene === 'balloons') || c[0]; })();
-const SARAH_DESIGN   = (() => { const c = buildOccasionArtCovers('valentine', { id:'valentine', label:"Valentine's", title:'With All My Love', subtitle:'For the most wonderful person' }); return c.find(x => x.artwork?.scene === 'hearts_drift') || c[0]; })();
-const JACKSON_DESIGN = (() => { const c = buildOccasionArtCovers('birthday', { id:'birthday', label:'Birthday', title:'Happy Birthday', subtitle:'A brilliant year starts here' }); return c.find(x => x.artwork?.scene === 'celestial') || c[1]; })();
+// Pre-build designs once.
+// All three albums use the real featured photo covers from
+// /cards/priority/birthday instead of the old procedural SVG artwork —
+// Sarah's card is now a birthday card too (was Valentine's).
+const JANE_DESIGN    = BIRTHDAY_PRIORITY_DESIGNS[1] || BIRTHDAY_PRIORITY_DESIGNS[0]; // birthday_02 — cake & balloons
+const JACKSON_DESIGN = BIRTHDAY_PRIORITY_DESIGNS[0]; // birthday_01 — rocket launch
+const SARAH_DESIGN   = BIRTHDAY_PRIORITY_DESIGNS[7]; // birthday_08 — music studio
 
 const ALBUMS = [
   {
@@ -413,8 +417,8 @@ const ALBUMS = [
   {
     id: 'sarah',
     recipient: 'Sarah',
-    occasion: "Valentine's",
-    accent: '#E11D48',
+    occasion: 'Birthday',
+    accent: '#A21CAF',
     design: SARAH_DESIGN,
     signers: SARAH_SIGNERS,
     gift: null,
@@ -434,7 +438,10 @@ const ALBUMS = [
 // wheel one way, clicking right rotates it the other way — the album you
 // clicked always ends up in the middle, and the other two settle either
 // side, so it reads as one continuous turn rather than an unrelated swap.
-const INITIAL_ORDER = ['sarah', 'jane', 'jackson'];
+// Jackson sits left, Sarah sits right of Jane (front) — Sarah's card was
+// previously on the far left, disconnected from Jane's card; this puts
+// it directly beside Jane instead.
+const INITIAL_ORDER = ['jackson', 'jane', 'sarah'];
 
 export default function HeroAlbumStack() {
   const [order, setOrder] = useState(INITIAL_ORDER);

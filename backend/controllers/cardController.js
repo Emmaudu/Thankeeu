@@ -431,6 +431,7 @@ const getCard = async (req, res) => {
       .from('cards')
       .select(`*, messages(*), contributions(amount, status, contributor_name)`)
       .eq('slug', slug)
+      .order('created_at', { foreignTable: 'messages', ascending: true })
       .maybeSingle();
 
     if (error || !card) return res.status(404).json({ error: 'Card not found' });
@@ -909,6 +910,7 @@ const getPublicCard = async (req, res) => {
       .select('*, messages(id, author_name, content, is_private, font_style, font_color, font_size, position_x, position_y, rotation, page_number, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at, gift_type, product_id, product_name, product_price, product_vendor_id, product_vendor_name, product_vendor_slug), contributions(amount, contributor_name, status)')
       .eq('slug', slug)
       .in('status', ['active', 'sent'])
+      .order('created_at', { foreignTable: 'messages', ascending: true })
       .maybeSingle();
 
     if (error || !card) return res.status(404).json({ error: 'Card not found or not active' });
@@ -968,6 +970,7 @@ const getRecipientCard = async (req, res) => {
       .select('*, messages(*), contributions(amount, status, contributor_name)')
       .eq('slug', slug)
       .eq('access_token', token)
+      .order('created_at', { foreignTable: 'messages', ascending: true })
       .maybeSingle();
 
     if (error || !card) return res.status(403).json({ error: 'Invalid recipient link' });

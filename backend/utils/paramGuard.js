@@ -225,7 +225,10 @@ const makeRateLimiter = (options) => {
 // Dedicated limiters for endpoints not covered by authLimiter
 const publicCardLimiter = makeRateLimiter({
   windowMs: 60 * 1000,        // 1 minute
-  max: 30,                    // 30 card fetches/min per IP — enough for normal browsing
+  max: 500,                   // 500 card fetches/min per IP — generous headroom for a busy
+                               // group card being opened by many people behind the same
+                               // shared/office/carrier-NAT IP at once, while still capping
+                               // outright scraping.
   message: { error: 'Too many requests. Please slow down.' },
   skip: (req) => !!req.user || !!req.member || !!req.company, // authenticated users skip
 });
@@ -244,7 +247,10 @@ const bankVerifyLimiter = makeRateLimiter({
 
 const signCardLimiter = makeRateLimiter({
   windowMs: 60 * 1000,        // 1 minute
-  max: 5,                     // 5 message submissions/min per IP — stops automated signing spam
+  max: 100,                   // 100 message submissions/min per IP+card — generous headroom
+                               // for a group card being signed by many coworkers behind the
+                               // same shared/office/carrier-NAT IP in a short burst, while
+                               // still stopping a scripted spam flood.
   message: { error: 'Too many submissions. Please wait a moment.' },
   // Key by IP + the full path (which includes the card slug) so the limit
   // is per-card, not per-IP across all cards. req.path is available at

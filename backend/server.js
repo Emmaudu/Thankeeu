@@ -171,7 +171,7 @@ app.use(express.urlencoded({ extended: true }));
 // req.body.email (POST bodies aren't available to middleware mounted
 // before express.json()/express.urlencoded()).
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 500,
+  windowMs: 15 * 60 * 1000, max: 2000,
   standardHeaders: true, legacyHeaders: false,
   message: { error: 'Too many requests. Please try again later.' },
 });

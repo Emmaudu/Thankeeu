@@ -1598,7 +1598,12 @@ const CardView = () => {
     : messages;
   const displayMessages = searchQuery.trim().length > 0
     ? filteredMessages                              // show ALL matches when searching
-    : showAll ? messages : messages.slice(0, 8);   // normal paginated view
+    // Messages arrive oldest-first (matches the flipbook's reading order).
+    // The default (non-expanded) preview used to take the FIRST 8 — on any
+    // well-signed card that meant every new signature was buried behind
+    // "See all" and looked like it never "reflected" on the card. Take the
+    // most recent 8 instead, still in chronological order.
+    : showAll ? messages : messages.slice(-8);
   const totalCollected = card.total_collected || 0;
   const design = getCardDesign(card.design_theme);
   const isCustomCoverUrl = typeof card.background_color === 'string' && /^https?:\/\//.test(card.background_color);
@@ -1895,7 +1900,7 @@ const CardView = () => {
           {messages.length > 0 && cardViewTab === 'messages' && (
             <div className="flex justify-center mt-4">
               <div style={{ display:'flex', marginLeft:0 }}>
-                {messages.slice(0, 10).map((msg, i) => (
+                {messages.slice(-10).map((msg, i) => (
                   <div key={i} style={{
                     width:36, height:36, borderRadius:'50%',
                     background: design.accent, color:'#fff',

@@ -352,7 +352,7 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
       onKeyDown={stopAuto}>
       <div role="region" aria-roledescription="book" tabIndex={isActive ? 0 : -1}
         aria-label={`${recipient}'s ${occasion} card`}
-        className="relative rounded-2xl px-10 pb-2 pt-4 outline-none focus-visible:ring-4 focus-visible:ring-primary-200 sm:px-12">
+        className={`relative rounded-2xl pb-2 pt-4 outline-none focus-visible:ring-4 focus-visible:ring-primary-200 ${isActive ? 'px-10 sm:px-12' : 'px-2'}`}>
         <NaturalFlipBook
           ref={bookRef}
           pages={pages}
@@ -476,11 +476,18 @@ export default function HeroAlbumStack() {
   //
   // "left" and "right" are exact mirror images of each other (every value
   // is the same magnitude, sign-flipped) so Sarah (left) and Jackson
-  // (right) always tuck in behind Jane with identical size and tilt.
-  // The offset is generous enough (14% / 12%) that both are clearly
-  // visible peeking out from behind the front card, not hidden under it.
-  // Full opacity + a small saturate/contrast boost keeps their covers
-  // reading as vivid as the front card instead of looking washed out.
+  // (right) fan out symmetrically behind Jane.
+  //
+  // Previous numbers (width 90%, offset -14%) put a back card's own box at
+  // [-14%, 76%] / [24%, 114%] of the stack's width — 14 points past the
+  // stack's own edge on the outer side. Since the stack clips overflow,
+  // that's why one card read as "hiding" (the visible sliver left after
+  // the far side got clipped off) while the other read as "distancing"
+  // itself (its near edge sat 14% deeper under Jane than intended, so the
+  // whole card looked pushed away rather than tucked neatly beside her).
+  // The box below never leaves [5%, 95%] before rotation, and the rotation
+  // itself (±11deg, default center pivot) can't swing it past that margin,
+  // so all three stand fully inside the stack, side by side, Jane in front.
   const roleStyle = (role) => {
     if (role === 'front') return {
       position: 'relative', top: 0, left: 'auto', right: 'auto', width: '100%',
@@ -489,8 +496,8 @@ export default function HeroAlbumStack() {
     };
     const mirror = role === 'left' ? -1 : 1;
     return {
-      position: 'absolute', top: '3%', left: mirror < 0 ? '-14%' : 'auto', right: mirror < 0 ? 'auto' : '-14%', width: '90%',
-      zIndex: 1, transform: `rotate(${mirror * 12}deg) translate(${mirror * 12}%, 2%) scale(0.96)`, opacity: 1,
+      position: 'absolute', top: '5%', left: mirror < 0 ? '5%' : 'auto', right: mirror < 0 ? 'auto' : '5%', width: '52%',
+      zIndex: 1, transform: `rotate(${mirror * 11}deg) translateY(2%) scale(0.96)`, opacity: 1,
       pointerEvents: 'all', cursor: 'pointer',
       filter: `saturate(1.15) contrast(1.05) drop-shadow(${mirror * 6}px 8px 18px rgba(0,0,0,0.22))`,
     };

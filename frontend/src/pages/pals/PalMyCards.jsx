@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 
 import QRButton from '../../components/QRButton';
 import { asArray } from '../../utils/asArray';
+import { formatUSD } from '../../utils/currency';
 const OCCASION_ICON = { birthday: '🎂', farewell: '👋', graduation: '🎓', milestone: '🎉', promotion: '🎊' };
 const STATUS_COLOR = s => ({ active:'bg-green-100 text-green-700', sent:'bg-blue-100 text-blue-700', draft:'bg-gray-100 text-gray-600' }[s]||'bg-gray-100 text-gray-600');
 
@@ -64,7 +65,7 @@ export default function PalMyCards() {
                       <p className="text-xs text-warm-400">
                         {c.send_date ? new Date(c.send_date).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}) : '—'}
                         {c.send_date && c.send_time && ` at ${c.send_time.slice(0,5)}`}
-                        {c.total_collected > 0 && <span className="ml-2 font-semibold text-emerald-600">🎁 ₦{c.total_collected.toLocaleString()}</span>}
+                        {c.total_collected > 0 && <span className="ml-2 font-semibold text-emerald-600">🎁 {formatUSD(c.total_collected)}</span>}
                       </p>
                     </div>
                     <span className={`text-xs px-2.5 py-1 rounded-full font-semibold capitalize ${STATUS_COLOR(c.status)}`}>{c.status}</span>

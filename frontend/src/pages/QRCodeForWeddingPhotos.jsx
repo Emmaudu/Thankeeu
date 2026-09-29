@@ -121,7 +121,7 @@ const FAQS = [
   { q: 'Where should I display the QR code at my wedding?', a: 'The most effective spots: each reception table, the welcome sign at the entrance, the bar area, and inside the photo booth. The more places guests see it, the more photos you collect.' },
   { q: 'What happens to the photos after the wedding?', a: 'Every photo is permanently saved in your Thankeeu wedding card at full resolution. Download them all as a ZIP, or let Thankeeu automatically turn them into a Memory Movie™ — a cinematic film made by everyone who was there.' },
   { q: 'Can guests also write messages and contribute to a gift?', a: 'Yes — that\'s what makes Thankeeu different from basic QR photo tools. Guests can upload photos, write heartfelt messages, record voice notes, and contribute to a pooled wedding gift — all from the same link.' },
-  { q: 'How much does a QR code photo wall for a wedding cost?', a: `Free to create and collect uploads. A small one-time fee applies when you're ready to send the final card to the couple — from $3.15 USD / ₦5,000 NGN. No subscription, no per-photo charges.` },
+  { q: 'How much does a QR code photo wall for a wedding cost?', a: `Free to create and collect uploads. A small one-time fee applies when you're ready to send the final card to the couple — from $3.15 USD. No subscription, no per-photo charges.` },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════ */

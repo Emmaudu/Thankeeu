@@ -79,7 +79,7 @@ export const DEFAULT_COMP_CARDS = [
   { name: 'Kudoboard', icon: 'Award',    colour: '#f59e0b', bg: '#fffbeb',
     line: 'US recognition platform. USD-only. No voice notes, no live photo wall, expensive subscription.' },
   { name: 'Thankeeu',  icon: 'Sparkles', colour: '#7C3AED', bg: '#F5F0FF',
-    line: 'Full group card + Memory Movie + Naira/GBP/USD + HRIS sync. Built for global teams.' },
+    line: 'Full group card + Memory Movie + USD/GBP/EUR + HRIS sync. Built for global teams.' },
 ];
 
 /* ─── Card preview ─────────────────────────────────────────────────────── */

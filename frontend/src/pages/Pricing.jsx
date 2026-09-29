@@ -90,7 +90,7 @@ const COMPANY_PLANS = [
 ];
 
 const FAQ = [
- { q: 'Does Thankeeu work outside the US?', a: 'Yes — Thankeeu works globally. Contributors can pay in USD, GBP, EUR, CAD, AUD and 30+ currencies. The card creator pays the card fee in their preferred currency, automatically converted at checkout.' },
+ { q: 'Does Thankeeu work outside the US?', a: 'Yes — Thankeeu works globally. Contributors can pay in USD, GBP, EUR, CAD, NGN, GHS, KES and ZAR. The card creator pays the card fee in their preferred currency, automatically converted at checkout.' },
  { q: 'How does the gift pot work?', a: 'Contributors pay securely when signing using Visa, Mastercard, or bank transfer. Money is securely held and the recipient can withdraw to their bank account or redeem a gift card — instantly.' },
  { q: 'Does the recipient need an account?', a: 'No — recipients open and enjoy their card without any account. Only the card creator needs one.' },
  { q: 'What payment methods are accepted?', a: 'Visa, Mastercard, American Express, and bank transfers depending on your country. All processed securely by our payments partner.' },
@@ -102,8 +102,8 @@ import { CurrencyToggle, RotatingPrice } from '../utils/currencyUI';
 // ── Main Pricing page ─────────────────────────────────────────────────────────
 const Pricing = () => {
  useSEO({
- title: 'Pricing — Group Cards, Memory Movies & Photo Walls from $3.99 | Thankeeu',
- description: 'Send a group card from $3.99 USD / £4.99 GBP. Every plan includes the Memory Movie slideshow and Live Photo Wall for collecting guest photos via QR code. Pool a gift in USD, GBP, EUR, NGN and more. Team plans with HR automation. Free to create — pay when you send.',
+ title: 'Pricing — Group Cards, Memory Movies & Photo Walls from $3.15 | Thankeeu',
+ description: 'Send a group card from $3.15 USD / £2.45 GBP. Every plan includes the Memory Movie slideshow and Live Photo Wall for collecting guest photos via QR code. Pool a gift in USD, GBP, EUR, NGN and more. Team plans with HR automation. Free to create — pay when you send.',
  keywords: 'group card price, online group card cost, Thankeeu pricing, team card subscription, memory movie included, live photo wall price, event photo sharing cost, birthday card price',
  canonical: '/pricing',
  jsonLd: [

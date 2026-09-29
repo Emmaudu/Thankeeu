@@ -312,7 +312,7 @@ const HRISPage = () => {
           // Per-head pricing redirect after HRIS sync
           if (res.data?.head_count) {
             sessionStorage.setItem('sub_pricing', JSON.stringify(res.data));
-            toast(`💳 Subscription pricing updated: ${res.data.head_count} employees × ₦2,000/month`, { duration: 5000 });
+            toast(`💳 Subscription pricing updated: ${res.data.head_count} employees × $1.26/month`, { duration: 5000 });
           };
       fetchAll();
     } catch (err) {

@@ -18,6 +18,7 @@ import EmojiPicker from '../components/EmojiPicker';
 import GifPicker from '../components/GifPicker';
 import { FONT_STYLES, getFontStyle } from '../utils/cardDesigns';
 import toast from 'react-hot-toast';
+import { formatUSD, convertToNGN } from '../utils/currency';
 
 /* ─── Google fonts ──────────────────────────────────────────────────── */
 const FONT_INJECT = `
@@ -37,7 +38,8 @@ const HANDWRITTEN = [
 const getFont = id =>HANDWRITTEN.find(f=>f.id===id) || HANDWRITTEN[0];
 
 const AMOUNTS = [2500,5000,10000,20000,50000];
-const formatNGN = n => `₦${Number(n).toLocaleString('en-NG')}`;
+// Demo amounts are NGN-stored like real cards; shown in USD.
+const formatNGN = n => formatUSD(n);
 
 const GIPHY_PRESETS = [
  { url:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif', label:'Party' },
@@ -277,8 +279,9 @@ export default function SampleCard() {
  };
 
  const handleGift = () => {
- const amt = Number(customGift||giftAmount||0);
- if (amt < 100) return toast.error('Minimum gift is ₦100');
+ // Custom amount is typed in USD; presets are NGN-stored like real cards.
+ const amt = customGift ? convertToNGN(Number(customGift)||0,'USD') : Number(giftAmount||0);
+ if (amt < convertToNGN(1,'USD')) return toast.error('Minimum gift is $1');
  toast.success(`Demo gift of ${formatNGN(amt)} accepted! (No real payment on demo)`);
  setGiftDone(true);
  };
@@ -361,7 +364,7 @@ export default function SampleCard() {
  </button>
  ))}
  </div>
- <input className="input" type="number" placeholder="Custom amount" value={customGift} onChange={e=>{setCustomGift(e.target.value);setGiftAmount(null);}} style={{ marginBottom:10 }}/>
+ <input className="input" type="number" placeholder="Custom amount ($)" value={customGift} onChange={e=>{setCustomGift(e.target.value);setGiftAmount(null);}} style={{ marginBottom:10 }}/>
  <button onClick={handleGift} style={{ width:'100%', padding:'13px', borderRadius:16, border:'none', background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:15, cursor:'pointer' }}>
  Contribute (Demo)
  </button>
@@ -405,7 +408,7 @@ export default function SampleCard() {
  {/* ── CTA ── */}
  <div style={{ background:'#fff', padding:'60px 24px', textAlign:'center' }}>
  <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:28, color:'#1A1035', marginBottom:8 }}>Create a card like this for someone special</h2>
- <p style={{ color:'#6B7280', marginBottom:32, fontSize:16 }}>Beautiful group cards with gift pots. From ₦5,000. Pay only when you send.</p>
+ <p style={{ color:'#6B7280', marginBottom:32, fontSize:16 }}>Beautiful group cards with gift pots. From $3.15. Pay only when you send.</p>
  <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
  <Link to="/card/new" style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:8 }}>Create a card — it's free</Link>
  <Link to="/signup" style={{ background:'#F5F0FF', color:'#7C3AED', border:'2px solid #DDD6FE', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none' }}>Get started free →</Link>

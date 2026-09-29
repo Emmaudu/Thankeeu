@@ -6,13 +6,13 @@ import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 
 const FAQS = [
-  { cat:'Getting started', q:'Is Thankeeu free to use?', a:'Creating a card and collecting messages and contributions is completely free. You pay a one-time ₦5,000 activation fee when you\'re ready to send the card to the recipient. No subscriptions for personal use.' },
+  { cat:'Getting started', q:'Is Thankeeu free to use?', a:'Creating a card and collecting messages and contributions is completely free. You pay a one-time $3.15 activation fee when you\'re ready to send the card to the recipient. No subscriptions for personal use.' },
   { cat:'Getting started', q:'Do I need a Thankeeu account to sign a card?', a:'No. Signers just need the link. They click it, write their message, and optionally contribute to the gift pot — no account or app required.' },
   { cat:'Getting started', q:'Does the recipient need an account?', a:'No. The recipient receives an email with a link to their card. They can read all messages, watch videos, listen to voice notes and claim the gift without signing up.' },
-  { cat:'Getting started', q:'How long does it take to create a card?', a:'Less than 2 minutes. Pick an occasion, set the recipient\'s name, choose a design, set a delivery date, pay ₦5,000 and share the signing link. Done.' },
+  { cat:'Getting started', q:'How long does it take to create a card?', a:'Less than 2 minutes. Pick an occasion, set the recipient\'s name, choose a design, set a delivery date, pay $3.15 and share the signing link. Done.' },
   { cat:'Payments & gifts', q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Flutterwave. Flutterwave also accepts some international cards.' },
   { cat:'Payments & gifts', q:'How does the gift pot work?', a:'When you create a card, you can optionally enable a gift pot. Contributors pay via Flutterwave when they sign the card. All contributions are pooled automatically. The recipient can withdraw the total to their bank account when the card arrives.' },
-  { cat:'Payments & gifts', q:'Is there a minimum gift contribution?', a:'Yes — ₦2,500 minimum per contributor. This ensures payment processing fees don\'t eat into small contributions.' },
+  { cat:'Payments & gifts', q:'Is there a minimum gift contribution?', a:'Yes — $1.58 minimum per contributor (the equivalent is shown in your currency). This ensures payment processing fees don\'t eat into small contributions.' },
   { cat:'Payments & gifts', q:'Can people outside Nigeria contribute?', a:'Yes. Flutterwave accepts international Visa and Mastercard. Your signers can chip in from anywhere in the world.' },
   { cat:'Payments & gifts', q:'How does the recipient withdraw their gift?', a:'The recipient saves their Nigerian bank account details in their Thankeeu profile (or when they first claim). Then they click "Withdraw to bank" and the money is transferred via Flutterwave usually within 1–2 business days.' },
   { cat:'Cards & media', q:'What types of messages can contributors leave?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs. Multiple media files can be attached per message. Private messages are only visible to the recipient.' },

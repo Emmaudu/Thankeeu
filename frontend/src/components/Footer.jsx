@@ -198,7 +198,7 @@ const Footer = () => (
             </span>
           </Link>
           <p className="text-sm text-warm-600 leading-relaxed mb-5">
-            Get the whole crew on one card — birthday, farewell, retirement, anniversary and more. Everyone signs, gifts pool in Naira or GBP. Free to start.
+            Get the whole crew on one card — birthday, farewell, retirement, anniversary and more. Everyone signs, gifts pool in USD, GBP and more. Free to start.
           </p>
           <div className="flex gap-3 flex-wrap">
             {/* X / Twitter */}

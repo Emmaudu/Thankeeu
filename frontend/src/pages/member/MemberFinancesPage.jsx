@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { memberAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 
 export default function MemberFinancesPage() {
   const [data, setData]     = useState({ contributions: [], my_card_wallets: [], total_contributed: 0, total_collected: 0 });
@@ -37,14 +37,14 @@ export default function MemberFinancesPage() {
         <div className="min-w-0 rounded-2xl p-5 border-2" style={{ background:'rgba(124,110,255,0.06)', borderColor:'rgba(124,110,255,0.2)' }}>
           <p className="text-base font-medium mb-1" style={{ color:'#7A7898' }}>I contributed</p>
           <p className="text-2xl font-bold" style={{ fontFamily:'Space Grotesk,sans-serif', color:'#5B4BDF', overflowWrap:'break-word' }}>
-            {formatNGN(total_contributed)}
+            {formatUSD(total_contributed)}
           </p>
           <p className="text-sm mt-1" style={{ color:'#9490C8' }}>Gifts given to others</p>
         </div>
         <div className="min-w-0 rounded-2xl p-5 border-2" style={{ background:'rgba(16,185,129,0.06)', borderColor:'rgba(16,185,129,0.2)' }}>
           <p className="text-base font-medium mb-1" style={{ color:'#7A7898' }}>Collected for me</p>
           <p className="text-2xl font-bold" style={{ fontFamily:'Space Grotesk,sans-serif', color:'#059669', overflowWrap:'break-word' }}>
-            {formatNGN(total_collected)}
+            {formatUSD(total_collected)}
           </p>
           <p className="text-sm mt-1" style={{ color:'#6EE7B7' }}>On cards you created</p>
         </div>
@@ -90,7 +90,7 @@ export default function MemberFinancesPage() {
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-base font-bold" style={{ color:'#5B4BDF' }}>-{formatNGN(item.amount)}</p>
+                      <p className="text-base font-bold" style={{ color:'#5B4BDF' }}>-{formatUSD(item.amount)}</p>
                     </div>
                   </div>
                 ))}
@@ -117,7 +117,7 @@ export default function MemberFinancesPage() {
                       </p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <p className="text-base font-bold" style={{ color:'#059669' }}>+{formatNGN(card.total_collected)}</p>
+                      <p className="text-base font-bold" style={{ color:'#059669' }}>+{formatUSD(card.total_collected)}</p>
                     </div>
                   </div>
                 ))}

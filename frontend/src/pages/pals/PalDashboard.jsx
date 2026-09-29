@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import PalLayout from './PalLayout';
 import Icon from '../../components/ui/Icon';
 import { palAPI } from '../../utils/api';
-import { formatNGN } from '../../utils/currency';
+import { formatNGN, formatUSD } from '../../utils/currency';
 import toast from 'react-hot-toast';
 
 const StatCard = ({ icon, label, value, sub, color = '#7C3AED' }) => (
@@ -47,7 +47,7 @@ export default function PalDashboard() {
         <StatCard icon="Users" label="Members" value={`${data.joined_members}/${data.total_members}`}
           sub={data.pending_members ? `${data.pending_members} pending join` : 'everyone joined'} color="#7C3AED" />
         <StatCard icon="Cake" label="Cards created" value={data.total_cards} sub="for celebrations" color="#EC4899" />
-        <StatCard icon="Gift" label="Total gift raised" value={formatNGN(data.total_gift_raised)} color="#10B981" />
+        <StatCard icon="Gift" label="Total gift raised" value={formatUSD(data.total_gift_raised)} color="#10B981" />
         <StatCard icon="Percent" label="Thankeeu commission" value={formatNGN(data.thankeeu_commission)} sub={`${data.commission_pct}% of gift pot`} color="#3B82F6" />
       </div>
 

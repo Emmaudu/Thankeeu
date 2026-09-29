@@ -363,7 +363,7 @@ VALUES (
 'how-to-reduce-employee-turnover-with-recognition',
 'Employee turnover costs Nigerian companies millions annually. Recognition is one of the highest-ROI levers available — here is how to use it strategically.',
 $content$<h2>The real cost of employee turnover in Nigeria</h2>
-<p>Replacing an employee costs between 50% and 200% of their annual salary when you account for recruitment, onboarding, lost productivity during transition, and the institutional knowledge that walks out the door. For a mid-level professional earning ₦5 million annually, the replacement cost ranges from ₦2.5 million to ₦10 million per departure.</p>
+<p>Replacing an employee costs between 50% and 200% of their annual salary when you account for recruitment, onboarding, lost productivity during transition, and the institutional knowledge that walks out the door. For a mid-level professional earning $3,150 (₦5 million) annually, the replacement cost ranges from $1,575 (₦2.5 million) to $6,300 (₦10 million) per departure.</p>
 <p>Nigeria's talent market is competitive, particularly in tech, finance, professional services, and fast-moving consumer goods. The best employees have options. They leave when they feel undervalued, invisible, or disconnected from the organisation. They stay when they feel seen, appreciated, and part of something worth committing to.</p>
 <p>Recognition is one of the highest-leverage interventions available to HR because it addresses the emotional drivers of retention directly and at scale.</p>
 
@@ -610,9 +610,9 @@ $content$<h2>Why most recognition programmes fail</h2>
 <h2>Budget planning</h2>
 <p>Recognition programme budgets typically fall in three tiers:</p>
 <ul>
-<li><strong>Lean (software only):</strong> ₦3,000–8,000 per employee per year, covering platform costs and gift pool company contributions for significant milestones</li>
-<li><strong>Standard:</strong> ₦8,000–20,000 per employee per year, covering higher company contributions to gift pools and manager training investment</li>
-<li><strong>Premium:</strong> ₦20,000+ per employee per year, covering significant company gifts, in-person celebration budgets, and dedicated recognition events</li>
+<li><strong>Lean (software only):</strong> $1.89–$5.04 (₦3,000–8,000) per employee per year, covering platform costs and gift pool company contributions for significant milestones</li>
+<li><strong>Standard:</strong> $5.04–$12.60 (₦8,000–20,000) per employee per year, covering higher company contributions to gift pools and manager training investment</li>
+<li><strong>Premium:</strong> $12.60 (₦20,000)+ per employee per year, covering significant company gifts, in-person celebration budgets, and dedicated recognition events</li>
 </ul>
 <p>Start lean. Demonstrate impact. Invest more as the ROI becomes visible. Most companies find that the turnover savings from even a modest recognition programme significantly exceed the programme costs within 12–18 months.</p>
 <p>Build your recognition programme on <a href="https://thankeeu.com/company/signup">Thankeeu for Teams →</a></p>$content$,
@@ -958,7 +958,7 @@ $content$<h2>Why gift pools work better than individual gifts</h2>
 <p>Open the gift pool 10–14 days before the occasion. This gives colleagues adequate time to contribute without feeling rushed. Close the pool 24–48 hours before the occasion so the total can be calculated and communicated.</p>
 
 <h3>Step 3: Set a suggested contribution</h3>
-<p>A suggested contribution amount reduces decision fatigue without making contributions mandatory. The suggestion should be accessible for all salary levels in the team — typically ₦1,000–₦3,000 for most Nigerian workplace contexts, with the understanding that contributions above and below this are equally welcome.</p>
+<p>A suggested contribution amount reduces decision fatigue without making contributions mandatory. The suggestion should be accessible for all salary levels in the team — typically $0.63–$1.89 (₦1,000–₦3,000) for most Nigerian workplace contexts, with the understanding that contributions above and below this are equally welcome.</p>
 
 <h3>Step 4: Collect contributions digitally</h3>
 <p>Digital collection via Flutterwave, Paystack, or a dedicated platform like <a href="https://thankeeu.com">Thankeeu</a> is far more efficient than cash collection. No one needs to carry cash. No one needs to manage receipts. The total is automatically calculated and the disbursement is automatic.</p>
@@ -1218,7 +1218,7 @@ $content$<h2>Why group cards are perfect for baby showers</h2>
 
 <h2>Combining a group card with a gift pool</h2>
 <p>A baby shower gift pool alongside the group card creates an extraordinarily comprehensive celebration. Contributors add both a personal message and a financial contribution. The mother receives heartfelt words from everyone who loves her plus a meaningful sum she can use for whatever the baby needs most — which she knows better than anyone else.</p>
-<p>Suggested gift pool amounts for baby showers vary widely by social context. For close friends, ₦5,000–₦10,000 per person is common; for wider circles, ₦1,000–₦3,000 is appropriate. The anonymity of digital contributions removes the social pressure of visible individual amounts.</p>
+<p>Suggested gift pool amounts for baby showers vary widely by social context. For close friends, $3.15–$6.30 (₦5,000–₦10,000) per person is common; for wider circles, $0.63–$1.89 (₦1,000–₦3,000) is appropriate. The anonymity of digital contributions removes the social pressure of visible individual amounts.</p>
 
 <h2>Organising the baby shower group card</h2>
 <p>The best time to create and share the baby shower group card is 2–3 weeks before the shower (or before the due date if there is no physical shower). This gives enough time for contributions to accumulate while maintaining the anticipation of the occasion.</p>
@@ -1286,7 +1286,7 @@ $content$<h2>Why recognition programmes need measurement</h2>
 
 <h2>Presenting recognition ROI to leadership</h2>
 <p>When presenting recognition programme ROI to leadership, the most compelling frame is retention ROI. Calculate your average cost per voluntary departure (recruitment fees, agency costs, onboarding investment, lost productivity during transition — typically 50–150% of annual salary). Then model the impact of even a modest reduction in voluntary turnover.</p>
-<p>Example: A 200-person Nigerian company with 20% annual voluntary turnover (40 departures per year) at an average replacement cost of ₦3 million per departure has a turnover cost of ₦120 million per year. A 5% reduction in voluntary turnover (from 20% to 15%) prevents 10 departures and saves ₦30 million. A recognition programme that costs ₦5 million per year and delivers ₦30 million in retention savings has a 6x ROI before any productivity or engagement benefits are counted.</p>
+<p>Example: A 200-person Nigerian company with 20% annual voluntary turnover (40 departures per year) at an average replacement cost of $1,890 (₦3 million) per departure has a turnover cost of $75,600 (₦120 million) per year. A 5% reduction in voluntary turnover (from 20% to 15%) prevents 10 departures and saves $18,900 (₦30 million). A recognition programme that costs $3,150 (₦5 million) per year and delivers $18,900 (₦30 million) in retention savings has a 6x ROI before any productivity or engagement benefits are counted.</p>
 <p>This frame makes the business case for recognition investment immediate and concrete.</p>
 
 <h2>Continuous improvement cycle</h2>
@@ -1370,7 +1370,7 @@ $content$<h2>The Nigerian HR tech landscape in 2025</h2>
 <li>Recruitment: Jobberman + LinkedIn</li>
 <li>Engagement: Quarterly Google Form pulse survey until scale justifies Culture Amp</li>
 </ul>
-<p>Total annual cost for a 100-person company: approximately ₦2–4 million, compared to the ₦15–30 million that even modest voluntary turnover reduction can save.</p>
+<p>Total annual cost for a 100-person company: approximately $1,260–$2,520 (₦2–4 million), compared to the $9,450–$18,900 (₦15–30 million) that even modest voluntary turnover reduction can save.</p>
 <p>Start building your HR tech stack with the highest-impact, lowest-effort tool first: <a href="https://thankeeu.com/company/signup">Thankeeu for Teams →</a></p>$content$,
 'HR & People Ops',
 ARRAY['HR tools','Nigeria','HR tech','2025','digital toolkit'],

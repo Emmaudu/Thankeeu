@@ -22,7 +22,7 @@ import Icon from '../components/ui/Icon';
 
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { formatNGN } from '../utils/currency';
+import { formatNGN, formatUSD } from '../utils/currency';
 import { asArray } from '../utils/asArray';
 import occasionEmoji from '../utils/occasionEmoji';
 import NaturalFlipBook from '../components/NaturalFlipBook';
@@ -838,7 +838,7 @@ const MessageCard = ({ message, index, design, canViewPrivate, onOpen, onReact, 
     if (message.contributed_amount > 0) {
       return (
         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/75 border border-white" style={{ color: onWhiteAccent }}>
-          🎁 {formatNGN(message.contributed_amount)}
+          🎁 {formatUSD(message.contributed_amount)}
         </span>
       );
     }
@@ -1143,7 +1143,7 @@ const AlbumLeaf = ({ msg, accent, albumTheme, replyKit, pageNo, onReact }) => {
               ) : (
                 <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-white"
                   style={{ background: '#059669' }}>
-                  🎁 {formatNGN(gift.amount)}
+                  🎁 {formatUSD(gift.amount)}
                 </span>
               )}
             </div>
@@ -1790,7 +1790,7 @@ const CardView = () => {
             </span>
             {totalCollected > 0 && (
               <span className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold shadow-sm bg-emerald-600 text-white">
-                🎁 {formatNGN(totalCollected)} gift
+                🎁 {formatUSD(totalCollected)} gift
               </span>
             )}
             {card.send_date && (() => {
@@ -1940,7 +1940,7 @@ const CardView = () => {
                 <div className="w-16 h-16 bg-white/15 rounded-2xl grid place-items-center text-3xl">{'\uD83C\uDF81'}</div>
                 <div>
                   <p className="text-emerald-100 text-xs font-extrabold tracking-[.18em] uppercase">A gift from everyone</p>
-                  <h2 className="text-2xl sm:text-3xl text-white mt-1">{formatNGN(totalCollected)}</h2>
+                  <h2 className="text-2xl sm:text-3xl text-white mt-1">{formatUSD(totalCollected)}</h2>
                   <p className="text-emerald-100 text-sm">Attached to this card for {card.recipient_name}</p>
                 </div>
               </div>
@@ -1959,7 +1959,7 @@ const CardView = () => {
               {/* Recipient has the token but no account — prompt to sign up/in to claim */}
               {!card.isRecipient && !user && !member && token && totalCollected > 0 && (
                 <div className="bg-white/15 backdrop-blur-sm rounded-2xl p-4 text-center max-w-sm mx-auto">
-                  <p className="font-bold text-white text-sm mb-1">🎁 {formatNGN(totalCollected)} gift is waiting for you</p>
+                  <p className="font-bold text-white text-sm mb-1">🎁 {formatUSD(totalCollected)} gift is waiting for you</p>
                   <p className="text-white/70 text-xs mb-3 leading-relaxed">
                     Create a free account or log in with <strong>{card.recipient_email}</strong> to withdraw your gift to your bank account.
                   </p>
@@ -2020,7 +2020,7 @@ const CardView = () => {
                     <span className="font-semibold text-warm-800 text-sm truncate">{c.contributor_name || 'Anonymous'}</span>
                   </span>
                   <span className="font-extrabold text-emerald-700 text-sm flex-shrink-0">
-                    {c.amount != null ? formatNGN(c.amount) : 'Amount hidden'}
+                    {c.amount != null ? formatUSD(c.amount) : 'Amount hidden'}
                   </span>
                 </li>
               ))}
@@ -2265,7 +2265,7 @@ const CardView = () => {
             <p className="text-2xl mb-2">🎉</p>
             <p className="font-extrabold text-warm-900 text-lg mb-1">This card was made just for you</p>
             <p className="text-warm-600 text-sm mb-4 leading-relaxed max-w-sm mx-auto">
-              Create a free account with <strong>{card.recipient_email}</strong> to save this card to your profile, revisit it any time, and{totalCollected > 0 ? ` claim your ${formatNGN(totalCollected)} gift.` : ' keep it forever.'}
+              Create a free account with <strong>{card.recipient_email}</strong> to save this card to your profile, revisit it any time, and{totalCollected > 0 ? ` claim your ${formatUSD(totalCollected)} gift.` : ' keep it forever.'}
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <Link
@@ -2326,7 +2326,7 @@ const CardView = () => {
             {openMessage.contributed_amount > 0 && (
               <div className="mt-5 bg-white/75 rounded-2xl px-4 py-3 flex justify-between font-bold" style={{ color: design.ink }}>
                 <span>{'\uD83C\uDF81'} Gift attached to this message</span>
-                <span style={{ color: design.accent }}>{formatNGN(openMessage.contributed_amount)}</span>
+                <span style={{ color: design.accent }}>{formatUSD(openMessage.contributed_amount)}</span>
               </div>
             )}
             {(replyKit.can || (replyKit.byMsg[openMessage.id] || []).length > 0) && (

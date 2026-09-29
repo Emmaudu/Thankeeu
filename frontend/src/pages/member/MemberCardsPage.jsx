@@ -4,7 +4,7 @@ import { memberCardsAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import toast from 'react-hot-toast';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 import { asArray } from '../../utils/asArray';
 
 const occasionEmoji = { birthday:'🎂',leaving:'👋',promotion:'🌟',anniversary:'💍',graduation:'🎓',wedding:'💒',other:'🎉' };
@@ -95,7 +95,7 @@ export default function MemberCardsPage() {
                   </p>
                 )}
                 {card.total_collected > 0 && (
-                  <p className="text-xs font-bold mt-1" style={{color:'#059669'}}>🎁 {formatNGN(card.total_collected)}</p>
+                  <p className="text-xs font-bold mt-1" style={{color:'#059669'}}>🎁 {formatUSD(card.total_collected)}</p>
                 )}
               </div>
               <div className="border-t flex" style={{borderColor:'#EDE9FF'}}>

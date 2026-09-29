@@ -73,9 +73,9 @@ const SLIDES = [
     title: 'Pool a birthday gift — no cash chasing.',
     description: 'Everyone chips in when they sign. Any amount, any currency. The birthday person withdraws straight to their bank.',
     color: '#059669', accent: '#D1FAE5', emoji: '🎁',
-    count: 19, gift: '₦380,000',
+    count: 19, gift: '$239',
     messages: [
-      { name: 'Ngozi A.',  role: 'Team',    color: '#059669', bg: '#D1FAE5', text: 'Every naira of this was given with so much love! Enjoy every penny of it.' },
+      { name: 'Ngozi A.',  role: 'Team',    color: '#059669', bg: '#D1FAE5', text: 'Every dollar of this was given with so much love! Enjoy every penny of it.' },
       { name: 'Chidi M.',  role: 'Manager', color: '#7C3AED', bg: '#EDE9FE', text: 'A small token from the whole team to say: you are genuinely irreplaceable here.' },
       { name: 'Sola B.',   role: 'Finance', color: '#D97706', bg: '#FEF3C7', text: "We all pitched in because no gift is big enough for someone who gives so much." },
       { name: 'Dami A.',   role: 'Design',  color: '#E84393', bg: '#FCE7F3', text: 'Spend it on something ridiculous and wonderful. You deserve a proper treat!' },

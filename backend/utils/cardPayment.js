@@ -180,6 +180,38 @@ function isCardFeeAmountOk(txn) {
   return paid >= expectedInCurrency * 0.9;
 }
 
+/**
+ * Amount to ask Flutterwave for when charging an NGN-denominated value in
+ * `currency`. Always computed server-side — never trust a client-sent amount.
+ */
+function chargeAmountFor(amountNGN, currency) {
+  const cur = String(currency || 'NGN').toUpperCase();
+  if (cur === 'NGN' || !CARD_FEE_FX[cur]) return Math.round(Number(amountNGN));
+  return Math.max(0.01, parseFloat((Number(amountNGN) * CARD_FEE_FX[cur]).toFixed(2)));
+}
+
+/**
+ * Does a successful gift-contribution transaction actually cover the NGN
+ * amount we are about to credit to the gift pot? Without this, a contributor
+ * could initialise "₦5,000,000" and pay $0.01. Compared in the charged currency.
+ */
+function isContributionAmountOk(txn, expectedNGN) {
+  const meta = txn?.meta || {};
+  const paid = Number(txn?.amount);
+  const want = Number(expectedNGN);
+  if (!isFinite(paid) || paid <= 0 || !isFinite(want) || want <= 0) return false;
+  const currency = String(txn?.currency || 'NGN').toUpperCase();
+  // Exact amount we asked FLW for, in the same currency → tight tolerance.
+  if (String(meta.currency || '').toUpperCase() === currency && Number(meta.expected_amount) > 0
+      && Number(meta.expected_ngn) === want) {
+    return paid >= Number(meta.expected_amount) * 0.99;
+  }
+  if (currency === 'NGN') return paid >= want * 0.99;
+  // Different/unknown charge currency — approximate FX, looser tolerance.
+  if (!CARD_FEE_FX[currency]) return false;
+  return paid >= want * CARD_FEE_FX[currency] * 0.9;
+}
+
 /** "Friday, 3 October 2026, 09:00 UTC"-style label for emails. */
 /** Printed in the recipient's time zone when the creator chose one, else UTC. */
 function humanSendDate(sendDate, timeZone) {
@@ -208,5 +240,7 @@ module.exports = {
   publishUnpaid,
   markCardFeePaid,
   isCardFeeAmountOk,
+  chargeAmountFor,
+  isContributionAmountOk,
   humanSendDate,
 };

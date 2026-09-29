@@ -1,3 +1,4 @@
+import { convertToNGN } from './currency';
 /**
  * cardIntent.js — turn one typed sentence into card-wizard fields.
  *
@@ -313,9 +314,24 @@ export const parseTimeOfDay = (text) => {
   return null;
 };
 
-/** "50k" → 50000, "₦5,000" → 5000, "N2500" → 2500, "5000 naira" → 5000. */
+/**
+ * Returns the amount in NGN (the storage base).
+ * USD first — "$50", "$1.5k", "50 dollars", "usd 50" → NGN equivalent — so "$50k"
+ * is never mistaken for ₦50k. Then naira: "50k" → 50000, "₦5,000" → 5000,
+ * "N2500" → 2500, "5000 naira" → 5000.
+ */
 export const parseAmount = (text) => {
   const t = text.toLowerCase().replace(/,/g, '');
+  const NUM = '(\\d{1,6}(?:\\.\\d{1,2})?)';
+  const usd = t.match(new RegExp(`\\$\\s*${NUM}\\s*(k)?\\b`))
+    || t.match(new RegExp(`\\b${NUM}\\s*(k)?\\s*(?:usd|dollars?|bucks)\\b`))
+    || t.match(new RegExp(`\\busd\\s*${NUM}\\s*(k)?\\b`));
+  if (usd) {
+    const dollars = parseFloat(usd[1]) * (usd[2] ? 1000 : 1);
+    // A dollar amount outside the sane range is not money we act on — and must
+    // not fall through to the naira "50k" rule below.
+    return dollars >= 1 && dollars <= 6000 ? convertToNGN(dollars, 'USD') : null;
+  }
   const k = t.match(/(?:₦|n|ngn)?\s*(\d{1,4})\s*k\b/);
   if (k) {
     const v = parseInt(k[1], 10) * 1000;

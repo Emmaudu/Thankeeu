@@ -40,7 +40,7 @@ $content$<h2>Buying a birthday card in Nigeria: your real options</h2>
 <p>A print shop offering customised birthday cards on quality cardstock with UV spot lamination and embossed finishing, plus matching envelopes. Best when you want a specific custom design printed rather than an off-the-shelf card.</p>
 
 <h2>What physical cards cost in Nigeria</h2>
-<p>Expect roughly ₦1,500–₦5,000 for standard shop cards, ₦5,000–₦15,000+ for premium handmade cards, plus delivery fees of ₦1,000–₦3,000 within Lagos depending on distance. Same-day delivery usually requires ordering before mid-morning and rarely works on weekends.</p>
+<p>Expect roughly $0.95–$3.15 (₦1,500–₦5,000) for standard shop cards, $3.15–$9.45 (₦5,000–₦15,000)+ for premium handmade cards, plus delivery fees of $0.63–$1.89 (₦1,000–₦3,000) within Lagos depending on distance. Same-day delivery usually requires ordering before mid-morning and rarely works on weekends.</p>
 
 <h2>The delivery reality check</h2>
 <p>Before you rely on a physical card arriving on the day, check three things: the shop's order cutoff time (often 10am for same-day), whether they deliver on the actual day of the week the birthday falls (most don't deliver Sundays), and whether the recipient will actually be at the delivery address. A card sitting at a gate with security while the celebrant is at work is a common Lagos story.</p>
@@ -72,7 +72,7 @@ $content$<h2>The colleague birthday card decision</h2>
 <h2>Head-to-head comparison</h2>
 <table>
 <tr><th></th><th>Physical card</th><th>Digital group card</th></tr>
-<tr><td><strong>Cost</strong></td><td>₦1,500–₦15,000 + ₦1,000–₦3,000 delivery</td><td>Free to create; small sending fee shown upfront</td></tr>
+<tr><td><strong>Cost</strong></td><td>$0.95–$9.45 (₦1,500–₦15,000) + $0.63–$1.89 (₦1,000–₦3,000) delivery</td><td>Free to create; small sending fee shown upfront</td></tr>
 <tr><td><strong>Who signs</strong></td><td>Whoever is physically in the office that day — usually 3–8 cramped signatures</td><td>Everyone — including remote staff, other branches, and even the colleague's family if you invite them</td></tr>
 <tr><td><strong>Message space</strong></td><td>Limited; later signers write sideways in corners</td><td>Unlimited — full messages, photos, GIFs, voice notes</td></tr>
 <tr><td><strong>Delivery</strong></td><td>Dispatch rider, weekday cutoffs, no Sundays</td><td>Email, exact minute you choose, any day, free</td></tr>
@@ -94,7 +94,7 @@ $content$<h2>The colleague birthday card decision</h2>
 </ul>
 
 <h2>What it costs, honestly compared</h2>
-<p>A decent physical card + delivery in Lagos runs ₦3,000–₦8,000 before any gift. A Thankeeu card is free to create with a small sending fee — and the money your team saves goes into the gift pool where the celebrant actually feels it.</p>
+<p>A decent physical card + delivery in Lagos runs $1.89–$5.04 (₦3,000–₦8,000) before any gift. A Thankeeu card is free to create with a small sending fee — and the money your team saves goes into the gift pool where the celebrant actually feels it.</p>
 
 <h2>The verdict</h2>
 <p>Intimate, in-person, small team, weekday, time to plan → physical card from a good Lagos shop. Everything else — group signing, remote colleagues, weekend birthdays, contributions, tight timing → digital group card. <a href="/card/new">Create one free here</a>, share the link on the office WhatsApp, and the whole thing is handled before lunch.</p>$content$,
@@ -117,7 +117,7 @@ $content$<h2>What "customised" actually means for birthday cards in Nigeria</h2>
 <p>Print shops like Lasprint Nigeria produce customised birthday cards on premium cardstock with finishes like UV spot lamination and embossing, plus matching bespoke envelopes. You supply or approve the design; they print. Best for: corporate cards, bulk orders (staff birthdays for the year), and when you want a specific brand look. Turnaround: typically 2–5 working days. Budget: varies with quantity and finishing, but custom print runs are rarely economical for a single card.</p>
 
 <h2>Option 2: Handmade personalised cards (artisan makers)</h2>
-<p>Studios like DottyDot Crafts hand-make luxury cards — stacked, cut, sprayed and carved into genuinely unique pieces, personalised to the recipient. These are cards as gifts in themselves, and they've been presented to some of Nigeria's most prominent figures. Best for: milestone birthdays (50th, 60th, 70th), executives, parents, and anyone you want to seriously honour. Budget: premium — expect ₦10,000+. Order well ahead; handmade takes time.</p>
+<p>Studios like DottyDot Crafts hand-make luxury cards — stacked, cut, sprayed and carved into genuinely unique pieces, personalised to the recipient. These are cards as gifts in themselves, and they've been presented to some of Nigeria's most prominent figures. Best for: milestone birthdays (50th, 60th, 70th), executives, parents, and anyone you want to seriously honour. Budget: premium — expect $6.30 (₦10,000)+. Order well ahead; handmade takes time.</p>
 
 <h2>Option 3: Template personalisation (online card shops)</h2>
 <p>Shops like Anoela Cards let you edit pre-designed templates online — change the name, tweak the message — then they print and deliver. A middle ground: faster than full custom, more personal than off-the-shelf. Lagos same-day delivery if ordered before 10am on a weekday.</p>

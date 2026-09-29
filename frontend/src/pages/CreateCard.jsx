@@ -12,7 +12,7 @@ import MemberLayout from '../components/member/MemberLayout';
 import Icon from '../components/ui/Icon';
 import QRButton from '../components/QRButton';
 import toast from 'react-hot-toast';
-import { formatNGN, CURRENCIES, formatCurrency } from '../utils/currency';
+import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 import { getOccasionLabel } from '../utils/occasionCardDesigns';
 import CoverTextStudio from '../components/CoverTextStudio';
@@ -90,7 +90,7 @@ const CreateCard = () => {
  useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [step]);
  const [loading, setLoading] = useState(false);
  const [paymentStage, setPaymentStage] = useState('idle');
- const [selectedCurrency,setSelectedCurrency] = useState('NGN');
+ const [selectedCurrency,setSelectedCurrency] = useState(DEFAULT_CURRENCY);
  const [creditBalance, setCreditBalance] = useState(null);
  const [payMode, setPayMode] = useState('direct');
  const [inviteEmails, setInviteEmails] = useState('');
@@ -692,7 +692,7 @@ const CreateCard = () => {
    </p>
    <p className="mb-3 text-sm leading-relaxed text-amber-800">
     Collect signatures, photos, voice notes and gifts first. When you're happy with how it's going, pay the
-    one-time {formatCurrency(5000, 'NGN')} fee and the card is delivered to {form.recipient_name || 'the recipient'} automatically
+    one-time {formatUSD(5000)} fee and the card is delivered to {form.recipient_name || 'the recipient'} automatically
     {form.send_date ? ' on the date you scheduled' : ''} — with the Memory Movie and every gift. Until it's paid it won't be delivered.
     We've emailed you the details.
    </p>
@@ -1241,7 +1241,7 @@ const CreateCard = () => {
  {[2500,5000,10000,25000,50000].map(amt => (
  <button key={amt} onClick={() => set('suggested_amount', amt)}
  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${form.suggested_amount===amt?'bg-primary-400 text-white border-primary-400':'border-purple-100 text-warm-700 hover:border-primary-300'}`}>
- {formatNGN(amt)}
+ {formatUSD(amt)}
  </button>
  ))}
  </div>
@@ -1266,8 +1266,8 @@ const CreateCard = () => {
  ['Recipient email', form.recipient_email || 'Not set'],
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
- ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount||2500)} suggested` : 'No'],
- ['Card fee', `${formatCurrency(5000,'NGN')} one-time — pay later, before delivery`],
+ ['Gift pot', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount||2500)} suggested` : 'No'],
+ ['Card fee', `${formatUSD(5000)} one-time — pay later, before delivery`],
  ].map(([k,v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1391,8 +1391,8 @@ const CreateCard = () => {
  ['Recipient email', form.recipient_email || 'Not set'],
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
- ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount||2500)} suggested` : 'No'],
- ['Card fee', `${formatCurrency(5000,'NGN')} one-time — pay later, before delivery`],
+ ['Gift pot', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount||2500)} suggested` : 'No'],
+ ['Card fee', `${formatUSD(5000)} one-time — pay later, before delivery`],
  ['Status', 'Draft — sign in to launch (pay later)'],
  ].map(([k,v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
@@ -1479,7 +1479,7 @@ const CreateCard = () => {
  {[2500,5000,10000,25000,50000].map(amt => (
  <button key={amt} onClick={() => set('suggested_amount', amt)}
  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${form.suggested_amount===amt?'bg-primary-400 text-white border-primary-400':'border-purple-100 text-warm-700 hover:border-primary-300'}`}>
- {formatNGN(amt)}
+ {formatUSD(amt)}
  </button>
  ))}
  </div>
@@ -1499,10 +1499,10 @@ const CreateCard = () => {
  {[
  ['Occasion', form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o=>o.id===form.occasion)?.label||form.occasion)],
  ['Recipient', form.recipient_name],
- ['Gift', form.is_gift_enabled?`Yes — ${formatNGN(form.suggested_amount)} suggested`:'No'],
+ ['Gift', form.is_gift_enabled?`Yes — ${formatUSD(form.suggested_amount)} suggested`:'No'],
  ...(isCompanyUser?[['Card fee','Free (company)']]:
  isActiveEdit?[]:
- !showPayNow?[['Card fee',`${formatCurrency(5000,'NGN')} one-time — pay later, before delivery`]]:
+ !showPayNow?[['Card fee',`${formatUSD(5000)} one-time — pay later, before delivery`]]:
  payMode==='credit'&&creditBalance>0?[['Card fee',`1 credit (${creditBalance} remaining)`]]:
  [['Card fee',`${formatCurrency(5000,selectedCurrency)} one-time`]]),
  ].map(([k,v]) => (

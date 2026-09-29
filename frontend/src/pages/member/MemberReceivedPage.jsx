@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { memberAPI } from '../../utils/api';
 import MemberLayout from '../../components/member/MemberLayout';
 import { useMemberAuth } from '../../context/MemberAuthContext';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 import { asArray } from '../../utils/asArray';
 
 export default function MemberReceivedPage() {
@@ -73,7 +73,7 @@ export default function MemberReceivedPage() {
                     )}
                     {(cardData.total_collected || 0) > 0 && (
                       <p className="text-xs mt-1 font-semibold" style={{ color:'#059669' }}>
-                        🎁 {formatNGN(cardData.total_collected)} gift pot
+                        🎁 {formatUSD(cardData.total_collected)} gift pot
                       </p>
                     )}
                   </div>

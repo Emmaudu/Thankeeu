@@ -3,7 +3,7 @@ import { dashboardAPI } from '../../utils/api';
 import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import { format } from 'date-fns';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 import { asArray } from '../../utils/asArray';
 
 export default function DashboardFinances() {
@@ -17,7 +17,7 @@ export default function DashboardFinances() {
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div className="db-stat-card db-stat-hi">
           <p className="db-stat-label">Total collected</p>
-          <p className="db-stat-value db-stat-value-hi">{formatNGN(total)}</p>
+          <p className="db-stat-value db-stat-value-hi">{formatUSD(total)}</p>
         </div>
         <div className="db-stat-card">
           <p className="db-stat-label">Transactions</p>
@@ -49,7 +49,7 @@ export default function DashboardFinances() {
                   <p className="db-card-item-meta">{item.cards?.title}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:'0.9rem',color:'#059669'}}>+{formatNGN(item.amount)}</p>
+                  <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:'0.9rem',color:'#059669'}}>+{formatUSD(item.amount)}</p>
                   <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:'0.75rem',color:'#A898CC'}}>{format(new Date(item.created_at),'MMM d, yy')}</p>
                 </div>
               </div>

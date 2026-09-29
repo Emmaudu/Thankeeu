@@ -18,7 +18,7 @@ import Navbar from '../components/Navbar';
 import { readableTextColor, backgroundIsDark } from '../utils/textContrast';
 import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
-import { formatNGN, CURRENCIES, formatCurrency, getFLWPaymentParams } from '../utils/currency';
+import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD, convertToNGN, getFLWPaymentParams } from '../utils/currency';
 import occasionEmoji from '../utils/occasionEmoji';
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
@@ -48,7 +48,7 @@ const SignCard = () => {
   const [submitting,  setSubmitting]  = useState(false);
   // 'idle' | 'sending' | 'paying' | 'verifying' | 'done'
   const [stage,       setStage]       = useState('idle');
-  const [giftCurrency,setGiftCurrency] = useState('NGN');
+  const [giftCurrency,setGiftCurrency] = useState(DEFAULT_CURRENCY);
   const [submitted,   setSubmitted]   = useState(false);
   // track whether the signee created an account during this signing flow
   const [, setCreatedAccount] = useState(false);
@@ -336,7 +336,7 @@ const SignCard = () => {
     if (!form.author_name.trim()) return toast.error('Please add your name');
     if (!form.content.trim())     return toast.error('Please write a message');
 
-    const amountNGN = Number(customAmount || selectedAmount || 0);
+    const amountNGN = customAmount ? convertToNGN(Number(customAmount) || 0, giftCurrency) : Number(selectedAmount || 0);
     const wantsGift = card.is_gift_enabled && amountNGN >= 2500;
 
     // Email always required — needed for gift payments and to send them a copy of their message
@@ -564,7 +564,7 @@ const SignCard = () => {
     </div>
   );
 
-  const amountNGN = Number(customAmount || selectedAmount || 0);
+  const amountNGN = customAmount ? convertToNGN(Number(customAmount) || 0, giftCurrency) : Number(selectedAmount || 0);
   const wantsGift = card.is_gift_enabled && amountNGN >= 2500;
 
   // Load approved vendors for product gifting
@@ -682,7 +682,7 @@ const SignCard = () => {
             <div className="flex flex-wrap justify-center gap-2">
               <span className="bg-white/80 text-warm-800 rounded-full px-4 py-2 text-sm font-bold shadow-sm">{card.signed_count || 0} people signed</span>
               {card.is_gift_enabled && card.total_collected > 0 && !card.hide_amounts && (
-                <span className="bg-emerald-600 text-white rounded-full px-4 py-2 text-sm font-bold shadow-sm">🎁 {formatNGN(card.total_collected)} gift pot</span>
+                <span className="bg-emerald-600 text-white rounded-full px-4 py-2 text-sm font-bold shadow-sm">🎁 {formatUSD(card.total_collected)} gift pot</span>
               )}
             </div>
 
@@ -973,7 +973,7 @@ const SignCard = () => {
                 {card.total_collected > 0 && !card.hide_amounts && (
                   <div className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 mb-4 flex justify-between">
                     <span className="text-sm font-bold text-emerald-700">Gift pot so far</span>
-                    <span className="font-bold text-emerald-800">{formatNGN(card.total_collected)}</span>
+                    <span className="font-bold text-emerald-800">{formatUSD(card.total_collected)}</span>
                   </div>
                 )}
                 <button type="button" onClick={() => { setSelectedAmount(null); setCustomAmount(''); }}
@@ -985,12 +985,32 @@ const SignCard = () => {
                     <button type="button" key={amount}
                       onClick={() => { setSelectedAmount(amount); setCustomAmount(''); }}
                       className={`py-2.5 rounded-xl text-sm font-bold border-2 ${selectedAmount === amount && !customAmount ? 'bg-primary-600 text-white border-primary-600' : 'bg-white border-purple-100 text-warm-700 hover:border-primary-200'}`}>
-                      {formatNGN(amount)}
+                      {formatCurrency(amount, giftCurrency)}
                     </button>
                   ))}
                 </div>
-                <input type="number" min="2500" className="input text-base" placeholder="Or enter custom amount"
-                  value={customAmount} onChange={e => { setCustomAmount(e.target.value); setSelectedAmount(null); }} />
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-warm-500">
+                    {CURRENCIES.find(c => c.code === giftCurrency)?.symbol}
+                  </span>
+                  <input type="number" inputMode="decimal" min="0" step={giftCurrency === 'NGN' ? '100' : '0.01'}
+                    className="input text-base" style={{ paddingLeft: '2.75rem' }}
+                    placeholder={`Or enter custom amount (${giftCurrency})`}
+                    value={customAmount} onChange={e => { setCustomAmount(e.target.value); setSelectedAmount(null); }} />
+                </div>
+                {customAmount && !wantsGift && (
+                  <p className="text-xs text-amber-700 mt-1.5">Minimum gift is {formatCurrency(2500, giftCurrency)}.</p>
+                )}
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-semibold text-warm-500 mr-1">Pay in:</span>
+                  {CURRENCIES.map(c => (
+                    <button key={c.code} type="button"
+                      onClick={() => { setGiftCurrency(c.code); setCustomAmount(''); }}
+                      className={`rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${giftCurrency === c.code ? 'bg-primary-500 text-white' : 'border border-primary-200 bg-primary-50 text-primary-600'}`}>
+                      {c.flag} {c.code}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -1122,7 +1142,7 @@ const SignCard = () => {
                         {p.images?.[0] && <img src={p.images[0]} className="w-10 h-10 rounded-lg object-cover"/>}
                         <div className="flex-1">
                           <p className="text-sm font-medium text-warm-900">{p.name}</p>
-                          <p className="text-xs text-pink-600 font-bold">{formatNGN(p.price)}</p>
+                          <p className="text-xs text-pink-600 font-bold">{formatUSD(p.price)}</p>
                         </div>
                         {selectedProduct?.id===p.id && <span className="text-pink-500">✓</span>}
                       </button>
@@ -1164,14 +1184,14 @@ const SignCard = () => {
                   style={{ background:'linear-gradient(135deg,#ec4899,#db2777)', color:'#fff', boxShadow:'0 4px 20px #ec489966', border:'none' }}>
                   {productSubmitting
                     ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>Processing...</span>
-                    : selectedProduct ? `🎁 Sign + send ${selectedProduct.name} (${formatNGN(selectedProduct.price)})` : '🎁 Sign + Send Gift'}
+                    : selectedProduct ? `🎁 Sign + send ${selectedProduct.name} (${formatUSD(selectedProduct.price)})` : '🎁 Sign + Send Gift'}
                 </button>
               : <button onClick={handleSubmit} disabled={submitting}
                   className="w-full py-4 text-base rounded-2xl font-extrabold disabled:opacity-60 transition-all"
                   style={{ background:`linear-gradient(135deg,${design.accent},${design.accent}cc)`, color:'#fff', boxShadow:`0 4px 20px ${design.accent}55`, border:'none' }}>
                   {submitting
                     ? <span className="flex items-center justify-center gap-2"><span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"/>{stageLabel||'Processing...'}</span>
-                    : wantsGift ? `✍️ Sign card + pay ${formatNGN(amountNGN)} gift` : `✍️ Sign this card`}
+                    : wantsGift ? `✍️ Sign card + pay ${formatCurrency(amountNGN, giftCurrency)} gift` : `✍️ Sign this card`}
                 </button>
             }
 

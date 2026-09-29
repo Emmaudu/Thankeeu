@@ -90,7 +90,7 @@ const Policy = () => {
           <h3 className="font-semibold text-warm-800 text-base">Content ownership</h3>
           <p>You retain ownership of all content (messages, photos, videos) you submit to Thankeeu. By submitting content, you grant us a limited licence to display and deliver that content to the intended card recipients.</p>
           <h3 className="font-semibold text-warm-800 text-base">Card fees</h3>
-          <p>The card creation fee (₦5,000 per card or ₦10,000 for a pack of 5) is charged to activate and send a card. This fee is non-refundable once the card has been activated and the share link has been generated.</p>
+          <p>The card creation fee ($3.15 per card or $12.60 for a pack of 5, or the equivalent in your payment currency) is charged to activate and send a card. This fee is non-refundable once the card has been activated and the share link has been generated.</p>
           <h3 className="font-semibold text-warm-800 text-base">Limitation of liability</h3>
           <p>Thankeeu is provided "as is". We are not liable for any indirect, incidental, or consequential damages arising from your use of the platform. Our liability is limited to the amount you paid for the relevant card or service.</p>
           <h3 className="font-semibold text-warm-800 text-base">Termination</h3>
@@ -115,7 +115,7 @@ const Policy = () => {
 
         <Section id="refund" title="Refund Policy">
           <h3 className="font-semibold text-warm-800 text-base">Card fees</h3>
-          <p>Card fees (₦5,000 per card, ₦20,000 for a pack of 5) are non-refundable once a card has been activated — that is, once the shareable signing link has been generated and the card is open for contributions.</p>
+          <p>Card fees ($3.15 per card, $12.60 for a pack of 5, or the equivalent in your payment currency) are non-refundable once a card has been activated — that is, once the shareable signing link has been generated and the card is open for contributions.</p>
           <p>If you experience a technical error during payment and your card was not activated, please contact us at support@thankeeu.com within 48 hours with your Flutterwave transaction reference and we will issue a full refund.</p>
           <h3 className="font-semibold text-warm-800 text-base">Gift contributions</h3>
           <p>Gift contributions made by card signers can be refunded within 24 hours of payment, provided the card has not yet been delivered to the recipient. After delivery, contributions are non-refundable.</p>

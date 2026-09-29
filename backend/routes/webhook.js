@@ -15,6 +15,7 @@
 const express  = require('express');
 const router   = express.Router();
 const supabase = require('../utils/supabase');
+const { isContributionAmountOk } = require('../utils/cardPayment');
 const emailUtil = require('../utils/email');
 const sendEmail = emailUtil.sendEmail || emailUtil;
 const GAMES_URL = (process.env.GAMES_URL || 'https://www.thankeeu.com/games').replace(/\/$/, '');
@@ -87,29 +88,47 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
       let existing = null;
       try {
         const { data } = await supabase.from('contributions')
-          .select('id, status').eq('flw_reference', txRef).maybeSingle();
+          .select('id, status, amount').eq('flw_reference', txRef).maybeSingle();
         existing = data;
       } catch {}
 
       const alreadyDone = existing?.status === 'success';
 
+      // txn.amount is in the CHARGED currency (e.g. 6.30 USD), not naira. The
+      // NGN value was stored at init (pending row) and in meta.expected_ngn —
+      // never floor a foreign amount into naira (that recorded $6.30 as ₦6).
+      const giftNGN = Number(existing?.amount) > 0 ? Number(existing.amount)
+        : Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn)
+        : String(txn.currency || 'NGN').toUpperCase() === 'NGN' ? amountNaira : null;
+      if (!giftNGN || !isContributionAmountOk(txn, giftNGN)) {
+        console.error('Webhook: gift amount mismatch — not crediting. tx_ref:', txRef,
+          'paid:', txn.amount, txn.currency, 'expected NGN:', giftNGN);
+        return;
+      }
+
       // Upsert contribution
       if (existing) {
-        await supabase.from('contributions')
-          .update({ status: 'success', amount: amountNaira })
-          .eq('id', existing.id);
+        if (!alreadyDone) {
+          await supabase.from('contributions')
+            .update({ status: 'success', amount: giftNGN })
+            .eq('id', existing.id);
+        }
       } else {
         try {
           await supabase.from('contributions').insert({
             card_id:           cardId,
             flw_reference:     txRef,
-            amount:            amountNaira,
+            amount:            giftNGN,
             contributor_name:  txn.customer?.name || '',
             contributor_email: txn.customer?.email || '',
             status:            'success',
           });
         } catch (e) { console.warn('Webhook contribution insert:', e.message); }
       }
+
+      try {
+        await require('../controllers/paymentController').recordPaidCurrency(txRef, txn.currency || 'NGN', txn.amount);
+      } catch (_) { /* best-effort */ }
 
       // Update card total_collected (only if new)
       if (!alreadyDone) {
@@ -120,7 +139,7 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
         } catch {}
         try {
           await supabase.from('cards')
-            .update({ total_collected: (cardRow?.total_collected || 0) + amountNaira })
+            .update({ total_collected: (cardRow?.total_collected || 0) + giftNGN })
             .eq('id', cardId);
         } catch (e) { console.warn('Webhook total_collected:', e.message); }
       }
@@ -133,7 +152,7 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
           .select('message_id').eq('flw_reference', txRef).maybeSingle();
         if (contrib?.message_id) {
           await supabase.from('messages')
-            .update({ payment_verified: true, contributed_amount: amountNaira })
+            .update({ payment_verified: true, contributed_amount: giftNGN })
             .eq('id', contrib.message_id);
           msgUpdated = true;
         }
@@ -145,12 +164,12 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
           .order('created_at', { ascending: false }).limit(1).maybeSingle();
         if (msg) {
           await supabase.from('messages')
-            .update({ payment_verified: true, contributed_amount: amountNaira })
+            .update({ payment_verified: true, contributed_amount: giftNGN })
             .eq('id', msg.id);
         }
       }
 
-      console.log('Webhook: gift contribution processed, cardId:', cardId, 'amount:', amountNaira);
+      console.log('Webhook: gift contribution processed, cardId:', cardId, 'amount:', giftNGN);
       return;
     }
 

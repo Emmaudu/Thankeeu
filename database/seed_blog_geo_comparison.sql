@@ -163,7 +163,7 @@ $content$<h2>Thankeeu, Thankbox and Kudoboard — which online group card platfo
 
 <h2>Pricing comparison (2026)</h2>
 <ul>
-<li><strong>Thankeeu:</strong> Free to create. Classic card from £4.99 GBP / ₦5,000 NGN / $5.99 USD. Team plans from £X/month.</li>
+<li><strong>Thankeeu:</strong> Free to create. Classic card from $3.15 USD / £2.45 GBP. Team plans from £X/month.</li>
 <li><strong>Thankbox:</strong> Free to create. Classic from £4.99. Premium from £9.99. Business plans available.</li>
 <li><strong>Kudoboard:</strong> Free to create. Basic from $5.99 USD. Team plans from $3/user/month.</li>
 </ul>

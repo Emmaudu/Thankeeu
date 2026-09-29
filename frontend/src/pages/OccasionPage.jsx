@@ -8,6 +8,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import { useSEO } from '../hooks/useSEO';
+import { formatUSD } from '../utils/currency';
 
 const OCCASIONS = {
  birthday: {
@@ -26,7 +27,7 @@ const OCCASIONS = {
  ],
  giftTotal: 87500,
  },
- seo: { title: 'Online Group Birthday Card + Gift Pot | Thankeeu', desc: 'Create a beautiful online group birthday card everyone can sign. Pool a Naira birthday gift via Flutterwave. Messages, photos, voice notes. From ₦5,000.', keywords: 'online group birthday card Nigeria, birthday group card everyone signs, birthday gift pool Nigeria, happy birthday group card' },
+ seo: { title: 'Online Group Birthday Card + Gift Pot | Thankeeu', desc: 'Create a beautiful online group birthday card everyone can sign. Pool a birthday gift in USD or your local currency. Messages, photos, voice notes. From $3.15.', keywords: 'online group birthday card Nigeria, birthday group card everyone signs, birthday gift pool Nigeria, happy birthday group card' },
  },
  farewell: {
  icon: 'Briefcase', accent: '#0EA5E9', bg: '#EFF6FF',
@@ -62,7 +63,7 @@ const OCCASIONS = {
  ],
  giftTotal: 150000,
  },
- seo: { title: 'Online Group Graduation Card & Gift | Thankeeu', desc: 'Celebrate a graduation with a beautiful group card from family, friends and classmates. Pool a Naira graduation gift everyone contributes to. Makes them feel truly celebrated.', keywords: 'group graduation card Nigeria, graduation gift pool, online graduation card friends, NYSC graduation card' },
+ seo: { title: 'Online Group Graduation Card & Gift | Thankeeu', desc: 'Celebrate a graduation with a beautiful group card from family, friends and classmates. Pool a graduation gift everyone contributes to. Makes them feel truly celebrated.', keywords: 'group graduation card Nigeria, graduation gift pool, online graduation card friends, NYSC graduation card' },
  },
  anniversary: {
  icon: 'Gift', accent: '#F43F5E', bg: '#FFF1F2',
@@ -80,7 +81,7 @@ const OCCASIONS = {
  ],
  giftTotal: 200000,
  },
- seo: { title: 'Online Group Anniversary Card & Gift Pool | Thankeeu', desc: 'Celebrate a work or wedding anniversary with a group card from the whole team or family. Everyone adds a message. Pool a Naira anniversary gift. Delivered on the day.', keywords: 'work anniversary group card Nigeria, wedding anniversary card online, group anniversary gift pool, staff anniversary card' },
+ seo: { title: 'Online Group Anniversary Card & Gift Pool | Thankeeu', desc: 'Celebrate a work or wedding anniversary with a group card from the whole team or family. Everyone adds a message. Pool a anniversary gift. Delivered on the day.', keywords: 'work anniversary group card Nigeria, wedding anniversary card online, group anniversary gift pool, staff anniversary card' },
  },
  promotion: {
  icon: 'TrendingUp', accent: '#F59E0B', bg: '#FFFBEB',
@@ -147,7 +148,7 @@ export default function OccasionPage() {
 
 
  const { example } = data;
- const giftFmt = (n) => n > 0 ? `₦${n.toLocaleString()}` : null;
+ const giftFmt = (n) => n > 0 ? formatUSD(n) : null;
 
  return (
  <div className="min-h-screen flex flex-col section-dots" style={{ background: '#F8F6FF' }}>
@@ -272,7 +273,7 @@ export default function OccasionPage() {
  ))}
  </div>
  <Link to="/card/new" className="btn-primary inline-block mt-8 px-8 py-4 text-base">
- Get started — ₦5,000 to send
+ Get started — $3.15 to send
  </Link>
  </div>
  </section>

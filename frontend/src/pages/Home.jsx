@@ -531,7 +531,7 @@ const Home = () => {
      'Describe the card in one line on the Thankeeu homepage and the design, recipient, delivery date and gift pot are filled in for you. Review, share the signing link, and pay once when you are ready for it to be delivered.',
      [
        { name: 'Describe the card in one line',
-         text: 'Type who the card is for, the occasion, when it should arrive and whether you are collecting for a gift — for example "birthday card for my sister Ada, sending Friday, collecting 50k".' },
+         text: 'Type who the card is for, the occasion, when it should arrive and whether you are collecting for a gift — for example "birthday card for my sister Ada, sending Friday, collecting $50".' },
        { name: 'Check the details we filled in',
          text: 'Thankeeu picks a matching cover design and fills in the recipient, title, delivery date, signing deadline and gift pot. Every field stays editable.' },
        { name: 'Share the link, pay when you are happy',
@@ -952,7 +952,7 @@ const Home = () => {
  </p>
  <div className="flex items-center justify-between rounded-2xl bg-white/10 px-4 py-3 backdrop-blur">
  <span className="text-xs font-bold text-white/70">Tucked inside</span>
- <span className="text-xl font-extrabold text-emerald-300">₦50,000</span>
+ <span className="text-xl font-extrabold text-emerald-300">$32</span>
  </div>
  <div className="mt-4 grid grid-cols-2 gap-2">
  {[{i:'CreditCard',t:'To their bank'},{i:'Gift',t:'Or a gift card'}].map(o => (

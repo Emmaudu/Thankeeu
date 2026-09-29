@@ -82,7 +82,7 @@ $content$<h2>What makes a Nigerian send-forth different from a leaving party</h2
 <p>Pick a small planning committee of 2-3 people. One handles logistics (venue, food, time), one handles the card and contributions, one handles the programme/speeches. A send-forth that's planned by one person always shows — and the planner always resents it.</p>
 
 <h2>Step 2 — Set a realistic budget per person</h2>
-<p>Be honest about what the team can contribute. ₦2,000–₦5,000 per person is typical for a mid-sized Lagos office. Calculate based on realistic participation (not everyone who says they'll pay will). It's better to plan for 60% participation and be pleasantly surprised than to over-promise the departing colleague a gift you can't deliver.</p>
+<p>Be honest about what the team can contribute. $1.26–$3.15 (₦2,000–₦5,000) per person is typical for a mid-sized Lagos office. Calculate based on realistic participation (not everyone who says they'll pay will). It's better to plan for 60% participation and be pleasantly surprised than to over-promise the departing colleague a gift you can't deliver.</p>
 
 <h2>Step 3 — Start the card and contribution early</h2>
 <p>The biggest send-forth mistake is starting the card collection two days before. Messages rushed under time pressure are bland. Start at least a week out — share the link, remind people twice, and close it the day before so you have time to review.</p>
@@ -120,7 +120,7 @@ VALUES (
 'how-to-collect-office-contribution-gift-nigeria-2025',
 'Collecting office contributions in Nigeria means chasing transfers, reconciling screenshots and hoping the money adds up. Here''s how teams now do it in one link — transparently, in Naira.',
 $content$<h2>The office contribution problem every Nigerian knows</h2>
-<p>It starts with a message on the group chat: <em>"We're doing ₦3,000 each for Blessing's send-forth gift, please send to my account."</em> Then begins the real work: tracking who has sent, sending individual reminders, explaining your account number for the fourth time, covering for people who forget, and reconciling fifteen different bank alerts at midnight. By the time the gift is bought, the organiser is exhausted and low-key resentful.</p>
+<p>It starts with a message on the group chat: <em>"We're doing $1.89 (₦3,000) each for Blessing's send-forth gift, please send to my account."</em> Then begins the real work: tracking who has sent, sending individual reminders, explaining your account number for the fourth time, covering for people who forget, and reconciling fifteen different bank alerts at midnight. By the time the gift is bought, the organiser is exhausted and low-key resentful.</p>
 <p>This isn't a character flaw — it's a process problem. And it has a solution.</p>
 
 <h2>Why collecting into a personal account causes problems</h2>
@@ -142,7 +142,7 @@ $content$<h2>The office contribution problem every Nigerian knows</h2>
 <p>The organiser's only job is sharing a link and setting a closing date.</p>
 
 <h2>How much should you ask people to contribute?</h2>
-<p>The most successful office collections in Nigeria don't set a fixed amount — they let people contribute what they're comfortable with. Fixed amounts ("₦2,000 each, mandatory") get more resistance and more non-payment than open contributions, because people's financial situations vary and nobody wants to be shamed for paying less. An open contribution also tends to produce a higher total, because people who can afford more will give more when they're not capped.</p>
+<p>The most successful office collections in Nigeria don't set a fixed amount — they let people contribute what they're comfortable with. Fixed amounts ("$1.26 (₦2,000) each, mandatory") get more resistance and more non-payment than open contributions, because people's financial situations vary and nobody wants to be shamed for paying less. An open contribution also tends to produce a higher total, because people who can afford more will give more when they're not capped.</p>
 
 <h2>When to start collecting</h2>
 <p>For a birthday: at least 5 days before. For a send-forth: as soon as the leaving date is confirmed — ideally 2 weeks out. For a wedding or baby shower: the moment you know the date. The later you start, the lower the total and the more chasing required.</p>

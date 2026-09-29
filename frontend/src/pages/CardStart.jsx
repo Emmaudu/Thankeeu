@@ -42,7 +42,7 @@ import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI, wallAPI } from '../util
 import { CARD_DESIGNS, FONT_STYLES, getFontStyle } from '../utils/cardDesigns';
 import { getOccasionLabel } from '../utils/occasionCardDesigns';
 import { ALBUM_THEMES, getContrastTextColor } from '../utils/albumThemes';
-import { formatNGN, formatCurrency, CURRENCIES } from '../utils/currency';
+import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
 import CardCoverPreview from '../components/CardCoverPreview';
 import AlbumStudioPreview, { makeWallPreviewCard } from '../components/AlbumStudioPreview';
 import CoverTextStudio from '../components/CoverTextStudio';
@@ -164,7 +164,7 @@ const CardStart = () => {
  const [guestSaved, setGuestSaved] = useState(false); // true after draft created in step 4
  const [creditBalance, setCreditBalance]= useState(null);
  const [payMode, setPayMode] = useState('direct');
- const [selectedCurrency, setSelectedCurrency] = useState('NGN');
+ const [selectedCurrency, setSelectedCurrency] = useState(DEFAULT_CURRENCY);
  const [discountCode, setDiscountCode] = useState('');
  const [discountStatus, setDiscountStatus] = useState(null); // null | 'applied' | 'invalid'
  const [discountMessage, setDiscountMessage] = useState('');
@@ -526,7 +526,7 @@ const CardStart = () => {
      const res = await paymentsAPI.discountPreview(code);
      setDiscountStatus('applied');
      setDiscountedNGN(res.data.discounted_ngn);
-     setDiscountMessage(`${res.data.percent_off}% off applied — you save ${formatCurrency(res.data.discount_amount_ngn, 'NGN')}`);
+     setDiscountMessage(`${res.data.percent_off}% off applied — you save ${formatUSD(res.data.discount_amount_ngn)}`);
    } catch (err) {
      setDiscountStatus('invalid');
      setDiscountedNGN(null);
@@ -1198,7 +1198,7 @@ const CardStart = () => {
  {[2500, 5000, 10000, 25000, 50000].map(amt => (
  <button key={amt} onClick={() => set('suggested_amount', amt)}
  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${form.suggested_amount === amt ? 'bg-primary-400 text-white border-primary-400' : 'border-purple-100 text-warm-700 hover:border-primary-300'}`}>
- {formatNGN(amt)}
+ {formatUSD(amt)}
  </button>
  ))}
  </div>
@@ -1225,8 +1225,8 @@ const CardStart = () => {
  ['Recipient email', form.recipient_email || 'Not set'],
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time || '09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time || '23:59'}` : 'Not set'],
- ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount || 2500)} suggested` : 'No'],
- ['Card fee', `${formatCurrency(5000, 'NGN')} one-time — pay later, before delivery`],
+ ['Gift pot', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount || 2500)} suggested` : 'No'],
+ ['Card fee', `${formatUSD(5000)} one-time — pay later, before delivery`],
  ].map(([k, v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1320,8 +1320,8 @@ const CardStart = () => {
  ['Recipient email', form.recipient_email || 'Not set'],
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time || '09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time || '23:59'}` : 'Not set'],
- ['Gift pot', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount || 2500)} suggested` : 'No'],
- ['Card fee', `${formatCurrency(5000, 'NGN')} one-time — pay later, before delivery`],
+ ['Gift pot', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount || 2500)} suggested` : 'No'],
+ ['Card fee', `${formatUSD(5000)} one-time — pay later, before delivery`],
  ['Status', 'Draft — sign in to launch (pay later)'],
  ].map(([k, v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
@@ -1387,7 +1387,7 @@ const CardStart = () => {
  {[2500, 5000, 10000, 25000, 50000].map(amt => (
  <button key={amt} onClick={() => set('suggested_amount', amt)}
  className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${form.suggested_amount === amt ? 'bg-primary-400 text-white border-primary-400' : 'border-purple-100 text-warm-700 hover:border-primary-300'}`}>
- {formatNGN(amt)}
+ {formatUSD(amt)}
  </button>
  ))}
  </div>
@@ -1408,7 +1408,7 @@ const CardStart = () => {
  {[
  ['Occasion', form.occasion === 'other' && form.custom_occasion ? form.custom_occasion : (OCCASIONS.find(o => o.id === form.occasion)?.label || form.occasion)],
  ['Recipient', form.recipient_name || '—'],
- ['Gift', form.is_gift_enabled ? `Yes — ${formatNGN(form.suggested_amount)} suggested` : 'No'],
+ ['Gift', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount)} suggested` : 'No'],
  ...(isCompanyUser
  ? [['Card fee', 'Free (company)']]
  : payMode === 'credit' && creditBalance > 0

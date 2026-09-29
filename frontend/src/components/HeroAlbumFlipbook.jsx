@@ -186,7 +186,7 @@ const GiftPage = () => (
   <div className="flex h-full flex-col items-center justify-center p-5 text-center" style={{ background: 'linear-gradient(160deg,#ECFDF5,#FFFDF8 60%)', color: INK }}>
     <span className="text-5xl" aria-hidden="true">🎁</span>
     <p className="mt-3 text-[10px] font-extrabold uppercase tracking-[0.2em] text-emerald-700">Group gift</p>
-    <p className="mt-1 text-3xl font-extrabold text-emerald-700 sm:text-4xl">₦185,000</p>
+    <p className="mt-1 text-3xl font-extrabold text-emerald-700 sm:text-4xl">$117</p>
     <p className="mt-1 text-sm text-warm-500">from 23 people who chipped in</p>
     <div className="mt-4 flex -space-x-2">
       {SIGNERS.map(s => (

@@ -30,6 +30,14 @@ const { Resend } = require('resend');
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Currency helper: all stored and displayed amounts are Nigerian naira.
+// Guest-facing gift figures show the US-dollar equivalent (platform display
+// currency). Rate kept in sync with utils/cardPayment.js CARD_FEE_FX.USD.
+const fmtUSD = (ngnAmount) => {
+  const usd = Math.round(Number(ngnAmount || 0) * 0.00063 * 100) / 100;
+  if (usd >= 100) return `$${Math.round(usd).toLocaleString('en-US')}`;
+  return Number.isInteger(usd) ? `$${usd}` : `$${usd.toFixed(2)}`;
+};
+
 const fmtNGN = (ngnAmount) => {
   if (!ngnAmount) return '₦0';
   return `₦${Number(ngnAmount).toLocaleString('en-NG')}`;
@@ -86,7 +94,7 @@ const emailTemplates = {
     html: BASE(`
       <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">You have been invited to sign a card!</h2>
       <p style="color:#555;line-height:1.7;"><strong>${data.creatorName}</strong> is putting together a special group card for <strong>${data.recipientName}</strong>'s ${data.occasion}.</p>
-      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in from ₦2,500</p></div>` : ''}
+      ${data.giftEnabled ? `<div style="background:#EAF3DE;border-radius:8px;padding:14px 16px;margin:16px 0;"><p style="color:#3B6D11;margin:0;font-size:13px;">🎁 A gift pot is open — chip in from ${fmtUSD(2500)}</p></div>` : ''}
       <p style="color:#555;font-size:13px;">Closes on ${data.deadline}</p>
       ${btn('Sign the card now', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#E84393')}
     `)
@@ -109,7 +117,7 @@ const emailTemplates = {
       ${data.giftAmount ? `
       <div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #4CAF50;border-radius:12px;padding:18px 20px;margin:20px 0;text-align:center;">
         <div style="font-size:32px;margin-bottom:8px;">🎁</div>
-        <p style="color:#2E7D32;font-weight:700;font-size:18px;margin:0 0 4px;">Gift pot: <span style="color:#1B5E20;">${fmtNGN(data.giftAmount)}</span></p>
+        <p style="color:#2E7D32;font-weight:700;font-size:18px;margin:0 0 4px;">Gift pot: <span style="color:#1B5E20;">${fmtUSD(data.giftAmount)}</span></p>
         <p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>
       </div>` : ''}
 
@@ -200,8 +208,8 @@ const emailTemplates = {
       ${data.giftAmount ? `
       <div style="background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border:2px solid #4CAF50;border-radius:12px;padding:18px 20px;margin:20px 0;text-align:center;">
         <div style="font-size:32px;margin-bottom:8px;">🎁</div>
-        <p style="color:#2E7D32;font-weight:700;font-size:18px;margin:0 0 4px;">Gift pot total: <span style="color:#1B5E20;">${fmtNGN(data.giftAmount)}</span></p>
-        ${data.newGiftAmount ? `<p style="color:#388E3C;font-size:13px;margin:0;">Including <strong>${fmtNGN(data.newGiftAmount)}</strong> added since your card was last delivered!</p>` : `<p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>`}
+        <p style="color:#2E7D32;font-weight:700;font-size:18px;margin:0 0 4px;">Gift pot total: <span style="color:#1B5E20;">${fmtUSD(data.giftAmount)}</span></p>
+        ${data.newGiftAmount ? `<p style="color:#388E3C;font-size:13px;margin:0;">Including <strong>${fmtUSD(data.newGiftAmount)}</strong> added since your card was last delivered!</p>` : `<p style="color:#388E3C;font-size:13px;margin:0;">Your friends and colleagues pooled this gift for you!</p>`}
       </div>` : ''}
 
       ${btn('🎉 Open my updated card', `${FRONTEND_URL}/card/${data.cardSlug}?token=${data.accessToken}`, '#7C6EFF')}
@@ -306,7 +314,7 @@ const emailTemplates = {
         <div style="font-size:56px;line-height:1;margin-bottom:12px;">🎂🎉🎊</div>
         <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Happy Birthday, ${data.firstName}!</h2>
       </div>
-      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> just for you!` : ''}</p>
+      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> just for you!` : ''}</p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your birthday card is waiting!</p>
         <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
@@ -556,7 +564,7 @@ const teamsTemplates = {
         <div style="font-size:56px;line-height:1;margin-bottom:12px;">${data.icon}🎉🎊</div>
         <h2 style="color:#6C5CE7;font-size:26px;margin:0 0 8px;font-weight:700;">Happy ${data.occasionLabel}, ${data.firstName}!</h2>
       </div>
-      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> for you!` : ''}</p>
+      <p style="color:#555;line-height:1.8;font-size:14px;">Your colleagues at <strong>${data.companyName}</strong> came together to create something special. <strong>${data.signerCount} people</strong> signed your card and left you heartfelt messages!${data.giftAmount ? ` They also pooled a gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> for you!` : ''}</p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your card is waiting!</p>
         <p style="color:#6C5CE7;font-size:13px;margin:0;">Click to see all the lovely messages from your team</p>
@@ -614,7 +622,7 @@ const teamsTemplates = {
         Hi ${data.creatorName || 'there'} — your card for <strong>${data.recipientName}</strong> has been
         created and is ready for everyone to sign.
       </p>
-      ${data.usedFreeCredit ? `<div style="background:#EDE9FE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#5B21B6;font-size:13px;margin:0;">✨ This one was on us — your free credit has been used. Cards after this are ${data.feeLabel || '₦5,000'} each, or cheaper with a credit pack.</p></div>` : ''}
+      ${data.usedFreeCredit ? `<div style="background:#EDE9FE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#5B21B6;font-size:13px;margin:0;">✨ This one was on us — your free credit has been used. Cards after this are ${data.feeLabel || '$3.15'} each, or cheaper with a credit pack.</p></div>` : ''}
       ${data.sendDate ? `<p style="color:#555;line-height:1.8;">It will be delivered to ${data.recipientName} on <strong>${data.sendDate}</strong>.</p>` : ''}
       ${btn('Share the signing link', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#7C3AED')}
       <p style="color:#555;line-height:1.6;font-size:13px;margin-top:16px;">
@@ -673,7 +681,7 @@ const additionalTeamsTemplates = {
       <p style="color:#555;line-height:1.8;font-size:14px;">
         Your new colleagues in <strong>${data.department}</strong> wanted to make your first day extra special.
         <strong>${data.signerCount} people</strong> signed a welcome card just for you!
-        ${data.giftAmount ? `They also pooled together a welcome gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> to help you settle in!` : ''}
+        ${data.giftAmount ? `They also pooled together a welcome gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> to help you settle in!` : ''}
       </p>
       <div style="background:linear-gradient(135deg,#EEEDFE,#F0F0FF);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your welcome card is waiting!</p>
@@ -717,7 +725,7 @@ const additionalTeamsTemplates = {
       <p style="color:#555;line-height:1.8;font-size:14px;">
         As you move on to your next chapter, your colleagues at <strong>${data.companyName}</strong> wanted you to know how much you meant to the team.
         <strong>${data.signerCount} people</strong> signed your farewell card and left you heartfelt messages!
-        ${data.giftAmount ? `They also pooled together a farewell gift of <strong style="color:#3B6D11;">${fmtNGN(data.giftAmount)}</strong> just for you!` : ''}
+        ${data.giftAmount ? `They also pooled together a farewell gift of <strong style="color:#3B6D11;">${fmtUSD(data.giftAmount)}</strong> just for you!` : ''}
       </p>
       <div style="background:linear-gradient(135deg,#FBEAF0,#EEEDFE);border-radius:12px;padding:20px;text-align:center;margin:20px 0;">
         <p style="color:#534AB7;font-weight:600;margin:0 0 6px;font-size:15px;">Your farewell card is waiting!</p>
@@ -944,7 +952,7 @@ Object.assign(emailTemplates, {
           </div>`
         : `<div style="background:#faf5ff;border:1.5px solid #ddd6fe;border-radius:12px;padding:14px 20px;margin:16px 0;">
             <p style="color:#6d28d9;font-weight:700;margin:0 0 2px;font-size:14px;">💳 No credits yet? No problem.</p>
-            <p style="color:#7c3aed;font-size:12px;margin:0;">A card credit is just ₦5,000 — activate your birthday card in seconds.</p>
+            <p style="color:#7c3aed;font-size:12px;margin:0;">A card credit is just $3.15 — activate your birthday card in seconds.</p>
           </div>`
       }
       ${btn('Create my birthday card →', d.createCardUrl, '#E84393')}
@@ -962,7 +970,7 @@ Object.assign(emailTemplates, {
             <p style="color:#16a34a;font-size:12px;margin:0;">Your card will be activated instantly with no payment needed. Don't let it go to waste!</p>
           </div>`
         : `<div style="background:#faf5ff;border:1.5px solid #ddd6fe;border-radius:12px;padding:14px 20px;margin:16px 0;">
-            <p style="color:#6d28d9;font-weight:700;margin:0 0 2px;font-size:14px;">💳 Activate for just ₦5,000</p>
+            <p style="color:#6d28d9;font-weight:700;margin:0 0 2px;font-size:14px;">💳 Activate for just $3.15</p>
             <p style="color:#7c3aed;font-size:12px;margin:0;">One card credit is all you need. Pay instantly and your birthday card goes live.</p>
           </div>`
       }
@@ -1287,8 +1295,8 @@ const payLaterSummary = (d) => {
   const rows = [];
   if (d.sendDate) rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Scheduled delivery</td><td align="right" style="padding:4px 0;"><strong>${esc(d.sendDate)}</strong></td></tr>`);
   if (typeof d.signedCount === 'number') rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Signatures so far</td><td align="right" style="padding:4px 0;"><strong>${d.signedCount}</strong></td></tr>`);
-  if (d.giftTotal > 0) rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Gift pot</td><td align="right" style="padding:4px 0;"><strong>${fmtNGN(d.giftTotal)}</strong></td></tr>`);
-  rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Card fee</td><td align="right" style="padding:4px 0;"><strong>${esc(d.feeLabel || '₦5,000')} one-time</strong></td></tr>`);
+  if (d.giftTotal > 0) rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Gift pot</td><td align="right" style="padding:4px 0;"><strong>${fmtUSD(d.giftTotal)}</strong></td></tr>`);
+  rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Card fee</td><td align="right" style="padding:4px 0;"><strong>${esc(d.feeLabel || '$3.15')} one-time</strong></td></tr>`);
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;background:#F9F5FF;border:1px solid #EDE9FE;border-radius:10px;padding:12px 16px;margin:16px 0;">${rows.join('')}</table>`;
 };
 

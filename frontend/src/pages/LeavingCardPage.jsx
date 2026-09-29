@@ -295,7 +295,7 @@ export default function LeavingCardPage() {
             </div>
             {/* Fix #4: Comparison differentiator — visible without scrolling */}
             <p className="text-xs mt-4 font-semibold" style={{color:'rgba(255,255,255,0.45)'}}>
-              Unlike Thankbox — voice notes, Memory Movie™ &amp; Naira/USD/GBP gifts all included. Free to create.
+              Unlike Thankbox — voice notes, Memory Movie™ &amp; USD/GBP/EUR gifts all included. Free to create.
             </p>
           </div>
         </div>
@@ -450,7 +450,7 @@ export default function LeavingCardPage() {
               { name: 'Kudoboard', icon: 'Award', colour: '#f59e0b', bg: '#fffbeb',
                 line: 'US recognition platform. USD-only. No voice notes, no live photo wall, expensive subscription model.' },
               { name: 'Thankeeu', icon: 'Sparkles', colour: '#7C3AED', bg: '#F5F0FF',
-                line: 'Full group card + Memory Movie + live photo wall + Naira/GBP/USD + HRIS sync. Built for global teams.' },
+                line: 'Full group card + Memory Movie + live photo wall + USD/GBP/EUR + HRIS sync. Built for global teams.' },
             ].map(p => (
               <div key={p.name} className="rounded-2xl p-5 border-2" style={{ background: p.bg, borderColor: p.colour + '30' }}>
                 <div className="flex items-center gap-2 mb-2">
@@ -581,7 +581,7 @@ export default function LeavingCardPage() {
               { q: 'How does an online leaving card work?', a: 'Create the card in under 2 minutes, share one link with colleagues, and everyone adds their message, photo, GIF or voice note. Schedule it to arrive on their last day at the exact time you choose.' },
               { q: 'Can we collect money for a leaving gift too?', a: 'Yes — every card includes an optional gift collection. Contributors chip in when they sign, and the recipient or organiser withdraws the pooled amount directly to their bank account.' },
               { q: 'Do people need an account to sign?', a: 'No. Anyone with the link can sign instantly — no registration, no app download. They just open the link and add their message.' },
-              { q: 'How much does an online leaving card cost?', a: 'Free to create and collect messages. A small fee applies when you\'re ready to send — always shown upfront before you pay. Classic (1 card) starts at $3.15 USD / ₦5,000 NGN.' },
+              { q: 'How much does an online leaving card cost?', a: 'Free to create and collect messages. A small fee applies when you\'re ready to send — always shown upfront before you pay. Classic (1 card) starts at $3.15 USD.' },
               { q: 'Can remote colleagues sign?', a: 'Yes — the link works from any device, anywhere. Your Manchester office, the person on parental leave, and the colleague who left last year but wants to sign can all contribute from one link.' },
               { q: 'What is the Memory Movie™?', a: 'After delivery, Thankeeu automatically generates a cinematic 1080p MP4 video from all the messages, photos and voice notes on the card. The recipient gets an email when it\'s ready to watch and download.' },
             ].map(({ q, a }) => (

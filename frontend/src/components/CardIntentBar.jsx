@@ -28,14 +28,14 @@ import { useAuth } from '../context/AuthContext';
 // customer edits a working example instead of facing an empty field.
 const TEMPLATES = [
   'Birthday card for my sister Ada, ada@gmail.com, sending this Friday morning, deadline Wednesday',
-  'Leaving card for my oga Emeka, emeka@work.com, sending next Friday afternoon, collecting 50k',
+  'Leaving card for my oga Emeka, emeka@work.com, sending next Friday afternoon, collecting $50',
   'Wedding card for Ada & Tunde, ada@gmail.com, sending on the 20th at 11am',
   'Retirement card for Mr Okafor, okafor@work.com, sending next week Monday evening',
 ];
 
 const EXAMPLES = [
   { chip: '🎂 Birthday', text: 'Birthday card for my sister Ada, ada@gmail.com, sending this Friday morning' },
-  { chip: '👋 Leaving',  text: 'Leaving card for my oga Emeka, emeka@work.com, sending next Friday, collecting 50k' },
+  { chip: '👋 Leaving',  text: 'Leaving card for my oga Emeka, emeka@work.com, sending next Friday, collecting $50' },
   { chip: '💍 Wedding',  text: 'Wedding card for Ada & Tunde, ada@gmail.com, sending on the 20th at 2pm' },
 ];
 

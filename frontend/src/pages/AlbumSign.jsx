@@ -35,7 +35,7 @@ import GifPicker from '../components/GifPicker';
 import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
-import { formatNGN, getFLWPaymentParams } from '../utils/currency';
+import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD, convertToNGN, getFLWPaymentParams } from '../utils/currency';
 import NaturalFlipBook from '../components/NaturalFlipBook';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -391,7 +391,7 @@ const NewSignerPage = ({
         {msg?.contributed_amount>0 && (
           <div style={{ display:'flex', alignItems:'center', gap:5, background:'#FEF3C7', border:'1.5px solid #FDE68A', borderRadius:20, padding:'5px 11px', flexShrink:0 }}>
             <span style={{ fontSize:14 }}>💸</span>
-            <span style={{ fontSize:11, fontWeight:800, color:'#92400E' }}>{formatNGN(msg.contributed_amount)}</span>
+            <span style={{ fontSize:11, fontWeight:800, color:'#92400E' }}>{formatUSD(msg.contributed_amount)}</span>
           </div>
         )}
       </div>
@@ -483,7 +483,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   const [signaturesOpen, setSignaturesOpen] = useState(true);
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [customAmount,   setCustomAmount]   = useState('');
-  const [giftCurrency,   setGiftCurrency]   = useState('NGN');
+  const [giftCurrency,   setGiftCurrency]   = useState(DEFAULT_CURRENCY);
   const [giftMode,       setGiftMode]       = useState('money'); // 'money' | 'product'
   const [vendors,        setVendors]        = useState([]);
   const [vendorFilter,   setVendorFilter]   = useState({ country: '', category: '' });
@@ -863,7 +863,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   // ─ Submit ─
   const handleSubmit = async()=>{
     if(!form.author_name.trim()) return toast.error('Please add your name');
-    const amountNGN=Number(customAmount||selectedAmount||0);
+    const amountNGN=customAmount?convertToNGN(Number(customAmount)||0,giftCurrency):Number(selectedAmount||0);
     const wantsGift=card.is_gift_enabled&&amountNGN>=2500;
     // A page needs *something* on it — a written message, a photo/video/voice
     // note, or a gift — but not specifically text. Signers who just want to
@@ -1013,17 +1013,26 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                 <span style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:12,color:'#92400E'}}>Add a gift (optional)</span>
               </div>
               <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-                {[1000,2500,5000,10000].map(amt=>(
+                {[2500,5000,10000,20000].map(amt=>(
                   <button key={amt} type="button" onClick={()=>{setSelectedAmount(amt);setCustomAmount('');}}
                     style={{border:`2px solid ${selectedAmount===amt?'#F59E0B':'#FDE68A'}`,background:selectedAmount===amt?'#FEF3C7':'#fff',borderRadius:10,padding:'6px 10px',fontSize:12,fontWeight:800,color:'#92400E',cursor:'pointer'}}>
-                    {formatNGN(amt)}
+                    {formatCurrency(amt,giftCurrency)}
                   </button>
                 ))}
               </div>
-              <input type="number" min="100" value={customAmount}
+              <input type="number" inputMode="decimal" min="0" step={giftCurrency==='NGN'?'100':'0.01'} value={customAmount}
                 onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}}
-                placeholder="Or enter a custom amount (₦)"
+                placeholder={`Or enter a custom amount (${giftCurrency})`}
                 style={{width:'100%',marginTop:8,border:'1px solid #FDE68A',borderRadius:8,padding:'7px 9px',fontSize:12,outline:'none'}}/>
+              <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:5,marginTop:8}}>
+                <span style={{fontSize:11,fontWeight:700,color:'#92400E'}}>Pay in:</span>
+                {CURRENCIES.map(c=>(
+                  <button key={c.code} type="button" onClick={()=>{setGiftCurrency(c.code);setCustomAmount('');}}
+                    style={{border:`1.5px solid ${giftCurrency===c.code?'#F59E0B':'#FDE68A'}`,background:giftCurrency===c.code?'#F59E0B':'#fff',color:giftCurrency===c.code?'#fff':'#92400E',borderRadius:8,padding:'3px 7px',fontSize:11,fontWeight:800,cursor:'pointer'}}>
+                    {c.flag} {c.code}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {showGif && (
@@ -1370,7 +1379,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                   <span style={{fontSize:22}}>🎁</span>
                   <div>
                     <p style={{fontWeight:800,fontSize:15,color:'#92400E',margin:0}}>Add a gift to your message</p>
-                    {card.total_collected>0&&!card.hide_amounts&&<p style={{fontSize:12,color:'#059669',fontWeight:700,margin:'2px 0 0'}}>Gift pot so far: {formatNGN(card.total_collected)} 🎉</p>}
+                    {card.total_collected>0&&!card.hide_amounts&&<p style={{fontSize:12,color:'#059669',fontWeight:700,margin:'2px 0 0'}}>Gift pot so far: {formatUSD(card.total_collected)} 🎉</p>}
                   </div>
                 </div>
 
@@ -1403,12 +1412,21 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                       {AMOUNTS_NGN.map(a=>(
                         <button key={a} type="button" onClick={()=>{setSelectedAmount(a);setCustomAmount('');}}
                           style={{padding:'8px 4px',borderRadius:10,border:`2px solid ${selectedAmount===a&&!customAmount?'#F59E0B':'#FDE68A'}`,background:selectedAmount===a&&!customAmount?'#F59E0B':'#fff',color:selectedAmount===a&&!customAmount?'#fff':'#92400E',fontWeight:700,fontSize:12,cursor:'pointer'}}>
-                          {formatNGN(a)}
+                          {formatCurrency(a,giftCurrency)}
                         </button>
                       ))}
                     </div>
-                    <input type="number" min={2500} className="input" placeholder="Custom amount (NGN)"
+                    <input type="number" inputMode="decimal" min="0" step={giftCurrency==='NGN'?'100':'0.01'} className="input" placeholder={`Custom amount (${giftCurrency}) · min ${formatCurrency(2500,giftCurrency)}`}
                       value={customAmount} onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}} style={{fontSize:14}}/>
+                    <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:5,marginTop:8,marginBottom:4}}>
+                <span style={{fontSize:11,fontWeight:700,color:'#92400E'}}>Pay in:</span>
+                {CURRENCIES.map(c=>(
+                  <button key={c.code} type="button" onClick={()=>{setGiftCurrency(c.code);setCustomAmount('');}}
+                    style={{border:`1.5px solid ${giftCurrency===c.code?'#F59E0B':'#FDE68A'}`,background:giftCurrency===c.code?'#F59E0B':'#fff',color:giftCurrency===c.code?'#fff':'#92400E',borderRadius:8,padding:'3px 7px',fontSize:11,fontWeight:800,cursor:'pointer'}}>
+                    {c.flag} {c.code}
+                  </button>
+                ))}
+              </div>
                   </>
                 )}
 
@@ -1455,7 +1473,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                             onClick={()=>{setSelectedProduct(p);setProductImgIdx(0);}}
                             style={{textAlign:'left',padding:'7px 10px',borderRadius:10,border:`2px solid ${selectedProduct?.id===p.id?'#EC4899':'transparent'}`,background:selectedProduct?.id===p.id?'#FDF2F8':'#fff',cursor:'pointer',display:'flex',alignItems:'center',gap:8}}>
                             {p.images?.[0]&&<img src={p.images[0]} style={{width:32,height:32,borderRadius:6,objectFit:'cover'}}/>}
-                            <div style={{flex:1}}><p style={{fontSize:12,fontWeight:600,color:'#1A1035',margin:0}}>{p.name}</p><p style={{fontSize:11,fontWeight:800,color:'#EC4899',margin:0}}>{formatNGN(p.price)}</p></div>
+                            <div style={{flex:1}}><p style={{fontSize:12,fontWeight:600,color:'#1A1035',margin:0}}>{p.name}</p><p style={{fontSize:11,fontWeight:800,color:'#EC4899',margin:0}}>{formatUSD(p.price)}</p></div>
                             {selectedProduct?.id===p.id&&<span style={{color:'#EC4899',fontWeight:900}}>✓</span>}
                           </button>
                         ))}
@@ -1474,7 +1492,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                             </>
                           )}
                         </div>
-                        <p style={{fontSize:10,fontWeight:700,color:'#9D174D',marginTop:5}}>{selectedProduct.name} — {formatNGN(selectedProduct.price)}</p>
+                        <p style={{fontSize:10,fontWeight:700,color:'#9D174D',marginTop:5}}>{selectedProduct.name} — {formatUSD(selectedProduct.price)}</p>
                       </div>
                     )}
                   </div>
@@ -1494,14 +1512,14 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                   style={{width:'100%',padding:16,borderRadius:22,border:'none',background:'linear-gradient(135deg,#EC4899,#DB2777)',color:'#fff',fontWeight:800,fontSize:16,cursor:(productSubmitting||!selectedProduct)?'not-allowed':'pointer',opacity:(productSubmitting||!selectedProduct)?0.65:1,boxShadow:(productSubmitting||!selectedProduct)?'none':'0 4px 20px rgba(236,72,153,0.4)'}}>
                   {productSubmitting
                     ?<span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><span style={{width:18,height:18,border:'3px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'albumSpin 0.8s linear infinite'}}/>Processing...</span>
-                    :selectedProduct?`🎁 Sign + send ${selectedProduct.name} (${formatNGN(selectedProduct.price)})`:'🎁 Sign + Send Gift'
+                    :selectedProduct?`🎁 Sign + send ${selectedProduct.name} (${formatUSD(selectedProduct.price)})`:'🎁 Sign + Send Gift'
                   }
                 </button>
               : <button onClick={handleSubmit} disabled={submitting}
                   style={{width:'100%',padding:16,borderRadius:22,border:'none',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',fontWeight:800,fontSize:16,cursor:submitting?'not-allowed':'pointer',opacity:submitting?0.7:1,boxShadow:submitting?'none':'0 4px 20px rgba(124,58,237,0.4)'}}>
                   {submitting
                     ?<span style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8}}><span style={{width:18,height:18,border:'3px solid rgba(255,255,255,0.3)',borderTopColor:'#fff',borderRadius:'50%',animation:'albumSpin 0.8s linear infinite'}}/>{stage==='paying'?'Opening payment…':stage==='sending'?'Adding to card…':'Please wait…'}</span>
-                    :(()=>{const amt=Number(customAmount||selectedAmount||0);return card.is_gift_enabled&&amt>=2500?`✍️ Sign card + send ${formatNGN(amt)} gift`:'✍️ Sign the card';})()
+                    :(()=>{const amt=customAmount?convertToNGN(Number(customAmount)||0,giftCurrency):Number(selectedAmount||0);return card.is_gift_enabled&&amt>=2500?`✍️ Sign card + send ${formatCurrency(amt,giftCurrency)} gift`:'✍️ Sign the card';})()
                   }
                 </button>
             }
@@ -1578,7 +1596,7 @@ const SidebarContent = ({card,slug,myMsgIds,signaturesOpen,setSignaturesOpen,all
                     </div>
                     <span style={{fontWeight:700,fontSize:12,color:text}}>{m.author_name}</span>
                     {m.contributed_amount>0&&(
-                      <span style={{fontSize:10,fontWeight:800,color:'#92400E',background:'#FEF3C7',padding:'1px 6px',borderRadius:10,marginLeft:'auto'}}>🎁 {formatNGN(m.contributed_amount)}</span>
+                      <span style={{fontSize:10,fontWeight:800,color:'#92400E',background:'#FEF3C7',padding:'1px 6px',borderRadius:10,marginLeft:'auto'}}>🎁 {formatUSD(m.contributed_amount)}</span>
                     )}
                   </div>
                   {m.media_url&&(m.media_type==='image'||m.media_type==='gif')&&(
@@ -1597,7 +1615,7 @@ const SidebarContent = ({card,slug,myMsgIds,signaturesOpen,setSignaturesOpen,all
         <div style={{...panel,padding:18,textAlign:'center'}}>
           <div style={{width:68,height:68,background:'linear-gradient(135deg,#FBBF24,#F59E0B)',borderRadius:16,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',fontSize:32,boxShadow:'0 4px 16px rgba(245,158,11,0.35)'}}>🎁</div>
           <p style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:800,fontSize:16,color:text,margin:'0 0 4px'}}>Gift Collection Pot</p>
-          {card.total_collected>0&&!card.hide_amounts&&<p style={{fontSize:24,fontWeight:800,color:'#F59E0B',margin:'0 0 4px'}}>{formatNGN(card.total_collected)}</p>}
+          {card.total_collected>0&&!card.hide_amounts&&<p style={{fontSize:24,fontWeight:800,color:'#F59E0B',margin:'0 0 4px'}}>{formatUSD(card.total_collected)}</p>}
           {(card.signed_count||0)>0&&<p style={{fontSize:12,color:sub,margin:'0 0 14px'}}>{card.signed_count} people have signed</p>}
           <button onClick={onContribute} style={{width:'100%',padding:11,borderRadius:14,background:'linear-gradient(135deg,#F59E0B,#D97706)',color:'#fff',border:'none',fontFamily:'Plus Jakarta Sans,sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',boxShadow:'0 3px 12px rgba(245,158,11,0.35)'}}>
             🎁 Contribute a gift

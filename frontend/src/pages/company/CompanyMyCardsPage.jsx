@@ -4,7 +4,7 @@ import CompanyLayout from '../../components/company/CompanyLayout';
 import { companyAxios } from '../../utils/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 import { asArray } from '../../utils/asArray';
 
 // Convert stored UTC date + time to local timezone for display.
@@ -90,7 +90,7 @@ const CardRow = ({ card, onCopySigningLink, onCopyViewLink, onTransfer, onNotify
           </p>
           <p className="text-xs text-warm-400 mt-0.5">
             {card.occasion?.replace(/_/g,' ')} - {fmtScheduled(card) || (card.created_at ? format(new Date(card.created_at), 'MMM d, yyyy') : '')}
-            {card.total_collected > 0 && ` - Gift: ${formatNGN(card.total_collected)}`}
+            {card.total_collected > 0 && ` - Gift: ${formatUSD(card.total_collected)}`}
           </p>
         </div>
       </div>

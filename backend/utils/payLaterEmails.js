@@ -7,13 +7,14 @@
 
 const supabase = require('./supabase');
 const { sendEmail } = require('./email');
-const { humanSendDate, isMissingColumnError, CARD_FEE_NGN } = require('./cardPayment');
+const { humanSendDate, isMissingColumnError, CARD_FEE_NGN, chargeAmountFor } = require('./cardPayment');
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 const MAX_REMINDERS = 6;
 
-const feeLabel = () => `₦${CARD_FEE_NGN.toLocaleString('en-NG')}`;
+// USD is the platform's display currency (matches the pay page's default charge).
+const feeLabel = () => `$${chargeAmountFor(CARD_FEE_NGN, 'USD').toFixed(2)}`;
 
 async function getCreator(card) {
   if (!card?.creator_id) return null;

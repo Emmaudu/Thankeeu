@@ -435,7 +435,7 @@ $content$<h2>NYSC passing out: why it deserves a real celebration</h2>
 
 <h2>Funny NYSC passing-out messages</h2>
 <ul>
-<li>NYSC done! You survived the khaki, the early morning CDS, the ₦33,000 allawee, and the orientation camp food. If you can survive all of that, your career will be fine. Congratulations!</li>
+<li>NYSC done! You survived the khaki, the early morning CDS, the $20.79 (₦33,000) allawee, and the orientation camp food. If you can survive all of that, your career will be fine. Congratulations!</li>
 <li>The green-white-green is in the bag. You are officially done with compulsory service to the Federal Republic of Nigeria. What a journey. Congratulations!</li>
 </ul>
 

@@ -155,9 +155,6 @@ export default function DashboardCredits() {
               <p className="text-primary-600 font-bold text-sm mb-1">
                 = {plan.credits} card credit{plan.credits > 1 ? 's' : ''}
               </p>
-              {currency !== 'NGN' && (
-                <p className="text-xs text-warm-400 mb-3">≈ ₦{plan.priceNGN.toLocaleString('en-NG')}</p>
-              )}
               <div className="h-px bg-white/60 my-3" />
               <ul className="space-y-1.5 mb-5 flex-1">
                 {plan.features.map((f, i) => (
@@ -218,9 +215,6 @@ export default function DashboardCredits() {
             {selectedPack.savingsNGN > 0 && (
               <p className="text-green-600 text-xs font-bold mb-1">Save {fmt(selectedPack.savingsNGN)} vs {selectedPack.credits} singles</p>
             )}
-            {currency !== 'NGN' && (
-              <p className="text-xs text-warm-400 mb-2">≈ ₦{selectedPack.priceNGN.toLocaleString('en-NG')}</p>
-            )}
 
             <div className="h-px bg-white/60 my-3" />
             <ul className="space-y-1.5 mb-5 flex-1">
@@ -274,7 +268,7 @@ export default function DashboardCredits() {
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <p className="text-sm font-bold" style={{color:'#1A1730'}}>{formatCurrency(h.amount_paid || 0, 'NGN')}</p>
+                    <p className="text-sm font-bold" style={{color:'#1A1730'}}>{formatCurrency(h.amount_paid || 0, 'USD')}</p>
                     <p className={`text-xs font-semibold capitalize ${
                       h.status === 'paid' ? 'text-green-600' : h.status === 'pending' ? 'text-amber-600' : 'text-red-500'
                     }`}>{h.status}</p>

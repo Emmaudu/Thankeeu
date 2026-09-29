@@ -5,7 +5,7 @@ import { memberAPI } from '../../utils/api';
 import { useMemberAuth } from '../../context/MemberAuthContext';
 import MemberLayout from '../../components/member/MemberLayout';
 import toast from 'react-hot-toast';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 import { format, parseISO } from 'date-fns';
 import Icon from '../../components/ui/Icon';
 import { asArray } from '../../utils/asArray';
@@ -47,7 +47,7 @@ const CardRow = ({ card, action }) => (
     </div>
     <div className="flex-1 min-w-0">
       <p className="text-sm font-semibold text-warm-900 truncate">{card.title || `${card.recipient_name}'s Card`}</p>
-      <p className="text-xs text-warm-500">For {card.recipient_name}{card.signed_count ? ` · ${card.signed_count} signed` : ''}{card.total_collected > 0 ? ` · ${formatNGN(card.total_collected)}` : ''}</p>
+      <p className="text-xs text-warm-500">For {card.recipient_name}{card.signed_count ? ` · ${card.signed_count} signed` : ''}{card.total_collected > 0 ? ` · ${formatUSD(card.total_collected)}` : ''}</p>
     </div>
     {action}
   </div>
@@ -386,12 +386,12 @@ const TabFinances = () => {
       <div className="grid grid-cols-2 gap-3">
         <div className="min-w-0 bg-white rounded-2xl border-2 border-purple-100 p-4">
           <p className="text-xs text-warm-500 mb-1">💸 Total contributed</p>
-          <p className="font-display text-2xl font-bold text-primary-600" style={{overflowWrap:'break-word'}}>{formatNGN(data?.total_contributed || 0)}</p>
+          <p className="font-display text-2xl font-bold text-primary-600" style={{overflowWrap:'break-word'}}>{formatUSD(data?.total_contributed || 0)}</p>
           <p className="text-xs text-warm-400 mt-0.5">Gifts you gave to others</p>
         </div>
         <div className="min-w-0 bg-white rounded-2xl border-2 border-purple-100 p-4">
           <p className="text-xs text-warm-500 mb-1">🎁 Total collected</p>
-          <p className="font-display text-2xl font-bold text-green-600" style={{overflowWrap:'break-word'}}>{formatNGN(data?.total_collected || 0)}</p>
+          <p className="font-display text-2xl font-bold text-green-600" style={{overflowWrap:'break-word'}}>{formatUSD(data?.total_collected || 0)}</p>
           <p className="text-xs text-warm-400 mt-0.5">On cards you created</p>
         </div>
       </div>
@@ -412,7 +412,7 @@ const TabFinances = () => {
                     <p className="text-xs text-warm-400">{c.created_at ? format(parseISO(c.created_at), 'MMM d, yyyy') : ''}</p>
                   </div>
                 </div>
-                <span className="font-bold text-primary-600 text-sm flex-shrink-0">{formatNGN(c.amount)}</span>
+                <span className="font-bold text-primary-600 text-sm flex-shrink-0">{formatUSD(c.amount)}</span>
               </div>
             ))}
           </div>
@@ -435,7 +435,7 @@ const TabFinances = () => {
                     <p className="text-xs text-warm-400 capitalize">{c.status} · {(c.send_date || c.created_at) ? format(parseISO(c.send_date || c.created_at), 'MMM d, yyyy') : ''}{c.send_time ? ` at ${c.send_time.slice(0,5)}` : ''}</p>
                   </div>
                 </div>
-                <span className="font-bold text-green-600 text-sm flex-shrink-0">{formatNGN(c.total_collected)}</span>
+                <span className="font-bold text-green-600 text-sm flex-shrink-0">{formatUSD(c.total_collected)}</span>
               </div>
             ))}
           </div>
@@ -444,7 +444,7 @@ const TabFinances = () => {
 
       {!data?.contributions?.length && !data?.my_card_wallets?.length && (
         <div className="bg-white rounded-2xl border-2 border-purple-100">
-          <EmptyState icon="CreditCard" title="No transactions yet" desc="Naira gift contributions you make or receive will appear here" />
+          <EmptyState icon="CreditCard" title="No transactions yet" desc="Gift contributions you make or receive will appear here" />
         </div>
       )}
     </div>

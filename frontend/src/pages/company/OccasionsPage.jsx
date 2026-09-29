@@ -154,7 +154,7 @@ export default function OccasionsPage() {
       if (d.redirect_to_subscription && d.head_count) {
         sessionStorage.setItem('sub_pricing', JSON.stringify(d));
         setTimeout(() => {
-          toast(`Redirecting to subscription — pricing based on ${d.head_count} employees × ₦2,000`, { icon: '💳', duration: 4000 });
+          toast(`Redirecting to subscription — pricing based on ${d.head_count} employees × $1.26/month`, { icon: '💳', duration: 4000 });
           window.location.href = '/company/subscription';
         }, 2000);
       }

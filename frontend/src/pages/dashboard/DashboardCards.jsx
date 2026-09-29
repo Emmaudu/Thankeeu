@@ -5,7 +5,7 @@ import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 import QRCode from 'qrcode';
 import { asArray } from '../../utils/asArray';
 import useLiveRefresh from '../../hooks/useLiveRefresh';
@@ -257,7 +257,7 @@ export default function DashboardCards() {
                       <p className="db-card-item-meta mb-2">For {card.recipient_name}</p>
                       <div className="flex flex-wrap gap-3" style={{fontFamily:'Plus Jakarta Sans,sans-serif',fontSize:'0.8rem',color:'#A898CC'}}>
                         <span><Icon name="Edit" size={12} className="inline mr-1"/>{card.signed_count||0} signed</span>
-                        {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}>{formatNGN(card.total_collected)}</span>}
+                        {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}>{formatUSD(card.total_collected)}</span>}
                         {card.send_date && <span>📅 {fmtScheduled(card)}</span>}
                       </div>
                     </div>

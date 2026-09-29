@@ -37,7 +37,7 @@ const supabase = require('../utils/supabase');
 const { safeTxRef, safeError } = require('../utils/paramGuard');
 const { validateDiscountCode, applyDiscountToFeeNGN, recordDiscountRedemption } = require('./discountCodeController');
 const {
-  CARD_FEE_NGN, CARD_FEE_CURRENCIES, CARD_FEE_FX,
+  CARD_FEE_NGN, CARD_FEE_CURRENCIES, CARD_FEE_FX, chargeAmountFor, isContributionAmountOk,
   markCardFeePaid, isCardFeeAmountOk,
 } = require('../utils/cardPayment');
 
@@ -105,6 +105,21 @@ const upsertContribution = async ({ cardId, txRef, amount, contributorName, cont
   }
   const { data: ins } = await supabase.from('contributions').insert(row).select().maybeSingle();
   return ins;
+};
+
+// Record the currency/amount a gift was actually charged in (e.g. USD 6.30).
+// Best-effort: before migration_contribution_paid_currency.sql runs the
+// columns don't exist, and that must never block a gift.
+const recordPaidCurrency = async (txRef, currency, amount) => {
+  if (!txRef || !currency || !(Number(amount) > 0)) return;
+  try {
+    const { error } = await supabase.from('contributions')
+      .update({ paid_currency: String(currency).toUpperCase(), paid_amount: Number(amount) })
+      .eq('flw_reference', txRef);
+    if (error && !/paid_(currency|amount)|column|PGRST204|42703/i.test(`${error.code} ${error.message}`)) {
+      console.warn('recordPaidCurrency:', error.message);
+    }
+  } catch (e) { console.warn('recordPaidCurrency:', e.message); }
 };
 
 // Update message after gift verified + recalculate card total_collected
@@ -371,7 +386,7 @@ const initContribution = async (req, res) => {
     if (!card_slug)         return res.status(400).json({ error: 'card_slug is required' });
     if (!amount)            return res.status(400).json({ error: 'amount is required' });
     if (!contributor_email) return res.status(400).json({ error: 'contributor_email is required' });
-    if (Number(amount) < 100) return res.status(400).json({ error: 'Minimum gift amount is ₦100' });
+    if (Number(amount) < 100) return res.status(400).json({ error: 'Gift amount is too small' });
 
     const { data: card } = await supabase.from('cards')
       .select('id, slug, title, recipient_name, is_gift_enabled, status')
@@ -385,9 +400,16 @@ const initContribution = async (req, res) => {
     const txRef       = `TK-GIFT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
     const amountNaira = Number(amount);
 
-    const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
-    const payAmount   = (flw_amount && flw_currency && SUPPORTED.includes(flw_currency)) ? flw_amount : amountNaira;
-    const payCurrency = (flw_currency && SUPPORTED.includes(flw_currency)) ? flw_currency : 'NGN';
+    if (!isFinite(amountNaira) || amountNaira < 100) return res.status(400).json({ error: 'Invalid gift amount' });
+
+    // The charge amount is derived here from the NGN amount — a client-sent
+    // flw_amount is ignored (it let a "₦5,000,000" gift be paid with $0.01).
+    const reqCur      = String(flw_currency || display_currency || 'NGN').toUpperCase();
+    const payCurrency = CARD_FEE_CURRENCIES.includes(reqCur) ? reqCur : 'NGN';
+    const payAmount   = chargeAmountFor(amountNaira, payCurrency);
+    if (flw_amount != null && Math.abs(Number(flw_amount) - payAmount) > 0.02 * payAmount) {
+      console.warn('initContribution: client flw_amount', flw_amount, flw_currency, 'differs from server', payAmount, payCurrency, 'card:', card_slug);
+    }
 
     // Save pending contribution row immediately — so verifyContribution can find the
     // NGN amount even before the popup opens (important for multi-currency payments).
@@ -400,6 +422,8 @@ const initContribution = async (req, res) => {
       status:           'pending',
       messageId:        message_id || null,
     });
+
+    await recordPaidCurrency(txRef, payCurrency, payAmount);
 
     // Return inline checkout config — NO FLW API call needed here.
     // The frontend loads checkout.flutterwave.com/v3.js and calls
@@ -419,7 +443,10 @@ const initContribution = async (req, res) => {
         description: `Contribute to ${card.title || (card.recipient_name + "'s card")}`,
         logo:        `${FRONTEND_URL}/logo.png`,
       },
-      meta: { type: 'gift_contribution', card_id: card.id, card_slug, message_id: message_id || null },
+      meta: {
+        type: 'gift_contribution', card_id: card.id, card_slug, message_id: message_id || null,
+        expected_ngn: amountNaira, expected_amount: payAmount, currency: payCurrency,
+      },
     };
 
     console.log('initContribution OK tx_ref:', txRef, 'card:', card_slug, 'amount:', amountNaira);
@@ -467,7 +494,15 @@ const verifyContribution = async (req, res) => {
     // here rather than overwriting it with a foreign-currency number.
     const { data: existingContrib } = await supabase.from('contributions')
       .select('amount').eq('flw_reference', txRef).maybeSingle();
-    const amountNaira = existingContrib?.amount ?? Math.floor(txn.amount);
+    const txnCurrency = String(txn.currency || 'NGN').toUpperCase();
+    const amountNaira = existingContrib?.amount
+      ?? (Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn)
+        : txnCurrency === 'NGN' ? Math.floor(txn.amount) : null);
+    if (!amountNaira || !isContributionAmountOk(txn, amountNaira)) {
+      console.error('verifyContribution: amount mismatch — not crediting. tx_ref:', txRef,
+        'paid:', txn.amount, txnCurrency, 'expected NGN:', amountNaira);
+      return res.status(400).json({ error: 'Payment amount does not match the gift. Please contact support with your reference.' });
+    }
 
     await upsertContribution({
       cardId,
@@ -478,6 +513,8 @@ const verifyContribution = async (req, res) => {
       status:           'success',
       messageId,
     });
+
+    await recordPaidCurrency(txRef, txn.currency || 'NGN', txn.amount);
 
     // Always update the message contributed_amount (idempotent — safe to run multiple times)
     await updateMessageAfterGift({
@@ -518,4 +555,5 @@ const verifyPayment = async (req, res) => {
   }
 };
 
-module.exports = { initCardFee, verifyCardFee, initContribution, verifyContribution, verifyPayment };
+module.exports = {
+  recordPaidCurrency, initCardFee, verifyCardFee, initContribution, verifyContribution, verifyPayment };

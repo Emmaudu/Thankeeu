@@ -29,7 +29,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>2. Group cards that don't interrupt the news cycle</h3>
 <p>A digital group card takes thirty seconds to sign. For a team filing three stories before lunch, that's the difference between participating in a colleague's celebration and missing it entirely. Editors, reporters, and the business team can all add a message, a GIF, or a voice note from their phones between assignments.</p>
 <h3>3. Naira-based gift pots without the WhatsApp chase</h3>
-<p>Anyone who has tried to collect ₦1,000 from twenty colleagues over WhatsApp knows the awkwardness — the reminders, the people who forget, the person left to top up the shortfall. Thankeeu's gift pots, powered by Paystack and Flutterwave, let everyone contribute directly in Naira, with full transparency on who has given and how much has been raised.</p>
+<p>Anyone who has tried to collect $0.63 (₦1,000) from twenty colleagues over WhatsApp knows the awkwardness — the reminders, the people who forget, the person left to top up the shortfall. Thankeeu's gift pots, powered by Paystack and Flutterwave, let everyone contribute directly in Naira, with full transparency on who has given and how much has been raised.</p>
 <h3>4. Farewell cards that honour real contributions</h3>
 <p>Media careers in Nigeria are often transitional — talented people move on to PR agencies, fintech comms teams, or international roles. A well-organised farewell card and gift, sent automatically when HR marks someone's departure date, ensures that even a quick exit doesn't feel like a quiet one.</p>
 
@@ -269,7 +269,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Group cards as a remote-friendly ritual</h3>
 <p>A digital group card is, in many ways, perfectly suited to remote and distributed teams. Everyone gets a link, signs from wherever they are — Lagos, Abuja, or anywhere else — and contributes a message, photo, or voice note in their own time. The finished card becomes a small but meaningful artefact that the recipient can revisit, something that often doesn't happen with a quick "Happy Birthday!" message that scrolls past in a busy Slack channel.</p>
 <h3>Naira gift pots that match a savings-conscious culture</h3>
-<p>For a company whose product is about helping people manage money thoughtfully, it makes sense that internal gift pots should be equally frictionless and transparent. Thankeeu's gift pots, powered by Paystack and Flutterwave, let colleagues contribute any amount they're comfortable with — from ₦500 upwards — with full visibility into how much has been raised and who has contributed, removing the awkwardness of informal collections.</p>
+<p>For a company whose product is about helping people manage money thoughtfully, it makes sense that internal gift pots should be equally frictionless and transparent. Thankeeu's gift pots, powered by Paystack and Flutterwave, let colleagues contribute any amount they're comfortable with — from $1.58 (₦2,500) upwards — with full visibility into how much has been raised and who has contributed, removing the awkwardness of informal collections.</p>
 <h3>Consistency across every department, every time</h3>
 <p>The real value of automation isn't any single card or gift pot — it's that the system behaves the same way every single time, for every employee, regardless of department, seniority, or how busy the team happens to be that week. That consistency is what builds trust in a culture: employees learn that recognition isn't dependent on whether someone happened to remember.</p>
 
@@ -501,7 +501,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Group cards that work across time zones</h3>
 <p>For a team with people in Lagos, Nairobi, or working remotely from anywhere, a digital group card removes the coordination problem entirely. Everyone receives a link, signs when it's convenient for them, and the card comes together automatically — no need for someone to chase signatures across time zones.</p>
 <h3>Naira gift pots, even for small contributions</h3>
-<p>For a five or ten-person team, a gift pot doesn't need to be elaborate — but it does need to be easy. Thankeeu's gift pots, powered by Paystack and Flutterwave, let even a small team pool together ₦5,000 or ₦10,000 for a meaningful gift, with the process taking minutes rather than a string of "have you sent your contribution yet?" messages.</p>
+<p>For a five or ten-person team, a gift pot doesn't need to be elaborate — but it does need to be easy. Thankeeu's gift pots, powered by Paystack and Flutterwave, let even a small team pool together $3.15 (₦5,000) or $6.30 (₦10,000) for a meaningful gift, with the process taking minutes rather than a string of "have you sent your contribution yet?" messages.</p>
 <h3>One less thing for founders and editors to remember</h3>
 <p>For founder-led or editor-led small teams, the value of automation isn't about scale — it's about removing one more thing from an already-full plate. When the system remembers birthdays and anniversaries automatically, the founder or editor's role shifts from "the person who has to remember" to "the person who gets to participate," which is a meaningfully different — and better — experience.</p>
 

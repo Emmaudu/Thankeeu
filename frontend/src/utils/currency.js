@@ -7,8 +7,10 @@
 
 // ── Supported display currencies ──────────────────────────────────────────────
 export const CURRENCIES = [
+  // USD first: it is the platform's display/default currency. NGN remains the
+  // storage base (rate 1) — see NGN_BASE below; never rely on array order for that.
+  { code: 'USD', symbol: '$',  name: 'US Dollar',         flag: '🇺🇸', rate: 0.00063 }, // ₦1 ≈ $0.00063 — keep in sync with backend utils/cardPayment.js CARD_FEE_FX
   { code: 'NGN', symbol: '₦',  name: 'Nigerian Naira',    flag: '🇳🇬', rate: 1      },
-  { code: 'USD', symbol: '$',  name: 'US Dollar',         flag: '🇺🇸', rate: 0.00063 }, // ₦1 ≈ $0.00063
   { code: 'GBP', symbol: '£',  name: 'British Pound',     flag: '🇬🇧', rate: 0.00049 },
   { code: 'EUR', symbol: '€',  name: 'Euro',              flag: '🇪🇺', rate: 0.00058 },
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar',   flag: '🇨🇦', rate: 0.00086 },
@@ -17,9 +19,14 @@ export const CURRENCIES = [
   { code: 'ZAR', symbol: 'R',  name: 'South African Rand',flag: '🇿🇦', rate: 0.011   },
 ];
 
-/** Get currency info by code */
+/** Platform-wide display + checkout default. Amounts are still stored in NGN. */
+export const DEFAULT_CURRENCY = 'USD';
+
+const NGN_BASE = CURRENCIES.find(c => c.code === 'NGN');
+
+/** Get currency info by code (unknown codes fall back to the NGN base, rate 1) */
 export const getCurrency = (code) =>
-  CURRENCIES.find(c => c.code === code) || CURRENCIES[0];
+  CURRENCIES.find(c => c.code === code) || NGN_BASE;
 
 /** Convert NGN amount to display currency */
 export const convertFromNGN = (amountNGN, toCurrencyCode) => {
@@ -46,11 +53,16 @@ export const formatCurrency = (amountNGN, currencyCode = 'NGN') => {
     return `₦${n}`;
   }
 
-  // For other currencies — show 2 decimal places if < 100, else whole number
-  if (converted >= 100)  return `${symbol}${Math.round(converted).toLocaleString()}`;
-  if (converted >= 10)   return `${symbol}${converted.toFixed(1)}`;
-  return `${symbol}${converted.toFixed(2)}`;
+  // Other currencies — money always has 0 or 2 decimals (never "$15.9").
+  // >= 100 → whole units with separators; below that → cents, dropping ".00".
+  if (converted >= 100) return `${symbol}${Math.round(converted).toLocaleString('en-US')}`;
+  const cents = Math.round(converted * 100);
+  if (cents % 100 === 0) return `${symbol}${cents / 100}`;
+  return `${symbol}${(cents / 100).toFixed(2)}`;
 };
+
+/** Format an NGN-stored amount as its US-dollar equivalent, e.g. 5000 → "$3.15". */
+export const formatUSD = (amountNGN) => formatCurrency(amountNGN, 'USD');
 
 /** Format NGN (legacy — used throughout app, always shows ₦) */
 export const formatNGN = (amount) => formatCurrency(amount, 'NGN');

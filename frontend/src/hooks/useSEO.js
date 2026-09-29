@@ -271,10 +271,9 @@ export const SCHEMAS = {
       'Worldwide support with local currency gift pools',
     ],
     offers: [
-      { '@type': 'Offer', price: '4.99',  priceCurrency: 'GBP', description: 'Classic — 1 group card in GBP' },
-      { '@type': 'Offer', price: '5.99',  priceCurrency: 'USD', description: 'Classic — 1 group card in USD' },
-      { '@type': 'Offer', price: '5000',  priceCurrency: 'NGN', description: 'Classic — 1 group card in NGN' },
-      { '@type': 'Offer', price: '0',     priceCurrency: 'GBP', description: 'Free to create — pay only when sending' },
+      { '@type': 'Offer', price: '2.45',  priceCurrency: 'GBP', description: 'Classic — 1 group card in GBP' },
+      { '@type': 'Offer', price: '3.15',  priceCurrency: 'USD', description: 'Classic — 1 group card in USD' },
+      { '@type': 'Offer', price: '0',     priceCurrency: 'USD', description: 'Free to create — pay only when sending' },
     ],
     publisher: { '@id': `${BASE_URL}/#organization` },
   },

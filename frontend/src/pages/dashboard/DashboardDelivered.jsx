@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import { format } from 'date-fns';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 import { asArray } from '../../utils/asArray';
 
 const EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
@@ -57,7 +57,7 @@ export default function DashboardDelivered() {
                 </div>
                 <div className="flex gap-3 text-xs" style={{fontFamily:'Plus Jakarta Sans,sans-serif',color:'#A898CC'}}>
                   {card.opened_at && <span style={{color:'#7C3AED',fontWeight:700}}><Icon name="Eye" size={11} className="inline mr-1"/>Opened</span>}
-                  {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}>{formatNGN(card.total_collected)}</span>}
+                  {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}>{formatUSD(card.total_collected)}</span>}
                   {card.updated_at && <span>{format(new Date(card.updated_at),'MMM d, yyyy')}</span>}
                 </div>
               </Link>

@@ -99,7 +99,7 @@ export default function BookDemo() {
  {[
  { before:`Someone's birthday passes and you only find out Monday`, after:'Automatic occasion detection — nothing slips through ever again' },
  { before:'Chasing 30 people to sign a card the night before', after:'One Thankeeu link. Everyone signs by lunch. No chasing.' },
- { before:'Collecting cash via WhatsApp and counting manually', after:'Naira gift pot collected and paid out automatically via Flutterwave' },
+ { before:'Collecting cash via WhatsApp and counting manually', after:'Gift pot collected and paid out automatically via Flutterwave' },
  ].map(r => (
  <div key={r.before} className="bg-white rounded-2xl border border-purple-100 px-4 py-3 shadow-sm">
  <p className="text-xs text-rose-500 font-semibold mb-0.5 flex items-center gap-1.5">
@@ -157,7 +157,7 @@ export default function BookDemo() {
  <div className="flex items-center justify-between">
  <div>
  <p className="text-xs font-bold text-emerald-700 flex items-center gap-1"><Icon name="Gift" size={11}/>Gift pot collected</p>
- <p className="font-extrabold text-emerald-800 text-xl">₦85,000</p>
+ <p className="font-extrabold text-emerald-800 text-xl">$54</p>
  </div>
  <div className="text-right">
  <p className="text-xs text-emerald-600">28 contributors</p>

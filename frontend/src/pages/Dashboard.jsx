@@ -7,7 +7,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
-import { formatNGN } from '../utils/currency';
+import { formatUSD } from '../utils/currency';
 import Icon from '../components/ui/Icon';
 import { asArray } from '../utils/asArray';
 
@@ -166,7 +166,7 @@ const Dashboard = () => {
               <StatCard icon="CreditCard" label="Active cards" value={stats.active_cards || 0} sub="collecting now" />
               <StatCard icon="FileText" label="Total cards" value={stats.total_cards || 0} sub="all time" />
               <StatCard icon="Send" label="Cards sent" value={stats.sent_cards || 0} sub="delivered" />
-              <StatCard icon="Gift" label="Gifts collected" value={formatNGN(stats.total_collected||0)} sub="total" highlight />
+              <StatCard icon="Gift" label="Gifts collected" value={formatUSD(stats.total_collected||0)} sub="total" highlight />
             </div>
 
             {/* Credit balance banner */}
@@ -246,7 +246,7 @@ const Dashboard = () => {
                     <div className="flex flex-wrap items-center gap-3 mt-3 text-xs text-warm-500">
                       <span>✍️ {card.signed_count || 0} signed</span>
                       {(card.total_collected||0) > 0 && (
-                        <span className="inline-flex items-center gap-1 text-green-700 font-semibold"><Icon name="Gift" size={12} />{formatNGN(card.total_collected)}</span>
+                        <span className="inline-flex items-center gap-1 text-green-700 font-semibold"><Icon name="Gift" size={12} />{formatUSD(card.total_collected)}</span>
                       )}
                       {card.created_at && <span>{format(new Date(card.created_at), 'MMM d, yy')}</span>}
                     </div>

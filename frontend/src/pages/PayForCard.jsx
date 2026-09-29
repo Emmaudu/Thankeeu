@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import Icon from '../components/ui/Icon';
 import { cardsAPI, creditsAPI, paymentsAPI } from '../utils/api';
-import { CURRENCIES, formatCurrency, formatNGN } from '../utils/currency';
+import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
 import { formatInZone } from '../utils/timezones';
 
 const FEE_NGN = 5000;
@@ -38,7 +38,7 @@ export default function PayForCard() {
   const [state, setState] = useState('loading'); // loading | ready | paid | notfound | forbidden
   const [credits, setCredits] = useState(0);
   const [method, setMethod] = useState('direct');
-  const [currency, setCurrency] = useState('NGN');
+  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
   const [discountCode, setDiscountCode] = useState('');
   const [discount, setDiscount] = useState(null); // { ngn, message } | { error }
   const [busy, setBusy] = useState(false);
@@ -154,7 +154,7 @@ export default function PayForCard() {
               <p className="text-xs text-warm-500">signatures so far</p>
             </div>
             <div className="rounded-2xl bg-emerald-50 p-4">
-              <p className="text-2xl font-extrabold text-emerald-700">{formatNGN(card.total_collected || 0)}</p>
+              <p className="text-2xl font-extrabold text-emerald-700">{formatUSD(card.total_collected || 0)}</p>
               <p className="text-xs text-warm-500">in the gift pot</p>
             </div>
           </div>

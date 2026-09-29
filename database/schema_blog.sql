@@ -57,7 +57,7 @@ VALUES
 <h2>Step 2: Create a group card</h2>
 <p>A physical card with 6 signatures feels cheap when you have a team of 50. A digital group card lets <strong>everyone</strong> leave a personal message, a photo, or even a voice note. It takes 30 seconds per person and the result is genuinely moving.</p>
 <h2>Step 3: Open a shared gift pot</h2>
-<p>Chasing colleagues for ₦2,000 each via bank transfer is exhausting. Use a Paystack-powered gift pot where anyone can chip in from ₦500. Fully transparent, no awkward conversations.</p>
+<p>Chasing colleagues for $1.26 (₦2,000) each via bank transfer is exhausting. Use a Paystack-powered gift pot where anyone can chip in from $1.58. Fully transparent, no awkward conversations.</p>
 <h2>Step 4: Schedule the delivery</h2>
 <p>Time it right. Set the card to arrive at 9 AM on the birthday — before the person even opens Slack. The element of surprise is everything.</p>
 <h2>Step 5: Make it a tradition</h2>
@@ -110,10 +110,10 @@ VALUES
   'group-gift-pots-better-than-individual-gifts',
   'Collecting money for a colleague''s gift should not be stressful. Here''s why pooled group gift pots via Paystack are transforming how Nigerian teams celebrate each other.',
   '<h2>The problem with individual gifts in Nigerian workplaces</h2>
-<p>Ask any Nigerian HR manager and they will tell you the same story: someone remembers a colleague''s birthday at 11 AM, sends a WhatsApp blast asking for "small contributions", spends the afternoon chasing people for money, and by end of day has collected ₦24,000 but spent ₦30,000 on a cake.</p>
+<p>Ask any Nigerian HR manager and they will tell you the same story: someone remembers a colleague''s birthday at 11 AM, sends a WhatsApp blast asking for "small contributions", spends the afternoon chasing people for money, and by end of day has collected $15.12 (₦24,000) but spent $18.90 (₦30,000) on a cake.</p>
 <p>It is exhausting, opaque, and nobody really enjoys it — including the person being celebrated.</p>
 <h2>1. Everyone contributes what they can</h2>
-<p>A group gift pot removes the social pressure of a fixed contribution. Someone can give ₦500, someone else ₦5,000, and neither person feels judged. The total is what matters, and the total is usually much higher than any individual could give alone.</p>
+<p>A group gift pot removes the social pressure of a fixed contribution. Someone can give $0.32 (₦500), someone else $3.15 (₦5,000), and neither person feels judged. The total is what matters, and the total is usually much higher than any individual could give alone.</p>
 <h2>2. Transparency builds trust</h2>
 <p>With Thankeeu''s gift pot, every contributor can see the total amount collected. No more suspicions about where the money went. The HR manager never has to handle cash at all — Paystack processes everything and the amount is displayed directly on the card.</p>
 <h2>3. The recipient actually chooses</h2>
@@ -123,7 +123,7 @@ VALUES
 <h2>5. Paystack makes it seamless</h2>
 <p>Every contributor uses the payment method they prefer — card, bank transfer, USSD (*737#), or mobile money. No account required. The whole process takes 60 seconds per contributor.</p>
 <h2>Try it today</h2>
-<p>Create a free group card on Thankeeu and enable the gift pot. Your first card is free to create — you only pay ₦1,500 to send it to the recipient.</p>',
+<p>Create a free group card on Thankeeu and enable the gift pot. Your first card is free to create — you only pay $3.15 to send it to the recipient.</p>',
   'Gifting',
   ARRAY['gift', 'paystack', 'nigeria', 'workplace', 'team'],
   'published', FALSE, 4,

@@ -7,6 +7,7 @@
  * something wrong, because a wrong value that the customer does not notice ends
  * up on a card that gets sent.
  */
+import { convertToNGN } from '../utils/currency';
 import { describe, it, expect } from 'vitest';
 import parseCardIntent, {
   parseDate, parseAmount, parseRecipient, parseTimeOfDay, OCCASION_LABELS,
@@ -433,6 +434,19 @@ describe('gift and amount', () => {
     expect(parseAmount('₦5,000 each')).toBe(5000);
     expect(parseAmount('5000 naira')).toBe(5000);
     expect(parseAmount('N2500')).toBe(2500);
+  });
+
+  it('parses dollar amounts into their NGN storage value', () => {
+    expect(parseAmount('collecting $50')).toBe(convertToNGN(50, 'USD'));
+    expect(parseAmount('$1.5k pot')).toBe(convertToNGN(1500, 'USD'));
+    expect(parseAmount('20 dollars each')).toBe(convertToNGN(20, 'USD'));
+    expect(parseAmount('usd 25')).toBe(convertToNGN(25, 'USD'));
+    expect(parseCardIntent('birthday card for Ada, $20 gift', THU).is_gift_enabled).toBe(true);
+  });
+
+  it('never reads an out-of-range dollar amount as naira', () => {
+    expect(parseAmount('$50k')).toBeNull();
+    expect(parseAmount('$0.50')).toBeNull();
   });
 
   it('ignores amounts that are obviously not money', () => {

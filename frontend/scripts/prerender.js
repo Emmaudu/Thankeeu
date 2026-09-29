@@ -296,7 +296,7 @@ const STATIC_PAGES = [
   {
     path: '/pricing',
     title: 'Pricing — Online Group Cards from £4.99 | Thankeeu',
-    description: 'Send a group card from £4.99 GBP / ₦5,000 NGN. Pool a gift in GBP, NGN, USD, CAD and more. Team plans with unlimited cards and HR automation. Free to create — pay when you send.',
+    description: 'Send a group card from $3.15 USD / £2.45 GBP. Pool a gift in USD, GBP, EUR, CAD and more. Team plans with unlimited cards and HR automation. Free to create — pay when you send.',
   },
   {
     path: '/blog',
@@ -424,7 +424,7 @@ const STATIC_PAGES = [
   <h3>Do people need an account to sign?</h3>
   <p>No. Anyone with the link can sign instantly — no registration, no app download.</p>
   <h3>How much does an online leaving card cost?</h3>
-  <p>Free to create and collect messages. Classic plan starts at $3.15 USD / £2.45 GBP / ₦5,000 NGN to send. Always shown upfront before you pay.</p>
+  <p>Free to create and collect messages. Classic plan starts at $3.15 USD / £2.45 GBP to send. Always shown upfront before you pay.</p>
 </main>`,
   },
   {

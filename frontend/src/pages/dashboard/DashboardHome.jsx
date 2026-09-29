@@ -5,7 +5,7 @@ import { dashboardAPI, cardsAPI, paymentsAPI, authAPI } from '../../utils/api';
 import DashboardLayout from '../../components/DashboardLayout';
 import Icon from '../../components/ui/Icon';
 import toast from 'react-hot-toast';
-import { formatNGN } from '../../utils/currency';
+import { formatUSD } from '../../utils/currency';
 import useLiveRefresh from '../../hooks/useLiveRefresh';
 
 const OCCASION_EMOJI = { birthday:'🎂',valentine:'💝',leaving:'💼',anniversary:'💍',wedding:'💒',baby_shower:'👶',retirement:'🏖️',congratulations:'🎉',graduation:'🎓',promotion:'🌟',christmas:'🎄',get_well:'🌷',new_year:'✨',other:'💌' };
@@ -147,7 +147,7 @@ export default function DashboardHome() {
               { icon:'Heart',   label:'Active cards',     value:stats.active_cards||0,              hi:false },
               { icon:'Layers',  label:'Total cards',      value:stats.total_cards||0,               hi:false },
               { icon:'Send',    label:'Cards sent',       value:stats.sent_cards||0,                hi:false },
-              { icon:'Gift',    label:'Gifts collected',  value:formatNGN(stats.total_collected||0), hi:true  },
+              { icon:'Gift',    label:'Gifts collected',  value:formatUSD(stats.total_collected||0), hi:true  },
             ].map(s=>(
               <div key={s.label} className={`db-stat-card ${s.hi?'db-stat-hi':''}`}>
                 <div className="flex items-start justify-between mb-2">
@@ -229,7 +229,7 @@ export default function DashboardHome() {
                 <p className="db-card-item-meta">For {card.recipient_name}</p>
                 <div className="flex flex-wrap gap-3 mt-2" style={{fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.8rem', color:'#A898CC'}}>
                   <span><Icon name="Edit" size={12} className="inline mr-1"/>{card.signed_count||0} signed</span>
-                  {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}><Icon name="Gift" size={12} className="inline mr-1"/>{formatNGN(card.total_collected)}</span>}
+                  {(card.total_collected||0)>0 && <span style={{color:'#059669',fontWeight:700}}><Icon name="Gift" size={12} className="inline mr-1"/>{formatUSD(card.total_collected)}</span>}
                   {card.send_date && card.status === 'active' && (
                     <span style={{color:'#7C3AED'}}>📅 {(() => {
                       const d = String(card.send_date).slice(0,10);

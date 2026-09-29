@@ -161,7 +161,7 @@ VALUES (
 'collect-contribution-money-colleague-gift-nigeria',
 'Collecting money for an office gift in Nigeria usually means chasing transfers for days. Here is how teams now collect contributions in one link — transparently, securely, in Naira.',
 $content$<h2>The contribution wahala every Nigerian office knows</h2>
-<p>A colleague's birthday, wedding or send-forth is coming up. Someone announces a contribution on the group chat: "We're doing ₦2,000 each for Chidinma's gift, send to my account." Then the real work begins — screenshots as proof of payment, "I'll send it on Friday," people who never pay but still sign the card, and one exhausted organiser reconciling transfers at midnight.</p>
+<p>A colleague's birthday, wedding or send-forth is coming up. Someone announces a contribution on the group chat: "We're doing $1.26 (₦2,000) each for Chidinma's gift, send to my account." Then the real work begins — screenshots as proof of payment, "I'll send it on Friday," people who never pay but still sign the card, and one exhausted organiser reconciling transfers at midnight.</p>
 <p>It's not that people don't want to give. The <em>process</em> is broken.</p>
 
 <h2>What a broken contribution process costs</h2>

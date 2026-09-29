@@ -21,7 +21,7 @@ VALUES(
 'The best platforms for online group cards in Nigeria in 2025. Birthday, farewell and work anniversary cards with Naira gift pots — every option ranked and reviewed.',
 $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h1 itemprop="headline">Best Online Group Cards in Nigeria 2025</h1>
-<p>Celebrating a colleague in Nigeria used to mean chasing people around the office with a paper card and collecting ₦200 from each person. Those days are over.</p>
+<p>Celebrating a colleague in Nigeria used to mean chasing people around the office with a paper card and collecting $0.13 (₦200) from each person. Those days are over.</p>
 <p><strong>Online group card platforms</strong> let your entire Nigerian team — in Lagos, Abuja, Port Harcourt or remote — sign a digital card in minutes, add a Naira gift pot, and have it delivered beautifully on the right date.</p>
 <h2>Why Nigerian Teams Are Switching</h2>
 <ul>
@@ -105,8 +105,8 @@ $BODY$<article>
 </tbody>
 </table>
 <h2>Pricing</h2>
-<p>Thankbox charges in GBP — approximately ₦6,000–12,000 per card at current rates.</p>
-<p>Thankeeu charges ₦2,000 per employee per month (annual plan), covering unlimited cards for all occasions.</p>
+<p>Thankbox charges in GBP — approximately $3.78–$7.56 (₦6,000–12,000) per card at current rates.</p>
+<p>Thankeeu charges $1.26 (₦2,000) per employee per month (annual plan), covering unlimited cards for all occasions.</p>
 <p><a href="https://thankeeu.com/signup" target="_blank" rel="dofollow">Try Thankeeu free for your Nigerian team →</a></p>
 </article>$BODY$,
 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=1200&q=80',
@@ -152,7 +152,7 @@ $BODY$<article>
 <h2>Cost Savings (100-person Nigerian Company)</h2>
 <ul>
 <li>Time per manual card: 2–3 hours × 8–10 cards/month = <strong>20–30 HR hours saved monthly</strong></li>
-<li>Thankeeu cost: ₦2,000 per employee per month</li>
+<li>Thankeeu cost: $1.26 (₦2,000) per employee per month</li>
 </ul>
 <p><a href="https://thankeeu.com/signup" target="_blank" rel="dofollow">Start automating your Nigerian team celebrations →</a></p>
 </article>$BODY$,
@@ -306,7 +306,7 @@ $BODY$<article>
 <p>With <a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a>:</p>
 <ol>
 <li>Create a farewell card with the leaver's name and last working day</li>
-<li>Enable the gift pot — set a suggested contribution (e.g. ₦2,000 per person)</li>
+<li>Enable the gift pot — set a suggested contribution (e.g. $1.26 (₦2,000) per person)</li>
 <li>Share the WhatsApp link — colleagues across all offices can contribute</li>
 <li>The leaver withdraws the gift money to their bank account</li>
 </ol>

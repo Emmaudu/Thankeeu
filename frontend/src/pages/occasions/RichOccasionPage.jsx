@@ -298,7 +298,7 @@ export default function RichOccasionPage({ config }) {
             {[
               { name: 'Thankbox', icon: 'Mail', colour: '#0ea5e9', bg: '#f0f9ff', line: 'UK group card platform. GBP gift collection. No voice notes, no Memory Movie, no Nigerian payments.' },
               { name: 'Kudoboard', icon: 'Award', colour: '#f59e0b', bg: '#fffbeb', line: 'US recognition platform. USD-only. No voice notes, no live photo wall, expensive subscription model.' },
-              { name: 'Thankeeu', icon: 'Sparkles', colour: '#7C3AED', bg: '#F5F0FF', line: 'Full group card + Memory Movie + live photo wall + Naira/GBP/USD + HRIS sync. Built for global teams.' },
+              { name: 'Thankeeu', icon: 'Sparkles', colour: '#7C3AED', bg: '#F5F0FF', line: 'Full group card + Memory Movie + live photo wall + USD/GBP/EUR + HRIS sync. Built for global teams.' },
             ].map(p => (
               <div key={p.name} className="rounded-2xl p-5 border-2" style={{ background: p.bg, borderColor: p.colour + '30' }}>
                 <div className="flex items-center gap-2 mb-2">

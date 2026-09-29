@@ -412,7 +412,7 @@ const ALBUMS = [
     accent: '#7C3AED',
     design: JANE_DESIGN,
     signers: JANE_SIGNERS,
-    gift: { amount:'185,000', currency:'₦' },
+    gift: { amount:'117', currency:'$' },
   },
   {
     id: 'sarah',

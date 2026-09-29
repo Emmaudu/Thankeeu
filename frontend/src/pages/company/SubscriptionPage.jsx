@@ -5,8 +5,11 @@ import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import { format, differenceInDays } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { formatUSD } from '../../utils/currency';
 
-const fmtNGN = (n) => n === 0 ? 'Free' : `₦${Number(n).toLocaleString('en-NG')}`;
+// Shown in USD; the subscription is still billed in NGN (Flutterwave, bank transfer friendly).
+const fmtNGN = (n) => n === 0 ? 'Free' : formatUSD(n);
+const billedNGN = (n) => `₦${Number(n).toLocaleString('en-NG')}`;
 
 export default function SubscriptionPage() {
   useSEO({ title: 'Subscription — Thankeeu for Teams', noIndex: true });
@@ -184,7 +187,7 @@ export default function SubscriptionPage() {
                   👥 {quote.head_count} employees
                 </div>
                 <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-2 text-sm font-semibold text-purple-700">
-                  ₦{Number(quote.per_head_rate).toLocaleString('en-NG')} per employee / month
+                  {formatUSD(quote.per_head_rate)} per employee / month
                 </div>
               </div>
 
@@ -193,7 +196,7 @@ export default function SubscriptionPage() {
                 <div className={`rounded-2xl border-2 p-5 ${isActive && sub?.plan === 'monthly' ? 'border-primary-400 bg-primary-50' : 'border-purple-100'}`}>
                   <p className="font-bold text-warm-900 mb-1">Monthly</p>
                   <p className="text-2xl font-extrabold text-primary-600 mb-1">{fmtNGN(quote.monthly_price)}</p>
-                  <p className="text-xs text-warm-400 mb-4">{quote.head_count} × ₦{Number(quote.per_head_rate).toLocaleString('en-NG')} / month</p>
+                  <p className="text-xs text-warm-400 mb-4">{quote.head_count} × {formatUSD(quote.per_head_rate)} / month · billed as {billedNGN(quote.monthly_price)}</p>
                   <button onClick={() => handleSubscribe('monthly')} disabled={!!paying || isActive}
                     className="btn-primary w-full py-2.5 text-sm disabled:opacity-50">
                     {paying === 'monthly' ? 'Redirecting…' : isActive && sub?.plan === 'monthly' ? 'Current plan' : 'Subscribe monthly'}
@@ -206,7 +209,7 @@ export default function SubscriptionPage() {
                   <p className="font-bold text-warm-900 mb-1">Yearly</p>
                   <p className="text-2xl font-extrabold text-primary-600 mb-1">{fmtNGN(quote.yearly_price)}</p>
                   <p className="text-xs text-green-600 font-semibold mb-1">2 months free</p>
-                  <p className="text-xs text-warm-400 mb-4">{quote.head_count} × ₦{Number(quote.per_head_rate).toLocaleString('en-NG')} × 10 months</p>
+                  <p className="text-xs text-warm-400 mb-4">{quote.head_count} × {formatUSD(quote.per_head_rate)} × 10 months · billed as {billedNGN(quote.yearly_price)}</p>
                   <button onClick={() => handleSubscribe('yearly')} disabled={!!paying || isActive}
                     className="bg-primary-500 text-white w-full py-2.5 text-sm font-bold rounded-2xl hover:bg-primary-600 transition-all disabled:opacity-50">
                     {paying === 'yearly' ? 'Redirecting…' : isActive && sub?.plan === 'yearly' ? 'Current plan' : 'Subscribe yearly'}

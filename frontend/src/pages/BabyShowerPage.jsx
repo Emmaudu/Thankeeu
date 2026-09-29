@@ -36,7 +36,7 @@ const BABY_DEMO_MESSAGES = [
     text:"Sending this from 5,000 miles away with all my heart. You and baby are going to be amazing ️",
     gif:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' },
   { initials:'BD', name:'Bolu D.',  color:'#1D4ED8', bg:'#DBEAFE',
-    text:"Every naira here is wrapped in so much love. Enjoy every bit of it — you deserve it all! ",
+    text:"Every dollar here is wrapped in so much love. Enjoy every bit of it — you deserve it all! ",
     gif:'https://media.giphy.com/media/g9582DNuQppxC/giphy.gif' },
 ];
 
@@ -73,9 +73,9 @@ const SLIDES = [
     title: "Baby gift fund sorted — no envelope chasing.",
     description: "Enable the collection pot. Guests contribute when they sign — any amount, any currency. The mum-to-be withdraws straight to her bank.",
     color: '#059669', accent: '#D1FAE5', emoji: '🎁',
-    count: 29, gift: '₦520,000',
+    count: 29, gift: '$328',
     messages: [
-      { name: 'Bolu D.',  role: 'Office',  color: '#059669', bg: '#D1FAE5', text: "Every naira here is wrapped in so much love and excitement. Enjoy every bit of it!" },
+      { name: 'Bolu D.',  role: 'Office',  color: '#059669', bg: '#D1FAE5', text: "Every dollar here is wrapped in so much love and excitement. Enjoy every bit of it!" },
       { name: 'Lola M.',  role: 'Friend',  color: '#7C3AED', bg: '#EDE9FE', text: "We all pooled this because no individual gift could say what we all feel. So much love." },
       { name: 'Tunde N.', role: 'Family',  color: '#D97706', bg: '#FEF3C7', text: "Use it for anything you need — or something completely indulgent. You deserve both!" },
       { name: 'Chidi M.', role: 'Manager', color: '#DB2777', bg: '#FCE7F3', text: "From the whole team — welcome to parenthood! We are so excited for this next chapter." },

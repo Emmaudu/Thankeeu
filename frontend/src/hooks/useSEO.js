@@ -428,7 +428,7 @@ export const SCHEMAS = {
       { name: 'Retirement Cards',            url: '/cards/retirement',            description: 'Group retirement card to celebrate a full career. Everyone signs with messages and a pooled retirement gift.' },
       { name: 'Sympathy Cards',              url: '/cards/sympathy',              description: 'Heartfelt sympathy card the whole team signs — kind words and support delivered privately.' },
       { name: 'Group Cards UK',              url: '/online-group-cards-uk',       description: 'Online group cards for UK teams with GBP gift collection. Leaving cards, birthday cards and more.' },
-      { name: 'Group Cards Nigeria',         url: '/online-group-cards-nigeria',  description: 'Online group cards in Nigeria with Naira gift collection via Flutterwave. Share on WhatsApp.' },
+      { name: 'Online Group Cards',          url: '/online-group-cards-nigeria',  description: 'Online group cards everyone signs from one link, with a group gift in USD. Works worldwide.' },
       { name: 'Blog',                        url: '/blog',                        description: 'Guides on what to write in leaving cards, birthday cards, retirement cards, sympathy cards and more.' },
       { name: 'Company Workspaces',          url: '/business',                    description: 'Dedicated Thankeeu subdomain for HR teams. Automate birthdays, farewells and employee recognition.' },
       { name: 'Browse Card Designs',         url: '/cards/create',                description: '100+ premium group card designs for every occasion — birthday, leaving, retirement, wedding and more.' },

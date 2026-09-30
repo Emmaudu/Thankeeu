@@ -20,6 +20,33 @@ const HOME_COVERS = [
 import { FlagBackdrop, SupportedCountries } from '../components/WorldFlags';
 import { resolveHero, splitHeroTitle, readCachedHero, writeCachedHero } from '../utils/heroDefaults';
 import toast from 'react-hot-toast';
+import { LANDING_COVERS_PER_CATEGORY, OCCASION_LABELS, landingFaqs } from '../data/countryLandings';
+import { HOME_FAQS } from '../data/homeFaqs';
+
+// Country landings (see data/countryLandings.js): covers grouped by category.
+const landingCoverRows = (landing) => landing.coverOccasions
+  .map(occasion => ({ occasion, label: OCCASION_LABELS[occasion] || occasion,
+    designs: getIllustratedCovers(occasion, { limit: landing.coversPerCategory || LANDING_COVERS_PER_CATEGORY }) }))
+  .filter(r => r.designs.length);
+
+// SEO for a country landing: its own title/description/canonical, and FAQ
+// markup built from the same list the page renders.
+const landingSeo = (landing, faqs) => ({
+  title: landing.title,
+  description: landing.description,
+  canonical: landing.path,
+  keywords: landing.keywords,
+  locale: landing.locale,
+  jsonLd: [
+    SCHEMAS.organization,
+    SCHEMAS.softwareApp,
+    ...(landing.jsonLdExtra || []),
+    SCHEMAS.breadcrumb([{ name: 'Thankeeu', url: '/' }, ...(landing.breadcrumbParents || []), { name: landing.breadcrumb, url: landing.path }]),
+    SCHEMAS.webPage(landing.title, landing.description, landing.path),
+    SCHEMAS.faqPage(faqs),
+  ],
+});
+
 
 const HERO_FONT_INJECT = `
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600;700&family=Sacramento&family=Great+Vibes&display=swap');
@@ -172,9 +199,24 @@ const DemoModal = ({ onClose }) => {
  );
 };
 
+/* ─── Demo content (swapped per landing: a wedding page shows a wedding) ── */
+export const DEFAULT_DEMO = {
+  groupName: 'Birthday Wishes',
+  buriedSub: 'birthday buried under memes and work chat',
+  cardGreeting: 'Happy Birthday, Adaeze!',
+  mockIcon: 'Cake',
+  mockTitle: 'Tolu\u2019s Birthday Card',
+  mockMessages: [
+    { av:'AO', name:'Adaeze O.', msg:"Happy birthday!! You're such an inspiration" },
+    { av:'EK', name:'Emeka K.', msg:'Wishing you all the joy this year!' },
+    { av:'KI', name:'Kemi I.', msg:'Another year wiser! Enjoy every moment' },
+    { av:'BD', name:'Bolu D.', msg:'You deserve all the good things, boss!' },
+  ],
+};
+
 /* ─── WhatsApp vs Thankeeu Conversion Section ───────────────────────── */
 const WHATSAPP_PAINS = [
- { icon: 'MessageCircle', label: '58 unread messages', sub: 'birthday buried under memes and work chat' },
+ { icon: 'MessageCircle', label: '58 unread messages', sub: null },
  { icon: 'Image', label: 'Photos buried in scroll', sub: 'mixed with receipts and random forwards' },
  { icon: 'Mic', label: 'Voice notes forgotten', sub: 'nobody replays a 34-second voice note twice' },
  { icon: 'UserX', label: '9 people never sent wishes', sub: '"I didn\'t see the message" — every time' },
@@ -209,7 +251,7 @@ const BENEFITS = [
  },
 ];
 
-const WhatsAppVsThankeeu = () => (
+const WhatsAppVsThankeeu = ({ demo = DEFAULT_DEMO }) => (
  <section className="py-16 md:py-24 px-4 gc-font" style={{ background: '#fff' }}>
  <style>{`
  @keyframes wa-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
@@ -251,7 +293,7 @@ const WhatsAppVsThankeeu = () => (
  </div>
  <div>
  <p className="font-bold text-warm-900 text-sm">WhatsApp Group</p>
- <p className="text-xs text-warm-400">Birthday Wishes </p>
+ <p className="text-xs text-warm-400">{demo.groupName}</p>
  </div>
  </div>
  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold"
@@ -271,7 +313,7 @@ const WhatsAppVsThankeeu = () => (
  </div>
  <div className="min-w-0">
  <p className="font-semibold text-warm-700 text-sm leading-tight">{p.label}</p>
- <p className="text-xs text-warm-400 mt-0.5 leading-snug">{p.sub}</p>
+ <p className="text-xs text-warm-400 mt-0.5 leading-snug">{p.sub ?? demo.buriedSub}</p>
  </div>
  <div className="flex-shrink-0 mt-0.5">
  <Icon name="X" size={14} style={{ color: '#fca5a5' }}/>
@@ -305,7 +347,7 @@ const WhatsAppVsThankeeu = () => (
  onError={e => { e.currentTarget.src = '/favicon-96x96.png'; e.currentTarget.onerror = null; }}/>
  <div>
  <p className="font-bold text-warm-900 text-sm">Thankeeu Group Card</p>
- <p className="text-xs text-primary-400">Happy Birthday, Adaeze! </p>
+ <p className="text-xs text-primary-400">{demo.cardGreeting}</p>
  </div>
  </div>
  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold"
@@ -486,17 +528,7 @@ const WhatsAppVsThankeeu = () => (
 // Homepage FAQ — one source of truth for the visible list AND the FAQPage
 // structured data below. They must not drift: Google requires the marked-up
 // Q&A to be visible on the page, and answer engines quote whichever they find.
-const HOME_FAQS = [
- { q:'Is it really free to create a card?', a:"Yes — creating a card and collecting messages is 100% free. You only pay a small one-time fee when you're ready to activate and send the card to the recipient." },
- { q:'Does the recipient need to create an account?', a:"No. The recipient simply opens a link, reads all the messages and can claim the gift — no sign-up required." },
- { q:'What payment methods are supported?', a:'Visa, Mastercard, American Express, and bank transfers depending on your country. We support USD, GBP, EUR, CAD, AUD and 30+ currencies.' },
- { q:'Can people from other countries contribute to the gift pot?', a:'Yes — signers can contribute from anywhere in the world using Visa, Mastercard or local bank transfer. USD, GBP, EUR and 30+ currencies are all supported.' },
- { q:'What types of media can contributors add?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs — all in one beautiful card.' },
- { q:'How does the gift pot work for companies?', a:"Each celebration card has its own secure gift pot. Team members chip in individually. Once the card is sent, the recipient can withdraw the total to their bank account." },
- { q:'Can I schedule the card to send on a specific date?', a:"Yes. Pick any future date and time during card creation. Thankeeu sends it automatically — even if you forget." },
- { q:'Is there a limit on how many people can sign?', a:'No limit. Invite your entire company if you want. The more signatures, the more meaningful the card.' },
-  { q:'How fast can I create a group card?', a:"About a minute. Describe the card in one line on the homepage — who it's for, when to send it, whether you're collecting for a gift — and Thankeeu fills in the design, the details and the dates for you. Review it, share the link, and pay once when you're ready for it to be delivered." },
-];
+// HOME_FAQS lives in data/homeFaqs.js (shared with the country pages and prerender).
 
 // Collapsible FAQ row. A component, not an inline callback: calling useState
 // inside a .map() callback breaks the rules of hooks and only appears to work
@@ -505,19 +537,24 @@ const FaqItem = ({ q, a }) => {
   const [open, setOpen] = useState(false);
   return (
     <div className="border-b border-purple-100">
-      <button onClick={() => setOpen(!open)}
+      <button onClick={() => setOpen(!open)} aria-expanded={open}
         className="w-full text-left flex items-center justify-between py-4 gap-4 hover:text-primary-600 transition-colors">
         <span className="font-bold" style={{ fontSize:'0.9rem', color:'#1A1035' }}>{q}</span>
         <span className={`text-primary-400 flex-shrink-0 text-lg transition-transform ${open?'rotate-45':''}`}>+</span>
       </button>
-      {open && <p className="text-sm text-warm-600 leading-relaxed pb-4">{a}</p>}
+      {/* Kept in the DOM when closed so crawlers read the answer the FAQ markup quotes. */}
+      <p hidden={!open} className="text-sm text-warm-600 leading-relaxed pb-4">{a}</p>
     </div>
   );
 };
 
 
-const Home = () => {
- useSEO({
+const Home = ({ landing = null } = {}) => {
+ const faqs = landing ? landingFaqs(landing) : HOME_FAQS;
+ const ctaTo = landing?.ctaTo || '/card/new';
+ const sampleMessages = landing?.sampleMessages || SAMPLE_MESSAGES;
+ const demo = { ...DEFAULT_DEMO, ...(landing?.demo || {}) };
+ useSEO(landing ? landingSeo(landing, faqs) : {
  title:'Thankeeu — Group Cards, Memory Movies & Gift Pools for Every Occasion',
  description:'Create beautiful online group cards, gift pools, Memory Movies and company workspaces on your own Thankeeu subdomain — for any occasion, any team.',
  canonical:'/',
@@ -558,12 +595,13 @@ const Home = () => {
  // server's current version replaces it as soon as it arrives.
  const [hero, setHero] = useState(() => resolveHero(readCachedHero()));
  useEffect(() => {
+   if (landing) return undefined; // country pages carry their own hero copy
    let alive = true;
    siteAPI.getHero()
      .then(r => { if (!alive || !r.data?.hero) return; writeCachedHero(r.data.hero); setHero(resolveHero(r.data.hero)); })
      .catch(() => { /* defaults stay */ });
    return () => { alive = false; };
- }, []);
+ }, [landing]);
  const heroTitle = splitHeroTitle(hero.title);
 
  useEffect(() => {
@@ -598,9 +636,15 @@ const Home = () => {
  <div className="text-center lg:text-left">
  <div style={{ display:'inline-block', background:'#EDE9FE', padding:'6px 12px', borderRadius:8, marginBottom:'0.6rem' }}>
  <p style={{ fontSize:'clamp(0.9rem,1.8vw,1.02rem)', lineHeight:1.45, fontFamily:"'Plus Jakarta Sans',sans-serif", color:'#4B3F72', fontWeight:500, margin:0, padding:0, display:'block' }}>
- {hero.tagline}
+ {landing ? landing.tagline : hero.tagline}
  </p>
  </div>
+ {landing ? (
+ <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(2rem,4.4vw,3.15rem)', lineHeight:1.08, letterSpacing:'-0.02em' }}>
+ <span style={{ color:'#1A1035' }}>{landing.h1Lead}</span>{' '}<br />
+ <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>{landing.h1Accent}</span>
+ </h1>
+ ) : (
  <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(2rem,4.4vw,3.15rem)', lineHeight:1.08, letterSpacing:'-0.02em' }}>
  {heroTitle.before && <span style={{ color:'#1A1035' }}>{heroTitle.before}</span>}
  {heroTitle.hasWord && (<>
@@ -612,9 +656,10 @@ const Home = () => {
  </>)}
  {heroTitle.after && <span style={{ color:'#1A1035' }}>{heroTitle.after}</span>}
  </h1>
+ )}
 
  <p className="text-warm-600 mb-3 sm:mb-4 max-w-xl mx-auto lg:mx-0" style={{ fontSize:'clamp(1rem,2vw,1.12rem)', lineHeight:1.55 }}>
- {hero.subtitle}
+ {landing ? landing.subtitle : hero.subtitle}
  </p>
 
  {/* Price — visible before any scrolling, same pattern as leaving card hero */}
@@ -632,7 +677,7 @@ const Home = () => {
 
  {/* ── 3 Feature Cards ── */}
  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 max-w-xl mx-auto lg:mx-0">
- <Link to="/card/new" className="rounded-2xl p-4 text-left border-2 transition-all hover:shadow-md hover:-translate-y-0.5 group"
+ <Link to={ctaTo} className="rounded-2xl p-4 text-left border-2 transition-all hover:shadow-md hover:-translate-y-0.5 group"
  style={{ background:'#F5F0FF', borderColor:'#DDD6FE' }}>
   <p className="font-extrabold text-warm-900 text-sm leading-tight mb-1">Group Card</p>
  <p className="text-xs text-warm-500 leading-snug">One link, everyone signs. Messages, photos, voice notes, GIFs and a pooled gift. Delivered at exactly the right moment.</p>
@@ -653,8 +698,8 @@ const Home = () => {
  </div>
 
  <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
- <Link to="/card/new" className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
- <Icon name="Sparkles" size={18}/>Create a card
+ <Link to={ctaTo} className="gc-btn-primary w-full sm:w-auto inline-flex items-center justify-center gap-2">
+ <Icon name="Sparkles" size={18}/>{landing?.ctaLabel || 'Create a card'}
  </Link>
  <Link to="/sample" className="gc-btn-secondary w-full sm:w-auto inline-flex items-center justify-center gap-2">
  <Icon name="Eye" size={18}/>Try our demo card
@@ -667,7 +712,7 @@ const Home = () => {
 
  {/* Sample card grid — large, rich tiles matching GroupCards style */}
  <div className="hidden lg:grid grid-cols-2 gap-4 mt-8" style={{ maxWidth: '100%' }}>
- {SAMPLE_MESSAGES.map((m, i) => (
+ {sampleMessages.map((m, i) => (
  <div key={m.name} className="bg-white rounded-3xl border-2 border-purple-100 overflow-hidden shadow-md hover:shadow-lg transition-shadow"
  style={{ marginTop: i % 2 === 1 ? 32 : 0, minHeight: 340 }}>
  {/* Media — large, fills top of card */}
@@ -708,7 +753,7 @@ const Home = () => {
 
  {/* Mobile sample cards — also bigger */}
  <div className="lg:hidden grid grid-cols-2 gap-3 mt-4 max-w-sm mx-auto">
- {SAMPLE_MESSAGES.map(m => (
+ {sampleMessages.map(m => (
  <div key={m.name} className="bg-white rounded-2xl border-2 border-purple-100 overflow-hidden shadow-sm">
  {m.media === 'photo' && <div style={{ height:90, overflow:'hidden' }}><img src={m.photoUrl} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} loading="lazy"/></div>}
  {m.media === 'gif' && <div style={{ height:90, overflow:'hidden', background:'#1A1035' }}><img src={m.gifUrl} alt="GIF" style={{ width:'100%', height:'100%', objectFit:'cover' }} loading="lazy"/></div>}
@@ -731,7 +776,7 @@ const Home = () => {
 
  {/* Right: three stacked album flipbooks — Jane (front), Sarah (left), Jackson (right) */}
  <div className="lg:sticky lg:top-24" style={{ paddingTop: '0.5rem' }}>
- <HeroAlbumStack />
+ <HeroAlbumStack variant={landing?.heroVariant} />
  </div>
  </div>
 
@@ -900,17 +945,18 @@ const Home = () => {
  <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto mb-6">
  Just type it below — we build the card for you. Free to create and share; pay only when you send.
  </p>
- <CardIntentBar className="text-left" />
+ <CardIntentBar className="text-left" startWith={landing?.intentStart} />
  </div>
  </div>
  </section>
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
  {/* ══ WHATSAPP VS THANKEEU CONVERSION SECTION ══ */}
- <WhatsAppVsThankeeu />
+ <WhatsAppVsThankeeu demo={demo} />
 
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
+ {!landing?.hideSendMoney && (<>
  {/* ══ SEND MONEY — money tucked inside a card ══ */}
  <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'#fff' }}>
  <div className="max-w-6xl mx-auto grid gap-10 lg:grid-cols-[1.05fr_.95fr] items-center">
@@ -976,17 +1022,18 @@ const Home = () => {
  </section>
 
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
+ </>)}
 
- {/* ══ NEW COVERS — one lead cover per occasion ══ */}
+  {/* ══ NEW COVERS — one lead cover per occasion ══ */}
  <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 100%)' }}>
  <div className="max-w-6xl mx-auto">
  <div className="text-center mb-10">
  <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={13}/>New card covers</div>
  <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
- Pick a cover they'll love,<br/><span className="text-primary-500">then everyone signs</span>
+ {landing ? landing.coversTitle : <>Pick a cover they'll love,<br/><span className="text-primary-500">then everyone signs</span></>}
  </h2>
  <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
-   Illustrated covers for every occasion. Tap one to start your group card — free, no signup needed.
+   {landing?.coversSubtitle || 'Illustrated covers for every occasion. Tap one to start your group card — free, no signup needed.'}
  </p>
  <p className="text-xs font-semibold text-primary-500 mt-2">
    ✏️ Add your recipient's name to the cover, then share one link for everyone to sign.
@@ -1002,6 +1049,25 @@ const Home = () => {
  .svg-tile img { width:100%; height:100%; object-fit:cover; object-position:center; display:block; }
  `}</style>
 
+ {landing ? (
+ <div className="space-y-10">
+ {landingCoverRows(landing).map(row => (
+ <div key={row.occasion}>
+ <div className="flex items-end justify-between gap-3 mb-3">
+ <h3 className="font-extrabold text-warm-900" style={{ fontSize:'1.15rem' }}>{landing.coverOccasions.length === 1 ? `${landing.coversPerCategory || LANDING_COVERS_PER_CATEGORY} ${row.label.toLowerCase()} card covers` : `${row.label} cards`}</h3>
+ <Link to={`/cards/create?occasion=${row.occasion}`} className="text-sm font-bold text-primary-600 hover:text-primary-700 whitespace-nowrap">See all →</Link>
+ </div>
+ <div className="svg-grid">
+ {row.designs.map(design => (
+ <Link key={design.id} to={createIllustratedCardUrl(design, `landing-${landing.path.slice(1)}`)} className="svg-tile" title={`${design.name} — ${row.label.toLowerCase()} group card`}>
+ <img src={design.image} alt={`${design.alt} — ${row.label.toLowerCase()} group card cover`} loading="lazy" decoding="async"/>
+ </Link>
+ ))}
+ </div>
+ </div>
+ ))}
+ </div>
+ ) : (
  <div className="svg-grid">
  {HOME_COVERS.map(({ design, label }) => (
  <figure key={design.id} className="m-0">
@@ -1012,11 +1078,13 @@ const Home = () => {
  </figure>
  ))}
  </div>
+ )}
  </div>
  </section>
 
 
 
+ {!landing?.hideOccasions && (<>
  {/* ══ OCCASIONS ══ */}
  <section className="py-12 md:py-16 px-4 section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
  <div className="max-w-5xl mx-auto">
@@ -1043,15 +1111,16 @@ const Home = () => {
  ['/cards/welcome','Welcome & new hire'],['/cards/baby-shower','Baby shower'],
  ['/cards/good-luck','Good luck cards'],['/cards/christmas','Christmas cards'],
  ['/cards/thank-you','Thank you cards'],['/online-group-cards-uk','Group cards UK'],
- ['/online-group-cards-us','Group cards US'],['/online-group-cards-nigeria','Group cards Nigeria'],
+ ['/online-group-cards-us','Group cards US'],['/online-group-cards-nigeria','Online group cards'],
  ].map(([to,label]) => <Link key={to} to={to}>{label}</Link>)}
  </div>
  </div>
  </section>
 
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
+ </>)}
 
- {/* ══ HOW IT WORKS ══ */}
+  {/* ══ HOW IT WORKS ══ */}
  <section className="py-12 md:py-16 px-4">
  <div className="max-w-5xl mx-auto">
  <div className="text-center mb-10">
@@ -1099,7 +1168,7 @@ const Home = () => {
  </div>
  ))}
  </div>
- <Link to="/card/new" className="gc-btn-primary px-7 py-3.5 text-sm w-full sm:w-auto inline-flex items-center justify-center gap-2">
+ <Link to={ctaTo} className="gc-btn-primary px-7 py-3.5 text-sm w-full sm:w-auto inline-flex items-center justify-center gap-2">
  <Icon name="Sparkles" size={15}/>Create your first card <Icon name="ArrowRight" size={15}/>
  </Link>
  </div>
@@ -1107,20 +1176,15 @@ const Home = () => {
  <div className="relative">
  <div className="bg-gradient-to-br from-purple-50 to-rose-50 border-2 border-purple-200 rounded-3xl p-5 shadow-lg">
  <div className="flex items-center gap-3 mb-4">
- <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-purple-100"><Icon name="Cake" size={18} className="text-primary-500"/></div>
+ <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-purple-100"><Icon name={demo.mockIcon} size={18} className="text-primary-500"/></div>
  <div className="flex-1 min-w-0">
- <p className="font-bold text-warm-900 text-sm truncate">Tolu's Birthday Card</p>
+ <p className="font-bold text-warm-900 text-sm truncate">{demo.mockTitle}</p>
  <p className="text-xs text-warm-500">28 signed · $240 collected</p>
  </div>
  <span className="text-xs font-bold bg-green-50 text-green-700 border border-green-200 px-2.5 py-1 rounded-xl flex-shrink-0 inline-flex items-center gap-1"><Icon name="Check" size={12}/>Active</span>
  </div>
- <div className="grid grid-cols-2 gap-2 mb-3">
- {[
- { av:'AO', name:'Adaeze O.', msg:"Happy birthday!! You're such an inspiration" },
- { av:'EK', name:'Emeka K.', msg:'Wishing you all the joy this year!' },
- { av:'KI', name:'Kemi I.', msg:'Another year wiser! Enjoy every moment' },
- { av:'BD', name:'Bolu D.', msg:'You deserve all the good things, boss!' },
- ].map(m => (
+ <div className="grid grid-cols-2 gap-2 mb-3" style={{ gridTemplateColumns:'repeat(2,minmax(0,1fr))' }}>
+ {demo.mockMessages.map(m => (
  <div key={m.av} className="bg-white rounded-2xl p-3 border border-purple-100">
  <div className="flex items-center gap-2 mb-1.5">
  <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{m.av}</div>
@@ -1151,6 +1215,7 @@ const Home = () => {
 
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
+ {!landing?.hideTeams && (<>
  {/* ══ FOR TEAMS ══ */}
  <section className="py-12 md:py-16 px-4 gc-font section-dots" style={{ background:'linear-gradient(180deg,#F5F0FF,#F8F4FF)' }}>
  <div className="max-w-5xl mx-auto">
@@ -1190,6 +1255,7 @@ const Home = () => {
  </section>
 
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
+ </>)}
 
  {/* ══ PRICING ══ */}
  <section className="py-12 md:py-16 px-4 gc-font">
@@ -1216,7 +1282,7 @@ const Home = () => {
  </li>
  ))}
  </ul>
- <Link to="/card/new" className="gc-btn-primary px-7 py-3 w-full sm:w-auto inline-flex items-center justify-center">Get started →</Link>
+ <Link to={ctaTo} className="gc-btn-primary px-7 py-3 w-full sm:w-auto inline-flex items-center justify-center">Get started →</Link>
  </div>
  <div className="rounded-3xl p-7 border-2 border-primary-800" style={{ background:'linear-gradient(135deg,#1A1035,#2E1F6B)' }}>
  <div className="w-12 h-12 rounded-2xl bg-purple-900/40 border-2 border-purple-700 flex items-center justify-center mb-4"><Icon name="Building" size={22} className="text-purple-200"/></div>
@@ -1276,6 +1342,65 @@ const Home = () => {
 
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
+ {landing && (
+ <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'#fff' }}>
+ <div className="max-w-5xl mx-auto">
+ <div className="text-center mb-10">
+ <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5vw,2.6rem)' }}>{landing.useCasesTitle || 'What teams use it for'}</h2>
+ {landing.payments && <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">{landing.currency && <strong>Gift in {landing.currency}. </strong>}{landing.payments}</p>}
+ {landing.useCasesIntro && <p className="text-warm-500 text-sm sm:text-base max-w-2xl mx-auto">{landing.useCasesIntro}</p>}
+ </div>
+ <div className="grid sm:grid-cols-2 gap-4">
+ {(landing.useCases || []).map(([title, body]) => (
+ <div key={title} className="rounded-2xl p-5 border-2 border-purple-100" style={{ background:'#FDFCFF' }}>
+ <h3 className="font-extrabold text-warm-900 mb-1.5" style={{ fontSize:'1rem' }}>{title}</h3>
+ <p className="text-sm text-warm-600 leading-relaxed">{body}</p>
+ </div>
+ ))}
+ </div>
+ {landing.comparison && (
+ <div className="mt-14">
+ <h2 className="font-extrabold text-warm-900 mb-2 text-center" style={{ fontSize:'clamp(1.6rem,4.5vw,2.2rem)' }}>{landing.comparison.title || `Thankeeu vs ${landing.comparison.columns.slice(0, -1).join(', ')}`}</h2>
+ {landing.comparison.intro && <p className="text-warm-500 text-sm text-center max-w-2xl mx-auto mb-6">{landing.comparison.intro}</p>}
+ <div className="overflow-x-auto rounded-2xl border-2 border-purple-100 mt-6">
+ <table className={`w-full ${landing.comparison.columns.length > 2 ? 'min-w-[560px]' : ''}`}>
+ <thead><tr style={{ background:'#F5F0FF' }}>
+ <th className="text-left p-3 sm:p-4 text-sm font-bold text-warm-700">Feature</th>
+ {landing.comparison.columns.map((c, ci) => (
+ <th key={c} className={`text-center p-3 sm:p-4 text-sm font-bold ${ci === landing.comparison.columns.length - 1 ? 'text-primary-600' : 'text-warm-500'}`}>{c}</th>
+ ))}
+ </tr></thead>
+ <tbody className="divide-y divide-purple-50">
+ {landing.comparison.rows.map(([feature, ...cells]) => (
+ <tr key={feature}>
+ <td className="p-3 sm:p-4 text-sm text-warm-700">{feature}</td>
+ {cells.map((c, ci) => <td key={ci} className="p-3 sm:p-4 text-center text-sm">{c === true
+ ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100" aria-label="Yes"><Icon name="Check" size={13} className="text-green-600" strokeWidth={3}/></span>
+ : c === false
+ ? <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50" aria-label="No"><Icon name="X" size={13} className="text-red-400" strokeWidth={3}/></span>
+ : <span className="text-xs font-semibold text-warm-500">{c}</span>}</td>)}
+ </tr>
+ ))}
+ </tbody>
+ </table>
+ </div>
+ {landing.comparison.note && <p className="text-xs text-warm-400 text-center mt-3">{landing.comparison.note}</p>}
+ </div>
+ )}
+ {(landing.blogLinks?.length || landing.related?.length) ? (
+ <div className="mt-10 text-center">
+ <h3 className="font-bold text-warm-900 mb-3">{landing.linksTitle || 'Guides & comparisons'}</h3>
+ <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-sm">
+ {[...(landing.blogLinks || []), ...(landing.related || [])].map(([href, label]) => (
+ <li key={href}><Link to={href} className="text-primary-600 font-semibold hover:underline">{label}</Link></li>
+ ))}
+ </ul>
+ </div>
+ ) : null}
+ </div>
+ </section>
+ )}
+
  {/* ══ FAQ ══ */}
  <section id="faq" className="py-14 md:py-20 px-4 gc-font">
  <div className="max-w-2xl mx-auto">
@@ -1285,7 +1410,7 @@ const Home = () => {
  Questions we get all the time
  </h2>
  </div>
- {HOME_FAQS.map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
+ {faqs.map((item, i) => <FaqItem key={i} q={item.q} a={item.a} />)}
  <p className="text-center text-xs text-warm-400 mt-8">More questions? <a href="/faq" className="text-primary-500 font-semibold hover:underline">See all FAQs →</a></p>
  </div>
  </section>
@@ -1360,12 +1485,12 @@ const Home = () => {
  ))}
  </div>
  <h2 className="font-bold text-warm-900 mb-4" style={{ fontSize:'clamp(2.1rem,6.5vw,3.6rem)' }}>
- Make someone feel<br/>
- <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>genuinely loved</span>
+ {landing?.ctaLead || 'Make someone feel'}<br/>
+ <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>{landing?.ctaAccent || 'genuinely loved'}</span>
  </h2>
  <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={5000}/> per card · Pay only when you send · Works worldwide</p>
  <div className="flex flex-col sm:flex-row gap-3 justify-center">
- <Link to="/card/new" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/>Get started — takes 1 min</Link>
+ <Link to={ctaTo} className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/>Get started — takes 1 min</Link>
  <Link to="/pricing" className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Card" size={16}/>See pricing</Link>
  </div>
  <p className="text-xs text-warm-400 mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-1">

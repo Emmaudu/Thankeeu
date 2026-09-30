@@ -627,8 +627,16 @@ body:not(.loading) #app-shell-loader { opacity: 0; pointer-events: none; }
   .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px; }
 
   /* Stat grids — 2 col on mobile */
-  .grid.md\:grid-cols-4 { grid-template-columns: 1fr 1fr !important; }
-  .grid.md\:grid-cols-3 { grid-template-columns: 1fr 1fr !important; }
+  /* minmax(0,1fr), not 1fr: a plain 1fr column never shrinks below its
+     content, which pushed cards off-screen (horizontal scroll) on phones. */
+  .grid.md\:grid-cols-4 { grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important; }
+  .grid.md\:grid-cols-3 { grid-template-columns: minmax(0,1fr) minmax(0,1fr) !important; }
+  /* Pricing plan cards are too wide for two columns on a phone — the 2-up
+     rule above pushed them off-screen (horizontal scroll on every page with
+     the shared pricing block). */
+  .grid.pricing-plans-grid { grid-template-columns: 1fr !important; }
+  .grid.mobile-1col { grid-template-columns: minmax(0,1fr) !important; }
+  .grid.mm-feature-grid { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
 
   /* Button groups stack on mobile */
   .flex.flex-wrap { gap: 8px; }
@@ -1992,3 +2000,9 @@ body.sidebar-open { overflow: hidden; }
   }
 }
 
+
+/* Very small phones (320px, e.g. iPhone SE 1st gen): the footer's two-column
+   link grids are wider than the screen — stack them. */
+@media (max-width: 359px) {
+  footer .grid.grid-cols-2 { grid-template-columns: minmax(0,1fr) !important; }
+}

@@ -75,7 +75,7 @@ export default function VsThankboxKudoboard() {
 
       <section className="py-12 px-4 bg-white">
         <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-5 mb-10">
+          <div className="grid md:grid-cols-3 gap-5 mb-10 mobile-1col">
             {PLATFORMS.map(({ name, icon, colour, bg, summary }) => (
               <div key={name} className="rounded-2xl p-6 border-2" style={{ background: bg, borderColor: `${colour}30` }}>
                 <div className="flex items-center gap-2 mb-3">

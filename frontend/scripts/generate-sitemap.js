@@ -93,7 +93,7 @@ const STATIC_PAGES = [
     image: {
       loc: `${APP_URL}/og-image.png`,
       title: 'Thankeeu — Group Cards and Gifts',
-      caption: 'Create beautiful group cards and collect gifts together with Paystack and Flutterwave.',
+      caption: 'Create beautiful group cards and collect gifts together, paid securely through Flutterwave.',
     } },
   { loc: '/pricing',         changefreq: 'monthly', priority: '0.9', hreflang: true },
   { loc: '/how-it-works',    changefreq: 'monthly', priority: '0.8', hreflang: true },

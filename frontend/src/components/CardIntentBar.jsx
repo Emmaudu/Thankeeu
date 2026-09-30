@@ -28,15 +28,15 @@ import { useAuth } from '../context/AuthContext';
 // customer edits a working example instead of facing an empty field.
 const TEMPLATES = [
   'Birthday card for my sister Ada, ada@gmail.com, sending this Friday morning, deadline Wednesday',
-  'Leaving card for my oga Emeka, emeka@work.com, sending next Friday afternoon, collecting $50',
-  'Wedding card for Ada & Tunde, ada@gmail.com, sending on the 20th at 11am',
+  'Leaving card for my manager Emma, emma@work.com, sending next Friday afternoon, collecting $50',
+  'Wedding card for Ada & Tom, ada@gmail.com, sending on the 20th at 11am',
   'Retirement card for Mr Okafor, okafor@work.com, sending next week Monday evening',
 ];
 
 const EXAMPLES = [
   { chip: '🎂 Birthday', text: 'Birthday card for my sister Ada, ada@gmail.com, sending this Friday morning' },
-  { chip: '👋 Leaving',  text: 'Leaving card for my oga Emeka, emeka@work.com, sending next Friday, collecting $50' },
-  { chip: '💍 Wedding',  text: 'Wedding card for Ada & Tunde, ada@gmail.com, sending on the 20th at 2pm' },
+  { chip: '👋 Leaving',  text: 'Leaving card for my manager Emma, emma@work.com, sending next Friday, collecting $50' },
+  { chip: '💍 Wedding',  text: 'Wedding card for Ada & Tom, ada@gmail.com, sending on the 20th at 2pm' },
 ];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -48,13 +48,16 @@ const prefersReducedMotion = () => {
 
 // `inputId` keeps a second copy of this box on the same page valid: two
 // elements sharing one id would break the label and focus for both.
-const CardIntentBar = ({ className = '', inputId = 'card-intent' }) => {
+// startWith — occasion the pre-filled example should open on ('wedding',
+// 'leaving', …), so a wedding page starts with a wedding card and its covers.
+const CardIntentBar = ({ className = '', inputId = 'card-intent', startWith = null }) => {
+  const startTpl = Math.max(0, startWith ? TEMPLATES.findIndex(t => t.toLowerCase().startsWith(startWith)) : 0);
   const navigate = useNavigate();
   const { user, loginWithToken } = useAuth();
 
   const [stage, setStage]       = useState('describe');   // describe | sender | invites
-  const [tpl, setTpl]           = useState(0);
-  const [text, setText]         = useState(TEMPLATES[0]);
+  const [tpl, setTpl]           = useState(startTpl);
+  const [text, setText]         = useState(TEMPLATES[startTpl]);
   const [sender, setSender]     = useState('');
   const [invites, setInvites]   = useState('');
   const [touched, setTouched]   = useState(false);
@@ -101,7 +104,7 @@ const CardIntentBar = ({ className = '', inputId = 'card-intent' }) => {
       n: 1,
       value: text,
       set: (v) => { setText(v); setTouched(true); },
-      placeholder: 'Birthday card for my sister Ada, ada@gmail.com, sending this Friday morning…',
+      placeholder: `${TEMPLATES[startTpl].split(', deadline')[0]}…`,
       cta: 'Set up my card',
       hint: touched ? 'Looking good — hit the button' : 'Edit the names and dates above, or',
     },
@@ -352,12 +355,12 @@ const CardIntentBar = ({ className = '', inputId = 'card-intent' }) => {
         {stage === 'describe' ? (
           <>
             <span className="text-xs font-semibold text-warm-500">{STEP.hint}</span>
-            <button type="button" onClick={shuffle}
+            {!startWith && <button type="button" onClick={shuffle}
               className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-transform hover:-translate-y-0.5"
               style={{ minHeight: 0, borderColor: '#DDD6FE', background: '#F5F3FF', color: '#5B21B6' }}>
               <Icon name="Shuffle" size={12} /> try another example
-            </button>
-            {EXAMPLES.map((ex, i) => (
+            </button>}
+            {EXAMPLES.filter(ex => !startWith || ex.text.toLowerCase().startsWith(startWith)).map((ex, i) => (
               <button key={ex.chip} type="button"
                 onClick={() => { setText(ex.text); setTouched(true); inputRef.current?.focus(); }}
                 className="rounded-full border px-2.5 py-1 text-xs font-semibold transition-transform hover:-translate-y-0.5"

@@ -40,7 +40,6 @@ const {
   CARD_FEE_NGN, CARD_FEE_CURRENCIES, CARD_FEE_FX, chargeAmountFor, isContributionAmountOk,
   markCardFeePaid, isCardFeeAmountOk,
 } = require('../utils/cardPayment');
-const { resolveChargeCurrency, createPaymentLink } = require('../utils/flwCurrency');
 
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
@@ -192,8 +191,7 @@ const initCardFee = async (req, res) => {
       return res.json({ already_active: true, already_paid: true, card_slug });
     }
     // Currency: default NGN, support USD/GBP/EUR etc. for international users
-    // resolveChargeCurrency: currencies switched off via FLW_DISABLED_CURRENCIES are charged in USD.
-    const currency = resolveChargeCurrency(CARD_FEE_CURRENCIES.includes(reqCurrency) ? reqCurrency : 'NGN');
+    const currency = CARD_FEE_CURRENCIES.includes(reqCurrency) ? reqCurrency : 'NGN';
     // FX rates (approximate — FLW uses live rates at checkout)
     const FX = CARD_FEE_FX;
     const baseFeeNGN = CARD_FEE_NGN;
@@ -275,11 +273,10 @@ const initCardFee = async (req, res) => {
       },
     };
 
-    // Retries once in USD if Flutterwave rejects the currency (e.g. CAD not enabled on the account).
-    const link = await createPaymentLink(payload, feeNGN, console);
-    if (!link.ok) {
-      console.error('FLW initCardFee rejected:', currency, link.message);
-      return res.status(400).json({ error: link.message });
+    const r = await axios.post(`${FLW_BASE}/payments`, payload, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
+    if (r.data.status !== 'success') {
+      console.error('FLW initCardFee rejected:', r.data);
+      return res.status(400).json({ error: r.data.message || 'Payment gateway rejected the request' });
     }
 
     // Store tx_ref on card as fallback for webhook
@@ -288,10 +285,10 @@ const initCardFee = async (req, res) => {
 
     console.log('initCardFee OK tx_ref:', txRef, 'card:', card_slug, appliedDiscount ? `discount: ${appliedDiscount.code} (-₦${appliedDiscount.amountNGN})` : '');
     return res.json({
-      payment_link: link.link,
+      payment_link: r.data.data.link,
       tx_ref: txRef,
-      amount: link.amount,
-      currency: link.currency,
+      amount: feeInCurrency,
+      currency,
       discount_applied: appliedDiscount ? { code: appliedDiscount.code, amount_ngn: appliedDiscount.amountNGN } : null,
     });
 
@@ -408,7 +405,7 @@ const initContribution = async (req, res) => {
     // The charge amount is derived here from the NGN amount — a client-sent
     // flw_amount is ignored (it let a "₦5,000,000" gift be paid with $0.01).
     const reqCur      = String(flw_currency || display_currency || 'NGN').toUpperCase();
-    const payCurrency = resolveChargeCurrency(CARD_FEE_CURRENCIES.includes(reqCur) ? reqCur : 'NGN');
+    const payCurrency = CARD_FEE_CURRENCIES.includes(reqCur) ? reqCur : 'NGN';
     const payAmount   = chargeAmountFor(amountNaira, payCurrency);
     if (flw_amount != null && Math.abs(Number(flw_amount) - payAmount) > 0.02 * payAmount) {
       console.warn('initContribution: client flw_amount', flw_amount, flw_currency, 'differs from server', payAmount, payCurrency, 'card:', card_slug);

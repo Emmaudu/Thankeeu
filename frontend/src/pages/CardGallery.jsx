@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -9,17 +9,6 @@ import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 import { OCCASION_CARD_DESIGNS, OCCASION_FILTERS, getOccasionLabel } from '../utils/occasionCardDesigns';
 import { PRIORITY_CARD_DESIGNS } from '../utils/priorityCardDesigns';
 import { ILLUSTRATED_CARD_DESIGNS } from '../utils/illustratedCardDesigns';
-
-// Compact pager: 1 … 4 5 6 … 43. Rendering all 40+ page numbers made the
-// row far wider than a phone screen (the whole page scrolled sideways).
-export const pageList = (current, count) => {
-  if (count <= 5) return Array.from({ length: count }, (_, i) => i + 1);
-  const pages = new Set([1, count, current - 1, current, current + 1]);
-  const sorted = [...pages].filter(n => n >= 1 && n <= count).sort((a, b) => a - b);
-  const out = [];
-  sorted.forEach((n, i) => { if (i && n - sorted[i - 1] > 1) out.push('…'); out.push(n); });
-  return out;
-};
 
 const PAGE_SIZE = 16;
 
@@ -53,7 +42,6 @@ const CardGallery = () => {
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('featured');
   const [page, setPage] = useState(1);
-  const resultsRef = useRef(null);
 
   useSEO({
     title: 'Browse Online Group Card Designs | Thankeeu',
@@ -89,12 +77,6 @@ const CardGallery = () => {
   const pageCount = Math.max(1, Math.ceil(filteredDesigns.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visibleDesigns = filteredDesigns.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  // Change page and bring the top of the results back into view — otherwise a
-  // phone user taps "next" at the bottom and stays looking at the pager.
-  const goToPage = (n) => {
-    setPage(Math.min(pageCount, Math.max(1, n)));
-    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
 
   const chooseOccasion = occasion => {
     const next = new URLSearchParams(searchParams);
@@ -160,12 +142,12 @@ const CardGallery = () => {
             </aside>
 
             <div className="min-w-0">
-              <div ref={resultsRef} className="flex items-end justify-between gap-4" style={{ scrollMarginTop: 88 }}>
+              <div className="flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs font-bold text-primary-600">{activeOccasion === 'all' ? 'Every occasion' : getOccasionLabel(activeOccasion)}</p>
                   <h2 className="mt-1 text-xl font-extrabold sm:text-2xl">{activeOccasion === 'all' ? 'All card covers' : `${getOccasionLabel(activeOccasion)} card covers`}</h2>
                 </div>
-                <p className="flex-shrink-0 text-xs font-bold text-warm-400">{filteredDesigns.length} results</p>
+                <p className="text-xs font-bold text-warm-400">{filteredDesigns.length} results</p>
               </div>
 
               {visibleDesigns.length > 0 ? (
@@ -195,12 +177,10 @@ const CardGallery = () => {
               )}
 
               {pageCount > 1 && (
-                <nav className="mt-10 flex items-center justify-center gap-1.5 sm:gap-2" aria-label="Design pages">
-                  <button type="button" disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md border border-purple-100 bg-white disabled:opacity-40" aria-label="Previous page"><Icon name="ChevronLeft" size={17} /></button>
-                  {pageList(currentPage, pageCount).map((item, i) => (item === '…'
-                    ? <span key={`gap-${i}`} className="w-6 flex-shrink-0 text-center text-sm font-bold text-warm-400" aria-hidden="true">…</span>
-                    : <button key={item} type="button" onClick={() => goToPage(item)} aria-label={`Page ${item}`} aria-current={currentPage === item ? 'page' : undefined} className={`h-10 min-w-10 flex-shrink-0 rounded-md px-2 text-sm font-bold ${currentPage === item ? 'bg-primary-500 text-white' : 'border border-purple-100 bg-white text-warm-700'}`}>{item}</button>))}
-                  <button type="button" disabled={currentPage === pageCount} onClick={() => goToPage(currentPage + 1)} className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md border border-purple-100 bg-white disabled:opacity-40" aria-label="Next page"><Icon name="ChevronRight" size={17} /></button>
+                <nav className="mt-10 flex items-center justify-center gap-2" aria-label="Design pages">
+                  <button type="button" disabled={currentPage === 1} onClick={() => setPage(value => Math.max(1, value - 1))} className="flex h-10 w-10 items-center justify-center rounded-md border border-purple-100 bg-white disabled:opacity-40" aria-label="Previous page"><Icon name="ChevronLeft" size={17} /></button>
+                  {Array.from({ length: pageCount }, (_, index) => index + 1).map(number => <button key={number} type="button" onClick={() => setPage(number)} className={`h-10 w-10 rounded-md text-sm font-bold ${currentPage === number ? 'bg-primary-500 text-white' : 'border border-purple-100 bg-white text-warm-700'}`}>{number}</button>)}
+                  <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(value => Math.min(pageCount, value + 1))} className="flex h-10 w-10 items-center justify-center rounded-md border border-purple-100 bg-white disabled:opacity-40" aria-label="Next page"><Icon name="ChevronRight" size={17} /></button>
                 </nav>
               )}
             </div>

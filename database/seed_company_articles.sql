@@ -20,7 +20,7 @@ $BODY$<article>
 <p>Paystack's team is distributed across Lagos, Accra, Johannesburg, Nairobi and beyond. When a brilliant engineer in the Accra office celebrates a work anniversary, does the team in Lagos know? When a product manager hits five years with the company, does anyone acknowledge it with the depth it deserves? When a new hire joins remotely, do they receive the kind of warm welcome that makes them feel they have joined something special?</p>
 <p>These are not small questions. For a company whose brand is built on making people feel supported, the internal experience should match the external promise.</p>
 <h2>What Thankeeu Brings to Paystack's Culture</h2>
-<p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> integrates directly with the HRIS platforms that companies like Paystack use — automatically creating beautiful group cards for every birthday, work anniversary, farewell, promotion and new hire across the entire organisation. Every Paystack team member, regardless of which city they work from, receives a card signed by their colleagues, with a gift pot everyone can chip in to from their phone.</p>
+<p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> integrates directly with the HRIS platforms that companies like Paystack use — automatically creating beautiful group cards for every birthday, work anniversary, farewell, promotion and new hire across the entire organisation. Every Paystack team member, regardless of which city they work from, receives a card signed by their colleagues, with a Naira gift pot collected via the same Paystack infrastructure they help build every day.</p>
 <p>There is a beautiful symmetry in that: Paystack's own payment rails powering the gift contributions that celebrate Paystack's people.</p>
 <h2>Automated Recognition at Paystack Scale</h2>
 <ul>
@@ -104,7 +104,7 @@ $BODY$<article>
 <p>When <a href="https://moniepoint.com" target="_blank" rel="dofollow">Moniepoint</a> was a small team, the founders knew every birthday. Celebrations happened organically. The culture took care of itself because the team was small enough to be human-sized.</p>
 <p>But at hundreds of employees and growing? The organic approach breaks down. People get missed. Anniversaries pass without acknowledgment. New hires join a company that feels, in their first weeks, impersonal. These gaps in recognition are culture leaks — they drain the energy and loyalty of the very people building the product.</p>
 <h2>Thankeeu for Moniepoint's HR Team</h2>
-<p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> gives Moniepoint's HR team the ability to celebrate every employee with zero manual overhead. Connect your employee database once, configure your occasions, and the system handles everything — creating beautiful group cards, notifying colleagues to sign, collecting Naira gift contributions via Flutterwave, and delivering the card on the right date.</p>
+<p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> gives Moniepoint's HR team the ability to celebrate every employee with zero manual overhead. Connect your employee database once, configure your occasions, and the system handles everything — creating beautiful group cards, notifying colleagues to sign, collecting Naira gift contributions via Paystack, and delivering the card on the right date.</p>
 <ul>
 <li>Every <a href="https://moniepoint.com" target="_blank" rel="dofollow">Moniepoint</a> employee's birthday acknowledged with a signed group card</li>
 <li>Work anniversaries celebrated with meaningful messages and gift pots</li>
@@ -288,7 +288,7 @@ $BODY$<article>
 <ul>
 <li><strong>Universal birthday recognition</strong> — every MTN Nigeria employee receives a signed group card on their birthday</li>
 <li><strong>Department or company-wide notifications</strong> — HR controls the scope for each occasion type</li>
-<li><strong>Naira gift pots</strong> — colleagues contribute via Flutterwave, recipients withdraw to their bank or redeem gift cards</li>
+<li><strong>Naira gift pots</strong> — colleagues contribute via Paystack, recipients withdraw to their bank or redeem gift cards</li>
 <li><strong>Nigerian vendor gifts</strong> — flowers, cakes and hampers delivered to any location in Nigeria</li>
 <li><strong>Zero manual HR overhead</strong> — once configured, fully automated</li>
 </ul>
@@ -544,7 +544,7 @@ $BODY$<article>
 <h2>What Localised Recognition Looks Like</h2>
 <p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> is built specifically for Nigerian workplace culture:</p>
 <ul>
-<li>Naira gift pots via Flutterwave — not USD gift vouchers from a US platform</li>
+<li>Naira gift pots via Paystack and Flutterwave — not USD gift vouchers from a US platform</li>
 <li>WhatsApp sharing — because that is how Nigerian teams actually communicate</li>
 <li>Nigerian vendor gifts — flowers, cakes and hampers from local suppliers, not international delivery platforms</li>
 <li>Cards that feel personal because colleagues write personal messages in their own words</li>

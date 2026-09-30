@@ -273,20 +273,7 @@ app.use('/api/pals', require('./routes/pals'));
 app.use('/api/site', require('./routes/site'));
 
 // Health check
-app.get('/health', (req, res) => res.json({
-  status: 'ok', app: 'Thankeeu API', time: new Date(),
-  lastDeliverySweep: deliveryEngine.getLastSweep(),
-}));
-
-// Why hasn't a scheduled card gone out? Lists every overdue undelivered card
-// with the reason (draft / unpaid / no recipient email / email backoff).
-app.get('/api/internal/delivery-status', async (req, res) => {
-  if (!process.env.ADMIN_SECRET || req.headers['x-admin-secret'] !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  try { res.json({ lastSweep: deliveryEngine.getLastSweep(), cards: await deliveryEngine.deliveryStatus({ limit: 200 }) }); }
-  catch (err) { res.status(500).json({ error: err.message }); }
-});
+app.get('/health', (req, res) => res.json({ status: 'ok', app: 'Thankeeu API', time: new Date() }));
 
 // Manual trigger for debugging/testing — protected by ADMIN_SECRET.
 // Lets you verify the delivery pipeline works without waiting for 8AM,
@@ -374,22 +361,297 @@ const crypto = require('crypto');
 const scheduler = require('./utils/scheduler');
 const { isPaymentPending, queryExcludingUnpaid } = require('./utils/cardPayment');
 
-// ── Delivery engine: utils/deliveryEngine.js (moved out so it can be tested) ──
-const { createDeliveryEngine } = require('./utils/deliveryEngine');
-const deliveryEngine = createDeliveryEngine();
-const { deliverCard, autoSendDueCards, scheduleAllActive } = deliveryEngine;
+// In-memory lock: prevent two concurrent deliveries of the same card
+// (e.g. startup autoSendDueCards + scheduler firing at the same time)
+const _delivering = new Set();
+// slug → epoch ms before which a failed delivery is not retried (the minute
+// sweep would otherwise hammer a bad address / email outage every minute).
+const _deliveryBackoff = new Map();
+const DELIVERY_RETRY_MIN = 15;
+
+async function deliverCard(card) {
+  const now = new Date();
+  const slug = card?.slug || 'unknown';
+
+  // In-memory lock: if another async path is already delivering this card, skip
+  const retryAt = _deliveryBackoff.get(slug);
+  if (retryAt && Date.now() < retryAt) return { skipped: true, reason: 'backoff' };
+  if (_delivering.has(slug)) {
+    console.log(`[deliver] Already in progress for ${slug}, skipping duplicate`);
+    return { skipped: true };
+  }
+  _delivering.add(slug);
+
+  try {
+    // Safety check — card must have an id to proceed
+    if (!card || !card.id) {
+      console.error(`[deliver] Card missing id. card=`, JSON.stringify(card)?.slice(0, 200));
+      return { error: 'card.id is missing' };
+    }
+
+    // Guard: re-fetch current status so a concurrent delivery never double-sends
+    const { data: fresh, error: fetchErr } = await supabase
+      .from('cards')
+      .select('id, slug, status, recipient_notified, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, card_experience, movie_status, send_date')
+      .eq('id', card.id)
+      .maybeSingle();
+
+    if (fetchErr) {
+      console.error(`[deliver] Failed to fetch card ${slug}:`, fetchErr.message);
+      return { error: fetchErr.message };
+    }
+
+    if (!fresh || fresh.status !== 'active' || fresh.recipient_notified) {
+      console.log(`[deliver] Skipping ${slug}: status=${fresh?.status}, notified=${fresh?.recipient_notified}`);
+      return { skipped: true };
+    }
+
+    // Create Now, Pay Later: an unpaid card is held — never delivered. Paying
+    // it (markCardFeePaid) re-arms delivery, immediately if already overdue.
+    // Read fresh here, on the authoritative path, rather than trusting the
+    // flag on whatever card object armed this timer.
+    if (await isPaymentPending(fresh.id)) {
+      console.log(`[deliver] Holding ${slug}: card fee not paid yet (pay-later)`);
+      scheduler.cancelSchedule(slug);
+      return { skipped: true, reason: 'awaiting_payment' };
+    }
+
+    // Due-date guard. A timer armed before the creator rescheduled the card
+    // would otherwise deliver it at the OLD time — the card arrives early and
+    // there is no way to undo it. Re-read send_date at fire time and refuse if
+    // the card is not actually due yet, then re-arm for the real time.
+    // 30s of slack absorbs timer jitter and clock skew.
+    if (fresh.send_date) {
+      const dueAt = new Date(fresh.send_date).getTime();
+      if (!isNaN(dueAt) && dueAt - Date.now() > 30 * 1000) {
+        console.log(`[deliver] ${slug} is not due yet (due ${new Date(dueAt).toISOString()}) — re-arming, not sending`);
+        scheduler.scheduleCardDelivery({ ...fresh, send_date: fresh.send_date });
+        return { skipped: true, reason: 'not_due' };
+      }
+    }
+
+    if (!fresh.recipient_email) {
+      console.error(`[deliver] Card ${slug} has no recipient_email — cannot deliver`);
+      return { error: 'no recipient_email' };
+    }
+
+    const claimToken = fresh.claim_token || crypto.randomBytes(24).toString('hex');
+
+    // 1. Mark as sent in DB FIRST
+    let saveErr;
+    ({ error: saveErr } = await supabase.from('cards').update({
+      status:             'sent',
+      recipient_notified: true,
+      delivered_at:       now,
+      claim_token:        claimToken,
+    }).eq('id', fresh.id).eq('status', 'active'));
+
+    // Fallback: if delivered_at or claim_token columns don't exist yet
+    if (saveErr && (saveErr.code === '42703' || /column .* does not exist/i.test(saveErr.message || ''))) {
+      console.warn(`[deliver] Optional column missing, retrying minimal update for ${slug}:`, saveErr.message);
+      ({ error: saveErr } = await supabase.from('cards').update({
+        status:             'sent',
+        recipient_notified: true,
+      }).eq('id', fresh.id).eq('status', 'active'));
+    }
+
+    if (saveErr) {
+      console.error(`[deliver] DB update failed for ${slug}:`, saveErr.message);
+      return { error: saveErr.message };
+    }
+
+    // 2. Auto-link to recipient's account if they have one
+    try {
+      const { data: existingUser } = await supabase
+        .from('users').select('id').eq('email', fresh.recipient_email.toLowerCase()).maybeSingle();
+      if (existingUser?.id) {
+        // Use insert and silently ignore the duplicate-key error (UNIQUE constraint on card_id, recipient_user_id)
+        // instead of upsert with onConflict, which has parsing quirks in some Supabase JS versions.
+        const { error: insertErr } = await supabase.from('received_cards').insert({
+          card_id:           fresh.id,
+          recipient_user_id: existingUser.id,
+          transferred_by:    null,
+          transferred_at:    now,
+        });
+        if (insertErr && !insertErr.code?.includes('23505')) {
+          // 23505 = unique_violation (already linked) — ignore that, log anything else
+          console.warn(`[deliver] received_cards insert warning for ${slug}:`, insertErr.message);
+        }
+      }
+    } catch (linkErr) {
+      console.warn(`[deliver] Auto-link failed for ${slug} (non-fatal):`, linkErr.message);
+    }
+
+    // 3. Count messages for the email
+    const { count } = await supabase.from('messages')
+      .select('*', { count: 'exact', head: true }).eq('card_id', fresh.id);
+
+    // 3b. Check if the movie was pre-rendered before delivery.
+    //     The pre-render cron fires ~45 min before send_date so the movie is
+    //     often already done by the time this delivery email goes out.
+    const movieAlreadyDone = fresh.movie_status === 'completed';
+    const hasMessages      = (count || 0) > 0;
+
+    // 4. Send delivery email — checked and retried. If it still fails the
+    // card is put back to 'active' (undelivered) so it is retried later,
+    // instead of being marked delivered with nothing in the inbox.
+    const deliveryEmail = {
+      to: fresh.recipient_email,
+      template: 'cardDelivery',
+      data: {
+        recipientName:  fresh.recipient_name,
+        recipientEmail: fresh.recipient_email,
+        occasion: (fresh.occasion === 'other' && fresh.custom_occasion)
+          ? fresh.custom_occasion
+          : (fresh.occasion || '').replace(/_/g, ' '),
+        custom_occasion: fresh.custom_occasion || null,
+        occasionLabel: fresh.custom_occasion || (fresh.occasion || '').replace(/_/g, ' '),
+        cardSlug:      fresh.slug,
+        claimToken:    null,
+        accessToken:   fresh.access_token,
+        senderCount:   count || 0,
+        giftAmount:    (fresh.total_collected || 0) > 0 ? fresh.total_collected : null,
+        isCompanyCard: !!fresh.company_id,
+        hasMemoryWall: ['card_and_wall','wall_only'].includes(fresh.card_experience),
+        // If movie was pre-rendered before delivery -> show "Watch now" CTA.
+        // Otherwise signal it's on its way; a separate email fires when done.
+        hasMovie:    movieAlreadyDone,
+        movieComing: hasMessages && !movieAlreadyDone,
+      },
+    };
+    let mailResult = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      mailResult = await sendEmail(deliveryEmail);
+      if (mailResult?.success) break;
+      if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000));
+    }
+    if (!mailResult?.success) {
+      console.error(`[deliver] ❌ Email to ${fresh.recipient_email} failed 3 times for ${slug} — reverting to undelivered, retrying in ${DELIVERY_RETRY_MIN} min`);
+      await supabase.from('cards')
+        .update({ status: 'active', recipient_notified: false })
+        .eq('id', fresh.id).eq('status', 'sent');
+      _deliveryBackoff.set(slug, Date.now() + DELIVERY_RETRY_MIN * 60 * 1000);
+      _delivering.delete(slug);
+      return { error: 'delivery email failed' };
+    }
+    _deliveryBackoff.delete(slug);
+
+    console.log(`[deliver] Delivered ${slug} -> ${fresh.recipient_email}${movieAlreadyDone ? ' (movie ready)' : ''}`);
+
+    // Trigger Memory Movie render if not already done/in-progress.
+    // Fire-and-forget: never awaited, never blocks delivery, never throws.
+    // The pre-render cron fires 45 min early so the movie is often already
+    // done here and this block just logs and returns.
+    setImmediate(async () => {
+      try {
+        if (!hasMessages) {
+          console.log(`[movie] Skipping render for ${slug}: no messages`);
+          return;
+        }
+        if (movieAlreadyDone) {
+          console.log(`[movie] Skipping render for ${slug}: already completed by pre-render`);
+          return;
+        }
+        // Re-check live status in case pre-render cron fired since our fresh fetch
+        const { data: mmRow } = await supabase.from('memory_movies')
+          .select('status').eq('card_id', fresh.id).maybeSingle();
+        if (mmRow && ['completed','rendering','queued'].includes(mmRow.status)) {
+          console.log(`[movie] Skipping render for ${slug}: status=${mmRow.status}`);
+          return;
+        }
+        const { runMovieJob } = require('./controllers/movieController');
+        if (runMovieJob) await runMovieJob(fresh.id);
+      } catch (e) {
+        console.warn(`[movie] Auto-trigger failed for ${slug}:`, e.message);
+      }
+    });
+
+    _delivering.delete(slug);
+    return { delivered: slug };
+  } catch (err) {
+    _delivering.delete(slug);
+    console.error(`[deliver] ❌ Error for ${slug}:`, err.message, err.stack?.split('\n').slice(1, 4).join(' | '));
+    return { error: err.message };
+  }
+}
+
+// Register deliverCard with the shared scheduler so controllers can arm timers
+// without circular-requiring server.js.
 scheduler.init(deliverCard);
+
+// autoSendDueCards: sweep the DB for any past-due cards.
+// Serves as a safety net for cards missed during restarts or whose
+// send_date is too far out for setTimeout. Runs every minute via cron.
+async function autoSendDueCards() {
+  const now = new Date();
+  const nowISO = now.toISOString();
+
+  let cardsToSend, cardsToSendErr;
+  try {
+    // Unpaid (pay-later) cards are excluded at the query so they are not
+    // re-examined every minute; deliverCard re-checks regardless.
+    ({ data: cardsToSend, error: cardsToSendErr } = await queryExcludingUnpaid((excludeUnpaid) => {
+      let q = supabase
+        .from('cards')
+        .select('*, users!creator_id(email, full_name)')
+        .eq('status', 'active')
+        .eq('recipient_notified', false)
+        .not('recipient_email', 'is', null)
+        .not('send_date', 'is', null)
+        .lte('send_date', nowISO);
+      if (excludeUnpaid) q = q.eq('payment_pending', false);
+      return q;
+    }, 'autoSendDueCards'));
+  } catch (queryErr) {
+    console.error('[auto-send] Supabase query threw:', queryErr.message);
+    return;
+  }
+
+  if (cardsToSendErr) {
+    console.error('[auto-send] Query error:', cardsToSendErr.message);
+    return;
+  }
+
+  const cards = cardsToSend || [];
+  if (cards.length) {
+    console.log(`[auto-send] Sweep found ${cards.length} due card(s)`);
+    for (const card of cards) {
+      await deliverCard(card).catch(e => console.error('[auto-send] deliver error:', e.message));
+    }
+  }
+}
+
+// scheduleAllActive: on startup, load every future-scheduled active card
+// and register a precise setTimeout for each one.
+async function scheduleAllActive() {
+  const { data: cards, error } = await queryExcludingUnpaid((excludeUnpaid) => {
+    let q = supabase
+      .from('cards')
+      .select('id, slug, send_date, send_time, recipient_email, recipient_name, occasion, custom_occasion, access_token, claim_token, total_collected, company_id, status, recipient_notified')
+      .eq('status', 'active')
+      .eq('recipient_notified', false)
+      .not('send_date', 'is', null)
+      .not('recipient_email', 'is', null);
+    if (excludeUnpaid) q = q.eq('payment_pending', false);
+    return q;
+  }, 'scheduleAllActive');
+
+  if (error) { console.error('[scheduleAllActive] Query error:', error.message); return; }
+
+  const future = (cards || []).filter(c => {
+    const t = new Date(c.send_date);
+    return !isNaN(t.getTime());
+  });
+
+  console.log(`[scheduleAllActive] Registering ${future.length} scheduled card(s)`);
+  future.forEach(c => scheduler.scheduleCardDelivery(c));
+}
 
 
 // Per-minute sweep: safety net for cards whose setTimeout was missed (e.g. server restart).
 cron.schedule('* * * * *', async () => {
   try { await autoSendDueCards(); }
   catch (err) { console.error('[auto-send cron] Unhandled error:', err.message); }
-  // Due cards that cannot go out (no recipient email / unpaid) → tell the creator now.
-  try { await deliveryEngine.alertBlockedDueCards(); }
-  catch (err) { console.error('[delivery-blocked alert] error:', err.message); }
-  try { await require('./utils/payLaterEmails').sweepPayLaterReminders({ overdueOnly: true }); }
-  catch (err) { console.error('[pay-later overdue] error:', err.message); }
   // Scheduled Send Money cards ride the same per-minute clock rather than
   // introducing a second scheduler with its own drift and failure modes.
   try { await require('./controllers/moneyTransferController').sweepDueTransfers(); }
@@ -1165,16 +1427,4 @@ cron.schedule('0 5 * * *', async () => {
       }
     }
   } catch (err) { console.error('HRIS cron error:', err); }
-});
-
-// A stray rejected promise must never take the delivery clock down with it.
-process.on('unhandledRejection', (reason) => {
-  console.error('[process] Unhandled promise rejection (kept running):', reason?.stack || reason);
-});
-// A truly uncaught exception leaves the process in an unknown state: log and
-// exit so Railway (restartPolicyType = ALWAYS) starts a clean instance, whose
-// startup sweep delivers anything that fell due meanwhile.
-process.on('uncaughtException', (err) => {
-  console.error('[process] Uncaught exception — restarting:', err?.stack || err);
-  setTimeout(() => process.exit(1), 500).unref();
 });

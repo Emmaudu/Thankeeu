@@ -159,7 +159,7 @@ const InsidePage = ({ recipient, accent }) => (
   </div>
 );
 
-const GiftPage = ({ signers, recipient, amount, currency, claimLine }) => (
+const GiftPage = ({ signers, recipient, amount, currency }) => (
   <div className="flex h-full flex-col items-center justify-center p-5 text-center" style={{ background:'linear-gradient(160deg,#ECFDF5,#FFFDF8 60%)', color: INK }}>
     <span className="text-5xl" aria-hidden="true">🎁</span>
     <p className="mt-3 text-[10px] font-extrabold uppercase tracking-[0.2em] text-emerald-700">Group gift</p>
@@ -171,18 +171,18 @@ const GiftPage = ({ signers, recipient, amount, currency, claimLine }) => (
       ))}
       <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-purple-100 text-[10px] font-extrabold text-purple-700">+17</span>
     </div>
-    <p className="mt-4 max-w-[15rem] text-xs text-warm-500">{claimLine || `${recipient} claims it to her bank or as a gift card.`}</p>
+    <p className="mt-4 max-w-[15rem] text-xs text-warm-500">{recipient} claims it to her bank or as a gift card.</p>
   </div>
 );
 
-const BackPage = ({ signerCount, ctaTo = '/card/new' }) => (
+const BackPage = ({ signerCount }) => (
   <div className="flex h-full flex-col items-center justify-center p-5 text-center" style={{ background:'linear-gradient(160deg,#F5F0FF,#FFF0F7)', color: INK }}>
     <p className="font-vibes text-4xl text-primary-700">With love,</p>
     <p className="mt-1 text-sm font-bold text-warm-600">{signerCount} people signed this card</p>
     <div className="mt-4 flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-primary-700 shadow-sm">
       <Icon name="Film" size={14} /> Memory Movie ready to watch
     </div>
-    <Link to={ctaTo} className="gc-btn-primary mt-5 inline-flex items-center gap-2 text-sm" onClick={e => e.stopPropagation()}>
+    <Link to="/card/new" className="gc-btn-primary mt-5 inline-flex items-center gap-2 text-sm" onClick={e => e.stopPropagation()}>
       <Icon name="Sparkles" size={16} /> Create a card like this
     </Link>
   </div>
@@ -266,7 +266,7 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
   const [mobile, setMobile]   = useState(() => typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches);
   const autoTurning = useRef(false);
 
-  const { recipient, signers, design, accent, occasion, gift, ctaTo } = config;
+  const { recipient, signers, design, accent, occasion, gift } = config;
   const FULL_PAGES = useMemo(() => [
     { type:'cover' },
     { type:'inside' },
@@ -335,10 +335,10 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
     );
     if (p.type === 'inside') return <InsidePage recipient={recipient} accent={accent} />;
     if (p.type === 'signer') return <SignerPage signer={p.signer} number={p.number} />;
-    if (p.type === 'gift') return <GiftPage signers={signers} recipient={recipient} amount={gift.amount} currency={gift.currency} claimLine={gift.claimLine} />;
-    return <BackPage signerCount={signers.length + 18} ctaTo={ctaTo} />;
+    if (p.type === 'gift') return <GiftPage signers={signers} recipient={recipient} amount={gift.amount} currency={gift.currency} />;
+    return <BackPage signerCount={signers.length + 18} />;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [design, recipient, accent, occasion, signers, gift, ctaTo]);
+  }, [design, recipient, accent, occasion, signers, gift]);
 
   const pages = useMemo(() => PAGES.map((p, i) => ({
     key:`${p.type}-${i}`,
@@ -445,50 +445,7 @@ const ALBUMS = [
 // Sarah sits left, Jackson sits right of Jane (front), tucked behind it.
 const INITIAL_ORDER = ['sarah', 'jane', 'jackson'];
 
-/* ── Wedding variant (wedding landing pages) ─────────────────────────────── */
-// Example wedding cards: illustrative content, same album mechanics. Album ids
-// stay jane/sarah/jackson so the rotation order above is shared.
-const WEDDING_COVERS = getIllustratedCovers('wedding');
-const pickWedding = stem => WEDDING_COVERS.find(d => d.id.endsWith(`-${stem}`)) || WEDDING_COVERS[0];
-const WEDDING_PHOTO = 'https://images.unsplash.com/photo-1519225421980-715cb0215aed?w=640&q=70';
-const WEDDING_SIGNERS_A = [
-  { name:'Aunt Grace', role:'Bride’s aunt', initials:'AG', tint:'#EC4899', font:'font-dancing', size:20,
-    text:'Watching you two say “I do” was the best moment of my year. May your home always be full of laughter 💛',
-    media:{ kind:'photo', src:WEDDING_PHOTO, caption:'The big day 💍' }, reactions:14 },
-  { name:'Daniel K.', role:'Best man', initials:'DK', tint:'#0EA5E9', font:'font-dancing', size:20,
-    text:'Twelve years of friendship and I have never seen you smile like you did today. Congratulations, you two!',
-    media:{ kind:'gif', src:GIF.clap }, reactions:9 },
-  { name:'Mei L.', role:'Maid of honour', initials:'ML', tint:'#7C3AED', font:'font-sacramento', size:25,
-    text:'Recorded this between the speeches — I couldn’t wait.',
-    media:{ kind:'voice', length:11, gif:GIF.love, line:`Ada… Tom… today you promised each other forever. Here's to every adventure still to come. We love you both.` }, reactions:11 },
-  { name:'Uncle Marcus', role:'Groom’s uncle', initials:'UM', tint:'#10B981', font:'font-vibes', size:24,
-    text:'Couldn’t travel for the day, so here is my dance move instead. Welcome to the family! 🎉',
-    media:{ kind:'gif', src:GIF.dance }, reactions:16 },
-];
-const WEDDING_SIGNERS_B = [
-  { name:'Nina R.', role:'University friend', initials:'NR', tint:'#F59E0B', font:'font-dancing', size:20,
-    text:'From dorm-room pizza to the altar. So proud of you both — congratulations!', media:{ kind:'gif', src:GIF.party }, reactions:8 },
-  { name:'The Okafor family', role:'Neighbours', initials:'OF', tint:'#6366F1', font:'font-vibes', size:24,
-    text:'Wishing you a lifetime of love, patience and good coffee. Congratulations!', media:{ kind:'gif', src:GIF.hug }, reactions:6 },
-];
-const WEDDING_SIGNERS_C = [
-  { name:'Coach Ben', role:'Running club', initials:'CB', tint:'#0EA5E9', font:'font-dancing', size:20,
-    text:'Best finish line yet. Congratulations, Leo & Mia!', media:{ kind:'gif', src:GIF.confetti }, reactions:7 },
-  { name:'Grandma Rose', role:'Mia’s grandma', initials:'GR', tint:'#EC4899', font:'font-sacramento', size:25,
-    text:'My darling girl, I prayed for this day. Love each other well.', media:{ kind:'gif', src:GIF.love }, reactions:19 },
-];
-const WEDDING_ALBUMS = [
-  { id:'jane', recipient:'Ada & Tom', occasion:'Wedding', accent:'#DB2777', design: pickWedding('wd1-bells'),
-    signers: WEDDING_SIGNERS_A, ctaTo:'/card/new?occasion=wedding',
-    gift: { amount:'640', currency:'$', claimLine:'Ada & Tom claim it to their bank — honeymoon sorted.' } },
-  { id:'sarah', recipient:'Priya & Sam', occasion:'Wedding', accent:'#A21CAF', design: pickWedding('2d-the-ring'),
-    signers: WEDDING_SIGNERS_B, ctaTo:'/card/new?occasion=wedding', gift: null },
-  { id:'jackson', recipient:'Leo & Mia', occasion:'Wedding', accent:'#6366F1', design: pickWedding('3e-just-married-car'),
-    signers: WEDDING_SIGNERS_C, ctaTo:'/card/new?occasion=wedding', gift: null },
-];
-
-export default function HeroAlbumStack({ variant } = {}) {
-  const albums = variant === 'wedding' ? WEDDING_ALBUMS : ALBUMS;
+export default function HeroAlbumStack() {
   const [order, setOrder] = useState(INITIAL_ORDER);
   // Once an album has been brought to the front, keep its full content
   // mounted (avoids re-downloading photos/GIFs if the visitor flips back
@@ -552,7 +509,7 @@ export default function HeroAlbumStack({ variant } = {}) {
 
   return (
     <div className="relative w-full select-none" style={{ minHeight: 480, overflow: 'visible' }}>
-      {albums.map((album) => {
+      {ALBUMS.map((album) => {
         const role = roleOf(album.id);
         const style = roleStyle(role);
         const isBack = role !== 'front';

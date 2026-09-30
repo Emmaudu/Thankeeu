@@ -112,7 +112,7 @@ export default function LeavingCardGallery() {
               ))}
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-3 mt-10">
+            <div className="flex items-center justify-center gap-3 mt-10">
               <button
                 type="button"
                 onClick={() => setPage(p => Math.max(1, p - 1))}

@@ -1,0 +1,1713 @@
+const axios = require('axios');
+const supabase = require('../utils/supabase');
+const { safeError } = require('../utils/paramGuard');
+const FRONTEND_URL = (() => {
+  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
+  let s = raw.trim();
+  if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
+  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
+  return (s.startsWith('http') ? s : 'https://thankeeu.com');
+})();
+const { sendEmail } = require('../utils/email');
+const { pushNotification, pushNotificationBulk } = require('../utils/notify');
+const { nanoid } = require('nanoid');
+const { resolveSchedule } = require('../utils/schedule');
+
+// Cover text layout (movable/resizable/recolourable title, recipient, sender,
+// each individually shown or removed from the cover). Stored as JSONB. Accepts
+// an object or a JSON string; guards size + shape. Keeps the per-field shadow
+// settings the cover studio edits — they used to be dropped on save, so a
+// shadow the creator added vanished from the delivered card.
+const HEX6 = /^#[0-9a-f]{6}$/i;
+const sanitizeCoverLayout = (input) => {
+  if (input == null) return null;
+  let obj = input;
+  if (typeof input === 'string') {
+    try { obj = JSON.parse(input); } catch { return null; }
+  }
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return null;
+  const num = (v, lo, hi, dflt) => {
+    const n = Number(v);
+    return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
+  };
+  const out = {};
+  for (const key of ['title', 'recipient', 'sender']) {
+    const f = obj[key];
+    if (!f || typeof f !== 'object') continue;
+    out[key] = {
+      x: num(f.x, 0, 100, 50),
+      y: num(f.y, 0, 100, 50),
+      size: num(f.size, 7, 120, 18),
+      color: typeof f.color === 'string' && (f.color === 'auto' || HEX6.test(f.color)) ? f.color : 'auto',
+      // Missing `show` means "shown" (the frontend default); only an explicit
+      // false removes the text from the cover.
+      show: f.show === undefined ? true : !!f.show,
+      shadow: !!f.shadow,
+      shadowColor: typeof f.shadowColor === 'string' && HEX6.test(f.shadowColor) ? f.shadowColor : '#000000',
+      shadowOpacity: num(f.shadowOpacity, 0, 1, 0.55),
+    };
+  }
+  return Object.keys(out).length ? out : null;
+};
+
+// Recipient country (ISO-3166 alpha-2) + IANA time zone the delivery time was
+// picked in. send_date itself is always UTC; these only record the choice.
+const cleanCountry = (v) => (typeof v === 'string' && /^[A-Z]{2}$/.test(v.trim().toUpperCase()) ? v.trim().toUpperCase() : null);
+const cleanTimeZone = (v) => {
+  if (typeof v !== 'string' || !v.trim() || v.length > 64) return null;
+  try { new Intl.DateTimeFormat('en-US', { timeZone: v.trim() }); return v.trim(); } catch { return null; }
+};
+
+const generateSlug = (recipientName, occasion) => {
+  const base = `${recipientName}-${occasion}`.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  return `${base}-${nanoid(6)}`;
+};
+// Helper: notify all members in a company about a card (used after HR approval)
+const notifyAllCompany = async (companyId, card, slug, recipientName, occasion, title, giftEnabled, deadline, creatorName, creatorEmail, signLink) => {
+  const { data: allMembers } = await supabase
+    .from('company_members')
+    .select('id, email, first_name, last_name')
+    .eq('company_id', companyId)
+    .eq('status', 'approved');
+
+  const notifyRows = [];
+  for (const m of (allMembers || [])) {
+    if (m.email === creatorEmail) continue;
+    notifyRows.push({
+      recipient_id:   m.id,
+      recipient_type: 'member',
+      type:    'sign_card',
+      title:   `✍️ Sign ${recipientName}'s card`,
+      body:    `${creatorName} created a company-wide card for ${recipientName}. Add your message!`,
+      data:    { card_slug: slug, card_title: title || `${recipientName}'s Card` },
+    });
+    sendEmail({ to: m.email, template: 'cardInvite', data: {
+      memberName: m.first_name,
+      creatorName, recipientName,
+      occasion: (occasion === 'other' && card?.custom_occasion)
+        ? card.custom_occasion
+        : (occasion || '').replace(/_/g, ' '),
+      custom_occasion: card?.custom_occasion || null,
+      scope: 'your entire company',
+      cardSlug:  slug,
+      signLink,
+      giftEnabled,
+      deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
+    }}).catch(() => {});
+  }
+  if (notifyRows.length) await pushNotificationBulk(notifyRows);
+  await supabase.from('cards').update({ scope_approved_at: new Date() }).eq('id', card.id);
+};
+
+
+
+const createCard = async (req, res) => {
+  try {
+    const {
+      recipient_name, recipient_email, occasion, title, design_theme,
+      background_color, font_style, card_layout, is_gift_enabled, gift_type, suggested_amount,
+      send_date, send_time, deadline, deadline_time, allow_private_messages, send_reminders, hide_amounts,
+      hide_view_messages_button, card_experience,
+      custom_occasion, cover_sender, cover_text_color, album_background_theme, board_background_theme, cover_layout,
+      // Member-created card extras
+      company_id, created_by_member_id, notification_scope, status: reqStatus,
+      recipient_country, delivery_timezone,
+    } = req.body;
+
+    if (!recipient_name?.trim() || !occasion) {
+      return res.status(400).json({ error: 'Recipient name and occasion are required' });
+    }
+
+    // Sanitize and validate all user-supplied fields
+    const { sanitizeName, sanitizeText } = require('../utils/sanitize');
+    const cleanRecipientName = sanitizeName(recipient_name, 'Recipient name', { required: true, maxLen: 100 });
+    const cleanTitle = title?.trim()
+      ? sanitizeText(title, 'Card title', { maxLen: 120 })
+      : null;
+
+    // Sanitize custom occasion label (only meaningful when occasion === 'other')
+    const cleanCustomOccasion = (occasion === 'other' && custom_occasion?.trim())
+      ? sanitizeText(custom_occasion, 'Custom occasion', { maxLen: 80 })
+      : null;
+    const cleanCoverSender = cover_sender?.trim()
+      ? sanitizeText(cover_sender, 'Cover sender', { maxLen: 100 })
+      : null;
+    const cleanCoverTextColor = cover_text_color === 'auto' || /^#[0-9a-f]{6}$/i.test(cover_text_color || '')
+      ? cover_text_color
+      : 'auto';
+    const allowedAlbumThemes = ['cover_blur', 'soft_linen', 'garden', 'midnight', 'celebration'];
+    const cleanAlbumTheme = allowedAlbumThemes.includes(album_background_theme)
+      ? album_background_theme
+      : 'cover_blur';
+    const cleanBoardTheme = allowedAlbumThemes.includes(board_background_theme)
+      ? board_background_theme
+      : null; // null → frontend falls back to album_background_theme
+
+    const cleanCoverLayout = sanitizeCoverLayout(cover_layout);
+
+    // Validate numeric fields
+    const cleanSuggestedAmount = suggested_amount != null ? parseFloat(suggested_amount) : null;
+    if (cleanSuggestedAmount !== null && (!isFinite(cleanSuggestedAmount) || cleanSuggestedAmount < 0 || cleanSuggestedAmount > 10_000_000))
+      return res.status(400).json({ error: 'Invalid suggested gift amount' });
+
+    // Validate date fields
+    if (send_date && (isNaN(new Date(send_date).getTime()) || resolveSchedule({ send_date, send_time }).error))
+      return res.status(400).json({ error: 'Invalid send date' });
+    if (deadline && isNaN(new Date(deadline).getTime()))
+      return res.status(400).json({ error: 'Invalid deadline date' });
+
+    const effectiveCompanyId = req.member?.company_id || req.company?.id || company_id;
+    const effectiveMemberId = req.member?.id || created_by_member_id;
+    const slug = generateSlug(recipient_name, occasion);
+
+    // Anonymous pre-signup draft: no authenticated owner at all. Issue a
+    // separate edit-only token (distinct from access_token, which is the
+    // recipient's view-link credential) so the client can prove "this is
+    // my draft" on later PUT/activate calls without requiring login yet.
+    const isAnonymousDraft = !req.user && !req.member && !req.company;
+    const draftEditToken = isAnonymousDraft ? require('crypto').randomBytes(24).toString('hex') : null;
+
+    // Validate card_layout
+    const cleanCardLayout = (card_layout === 'album') ? 'album' : 'form';
+
+    // Build insert object — font_style is optional (requires migration)
+    const insertData = {
+      slug,
+      creator_id: req.user?.id || null,
+      recipient_name: cleanRecipientName,
+      recipient_email: recipient_email?.trim() || null,
+      occasion,
+      title: cleanTitle || `${cleanRecipientName}'s Card`,
+      design_theme, background_color, is_gift_enabled,
+      cover_sender: cleanCoverSender,
+      cover_text_color: cleanCoverTextColor,
+      album_background_theme: cleanAlbumTheme,
+      ...(cleanBoardTheme && { board_background_theme: cleanBoardTheme }),
+      ...(cleanCoverLayout && { cover_layout: cleanCoverLayout }),
+      gift_type, suggested_amount,
+      // Store send_date as the FULL combined UTC datetime (date + time) so the
+      // cron can do a single TIMESTAMPTZ comparison without reconstructing from
+      // two separate columns. If only a date is given, default time to midnight.
+      // One rule for every input shape (utils/schedule.js): date+time pair,
+      // full ISO instant, or date only (→ 00:00 UTC).
+      ...(() => {
+        const r = send_date ? resolveSchedule({ send_date, send_time }) : { send_date: null, send_time: null };
+        return { send_date: r.send_date ?? null, send_time: r.send_time ?? null };
+      })(),
+      deadline: deadline || null,
+      allow_private_messages, send_reminders, hide_amounts, hide_view_messages_button,
+      card_experience: card_experience || 'card_only',
+      ...(cleanCustomOccasion && { custom_occasion: cleanCustomOccasion }),
+      ...(cleanCountry(recipient_country) && { recipient_country: cleanCountry(recipient_country) }),
+      ...(cleanTimeZone(delivery_timezone) && { delivery_timezone: cleanTimeZone(delivery_timezone) }),
+      // Only drafts are created here. Publishing goes through activate /
+      // payment so an individual card can never be created already-live and
+      // unpaid (a client-sent status used to be trusted as-is).
+      status: (reqStatus === 'active' && (req.company || req.member)) ? 'active' : 'draft',
+      ...(effectiveCompanyId && { company_id: effectiveCompanyId }),
+      ...(effectiveMemberId && { created_by_member_id: effectiveMemberId }),
+      ...(notification_scope && { notification_scope }),
+      ...(isAnonymousDraft && { draft_edit_token: draftEditToken, is_draft: true }),
+    };
+
+    // Try all optional columns first, then remove only the column an older
+    // database reports as missing. This preserves every supported setting.
+    const isMissingCol = (e) => !!e && (
+      e.code === '42703' || e.code === 'PGRST204' ||
+      /column .* does not exist|could not find the .* column .* schema cache/i.test(e.message || '')
+    );
+
+    let card, error;
+    let insertCandidate = {
+      ...insertData,
+      font_style: font_style || 'elegant',
+      card_layout: cleanCardLayout,
+    };
+    // Longest names first so 'cover_layout' isn't shadowed by 'card_layout' etc.
+    const optionalColumns = ['board_background_theme', 'album_background_theme', 'cover_text_color', 'custom_occasion',
+      'cover_layout', 'card_layout', 'cover_sender', 'card_experience', 'font_style',
+      'recipient_country', 'delivery_timezone', 'hide_view_messages_button']
+      .sort((a, b) => b.length - a.length);
+
+    // Extract the exact missing column name from the Postgres error, if any.
+    const missingColName = (e) => {
+      if (!e) return null;
+      const message = e.message || '';
+      const postgres = /column "?([a-z_]+)"? .*does not exist/i.exec(message);
+      const postgrest = /could not find the ['"]([a-z_]+)['"] column/i.exec(message);
+      return postgres?.[1] || postgrest?.[1] || null;
+    };
+
+    for (let attempt = 0; attempt <= optionalColumns.length + 2; attempt += 1) {
+      ({ data: card, error } = await supabase.from('cards')
+        .insert(insertCandidate)
+        .select().maybeSingle());
+
+      if (!error || !isMissingCol(error)) break;
+      // Prefer the exact column named in the error; fall back to substring scan.
+      const named = missingColName(error);
+      const missingColumn = (named && named in insertCandidate)
+        ? named
+        : optionalColumns.find(column => error.message?.includes(column) && column in insertCandidate);
+      if (!missingColumn || !(missingColumn in insertCandidate)) break;
+
+      const nextCandidate = { ...insertCandidate };
+      delete nextCandidate[missingColumn];
+      insertCandidate = nextCandidate;
+    }
+
+    if (error) throw error;
+
+    // --- Notify members when a member or HR creates a card ---
+    if ((effectiveMemberId || req.company) && effectiveCompanyId && notification_scope) {
+      try {
+        let creatorDept   = null;
+        let creatorName   = 'Your colleague';
+        let creatorEmail  = null;
+
+        if (effectiveMemberId) {
+          const { data: creator } = await supabase
+            .from('company_members')
+            .select('first_name, last_name, department, email')
+            .eq('id', effectiveMemberId)
+            .maybeSingle();
+          if (creator) {
+            creatorDept  = creator.department;
+            creatorName  = `${creator.first_name} ${creator.last_name}`;
+            creatorEmail = creator.email;
+          }
+        } else if (req.company) {
+          creatorName  = req.company.contact_person || req.company.name;
+          creatorEmail = req.company.email;
+        }
+
+        const signLink = `${process.env.FRONTEND_URL || 'https://thankeeu.com'}/sign/${slug}`;
+
+        if (notification_scope === 'department' && creatorDept) {
+          // Notify only creator's department
+          const { data: deptMembers } = await supabase
+            .from('company_members')
+            .select('id, email, first_name, last_name')
+            .eq('company_id', effectiveCompanyId)
+            .eq('department', creatorDept)
+            .eq('status', 'approved');
+
+          const notifyRows = [];
+          for (const m of (deptMembers || [])) {
+            if (m.email === creatorEmail) continue; // skip creator
+            // Dashboard notification
+            notifyRows.push({
+              recipient_id:   m.id,
+              recipient_type: 'member',
+              type:    'sign_card',
+              title:   `✍️ Sign ${recipient_name}'s card`,
+              body:    `${creatorName} created a card for ${recipient_name}. Add your message!`,
+              data:    { card_slug: slug, card_title: title || `${recipient_name}'s Card` },
+            });
+            // Email
+            sendEmail({ to: m.email, template: 'cardInvite', data: {
+              memberName: m.first_name,
+              creatorName, recipientName: recipient_name,
+              occasion: (occasion === 'other' && cleanCustomOccasion)
+                ? cleanCustomOccasion
+                : (occasion || '').replace(/_/g, ' '),
+              custom_occasion: cleanCustomOccasion || null,
+              scope: `${creatorDept} department`,
+              cardSlug:  slug,
+              signLink,
+              giftEnabled: is_gift_enabled,
+              deadline: deadline ? new Date(deadline).toLocaleDateString('en') : 'soon',
+            }}).catch(() => {});
+          }
+          if (notifyRows.length) await pushNotificationBulk(notifyRows);
+
+        } else if (notification_scope === 'company_wide') {
+          // Determine if creator can auto-approve company-wide notifications:
+          // HR always auto-approves. Team leaders auto-approve (no HR approval needed
+          // for leader cards — they have authority to notify all departments).
+          // Regular team members need HR to approve.
+          let creatorRole = null;
+          if (effectiveMemberId) {
+            const { data: creatorMember } = await supabase.from('company_members')
+              .select('role').eq('id', effectiveMemberId).maybeSingle();
+            creatorRole = creatorMember?.role;
+          }
+          const canAutoApprove = !!req.company || creatorRole === 'team_leader';
+
+          // Record in notification_approvals
+          await supabase.from('notification_approvals').insert({
+            card_id:           card.id,
+            company_id:        effectiveCompanyId,
+            requested_by_id:   effectiveMemberId || req.company?.id,
+            requested_by_type: effectiveMemberId ? (creatorRole || 'team_member') : 'hr',
+            status:            canAutoApprove ? 'approved' : 'pending',
+          });
+
+          if (canAutoApprove) {
+            // HR or team_leader created the card — notify all departments immediately
+            await notifyAllCompany(effectiveCompanyId, card, slug, recipient_name, occasion, title, is_gift_enabled, deadline, creatorName, creatorEmail, signLink);
+          } else {
+            // Regular team_member created — send to HR for approval
+            const { data: company } = await supabase.from('companies').select('email, contact_person, name, id').eq('id', effectiveCompanyId).maybeSingle();
+            if (company) {
+              await sendEmail({ to: company.email, template: 'cardApprovalRequest', data: {
+                hrName: company.contact_person || 'HR', companyName: company.name,
+                creatorName, recipientName: recipient_name, occasion,
+                cardTitle: title || `${recipient_name}'s Card`, cardSlug: slug,
+              }}).catch(() => {});
+              // Dashboard notification for HR
+              await pushNotification(company.id, 'company', 'card_approval', `🏢 Approval needed: ${recipient_name}'s card`,
+                `${creatorName} wants to notify the whole company about ${recipient_name}'s ${occasion} card.`,
+                { card_slug: slug, creator_name: creatorName, recipient_name });
+            }
+          }
+        }
+      } catch (notifyErr) {
+        console.error('Notification error:', notifyErr);
+      }
+    }
+
+    // Log card creation to activity log
+    if (effectiveCompanyId && card) {
+      const { logActivity } = require('../utils/activityLog');
+      logActivity({
+        company_id:  effectiveCompanyId,
+        actor_id:    req.company?.id || req.member?.id || req.user?.id || effectiveCompanyId,
+        actor_type:  req.actorType || (req.company ? 'hr' : req.member ? 'core_team' : 'member'),
+        actor_name:  req.actorName || req.company?.name || (req.member ? `${req.member.first_name} ${req.member.last_name}`.trim() : 'Unknown'),
+        action:      'created_card',
+        entity_type: 'card',
+        entity_id:   card.id,
+        entity_name: recipient_name,
+        details:     { occasion, slug: card.slug },
+      }).catch(() => {});
+    }
+
+    res.status(201).json(card);
+  } catch (err) {
+    const { isSanitizeError } = require('../utils/sanitize');
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+    const draftSchemaMissing = (err.code === '42703' || err.code === 'PGRST204') &&
+      /draft_edit_token|is_draft|claimed_at/i.test(err.message || '');
+    if (draftSchemaMissing) {
+      console.error('Create card draft schema missing:', err.message);
+      return res.status(503).json({
+        error: 'Draft saving needs the latest database migration. Run database/RUN_THIS_IN_SUPABASE.sql, then try again.',
+        code: 'DRAFT_SCHEMA_MISSING',
+      });
+    }
+    console.error('Create card error:', err.message);
+    safeError(res, err, 'Failed to create card');
+  }
+};
+
+const getUserCards = async (req, res) => {
+  try {
+    const { data: cards, error } = await supabase
+      .from('cards')
+      .select(`*, messages(count)`)
+      .eq('creator_id', req.user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json((cards || []).map(card => ({
+      ...card,
+      signed_count: card.messages?.[0]?.count || 0,
+      messages: undefined
+    })));
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch cards' });
+  }
+};
+
+const getCard = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { token } = req.query;
+
+    const { data: card, error } = await supabase
+      .from('cards')
+      .select(`*, messages(*), contributions(amount, status, contributor_name)`)
+      .eq('slug', slug)
+      .order('created_at', { foreignTable: 'messages', ascending: true })
+      .maybeSingle();
+
+    if (error || !card) return res.status(404).json({ error: 'Card not found' });
+
+    // isCreatorPersonal: the actual person who created the card (not just
+    // "any logged-in member of the same company"). Used to gate sensitive,
+    // per-card actions like the private view link / Transfer card button —
+    // those should never be shown to a colleague who merely shares the
+    // company account but didn't personally create this specific card.
+    const isCreatorPersonal = req.user?.id === card.creator_id
+      || req.member?.id === card.created_by_member_id;
+    const isCreator = isCreatorPersonal
+      || (req.company?.id && card.company_id === req.company.id);
+    // isRecipient: valid access_token, email match, OR card was transferred to this user
+    let isRecipient = (token && token === card.access_token)
+      || (req.user?.email && card.recipient_email &&
+          req.user.email.toLowerCase() === card.recipient_email.toLowerCase());
+
+    // Check received_cards table for individual user transfers
+    if (!isRecipient && req.user?.id) {
+      const { data: received } = await supabase
+        .from('received_cards').select('id')
+        .eq('card_id', card.id).eq('recipient_user_id', req.user.id).maybeSingle();
+      if (received) isRecipient = true;
+    }
+    // Check member_received_cards for HR team member recipients
+    if (!isRecipient && req.member?.id) {
+      // Also check by email match
+      if (card.recipient_email && req.member.email &&
+          card.recipient_email.toLowerCase() === req.member.email.toLowerCase()) {
+        isRecipient = true;
+      }
+      if (!isRecipient) {
+        const { data: mReceived } = await supabase
+          .from('member_received_cards').select('id')
+          .eq('card_id', card.id).eq('recipient_member_id', req.member.id).maybeSingle();
+        if (mReceived) isRecipient = true;
+      }
+    }
+    const isContributor = true;
+
+    if (!isCreator && !isRecipient && card.status === 'draft') {
+      return res.status(403).json({ error: 'Card not available yet' });
+    }
+
+    // Filter private messages for non-recipients
+    if (!isRecipient && !isCreator) {
+      card.messages = card.messages?.filter(m => !m.is_private) || [];
+    }
+
+    // Hide contribution amounts if configured
+    if (card.hide_amounts && !isCreator && !isRecipient) {
+      card.contributions = card.contributions?.map(c => ({ ...c, amount: null }));
+      card.messages = card.messages?.map(message => ({ ...message, contributed_amount: null }));
+    }
+
+    // access_token is the private view link's credential — only the
+    // creator and the recipient should ever receive it. Strip it for
+    // everyone else (e.g. colleagues viewing an active card to sign it).
+    const responseCard = (isCreator || isRecipient) ? card : (() => {
+      const { access_token: _accessToken, ...rest } = card;
+      return rest;
+    })();
+
+    res.json({ ...responseCard, isCreator, isCreatorPersonal, isRecipient });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch card' });
+  }
+};
+
+const updateCard = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { draft_edit_token: _stripToken, status: _stripStatus, ...updates } = req.body;
+    const presentedToken = req.headers['x-draft-edit-token'] || req.body.draft_edit_token;
+
+    const { data: card } = await supabase.from('cards')
+      .select('creator_id, created_by_member_id, company_id, pal_group_id, draft_edit_token, is_draft')
+      .eq('slug', slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    const isOwner = (req.user && card.creator_id === req.user.id)
+      || (req.member && card.created_by_member_id === req.member.id)
+      || (req.company && card.company_id === req.company.id)
+      || (req.palGroup && card.pal_group_id === req.palGroup.id)
+      || (card.is_draft && card.draft_edit_token && presentedToken && card.draft_edit_token === presentedToken);
+
+    if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
+
+    // Only ever write real card columns. The wizard PUTs its whole form object,
+    // which carries UI-only keys (and keys whose column may not exist yet in
+    // this schema version, e.g. custom_occasion). Passing those straight to
+    // Postgres produced a 42703 "column does not exist" and a blanket
+    // 500 "Failed to update card" — which is what users hit when they stepped
+    // Back to Details and pressed Next a second time (the create path whitelists,
+    // the update path did not).
+    const UPDATABLE_FIELDS = [
+      'recipient_name', 'recipient_email', 'occasion', 'custom_occasion', 'title',
+      'design_theme', 'background_color', 'font_style', 'card_layout', 'card_experience',
+      'cover_sender', 'cover_text_color', 'album_background_theme', 'board_background_theme',
+      'cover_layout', 'is_gift_enabled', 'gift_type', 'suggested_amount',
+      'send_date', 'send_time', 'deadline', 'deadline_time',
+      'allow_private_messages', 'send_reminders', 'hide_amounts', 'hide_view_messages_button', 'notification_scope',
+      'recipient_photo_url', 'recipient_country', 'delivery_timezone',
+    ];
+    const safeUpdates = {};
+    for (const key of UPDATABLE_FIELDS) {
+      if (Object.prototype.hasOwnProperty.call(updates, key)) safeUpdates[key] = updates[key];
+    }
+    if (Object.keys(safeUpdates).length === 0) {
+      const { data: unchanged } = await supabase.from('cards').select().eq('slug', slug).maybeSingle();
+      return res.json(unchanged);
+    }
+    if ('recipient_country' in safeUpdates) safeUpdates.recipient_country = cleanCountry(safeUpdates.recipient_country);
+    if ('delivery_timezone' in safeUpdates) safeUpdates.delivery_timezone = cleanTimeZone(safeUpdates.delivery_timezone);
+    // An empty custom occasion is meaningless — store NULL rather than ''.
+    if ('custom_occasion' in safeUpdates && !String(safeUpdates.custom_occasion || '').trim()) {
+      safeUpdates.custom_occasion = null;
+    }
+    // Sanitize empty strings to null for date/time columns to avoid Postgres type errors
+    // Only touch a date/time column when the caller actually sent it — a partial
+    // update (e.g. gift settings only) must not silently wipe the schedule.
+    for (const field of ['send_date', 'deadline', 'send_time', 'deadline_time']) {
+      if (field in safeUpdates && (safeUpdates[field] === '' || safeUpdates[field] === undefined)) {
+        safeUpdates[field] = null;
+      }
+    }
+
+    // Guard cover_layout shape on update (same rules as create)
+    if ('cover_layout' in safeUpdates) {
+      safeUpdates.cover_layout = sanitizeCoverLayout(safeUpdates.cover_layout);
+    }
+
+    // Combine send_date + send_time into the single UTC instant the delivery
+    // engine compares against. Handles a time-only edit (keeps the stored
+    // date) and a full ISO instant (keeps its time) — both used to lose the
+    // time. See utils/schedule.js.
+    if ('send_date' in safeUpdates || 'send_time' in safeUpdates) {
+      let existingSendDate = null;
+      if (!('send_date' in safeUpdates)) {
+        const { data: cur } = await supabase.from('cards').select('send_date').eq('slug', slug).maybeSingle();
+        existingSendDate = cur?.send_date || null;
+      }
+      const sched = resolveSchedule(
+        { ...('send_date' in safeUpdates && { send_date: safeUpdates.send_date }), ...('send_time' in safeUpdates && { send_time: safeUpdates.send_time }) },
+        existingSendDate,
+      );
+      if (sched.error) return res.status(400).json({ error: sched.error });
+      Object.assign(safeUpdates, sched);
+    }
+
+    // Same for deadline + deadline_time
+    if (safeUpdates.deadline) {
+      const d = String(safeUpdates.deadline).slice(0, 10);
+      const t = safeUpdates.deadline_time
+        ? String(safeUpdates.deadline_time).slice(0, 8)
+        : '23:59:59';
+      const combined = new Date(`${d}T${t}Z`);
+      if (!isNaN(combined.getTime())) {
+        safeUpdates.deadline = combined.toISOString();
+      }
+    }
+
+    // Attempt update with all columns first; fall back gracefully if optional
+    // columns (card_layout, font_style) don't exist yet in this schema version.
+    // Optional columns arrive via migrations that may not have been run on this
+    // environment yet. Rather than guessing a fixed strip-list (which silently
+    // failed for any column not on it), read the offending column name out of
+    // the Postgres error, drop it, and retry until the write succeeds.
+    let updated, error;
+    let payload = { ...safeUpdates };
+    const dropped = [];
+    for (let attempt = 0; attempt < UPDATABLE_FIELDS.length + 1; attempt++) {
+      ({ data: updated, error } = await supabase
+        .from('cards').update({ ...payload, updated_at: new Date() })
+        .eq('slug', slug).select().maybeSingle());
+
+      // Two shapes reach us: Postgres 42703 ("column X of relation cards does
+      // not exist") and PostgREST's schema-cache miss PGRST204 ("Could not find
+      // the 'X' column of 'cards' in the schema cache"). Handle both.
+      const errText = `${error?.message || ''} ${error?.details || ''}`;
+      const isUnknownColumn = !!error && (
+        error.code === '42703' || error.code === 'PGRST204'
+        || /does not exist/i.test(errText)
+        || /could not find the .* column/i.test(errText)
+      );
+      if (!isUnknownColumn) break;
+
+      const named =
+        /column\s+"?(?:cards\.)?([a-z0-9_]+)"?\s+.*does not exist/i.exec(errText)
+        || /could not find the '([a-z0-9_]+)' column/i.exec(errText);
+      const badColumn = named?.[1] && named[1] in payload ? named[1] : null;
+      if (!badColumn) break; // can't identify it — surface the real error
+      delete payload[badColumn];
+      dropped.push(badColumn);
+      if (Object.keys(payload).length === 0) break;
+    }
+    if (dropped.length) {
+      console.warn('[updateCard] skipped columns missing from this schema:', dropped.join(', '));
+    }
+
+    if (error) {
+      console.error('[updateCard] Supabase error:', error.message, '| slug:', slug, '| user:', req.user?.id);
+      throw error;
+    }
+
+    // Re-arm the delivery timer against the row we just wrote.
+    // Without this, editing a card's schedule left the ORIGINAL setTimeout
+    // armed — the card was delivered at the old time, days early in the worst
+    // case. scheduleCardDelivery cancels a stale timer whose fire time no
+    // longer matches, and cancels outright if the card is no longer
+    // deliverable (schedule cleared, recipient removed, or no longer active).
+    try {
+      const scheduler = require('../utils/scheduler');
+      if (updated && updated.status === 'active' && !updated.recipient_notified && !updated.payment_pending) {
+        scheduler.scheduleCardDelivery(updated);
+      } else if (updated?.slug) {
+        scheduler.cancelSchedule(updated.slug);
+      }
+    } catch (schedErr) {
+      // Never fail the update because of the scheduler — the per-minute sweep
+      // in server.js is the backstop.
+      console.warn('[updateCard] could not re-arm delivery timer:', schedErr.message);
+    }
+
+    res.json(updated);
+  } catch (err) {
+    console.error('[updateCard] error:', err.message);
+    res.status(500).json({ error: 'Failed to update card' });
+  }
+};
+
+const activateCard = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { inviteEmails } = req.body;
+
+    const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    // Auth check: works for regular user, member, HR company, or an
+    // anonymous draft presenting its edit token
+    const presentedToken = req.headers['x-draft-edit-token'] || req.body.draft_edit_token;
+    const isAccountOwner =
+      (req.user   && card.creator_id            === req.user.id)   ||
+      (req.member && card.created_by_member_id  === req.member.id) ||
+      (req.company && card.company_id           === req.company.id);
+    const isTokenOwner =
+      !!(card.is_draft && card.draft_edit_token && presentedToken && card.draft_edit_token === presentedToken);
+    if (!isAccountOwner && !isTokenOwner) return res.status(403).json({ error: 'Not authorized' });
+
+    // ── Publishing ──────────────────────────────────────────────────────────
+    // Company / team cards are free and go live straight away.
+    // An individual card published here has NOT been paid for (payment,
+    // credits and 100%-off codes publish through markCardFeePaid instead), so
+    // it goes live as "Create Now, Pay Later": open for signatures and gifts,
+    // but never delivered until the fee is paid.
+    // Re-calling activate on a live card (e.g. to send invites after paying)
+    // never touches its payment state.
+    const { cardRequiresFee, publishUnpaid } = require('../utils/cardPayment');
+    let publishedUnpaid = false;
+    if (card.status === 'draft') {
+      if (cardRequiresFee(card)) {
+        // Needs a signed-in owner: someone must be reachable to pay for it,
+        // and an ownerless live card could never be paid or managed.
+        if (!isAccountOwner || !card.creator_id) {
+          return res.status(401).json({ error: 'Please sign in to publish your card.', code: 'SIGN_IN_REQUIRED' });
+        }
+        try {
+          ({ published: publishedUnpaid } = await publishUnpaid(slug));
+        } catch (pubErr) {
+          if (pubErr.code === 'PAY_LATER_SCHEMA_MISSING') {
+            return res.status(503).json({
+              error: 'Publishing before payment needs the latest database migration. Run database/migration_pay_later_and_hero.sql, then try again — or pay now to publish.',
+              code: pubErr.code,
+            });
+          }
+          throw pubErr;
+        }
+      } else {
+        const { error } = await supabase.from('cards').update({ status: 'active' }).eq('slug', slug).eq('status', 'draft');
+        if (error) throw error;
+      }
+    }
+
+    // What the card looks like now (a concurrent payment may have raced us).
+    const { data: current } = await supabase.from('cards').select('*').eq('slug', slug).maybeSingle();
+    const liveCard = current || card;
+    const paymentPending = !!liveCard.payment_pending;
+
+    // Resolve creator display name for invite emails
+    const creatorName =
+      req.user?.full_name ||
+      (req.member ? `${req.member.first_name} ${req.member.last_name}`.trim() : null) ||
+      req.company?.contact_person || req.company?.name || 'Someone';
+
+    // Send invites if emails provided
+    if (inviteEmails?.length) {
+      const deadline = card.deadline ? new Date(card.deadline).toLocaleDateString('en') : 'soon';
+      const emailJobs = inviteEmails.map(email =>
+        sendEmail({
+          to: email,
+          template: 'cardInvite',
+          data: {
+            creatorName,
+            recipientName: card.recipient_name,
+            occasion: (card.occasion === 'other' && card.custom_occasion)
+              ? card.custom_occasion
+              : (card.occasion || '').replace(/_/g, ' '),
+            custom_occasion: card.custom_occasion || null,
+            cardSlug: card.slug,
+            giftEnabled: card.is_gift_enabled,
+            deadline
+          }
+        })
+      );
+
+      Promise.allSettled(emailJobs).then(results => {
+        const failed = results.filter(result => result.status === 'rejected');
+        if (failed.length) console.error(`Failed to send ${failed.length} card invitation(s)`);
+      });
+    }
+
+    res.json({
+      message: paymentPending ? 'Card published — pay any time before delivery' : 'Card activated',
+      slug,
+      status: liveCard.status,
+      payment_pending: paymentPending,
+    });
+
+    // Congratulations + "pay when you're happy" email, once, on the publish.
+    if (publishedUnpaid) {
+      require('../utils/payLaterEmails').sendPayLaterCreatedEmail(liveCard).catch(() => {});
+    }
+
+    // If this card has a scheduled delivery date, arm the precise setTimeout now.
+    // This is the primary delivery trigger — more reliable than waiting for the cron.
+    // An unpaid card is never armed; paying it arms delivery (markCardFeePaid).
+    if (liveCard.status === 'active' && !paymentPending && liveCard.send_date
+        && liveCard.recipient_email && !liveCard.recipient_notified) {
+      try {
+        const scheduler = require('../utils/scheduler');
+        scheduler.scheduleCardDelivery(liveCard);
+      } catch (_) { /* scheduler not yet init'd — cron sweep will catch it */ }
+    }
+  } catch (err) {
+    console.error('[activateCard] error:', err.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Failed to activate card' });
+  }
+};
+
+const OCCASION_EMOJI = {
+  birthday: '🎂', anniversary: '💍', leaving: '👋', promotion: '🌟',
+  wedding: '💒', baby_shower: '👶', retirement: '🏖️', graduation: '🎓',
+  valentine: '💝', christmas: '🎄', get_well: '🌷', other: '🎉',
+};
+
+const sendCard = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { data: card } = await supabase.from('cards').select('*').eq('slug', slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    // Auth: regular user, team member, or HR company
+    const isOwner =
+      (req.user   && card.creator_id            === req.user.id)   ||
+      (req.member && card.created_by_member_id  === req.member.id) ||
+      (req.company && card.company_id           === req.company.id);
+    if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
+
+    if (!card.recipient_email)
+      return res.status(400).json({ error: 'Recipient email required to send card' });
+
+    // Create Now, Pay Later: an unpaid card is never delivered.
+    if (card.payment_pending) {
+      return res.status(402).json({
+        error: 'Pay for this card first — it will be delivered as soon as it is paid.',
+        code: 'PAYMENT_REQUIRED',
+        payment_required: true,
+        pay_url: `/pay/${card.slug}`,
+      });
+    }
+    // An unpublished individual card has not been paid for either.
+    if (card.status === 'draft' && require('../utils/cardPayment').cardRequiresFee(card)) {
+      return res.status(402).json({
+        error: 'Publish and pay for this card before sending it.',
+        code: 'PAYMENT_REQUIRED',
+        payment_required: true,
+      });
+    }
+
+    const { data: messages } = await supabase
+      .from('messages').select('count').eq('card_id', card.id);
+
+    // Save status + mark notified BEFORE sending the email so link is always ready.
+    // Try full update first; fall back if optional columns don't exist yet.
+    let saveErr;
+    ({ error: saveErr } = await supabase.from('cards').update({
+      status: 'sent', recipient_notified: true, delivered_at: new Date(), updated_at: new Date(),
+    }).eq('slug', slug));
+
+    if (saveErr && (saveErr.code === '42703' || /column .* does not exist/i.test(saveErr.message || ''))) {
+      ({ error: saveErr } = await supabase.from('cards').update({
+        status: 'sent', recipient_notified: true,
+      }).eq('slug', slug));
+    }
+    if (saveErr) throw new Error(`Failed to save delivery state: ${saveErr.message}`);
+
+    // Auto-link card to recipient's account if they already have one
+    const { data: existingUser } = await supabase
+      .from('users').select('id').eq('email', card.recipient_email.toLowerCase()).maybeSingle();
+    if (existingUser) {
+      await supabase.from('received_cards').upsert({
+        card_id: card.id,
+        recipient_user_id: existingUser.id,
+        transferred_by: req.user?.id || req.member?.id || null,
+        transferred_at: new Date(),
+      }, { onConflict: 'card_id,recipient_user_id' });
+    }
+
+    const mailResult = await sendEmail({
+      to: card.recipient_email,
+      template: 'cardDelivery',
+      data: {
+        recipientName: card.recipient_name,
+        recipientEmail: card.recipient_email,
+        occasion: (card.occasion === 'other' && card.custom_occasion)
+          ? card.custom_occasion
+          : card.occasion.replace(/_/g, ' '),
+        custom_occasion: card.custom_occasion || null,
+        occasionLabel: card.custom_occasion || card.occasion.replace(/_/g, ' '),
+        occasionEmoji: OCCASION_EMOJI[card.occasion] || '🎉',
+        cardSlug: card.slug,
+        claimToken: null,
+        accessToken: card.access_token,
+        senderCount: messages?.[0]?.count || 0,
+        giftAmount: card.total_collected > 0 ? card.total_collected : null,
+        appUrl: FRONTEND_URL,
+        isCompanyCard: !!card.company_id,
+      }
+    });
+
+    // A failed email must not leave the card looking delivered.
+    if (!mailResult?.success) {
+      if (card.status !== 'sent') {
+        await supabase.from('cards').update({ status: card.status, recipient_notified: false }).eq('slug', slug);
+      }
+      return res.status(502).json({ error: `We couldn't email ${card.recipient_email} just now. Check the address and try again.` });
+    }
+
+    res.json({ message: 'Card sent to recipient!' });
+  } catch (err) {
+    console.error('sendCard error:', err);
+    res.status(500).json({ error: 'Failed to send card' });
+  }
+};
+
+const deleteCard = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { data: card } = await supabase.from('cards').select('creator_id, created_by_member_id, company_id').eq('slug', slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    const isOwner2 = (req.user && card.creator_id === req.user.id) || (req.member && card.created_by_member_id === req.member.id) || (req.company && card.company_id === req.company.id);
+    if (!isOwner2) return res.status(403).json({ error: 'Not authorized' });
+
+    await supabase.from('cards').delete().eq('slug', slug);
+    // Drop any armed delivery timer — otherwise it fires for a row that no
+    // longer exists and logs a confusing failure.
+    try { require('../utils/scheduler').cancelSchedule(slug); } catch (_) { /* best effort */ }
+    res.json({ message: 'Card deleted' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete card' });
+  }
+};
+
+const getPublicCard = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { data: card, error } = await supabase
+      .from('cards')
+      .select('*, messages(id, author_name, content, is_private, font_style, font_color, font_size, position_x, position_y, rotation, page_number, media_url, media_type, media_gallery, reactions, contributed_amount, payment_verified, created_at, gift_type, product_id, product_name, product_price, product_vendor_id, product_vendor_name, product_vendor_slug), contributions(amount, contributor_name, status)')
+      .eq('slug', slug)
+      .in('status', ['active', 'sent'])
+      .order('created_at', { foreignTable: 'messages', ascending: true })
+      .maybeSingle();
+
+    if (error || !card) return res.status(404).json({ error: 'Card not found or not active' });
+
+    // Real signer count = ALL messages (including private ones the viewer can't read)
+    const realSignedCount = card.messages?.length || 0;
+
+    const verifiedContribs = card.contributions?.filter(c => c.status === 'success') || [];
+    const totalCollected = verifiedContribs.reduce((s, c) => s + (c.amount || 0), 0);
+
+    // Public messages: filter out private ones from display, but keep real count
+    const publicMessages = (card.messages || [])
+      .filter(message => !message.is_private)
+      .map(message => card.hide_amounts ? { ...message, contributed_amount: null } : message);
+
+    const { access_token: _accessToken, draft_edit_token: _det, ...safeCard } = card;
+
+    // When hide_amounts is true, strip total_collected and individual amounts
+    const publicTotal = card.hide_amounts ? null : totalCollected;
+
+    // Strip contributions array from public response (not needed by frontend)
+    const { contributions: _contribs, ...cardWithoutContribs } = safeCard;
+
+    // Creator recognition (optionalAuth): lets the card owner edit any page
+    // inline on the sign screen. Falsy for anonymous/guest signers.
+    const isCreator = Boolean(
+      (req.user && card.creator_id && req.user.id === card.creator_id) ||
+      (req.member && (
+        (card.created_by_member_id && req.member.id === card.created_by_member_id) ||
+        (card.company_id && req.member.company_id === card.company_id)
+      )) ||
+      (req.company && card.company_id && req.company.id === card.company_id)
+    );
+
+    res.json({
+      ...cardWithoutContribs,
+      isCreator,
+      messages:        publicMessages,
+      signed_count:    realSignedCount,   // real count including private messages
+      total_collected: publicTotal,
+      contributors:    card.hide_amounts ? [] : verifiedContribs.map(c => c.contributor_name),
+      contributor_count: verifiedContribs.length,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch card' });
+  }
+};
+
+const getRecipientCard = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { token } = req.query;
+    if (!token) return res.status(401).json({ error: 'Recipient token required' });
+
+    const { data: card, error } = await supabase
+      .from('cards')
+      .select('*, messages(*), contributions(amount, status, contributor_name)')
+      .eq('slug', slug)
+      .eq('access_token', token)
+      .order('created_at', { foreignTable: 'messages', ascending: true })
+      .maybeSingle();
+
+    if (error || !card) return res.status(403).json({ error: 'Invalid recipient link' });
+
+    const verifiedContributions = (card.contributions || []).filter(c => c.status === 'success');
+    const totalCollected = verifiedContributions.reduce((sum, contribution) => sum + (contribution.amount || 0), 0);
+    const { data: wallet } = await supabase
+      .from('contribution_wallets')
+      .select('amount_to_celebrant, disbursed')
+      .eq('card_id', card.id)
+      .maybeSingle();
+    const { data: claim } = await supabase
+      .from('gift_claims')
+      .select('status, claim_type, amount, created_at')
+      .eq('card_id', card.id)
+      .maybeSingle();
+
+    const { access_token: _accessToken, ...recipientCard } = card;
+
+    // If gift already withdrawn or wallet disbursed, show 0 for total_collected
+    // (the contributions rows still exist so summing them gives the pre-withdrawal total)
+    const isAlreadyWithdrawn = card.gift_withdrawn || wallet?.disbursed;
+    const displayTotal = isAlreadyWithdrawn ? 0 : totalCollected;
+
+    res.json({
+      ...recipientCard,
+      isRecipient:      true,
+      signed_count:     card.messages?.length || 0,
+      total_collected:  displayTotal,
+      claimable_amount: isAlreadyWithdrawn ? 0 : (wallet?.amount_to_celebrant ?? totalCollected),
+      gift_claim:       claim || null,
+      wallet_disbursed: wallet?.disbursed || false,
+    });
+  } catch (err) {
+    console.error('Recipient card error:', err);
+    res.status(500).json({ error: 'Failed to fetch recipient card' });
+  }
+};
+
+const claimGift = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { token, claim_type, bank_name, account_number, account_name } = req.body;
+    const validClaimTypes = ['transfer', 'shopping', 'spa', 'flowers', 'food'];
+
+    if (!token) return res.status(401).json({ error: 'Recipient token required' });
+    if (!validClaimTypes.includes(claim_type)) {
+      return res.status(400).json({ error: 'Select a valid gift option' });
+    }
+    if (
+      claim_type === 'transfer'
+      && (!bank_name?.trim() || !account_number?.trim() || !account_name?.trim())
+    ) {
+      return res.status(400).json({ error: 'Complete your bank details to claim by transfer' });
+    }
+    if (claim_type === 'transfer' && !/^\d{10}$/.test(account_number.trim())) {
+      return res.status(400).json({ error: 'Enter a valid 10-digit account number' });
+    }
+
+    const { data: card, error: cardError } = await supabase
+      .from('cards')
+      .select('id, recipient_name, recipient_email, access_token, company_id, gift_withdrawn')
+      .eq('slug', slug)
+      .eq('access_token', token)
+      .maybeSingle();
+    if (cardError || !card) return res.status(403).json({ error: 'Invalid recipient link' });
+    if (card.gift_withdrawn) return res.status(409).json({ error: 'This gift has already been claimed' });
+
+    const { data: existingClaim } = await supabase
+      .from('gift_claims')
+      .select('id, status')
+      .eq('card_id', card.id)
+      .maybeSingle();
+    if (existingClaim) {
+      return res.status(409).json({ error: `This gift already has a ${existingClaim.status} claim` });
+    }
+
+    const { data: wallet } = await supabase
+      .from('contribution_wallets')
+      .select("id, amount_to_celebrant, disbursed")
+      .eq('card_id', card.id)
+      .maybeSingle();
+    if (wallet?.disbursed) return res.status(409).json({ error: 'This gift has already been paid out' });
+
+    const { data: contributions, error: contributionError } = await supabase
+      .from('contributions')
+      .select('amount')
+      .eq('card_id', card.id)
+      .eq('status', 'success');
+    if (contributionError) throw contributionError;
+
+    const totalCollected = (contributions || []).reduce((sum, contribution) => sum + (contribution.amount || 0), 0);
+    const amount = wallet?.amount_to_celebrant ?? totalCollected;
+    if (amount <= 0) return res.status(400).json({ error: 'There is no gift balance available to claim' });
+
+    const { data: claim, error } = await supabase
+      .from('gift_claims')
+      .insert({
+        card_id: card.id,
+        company_id: card.company_id || null,
+        recipient_name: card.recipient_name,
+        recipient_email: card.recipient_email,
+        claim_type,
+        amount,
+        bank_name: claim_type === 'transfer' ? bank_name.trim() : null,
+        account_number: claim_type === 'transfer' ? account_number.trim() : null,
+        account_name: claim_type === 'transfer' ? account_name.trim() : null,
+        status: 'pending'
+      })
+      .select('id, claim_type, amount, status, created_at')
+      .maybeSingle();
+
+    if (error) throw error;
+
+    // Mark the gift pot as claimed immediately — this is the SAME flag
+    // orderGiftCard (gift cards/airtime) checks before allowing a claim,
+    // so it prevents a double-payout via the other claim route.
+    await supabase.from('cards').update({
+      gift_withdrawn: true, gift_withdrawn_at: new Date(),
+      gift_payout_reference: claim.id, gift_payout_amount: amount,
+    }).eq('id', card.id);
+
+    // Bug 10 fix: attempt immediate FLW bank transfer for 'transfer' claim type
+    if (claim_type === 'transfer') {
+      const FLW = 'https://api.flutterwave.com/v3';
+      const flwH = () => ({ Authorization: `Bearer ${process.env.FLW_SECRET_KEY}`, 'Content-Type': 'application/json' });
+      const transferRef = `TK-GIFT-CLAIM-${claim.id.slice(0,8)}-${Date.now()}`;
+      try {
+        // Bug 2 fix: resolve account to get bank code, then transfer
+        // GiftCheckout collects account_number + bank_name but not bank_code
+        // Resolve it first if bank_code not provided
+        let resolvedBankCode = req.body.bank_code || '';
+        if (!resolvedBankCode && req.body.bank_name) {
+          // Map common bank names to FLW codes
+          const BANK_MAP = {
+            'access bank': '044', 'first bank': '011', 'gtbank': '058', 'guaranty trust': '058',
+            'zenith bank': '057', 'uba': '033', 'fidelity bank': '070', 'fcmb': '214',
+            'sterling bank': '232', 'union bank': '032', 'wema bank': '035', 'polaris bank': '076',
+            'ecobank': '050', 'kuda': '090267', 'opay': '100004', 'palmpay': '100033',
+            'moniepoint': '50515', 'stanbic': '221',
+          };
+          const nameLower = req.body.bank_name.toLowerCase();
+          for (const [key, code] of Object.entries(BANK_MAP)) {
+            if (nameLower.includes(key)) { resolvedBankCode = code; break; }
+          }
+        }
+        if (!resolvedBankCode) {
+          // Can't reliably make transfer without bank code — keep as pending
+          throw new Error('Bank code could not be resolved. Claim saved as pending for manual processing.');
+        }
+
+        const t = await axios.post(`${FLW}/transfers`, {
+          account_bank:     resolvedBankCode,
+          account_number:   account_number.trim(),
+          amount:           amount,
+          narration:        `Thankeeu gift pot — ${card.recipient_name}`,
+          currency:         'NGN',
+          reference:        transferRef,
+          beneficiary_name: account_name.trim(),
+          debit_currency:   'NGN',
+        }, { headers: flwH() });
+
+        const transferStatus = t.data.data?.status || 'NEW';
+        await supabase.from('gift_claims').update({
+          status: transferStatus === 'FAILED' ? 'failed' : 'processing',
+          flw_transfer_id: String(t.data.data?.id || ''),
+          flw_reference:   transferRef,
+          processed_at:    new Date(),
+        }).eq('id', claim.id);
+
+        if (wallet?.id) {
+          await supabase.from('contribution_wallets').update({ disbursed: true, disbursed_at: new Date() }).eq('id', wallet.id);
+        }
+
+        return res.status(201).json({
+          message: 'Your gift transfer has been initiated! The money typically arrives within a few minutes to hours.',
+          claim: { ...claim, status: 'processing' },
+        });
+      } catch (transferErr) {
+        // Transfer failed — keep as pending for admin to process
+        console.error('Gift transfer failed:', transferErr.response?.data || transferErr.message);
+        await supabase.from('gift_claims').update({
+          status: 'pending',
+          admin_note: `Auto-transfer failed: ${transferErr.response?.data?.message || transferErr.message}. Requires manual processing.`,
+        }).eq('id', claim.id);
+        // Still return success — claim is recorded, admin will process it
+        return res.status(201).json({
+          message: 'Your gift claim was submitted. There was a brief delay with the transfer — we will process it within 2–4 hours.',
+          claim,
+        });
+      }
+    }
+
+    res.status(201).json({
+      message: claim_type === 'transfer'
+        ? 'Your gift claim was submitted. We will transfer to your account within 24 hours.'
+        : `Your ${claim_type} gift was claimed! We will reach out within 24 hours to arrange delivery.`,
+      claim
+    });
+  } catch (err) {
+    console.error('Gift claim error:', err);
+    res.status(500).json({ error: 'Failed to submit gift claim' });
+  }
+};
+
+// Get cards created by a team member (for their history tab)
+const getMemberCards = async (req, res) => {
+  try {
+    const memberId = req.member.id;
+    const { data: cards, error } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, send_time, messages(count)')
+      .eq('created_by_member_id', memberId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json((cards || []).map(card => ({
+      ...card,
+      signed_count: card.messages?.[0]?.count || 0,
+      messages: undefined
+    })));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch card history' });
+  }
+};
+
+// POST /api/cards/:slug/approve-scope — HR approves company-wide notification
+const approveCardScope = async (req, res) => {
+  try {
+    if (!req.company) return res.status(403).json({ error: 'HR access required' });
+
+    const { slug } = req.params;
+    const { data: card } = await supabase
+      .from('cards')
+      .select('id, title, recipient_name, occasion, is_gift_enabled, deadline, company_id, created_by_member_id, notification_scope, scope_approved_at')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    if (card.company_id !== req.company.id) return res.status(403).json({ error: 'Not your company\'s card' });
+    if (card.scope_approved_at) return res.json({ message: 'Already approved — company has already been notified.' });
+
+    // Update approval record
+    await supabase.from('notification_approvals')
+      .update({ status: 'approved', approved_at: new Date(), approved_by_id: req.company.id })
+      .eq('card_id', card.id)
+      .eq('status', 'pending');
+
+    // Get creator info
+    let creatorName  = req.company.contact_person || req.company.name;
+    let creatorEmail = req.company.email;
+    if (card.created_by_member_id) {
+      const { data: creator } = await supabase.from('company_members')
+        .select('first_name, last_name, email').eq('id', card.created_by_member_id).maybeSingle();
+      if (creator) { creatorName = `${creator.first_name} ${creator.last_name}`; creatorEmail = creator.email; }
+
+      // Notify the creator that it was approved
+      await pushNotification(card.created_by_member_id, 'member', 'card_approved',
+        `✅ Company-wide card approved!`,
+        `HR approved your card for ${card.recipient_name}. All departments have been notified.`,
+        { card_slug: slug });
+    }
+
+    const signLink = `${process.env.FRONTEND_URL || 'https://thankeeu.com'}/sign/${slug}`;
+    await notifyAllCompany(card.company_id, card, slug, card.recipient_name, card.occasion,
+      card.title, card.is_gift_enabled, card.deadline, creatorName, creatorEmail, signLink);
+
+    res.json({ message: `Company-wide notifications sent for ${card.recipient_name}'s card` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to approve card scope' });
+  }
+};
+
+
+// ── HR: get company's own created cards ────────────────────────────────────
+const getCompanyCards = async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, send_time, design_theme, notification_scope, scope_approved_at')
+      .eq('company_id', req.company.id)
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('[company-cards] query error:', error.message);
+      return res.status(500).json({ error: 'Failed to fetch cards' });
+    }
+    console.log(`[company-cards] company ${req.company.id} -> found ${data?.length || 0} cards`);
+    res.json(data || []);
+  } catch (err) {
+    console.error('[company-cards] exception:', err.message);
+    res.status(500).json({ error: 'Failed to fetch cards' });
+  }
+};
+
+// ── HR: get delivered cards (status=sent) ─────────────────────────────────
+const getCompanyDeliveredCards = async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, is_gift_enabled, hide_amounts, created_at, send_date, send_time')
+      .eq('company_id', req.company.id).eq('status', 'sent')
+      .order('send_date', { ascending: false });
+    if (error) {
+      console.error('[company-delivered] query error:', error.message);
+      return res.status(500).json({ error: 'Failed to fetch delivered cards' });
+    }
+    res.json(data || []);
+  } catch (err) {
+    console.error('[company-delivered] exception:', err.message);
+    res.status(500).json({ error: 'Failed to fetch delivered cards' });
+  }
+};
+
+// ── HR: get received cards ─────────────────────────────────────────────────
+// "Received" means cards THIS company's automation created for its own members
+// (birthday cards, work anniversary cards, etc.) that have been delivered (status=sent),
+// PLUS any cards explicitly transferred to this company via the received_cards table.
+// We deliberately exclude cards from OTHER companies even if the recipient email
+// happens to match a member here — that would be a privacy/security leak.
+const getCompanyReceivedCards = async (req, res) => {
+  try {
+    const companyId = req.company.id;
+
+    // Only show cards explicitly transferred TO this company.
+    // We intentionally do NOT include auto-created occasion cards here —
+    // those belong in the "Delivered" tab (created_by = company, recipient = member).
+    const { data: transfers, error: transferErr } = await supabase
+      .from('received_cards')
+      .select('card_id, created_at')
+      .eq('recipient_user_id', companyId)
+      .eq('recipient_type', 'company')
+      .order('created_at', { ascending: false });
+    if (transferErr) console.error('[company-received] transfers error:', transferErr.message);
+
+    const transferIds = (transfers || []).map(t => t.card_id).filter(Boolean);
+    if (!transferIds.length) return res.json([]);
+
+    const { data, error } = await supabase
+      .from('cards')
+      .select('id, slug, title, recipient_name, recipient_email, occasion, status, total_collected, created_at, send_date, send_time')
+      .in('id', transferIds)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[company-received] cards error:', error.message);
+      return res.status(500).json({ error: 'Failed to fetch received cards' });
+    }
+    res.json(data || []);
+  } catch (err) {
+    console.error('[company-received] exception:', err.message);
+    res.status(500).json({ error: 'Failed to fetch received cards' });
+  }
+};
+
+// ── HR: transfer card to a team member ────────────────────────────────────
+const transferCardToMember = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { member_id } = req.body;
+    if (!member_id) return res.status(400).json({ error: 'member_id required' });
+
+    const { data: card } = await supabase.from('cards').select('id, title, recipient_name').eq('slug', slug).maybeSingle();
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    const { data: member } = await supabase.from('company_members')
+      .select('id, email, first_name, last_name, company_id').eq('id', member_id).maybeSingle();
+    if (!member || member.company_id !== req.company.id)
+      return res.status(404).json({ error: 'Member not found in your company' });
+
+    await supabase.from('received_cards').upsert({
+      card_id: card.id, card_slug: slug,
+      recipient_user_id: member_id, recipient_type: 'member',
+      transferred_by: req.company.id,
+    }, { onConflict: 'card_id,recipient_user_id' });
+
+    // Activity log
+    const { logActivity } = require('../utils/activityLog');
+    await logActivity({
+      company_id:  req.company.id,
+      actor_id:    req.company.id,
+      actor_type:  'hr',
+      actor_name:  req.company.name || 'HR',
+      action:      'transferred_card',
+      entity_type: 'card',
+      entity_id:   card.id,
+      entity_name: card.title || `For ${card.recipient_name}`,
+      details:     { to: `${member.first_name} ${member.last_name}` },
+    }).catch(() => {});
+
+    res.json({ message: `Card transferred to ${member.first_name} ${member.last_name}` });
+  } catch (err) { res.status(500).json({ error: 'Transfer failed' }); }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/cards/:slug/claim-gate?claim=TOKEN
+// Public — determines which auth gate to show when recipient opens email link.
+// Returns: { gate, recipient_name, recipient_email, card_slug, access_token }
+// gate values: 'login' | 'signup' | 'member_login' | 'member_claim'
+// ═══════════════════════════════════════════════════════════════════════════
+const getClaimGate = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const claimToken = req.query.claim;
+    if (!claimToken) return res.status(400).json({ error: 'claim token required' });
+
+    let card = null;
+
+    // Try claim_token match first (safe — column may not exist if migration not run)
+    try {
+      const { data } = await supabase.from('cards')
+        .select('id, slug, recipient_name, recipient_email, status, access_token, claim_token')
+        .eq('slug', slug)
+        .eq('claim_token', claimToken)
+        .maybeSingle();
+      card = data;
+    } catch (_) {
+      // claim_token column doesn't exist (migration_recipient_claim.sql not run yet)
+      // Fall through to access_token lookup below
+    }
+
+    // Fallback: token might be the access_token (old email format, or missing migration)
+    if (!card) {
+      const { data: cardByAccess } = await supabase.from('cards')
+        .select('id, slug, recipient_name, recipient_email, status, access_token, claim_token')
+        .eq('slug', slug)
+        .eq('access_token', claimToken)
+        .maybeSingle();
+
+      if (cardByAccess) {
+        // Old format or missing claim_token — try to save claim_token for future links
+        try {
+          const newClaimToken = require('crypto').randomBytes(24).toString('hex');
+          await supabase.from('cards')
+            .update({ claim_token: newClaimToken })
+            .eq('id', cardByAccess.id)
+            .is('claim_token', null);
+        } catch (_) { /* column may not exist — non-fatal */ }
+        card = cardByAccess;
+      }
+    }
+
+    if (!card) return res.status(404).json({ error: 'Invalid or expired link. The card may have been sent with an older link format — please ask the card creator to resend it.' });
+    if (!card.recipient_email) return res.status(400).json({ error: 'No recipient email on this card' });
+
+    const email = card.recipient_email.toLowerCase();
+
+    // Check for HR team member first
+    const { data: member } = await supabase.from('company_members')
+      .select('id, email, status, invite_accepted, password_hash')
+      .ilike('email', email)
+      .eq('status', 'approved')
+      .maybeSingle();
+
+    if (member) {
+      const hasPassword = !!member.password_hash;
+      const acceptedInvite = member.invite_accepted === true;
+      return res.json({
+        gate: (hasPassword && acceptedInvite) ? 'member_login' : 'member_claim',
+        recipient_name: card.recipient_name,
+        recipient_email: email,
+        card_slug: slug,
+        access_token: card.access_token,
+      });
+    }
+
+    // Check for individual Thankeeu user
+    const { data: user } = await supabase.from('users')
+      .select('id, email')
+      .ilike('email', email)
+      .maybeSingle();
+
+    if (user) {
+      return res.json({
+        gate: 'login',
+        recipient_name: card.recipient_name,
+        recipient_email: email,
+        card_slug: slug,
+        access_token: card.access_token,
+      });
+    }
+
+    // No account — needs signup
+    return res.json({
+      gate: 'signup',
+      recipient_name: card.recipient_name,
+      recipient_email: email,
+      card_slug: slug,
+      access_token: card.access_token,
+    });
+
+  } catch (err) {
+    console.error('getClaimGate error:', err.message);
+    res.status(500).json({ error: 'Failed to check claim gate' });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET /api/cards/:slug/login-type
+// Public, no token required — used only to decide WHICH login page to send
+// an unauthenticated visitor to when they land on /card/:slug with no claim
+// token and no session (e.g. an old bookmark, or the "sign in here" link).
+// Deliberately returns the bare minimum: just enough to route correctly,
+// no recipient name/email/access_token like getClaimGate exposes.
+// ═══════════════════════════════════════════════════════════════════════════
+const getCardLoginType = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { data: card } = await supabase.from('cards')
+      .select('recipient_email, company_id')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+    if (!card.company_id) return res.json({ loginType: 'individual' });
+
+    // Company card — confirm the recipient is actually a company_members row
+    // (company-wide cards like Valentine's Day are addressed to the company
+    // itself, so this can't be assumed purely from company_id being set).
+    if (card.recipient_email) {
+      const { data: member } = await supabase.from('company_members')
+        .select('id').ilike('email', card.recipient_email).maybeSingle();
+      if (member) return res.json({ loginType: 'member' });
+    }
+    return res.json({ loginType: 'individual' });
+  } catch (err) {
+    console.error('getCardLoginType error:', err.message);
+    res.status(500).json({ error: 'Failed to check login type' });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/cards/:slug/mark-claimed  (optionalAuth — user/member may be logged in)
+// Links the card to the authenticated recipient account and marks it claimed.
+// ═══════════════════════════════════════════════════════════════════════════
+const markClaimed = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { access_token: token } = req.body;
+    if (!token) return res.status(400).json({ error: 'access_token required' });
+
+    const { data: card } = await supabase.from('cards')
+      .select('id, slug, recipient_email, access_token, creator_id')
+      .eq('slug', slug)
+      .eq('access_token', token)
+      .maybeSingle();
+
+    if (!card) return res.status(403).json({ error: 'Invalid token' });
+
+    // The access_token is the "view my card" link's credential, and a
+    // recipient will often show/forward that link to other people (family,
+    // coworkers on a group card) so they can see it too. Whoever holds the
+    // link can still VIEW the card, but only the actual recipient — the
+    // logged-in account whose email matches recipient_email — should have
+    // it silently added to their Received tab. Without this check, every
+    // signed-in person who ever opened the link ended up with the (shared)
+    // group card claimed into their own Received tab.
+    // No recipient_email on file: fall back to trusting the token alone
+    // (link-only cards have no email to verify against).
+    const requesterEmail = (req.user?.email || req.member?.email || '').toLowerCase().trim();
+    const isVerifiedRecipient = !card.recipient_email
+      || (requesterEmail && requesterEmail === card.recipient_email.toLowerCase().trim());
+
+    if (!isVerifiedRecipient) {
+      return res.json({ ok: true, claimed: false });
+    }
+
+    await supabase.from('cards')
+      .update({ recipient_claimed: true, recipient_claimed_at: new Date() })
+      .eq('id', card.id);
+
+    if (req.user) {
+      await supabase.from('received_cards').upsert({
+        card_id: card.id,
+        recipient_user_id: req.user.id,
+        transferred_by: card.creator_id,
+        transferred_at: new Date(),
+      }, { onConflict: 'card_id,recipient_user_id' });
+    }
+
+    if (req.member) {
+      await supabase.from('member_received_cards').upsert({
+        card_id: card.id,
+        recipient_member_id: req.member.id,
+        transferred_by: card.creator_id,
+        transferred_at: new Date(),
+      }, { onConflict: 'card_id,recipient_member_id' });
+    }
+
+    res.json({ ok: true, claimed: true });
+  } catch (err) {
+    console.error('markClaimed error:', err.message);
+    res.status(500).json({ error: 'Failed to mark claimed' });
+  }
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/cards/:slug/claim-member-password
+// Called by MemberClaimGate when a team member sets their password for the
+// first time via the card claim flow. Uses claim_token as proof of identity.
+// ═══════════════════════════════════════════════════════════════════════════
+const claimMemberPassword = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { claim_token_value, email, password } = req.body;
+
+    if (!claim_token_value || !email || !password)
+      return res.status(400).json({ error: 'claim_token_value, email and password are required' });
+    if (password.length < 8)
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    // Verify claim token matches this card
+    const { data: card } = await supabase.from('cards')
+      .select('id, recipient_email, claim_token, access_token')
+      .eq('slug', slug)
+      .eq('claim_token', claim_token_value)
+      .maybeSingle();
+
+    if (!card) return res.status(403).json({ error: 'Invalid claim link' });
+    if (!card.recipient_email || card.recipient_email.toLowerCase() !== email.toLowerCase())
+      return res.status(403).json({ error: 'Email does not match card recipient' });
+
+    // Find the team member (include invite_accepted in select)
+    const { data: member } = await supabase.from('company_members')
+      .select('id, email, company_id, status, password_hash, invite_accepted')
+      .ilike('email', email)
+      .maybeSingle();
+
+    if (!member) return res.status(404).json({ error: 'No team member account found with this email' });
+    if (member.status === 'rejected') return res.status(403).json({ error: 'Your account was not approved. Contact your HR admin.' });
+    // If they already have a password AND already accepted invite, direct them to login
+    if (member.password_hash && member.invite_accepted)
+      return res.status(400).json({ error: 'Password already set. Please use the team login page.' });
+
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash(password, 12);
+
+    await supabase.from('company_members')
+      .update({ password_hash: hash, invite_accepted: true, status: 'approved' })
+      .eq('id', member.id);
+
+    // Issue a JWT for this member using the same structure as memberLogin
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { memberId: member.id, companyId: member.company_id, type: 'company_member' },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    res.json({ token, member: { id: member.id, email: member.email } });
+  } catch (err) {
+    console.error('claimMemberPassword error:', err.message);
+    res.status(500).json({ error: 'Failed to set password' });
+  }
+};
+
+
+module.exports = {
+  getCompanyCards, getCompanyDeliveredCards, getCompanyReceivedCards, transferCardToMember,
+  createCard, getUserCards, getCard, updateCard, activateCard, sendCard,
+  deleteCard, getPublicCard, getRecipientCard, claimGift, getMemberCards,
+  getClaimGate, getCardLoginType, markClaimed, claimMemberPassword,
+  approveCardScope, notifyAllCompany, uploadRecipientPhoto, uploadCoverImage,
+  sanitizeCoverLayout,
+};
+
+// ── Generic custom cover image upload ───────────────────────────────────────
+// POST /cards/upload-cover  (multipart/form-data, field: "photo")
+// Returns a persistent Cloudinary (or local) URL the creator can use as their
+// own album/board cover. Not tied to a card yet — the URL is saved into the
+// card's background_color when the draft/card is created.
+async function uploadCoverImage(req, res) {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No image provided' });
+    const appUrl = process.env.APP_URL || 'http://localhost:5000';
+    const url = req.file.path?.startsWith('http')
+      ? req.file.path
+      : `${appUrl}/uploads/${require('path').basename(req.file.path)}`;
+    res.json({ url });
+  } catch (err) {
+    console.error('[uploadCoverImage] error:', err.message);
+    res.status(500).json({ error: 'Failed to upload cover image' });
+  }
+}
+
+// ── Recipient photo upload ─────────────────────────────────────────────────
+// POST /cards/:slug/recipient-photo  (multipart/form-data, field: "photo")
+// Saves the Cloudinary / local URL into cards.recipient_photo_url
+async function uploadRecipientPhoto(req, res) {
+  try {
+    const { slug } = req.params;
+    const presentedToken = req.headers['x-draft-edit-token'] || req.body?.draft_edit_token;
+
+    const { data: card } = await supabase
+      .from('cards')
+      .select('id, creator_id, created_by_member_id, company_id, is_draft, draft_edit_token')
+      .eq('slug', slug)
+      .maybeSingle();
+
+    if (!card) return res.status(404).json({ error: 'Card not found' });
+
+    const isOwner =
+      (req.user   && card.creator_id           === req.user.id)   ||
+      (req.member && card.created_by_member_id === req.member.id) ||
+      (req.company && card.company_id          === req.company.id) ||
+      (card.is_draft && card.draft_edit_token && presentedToken &&
+       card.draft_edit_token === presentedToken);
+
+    if (!isOwner) return res.status(403).json({ error: 'Not authorized' });
+    if (!req.file) return res.status(400).json({ error: 'No photo file provided' });
+
+    const appUrl = process.env.APP_URL || 'http://localhost:5000';
+    const photoUrl = req.file.path?.startsWith('http')
+      ? req.file.path
+      : `${appUrl}/uploads/${require('path').basename(req.file.path)}`;
+
+    const { data: updated, error } = await supabase
+      .from('cards')
+      .update({ recipient_photo_url: photoUrl, updated_at: new Date() })
+      .eq('slug', slug)
+      .select('slug, recipient_photo_url')
+      .maybeSingle();
+
+    if (error) {
+      // Column not yet migrated — return URL so frontend can handle gracefully
+      if (error.code === '42703' || /column .* does not exist/i.test(error.message || '')) {
+        return res.json({ recipient_photo_url: photoUrl, warning: 'Run migration to persist photo' });
+      }
+      throw error;
+    }
+
+    res.json({ recipient_photo_url: updated.recipient_photo_url });
+  } catch (err) {
+    console.error('[uploadRecipientPhoto] error:', err.message);
+    res.status(500).json({ error: 'Failed to upload recipient photo' });
+  }
+}

@@ -5,9 +5,6 @@
 
 import RichOccasionPage from './RichOccasionPage';
 import { RICH_OCCASION_PAGES } from './richOccasionPagesData';
-import WeddingLandingTemplate from '../../components/WeddingLandingTemplate';
-import Home from '../Home';
-import { GENERAL_LANDINGS } from '../../data/countryLandings';
 
 export function SympathyCardPageRevamped() {
   return <RichOccasionPage config={RICH_OCCASION_PAGES.sympathy} />;
@@ -21,9 +18,8 @@ export function BirthdayCardUKPageRevamped() {
 export function BabyShowerPageRevamped() {
   return <RichOccasionPage config={RICH_OCCASION_PAGES['baby-shower']} />;
 }
-// Wedding uses the homepage layout with wedding copy (data/weddingLandings.js).
 export function WeddingPageRevamped() {
-  return <WeddingLandingTemplate page="occasions-wedding" />;
+  return <RichOccasionPage config={RICH_OCCASION_PAGES.wedding} />;
 }
 export function MaternityLeavePageRevamped() {
   return <RichOccasionPage config={RICH_OCCASION_PAGES['maternity-leave']} />;
@@ -31,7 +27,6 @@ export function MaternityLeavePageRevamped() {
 export function OnlineBirthdayNigeriaPageRevamped() {
   return <RichOccasionPage config={RICH_OCCASION_PAGES['birthday-nigeria']} />;
 }
-// Homepage layout with general group-card copy (data/countryLandings.js).
 export function OnlineGroupCardRevamped() {
-  return <Home landing={GENERAL_LANDINGS['online-group-card']} />;
+  return <RichOccasionPage config={RICH_OCCASION_PAGES['online-group-card']} />;
 }

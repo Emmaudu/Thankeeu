@@ -1,5 +1,5 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
-import GroupCardLandingTemplate from '../components/GroupCardLandingTemplate';
+import WeddingLandingTemplate from '../components/WeddingLandingTemplate';
 
 const FAQS = [
   { q: 'What is an online group card?', a: 'An online group card is a digital card that multiple people sign together for one recipient. Everyone adds their own personal message, photo, or voice note, and the recipient receives it as one beautiful combined card.' },
@@ -18,7 +18,7 @@ export default function OnlineGroupCard() {
     jsonLd: [SCHEMAS.organization, SCHEMAS.webPage('Online Group Card', 'Create a free online group card that everyone signs.', '/online-group-card'), SCHEMAS.faqPage(FAQS), SCHEMAS.breadcrumb([{name:'Home',url:'/'},{name:'Online Group Card',url:'/online-group-card'}])],
   });
   return (
-    <GroupCardLandingTemplate
+    <WeddingLandingTemplate
       headline={<>One Card.<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300">Everyone Signs. Any Occasion.</span></>}
       subheadline="Create a free group card in 2 minutes. Share the link with the whole team, family, or friend group. Everyone adds their message, photo, or voice note — and the recipient gets one beautiful card."
       tagline="Works for birthdays, farewells, retirements, anniversaries, weddings, new babies, graduations, promotions, and any occasion worth celebrating together."

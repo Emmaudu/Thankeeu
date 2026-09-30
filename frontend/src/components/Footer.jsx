@@ -330,7 +330,7 @@ const Footer = () => (
               { to:'/online-group-cards-uk',         label:'Group Cards UK' },
               { to:'/online-group-cards-us',         label:'Group Cards US' },
               { to:'/online-group-cards-canada',     label:'Group Cards Canada' },
-              { to:'/online-group-cards-nigeria',    label:'Online Group Cards' },
+              { to:'/online-group-cards-nigeria',    label:'Group Cards Nigeria' },
               { to:'/online-birthday-cards-nigeria', label:'Birthday Cards Nigeria' },
             ].map(({ to, label }) => (
               <li key={to}><Link to={to} onClick={scrollTop}

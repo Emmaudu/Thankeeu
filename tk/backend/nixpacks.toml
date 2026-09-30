@@ -1,0 +1,11 @@
+# nixpacks.toml — Railway build configuration for Thankeeu backend
+# Installs ffmpeg and ffprobe so movieRenderer.js can generate Memory Movies.
+
+[phases.setup]
+nixPkgs = ["nodejs_20", "ffmpeg-full"]
+
+[phases.install]
+cmds = ["npm ci --production"]
+
+[start]
+cmd = "node server.js"

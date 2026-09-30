@@ -48,7 +48,7 @@ INSERT INTO blog_posts (
   'The Ultimate Guide to Office Birthday Celebrations',
   'ultimate-guide-office-birthday-celebrations',
   'Awkward office birthday sing-alongs are a thing of the past. This guide shows HR teams exactly how to celebrate birthdays employees actually remember.',
-  $content$<h2>Why birthday recognition matters</h2><p>Gallup research consistently shows that employees who feel recognised are 3.7x more likely to be engaged at work. A birthday, handled well, is one of the most natural moments to deliver that recognition.</p><h2>The Thankeeu approach to office birthdays</h2><p>With Thankeeu for Teams, you upload your employee list once. The system reads each birthday from your HRIS and two days before each birthday automatically creates a group card and emails the entire department to sign it.</p><h2>What to say on a birthday card</h2><p>Be specific. Reference a shared memory, a running joke, or a project you worked on together. Generic messages feel generic. A specific memory says everything.</p><h2>The gift pot question</h2><p>Pooled birthday gifts remove the awkwardness of individual contributions. With Thankeeu, contributors chip in whatever they are comfortable with via Flutterwave and no one knows who gave what.</p>$content$,
+  $content$<h2>Why birthday recognition matters</h2><p>Gallup research consistently shows that employees who feel recognised are 3.7x more likely to be engaged at work. A birthday, handled well, is one of the most natural moments to deliver that recognition.</p><h2>The Thankeeu approach to office birthdays</h2><p>With Thankeeu for Teams, you upload your employee list once. The system reads each birthday from your HRIS and two days before each birthday automatically creates a group card and emails the entire department to sign it.</p><h2>What to say on a birthday card</h2><p>Be specific. Reference a shared memory, a running joke, or a project you worked on together. Generic messages feel generic. A specific memory says everything.</p><h2>The gift pot question</h2><p>Pooled birthday gifts remove the awkwardness of individual contributions. With Thankeeu, contributors chip in whatever they are comfortable with via Paystack and no one knows who gave what.</p>$content$,
   'Workplace Culture',
   ARRAY['office birthday','employee recognition','HR tips','company culture'],
   'published',
@@ -95,8 +95,8 @@ INSERT INTO blog_posts (
 ) VALUES (
   'Group Gifting in Nigeria: Why Paystack Makes It Finally Work',
   'group-gifting-nigeria-paystack',
-  'Collecting money from a group for a shared gift has historically been painful. Online payments changed that. Here is how Thankeeu makes group gifting frictionless.',
-  $content$<h2>The Nigerian group gifting problem</h2><p>Every Nigerian has a story. Someone birthday comes up. A WhatsApp group is created. Bank account details are posted. And then the waiting begins. Seven days later, 30% of the group has transferred. The organiser is chasing people individually.</p><h2>Why online payments changed everything</h2><p>Card, bank transfer and USSD payments are now instant. Thankeeu takes contributions through Flutterwave, so anyone with a debit card, bank transfer or USSD can chip in within seconds. Card details are handled by Flutterwave, a regulated, PCI-DSS compliant provider.</p><h2>How Thankeeu gift pots work</h2><p>When you create a Thankeeu group card, you enable the gift pot. Each person who signs the card contributes via Flutterwave instantly. The contributions pool automatically. You never chase anyone.</p>$content$,
+  'Collecting money from a group for a shared gift has historically been painful. Paystack changed that. Here is how Thankeeu makes group gifting frictionless.',
+  $content$<h2>The Nigerian group gifting problem</h2><p>Every Nigerian has a story. Someone birthday comes up. A WhatsApp group is created. Bank account details are posted. And then the waiting begins. Seven days later, 30% of the group has transferred. The organiser is chasing people individually.</p><h2>Why Paystack changed everything</h2><p>Paystack solved Nigerian payments. Any Nigerian with a debit card, mobile money, or USSD can pay instantly. The infrastructure is solid, the fraud protection is real.</p><h2>How Thankeeu gift pots work</h2><p>When you create a Thankeeu group card, you enable the gift pot. Each person who signs the card contributes via Paystack instantly. The contributions pool automatically. You never chase anyone.</p>$content$,
   'Payments',
   ARRAY['paystack','group gifting','nigeria','gift pot','online payment'],
   'published',
@@ -168,7 +168,7 @@ INSERT INTO blog_posts (
   'Thankeeu for Teams vs Google Forms: There Is No Comparison',
   'thankeeu-for-teams-vs-google-forms',
   'Every company has that one person who creates a Google Form for birthday collections. It works. But there is a better way. A direct comparison.',
-  $content$<h2>How the Google Form approach works</h2><p>Someone creates a Google Form. It collects names and payment amounts but not actual payments, so the organiser still has to post their bank details and chase people individually.</p><h2>The real cost</h2><p>A birthday coordination that takes 4-6 hours using the Google Form method takes 4-6 minutes with Thankeeu.</p><h2>The experience difference</h2><p>A Thankeeu card with 25 personalised messages, voice notes, photos, and a gift pot is a completely different emotional experience.</p><h2>Security and transparency</h2><p>Google Forms do not handle money. Your personal bank account does. Thankeeu processes all payments through Flutterwave. Contributors pay directly. The organiser never touches the money.</p>$content$,
+  $content$<h2>How the Google Form approach works</h2><p>Someone creates a Google Form. It collects names and payment amounts but not actual payments, so the organiser still has to post their bank details and chase people individually.</p><h2>The real cost</h2><p>A birthday coordination that takes 4-6 hours using the Google Form method takes 4-6 minutes with Thankeeu.</p><h2>The experience difference</h2><p>A Thankeeu card with 25 personalised messages, voice notes, photos, and a gift pot is a completely different emotional experience.</p><h2>Security and transparency</h2><p>Google Forms do not handle money. Your personal bank account does. Thankeeu processes all payments through Paystack. Contributors pay directly. The organiser never touches the money.</p>$content$,
   'Workplace Culture',
   ARRAY['HR tools','google forms alternative','birthday collection','team management'],
   'published',
@@ -177,7 +177,7 @@ INSERT INTO blog_posts (
   5,
   NOW() - INTERVAL '12 days',
   'Thankeeu vs Google Forms for Office Birthday Collections | Thankeeu',
-  'Why Thankeeu beats Google Forms for office birthday collections. Automated gift pots vs manual bank transfers.'
+  'Why Thankeeu beats Google Forms for office birthday collections. Automated Paystack gift pots vs manual bank transfers.'
 ) ON CONFLICT (slug) DO UPDATE SET
   title = EXCLUDED.title,
   content = EXCLUDED.content,
@@ -201,7 +201,7 @@ INSERT INTO blog_posts (
   5,
   NOW() - INTERVAL '10 days',
   'Best Birthday Gift Ideas for Nigerian Colleagues 2025 | Thankeeu',
-  'Ranked birthday gift ideas for Nigerian colleagues in 2025. Cash gift pots via Flutterwave, experience vouchers, and professional development gifts.'
+  'Ranked birthday gift ideas for Nigerian colleagues in 2025. Cash gift pots via Paystack, experience vouchers, and professional development gifts.'
 ) ON CONFLICT (slug) DO UPDATE SET
   title = EXCLUDED.title,
   content = EXCLUDED.content,
@@ -312,7 +312,7 @@ INSERT INTO blog_posts (
   'How Remote Teams Celebrate Birthdays When Everyone Is in a Different City',
   'remote-team-birthday-celebrations',
   'Remote work solved a lot of problems. Office birthday celebrations was not one of them, until now. A guide for distributed teams.',
-  $content$<h2>The remote birthday problem</h2><p>When your team is spread across Lagos, Abuja, London, and Toronto, the traditional birthday cake approach is not possible. But that does not mean the moment has to go uncelebrated.</p><h2>The Thankeeu approach for remote teams</h2><p>A digital group card is the most effective birthday tool for remote teams. It is the one format where geography is completely irrelevant. A team member in Toronto contributes their message at 7am their time. A colleague in Lagos adds theirs at lunch. The card accumulates everything and delivers a unified result.</p><h2>Adding a meaningful gift across borders</h2><p>Flutterwave handles international card payments. Team members outside Nigeria can contribute with Visa or Mastercard. The Nigerian recipient withdraws to their local bank account.</p>$content$,
+  $content$<h2>The remote birthday problem</h2><p>When your team is spread across Lagos, Abuja, London, and Toronto, the traditional birthday cake approach is not possible. But that does not mean the moment has to go uncelebrated.</p><h2>The Thankeeu approach for remote teams</h2><p>A digital group card is the most effective birthday tool for remote teams. It is the one format where geography is completely irrelevant. A team member in Toronto contributes their message at 7am their time. A colleague in Lagos adds theirs at lunch. The card accumulates everything and delivers a unified result.</p><h2>Adding a meaningful gift across borders</h2><p>Paystack handles international card payments. Team members outside Nigeria can contribute with Visa or Mastercard. The Nigerian recipient withdraws to their local bank account.</p>$content$,
   'Workplace Culture',
   ARRAY['remote work','remote team celebrations','distributed team','virtual birthday'],
   'published',
@@ -395,7 +395,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <li>Automatic birthday and work anniversary reminders</li>
 </ul>
 <h2>Thankeeu — Built for Nigerian Teams</h2>
-<p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> is the only group cards and gifting SaaS built for African HR teams. Unlike <a href="https://thankbox.com" target="_blank" rel="nofollow">Thankbox</a>, <a href="https://kudoboard.com" target="_blank" rel="nofollow">Kudoboard</a>, and <a href="https://groupgreeting.com" target="_blank" rel="nofollow">GroupGreeting</a>, Thankeeu processes payments in <strong>Naira via Flutterwave</strong> — no FX charges, no declines.</p>
+<p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> is the only group cards and gifting SaaS built for African HR teams. Unlike <a href="https://thankbox.com" target="_blank" rel="nofollow">Thankbox</a>, <a href="https://kudoboard.com" target="_blank" rel="nofollow">Kudoboard</a>, and <a href="https://groupgreeting.com" target="_blank" rel="nofollow">GroupGreeting</a>, Thankeeu processes payments in <strong>Naira via Paystack and Flutterwave</strong> — no FX charges, no declines.</p>
 <h3>Key Features</h3>
 <ul>
 <li>🎂 <strong>Automatic birthday cards</strong> — syncs with SeamlessHR, Zoho People, BambooHR, WorkPay</li>
@@ -547,7 +547,7 @@ $BODY$<article>
 <h2>1. Thankeeu — Best for Nigeria and Africa</h2>
 <p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> is the only group card and gifting platform built for African HR teams:</p>
 <ul>
-<li>✅ Naira gift pots via Flutterwave</li>
+<li>✅ Naira gift pots via Paystack and Flutterwave</li>
 <li>✅ SeamlessHR and Zoho People integration</li>
 <li>✅ Nigerian vendor gifts (flowers, cakes, hampers)</li>
 <li>✅ WhatsApp-first sharing</li>
@@ -849,7 +849,7 @@ $BODY$<article>
 <h2>Thankeeu: The Nigerian Alternative</h2>
 <p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> does everything GroupGreeting does and far more that matters in Nigeria:</p>
 <ul>
-<li>✅ Naira gift pots via Flutterwave</li>
+<li>✅ Naira gift pots via Paystack and Flutterwave</li>
 <li>✅ HRIS integration with SeamlessHR, Zoho People, WorkPay</li>
 <li>✅ Automated birthday, anniversary, Women's Day cards</li>
 <li>✅ Nigerian vendor gifts (flowers, cakes, hampers)</li>
@@ -2276,7 +2276,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>2. Group cards that don't interrupt the news cycle</h3>
 <p>A digital group card takes thirty seconds to sign. For a team filing three stories before lunch, that's the difference between participating in a colleague's celebration and missing it entirely. Editors, reporters, and the business team can all add a message, a GIF, or a voice note from their phones between assignments.</p>
 <h3>3. Naira-based gift pots without the WhatsApp chase</h3>
-<p>Anyone who has tried to collect $0.63 (₦1,000) from twenty colleagues over WhatsApp knows the awkwardness — the reminders, the people who forget, the person left to top up the shortfall. Thankeeu's gift pots, powered by Flutterwave, let everyone contribute directly in Naira, with full transparency on who has given and how much has been raised.</p>
+<p>Anyone who has tried to collect $0.63 (₦1,000) from twenty colleagues over WhatsApp knows the awkwardness — the reminders, the people who forget, the person left to top up the shortfall. Thankeeu's gift pots, powered by Paystack and Flutterwave, let everyone contribute directly in Naira, with full transparency on who has given and how much has been raised.</p>
 <h3>4. Farewell cards that honour real contributions</h3>
 <p>Media careers in Nigeria are often transitional — talented people move on to PR agencies, fintech comms teams, or international roles. A well-organised farewell card and gift, sent automatically when HR marks someone's departure date, ensures that even a quick exit doesn't feel like a quiet one.</p>
 
@@ -2327,7 +2327,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Department-scoped group cards</h3>
 <p>A 40-person engineering team and a 15-person merchant success team have different rhythms and different inside jokes. Thankeeu's group cards are scoped by department by default, so the people who actually work alongside someone are the ones signing their card — making the message feel personal rather than company-wide and generic.</p>
 <h3>Naira gift pots with Paystack as a payment rail</h3>
-<p>There's a certain elegance to a fintech that processes billions in transactions also benefiting from the same kind of seamless payment experience for internal team gifting. Thankeeu's gift pots are powered by Flutterwave, meaning contributions are instant, transparent, and settle in Naira — no awkward bank transfer chains, no currency conversion friction.</p>
+<p>There's a certain elegance to a fintech that processes billions in transactions also benefiting from the same kind of seamless payment experience for internal team gifting. Thankeeu's gift pots are powered by Paystack and Flutterwave, meaning contributions are instant, transparent, and settle in Naira — no awkward bank transfer chains, no currency conversion friction.</p>
 <h3>New hire welcomes that actually land on day one</h3>
 <p>For a company hiring across multiple cities and sometimes multiple countries, a new engineer's first day can feel disconnected from the people they'll be working with. Automated welcome cards, triggered the moment a new hire's start date is logged in the HR system, ensure that even a remote new joiner gets a warm, personal welcome from their actual team — not just a generic onboarding email.</p>
 
@@ -2378,7 +2378,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Group cards that travel with the team, not the office</h3>
 <p>A digital group card doesn't care whether the signer is in Victoria Island or Westlands. Everyone gets a link, signs from their phone, and the finished card — full of messages, GIFs, and voice notes from colleagues across the company's footprint — arrives on the day. For someone working remotely from a regional office, that can mean the difference between a birthday that passes quietly and one that feels genuinely celebrated by people across the business.</p>
 <h3>Naira-based gift pots, with multi-currency flexibility</h3>
-<p>For Nigeria-based teams, Thankeeu's gift pots run on Flutterwave rails — appropriate, given Flutterwave's own role in African payments infrastructure — allowing colleagues to contribute directly in Naira without the friction of cross-border transfers for what should be a simple, warm gesture.</p>
+<p>For Nigeria-based teams, Thankeeu's gift pots run on Paystack and Flutterwave rails — appropriate, given Flutterwave's own role in African payments infrastructure — allowing colleagues to contribute directly in Naira without the friction of cross-border transfers for what should be a simple, warm gesture.</p>
 <h3>Farewell cards that match the scale of a contribution</h3>
 <p>In a company that has scaled as fast as Flutterwave, long-tenured employees — those who joined when the company was a fraction of its current size — represent significant institutional history when they move on. A thoughtful, automatically-triggered farewell card and gift pot ensures that contribution is acknowledged properly, even amid the busyness of a large, fast-moving organisation.</p>
 
@@ -2429,7 +2429,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Department-level group cards that scale with the org chart</h3>
 <p>As a company grows, recognition naturally becomes more meaningful when it comes from the people someone actually works with day-to-day, rather than a company-wide announcement that can feel impersonal at scale. Thankeeu's group cards are scoped to departments by default — so a card for someone on the risk team is signed by their risk team colleagues, keeping the message genuinely personal even as the wider company grows past the size where everyone knows everyone.</p>
 <h3>Gift pots that remove the awkward math</h3>
-<p>At scale, manually collecting money for a colleague's gift becomes genuinely impractical — who do you ask, how much, and how do you avoid the same five generous people funding every gift? Thankeeu's gift pots let anyone contribute any amount via Flutterwave, with full transparency on what's been raised, removing both the awkwardness and the inequity of informal collections.</p>
+<p>At scale, manually collecting money for a colleague's gift becomes genuinely impractical — who do you ask, how much, and how do you avoid the same five generous people funding every gift? Thankeeu's gift pots let anyone contribute any amount via Paystack or Flutterwave, with full transparency on what's been raised, removing both the awkwardness and the inequity of informal collections.</p>
 <h3>Promotions and farewells that keep pace with rapid internal mobility</h3>
 <p>Fast-growing companies promote people often — sometimes multiple times a year for high performers. Each of those moments is an opportunity for recognition that's easy to miss when HR is focused on the next hiring round. Automated promotion cards, triggered the moment a role change is logged, ensure these milestones don't get lost in the busyness of scaling.</p>
 
@@ -2475,7 +2475,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Work anniversaries that honour institutional memory</h3>
 <p>Educational institutions often retain staff for decades — administrative and support staff in particular can have tenures that span 10, 15, even 20+ years. These long anniversaries represent significant institutional knowledge and loyalty, and an automated system ensures they're acknowledged consistently every year, not just on milestone round numbers when someone happens to notice.</p>
 <h3>Naira-based gift pots for genuinely collective gestures</h3>
-<p>For staff farewells, retirements, or significant life events, a gift pot that anyone in the department — or the wider institution — can contribute to via Flutterwave makes collective gestures simple to organise, transparent in how funds are raised, and dignified for the person being celebrated.</p>
+<p>For staff farewells, retirements, or significant life events, a gift pot that anyone in the department — or the wider institution — can contribute to via Paystack or Flutterwave makes collective gestures simple to organise, transparent in how funds are raised, and dignified for the person being celebrated.</p>
 
 <h2>Practicing What Is Taught</h2>
 <p>There's something fitting about an institution that trains Nigeria's business leaders in organisational culture also having visibly strong internal culture practices for its own staff. Recognition isn't just a "nice to have" in academic and institutional settings — it's part of what makes long-serving staff feel that their years of contribution are seen, especially in roles that don't come with the visibility of published research or media appearances.</p>
@@ -2516,7 +2516,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Group cards as a remote-friendly ritual</h3>
 <p>A digital group card is, in many ways, perfectly suited to remote and distributed teams. Everyone gets a link, signs from wherever they are — Lagos, Abuja, or anywhere else — and contributes a message, photo, or voice note in their own time. The finished card becomes a small but meaningful artefact that the recipient can revisit, something that often doesn't happen with a quick "Happy Birthday!" message that scrolls past in a busy Slack channel.</p>
 <h3>Naira gift pots that match a savings-conscious culture</h3>
-<p>For a company whose product is about helping people manage money thoughtfully, it makes sense that internal gift pots should be equally frictionless and transparent. Thankeeu's gift pots, powered by Flutterwave, let colleagues contribute any amount they're comfortable with — from $1.58 (₦2,500) upwards — with full visibility into how much has been raised and who has contributed, removing the awkwardness of informal collections.</p>
+<p>For a company whose product is about helping people manage money thoughtfully, it makes sense that internal gift pots should be equally frictionless and transparent. Thankeeu's gift pots, powered by Paystack and Flutterwave, let colleagues contribute any amount they're comfortable with — from $1.58 (₦2,500) upwards — with full visibility into how much has been raised and who has contributed, removing the awkwardness of informal collections.</p>
 <h3>Consistency across every department, every time</h3>
 <p>The real value of automation isn't any single card or gift pot — it's that the system behaves the same way every single time, for every employee, regardless of department, seniority, or how busy the team happens to be that week. That consistency is what builds trust in a culture: employees learn that recognition isn't dependent on whether someone happened to remember.</p>
 
@@ -2568,7 +2568,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Long-service anniversaries, recognised every year</h3>
 <p>For employees who have been with a company for 10, 15, or 20+ years, automated anniversary recognition ensures that loyalty doesn't go unacknowledged simply because it's "not a round number this year." Every anniversary is recognised, every year, without HR needing to flag it manually.</p>
 <h3>Naira-based gift pots for collective gestures</h3>
-<p>For farewells, retirements, and significant milestones, gift pots powered by Flutterwave let colleagues contribute transparently and instantly — a small but meaningful upgrade from the informal envelope-passing that's common in many Nigerian offices.</p>
+<p>For farewells, retirements, and significant milestones, gift pots powered by Paystack and Flutterwave let colleagues contribute transparently and instantly — a small but meaningful upgrade from the informal envelope-passing that's common in many Nigerian offices.</p>
 
 <h2>Reliability as a Cultural Value</h2>
 <p>Interswitch's brand, in many ways, is built on reliability — payments that work, every time, without the end user needing to think about how. There's something fitting about applying that same value to internal culture: recognition that happens reliably, every time, for every employee, without anyone needing to remember to make it happen.</p>
@@ -2612,7 +2612,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Equity across the organisation</h3>
 <p>Perhaps the most significant benefit of automation in a branch network context is equity: every employee, whether at head office or a branch in a smaller city, is treated identically by the system. Birthdays, work anniversaries, and other occasions are recognised on the same schedule, with the same process, regardless of geography.</p>
 <h3>Gift pots that work nationwide</h3>
-<p>For farewells, retirements, or significant occasions, Thankeeu's Naira-based gift pots — powered by Flutterwave — let colleagues contribute from anywhere in the country, removing the logistical challenge of collecting cash contributions across a dispersed branch network.</p>
+<p>For farewells, retirements, or significant occasions, Thankeeu's Naira-based gift pots — powered by Paystack and Flutterwave — let colleagues contribute from anywhere in the country, removing the logistical challenge of collecting cash contributions across a dispersed branch network.</p>
 
 <h2>Recognition as Part of the Employee Experience, Not Just Head Office Culture</h2>
 <p>For banks with extensive branch networks, the employee experience at a branch level often gets less attention than head office culture initiatives — not deliberately, but because branch staff are simply harder to reach with centrally-organised programmes. Automated recognition addresses this by design: once the system is connected to HR data, every employee is included automatically, with no extra effort required from branch management.</p>
@@ -2660,7 +2660,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Department and team-scoped cards, wherever the team sits</h3>
 <p>For employees working in smaller country offices, a department might mean a handful of colleagues — and that's exactly who should be signing their birthday or anniversary card. Thankeeu's group cards are scoped to the team structure as recorded in HR data, so recognition comes from real colleagues, not a head office that may be thousands of kilometres away.</p>
 <h3>Naira gift pots for Nigeria-based teams</h3>
-<p>For UBA's significant Nigeria-based workforce, Thankeeu's gift pots — powered by Flutterwave — provide a frictionless way for colleagues to contribute to farewells, celebrations, and milestones directly in Naira, with full transparency on contributions.</p>
+<p>For UBA's significant Nigeria-based workforce, Thankeeu's gift pots — powered by Paystack and Flutterwave — provide a frictionless way for colleagues to contribute to farewells, celebrations, and milestones directly in Naira, with full transparency on contributions.</p>
 <h3>Equal treatment, regardless of office size</h3>
 <p>Perhaps the most meaningful aspect of automation in a pan-African context is that it removes the dependency on local HR capacity. An employee in a smaller country office gets exactly the same birthday reminder, the same group card creation, the same gift pot infrastructure as someone at head office — because the system, not a local team's bandwidth, is doing the work.</p>
 
@@ -2706,7 +2706,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Department-scoped, so recognition feels personal at any scale</h3>
 <p>In a large bank with many departments — retail banking, corporate banking, technology, operations, and more — group cards scoped to a person's actual team ensure the people signing a card are colleagues the recipient genuinely works with, not a company-wide notification that gets lost among thousands of employees.</p>
 <h3>Naira gift pots, fully transparent</h3>
-<p>For farewells, retirements, and significant occasions, Thankeeu's gift pots — powered by Flutterwave — allow colleagues to contribute transparently in Naira, with a clear record of what's been raised. This replaces the informal, sometimes uneven, envelope-passing that's common in many Nigerian offices with something more structured and equitable.</p>
+<p>For farewells, retirements, and significant occasions, Thankeeu's gift pots — powered by Paystack and Flutterwave — allow colleagues to contribute transparently in Naira, with a clear record of what's been raised. This replaces the informal, sometimes uneven, envelope-passing that's common in many Nigerian offices with something more structured and equitable.</p>
 
 <h2>Excellence as a Two-Way Standard</h2>
 <p>A brand built on premium experience ultimately depends on the people delivering it — and those people notice when the organisation's commitment to quality stops at the door of the staff room. Bringing the same intentionality that goes into customer experience design to internal recognition isn't just a nice gesture; it reinforces, for employees, that the standards the brand is known for aren't just external marketing — they're how the organisation treats its own people too.</p>
@@ -2748,7 +2748,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Group cards that work across time zones</h3>
 <p>For a team with people in Lagos, Nairobi, or working remotely from anywhere, a digital group card removes the coordination problem entirely. Everyone receives a link, signs when it's convenient for them, and the card comes together automatically — no need for someone to chase signatures across time zones.</p>
 <h3>Naira gift pots, even for small contributions</h3>
-<p>For a five or ten-person team, a gift pot doesn't need to be elaborate — but it does need to be easy. Thankeeu's gift pots, powered by Flutterwave, let even a small team pool together $3.15 (₦5,000) or $6.30 (₦10,000) for a meaningful gift, with the process taking minutes rather than a string of "have you sent your contribution yet?" messages.</p>
+<p>For a five or ten-person team, a gift pot doesn't need to be elaborate — but it does need to be easy. Thankeeu's gift pots, powered by Paystack and Flutterwave, let even a small team pool together $3.15 (₦5,000) or $6.30 (₦10,000) for a meaningful gift, with the process taking minutes rather than a string of "have you sent your contribution yet?" messages.</p>
 <h3>One less thing for founders and editors to remember</h3>
 <p>For founder-led or editor-led small teams, the value of automation isn't about scale — it's about removing one more thing from an already-full plate. When the system remembers birthdays and anniversaries automatically, the founder or editor's role shifts from "the person who has to remember" to "the person who gets to participate," which is a meaningfully different — and better — experience.</p>
 
@@ -2793,7 +2793,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 
 <h2>How Locally-Built Recognition Tools Fill the Gap</h2>
 <h3>Built around how Nigerian teams actually celebrate</h3>
-<p>Thankeeu's group cards and gift pots are designed around the realities of Nigerian workplace culture — Naira-denominated gift pots via Flutterwave, recognition of occasions that matter locally (including Workers' Day, Women's Day, and other observances relevant to Nigerian teams), and a format — digital group cards with personal messages — that fits naturally into how Nigerian colleagues already informally celebrate each other.</p>
+<p>Thankeeu's group cards and gift pots are designed around the realities of Nigerian workplace culture — Naira-denominated gift pots via Paystack and Flutterwave, recognition of occasions that matter locally (including Workers' Day, Women's Day, and other observances relevant to Nigerian teams), and a format — digital group cards with personal messages — that fits naturally into how Nigerian colleagues already informally celebrate each other.</p>
 <h3>Department-level, not headquarters-level</h3>
 <p>For a large multinational with many departments — network operations, sales, customer service, technical support — recognition that comes from a person's immediate team feels more genuine than a company-wide email from corporate communications. Thankeeu's group cards are scoped to departments, so the people signing a colleague's card are the people they actually sit with day to day.</p>
 <h3>Complementary to global programmes, not competing with them</h3>
@@ -2843,7 +2843,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Long-service recognition for technical specialists</h3>
 <p>Telecoms infrastructure roles often require deep technical specialisation that takes years to build. Employees who have stayed in technical roles for a decade or more represent significant institutional knowledge — and automated work anniversary recognition ensures that tenure is acknowledged every year, not just informally noticed by whoever happens to remember.</p>
 <h3>Naira gift pots for team celebrations</h3>
-<p>For farewells, promotions, or team milestones — completing a major network upgrade, for instance — Thankeeu's gift pots, powered by Flutterwave, give technical teams a simple way to mark these occasions collectively, with transparent contributions from anyone who wants to participate.</p>
+<p>For farewells, promotions, or team milestones — completing a major network upgrade, for instance — Thankeeu's gift pots, powered by Paystack and Flutterwave, give technical teams a simple way to mark these occasions collectively, with transparent contributions from anyone who wants to participate.</p>
 
 <h2>Recognition as a Retention Tool for Technical Talent</h2>
 <p>Skilled telecoms engineers are in demand across Nigeria's growing technology and infrastructure sectors. For employers competing to retain this talent, the day-to-day experience of feeling valued — separate from formal performance reviews or project-based recognition — can be a meaningful differentiator. An engineer who feels that their birthday, their anniversary, and their personal milestones are noticed by their team and organisation is more likely to feel a sense of belonging that extends beyond the technical challenges of the work itself.</p>
@@ -2885,7 +2885,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Group cards as a connection point between colleagues</h3>
 <p>A digital group card is, at its core, a connection mechanism — it invites colleagues to take a moment, write something personal, and contribute to a shared artefact for someone else. For teams that may not always have time for extended in-person interactions, a group card creates a structured, low-friction way for connection to happen.</p>
 <h3>Naira gift pots that bring teams together around a shared gesture</h3>
-<p>Beyond messages, Thankeeu's gift pots — powered by Flutterwave — give colleagues a way to express recognition through a collective gift. The act of contributing, even a small amount, to a colleague's farewell or celebration is itself a form of connection — a small, voluntary signal that says "I see you, and I want to be part of marking this moment."</p>
+<p>Beyond messages, Thankeeu's gift pots — powered by Paystack and Flutterwave — give colleagues a way to express recognition through a collective gift. The act of contributing, even a small amount, to a colleague's farewell or celebration is itself a form of connection — a small, voluntary signal that says "I see you, and I want to be part of marking this moment."</p>
 <h3>New hire welcomes that establish connection from day one</h3>
 <p>For new employees joining a large organisation, the first few weeks can feel disconnected — lots of process, fewer personal moments. An automated welcome card, triggered by a new hire's start date in the HR system, gives new team members an early, genuine point of connection with the colleagues they'll be working alongside.</p>
 
@@ -2931,7 +2931,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Distributed across every region</h3>
 <p>For a company with employees across Nigeria's six geopolitical zones, automation ensures that an employee in Port Harcourt receives exactly the same quality of recognition experience as someone at Lagos head office. The system doesn't depend on local HR capacity or regional management bandwidth — it applies uniformly because it's driven by data, not by local effort.</p>
 <h3>Naira gift pots that handle the volume</h3>
-<p>At this scale, manually organising gift collections for every farewell or celebration would be a full-time job for several people. Thankeeu's gift pots, powered by Flutterwave, let any group of colleagues — regardless of size — set up and contribute to a gift pot in minutes, with the platform handling the collection, transparency, and payout logistics automatically.</p>
+<p>At this scale, manually organising gift collections for every farewell or celebration would be a full-time job for several people. Thankeeu's gift pots, powered by Paystack and Flutterwave, let any group of colleagues — regardless of size — set up and contribute to a gift pot in minutes, with the platform handling the collection, transparency, and payout logistics automatically.</p>
 <h3>New hire onboarding that scales with hiring volume</h3>
 <p>Large organisations hire continuously across many departments. Automated welcome cards, triggered by new hire data in the HR system, ensure that every new employee — whether they're one of five hires that month or one of fifty — receives a personal welcome from their actual team, without onboarding teams needing to manually organise this for each individual.</p>
 
@@ -2977,7 +2977,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Department-scoped group cards</h3>
 <p>For a large telecoms employer with many functions — network, IT, sales, customer care, retail — Thankeeu's group cards are scoped to a person's actual department, ensuring the colleagues signing a card are people the recipient genuinely works alongside, which keeps recognition feeling personal even within a large organisation.</p>
 <h3>Naira gift pots for collective gestures</h3>
-<p>For farewells, promotions, and team milestones, Thankeeu's gift pots — powered by Flutterwave — allow Nigerian teams to contribute transparently and instantly, replacing informal collections with something more structured and equitable.</p>
+<p>For farewells, promotions, and team milestones, Thankeeu's gift pots — powered by Paystack and Flutterwave — allow Nigerian teams to contribute transparently and instantly, replacing informal collections with something more structured and equitable.</p>
 
 <h2>An Internal Brand That Matches the External One</h2>
 <p>There's a reputational benefit, too, in an employer's internal culture matching its external brand promises. Employees who feel that the company's stated values — attentiveness, responsiveness, putting people first — are reflected in how they themselves are treated are more likely to become genuine advocates for the brand, both as employees and, often, as customers themselves.</p>
@@ -3015,7 +3015,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 
 <h2>What Nigerian-Built Recognition Looks Like</h2>
 <h3>Naira-native gift pots, no FX friction</h3>
-<p>Thankeeu's gift pots are powered by Flutterwave — both, notably, themselves Nigerian-founded fintech success stories. Contributions happen directly in Naira, withdrawals go to Nigerian bank accounts, and there's no currency conversion friction that comes with tools priced and processed in dollars or pounds.</p>
+<p>Thankeeu's gift pots are powered by Paystack and Flutterwave — both, notably, themselves Nigerian-founded fintech success stories. Contributions happen directly in Naira, withdrawals go to Nigerian bank accounts, and there's no currency conversion friction that comes with tools priced and processed in dollars or pounds.</p>
 <h3>Recognition of occasions that matter locally</h3>
 <p>Beyond birthdays and work anniversaries, Thankeeu's occasion engine includes observances that are particularly relevant in the Nigerian context — Workers' Day, International Women's Day, and other dates that may not be prioritised by recognition tools designed primarily for other markets.</p>
 <h3>HRIS integrations built for the Nigerian HR stack</h3>
@@ -3065,7 +3065,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Recognition for milestones beyond editorial bylines</h3>
 <p>In media organisations, recognition often concentrates around editorial achievements — a big scoop, a viral story, an award. Personal milestones — birthdays, work anniversaries — for writers, editors, and especially business-side staff can receive comparatively less structured acknowledgment. Automated tracking ensures these personal milestones are recognised consistently, independent of editorial output.</p>
 <h3>Naira gift pots for farewells and team moments</h3>
-<p>Media careers, like tech careers generally, often involve movement — writers move to other publications, PR, or corporate communications roles. Thankeeu's gift pots, powered by Flutterwave, make it simple for a newsroom to mark these transitions with a collective gesture, transparently organised.</p>
+<p>Media careers, like tech careers generally, often involve movement — writers move to other publications, PR, or corporate communications roles. Thankeeu's gift pots, powered by Paystack and Flutterwave, make it simple for a newsroom to mark these transitions with a collective gesture, transparently organised.</p>
 
 <h2>Walking the Talk</h2>
 <p>For a publication whose daily work involves analysing how companies across Africa build (or struggle to build) strong internal cultures, there's a natural opportunity to apply that same lens internally — not as a grand culture initiative, but as a practical, automated system that ensures the small recognition moments happen consistently for everyone on the team, editorial and otherwise.</p>
@@ -3108,7 +3108,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Welcoming new team members properly</h3>
 <p>For a company that has trained thousands of young developers through its internship programme, the experience of <em>joining</em> the team — whether as a full-time hire or as part of a cohort — matters. An automated welcome card, triggered by a new starter's date in the system, ensures every new team member gets a genuine, personal welcome from day one, not just an onboarding checklist.</p>
 <h3>Naira gift pots for team celebrations and farewells</h3>
-<p>As people move on from the company — including, often, talented developers who came through the internship programme and progress to other opportunities — Thankeeu's gift pots, powered by Flutterwave, make it easy for a team to organise a meaningful send-off, transparently and without the usual WhatsApp collection chase.</p>
+<p>As people move on from the company — including, often, talented developers who came through the internship programme and progress to other opportunities — Thankeeu's gift pots, powered by Paystack and Flutterwave, make it easy for a team to organise a meaningful send-off, transparently and without the usual WhatsApp collection chase.</p>
 
 <h2>A Natural Fit for a Hospitality-Minded Company</h2>
 <p>There's something fitting about a company whose product is fundamentally about making people feel welcome also extending that same energy to its own team — not as a separate initiative, but as a natural extension of the values the company already brings to its product. Automated recognition doesn't require a cultural overhaul; it simply makes sure the warmth that's central to the company's external mission is also present internally, consistently, for everyone.</p>
@@ -3152,7 +3152,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Work anniversaries that recognise demanding roles</h3>
 <p>Logistics and warehouse roles often have higher turnover than office-based roles — which makes long-tenured staff in these positions particularly valuable. Automated work anniversary recognition ensures that someone who has stayed in a demanding logistics role for several years is acknowledged every year, helping reinforce that their commitment is noticed.</p>
 <h3>Naira gift pots for team celebrations across locations</h3>
-<p>For a company with operations spread across warehouses, distribution centres, and offices, Thankeeu's gift pots — powered by Flutterwave — let colleagues at any location contribute to a celebration or farewell, regardless of where the recipient is based.</p>
+<p>For a company with operations spread across warehouses, distribution centres, and offices, Thankeeu's gift pots — powered by Paystack and Flutterwave — let colleagues at any location contribute to a celebration or farewell, regardless of where the recipient is based.</p>
 
 <h2>Recognition That Reaches the Whole Operation</h2>
 <p>For e-commerce and logistics companies, building a recognition culture that reaches warehouse and field-based staff — not just office-based corporate teams — sends an important signal: that the people who make the operational side of the business work are valued as much as the people in more visible, customer-facing or corporate roles.</p>
@@ -3196,7 +3196,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Recognition that reflects engineering culture</h3>
 <p>For engineering-heavy organisations, recognition that comes from the people who understand the technical work — a person's actual engineering pod or team — carries more weight than a generic company-wide message. Thankeeu's team-scoped group cards ensure recognition comes from genuine colleagues, not a distant HR function.</p>
 <h3>Naira gift pots for Nigeria-based team members</h3>
-<p>For team members based in Nigeria, Thankeeu's gift pots — powered by Flutterwave — provide a frictionless way for colleagues to contribute to farewells and celebrations directly in Naira, regardless of how distributed the rest of the team is.</p>
+<p>For team members based in Nigeria, Thankeeu's gift pots — powered by Paystack and Flutterwave — provide a frictionless way for colleagues to contribute to farewells and celebrations directly in Naira, regardless of how distributed the rest of the team is.</p>
 <h3>Welcoming new engineers into a remote team</h3>
 <p>For new engineers joining a distributed team, the first impressions matter — and a personal welcome from teammates they may not meet in person for a long time (if ever) can make a meaningful difference to how connected they feel from day one. Automated welcome cards, triggered by start dates in the HR system, help ensure this happens consistently for every new team member.</p>
 
@@ -3242,7 +3242,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <h3>Recognition for city and operations teams specifically</h3>
 <p>Mobility companies often organise corporate staff by city or region — a Lagos operations team, an Abuja team, and so on. Thankeeu's group cards can be scoped to these teams, ensuring a birthday or anniversary card for someone on the Lagos team is signed by their actual Lagos colleagues, not a generic company-wide message.</p>
 <h3>Naira gift pots for team milestones</h3>
-<p>For farewells, promotions, or team celebrations — hitting a growth milestone in a city, for instance — Thankeeu's gift pots, powered by Flutterwave, give operations teams a simple, transparent way to mark these moments collectively.</p>
+<p>For farewells, promotions, or team celebrations — hitting a growth milestone in a city, for instance — Thankeeu's gift pots, powered by Paystack and Flutterwave, give operations teams a simple, transparent way to mark these moments collectively.</p>
 
 <h2>Connection for the Team Behind the Connections</h2>
 <p>There's a certain logic in a company whose product connects people also having a corporate culture where the team itself feels genuinely connected — not despite the operational intensity of the business, but as something that's built into how the team operates day to day, the same way the platform's other operational systems are.</p>

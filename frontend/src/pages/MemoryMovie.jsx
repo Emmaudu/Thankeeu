@@ -23,7 +23,7 @@ import Icon from '../components/ui/Icon'; const STEPS = [ { icon: 'Users', title
 <div className="max-w-5xl mx-auto">
 <h2 className="text-3xl font-display font-bold text-center text-warm-900 mb-4">Don't just send a card. Create a memory. </h2>
 <p className="text-warm-500 text-center mb-10 max-w-2xl mx-auto">Every Thankeeu card automatically becomes a cinematic keepsake. No extra apps. No editing. No effort. </p>
-<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mm-feature-grid"> {FEATURES.map(({ icon, label }) => ( <div key={label} className="flex flex-col items-center text-center p-5 rounded-2xl bg-purple-50 border border-purple-100 hover:border-primary-200 transition-colors">
+<div className="grid grid-cols-2 sm:grid-cols-4 gap-4"> {FEATURES.map(({ icon, label }) => ( <div key={label} className="flex flex-col items-center text-center p-5 rounded-2xl bg-purple-50 border border-purple-100 hover:border-primary-200 transition-colors">
 <Icon name={icon} size={28} className="text-primary-500 mb-2" />
 <span className="text-sm font-semibold text-warm-700">{label}</span>
 </div> ))} </div>

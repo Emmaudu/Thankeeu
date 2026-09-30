@@ -52,9 +52,9 @@ export default function CultureEngagements() {
       <section className="bg-[#120b24] px-4 py-20 text-white">
         <div className="mx-auto max-w-7xl">
           <p className="text-sm font-black uppercase tracking-[0.22em] text-primary-200">Culture and engagements</p>
-          <div className="mt-6 grid grid-cols-1 gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+          <div className="mt-6 grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div>
-              <h1 className="text-3xl font-black leading-tight break-words sm:text-4xl md:text-6xl">Turn employee engagement into a weekly company championship.</h1>
+              <h1 className="text-4xl font-black leading-tight md:text-6xl">Turn employee engagement into a weekly company championship.</h1>
               <p className="mt-6 max-w-3xl text-lg leading-8 text-white">
                 Thankeeu Games is an inter-company employee engagement league where departments compete every Friday,
                 employees build pride in their craft, and winners are celebrated with automatic congratulations group cards that players and visitors can sign with messages, GIFs, photos, videos and voice notes.

@@ -1354,20 +1354,6 @@ Object.assign(emailTemplates, {
     };
   },
 
-  deliveryBlockedNoEmail: (d) => ({
-    subject: `⚠️ ${d.recipientName}'s card couldn't be delivered — add their email`,
-    html: BASE(`
-      <h2 style="color:#1a1a1a;font-size:20px;margin:0 0 12px;">Hi ${esc(d.creatorName || 'there')},</h2>
-      <p style="color:#555;line-height:1.8;">
-        Your card for <strong>${esc(d.recipientName)}</strong> was due to be delivered${d.sendDate ? ` on <strong>${esc(d.sendDate)}</strong>` : ''},
-        but it has <strong>no recipient email address</strong>, so we couldn't send it.
-      </p>
-      <p style="color:#555;line-height:1.8;">Add ${esc(d.recipientName)}'s email to the card and it is delivered within a minute.</p>
-      ${btn('Add the email & deliver', `${FRONTEND_URL}/dashboard/cards`, '#7C3AED')}
-      <p style="color:#aaa;font-size:12px;margin-top:12px;">Everything signed so far is saved.</p>
-    `)
-  }),
-
   cardFeePaid: (d) => ({
     subject: `✅ Payment received — ${d.recipientName}'s card is all set`,
     html: BASE(`

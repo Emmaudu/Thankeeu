@@ -42,9 +42,6 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import { fileURLToPath } from 'url';
-import { COUNTRY_LANDINGS, GENERAL_LANDINGS, OCCASION_LABELS, LANDING_COVERS_PER_CATEGORY, landingFaqs } from '../src/data/countryLandings.js';
-import { ILLUSTRATED_COVER_ROWS } from '../src/utils/illustratedCoverRows.js';
-import { weddingLanding, WEDDING_LANDING_KEYS } from '../src/data/weddingLandings.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -121,6 +118,7 @@ const GEO_CLUSTER = {
   '/online-group-cards-uk':      'en-GB',
   '/online-group-cards-us':      'en-US',
   '/online-group-cards-canada':  'en-CA',
+  '/online-group-cards-nigeria': 'en-NG',
 };
 
 function buildHreflangLinks(canonicalPath) {
@@ -148,9 +146,6 @@ function buildPage({ title, description, canonicalPath, ogType = 'website', json
   // hreflang cluster (geo pages only)
   const hreflangLinks = buildHreflangLinks(canonicalPath);
   if (hreflangLinks) {
-    // Drop the template's homepage-only hreflang pair so the page doesn't
-    // declare two different x-default / "en" alternates.
-    html = html.replace(/\s*<link rel="alternate" href="[^"]*" hreflang="(?:x-default|en)"\s*\/>/g, '');
     html = html.replace('</head>', `    ${hreflangLinks}\n  </head>`);
   }
 
@@ -222,74 +217,10 @@ function writeStatic(relPath, html) {
   fs.writeFileSync(path.join(dir, 'index.html'), html, 'utf-8');
 }
 
-
-// ── Country landings (UK, Canada, Nigeria) — the homepage layout with its own
-// copy. Built from the same data the React page renders (data/countryLandings.js)
-// so the static HTML, the page and the FAQ markup can never disagree.
-function countryLandingPages() {
-  return [
-    ...Object.values(COUNTRY_LANDINGS),
-    ...Object.values(GENERAL_LANDINGS),
-    ...WEDDING_LANDING_KEYS.map(k => weddingLanding(k)),
-  ].map(landingStaticPage);
-}
-
-function landingStaticPage(l) {
-  const h = (t) => esc(t);
-  {
-    const faqs = landingFaqs(l);
-    const source = `landing-${l.path.slice(1)}`;
-    const perCat = l.coversPerCategory || LANDING_COVERS_PER_CATEGORY;
-    const coverRows = l.coverOccasions.map((occ) => {
-      const rows = ILLUSTRATED_COVER_ROWS.filter(r => r[2] === occ).slice(0, perCat);
-      if (!rows.length) return '';
-      const label = OCCASION_LABELS[occ] || occ;
-      const items = rows.map(([folder, stem, occasion, , headline, tagline]) => {
-        const id = `illus-${folder}-${stem}`;
-        const href = `/card/customize?occasion=${encodeURIComponent(occasion)}&design=${encodeURIComponent(id)}&layout=album&source=${encodeURIComponent(source)}`;
-        const alt = `${tagline ? `${headline} — ${tagline}` : headline} — ${label.toLowerCase()} group card cover`;
-        return `<li><a href="${h(href)}"><img src="/cards/illustrated/${folder}/${stem}.svg" alt="${h(alt)}" width="210" height="297" loading="lazy" /> ${h(headline)}</a></li>`;
-      }).join('');
-      return `<h3>${h(l.coverOccasions.length === 1 ? `${perCat} ${label.toLowerCase()} card covers` : `${label} cards`)}</h3><ul>${items}</ul><p><a href="/cards/create?occasion=${occ}">See all ${h(label.toLowerCase())} covers</a></p>`;
-    }).join('\n  ');
-    const rootHtml = `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="${l.path}">${h(l.breadcrumb)}</a></nav>
-<main>
-  <p>${h(l.tagline)}</p>
-  <h1>${h(l.h1Lead)} ${h(l.h1Accent)}</h1>
-  <p>${h(l.subtitle)}</p>
-  <p><strong>Free to start · From $3.15 to send · No subscription</strong></p>
-  <p><a href="${h(l.ctaTo || '/card/new')}">${h(l.ctaLabel || 'Create a card')}</a> | <a href="/sample">Try our demo card</a></p>
-  <h2>${h(l.coversTitle)}</h2>
-  ${coverRows}
-  <h2>${h(l.useCasesTitle || 'What teams use it for')}</h2>
-  ${l.payments ? `<p>${l.currency ? `<strong>Gift in ${h(l.currency)}.</strong> ` : ''}${h(l.payments)}</p>` : ''}
-  <ul>${(l.useCases || []).map(([t, b]) => `<li><strong>${h(t)}</strong> — ${h(b)}</li>`).join('')}</ul>
-  ${l.comparison ? `<h2>${h(l.comparison.title || `Thankeeu vs ${l.comparison.columns.slice(0, -1).join(', ')}`)}</h2>
-  <table><thead><tr><th>Feature</th>${l.comparison.columns.map(c => `<th>${h(c)}</th>`).join('')}</tr></thead><tbody>${l.comparison.rows.map(([f, ...cells]) => `<tr><td>${h(f)}</td>${cells.map(c => `<td>${c === true ? 'Yes' : c === false ? 'No' : h(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>${l.comparison.note ? `<p>${h(l.comparison.note)}</p>` : ''}` : ''}
-  <h2>${h(l.linksTitle || 'Guides & comparisons')}</h2>
-  <ul>${[...(l.blogLinks || []), ...(l.related || [])].map(([href, label]) => `<li><a href="${href}">${h(label)}</a></li>`).join('')}</ul>
-  <h2>Questions we get all the time</h2>
-  ${faqs.map(f => `<h3>${h(f.q)}</h3><p>${h(f.a)}</p>`).join('\n  ')}
-</main>`;
-    const jsonLd = {
-      '@context': 'https://schema.org',
-      '@graph': [
-        { '@type': 'BreadcrumbList', itemListElement: [
-          ...[{ name: 'Thankeeu', url: '/' }, ...(l.breadcrumbParents || []), { name: l.breadcrumb, url: l.path }]
-            .map((b, i) => ({ '@type': 'ListItem', position: i + 1, name: b.name, item: `${APP_URL}${b.url}` })),
-        ] },
-        { '@type': 'FAQPage', mainEntity: faqs.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })) },
-      ],
-    };
-    return { path: l.path, title: l.title, description: l.description, rootHtml, jsonLd };
-  }
-}
-
 // ── 1. Static marketing pages ────────────────────────────────────────────────
 // Meta copied verbatim from each page's existing useSEO() call, so nothing
 // user-facing changes — we're just making it visible to crawlers before JS.
 const STATIC_PAGES = [
-  ...countryLandingPages(),
   {
     path: '/groupgreeting-alternative',
     title: 'GroupGreeting Alternative — Voice Notes, Gift Pot & Memory Movie | Thankeeu',
@@ -364,7 +295,7 @@ const STATIC_PAGES = [
   },
   {
     path: '/pricing',
-    title: 'Pricing — Group Cards, Memory Movies & Photo Walls from $3.15 | Thankeeu',
+    title: 'Pricing — Online Group Cards from £4.99 | Thankeeu',
     description: 'Send a group card from $3.15 USD / £2.45 GBP. Pool a gift in USD, GBP, EUR, CAD and more. Team plans with unlimited cards and HR automation. Free to create — pay when you send.',
   },
   {
@@ -401,6 +332,29 @@ const STATIC_PAGES = [
     path: '/policy',
     title: 'Privacy Policy & Terms of Service | Thankeeu',
     description: 'Thankeeu Privacy Policy and Terms of Service. Your data is safe — we never sell personal information. Secure payments via Flutterwave.',
+  },
+  {
+    path: '/online-group-cards-uk',
+    title: 'Online Group Cards UK — Sign Together, Add a Group Gift | Thankeeu',
+    description: 'Create an online group card in the UK in under 2 minutes. Colleagues sign from one link — messages, photos, GIFs, voice notes — and chip in to a group gift in GBP. Free to start, no signup needed to sign.',
+    rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="/online-group-cards-uk">Online Group Cards UK</a></nav><main><h1>Online Group Cards UK — Leaving Cards, Birthday Cards, Collections</h1><p>Create an online group card the whole UK office signs from one link — messages, photos, GIFs and voice notes, with a pooled gift collection in GBP. From £4.99 per card, no per-signer charges. Scheduled delivery for the exact leaving day or birthday.</p><h2>Popular in the UK</h2><ul><li><a href="/cards/leaving-card">Online leaving cards</a> — the classic office send-off, signed by everyone including remote colleagues.</li><li><a href="/virtual-birthday-card">Group birthday cards</a> with a GBP gift collection.</li><li><a href="/cards/retirement">Retirement cards</a> celebrating a full career.</li><li>Voice notes and an automatic Memory Movie — features Thankbox and GroupGreeting do not offer.</li></ul><p><a href="/cards/create">Create a group card — free</a> | <a href="/online-group-cards-us">US</a> | <a href="/online-group-cards-nigeria">Nigeria</a> | <a href="/pricing">Pricing</a></p></main>`,
+  },
+  {
+    path: '/online-group-cards-us',
+    title: 'Online Group Cards US — Group Ecards & Group Gifts | Thankeeu',
+    description: 'Create an online group card for your US team. Coworkers sign from one link — messages, photos, GIFs, voice notes — and pool a group gift in USD. Free to start; nobody needs an account to sign.',
+    rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="/online-group-cards-us">Online Group Cards US</a></nav><main><h1>Online Group Cards US — Group eCards the Whole Team Signs</h1><p>Create an online group card for your US team — one link, everyone signs with messages, photos and voice notes, plus a pooled gift in USD. Flat pricing from $3.15 per card with no per-contributor charges, unlike most US group card platforms. Works for remote and hybrid teams across every time zone.</p><h2>Popular in the US</h2><ul><li><a href="/ecard-for-coworker">Group eCards for coworkers</a> — farewells, birthdays, work anniversaries.</li><li><a href="/virtual-farewell-card">Virtual farewell cards</a> with a USD gift collection.</li><li><a href="/group-ecard">Group eCards</a> for friends and family across states.</li><li>Automatic Memory Movie keepsake — a feature Kudoboard and GroupGreeting do not offer.</li></ul><p><a href="/cards/create">Create a group card — free</a> | <a href="/online-group-cards-uk">UK</a> | <a href="/online-group-cards-nigeria">Nigeria</a> | <a href="/pricing">Pricing</a></p></main>`,
+  },
+  {
+    path: '/online-group-cards-canada',
+    title: 'Online Group Cards Canada — Group Ecards & Gifts in CAD | Thankeeu',
+    description: 'Create an online group card for your Canadian team. Everyone signs from one link — messages, photos, GIFs, voice notes — and chips in to a group gift. Free to start, bilingual-team friendly.',
+  },
+  {
+    path: '/online-group-cards-nigeria',
+    title: 'Online Group Cards Nigeria — Sign Together, Pool a Naira Gift | Thankeeu',
+    description: 'Create an online group card in Nigeria. The whole team signs from one WhatsApp link — messages, photos, voice notes — and pools a Naira gift with secure Flutterwave payments. Withdraw to any Nigerian bank.',
+    rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="/online-group-cards-nigeria">Online Group Cards Nigeria</a></nav><main><h1>Online Group Cards in Nigeria — Sign Together, Pool a Naira Gift</h1><p>The only major group card platform built for Nigeria: share one WhatsApp link, the whole team signs with messages, photos and voice notes, and pools a Naira gift with secure Flutterwave and Paystack payments. Withdraw to any Nigerian bank. From NGN 5,000 per card.</p><h2>Why Nigerian teams choose Thankeeu</h2><ul><li>Naira gift pot with Flutterwave/Paystack — no dollar cards needed to contribute.</li><li>Withdraw collected gifts to any Nigerian bank account.</li><li>Works perfectly over WhatsApp — the link everyone actually opens.</li><li>Voice notes, photos and an automatic Memory Movie keepsake.</li><li>Kudoboard, Thankbox and GroupGreeting have no Naira support — Thankeeu does.</li></ul><p><a href="/cards/create">Create a group card — free</a> | <a href="/online-group-cards-uk">UK</a> | <a href="/online-group-cards-us">US</a> | <a href="/pricing">Pricing</a></p></main>`,
   },
   {
     path: '/cards/create',
@@ -538,6 +492,11 @@ const STATIC_PAGES = [
     description: 'Thankeeu Live Memory Wall lets guests upload photos and videos in real time. Everything preserved forever and automatically becomes a Memory Movie.',
   },
   {
+    path: '/wedding-memory-wall',
+    title: "Wedding Memory Wall — Collect Every Guest's Photos & Videos | Thankeeu",
+    description: "Collect every guest's wedding photos and videos in one shared Memory Wall. Guests scan a QR code, upload throughout the day, and get a permanent album and Memory Movie.",
+  },
+  {
     path: '/birthday-memory-wall',
     title: 'Birthday Memory Wall — Turn Your Birthday Into a Live Celebration | Thankeeu',
     description: "Collect birthday photos, videos and messages from everyone at the party and beyond with Thankeeu's Live Memory Wall.",
@@ -553,7 +512,14 @@ const STATIC_PAGES = [
     description: 'Capture photos, videos and memories from the entire team for employee celebrations. Build a permanent Memory Wall and auto-generate a keepsake movie.',
   },
   { path: '/live-memory-wall',     title: 'Live Memory Wall™ — Collect Every Guest Photo & Video at Your Event | Thankeeu',  description: 'Collect every guest\'s photos and videos in one shared wall — guests scan a QR code or click a link, no app needed. Real-time live photo wall for weddings, birthdays, owambe, and every occasion.' },
+  { path: '/wedding-memory-wall',  title: 'Wedding Guest Photo Sharing — Collect Every Photo with a QR Code | Thankeeu',      description: 'Collect every wedding guest\'s photos and videos in one place. Guests scan a QR code — no app, no account. Real-time live photo wall for the reception. Plus heartfelt messages, voice notes, and a gift pot.' },
+  { path: '/thankeeu-vs-wedtrove',  title: 'Thankeeu vs Wedtrove — Which Is Better for Wedding Guest Photos? | Thankeeu', description: 'Honest comparison of Thankeeu vs Wedtrove for wedding guest photo sharing. Thankeeu adds messages, voice notes, gift pot, Memory Movie and Naira payments.' },
   { path: '/thankeeu-vs-thankbox',  title: 'Thankeeu vs Thankbox — Group Card Comparison | Thankeeu',                        description: 'Thankeeu vs Thankbox group card comparison. Thankeeu supports Naira payments, HRIS integration, live photo walls and Memory Movie.' },
+  { path: '/weduploader-alternative', title: 'The Best WedUploader Alternative for Wedding Guest Photo Sharing | Thankeeu', description: 'Collect photos, videos, voice notes, GIFs, wishes and cash gifts in one beautiful wedding memory experience. The complete WedUploader alternative.' },
+  { path: '/guestpix-alternative',   title: 'The Best GuestPix Alternative for Wedding Guest Photo Sharing | Thankeeu',   description: 'GuestPix alternative that collects photos, videos, voice notes, GIFs, messages and cash gifts. Live gallery, Memory Movie, permanent storage.' },
+  { path: '/kululu-alternative',     title: 'The Best Kululu Alternative for Wedding Guest Photo Sharing | Thankeeu',     description: 'Kululu alternative with photo uploads, voice blessings, cash gifts and Memory Movie. Works in NGN, GBP, USD. No app for guests.' },
+  { path: '/pov-alternative',        title: 'The Best POV Alternative for Wedding Guest Photo Sharing | Thankeeu',        description: 'POV app alternative with complete wedding memory collection — photos, videos, voice notes, GIFs, messages and cash gifts in one platform.' },
+  { path: '/guestcam-alternative',   title: 'The Best GuestCam Alternative for Wedding Guest Photo Sharing | Thankeeu',   description: 'GuestCam alternative that collects every wedding memory — photos, videos, voice notes and gifts in one place. Auto Memory Movie included.' },
   { path: '/thankeeu-vs-kudoboard', title: 'Thankeeu vs Kudoboard — Best Group Card for Nigerian & Global Teams | Thankeeu',  description: 'Kudoboard alternative for Nigeria. Thankeeu works in NGN, GBP and USD with HRIS sync and live photo wall.' },
   { path: '/birthday-memory-wall', title: 'Birthday Memory Wall — Collect Guest Photos & Videos In One Place | Thankeeu',     description: 'Create a live birthday memory wall where friends and family upload photos and videos throughout the day — no app, no account. Share via WhatsApp, display live at the party, auto Memory Movie™ after.' },
   { path: '/church-memory-wall',   title: 'Church Memory Wall — Capture Every Conference & Service Moment | Thankeeu',         description: 'Capture every moment from church conferences, pastor appreciation days and special services in one permanent memory wall.' },
@@ -603,6 +569,11 @@ const STATIC_PAGES = [
     title: 'New Baby & Baby Shower Group Cards Nigeria | Thankeeu',
     description: "A new baby is the greatest gift. Celebrate Nigerian parents with a beautiful group card full of love, prayers, and blessings — plus a pooled Naira baby gift from colleagues and family.",
   },
+  {
+    path: '/occasions/wedding',
+    title: 'Wedding Congratulations Group Cards Nigeria | Thankeeu',
+    description: 'Send a beautiful wedding congratulations group card in Nigeria. Everyone on the team or in the family adds their warmest wishes, and you pool a Naira wedding gift — all in one place.',
+  },
 ];
 
 function prerenderStaticPages() {
@@ -615,7 +586,6 @@ function prerenderStaticPages() {
         description: page.description,
         canonicalPath: page.path,
         rootHtml: page.rootHtml || genericRootHtml,
-        jsonLd: page.jsonLd,
       });
       writeStatic(page.path, html);
       count++;

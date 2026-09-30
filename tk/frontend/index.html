@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en" prefix="og: https://ogp.me/ns#">
+  <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18236198529"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'AW-18236198529');
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- Critical app-shell CSS is intentionally inline. Vite's full stylesheet
+         arrives with the JS graph; without this tiny block, deep-link reloads
+         briefly expose the unstyled prerendered HTML. -->
+    <style id="critical-app-shell">
+      :root { color-scheme: light; }
+      html {
+        min-height: 100%;
+        background: #f8f5ff;
+      }
+      body {
+        min-height: 100%;
+        margin: 0;
+        background: #fdfcff;
+        color: #1a1035;
+        font-family: "Nunito Sans", "Plus Jakarta Sans", system-ui, sans-serif;
+      }
+      #root { min-height: 100vh; }
+      body.loading { overflow: hidden; }
+      body.loading #root { opacity: 0; }
+      #app-shell-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background:
+          radial-gradient(circle at 50% 26%, rgba(196, 181, 253, 0.44), transparent 34%),
+          linear-gradient(180deg, #faf7ff 0%, #f5f0ff 100%);
+        opacity: 1;
+        transition: opacity 160ms ease;
+      }
+      body:not(.loading) #app-shell-loader {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #app-shell-brand {
+        color: #6d28d9;
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+      }
+      #app-shell-loader-inner {
+        width: 42px;
+        height: 42px;
+        border: 3px solid #ddd6fe;
+        border-top-color: #7c3aed;
+        border-radius: 999px;
+        animation: thankeeu-shell-spin 720ms linear infinite;
+      }
+      @keyframes thankeeu-shell-spin {
+        to { transform: rotate(360deg); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #app-shell-loader { transition: none; }
+        #app-shell-loader-inner { animation-duration: 1.5s; }
+      }
+    </style>
+
+    <!-- ── Theme colour (browser chrome, Android, PWA) ──────────────── -->
+    <meta name="theme-color" content="#7C3AED" />
+    <meta name="msapplication-TileColor" content="#7C3AED" />
+    <meta name="msapplication-TileImage" content="/android-chrome-192x192.png" />
+
+    <!-- ── Primary SEO (pre-hydration fallback) ──────────────────────── -->
+    <title>Thankeeu — Group Cards, Gift Pools & Company Workspaces</title>
+    <meta name="description" content="Thankeeu creates online group cards, gift pools and Memory Movies on your own subdomain — automate birthdays, farewells and team celebrations." />
+    <meta name="msvalidate.01" content="2F2D04C986CE92E80F60D0D18CDB61C0" />
+    <meta name="robots"   content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+    <meta name="googlebot" content="index,follow" />
+    <meta name="bingbot"   content="index,follow" />
+    <meta name="author"    content="Thankeeu" />
+    <meta name="keywords"  content="group card, birthday card online, farewell card, company workspace, employee recognition platform, HR birthday automation, team celebration, online group card, office birthday card, group greeting card, gift collection" />
+
+    <!-- ── Open Graph ────────────────────────────────────────────────── -->
+    <meta property="og:type"         content="website" />
+    <meta property="og:url"          content="https://www.thankeeu.com/" />
+    <meta property="og:title"        content="Thankeeu - Group Cards, Gifts &amp; Company Workspaces" />
+    <meta property="og:description"  content="Create beautiful online group cards, collect heartfelt messages and gift pots, and give every company a dedicated Thankeeu workspace on its own subdomain." />
+    <meta property="og:image"        content="https://www.thankeeu.com/og-image.png" />
+    <meta property="og:image:secure_url" content="https://www.thankeeu.com/og-image.png" />
+    <meta property="og:image:type"   content="image/png" />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt"    content="Thankeeu — Group Cards &amp; Gifts for Every Occasion" />
+    <meta property="og:site_name"    content="Thankeeu" />
+    <meta property="og:locale"       content="en" />
+
+    <!-- ── Twitter / X Card ──────────────────────────────────────────── -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:site"        content="@thankeeu" />
+    <meta name="twitter:creator"     content="@thankeeu" />
+    <meta name="twitter:title"       content="Thankeeu - Group Cards, Gifts &amp; Company Workspaces" />
+    <meta name="twitter:description" content="Group cards, gift pools and dedicated company workspaces for employee recognition and every celebration." />
+    <meta name="twitter:image"       content="https://www.thankeeu.com/og-image.png" />
+    <meta name="twitter:image:alt"   content="Thankeeu — Group Cards &amp; Gifts for Every Occasion" />
+
+    <!-- ── Canonical + hreflang ──────────────────────────────────────── -->
+    <link rel="canonical" href="https://www.thankeeu.com/" />
+    <link rel="alternate" href="https://www.thankeeu.com/" hreflang="x-default" />
+    <link rel="alternate" href="https://www.thankeeu.com/" hreflang="en" />
+
+    <!-- ── Favicon — full suite for all browsers & search engines ────── -->
+    <link rel="icon"             href="/favicon.svg"         type="image/svg+xml" />
+    <link rel="icon"             href="/favicon-96x96.png"   sizes="96x96" type="image/png" />
+    <link rel="icon"             href="/favicon-32x32.png"   sizes="32x32" type="image/png" />
+    <link rel="icon"             href="/favicon-16x16.png"   sizes="16x16" type="image/png" />
+    <link rel="icon"             href="/favicon.ico"         sizes="48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="manifest"         href="/site.webmanifest" />
+
+    <!-- ── Sitemap ───────────────────────────────────────────────────── -->
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+
+    <!-- ── Fonts ─────────────────────────────────────────────── -->
+    <!-- Trimmed from 9 families to 6 actually used in the codebase:
+         Plus Jakarta Sans (UI/body), Nunito (headings), Caveat (handwritten
+         card messages), Great Vibes (album cover titles), Fraunces (display
+         accent), Cormorant Garamond (Classic Script font style option in card
+         creation). Removed: Poppins (0 uses), JetBrains Mono (0 uses),
+         Nunito Sans (0 uses). Loaded non-blocking via rel=preload+onload. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style"
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript>
+      <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" />
+    </noscript>
+
+    <!-- ── DNS prefetch for third-party origins ──────────────────────── -->
+    <link rel="dns-prefetch" href="https://api.flutterwave.com" />
+    <link rel="dns-prefetch" href="https://checkout.flutterwave.com" />
+    <link rel="preconnect" href="https://api.thankeeu.com" crossorigin />
+
+    <!-- ── GEO / AI discovery signals ───────────────────────────────────── -->
+    <link rel="alternate" type="text/plain" title="llms.txt" href="/llms.txt" />
+    <meta name="application-name" content="Thankeeu" />
+
+    <!-- ── Base JSON-LD (React overwrites per-page via useSEO) ──────── -->
+    <script type="application/ld+json" id="ld-base">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://www.thankeeu.com/#organization",
+          "name": "Thankeeu",
+          "alternateName": "Thankeeu Group Cards",
+          "url": "https://www.thankeeu.com",
+          "logo": {
+            "@type": "ImageObject",
+            "@id": "https://www.thankeeu.com/#logo",
+            "url": "https://www.thankeeu.com/android-chrome-512x512.png",
+            "width": 512,
+            "height": 512,
+            "caption": "Thankeeu"
+          },
+          "image": { "@id": "https://www.thankeeu.com/#logo" },
+          "description": "Group cards, gift pools, memory movies and dedicated company workspaces for employee recognition and everyday celebrations. Secure payments powered by Flutterwave.",
+          "foundingDate": "2024",
+          "areaServed": { "@type": "Place", "name": "Worldwide" },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "email": "support@thankeeu.com",
+            "availableLanguage": "English"
+          },
+          "sameAs": [
+            "https://twitter.com/thankeeu",
+            "https://www.instagram.com/thankeeu",
+            "https://www.linkedin.com/company/thankeeu"
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://www.thankeeu.com/#website",
+          "url": "https://www.thankeeu.com",
+          "name": "Thankeeu",
+          "description": "Group cards, gift pools, memory movies and company workspaces",
+          "publisher": { "@id": "https://www.thankeeu.com/#organization" },
+          "inLanguage": "en"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://www.thankeeu.com/#app",
+          "name": "Thankeeu",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web, iOS, Android",
+          "url": "https://www.thankeeu.com",
+          "description": "Group cards, gift collection, memory movies and company workspace software for businesses and individuals worldwide.",
+          "offers": [
+            { "@type": "Offer", "price": "3.15", "priceCurrency": "USD" },
+            { "@type": "Offer", "price": "2.45", "priceCurrency": "GBP" }
+          ]
+        }
+      ]
+    }
+    </script>
+  </head>
+  <body class="loading">
+    <!-- App-shell loading spinner — hidden immediately once React mounts.
+         Prevents the blank white flash that occurs between HTML parse and
+         first React paint. CSS in index.css controls .loading / not(.loading). -->
+    <div id="app-shell-loader" aria-hidden="true">
+      <div id="app-shell-brand">Thankeeu</div>
+      <div id="app-shell-loader-inner"></div>
+    </div>
+    <div id="root"><nav aria-label="Thankeeu services"><a href="/occasions/birthday">Birthday group cards</a> <a href="/cards/leaving-card">Online leaving cards</a> <a href="/cards/retirement">Retirement cards</a> <a href="/live-memory-wall">Live Memory Wall</a> <a href="/pricing">Pricing</a> <a href="/how-it-works">How it works</a></nav><main><h1>Thankeeu — Online Group Cards, Gifts &amp; Live Memory Walls</h1><p>Create a beautiful group card everyone signs from one link. Add messages, photos, GIFs, voice notes, a group gift, or a live two-column memory wall for birthdays, farewells and retirements.</p><p><a href="/cards/create">Create a group card — free</a> or <a href="/sample">view a sample card</a>.</p></main></div>
+    <script type="module" src="/src/main.jsx"></script>
+
+    <!--
+      ── Tawk.to live chat ────────────────────────────────────────────────
+      Property: Thankeeu / Widget: 1jts7ek8k
+      Deferred 3s so it never affects LCP. Auto-hidden on /card/* and
+      /sign/* so the bubble never overlaps the album flipbook UI.
+    -->
+    <script>
+      (function () {
+        var src = 'https://embed.tawk.to/6a5c47803de87f1d487ef758/1jts7ek8k';
+
+        // Guard: if the env var was not set, src will be the literal
+        // placeholder string — bail out silently rather than loading a
+        // broken script URL.
+        if (!src || src.indexOf('tawk.to') === -1) return;
+
+        window.Tawk_API = window.Tawk_API || {};
+        window.Tawk_LoadStart = new Date();
+
+        // Auto-hide on /card/* and /sign/* so the bubble never sits on
+        // top of the album flipbook signing experience.
+        window.Tawk_API.onLoad = function () {
+          var path = window.location.pathname;
+          if (/^\/(card|sign)\//.test(path)) {
+            window.Tawk_API.hideWidget();
+          }
+        };
+
+        // Re-evaluate on SPA navigation — React Router changes the path
+        // without a full page reload so we need to listen for it.
+        // Tawk_API exposes no navigation hook, so we patch history instead.
+        (function patchHistory() {
+          var _push = history.pushState;
+          var _replace = history.replaceState;
+          function onNav() {
+            var path = window.location.pathname;
+            if (!window.Tawk_API || !window.Tawk_API.hideWidget) return;
+            if (/^\/(card|sign)\//.test(path)) {
+              window.Tawk_API.hideWidget();
+            } else {
+              window.Tawk_API.showWidget();
+            }
+          }
+          history.pushState = function () { _push.apply(this, arguments); onNav(); };
+          history.replaceState = function () { _replace.apply(this, arguments); onNav(); };
+          window.addEventListener('popstate', onNav);
+        })();
+
+        // Defer load by 3s — doesn't affect LCP/FCP/CLS scores
+        setTimeout(function () {
+          var s1 = document.createElement('script');
+          var s0 = document.getElementsByTagName('script')[0];
+          s1.async = true;
+          s1.src = src;
+          s1.charset = 'UTF-8';
+          s1.setAttribute('crossorigin', '*');
+          s0.parentNode.insertBefore(s1, s0);
+        }, 3000);
+      })();
+    </script>
+  </body>
+</html>

@@ -67,10 +67,8 @@ export const formatUSD = (amountNGN) => formatCurrency(amountNGN, 'USD');
 /** Format NGN (legacy — used throughout app, always shows ₦) */
 export const formatNGN = (amount) => formatCurrency(amount, 'NGN');
 
-/** Flutterwave-supported currencies for payment. Must match the backend's
- *  CARD_FEE_CURRENCIES — CAD was missing here, so Canadians who chose CAD for a
- *  gift were silently charged in NGN (often declined by Canadian banks). */
-export const FLW_CURRENCIES = ['NGN', 'USD', 'GBP', 'EUR', 'CAD', 'GHS', 'KES', 'ZAR'];
+/** Flutterwave-supported currencies for payment */
+export const FLW_CURRENCIES = ['NGN', 'USD', 'GBP', 'EUR', 'GHS', 'KES', 'ZAR'];
 
 /** Get the FLW amount and currency for a given NGN base amount + selected currency */
 export const getFLWPaymentParams = (amountNGN, selectedCurrency = 'NGN') => {

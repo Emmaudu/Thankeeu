@@ -31,7 +31,7 @@ $BODY$<article itemscope itemtype="https://schema.org/Article">
 <li>Automatic birthday and work anniversary reminders</li>
 </ul>
 <h2>Thankeeu — Built for Nigerian Teams</h2>
-<p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> is the only group cards and gifting SaaS built for African HR teams. Unlike <a href="https://thankbox.com" target="_blank" rel="nofollow">Thankbox</a>, <a href="https://kudoboard.com" target="_blank" rel="nofollow">Kudoboard</a>, and <a href="https://groupgreeting.com" target="_blank" rel="nofollow">GroupGreeting</a>, Thankeeu processes payments in <strong>Naira via Flutterwave</strong> — no FX charges, no declines.</p>
+<p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> is the only group cards and gifting SaaS built for African HR teams. Unlike <a href="https://thankbox.com" target="_blank" rel="nofollow">Thankbox</a>, <a href="https://kudoboard.com" target="_blank" rel="nofollow">Kudoboard</a>, and <a href="https://groupgreeting.com" target="_blank" rel="nofollow">GroupGreeting</a>, Thankeeu processes payments in <strong>Naira via Paystack and Flutterwave</strong> — no FX charges, no declines.</p>
 <h3>Key Features</h3>
 <ul>
 <li>🎂 <strong>Automatic birthday cards</strong> — syncs with SeamlessHR, Zoho People, BambooHR, WorkPay</li>
@@ -183,7 +183,7 @@ $BODY$<article>
 <h2>1. Thankeeu — Best for Nigeria and Africa</h2>
 <p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> is the only group card and gifting platform built for African HR teams:</p>
 <ul>
-<li>✅ Naira gift pots via Flutterwave</li>
+<li>✅ Naira gift pots via Paystack and Flutterwave</li>
 <li>✅ SeamlessHR and Zoho People integration</li>
 <li>✅ Nigerian vendor gifts (flowers, cakes, hampers)</li>
 <li>✅ WhatsApp-first sharing</li>
@@ -485,7 +485,7 @@ $BODY$<article>
 <h2>Thankeeu: The Nigerian Alternative</h2>
 <p><a href="https://thankeeu.com" target="_blank" rel="dofollow">Thankeeu</a> does everything GroupGreeting does and far more that matters in Nigeria:</p>
 <ul>
-<li>✅ Naira gift pots via Flutterwave</li>
+<li>✅ Naira gift pots via Paystack and Flutterwave</li>
 <li>✅ HRIS integration with SeamlessHR, Zoho People, WorkPay</li>
 <li>✅ Automated birthday, anniversary, Women's Day cards</li>
 <li>✅ Nigerian vendor gifts (flowers, cakes, hampers)</li>

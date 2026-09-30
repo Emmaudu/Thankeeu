@@ -85,11 +85,14 @@ async function sendCardFeePaidEmail(card) {
  */
 function reminderStageFor(card, now = Date.now()) {
   const count = card.payment_reminder_count || 0;
-  if (count >= MAX_REMINDERS) return null;
   const lastRaw = card.payment_reminder_sent_at || card.updated_at || card.created_at;
   const last = lastRaw ? new Date(lastRaw).getTime() : 0;
   const due = card.send_date ? new Date(card.send_date).getTime() : NaN;
   const hasDue = !isNaN(due);
+  // The "your card is on hold" notice is always sent once when the delivery
+  // time passes unpaid — even if the earlier reminders used up the cap.
+  if (hasDue && now >= due && now - due <= 14 * DAY && last < due) return 'overdue';
+  if (count >= MAX_REMINDERS) return null;
 
   if (hasDue && now >= due) {
     if (now - due > 14 * DAY) return null;
@@ -100,14 +103,20 @@ function reminderStageFor(card, now = Date.now()) {
   return now - last >= 3 * DAY ? 'general' : null;
 }
 
-async function sweepPayLaterReminders() {
-  const { data: cards, error } = await supabase.from('cards')
+async function sweepPayLaterReminders({ overdueOnly = false } = {}) {
+  let q = supabase.from('cards')
     .select('*')
     .eq('status', 'active')
     .eq('payment_pending', true)
-    .eq('recipient_notified', false)
-    .not('creator_id', 'is', null)
-    .limit(500);
+    .or('recipient_notified.is.null,recipient_notified.eq.false')
+    .not('creator_id', 'is', null);
+  if (overdueOnly) {
+    // Per-minute pass: only cards whose delivery time has just passed unpaid,
+    // so the creator hears "on hold" within a minute, not up to an hour later.
+    const nowIso = new Date().toISOString();
+    q = q.lte('send_date', nowIso).gte('send_date', new Date(Date.now() - 14 * DAY).toISOString());
+  }
+  const { data: cards, error } = await q.limit(500);
   if (error) {
     if (!isMissingColumnError(error)) console.error('[pay-later reminders] query failed:', error.message);
     return { sent: 0 };
@@ -118,6 +127,10 @@ async function sweepPayLaterReminders() {
   for (const card of cards || []) {
     const stage = reminderStageFor(card, now);
     if (!stage) continue;
+    if (overdueOnly) {
+      const last = card.payment_reminder_sent_at ? new Date(card.payment_reminder_sent_at).getTime() : 0;
+      if (stage !== 'overdue' || last >= new Date(card.send_date).getTime()) continue;
+    }
     const count = card.payment_reminder_count || 0;
 
     // Claim this reminder first (optimistic lock on the count) so two server

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getCardDesign, getFontStyle } from '../../utils/cardDesigns';
 import Icon from '../../components/ui/Icon';
 import occasionEmoji from '../../utils/occasionEmoji';
+import { zonedToUTC, browserTimeZone, scheduleProblem } from '../../utils/timezones';
 
 const OCCASION_ICONS = {
   birthday: '🎂', leaving: '👋', work_anniversary: '🏆', promotion: '🌟',
@@ -77,6 +78,9 @@ const MemberOccasionsPage = () => {
   const handleCreateCard = async (e) => {
     e.preventDefault();
     if (!cardForm.recipient_name.trim()) return toast.error('Recipient name is required');
+    // Dates here are entered in the member's own time zone.
+    const problem = scheduleProblem({ sendDate: cardForm.send_date, sendTime: cardForm.send_time, timeZone: browserTimeZone(), recipientEmail: cardForm.recipient_email });
+    if (problem) return toast.error(problem);
     setCreating(true);
     try {
       const title = cardForm.title || `${cardForm.recipient_name}'s ${cardForm.occasion.replace('_', ' ')} Card`;
@@ -92,10 +96,20 @@ const MemberOccasionsPage = () => {
         status: 'active',
         allow_private_messages: true,
         send_reminders: true,
-        send_date: cardForm.send_date || null,
-        send_time: cardForm.send_time || null,
-        deadline: cardForm.deadline || null,
-        deadline_time: cardForm.deadline_time || null,
+        // The backend stores UTC. These used to be sent as local wall-clock
+        // values, so a US member's "09:00" was delivered at 09:00 UTC.
+        ...(() => {
+          const tz = browserTimeZone();
+          const s = cardForm.send_date ? zonedToUTC(cardForm.send_date, cardForm.send_time || '09:00', tz) : null;
+          const d = cardForm.deadline ? zonedToUTC(cardForm.deadline, cardForm.deadline_time || '23:59', tz) : null;
+          return {
+            send_date: s?.send_date || null,
+            send_time: s?.send_time || null,
+            delivery_timezone: cardForm.send_date ? tz : undefined,
+            deadline: d?.send_date || null,
+            deadline_time: d?.send_time || null,
+          };
+        })(),
       });
 
       const slug = res.data.slug;

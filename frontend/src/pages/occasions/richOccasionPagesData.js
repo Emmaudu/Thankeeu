@@ -129,7 +129,7 @@ export const RICH_OCCASION_PAGES = {
   'baby-shower': {
     cardOccasion: 'baby_shower', coverOccasion: 'baby_shower',
     seoTitle: 'Online Baby Shower Card — Group Cards & Gift Collections | Thankeeu',
-    seoDescription: 'Create an online baby shower card the whole group signs from one link. Warm wishes, photos, GIFs and voice notes — with a pooled baby shower gift. Virtual shower friendly. Free to create.',
+    seoDescription: 'Create an online baby shower card the whole group signs from one link. Warm wishes, photos, GIFs and voice notes, plus a pooled baby shower gift.',
     seoKeywords: 'online baby shower card, group baby shower card, baby shower ecard, virtual baby shower card, baby shower gift collection, baby shower card everyone signs, remote baby shower card, baby shower gift fund',
     canonical: '/cards/baby-shower',
     eyebrow: 'Online Baby Shower Cards',
@@ -210,9 +210,9 @@ export const RICH_OCCASION_PAGES = {
 
   // ── /cards/maternity-leave ────────────────────────────────────────────────
   'maternity-leave': {
-    // Framed as a send-off — maps to the same 'leaving' card-creation flow
-    // and cover catalogue, matching the existing copy ("her last day before leave").
-    cardOccasion: 'leaving', coverOccasion: 'leaving',
+    // Framed as a send-off, so the card is created with the 'leaving' flow,
+    // but the covers are the baby shower set (a baby is on the way).
+    cardOccasion: 'leaving', coverOccasion: 'baby_shower',
     seoTitle: 'Maternity Leave Card — Group Cards for Mums-to-Be | Thankeeu',
     seoDescription: 'Send a colleague off on maternity leave with a group card the whole team signs — warm wishes, photos, voice notes, and a pooled baby gift.',
     seoKeywords: 'maternity leave card, group maternity card, maternity card for colleague, baby shower card online, good luck maternity leave card, card for colleague going on maternity leave',
@@ -228,9 +228,9 @@ export const RICH_OCCASION_PAGES = {
     featuresHeading: 'Everything a maternity send-off needs',
     featuresSub: 'All included in every card. No extras, no tiers, no surprises.',
     features: STANDARD_FEATURES,
-    coverEyebrow: 'Send-off cover designs',
+    coverEyebrow: 'Baby on the way covers',
     coverTitle: 'Choose a cover for her send-off',
-    coverDescription: 'Browse the newest premium A4 designs. Select one to open it in the album studio and add the team\'s messages, photos, GIFs, videos and voice notes.',
+    coverDescription: 'Illustrated covers for a colleague who is off to have a baby. Pick one to open it in the album studio and add the team\'s messages, photos, GIFs, videos and voice notes.',
     faqs: [
       { q: 'When should we send a maternity leave card?', a: 'Most teams schedule it for the colleague\'s last working day before leave — Thankeeu delivers it at the exact time you choose.' },
       { q: 'Can we pool money for a baby gift?', a: 'Yes — everyone contributes when they sign, and the pooled gift goes to the parent-to-be.' },

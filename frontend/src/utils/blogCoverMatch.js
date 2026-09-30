@@ -13,6 +13,12 @@ import { getIllustratedCovers } from './illustratedCardDesigns';
 // Each rule: test(text) → true, then which covers and where "see all" goes.
 //   occasion / group — cover set; lead — cover stem to put first
 //   label — used in the strip heading ("Send a group {label} card")
+// Covers made for after the birth vs before it, so a shower or maternity post
+// never shows "It's a boy!" and a new baby post never shows "Happy baby shower".
+const AFTER_BIRTH = /welcome to the world|welcome, little one|it’s a (boy|girl)|it's a (boy|girl)|twins/i;
+const BEFORE_BIRTH = /shower|on the way|coming|bump|almost here|nearly here|counting down|soon|can’t wait|can't wait/i;
+const BABY_LOSS = /\b(loss|lost|miscarriage|stillbirth|passed|died|death|grief|grieving|sympathy|condolences?)\b/;
+
 const RULES = [
   { key: 'pet', occasion: 'sympathy', group: 'pet', label: 'pet sympathy', href: '/cards/pet-loss-card',
     test: t => /\b(pets?|dogs?|cats?|puppy|kitten)\b|rainbow bridge/.test(t)
@@ -35,11 +41,18 @@ const RULES = [
     test: t => /\b(birthdays?|bday)\b/.test(t) },
   { key: 'work-anniversary', occasion: 'congratulations', label: 'congratulations', href: '/occasions/promotion',
     test: t => /\bwork anniversar\w*|\banniversar\w*/.test(t) },
-  { key: 'graduation', occasion: 'congratulations', lead: 'c7-grad-cap', label: 'graduation', href: '/occasions/graduation',
+  // A dated cover ("Class of 2026") would go stale on an evergreen post.
+  { key: 'graduation', occasion: 'graduation', exclude: /\b20\d\d\b/, label: 'graduation', href: '/occasions/graduation',
     // "graduation"/"graduating", not "graduates" — an HR piece about hiring graduates is not a card post.
     test: t => /\b(graduation|graduating|convocation|passing out|nysc)\b/.test(t) },
-  { key: 'new-baby', occasion: 'congratulations', lead: 'cg5-new-baby', label: 'new baby', href: '/occasions/new-baby',
-    test: t => /\bnew baby\b|\bnewborn\b/.test(t) },
+  // Baby posts use the baby shower cover set. Never on a post about losing a
+  // baby: those fall to the sympathy rules above or get no strip at all.
+  { key: 'new-baby', occasion: 'baby_shower', lead: 'bs1-oh-baby', exclude: BEFORE_BIRTH, label: 'new baby', href: '/occasions/new-baby',
+    test: t => /\bnew baby\b|\bnewborn\b|\bbaby naming\b|\bnaming ceremony\b|\bchristening\b|\bbaby dedication\b|\bnew parents?\b/.test(t) && !BABY_LOSS.test(t) },
+  { key: 'maternity', occasion: 'baby_shower', lead: 'bs3-bottle', exclude: AFTER_BIRTH, label: 'maternity leave', href: '/cards/maternity-leave',
+    test: t => /\b(maternity|paternity|parental leave)\b/.test(t) && !BABY_LOSS.test(t) },
+  { key: 'baby-shower', occasion: 'baby_shower', exclude: AFTER_BIRTH, label: 'baby shower', href: '/cards/baby-shower',
+    test: t => /\bbaby ?shower\b|\bgender reveal\b|\b(mum|mom|mother|parents?) to be\b|\bexpecting (a )?baby\b|\bbaby on the way\b/.test(t) && !BABY_LOSS.test(t) },
   { key: 'new-home', occasion: 'congratulations', lead: 'cg4-new-home', label: 'new home', href: '/cards/new-home',
     test: t => /\bnew home\b|\bhousewarming\b/.test(t) },
   { key: 'leaving', occasion: 'leaving', label: 'leaving', href: '/cards/leaving-card',
@@ -52,7 +65,7 @@ const RULES = [
     test: t => /\bthank you\b|\b(thanks|gratitude|appreciation|appreciate|recognition|recognising|recognizing)\b/.test(t) },
   // Occasions with no cover set: show nothing rather than unrelated covers.
   { key: 'no-covers', none: true,
-    test: t => /\b(baby shower|maternity|paternity|welcome|new starter|onboarding|engagement|good luck|women'?s day|mother'?s day|father'?s day|eid|ramadan|diwali|easter|valentine)\b/.test(t) },
+    test: t => /\b(welcome|new starter|onboarding|engagement|good luck|women'?s day|mother'?s day|father'?s day|eid|ramadan|diwali|easter|valentine)\b/.test(t) },
   // General group-card articles: covers from four different occasions, varied per post.
   { key: 'group-cards', showcase: ['birthday', 'leaving', 'thank_you', 'get_well', 'retirement', 'congratulations', 'anniversary', 'wedding'],
     label: 'group', href: '/cards/create',
@@ -107,7 +120,7 @@ export const coversForBlogPost = (post, count = 4) => {
   const all = getIllustratedCovers(rule.occasion, { group: rule.group });
   if (all.length < count) return null;
   const lead = rule.lead ? all.find(d => d.id.endsWith(`-${rule.lead}`)) : null;
-  const pool = all.filter(d => d !== lead && !isSpecific(d));
+  const pool = all.filter(d => d !== lead && !isSpecific(d) && !(rule.exclude && rule.exclude.test(`${d.name} ${d.coverSubtitle || ''}`)));
   const start = h % pool.length;
   const rotated = spreadDuplicates([...pool.slice(start), ...pool.slice(0, start)]);
   const designs = [...(lead ? [lead] : []), ...rotated].slice(0, count);

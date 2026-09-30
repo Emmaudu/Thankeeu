@@ -13,7 +13,7 @@ import { getIllustratedCovers, getIllustratedShowcase } from '../../utils/illust
 // Covers for a keyword page: its occasion's set when it has one (e.g. virtual
 // birthday card), otherwise one lead cover from each occasion.
 const SHOWCASE_OCCASIONS = ['birthday', 'leaving', 'thank_you', 'get_well', 'retirement',
-  'congratulations', 'sympathy', 'anniversary', 'wedding', 'christmas'];
+  'congratulations', 'sympathy', 'anniversary', 'wedding', 'christmas', 'baby_shower', 'graduation'];
 const coversForKeywordPage = (occasionParam) => {
   const occ = new URLSearchParams(occasionParam || '').get('occasion');
   const own = occ ? getIllustratedCovers(occ) : [];

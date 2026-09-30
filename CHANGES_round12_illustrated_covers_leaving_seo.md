@@ -48,3 +48,17 @@
 - Blog `/blog/online-leaving-card-uk` competed (same title, no link to the page) → retitled
   "Paper vs Online Leaving Cards…" + contextual link (migration above).
 - Tests: `src/tests/leaving-page-seo.test.js` fails if these drift again.
+
+---
+# Round 12b — Canadian (CAD) payments
+
+- BUG: frontend FLW_CURRENCIES lacked CAD, so gift contributions in CAD were silently
+  charged in NGN (shown "C$", charged "₦" — commonly declined by Canadian banks). Fixed.
+- NEW backend/utils/flwCurrency.js:
+  - FLW_DISABLED_CURRENCIES env (e.g. `CAD`) → those currencies are charged in USD
+    everywhere (card fee, credit packs, gift contributions). No redeploy needed.
+  - Card fee + credit packs: if Flutterwave explicitly rejects a non-NGN/USD currency,
+    retry once in USD (meta updated so verification still passes). Never retries on
+    timeouts. Previously a rejection threw → customer saw a generic 500.
+- Company subscriptions still charge NGN only (unchanged; see notes in chat).
+- tests/unit/flw-currency.test.js.

@@ -52,7 +52,7 @@ import { takeIntent } from '../utils/cardIntent';
 import { applyCardIntent } from '../utils/applyCardIntent';
 import DeliveryCountryField from '../components/DeliveryCountryField';
 import CoverFieldToggle from '../components/CoverFieldToggle';
-import { zonedToUTC, guessCountryFromBrowser } from '../utils/timezones';
+import { zonedToUTC, guessCountryFromBrowser, earliestDeliveryDate, scheduleProblem } from '../utils/timezones';
 import { DEFAULT_ILLUSTRATED_DESIGN } from '../utils/illustratedCardDesigns';
 
 const DEFAULT_PLACE = guessCountryFromBrowser();
@@ -469,6 +469,7 @@ const CardStart = () => {
  // ── Step 2 → 3: create/update draft for authenticated users ─────────────
  const handleCreateDraft = async () => {
  if (!form.recipient_name?.trim()) return toast.error('Recipient name is required');
+ { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }); if (problem) { toast.error(problem); return; } }
  if (form.occasion === 'other' && !form.custom_occasion?.trim()) return toast.error('Please specify the occasion name');
  setLoading(true);
  try {
@@ -558,6 +559,11 @@ const CardStart = () => {
  const pending = JSON.parse(localStorage.getItem(PENDING_KEY) || '{}');
  const slug = draftSlug || pending?.slug;
  if (!slug) { toast.error('Card draft not found. Please go back and try again.'); setLoading(false); setPaymentStage('idle'); return; }
+ // No recipient email = the card could never be delivered at its time. Check
+ // before anything is published or paid. (Time is not re-checked here: if it
+ // passes while paying, the server delivers the card straight away.)
+ { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }, 0);
+   if (problem) { toast.error(problem); setLoading(false); setPaymentStage('idle'); return; } }
 
  // Save the full form state (gift settings + delivery date/time + deadline)
  // to the card BEFORE payment so nothing is lost if the user pays and
@@ -568,6 +574,8 @@ const CardStart = () => {
  const { send_date: utcSD, send_time: utcST } = toUTCDelivery(form.send_date, form.send_time);
  const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
  const fullUpdate = {
+ recipient_name: form.recipient_name,
+ recipient_email: form.recipient_email?.trim() || null,
  is_gift_enabled: form.is_gift_enabled,
  recipient_country: form.recipient_country,
  delivery_timezone: form.delivery_timezone,
@@ -590,8 +598,12 @@ const CardStart = () => {
  }
  console.log('[pre-payment-update] Saved dates:', { send_date: utcSD, send_time: utcST, deadline: utcDL });
  } catch (updateErr) {
+ // Fatal on purpose: going live without the schedule is exactly how a card
+ // "misses" its delivery time. Stop here so nothing is published or charged.
  console.error('[pre-payment-update] FAILED to save dates before payment:', updateErr?.response?.data || updateErr?.message);
- toast('Could not save delivery schedule. Card will activate but may need re-scheduling.', { duration: 5000 });
+ toast.error(updateErr?.response?.data?.error || "We couldn't save the delivery time. Please check your connection and try again.");
+ setLoading(false); setPaymentStage('idle');
+ return;
  }
 
 
@@ -1099,7 +1111,7 @@ const CardStart = () => {
  />
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery date <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
- <input type="date" className="input" value={form.send_date} min={new Date().toISOString().split('T')[0]} onChange={e => set('send_date', e.target.value)}/>
+ <input type="date" className="input" value={form.send_date} min={earliestDeliveryDate(form.delivery_timezone)} onChange={e => set('send_date', e.target.value)}/>
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery time <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
@@ -1107,7 +1119,7 @@ const CardStart = () => {
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Signing deadline</label>
- <input type="date" className="input" value={form.deadline} min={new Date().toISOString().split('T')[0]} onChange={e => set('deadline', e.target.value)}/>
+ <input type="date" className="input" value={form.deadline} min={earliestDeliveryDate(form.delivery_timezone)} onChange={e => set('deadline', e.target.value)}/>
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Deadline time</label>
@@ -1151,6 +1163,7 @@ const CardStart = () => {
  <button
  onClick={async () => {
  if (!form.recipient_name?.trim()) { toast.error('Recipient name is required'); return; }
+ { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }); if (problem) { toast.error(problem); return; } }
  if (!user && !isCompanyUser) {
  // Guest: just save snapshot and advance — no API call yet
  saveSnapshot();

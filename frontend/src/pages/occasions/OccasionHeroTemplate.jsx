@@ -242,7 +242,7 @@ const PricingSection = ({ headline, subline, ctaPath, ctaLabelOverride }) => {
           </p>
           <CurrencyToggle selected={currency} onChange={setCurrency} />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="pricing-plans-grid grid grid-cols-1 md:grid-cols-3 gap-6">
           {SHARED_PLANS.map(plan => (
             <div key={plan.name}
               className={`relative rounded-3xl border-2 p-7 flex flex-col transition-all hover:shadow-xl ${plan.popular ? 'border-primary-400 shadow-lg' : 'border-purple-100'}`}

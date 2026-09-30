@@ -25,7 +25,7 @@ import { takeIntent } from '../utils/cardIntent';
 import { applyCardIntent } from '../utils/applyCardIntent';
 import DeliveryCountryField from '../components/DeliveryCountryField';
 import CoverFieldToggle from '../components/CoverFieldToggle';
-import { zonedToUTC, utcToZoned, guessCountryFromBrowser } from '../utils/timezones';
+import { zonedToUTC, utcToZoned, guessCountryFromBrowser, earliestDeliveryDate, scheduleProblem } from '../utils/timezones';
 import { DEFAULT_ILLUSTRATED_DESIGN } from '../utils/illustratedCardDesigns';
 
 // Default recipient country = the creator's own (from the browser's zone).
@@ -459,6 +459,7 @@ const CreateCard = () => {
  // must not yank the customer to the payment step while they are still editing.
  const handleCreateDraft = async ({ silent = false } = {}) => {
  if (!form.recipient_name) { if (!silent) toast.error('Recipient name is required'); return null; }
+ if (!silent) { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }); if (problem) { toast.error(problem); return null; } }
  if (!silent) setLoading(true);
  if (!silent) setPaymentStage('creating');
  try {
@@ -527,12 +528,19 @@ const CreateCard = () => {
  return;
  }
 
+ // No recipient email = the card could never be delivered at its time. Check
+ // before anything is published or paid. (Time is not re-checked here: if it
+ // passes while paying, the server delivers the card straight away.)
+ { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }, 0);
+   if (problem) { toast.error(problem); setLoading(false); setPaymentStage('idle'); return; } }
  // Persist gift toggle + scheduling fields BEFORE payment.
- // This is critical — if this fails, warn loudly so the user can retry.
+ // This is critical — if it fails, stop: nothing is published or charged.
  try {
  const { send_date: utcSD, send_time: utcST } = toUTCDelivery(form.send_date, form.send_time);
  const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
  const fullUpdate = {
+ recipient_name: form.recipient_name,
+ recipient_email: form.recipient_email?.trim() || null,
  is_gift_enabled: form.is_gift_enabled,
  recipient_country: form.recipient_country,
  delivery_timezone: form.delivery_timezone,
@@ -554,9 +562,12 @@ const CreateCard = () => {
  }
  console.log('[pre-payment-update] Saved dates:', { send_date: utcSD, send_time: utcST, deadline: utcDL });
  } catch (updateErr) {
+ // Fatal on purpose: going live without the schedule is exactly how a card
+ // "misses" its delivery time. Stop here so nothing is published or charged.
  console.error('[pre-payment-update] FAILED to save dates before payment:', updateErr?.response?.data || updateErr?.message);
- // Non-fatal — payment continues, but warn the user their schedule may not be set
- toast('Could not save delivery schedule. Card will activate but may need re-scheduling.', { duration: 5000 });
+ toast.error(updateErr?.response?.data?.error || "We couldn't save the delivery time. Please check your connection and try again.");
+ setLoading(false); setPaymentStage('idle');
+ return;
  }
 
 
@@ -1136,7 +1147,7 @@ const CreateCard = () => {
  />
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery date <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
- <input type="date" className="input" value={form.send_date} min={new Date().toISOString().split('T')[0]} onChange={e => set('send_date', e.target.value)}/>
+ <input type="date" className="input" value={form.send_date} min={earliestDeliveryDate(form.delivery_timezone)} onChange={e => set('send_date', e.target.value)}/>
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery time <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
@@ -1144,7 +1155,7 @@ const CreateCard = () => {
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Signing deadline</label>
- <input type="date" className="input" value={form.deadline} min={new Date().toISOString().split('T')[0]} onChange={e => set('deadline', e.target.value)}/>
+ <input type="date" className="input" value={form.deadline} min={earliestDeliveryDate(form.delivery_timezone)} onChange={e => set('deadline', e.target.value)}/>
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Deadline time</label>
@@ -1186,6 +1197,7 @@ const CreateCard = () => {
  <button
  onClick={async () => {
  if (!form.recipient_name?.trim()) { toast.error('Recipient name is required'); return; }
+ { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }); if (problem) { toast.error(problem); return; } }
  if (!user && !isCompanyUser) {
  // Guest: just save to localStorage and advance — no API call yet
  // The draft is created at Step 3 when they click "Save draft & continue"
@@ -1528,6 +1540,16 @@ const CreateCard = () => {
      : <><Icon name="Sparkles" size={17}/>Create Now, Pay Later</>}
    </button>
   </div>
+  {form.send_date && (
+   // A scheduled card that is still unpaid at its delivery time is held, not sent.
+   <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3" role="note">
+    <Icon name="Clock" size={16} className="mt-0.5 flex-shrink-0 text-amber-600"/>
+    <p className="text-xs leading-relaxed text-amber-900">
+     <strong>Scheduled for {form.send_date} at {form.send_time || '09:00'}.</strong> Pay before then and it's delivered right on time.
+     An unpaid card is held — not delivered — until you pay; if the time has passed by then, it goes out the moment you pay.
+    </p>
+   </div>
+  )}
   <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
    <Icon name="Heart" size={16} className="mt-0.5 flex-shrink-0 text-emerald-600"/>
    <p className="text-xs leading-relaxed text-emerald-800">

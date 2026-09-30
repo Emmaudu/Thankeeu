@@ -161,3 +161,42 @@ export const formatInZone = (utcIso, tz, opts = {}) => {
     });
   } catch { return new Date(ms).toLocaleString(); }
 };
+
+/** Today's calendar date ("YYYY-MM-DD") in `tz` (defaults to the browser's zone). */
+export const todayInZone = (tz, now = Date.now()) => {
+  const zone = isValidTimeZone(tz) ? tz : browserTimeZone();
+  return new Date(now + offsetAt(now, zone)).toISOString().slice(0, 10);
+};
+
+/**
+ * Earliest date a delivery date picker may offer. The inputs are read in the
+ * recipient's zone, and the creator may be in another one — so take the
+ * earlier of the two "todays". Using the UTC date here (as before) hid today
+ * from US creators every evening, once UTC had rolled over to tomorrow.
+ */
+export const earliestDeliveryDate = (tz, now = Date.now()) => {
+  const a = todayInZone(tz, now);
+  const b = todayInZone(browserTimeZone(), now);
+  return a < b ? a : b;
+};
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/**
+ * Why a scheduled delivery cannot work as entered, or null when it can.
+ *   - a delivery date needs the recipient's email (without one the card is
+ *     skipped at send time, silently, forever);
+ *   - the moment must not already be in the past (1 minute of grace — a card
+ *     set for "now" is delivered straight away by the server anyway).
+ */
+export const scheduleProblem = ({ sendDate, sendTime, timeZone, recipientEmail }, now = Date.now()) => {
+  if (!sendDate) return null;
+  const email = String(recipientEmail || '').trim();
+  if (!email) return "Add the recipient's email address — we deliver the card to it at the time you set.";
+  if (!EMAIL_RE.test(email)) return "That recipient email address doesn't look right — please check it.";
+  const { send_date, send_time } = zonedToUTC(sendDate, sendTime || '09:00', timeZone);
+  const at = new Date(`${send_date}T${send_time}Z`).getTime();
+  if (isNaN(at)) return 'Please pick a valid delivery date and time.';
+  if (at < now - 60 * 1000) return 'That delivery time has already passed — pick a time in the future.';
+  return null;
+};

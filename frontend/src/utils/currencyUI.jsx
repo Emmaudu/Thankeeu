@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { CURRENCIES, formatCurrency } from './currency';
 
-export const CurrencyToggle = ({ selected, onChange }) => (
+export const CurrencyToggle = ({ selected, onChange, showFlags = true }) => (
   <div className="flex flex-wrap gap-1.5 justify-center">
     {CURRENCIES.map(c => (
       <button key={c.code} onClick={() => onChange(c.code)}
@@ -15,14 +15,14 @@ export const CurrencyToggle = ({ selected, onChange }) => (
             ? 'bg-primary-500 text-white shadow-sm'
             : 'bg-white border border-purple-200 text-warm-600 hover:border-primary-300'
         }`}>
-        <span>{c.flag}</span>
+        {showFlags && <span>{c.flag}</span>}
         <span>{c.code}</span>
       </button>
     ))}
   </div>
 );
 
-export const RotatingPrice = ({ amountNGN, className = '' }) => {
+export const RotatingPrice = ({ amountNGN, className = '', showFlags = true }) => {
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
@@ -35,7 +35,7 @@ export const RotatingPrice = ({ amountNGN, className = '' }) => {
     <span key={cur.code}
       className={`inline-flex items-center gap-1 transition-all ${className}`}
       style={{ animation: 'fadeSlideIn 0.4s ease' }}>
-      <span>{cur.flag}</span>
+      {showFlags && <span>{cur.flag}</span>}
       <span>{formatCurrency(amountNGN, cur.code)}</span>
     </span>
   );

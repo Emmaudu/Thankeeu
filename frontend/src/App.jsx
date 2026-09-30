@@ -44,7 +44,6 @@ import WeddingCashGiftPlatform     from './pages/WeddingCashGiftPlatform';
 import WeddingGroupCard            from './pages/WeddingGroupCard';
 import UKWeddingPhotoSharing       from './pages/UKWeddingPhotoSharing';
 import USAWeddingPhotoSharing      from './pages/USAWeddingPhotoSharing';
-import OnlineGroupCard             from './pages/OnlineGroupCard';
 import HowItWorks       from './pages/HowItWorks';
 import FAQ              from './pages/FAQ';
 import Login            from './pages/Login';

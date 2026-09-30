@@ -9,12 +9,12 @@ import { matchBlogRule, coversForBlogPost, splitArticleForStrip } from '../utils
 
 const PUBLIC = path.resolve(__dirname, '../../public');
 const WIZARD_OCCASIONS = ['birthday', 'leaving', 'retirement', 'anniversary', 'wedding', 'christmas',
-  'congratulations', 'get_well', 'thank_you', 'sympathy'];
+  'congratulations', 'get_well', 'thank_you', 'sympathy', 'baby_shower', 'graduation'];
 
 describe('illustrated cover collection', () => {
-  it('has all 219 covers with unique ids and existing files', () => {
-    expect(ILLUSTRATED_CARD_DESIGNS).toHaveLength(219);
-    expect(new Set(ILLUSTRATED_CARD_DESIGNS.map(d => d.id)).size).toBe(219);
+  it('has all 299 covers with unique ids and existing files', () => {
+    expect(ILLUSTRATED_CARD_DESIGNS).toHaveLength(299);
+    expect(new Set(ILLUSTRATED_CARD_DESIGNS.map(d => d.id)).size).toBe(299);
     for (const d of ILLUSTRATED_CARD_DESIGNS) {
       expect(fs.existsSync(path.join(PUBLIC, d.image)), d.image).toBe(true);
       expect(d.finishedArt).toBe(true);
@@ -27,7 +27,7 @@ describe('illustrated cover collection', () => {
     ILLUSTRATED_CARD_DESIGNS.forEach(d => { counts[d.occasion] = (counts[d.occasion] || 0) + 1; });
     expect(Object.keys(counts).sort()).toEqual([...WIZARD_OCCASIONS].sort());
     expect(counts).toMatchObject({ birthday: 22, leaving: 20, retirement: 10, sympathy: 40, christmas: 25,
-      wedding: 22, anniversary: 20, congratulations: 20, get_well: 20, thank_you: 20 });
+      wedding: 22, anniversary: 20, congratulations: 20, get_well: 20, thank_you: 20, baby_shower: 50, graduation: 30 });
   });
 
   it('files each sympathy folder into sympathy, general first and pet last', () => {
@@ -85,15 +85,13 @@ describe('blog post cover matching', () => {
     expect(rule('wedding-anniversary-messages-nigerian-couple')).toBe('wedding-anniversary');
   });
   it('shows nothing where there is no matching cover set', () => {
-    expect(rule('what-to-write-baby-shower-card-uk')).toBeNull();
     expect(rule('covenant-university-graduates-changing-nigerian-hr')).toBeNull();
     expect(rule('hr-admin-automation-what-to-automate-first')).toBeNull();
   });
   it('gives four covers of the matching occasion, lead first for specific events', () => {
     const grad = coversForBlogPost({ slug: 'graduation-messages-university-graduate', title: '' });
     expect(grad.designs).toHaveLength(4);
-    expect(grad.designs[0].id).toBe('illus-congratulations-c7-grad-cap');
-    expect(grad.designs.slice(1).some(d => /new-baby|new-home/.test(d.id))).toBe(false);
+    expect(grad.designs.every(d => d.occasion === 'graduation')).toBe(true);
     const pet = coversForBlogPost({ slug: 'how-to-memorialise-a-pet', title: '' });
     expect(pet.designs.every(d => d.sympathyGroup === 'pet')).toBe(true);
   });
@@ -101,6 +99,42 @@ describe('blog post cover matching', () => {
     const c = coversForBlogPost({ slug: 'get-well-soon-messages-colleague-friend-nigeria', title: '' });
     const keys = c.designs.map(d => d.name.toLowerCase().replace(/[^a-z0-9]/g, ''));
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('baby shower covers', () => {
+  const AFTER_BIRTH = /welcome to the world|welcome, little one|it’s a (boy|girl)|twins/i;
+  const BEFORE_BIRTH = /shower|on the way|coming|bump|almost here|nearly here|counting down|soon|can’t wait|can't wait/i;
+  const text = d => `${d.name} ${d.coverSubtitle || ''}`;
+  it('leads with ten covers that suit a shower and a maternity send-off', () => {
+    const lead = getIllustratedCovers('baby_shower', { limit: 10 });
+    expect(lead).toHaveLength(10);
+    expect(lead.some(d => AFTER_BIRTH.test(text(d)))).toBe(false);
+    expect(lead[0].id).toBe('illus-baby-shower-bs7-booties');
+  });
+  it('drops the letter blocks and sleepy z from headlines', () => {
+    const names = getIllustratedCovers('baby_shower').map(d => d.name);
+    expect(names).toContain('A, B, C... baby!');
+    expect(names).toContain('Baby steps');
+    expect(names).toContain('Nap time soon!');
+  });
+  it('matches baby blog posts to the right covers', () => {
+    const rule = (slug, title = '') => matchBlogRule({ slug, title })?.key || null;
+    expect(rule('what-to-write-baby-shower-card-uk')).toBe('baby-shower');
+    expect(rule('baby-shower-group-card-ideas-celebrate-new-mum')).toBe('baby-shower');
+    expect(rule('maternity-leave-card-messages-uk')).toBe('maternity');
+    expect(rule('new-baby-congratulations-messages-nigeria-prayers')).toBe('new-baby');
+    expect(rule('baby-shower-thank-you-card-wording')).toBe('baby-shower');
+    expect(rule('what-to-say-after-miscarriage')).toBeNull();
+    expect(rule('managing-baby-boomers-at-work')).toBeNull();
+    const shower = coversForBlogPost({ slug: 'what-to-write-baby-shower-card-uk', title: '' });
+    expect(shower.designs.some(d => AFTER_BIRTH.test(text(d)))).toBe(false);
+    const mat = coversForBlogPost({ slug: 'funny-maternity-leave-messages-uk', title: '' });
+    expect(mat.designs[0].id).toBe('illus-baby-shower-bs3-bottle');
+    expect(mat.designs.some(d => AFTER_BIRTH.test(text(d)))).toBe(false);
+    const nb = coversForBlogPost({ slug: 'new-baby-congratulations-messages-nigeria-prayers', title: '' });
+    expect(nb.designs[0].id).toBe('illus-baby-shower-bs1-oh-baby');
+    expect(nb.designs.some(d => BEFORE_BIRTH.test(text(d)))).toBe(false);
   });
 });
 

@@ -30,3 +30,17 @@ Deploy: run `database/migration_delivery_reliability.sql`; optional `database/op
 - Example sentences use global names (Emma, Ada & Tom).
 - Payments are Flutterwave only: fixed site copy (sitemap caption, llms.txt) and blog posts that said "Paystack" — run database/migration_payment_provider_copy.sql (seed files updated too). Posts about Paystack the company are unchanged.
 - Static /pricing title now matches the page ($3.15, not £4.99).
+
+## Round 16: Search safety for the revamped landing pages (2026-09-30)
+- Titles, H1 wording, meta descriptions and FAQs that the 30 revamped URLs ranked with are restored (data/weddingLandings.js SEARCH_CONTINUITY, data/countryLandings.js). Only false or stale bits changed: no Naira, Stripe, ZIP or "2025", and " — " separators became ": ". /online-group-cards-nigeria stays global by request.
+- Each page has its own long form article again (data/landingArticles.js), restored from the old pages where accurate and written new where the old page only had template text. Rendered on the page and in the static HTML.
+- Landing pages drop the homepage only blocks (WhatsApp comparison, feature grid, how it works detail, Beyond the card, Send Money, testimonials) and the generic feature list. Every page has its own FAQ; no question is shared across pages.
+- Copy rewritten in a plain human voice: no dashes, no hyphenated words, no emojis in landing copy (hero album text, intent chips, currency flags and reactions are plain on landing pages).
+- Internal linking: 2 to 4 contextual links per article (validated against live indexable routes, no self links), a visible breadcrumb, the wedding hub links to every wedding page, the comparison hub links to every competitor page. Breadcrumb JSON-LD no longer points to the non-existent /comparisons URL.
+
+## Round 17: Baby shower (50) and graduation (30) illustrated covers (2026-09-30)
+- New files: public/cards/illustrated/baby-shower/*.svg and public/cards/illustrated/graduation/*.svg (Nunito subset embedded, same pipeline as round 12). Registry regenerated: 299 covers; existing rows unchanged.
+- Baby shower (wizard occasion baby_shower): first in the wizard, /card/new and /cards/create library, /cards/baby-shower, /occasions/new-baby (new baby covers such as "Oh baby!" and "It's a boy/girl" lead), /cards/maternity-leave (pre-birth covers, card still created as a send-off), baby rows on /online-group-card, the global page and the UK/US/Canada pages, keyword page showcase.
+- Graduation (wizard occasion graduation): /occasions/graduation now shows the 30 graduation covers instead of congratulations; library filter; general and global landing pages; keyword showcase.
+- Blog strips: baby shower, maternity and new baby posts now get baby covers (post-birth covers never on shower/maternity posts, shower covers never on new baby posts, nothing on baby loss posts); graduation posts get graduation covers ("Class of 2026" kept off evergreen posts). Checked against all seeded posts: exactly the 5 baby and 5 graduation posts match.
+- Static HTML for /cards/baby-shower, /cards/maternity-leave, /occasions/new-baby and /occasions/graduation lists the first 10 covers; their static titles/descriptions now match the live pages (the old Nigeria/Naira static titles are gone).

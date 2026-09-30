@@ -1,5 +1,5 @@
 /**
- * Illustrated cover collection (219 finished SVG greeting-card covers).
+ * Illustrated cover collection (299 finished SVG greeting-card covers).
  *
  * These covers are complete cards: each already carries its own headline and
  * tagline ("Happy birthday! · Make a wish (or three)"). They are therefore
@@ -18,7 +18,8 @@ import { ILLUSTRATED_COVER_ROWS } from './illustratedCoverRows';
 const OCCASION_ICON = {
   birthday: 'Cake', leaving: 'Briefcase', retirement: 'Sun', anniversary: 'Gift',
   wedding: 'Diamond', christmas: 'Snowflake', congratulations: 'PartyPopper',
-  get_well: 'HeartPulse', thank_you: 'Heart', sympathy: 'Flower',
+  get_well: 'HeartPulse', thank_you: 'Heart', sympathy: 'Flower', baby_shower: 'Baby',
+  graduation: 'GraduationCap',
 };
 
 const DARK_INK = '#2E2459';   // the outline colour used throughout the artwork

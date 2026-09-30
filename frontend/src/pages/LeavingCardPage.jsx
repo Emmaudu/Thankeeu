@@ -8,7 +8,9 @@ import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import PriorityDesignGallery from '../components/PriorityDesignGallery';
 import { LEAVING_CARD_DESIGNS, createLeavingCardUrl } from '../utils/leavingCardDesigns';
-import { FAREWELL_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
+import { getIllustratedCovers } from '../utils/illustratedCardDesigns';
+
+const LEAVING_COVERS = getIllustratedCovers('leaving');
 
 /* ─── Fix #8: Exit-intent modal ─────────────────────────────────────── */
 // Fires once per session when the mouse moves toward the top of the viewport
@@ -45,6 +47,19 @@ const ExitIntentModal = ({ onClose }) => (
     </div>
   </div>
 );
+
+/* ─── FAQ — one source for the visible list AND the FAQPage JSON-LD ──────
+   Google requires structured-data FAQs to match the visible text exactly;
+   scripts/prerender.js repeats these strings for the static HTML (a test
+   checks they stay identical). */
+export const LEAVING_FAQS = [
+  { q: 'How does an online leaving card work?', a: 'Create the card in under 2 minutes, share one link with colleagues, and everyone adds their message, photo, GIF or voice note. Schedule it to arrive on their last day at the exact time you choose.' },
+  { q: 'Can we collect money for a leaving gift too?', a: 'Yes — every card includes an optional gift collection. Contributors chip in when they sign, and the recipient or organiser withdraws the pooled amount directly to their bank account.' },
+  { q: 'Do people need an account to sign?', a: 'No. Anyone with the link can sign instantly — no registration, no app download. They just open the link and add their message.' },
+  { q: 'How much does an online leaving card cost?', a: 'Free to create and collect messages. A small fee applies when you\'re ready to send — always shown upfront before you pay. Classic (1 card) starts at $3.15 USD.' },
+  { q: 'Can remote colleagues sign?', a: 'Yes — the link works from any device, anywhere. Your Manchester office, the person on parental leave, and the colleague who left last year but wants to sign can all contribute from one link.' },
+  { q: 'What is the Memory Movie™?', a: 'After delivery, Thankeeu automatically generates a cinematic 1080p MP4 video from all the messages, photos and voice notes on the card. The recipient gets an email when it\'s ready to watch and download.' },
+];
 
 /* ─── Comparison table data ──────────────────────────────────────────── */
 const CHECK = <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100"><Icon name="Check" size={13} className="text-green-600" strokeWidth={3}/></span>;
@@ -175,11 +190,11 @@ const PricingSection = () => {
 /* ─── Main page ──────────────────────────────────────────────────────── */
 const LeavingDesignPreviewSection = () => (
   <PriorityDesignGallery
-    designs={FAREWELL_PRIORITY_DESIGNS}
+    designs={LEAVING_COVERS}
     occasion="leaving"
-    eyebrow="20 new leaving-card covers"
-    title="Choose a proper cover for their send-off"
-    description="Browse ten premium A4 designs at a time. Select one to open it in the album studio and add the team's messages, photos, GIFs, videos and voice notes. Every cover is fully editable — personalise the recipient's name, title text and colours before sharing."
+    eyebrow={`${LEAVING_COVERS.length} new leaving-card covers`}
+    title="Choose a leaving card cover for their send-off"
+    description="Browse ten illustrated leaving-card covers at a time. Select one to open it in the album studio and add the team's messages, photos, GIFs, videos and voice notes. You can add the recipient's name to the cover too."
     background="#ffffff"
   />
 );
@@ -206,8 +221,8 @@ export default function LeavingCardPage() {
   }, []);
 
   useSEO({
-    title: 'Online Leaving Card — Group Farewell Cards Everyone Signs | Thankeeu',
-    description: 'Create an online leaving card the whole team signs from one link. Messages, photos, GIFs and voice notes — with an optional pooled leaving gift. Scheduled delivery. Free to create.',
+    title: 'Online Leaving Card — Group Leaving Cards Everyone Signs | Thankeeu',
+    description: 'Create an online leaving card the whole team signs from one link — messages, photos, GIFs and voice notes, plus an optional leaving gift. Free to start.',
     keywords: 'online leaving card, group leaving card, farewell card everyone signs, leaving card for colleague, virtual leaving card, goodbye card online, leaving collection for colleague, leaving card UK, online farewell card',
     canonical: '/cards/leaving-card',
     // Fix #2: page-specific OG image — real leaving card context for
@@ -217,8 +232,8 @@ export default function LeavingCardPage() {
       SCHEMAS.organization,
       SCHEMAS.website,
       SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Cards', url: '/cards/create' }, { name: 'Online Leaving Card', url: '/cards/leaving-card' }]),
-      SCHEMAS.webPage('Online Leaving Card — Group Farewell Cards Everyone Signs', 'Create an online leaving card the whole team signs from one link. Messages, photos, GIFs and voice notes — with an optional pooled leaving gift. Scheduled delivery. Free to create.', '/cards/leaving-card', {
-        dateModified: '2026-08-31',
+      SCHEMAS.webPage('Online Leaving Card — Group Leaving Cards Everyone Signs', 'Create an online leaving card the whole team signs from one link — messages, photos, GIFs and voice notes, plus an optional leaving gift. Free to start.', '/cards/leaving-card', {
+        dateModified: '2026-09-30',
         primaryImageOfPage: {
           '@type': 'ImageObject',
           url: 'https://www.thankeeu.com/og-leaving-card.jpg',
@@ -227,14 +242,7 @@ export default function LeavingCardPage() {
         },
       }),
       SCHEMAS.product('Online Leaving Card', 'Group farewell card the whole team signs from one link — messages, photos, GIFs, voice notes and an optional leaving gift collection.', 3.15, 'USD', '/cards/leaving-card'),
-      SCHEMAS.faqPage([
-        { q: 'How does an online leaving card work?', a: 'Create the card in under 2 minutes, share one link with colleagues, and everyone adds their message, photo, GIF or voice note. Schedule it to arrive on their last day.' },
-        { q: 'Can we collect money for a leaving gift?', a: 'Yes — every card includes an optional gift collection. People chip in when they sign, and the recipient or organiser withdraws the pooled amount.' },
-        { q: 'Do people need an account to sign?', a: 'No. Anyone with the link can sign instantly — no registration, no app download.' },
-        { q: 'How much does an online leaving card cost?', a: 'Free to create and collect messages. A small fee applies when you send — from $3.15 / £2.45 / NGN 5,000. Always shown upfront, no subscription.' },
-        { q: 'Can remote colleagues sign the leaving card?', a: 'Yes — the link works from any device, anywhere. Remote colleagues sign exactly the same way as those in the office.' },
-        { q: 'What is a Memory Movie?', a: 'Every Thankeeu card automatically generates a short 1080p video combining all the messages, photos and voice notes into a cinematic slideshow — a keepsake the recipient keeps forever.' },
-      ]),
+      SCHEMAS.faqPage(LEAVING_FAQS),
     ],
   });
 
@@ -246,13 +254,14 @@ export default function LeavingCardPage() {
       <section className="relative overflow-hidden px-4" style={{minHeight:'min(760px,82vh)',backgroundImage:'linear-gradient(90deg,rgba(24,10,38,0.97) 0%,rgba(54,27,65,0.88) 38%,rgba(59,28,66,0.27) 69%,rgba(20,8,30,0.06) 100%),url(/images/heroes/leaving-hero.jpg)',backgroundSize:'cover',backgroundPosition:'center'}}>
         <div className="max-w-6xl mx-auto flex items-center py-16 sm:py-24" style={{minHeight:'min(760px,82vh)'}}>
           <div className="text-left max-w-2xl">
-            <p className="text-xs font-extrabold uppercase tracking-[0.2em] mb-5"
-              style={{ color: 'rgba(255,255,255,0.65)' }}>Online Leaving Cards · UK, US &amp; Global</p>
-            <h1 className="font-extrabold text-white leading-none mb-5"
+            {/* SEO: the H1 carries the search term; the big emotional line keeps its look as a paragraph. */}
+            <h1 className="text-xs font-extrabold uppercase tracking-[0.2em] mb-5"
+              style={{ color: 'rgba(255,255,255,0.65)' }}>Online Leaving Cards for Colleagues · UK, US &amp; Global</h1>
+            <p className="font-extrabold text-white leading-none mb-5"
               style={{ fontSize: 'clamp(2.4rem,7vw,4.5rem)', letterSpacing: '-0.03em' }}>
               Their last day deserves<br />
               <span style={{color:'#FDE68A'}}>more than a rushed goodbye.</span>
-            </h1>
+            </p>
             {/* Fix #3+4: lead with recipient emotion AND urgency — the organiser
                 is always in a hurry. "Friday" creates the exact mental picture. */}
             <p className="text-lg sm:text-xl max-w-xl mb-4 leading-relaxed" style={{color:'rgba(255,255,255,0.84)'}}>
@@ -355,6 +364,9 @@ export default function LeavingCardPage() {
         </div>
       </section>
 
+      {/* ══ COVER DESIGNS — shown early so visitors see the cards first ══ */}
+      <LeavingDesignPreviewSection />
+
       {/* ══ HOW IT WORKS ══ */}
       <section id="how-it-works" className="py-16 md:py-20 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
@@ -364,7 +376,7 @@ export default function LeavingCardPage() {
             </div>
             <h2 className="font-extrabold text-warm-900 leading-tight"
               style={{ fontSize: 'clamp(1.85rem,5vw,2.75rem)' }}>
-              A proper farewell in four steps
+              How an online leaving card works
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -420,8 +432,6 @@ export default function LeavingCardPage() {
       </section>
 
       {/* ══ PRICING ══ */}
-      <LeavingDesignPreviewSection />
-
       <PricingSection />
 
       <div className="h-px mx-4" style={{ background: 'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }} />
@@ -577,14 +587,7 @@ export default function LeavingCardPage() {
         <div className="max-w-3xl mx-auto">
           <h2 className="text-xl font-bold text-warm-900 text-center mb-8">Frequently asked questions</h2>
           <div className="space-y-3">
-            {[
-              { q: 'How does an online leaving card work?', a: 'Create the card in under 2 minutes, share one link with colleagues, and everyone adds their message, photo, GIF or voice note. Schedule it to arrive on their last day at the exact time you choose.' },
-              { q: 'Can we collect money for a leaving gift too?', a: 'Yes — every card includes an optional gift collection. Contributors chip in when they sign, and the recipient or organiser withdraws the pooled amount directly to their bank account.' },
-              { q: 'Do people need an account to sign?', a: 'No. Anyone with the link can sign instantly — no registration, no app download. They just open the link and add their message.' },
-              { q: 'How much does an online leaving card cost?', a: 'Free to create and collect messages. A small fee applies when you\'re ready to send — always shown upfront before you pay. Classic (1 card) starts at $3.15 USD.' },
-              { q: 'Can remote colleagues sign?', a: 'Yes — the link works from any device, anywhere. Your Manchester office, the person on parental leave, and the colleague who left last year but wants to sign can all contribute from one link.' },
-              { q: 'What is the Memory Movie™?', a: 'After delivery, Thankeeu automatically generates a cinematic 1080p MP4 video from all the messages, photos and voice notes on the card. The recipient gets an email when it\'s ready to watch and download.' },
-            ].map(({ q, a }) => (
+            {LEAVING_FAQS.map(({ q, a }) => (
               <details key={q} className="rounded-2xl border border-purple-100 bg-white group">
                 <summary className="px-5 py-4 font-semibold text-warm-800 text-sm cursor-pointer list-none flex items-center justify-between">
                   {q}<Icon name="ChevronDown" size={16} className="text-warm-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-3" />

@@ -5,9 +5,33 @@ import { useSEO, SCHEMAS } from '../../hooks/useSEO'; /** * Occasion landing pag
 import { OCCASIONS } from './occasionsData.js';
 import RetirementLanding from './RetirementLanding';
 import PriorityDesignGallery from '../../components/PriorityDesignGallery';
-import { LOVED_ONE_SPOUSE_SYMPATHY_PRIORITY_DESIGNS } from '../../utils/priorityCardDesigns';
+import { getIllustratedCovers } from '../../utils/illustratedCardDesigns';
 
-export default function ExtraOccasionPage({ occasion }) { const d = OCCASIONS[occasion]; useSEO(d ? { title: d.title, description: d.desc, keywords: d.keywords, canonical: d.path, jsonLd: [ SCHEMAS.organization, SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: d.h1, url: d.path }]), SCHEMAS.webPage(d.title, d.desc, d.path), { '@type': 'FAQPage', mainEntity: (d.faqs || []).map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a }, })), }, ], } : { title: 'Card — Thankeeu', description: 'Create a group card everyone signs.', canonical: `/`, noIndex: true }); if (!d) return null; const STEPS = [ { n: '1', title: 'Create the card', body: 'Choose an occasion, pick a design, and set your delivery date. Done in under 2 minutes.' }, { n: '2', title: 'Share one link', body: 'Send the link by WhatsApp, Slack, email or text. Anyone can sign — no account needed.' }, { n: '3', title: 'Everyone signs', body: 'Contributors add personal messages, photos, GIFs and voice notes at their own pace.' }, { n: '4', title: 'Deliver perfectly', body: 'Schedule exact delivery by email. Optionally add a pooled gift — withdrawn straight to any bank.' }, ]; const FEATURES = [ { icon: 'UserCheck', title: 'No account needed to sign', body: 'Anyone with the link can add a message instantly — no registration, no app download.' }, { icon: 'Camera', title: 'Photos, GIFs & voice notes', body: 'Contributors personalise their message with photos, GIFs, or a voice recording right from their phone.' }, { icon: 'Clock', title: 'Scheduled delivery', body: 'Set the exact date and time for the card to arrive — midnight on their birthday, 9am on their first day.' }, { icon: 'Gift', title: 'Built-in gift collection', body: 'Enable an optional gift pool. Contributors add their message and chip in — paid securely via Flutterwave.' }, { icon: 'CheckCircle', title: 'Works for remote teams', body: 'The link works from anywhere in the world. Nobody gets left out because they work from home or another country.' }, { icon: 'CheckCircle', title: 'Private delivery', body: 'The recipient only sees the card when you send it — contributors sign without the recipient ever knowing.' }, ]; const STATS = [ { n: '69%', label: 'of employees say they\'d work harder if they felt better recognised — Gallup' }, { n: '40%', label: 'of people say recognition is more motivating than a pay rise — McKinsey' }, { n: '5×', label: 'higher employee engagement at companies with strong recognition cultures — Deloitte' }, { n: '2bn+', label: 'greeting cards sent globally every year — Greeting Card Association' }, ]; return ( <div className="min-h-screen bg-white flex flex-col">
+// Landing pages whose occasion has a matching illustrated cover set. Only true
+// matches are listed — pages like welcome, engagement or mother's day have no
+// cover folder, so they show none rather than borrowed covers.
+const COVERS_FOR_PAGE = {
+  'get-well-soon':           { occasion: 'get_well',   label: 'get well' },
+  'get-well-soon-uk':        { occasion: 'get_well',   label: 'get well' },
+  'thank-you':               { occasion: 'thank_you',  label: 'thank-you' },
+  'teacher-thank-you':       { occasion: 'thank_you',  label: 'thank-you' },
+  'teacher-appreciation':    { occasion: 'thank_you',  label: 'thank-you' },
+  'christmas':               { occasion: 'christmas',  label: 'Christmas' },
+  'sympathy':                { occasion: 'sympathy',   label: 'sympathy', exclude: 'pet' },
+  'retirement':              { occasion: 'retirement', label: 'retirement' },
+  'retirement-uk':           { occasion: 'retirement', label: 'retirement' },
+  'leaving-card-uk':         { occasion: 'leaving',    label: 'leaving' },
+  'birthday-uk':             { occasion: 'birthday',   label: 'birthday' },
+  'online-birthday-nigeria': { occasion: 'birthday',   label: 'birthday' },
+};
+const coversForPage = (page) => {
+  const m = COVERS_FOR_PAGE[page];
+  if (!m) return null;
+  const designs = getIllustratedCovers(m.occasion).filter(d => !m.exclude || d.sympathyGroup !== m.exclude);
+  return { ...m, designs };
+};
+
+export default function ExtraOccasionPage({ occasion }) { const d = OCCASIONS[occasion]; const covers = coversForPage(occasion); useSEO(d ? { title: d.title, description: d.desc, keywords: d.keywords, canonical: d.path, jsonLd: [ SCHEMAS.organization, SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: d.h1, url: d.path }]), SCHEMAS.webPage(d.title, d.desc, d.path), { '@type': 'FAQPage', mainEntity: (d.faqs || []).map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a }, })), }, ], } : { title: 'Card — Thankeeu', description: 'Create a group card everyone signs.', canonical: `/`, noIndex: true }); if (!d) return null; const STEPS = [ { n: '1', title: 'Create the card', body: 'Choose an occasion, pick a design, and set your delivery date. Done in under 2 minutes.' }, { n: '2', title: 'Share one link', body: 'Send the link by WhatsApp, Slack, email or text. Anyone can sign — no account needed.' }, { n: '3', title: 'Everyone signs', body: 'Contributors add personal messages, photos, GIFs and voice notes at their own pace.' }, { n: '4', title: 'Deliver perfectly', body: 'Schedule exact delivery by email. Optionally add a pooled gift — withdrawn straight to any bank.' }, ]; const FEATURES = [ { icon: 'UserCheck', title: 'No account needed to sign', body: 'Anyone with the link can add a message instantly — no registration, no app download.' }, { icon: 'Camera', title: 'Photos, GIFs & voice notes', body: 'Contributors personalise their message with photos, GIFs, or a voice recording right from their phone.' }, { icon: 'Clock', title: 'Scheduled delivery', body: 'Set the exact date and time for the card to arrive — midnight on their birthday, 9am on their first day.' }, { icon: 'Gift', title: 'Built-in gift collection', body: 'Enable an optional gift pool. Contributors add their message and chip in — paid securely via Flutterwave.' }, { icon: 'CheckCircle', title: 'Works for remote teams', body: 'The link works from anywhere in the world. Nobody gets left out because they work from home or another country.' }, { icon: 'CheckCircle', title: 'Private delivery', body: 'The recipient only sees the card when you send it — contributors sign without the recipient ever knowing.' }, ]; const STATS = [ { n: '69%', label: 'of employees say they\'d work harder if they felt better recognised — Gallup' }, { n: '40%', label: 'of people say recognition is more motivating than a pay rise — McKinsey' }, { n: '5×', label: 'higher employee engagement at companies with strong recognition cultures — Deloitte' }, { n: '2bn+', label: 'greeting cards sent globally every year — Greeting Card Association' }, ]; return ( <div className="min-h-screen bg-white flex flex-col">
 <Navbar /> {/* ── Hero ── */} <section className="bg-gradient-to-b from-primary-50 to-white pt-14 pb-12 px-4 text-center">
 <div className="max-w-3xl mx-auto">
 <h1 className="text-4xl sm:text-5xl font-extrabold text-warm-900 mb-4 leading-tight">{d.h1}</h1>
@@ -17,7 +41,16 @@ export default function ExtraOccasionPage({ occasion }) { const d = OCCASIONS[oc
 <Link to="/sample" className="btn-secondary px-8 py-3 text-lg">See a live demo</Link>
 </div>
 </div>
-</section> {/* ── How it works ── */} <section className="max-w-5xl mx-auto px-4 py-14">
+</section> {covers && covers.designs.length > 0 && (
+<PriorityDesignGallery
+designs={covers.designs}
+occasion={covers.occasion}
+eyebrow={`${covers.designs.length} new ${covers.label} covers`}
+title={`Choose your ${covers.label} card cover`}
+description="Browse ten illustrated covers at a time. Pick one to open it in the album studio, then everyone adds messages, photos, GIFs and voice notes."
+background="#ffffff"
+/>
+)} {/* ── How it works ── */} <section className="max-w-5xl mx-auto px-4 py-14">
 <h2 className="text-2xl sm:text-3xl font-bold text-warm-900 mb-2 text-center">How it works</h2>
 <p className="text-warm-500 text-center mb-10">Set up in minutes. Your group does the rest.</p>
 <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6"> {STEPS.map(s => ( <div key={s.n} className="bg-primary-50 rounded-2xl p-6 text-center">
@@ -102,16 +135,6 @@ export default function ExtraOccasionPage({ occasion }) { const d = OCCASIONS[oc
 </div>
 </div>
 </section>
-{occasion === 'sympathy' && (
-<PriorityDesignGallery
-designs={LOVED_ONE_SPOUSE_SYMPATHY_PRIORITY_DESIGNS}
-occasion="sympathy"
-eyebrow="Sympathy cover designs"
-title="Choose a cover that offers comfort"
-description="Thoughtful A4 covers for the loss of a loved one or spouse, ready for everyone to add messages, memories, photos and voice notes."
-background="#faf7ff"
-/>
-)}
 {/* ── Final CTA ── */} <section className="max-w-4xl mx-auto px-4 py-16 text-center">
 <h2 className="text-3xl font-extrabold text-warm-900 mb-4">Create yours in under 2 minutes</h2>
 <p className="text-warm-600 mb-8 max-w-lg mx-auto">Free to start. No account needed to sign. Works for teams of any size, anywhere in the world.</p>

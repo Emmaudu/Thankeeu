@@ -392,24 +392,32 @@ const STATIC_PAGES = [
   },
   {
     path: '/cards/leaving-card',
-    title: 'Online Leaving Card — Group Leaving Cards for Colleagues | Thankeeu',
-    description: "Create an online leaving card the whole team signs from one link — messages, photos, GIFs, voice notes, plus an optional gift collection. Free to start.",
+    title: "Online Leaving Card — Group Leaving Cards Everyone Signs | Thankeeu",
+    description: "Create an online leaving card the whole team signs from one link — messages, photos, GIFs and voice notes, plus an optional leaving gift. Free to start.",
+    // FAQ text and cover list are generated from LeavingCardPage.jsx / illustratedCoverRows.js
+    // (keep identical — Google compares the static HTML with the rendered page).
     rootHtml: `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="/cards/leaving-card">Online Leaving Card</a></nav>
 <main>
-  <h1>Online Leaving Card — Group Farewell Cards Everyone Signs</h1>
+  <h1>Online Leaving Cards for Colleagues · UK, US &amp; Global</h1>
+  <p><strong>Their last day deserves more than a rushed goodbye.</strong></p>
   <p>Your colleague opens their email and finds a card full of real messages, photos and voice notes from the whole team — not a 10-second WhatsApp group. Set it up in 2 minutes. Share the link. Everyone signs before Friday.</p>
   <p><strong>Free to start · From $3.15 / £2.45 to send · No subscription · No account needed to sign</strong></p>
   <p>50,000+ messages posted · 10,000+ happy customers · $150K+ gifts issued globally</p>
+  <h2>Choose a leaving card cover for their send-off</h2>
   <ul>
-    <li>One link — everyone signs from any device, anywhere</li>
-    <li>Photos, GIFs, videos and voice notes included</li>
-    <li>Optional pooled leaving gift collection (NGN, GBP, USD)</li>
-    <li>Scheduled delivery — lands at the exact moment you choose</li>
-    <li>Memory Movie™ auto-generated from all messages and media</li>
-    <li>Unlike Thankbox — voice notes, Memory Movie and Naira payments all included</li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-3t-farewell-legend&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/3t-farewell-legend.svg" alt="Farewell, legend! — Thanks for everything. You’ll be so missed! — leaving card cover" width="210" height="297" loading="lazy" /> Farewell, legend!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-3l-teary-cat&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/3l-teary-cat.svg" alt="We’ll miss you! — Don’t be a stranger — leaving card cover" width="210" height="297" loading="lazy" /> We’ll miss you!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-fw3-airplane&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/fw3-airplane.svg" alt="Up, up and away! — Bon voyage from the team — leaving card cover" width="210" height="297" loading="lazy" /> Up, up and away!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-3n-new-door&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/3n-new-door.svg" alt="Hello, next chapter! — So proud of you. Go get it! — leaving card cover" width="210" height="297" loading="lazy" /> Hello, next chapter!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-3s-rainbow&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/3s-rainbow.svg" alt="Sad you’re going, happy for you! — We’ll miss you loads — leaving card cover" width="210" height="297" loading="lazy" /> Sad you’re going, happy for you!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-fw1-moving-box&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/fw1-moving-box.svg" alt="Packing up, moving on! — We’ll miss you loads — leaving card cover" width="210" height="297" loading="lazy" /> Packing up, moving on!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-fw10-map-pin&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/fw10-map-pin.svg" alt="Next stop: awesome! — Good luck in your new role — leaving card cover" width="210" height="297" loading="lazy" /> Next stop: awesome!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-3r-signpost&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/3r-signpost.svg" alt="Onwards &amp; upwards! — Good luck in the new role — leaving card cover" width="210" height="297" loading="lazy" /> Onwards &amp; upwards!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-3m-suitcase&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/3m-suitcase.svg" alt="Adventure awaits! — Good luck on your next journey — leaving card cover" width="210" height="297" loading="lazy" /> Adventure awaits!</a></li>
+    <li><a href="/card/customize?occasion=leaving&amp;design=illus-farewell-3o-blast-off&amp;layout=album&amp;source=leaving-page"><img src="/cards/illustrated/farewell/3o-blast-off.svg" alt="Blast off! — To your next big thing — leaving card cover" width="210" height="297" loading="lazy" /> Blast off!</a></li>
   </ul>
-  <p><a href="/cards/create?occasion=leaving">Create a leaving card — free</a> | <a href="/cards/leaving-card/gallery">Browse leaving card designs</a> | <a href="/blog/what-to-write-in-a-leaving-card">50 leaving card messages</a> | <a href="/pricing">Pricing</a></p>
-  <h2>How it works</h2>
+  <p><a href="/cards/create?occasion=leaving">Create a leaving card — free</a> | <a href="/cards/leaving-card/gallery">Browse all leaving card designs</a> | <a href="/blog/what-to-write-in-a-leaving-card">What to write in a leaving card</a> | <a href="/pricing">Pricing</a></p>
+  <h2>How an online leaving card works</h2>
   <ol>
     <li><strong>Create</strong> — choose the leaving occasion, pick a design, set delivery date. Done in 2 minutes.</li>
     <li><strong>Share</strong> — send the link via WhatsApp, Slack or email. Anyone can sign — no account needed.</li>
@@ -418,13 +426,17 @@ const STATIC_PAGES = [
   </ol>
   <h2>Frequently asked questions</h2>
   <h3>How does an online leaving card work?</h3>
-  <p>Create the card in under 2 minutes, share one link with colleagues, and everyone adds their message, photo, GIF or voice note. Schedule it to arrive on their last day.</p>
-  <h3>Can we collect money for a leaving gift?</h3>
-  <p>Yes — every card includes an optional gift collection. People chip in when they sign, and the recipient withdraws the pooled amount directly.</p>
+  <p>Create the card in under 2 minutes, share one link with colleagues, and everyone adds their message, photo, GIF or voice note. Schedule it to arrive on their last day at the exact time you choose.</p>
+  <h3>Can we collect money for a leaving gift too?</h3>
+  <p>Yes — every card includes an optional gift collection. Contributors chip in when they sign, and the recipient or organiser withdraws the pooled amount directly to their bank account.</p>
   <h3>Do people need an account to sign?</h3>
-  <p>No. Anyone with the link can sign instantly — no registration, no app download.</p>
+  <p>No. Anyone with the link can sign instantly — no registration, no app download. They just open the link and add their message.</p>
   <h3>How much does an online leaving card cost?</h3>
-  <p>Free to create and collect messages. Classic plan starts at $3.15 USD / £2.45 GBP to send. Always shown upfront before you pay.</p>
+  <p>Free to create and collect messages. A small fee applies when you&#x27;re ready to send — always shown upfront before you pay. Classic (1 card) starts at $3.15 USD.</p>
+  <h3>Can remote colleagues sign?</h3>
+  <p>Yes — the link works from any device, anywhere. Your Manchester office, the person on parental leave, and the colleague who left last year but wants to sign can all contribute from one link.</p>
+  <h3>What is the Memory Movie™?</h3>
+  <p>After delivery, Thankeeu automatically generates a cinematic 1080p MP4 video from all the messages, photos and voice notes on the card. The recipient gets an email when it&#x27;s ready to watch and download.</p>
 </main>`,
   },
   {
@@ -471,7 +483,6 @@ const STATIC_PAGES = [
   { path: '/cards/mothers-day', title: "Online Mother's Day Card — Group Cards from the Whole Family | Thankeeu", description: "Create a Mother's Day card the whole family signs from one link — messages, photos, voice notes and memories. Pool a gift together." },
   { path: '/cards/fathers-day', title: "Online Father's Day Card — Group Cards from the Whole Family | Thankeeu", description: "Create a Father's Day card the whole family signs from one link — messages, photos, voice notes and memories. Pool a gift together." },
   { path: '/online-birthday-cards-nigeria', title: 'Online Birthday Cards Nigeria — Buy, Personalise & Send Same Day | Thankeeu', description: 'Buy an online birthday card in Nigeria — personalised, delivered instantly, signed by everyone who loves them. No printing, no Lagos traffic, no delivery fees.' },
-  { path: '/leaving-cards-uk', title: 'Online Leaving Cards UK — Group Leaving Cards Everyone Signs | Thankeeu', description: 'Create an online leaving card for a UK colleague in under 2 minutes. The whole team signs from one link — messages, photos, GIFs, voice notes — with a leaving gift collection in GBP.' },
   { path: '/birthday-cards-uk', title: 'Online Birthday Cards UK — Group Birthday Cards for Every Team | Thankeeu', description: 'Create an online birthday group card for a UK colleague. Everyone signs from one link with a birthday gift collection in GBP. Delivered at midnight.' },
   { path: '/retirement-cards-uk', title: 'Online Retirement Cards UK — Group Cards for Retiring Colleagues | Thankeeu', description: 'Create an online retirement group card for a UK colleague — signed by current and former colleagues, with an optional retirement gift collection in GBP.' },
   { path: '/get-well-soon-cards-uk', title: 'Online Get Well Soon Cards UK — Group Cards from the Whole Team | Thankeeu', description: 'Send strength from the whole UK team with an online get well soon card. Everyone signs from one link — messages, photos and voice notes — delivered privately.' },

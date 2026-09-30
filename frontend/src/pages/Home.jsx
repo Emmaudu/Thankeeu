@@ -9,6 +9,14 @@ import Icon from '../components/ui/Icon';
 import CardIntentBar from '../components/CardIntentBar';
 import { demoAPI, siteAPI } from '../utils/api';
 import HeroAlbumStack from '../components/HeroAlbumStack';
+import { getIllustratedCovers, createIllustratedCardUrl } from '../utils/illustratedCardDesigns';
+
+// One lead cover from each illustrated category for the homepage sample strip.
+const HOME_COVERS = [
+  ['birthday', 'Birthday'], ['leaving', 'Leaving'], ['thank_you', 'Thank you'], ['get_well', 'Get well'],
+  ['retirement', 'Retirement'], ['congratulations', 'Congrats'], ['sympathy', 'Sympathy'],
+  ['anniversary', 'Anniversary'], ['wedding', 'Wedding'], ['christmas', 'Christmas'],
+].map(([occasion, label]) => ({ design: getIllustratedCovers(occasion)[0], label }));
 import { FlagBackdrop, SupportedCountries } from '../components/WorldFlags';
 import { resolveHero, splitHeroTitle, readCachedHero, writeCachedHero } from '../utils/heroDefaults';
 import toast from 'react-hot-toast';
@@ -969,19 +977,19 @@ const Home = () => {
 
  <div className="h-px mx-4" style={{ background:'linear-gradient(90deg,transparent,#C4B5FD,transparent)' }}/>
 
- {/* ══ SAMPLE CARDS — 5 finished examples ══ */}
+ {/* ══ NEW COVERS — one lead cover per occasion ══ */}
  <section className="py-14 md:py-20 px-4 gc-font" style={{ background:'linear-gradient(180deg,#F5F0FF 0%,#FDFCFF 100%)' }}>
  <div className="max-w-6xl mx-auto">
  <div className="text-center mb-10">
- <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Eye" size={13}/>Live examples</div>
+ <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Sparkles" size={13}/>New card covers</div>
  <h2 className="font-bold text-warm-900 mb-3" style={{ fontSize:'clamp(1.85rem,5.5vw,2.75rem)' }}>
- Get inspiration from our<br/><span className="text-primary-500">sample cards</span>
+ Pick a cover they'll love,<br/><span className="text-primary-500">then everyone signs</span>
  </h2>
  <p className="text-warm-500 text-sm sm:text-base max-w-xl mx-auto">
-   See a real, finished card before you start — no signup needed.
+   Illustrated covers for every occasion. Tap one to start your group card — free, no signup needed.
  </p>
  <p className="text-xs font-semibold text-primary-500 mt-2">
-   ✏️ Every cover design is fully editable — add your recipient's name, change the title, colours and text before sharing.
+   ✏️ Add your recipient's name to the cover, then share one link for everyone to sign.
  </p>
  </div>
 
@@ -991,27 +999,17 @@ const Home = () => {
  @media(max-width:540px){.svg-grid{grid-template-columns:repeat(2,1fr);}}
  .svg-tile { position:relative; border-radius:16px; overflow:hidden; cursor:pointer; aspect-ratio:210/297; box-shadow:0 2px 12px rgba(0,0,0,0.10); transition:transform 0.18s,box-shadow 0.18s; text-decoration:none; display:block; }
  .svg-tile:hover { transform:translateY(-4px); box-shadow:0 12px 32px rgba(124,58,237,0.18); }
- .svg-tile img { width:100%; height:100%; object-fit:cover; object-position:top; display:block; }
+ .svg-tile img { width:100%; height:100%; object-fit:cover; object-position:center; display:block; }
  `}</style>
 
  <div className="svg-grid">
- {[
- { n:'01', label:'So Long, Good Luck' },
- { n:'02', label:'Elegant Farewell' },
- { n:'05', label:'A Fresh Chapter' },
- { n:'07', label:'Goodbye & Good Luck' },
- { n:'13', label:'On To Wonderful Things' },
- ].map(({ n, label }) => (
- <Link key={n} to="/card/new?occasion=leaving" className="svg-tile" title={`${label} leaving card design`}>
- <img src={`/cards/leaving/leave-card-${n}.png`} alt={`${label} leaving card cover`} loading="lazy"/>
- <div style={{
- position:'absolute', bottom:0, left:0, right:0,
- background:'linear-gradient(0deg,rgba(0,0,0,0.55) 0%,transparent 100%)',
- padding:'20px 10px 8px', pointerEvents:'none',
- }}>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:11, color:'#fff', margin:0, textShadow:'0 1px 3px rgba(0,0,0,0.5)' }}>{label}</p>
- </div>
+ {HOME_COVERS.map(({ design, label }) => (
+ <figure key={design.id} className="m-0">
+ <Link to={createIllustratedCardUrl(design, 'home-covers')} className="svg-tile" title={`${design.name} — ${label} group card`}>
+ <img src={design.image} alt={`${design.alt} — ${label.toLowerCase()} group card cover`} loading="lazy" decoding="async"/>
  </Link>
+ <figcaption className="mt-2 text-center text-xs font-bold text-warm-500">{label}</figcaption>
+ </figure>
  ))}
  </div>
  </div>

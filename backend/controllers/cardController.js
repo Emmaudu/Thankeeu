@@ -11,6 +11,7 @@ const FRONTEND_URL = (() => {
 const { sendEmail } = require('../utils/email');
 const { pushNotification, pushNotificationBulk } = require('../utils/notify');
 const { nanoid } = require('nanoid');
+const { resolveSchedule } = require('../utils/schedule');
 
 // Cover text layout (movable/resizable/recolourable title, recipient, sender,
 // each individually shown or removed from the cover). Stored as JSONB. Accepts
@@ -150,7 +151,7 @@ const createCard = async (req, res) => {
       return res.status(400).json({ error: 'Invalid suggested gift amount' });
 
     // Validate date fields
-    if (send_date && isNaN(new Date(send_date).getTime()))
+    if (send_date && (isNaN(new Date(send_date).getTime()) || resolveSchedule({ send_date, send_time }).error))
       return res.status(400).json({ error: 'Invalid send date' });
     if (deadline && isNaN(new Date(deadline).getTime()))
       return res.status(400).json({ error: 'Invalid deadline date' });
@@ -187,15 +188,12 @@ const createCard = async (req, res) => {
       // Store send_date as the FULL combined UTC datetime (date + time) so the
       // cron can do a single TIMESTAMPTZ comparison without reconstructing from
       // two separate columns. If only a date is given, default time to midnight.
-      send_date: send_date
-        ? (() => {
-            const d = String(send_date).slice(0, 10);
-            const t = send_time ? String(send_time).slice(0, 8) : '00:00:00';
-            const combined = new Date(`${d}T${t}Z`);
-            return isNaN(combined.getTime()) ? send_date : combined.toISOString();
-          })()
-        : null,
-      send_time: send_time || null,
+      // One rule for every input shape (utils/schedule.js): date+time pair,
+      // full ISO instant, or date only (→ 00:00 UTC).
+      ...(() => {
+        const r = send_date ? resolveSchedule({ send_date, send_time }) : { send_date: null, send_time: null };
+        return { send_date: r.send_date ?? null, send_time: r.send_time ?? null };
+      })(),
       deadline: deadline || null,
       allow_private_messages, send_reminders, hide_amounts, hide_view_messages_button,
       card_experience: card_experience || 'card_only',
@@ -565,17 +563,22 @@ const updateCard = async (req, res) => {
       safeUpdates.cover_layout = sanitizeCoverLayout(safeUpdates.cover_layout);
     }
 
-    // If send_date is being updated, combine with send_time into a full UTC TIMESTAMPTZ
-    // so the cron can do a single column comparison instead of reconstructing two fields.
-    if (safeUpdates.send_date) {
-      const d = String(safeUpdates.send_date).slice(0, 10);
-      const t = safeUpdates.send_time
-        ? String(safeUpdates.send_time).slice(0, 8)
-        : '00:00:00';
-      const combined = new Date(`${d}T${t}Z`);
-      if (!isNaN(combined.getTime())) {
-        safeUpdates.send_date = combined.toISOString();
+    // Combine send_date + send_time into the single UTC instant the delivery
+    // engine compares against. Handles a time-only edit (keeps the stored
+    // date) and a full ISO instant (keeps its time) — both used to lose the
+    // time. See utils/schedule.js.
+    if ('send_date' in safeUpdates || 'send_time' in safeUpdates) {
+      let existingSendDate = null;
+      if (!('send_date' in safeUpdates)) {
+        const { data: cur } = await supabase.from('cards').select('send_date').eq('slug', slug).maybeSingle();
+        existingSendDate = cur?.send_date || null;
       }
+      const sched = resolveSchedule(
+        { ...('send_date' in safeUpdates && { send_date: safeUpdates.send_date }), ...('send_time' in safeUpdates && { send_time: safeUpdates.send_time }) },
+        existingSendDate,
+      );
+      if (sched.error) return res.status(400).json({ error: sched.error });
+      Object.assign(safeUpdates, sched);
     }
 
     // Same for deadline + deadline_time

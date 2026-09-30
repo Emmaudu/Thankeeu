@@ -2,6 +2,12 @@ import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
+import PriorityDesignGallery from '../../components/PriorityDesignGallery';
+import { getIllustratedShowcase } from '../../utils/illustratedCardDesigns';
+
+// One lead cover from each occasion — these are general group-card pages.
+const COUNTRY_PAGE_COVERS = getIllustratedShowcase(['birthday', 'leaving', 'thank_you', 'get_well', 'retirement',
+  'congratulations', 'sympathy', 'anniversary', 'wedding', 'christmas'], 1);
 
 /**
  * Country landing pages — target "online group cards <country>" head terms.
@@ -167,6 +173,15 @@ export default function CountryLandingPage({ country }) {
           <Link to="/sample" className="btn-secondary px-8 py-3 text-lg">See a live demo</Link>
         </div>
       </section>
+
+      <PriorityDesignGallery
+        designs={COUNTRY_PAGE_COVERS}
+        eyebrow="New card covers"
+        title="Pick a cover — everyone signs from one link"
+        description="Illustrated covers for birthdays, leaving, thank you, get well, retirement and more. Tap one to start your group card for free."
+        background="transparent"
+        id="covers"
+      />
 
       {/* How it works (brief) */}
       <section className="max-w-4xl mx-auto px-4 py-10">

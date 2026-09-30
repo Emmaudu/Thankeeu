@@ -5,10 +5,10 @@ import { normalizeCoverLayout } from '../utils/coverLayout';
  * Turning it off removes that text from the card cover completely — in the
  * builder preview, the delivered card and the signing page.
  *
- * Props: field, layout (form.cover_layout), onChange(nextLayout)
+ * Props: field, layout (form.cover_layout), onChange(nextLayout), design (selected cover)
  */
-export default function CoverFieldToggle({ field, layout, onChange }) {
-  const L = normalizeCoverLayout(layout);
+export default function CoverFieldToggle({ field, layout, onChange, design }) {
+  const L = normalizeCoverLayout(layout, design);
   const on = L[field].show;
   return (
     <button

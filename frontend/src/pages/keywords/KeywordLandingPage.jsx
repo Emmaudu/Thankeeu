@@ -7,6 +7,20 @@ import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Icon from '../../components/ui/Icon';
 import { KEYWORD_PAGES } from './keywordPagesData';
+import PriorityDesignGallery from '../../components/PriorityDesignGallery';
+import { getIllustratedCovers, getIllustratedShowcase } from '../../utils/illustratedCardDesigns';
+
+// Covers for a keyword page: its occasion's set when it has one (e.g. virtual
+// birthday card), otherwise one lead cover from each occasion.
+const SHOWCASE_OCCASIONS = ['birthday', 'leaving', 'thank_you', 'get_well', 'retirement',
+  'congratulations', 'sympathy', 'anniversary', 'wedding', 'christmas'];
+const coversForKeywordPage = (occasionParam) => {
+  const occ = new URLSearchParams(occasionParam || '').get('occasion');
+  const own = occ ? getIllustratedCovers(occ) : [];
+  return own.length
+    ? { occasion: occ, designs: own }
+    : { occasion: undefined, designs: getIllustratedShowcase(SHOWCASE_OCCASIONS, 1) };
+};
 
 /* ─── Exit-intent modal — same pattern as LeavingCardPage ───────────── */
 const ExitIntentModal = ({ onClose, data }) => (
@@ -193,6 +207,22 @@ export default function KeywordLandingPage({ slug: slugProp }) {
           </div>
         </div>
       </section>
+
+      {/* ══ COVER DESIGNS — right under the hero so visitors see real cards first ══ */}
+      {(() => {
+        const covers = coversForKeywordPage(data.occasionParam);
+        return (
+          <PriorityDesignGallery
+            designs={covers.designs}
+            occasion={covers.occasion}
+            eyebrow={covers.occasion ? `${covers.designs.length} new card covers` : 'New card covers'}
+            title="Pick a cover — everyone signs from one link"
+            description="Illustrated covers for every occasion. Choose one to start your group card for free; add messages, photos, GIFs and voice notes together."
+            background="#ffffff"
+            id="covers"
+          />
+        );
+      })()}
 
       {/* ══ SOCIAL PROOF NUMBERS ══ */}
       <section className="py-10 px-4 border-b border-purple-50" style={{ background: '#fff' }}>

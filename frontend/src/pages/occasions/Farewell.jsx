@@ -1,15 +1,17 @@
 import OccasionLandingPage from './OccasionLandingPage';
-import { FAREWELL_PRIORITY_DESIGNS } from '../../utils/priorityCardDesigns';
+import { getIllustratedCovers } from '../../utils/illustratedCardDesigns';
+
+const FAREWELL_COVERS = getIllustratedCovers('leaving');
 
 export default function FarewellPage() {
   return (
     <OccasionLandingPage
       occasion="farewell"
-      priorityDesigns={FAREWELL_PRIORITY_DESIGNS}
+      priorityDesigns={FAREWELL_COVERS}
       priorityDesignOccasion="leaving"
-      priorityDesignEyebrow="20 new farewell covers"
+      priorityDesignEyebrow={`${FAREWELL_COVERS.length} new farewell covers`}
       priorityDesignTitle="Choose a farewell cover worthy of their next chapter"
-      priorityDesignDescription="Browse ten premium A4 designs at a time. Select a cover to personalise the full farewell album with messages, photos, video and voice notes."
+      priorityDesignDescription="Browse ten illustrated covers at a time. Pick one to open it in the album studio, then everyone adds messages, photos, GIFs and voice notes."
     />
   );
 }

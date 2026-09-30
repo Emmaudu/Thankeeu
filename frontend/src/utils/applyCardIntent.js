@@ -45,7 +45,8 @@ export const coverInkFor = (design) => {
 /** The same filter both wizards use to build their design grid. */
 export const coversForOccasion = (occasion) => {
   const real = CARD_DESIGNS.filter(d => (d.artwork || d.image) && d.occasion === occasion);
-  return real.length ? real : CARD_DESIGNS.filter(d => d.artwork || d.image).slice(0, 10);
+  // Covers with printed occasion wording (finished art) never stand in for another occasion.
+  return real.length ? real : CARD_DESIGNS.filter(d => (d.artwork || d.image) && !d.finishedArt).slice(0, 10);
 };
 
 /**

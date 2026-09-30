@@ -36,6 +36,7 @@ const humanDate = (iso) => {
 };
 const { safeTxRef } = require('../utils/paramGuard');
 const { validateDiscountCode, applyDiscountToFeeNGN, recordDiscountRedemption } = require('./discountCodeController');
+const { resolveChargeCurrency, createPaymentLink } = require('../utils/flwCurrency');
 
 const FLW_BASE    = 'https://api.flutterwave.com/v3';
 const FLW_TIMEOUT = 12000;
@@ -115,7 +116,8 @@ const purchaseCredits = async (req, res) => {
     const plan = PLANS[plan_type];
     if (!plan) return res.status(400).json({ error: 'Invalid plan. Choose classic, standard, pack5, pack10, pack25, pack50, pack70, or pack100.' });
 
-    const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
+    // Currencies switched off via FLW_DISABLED_CURRENCIES are charged in USD.
+    const currency = resolveChargeCurrency(SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN');
 
     // Discount code — validated server-side only; the frontend price shown is
     // never trusted as-is.
@@ -190,15 +192,17 @@ const purchaseCredits = async (req, res) => {
       },
     };
 
-    const r = await axios.post(`${FLW_BASE}/payments`, payload, {
-      headers: flwHeaders(), timeout: FLW_TIMEOUT,
-    });
-
-    if (r.data.status !== 'success') {
-      return res.status(400).json({ error: r.data.message || 'Payment gateway rejected the request' });
+    // Retries once in USD if Flutterwave rejects the currency (e.g. CAD not enabled on the account).
+    const link = await createPaymentLink(payload, priceNGN, console);
+    if (!link.ok) {
+      console.error('FLW purchaseCredits rejected:', currency, link.message);
+      return res.status(400).json({ error: link.message });
+    }
+    if (link.fellBack) {
+      await supabase.from('credit_purchases').update({ currency: link.currency }).eq('flw_reference', txRef);
     }
 
-    return res.json({ payment_link: r.data.data.link, tx_ref: txRef, plan, currency, amount });
+    return res.json({ payment_link: link.link, tx_ref: txRef, plan, currency: link.currency, amount: link.amount });
 
   } catch (err) {
     const msg = err.response?.data?.message || err.message;

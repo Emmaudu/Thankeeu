@@ -1660,6 +1660,11 @@ const CardView = () => {
   const navThemeDark = backgroundIsDark(navThemeBg, design?.soft || '#F5F0FF');
   // Movable/recolourable cover text layout (show/hide + per-field colour)
   const coverLayout = normalizeCoverLayout(card.cover_layout);
+  // The board banner is not the cover artwork. On finished-art covers the
+  // creator may hide texts so they don't sit on the illustration — that
+  // choice is about the artwork, so the banner still shows title and sender.
+  const bannerShowsTitle  = design?.finishedArt ? true : coverLayout.title.show;
+  const bannerShowsSender = design?.finishedArt ? true : coverLayout.sender.show;
   const fieldColor = (field) => {
     const c = coverLayout[field]?.color;
     if (!c || c === 'auto') return coverTextColor;
@@ -1752,7 +1757,7 @@ const CardView = () => {
           )}
 
           {/* Big calligraphic title */}
-          {coverLayout.title.show && (
+          {bannerShowsTitle && (
             <h1 className="mb-1 px-2" style={{
               fontFamily: "'Great Vibes', cursive",
               fontSize: 'clamp(1.9rem, 5vw, 3.25rem)',
@@ -1767,7 +1772,7 @@ const CardView = () => {
             </h1>
           )}
 
-          {card.cover_sender && coverLayout.sender.show && (
+          {card.cover_sender && bannerShowsSender && (
             <p className="text-xs sm:text-sm font-bold uppercase tracking-[0.16em] mb-3" style={{ color: fieldColor('sender'), opacity: coverIsPhoto ? 1 : 0.9 }}>
               From {card.cover_sender}
             </p>

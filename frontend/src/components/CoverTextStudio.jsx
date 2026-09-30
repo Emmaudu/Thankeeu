@@ -3,7 +3,7 @@ import CardCoverPreview from './CardCoverPreview';
 import Icon from './ui/Icon';
 import Switch from './ui/Switch';
 import {
-  normalizeCoverLayout, DEFAULT_COVER_LAYOUT, COVER_FIELDS, COVER_TEXT_SWATCHES,
+  normalizeCoverLayout, DEFAULT_COVER_LAYOUT, FINISHED_ART_COVER_LAYOUT, COVER_FIELDS, COVER_TEXT_SWATCHES,
 } from '../utils/coverLayout';
 
 const FIELD_META = {
@@ -31,7 +31,9 @@ const CoverTextStudio = ({
   coverColor, textColor, fontFamily,
   layout, onChange, selected, onSelect,
 }) => {
-  const L = useMemo(() => normalizeCoverLayout(layout), [layout]);
+  const L = useMemo(() => normalizeCoverLayout(layout, design), [layout, design]);
+  // Reset targets follow the cover type (finished-art covers default to no overlay).
+  const BASE_LAYOUT = design?.finishedArt ? FINISHED_ART_COVER_LAYOUT : DEFAULT_COVER_LAYOUT;
   const active = selected && FIELD_META[selected] ? selected : 'recipient';
   const cfg = L[active];
 
@@ -266,7 +268,7 @@ const CoverTextStudio = ({
                       </button>
                     ))}
                     <button type="button"
-                      onClick={() => update(active, { x: DEFAULT_COVER_LAYOUT[active].x, y: DEFAULT_COVER_LAYOUT[active].y })}
+                      onClick={() => update(active, { x: BASE_LAYOUT[active].x, y: BASE_LAYOUT[active].y })}
                       aria-label="Recentre this text" title="Recentre"
                       className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-50 text-primary-600 transition-colors hover:bg-purple-100">
                       <Icon name="Target" size={12} />
@@ -277,7 +279,7 @@ const CoverTextStudio = ({
 
                 <button
                   type="button"
-                  onClick={() => onChange?.(DEFAULT_COVER_LAYOUT)}
+                  onClick={() => onChange?.(BASE_LAYOUT)}
                   className="ml-auto inline-flex flex-shrink-0 items-center gap-1 text-xs font-bold text-warm-600 hover:text-primary-600"
                 >
                   <Icon name="Refresh" size={13} /> Reset

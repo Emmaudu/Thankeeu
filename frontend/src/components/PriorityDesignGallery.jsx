@@ -54,25 +54,34 @@ export default function PriorityDesignGallery({
               className="group overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm transition-all hover:-translate-y-1 hover:border-primary-200 hover:shadow-xl"
             >
               <Link
-                to={createPriorityCardUrl(occasion, design.id)}
+                to={createPriorityCardUrl(occasion || design.occasion, design.id)}
                 className="block h-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary-200"
                 aria-label={`Choose ${design.name}`}
               >
                 <div className="relative overflow-hidden bg-purple-50">
                   <img
                     src={design.image}
-                    alt={`${design.name} cover design`}
+                    alt={design.finishedArt ? `${design.alt} — group card cover` : `${design.name} cover design`}
                     className="w-full aspect-[210/297] object-cover transition-transform duration-500 group-hover:scale-[1.025]"
                     loading="lazy"
                   />
-                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[10px] font-extrabold text-primary-700 shadow-sm backdrop-blur">
-                    <Icon name={design.badge === 'New' ? 'Sparkles' : 'Star'} size={11} />
-                    {design.badge}
-                  </span>
+                  {/* Badge over the art only for older covers; finished-art covers
+                      print their headline right at the top, so theirs sits in the caption. */}
+                  {design.badge && !design.finishedArt && (
+                    <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-white/95 px-2 py-1 text-[10px] font-extrabold text-primary-700 shadow-sm backdrop-blur">
+                      <Icon name={design.badge === 'New' ? 'Sparkles' : 'Star'} size={11} />
+                      {design.badge}
+                    </span>
+                  )}
                 </div>
                 <div className="p-3">
+                  {design.finishedArt && (
+                    <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-extrabold text-primary-700">
+                      <Icon name="Sparkles" size={10} /> New
+                    </span>
+                  )}
                   <h3 className="text-sm font-extrabold leading-tight text-warm-900">{design.name}</h3>
-                  <p className="mt-1 text-[11px] text-warm-400">{design.style}</p>
+                  <p className="mt-1 text-[11px] text-warm-400">{design.style || design.coverSubtitle}</p>
                   <span className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary-600 px-3 py-2 text-xs font-bold text-white transition-colors group-hover:bg-primary-700">
                     Use this cover
                     <Icon name="ArrowRight" size={13} />
@@ -83,6 +92,7 @@ export default function PriorityDesignGallery({
           ))}
         </div>
 
+        {pageCount > 1 && (<>
         <div className="mt-10 flex flex-wrap items-center justify-center gap-3" aria-label="Cover design pages">
           <button
             type="button"
@@ -123,8 +133,9 @@ export default function PriorityDesignGallery({
         </div>
 
         <p className="mt-4 text-center text-xs font-semibold text-warm-400">
-          Showing {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, designs.length)} of {designs.length} premium covers
+          Showing {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, designs.length)} of {designs.length} covers
         </p>
+        </>)}
       </div>
     </section>
   );

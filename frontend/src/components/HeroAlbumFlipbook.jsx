@@ -242,6 +242,8 @@ export default function HeroAlbumFlipbook() {
             recipientName={RECIPIENT}
             title={`Happy Birthday, ${RECIPIENT}!`}
             senderName="The Product Team"
+            // Finished-art covers print their own headline — show just the name.
+            layout={design?.finishedArt ? { recipient: { show: true } } : undefined}
             inBook
           />
         </div>

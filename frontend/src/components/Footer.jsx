@@ -29,7 +29,7 @@ const USE_CASE_COL2 = [
   { to:'/digital-wedding-guest-book',    label:'Digital Wedding Guest Book' },
 ];
 const USE_CASE_COL3 = [
-  { to:'/leaving-cards-uk',              label:'Online Leaving Cards UK' },
+  { to:'/cards/leaving-card',            label:'Online Leaving Cards UK' },
   { to:'/birthday-cards-uk',             label:'Online Birthday Cards UK' },
   { to:'/retirement-cards-uk',           label:'Retirement Cards UK' },
   { to:'/get-well-soon-cards-uk',        label:'Get Well Soon Cards UK' },

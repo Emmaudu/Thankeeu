@@ -8,6 +8,11 @@
   "cleanUrls": true,
   "redirects": [
     {
+      "source": "/leaving-cards-uk",
+      "destination": "https://www.thankeeu.com/cards/leaving-card",
+      "permanent": true
+    },
+    {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "thankeeu.com" }],
       "destination": "https://www.thankeeu.com/:path*",

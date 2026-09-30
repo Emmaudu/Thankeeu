@@ -78,7 +78,7 @@ export default function DashboardSendMoney() {
   // crash on first render.
   const designsFor = (occasionId) => {
     const forOccasion = CARD_DESIGNS.filter(d => (d.artwork || d.image) && d.occasion === occasionId);
-    return forOccasion.length ? forOccasion : CARD_DESIGNS.filter(d => d.artwork || d.image).slice(0, 24);
+    return forOccasion.length ? forOccasion : CARD_DESIGNS.filter(d => (d.artwork || d.image) && !d.finishedArt).slice(0, 24);
   };
 
   const [form, setForm] = useState({

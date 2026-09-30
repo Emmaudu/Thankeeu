@@ -54,6 +54,9 @@ const CardCoverPreview = ({
 
   const hasArtwork = Boolean(design.artwork);
   const hasImage = Boolean(design.image);
+  // Finished-art covers carry their own headline + tagline: show them exactly
+  // as designed — no scrim, no occasion chip, no caption over the tagline.
+  const finishedArt = Boolean(design.finishedArt && hasImage);
   // Flat covers (no photo, no SVG artwork) paint `withTint(...)` — a measurable
   // surface, so any unreadable ink (several presets ship ink:'#ffffff' over a
   // pale gradient) gets swapped for a colour that actually reads. Photo and
@@ -72,7 +75,7 @@ const CardCoverPreview = ({
   const displayTitle = title?.trim() || design.coverTitle || 'A card made together';
   const displaySender = senderName?.trim() || 'Your name';
 
-  const L = normalizeCoverLayout(layout);
+  const L = normalizeCoverLayout(layout, design);
   const values = {
     recipient: displayRecipient,
     title: displayTitle,
@@ -215,13 +218,21 @@ const CardCoverPreview = ({
       )}
       {hasImage && !hasArtwork && (
         <>
-          <img src={design.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0" style={{ background: ink === '#ffffff' ? 'linear-gradient(180deg, transparent 34%, rgba(7,17,30,0.55) 100%)' : 'linear-gradient(180deg, transparent 30%, rgba(255,255,255,0.5) 100%)' }} />
+          <img
+            src={design.image}
+            alt={finishedArt ? (design.alt || design.name || '') : ''}
+            loading={compact ? 'lazy' : undefined}
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {!finishedArt && (
+            <div className="absolute inset-0" style={{ background: ink === '#ffffff' ? 'linear-gradient(180deg, transparent 34%, rgba(7,17,30,0.55) 100%)' : 'linear-gradient(180deg, transparent 30%, rgba(255,255,255,0.5) 100%)' }} />
+          )}
         </>
       )}
 
       {/* Occasion chip (kept subtle, not part of movable texts) */}
-      {!compact && (
+      {!compact && !finishedArt && (
         <div
           className="absolute top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[9px] sm:text-[11px] font-extrabold uppercase tracking-[0.2em] z-[2]"
           style={{
@@ -247,7 +258,7 @@ const CardCoverPreview = ({
 
       {/* Movable text fields */}
       {compact
-        ? (
+        ? (finishedArt ? null : (
           // Compact thumbnails: show a lightweight static title only so the grid stays legible
           <div className="absolute inset-0 flex items-end justify-center p-2 pointer-events-none">
             <p
@@ -257,7 +268,7 @@ const CardCoverPreview = ({
               {design.name || displayRecipient}
             </p>
           </div>
-        )
+        ))
         : COVER_FIELDS.map(renderText)}
     </div>
   );

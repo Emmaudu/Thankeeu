@@ -25,10 +25,21 @@ export const DEFAULT_COVER_LAYOUT = {
   sender:    { x: 50, y: 84, size: 11, color: 'auto', show: true,  shadow: false, shadowColor: '#000000', shadowOpacity: 0.40 },
 };
 
+// Finished-art covers (the illustrated collection) already print their own
+// headline and tagline, and measured across all of them there is no empty
+// band except a sliver at the top and bottom edge. So by default nothing is
+// overlaid; if the creator switches a text on, it starts in those free edges
+// (name at the top, sender at the foot) and can be dragged from there.
+export const FINISHED_ART_COVER_LAYOUT = {
+  recipient: { x: 50, y: 4,  size: 11, color: 'auto', show: false, shadow: false, shadowColor: '#000000', shadowOpacity: 0.55 },
+  title:     { x: 50, y: 31, size: 12, color: 'auto', show: false, shadow: false, shadowColor: '#000000', shadowOpacity: 0.55 },
+  sender:    { x: 50, y: 96, size: 8,  color: 'auto', show: false, shadow: false, shadowColor: '#000000', shadowOpacity: 0.40 },
+};
+
 const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
-const normField = (field, raw = {}) => {
-  const d = DEFAULT_COVER_LAYOUT[field];
+const normField = (field, raw = {}, base = DEFAULT_COVER_LAYOUT) => {
+  const d = base[field];
   return {
     x:             typeof raw.x === 'number'             ? clamp(raw.x, 4, 96)       : d.x,
     y:             typeof raw.y === 'number'             ? clamp(raw.y, 4, 96)       : d.y,
@@ -42,16 +53,18 @@ const normField = (field, raw = {}) => {
 };
 
 // Accepts an object or a JSON string; returns a fully-populated, clamped layout.
-export const normalizeCoverLayout = (input) => {
+// Pass the cover `design` so finished-art covers get their own defaults.
+export const normalizeCoverLayout = (input, design) => {
   let src = input;
   if (typeof input === 'string') {
     try { src = JSON.parse(input); } catch { src = null; }
   }
   src = src && typeof src === 'object' ? src : {};
+  const base = design?.finishedArt ? FINISHED_ART_COVER_LAYOUT : DEFAULT_COVER_LAYOUT;
   return {
-    title: normField('title', src.title),
-    recipient: normField('recipient', src.recipient),
-    sender: normField('sender', src.sender),
+    title: normField('title', src.title, base),
+    recipient: normField('recipient', src.recipient, base),
+    sender: normField('sender', src.sender, base),
   };
 };
 

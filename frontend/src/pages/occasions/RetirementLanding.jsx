@@ -5,7 +5,9 @@ import Icon from '../../components/ui/Icon';
 import PriorityDesignGallery from '../../components/PriorityDesignGallery';
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 import { OCCASIONS } from './occasionsData';
-import { RETIREMENT_PRIORITY_DESIGNS } from '../../utils/priorityCardDesigns';
+import { getIllustratedCovers } from '../../utils/illustratedCardDesigns';
+
+const RETIREMENT_COVERS = getIllustratedCovers('retirement');
 
 const BENEFITS = [
   ['Book', 'A career in one keepsake', 'Collect the stories, lessons and moments that deserve more space than a paper card allows.'],
@@ -55,11 +57,11 @@ export default function RetirementLanding() {
       </section>
 
       <PriorityDesignGallery
-        designs={RETIREMENT_PRIORITY_DESIGNS}
+        designs={RETIREMENT_COVERS}
         occasion="retirement"
-        eyebrow="20 new retirement covers"
+        eyebrow={`${RETIREMENT_COVERS.length} new retirement covers`}
         title="Choose a cover that honours the whole journey"
-        description="Browse ten premium A4 designs at a time, then personalise the retirement album with the stories, photos and voices that made the career memorable."
+        description="Pick an illustrated cover, then fill the retirement album with the stories, photos and voices that made the career memorable."
         background="#ffffff"
       />
 

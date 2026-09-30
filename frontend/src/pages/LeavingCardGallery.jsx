@@ -6,9 +6,11 @@ import Icon from '../components/ui/Icon';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { LEAVING_CARD_DESIGNS, createLeavingCardUrl } from '../utils/leavingCardDesigns';
 import { FAREWELL_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
+import { getIllustratedCovers } from '../utils/illustratedCardDesigns';
 
 const PAGE_SIZE = 10;
-const ALL_LEAVING_DESIGNS = [...FAREWELL_PRIORITY_DESIGNS, ...LEAVING_CARD_DESIGNS];
+// New illustrated leaving covers first, then the earlier collections.
+const ALL_LEAVING_DESIGNS = [...getIllustratedCovers('leaving'), ...FAREWELL_PRIORITY_DESIGNS, ...LEAVING_CARD_DESIGNS];
 
 export default function LeavingCardGallery() {
   const [page, setPage] = useState(1);
@@ -64,7 +66,7 @@ export default function LeavingCardGallery() {
               {ALL_LEAVING_DESIGNS.slice(0, 6).map((design, index) => (
                 <div key={design.id} className="rounded-2xl overflow-hidden shadow-lg border-4 border-white bg-white"
                   style={{ transform: `translateY(${index % 2 ? 20 : 0}px) rotate(${index % 2 ? 2 : -2}deg)` }}>
-                  <img src={design.image} alt="" className="w-full aspect-[3/4] object-cover" loading="eager" />
+                  <img src={design.image} alt="" className="w-full aspect-[210/297] object-cover" loading="eager" />
                 </div>
               ))}
             </div>
@@ -88,14 +90,19 @@ export default function LeavingCardGallery() {
                 <article key={design.id} className="rounded-lg border border-purple-100 bg-white shadow-sm overflow-hidden hover:shadow-xl hover:border-primary-200 transition-all">
                   <Link to={createLeavingCardUrl(design.id)} className="block group">
                     <div className="relative bg-warm-100">
-                      <img src={design.image} alt={`${design.name} leaving card design`} className="w-full aspect-[3/4] object-cover group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" />
-                      <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-extrabold text-white bg-primary-600 shadow-sm">
-                        {design.badge}
-                      </span>
+                      <img src={design.image} alt={design.alt ? `${design.alt} — leaving card design` : `${design.name} leaving card design`} className="w-full aspect-[210/297] object-cover group-hover:scale-[1.02] transition-transform duration-300" loading="lazy" />
+                      {!design.finishedArt && (
+                        <span className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-xs font-extrabold text-white bg-primary-600 shadow-sm">
+                          {design.badge}
+                        </span>
+                      )}
                     </div>
                     <div className="p-4">
+                      {design.finishedArt && (
+                        <span className="mb-1 inline-block rounded-full bg-primary-50 px-2 py-0.5 text-[10px] font-extrabold text-primary-700">New</span>
+                      )}
                       <h3 className="font-extrabold text-warm-900 text-sm sm:text-base leading-tight">{design.name}</h3>
-                      <p className="text-xs text-warm-400 mt-1">{design.style}</p>
+                      <p className="text-xs text-warm-400 mt-1">{design.style || design.coverSubtitle}</p>
                       <span className="mt-3 inline-flex items-center justify-center gap-2 w-full rounded-xl bg-primary-600 px-3 py-2.5 text-xs sm:text-sm font-bold text-white group-hover:bg-primary-700 transition-colors">
                         Select to create card <Icon name="ArrowRight" size={15} />
                       </span>

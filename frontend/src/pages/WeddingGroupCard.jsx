@@ -1,5 +1,8 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import WeddingLandingTemplate from '../components/WeddingLandingTemplate';
+import { getIllustratedCovers } from '../utils/illustratedCardDesigns';
+
+const WEDDING_COVERS = getIllustratedCovers('wedding');
 
 const FAQS = [
   { q: 'What is a wedding group card?', a: 'A wedding group card is a digital card that the entire wedding party and all guests sign together. Everyone leaves a personal message, photo, or voice note, and the couple receives it as one beautiful combined gift.' },
@@ -19,6 +22,7 @@ export default function WeddingGroupCard() {
   });
   return (
     <WeddingLandingTemplate
+      coverDesigns={WEDDING_COVERS}
       headline={<>A Wedding Group Card<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300">Signed by Everyone Who Loves Them</span></>}
       subheadline="One card. Every guest. Heartfelt messages, photos, voice notes, and a gift pool — all delivered to the couple together as their wedding keepsake."
       tagline="Better than a physical card that gets passed around and lost. Better than an email. A Thankeeu wedding group card is something the couple will open and reopen for years."

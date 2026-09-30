@@ -1,0 +1,127 @@
+import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import { ILLUSTRATED_CARD_DESIGNS, getIllustratedCovers, DEFAULT_ILLUSTRATED_DESIGN } from '../utils/illustratedCardDesigns';
+import { CARD_DESIGNS, getCardDesign } from '../utils/cardDesigns';
+import { PRIORITY_CARD_DESIGNS } from '../utils/priorityCardDesigns';
+import { normalizeCoverLayout } from '../utils/coverLayout';
+import { matchBlogRule, coversForBlogPost, splitArticleForStrip } from '../utils/blogCoverMatch';
+
+const PUBLIC = path.resolve(__dirname, '../../public');
+const WIZARD_OCCASIONS = ['birthday', 'leaving', 'retirement', 'anniversary', 'wedding', 'christmas',
+  'congratulations', 'get_well', 'thank_you', 'sympathy'];
+
+describe('illustrated cover collection', () => {
+  it('has all 219 covers with unique ids and existing files', () => {
+    expect(ILLUSTRATED_CARD_DESIGNS).toHaveLength(219);
+    expect(new Set(ILLUSTRATED_CARD_DESIGNS.map(d => d.id)).size).toBe(219);
+    for (const d of ILLUSTRATED_CARD_DESIGNS) {
+      expect(fs.existsSync(path.join(PUBLIC, d.image)), d.image).toBe(true);
+      expect(d.finishedArt).toBe(true);
+      expect(d.name.length).toBeGreaterThan(2);
+    }
+  });
+
+  it('maps every folder to a real wizard occasion with the right counts', () => {
+    const counts = {};
+    ILLUSTRATED_CARD_DESIGNS.forEach(d => { counts[d.occasion] = (counts[d.occasion] || 0) + 1; });
+    expect(Object.keys(counts).sort()).toEqual([...WIZARD_OCCASIONS].sort());
+    expect(counts).toMatchObject({ birthday: 22, leaving: 20, retirement: 10, sympathy: 40, christmas: 25,
+      wedding: 22, anniversary: 20, congratulations: 20, get_well: 20, thank_you: 20 });
+  });
+
+  it('files each sympathy folder into sympathy, general first and pet last', () => {
+    const groups = getIllustratedCovers('sympathy').map(d => d.sympathyGroup);
+    expect(groups.slice(0, 10).every(g => g === 'colleague')).toBe(true);
+    expect(groups.slice(-10).every(g => g === 'pet')).toBe(true);
+    expect(getIllustratedCovers('sympathy', { group: 'partner' })).toHaveLength(10);
+  });
+
+  it('lists the new covers first in every occasion', () => {
+    for (const occ of WIZARD_OCCASIONS) {
+      const first = CARD_DESIGNS.filter(d => d.occasion === occ && (d.image || d.artwork))[0];
+      expect(first.collection, occ).toBe('illustrated');
+    }
+  });
+
+  it('pre-selects the lead birthday cover and keeps the old fallback for unknown ids', () => {
+    expect(DEFAULT_ILLUSTRATED_DESIGN.id).toBe('illus-birthday-b1-cake');
+    expect(getCardDesign('no-such-design').id).toBe(PRIORITY_CARD_DESIGNS[0].id);
+  });
+});
+
+describe('cover text layout on finished-art covers', () => {
+  const art = ILLUSTRATED_CARD_DESIGNS[0];
+  it('overlays nothing by default', () => {
+    const L = normalizeCoverLayout(null, art);
+    expect([L.title.show, L.recipient.show, L.sender.show]).toEqual([false, false, false]);
+  });
+  it('keeps the creator’s saved choices', () => {
+    expect(normalizeCoverLayout({ recipient: { show: true } }, art).recipient.show).toBe(true);
+  });
+  it('leaves other covers unchanged', () => {
+    const L = normalizeCoverLayout(null, { id: 'x' });
+    expect([L.title.show, L.recipient.show, L.sender.show]).toEqual([true, true, true]);
+  });
+});
+
+describe('blog post cover matching', () => {
+  const rule = (slug, title = '') => matchBlogRule({ slug, title })?.key || null;
+  it('matches the specific occasion first', () => {
+    expect(rule('condolence-messages-loss-of-pet')).toBe('pet');
+    expect(rule('rainbow-bridge-poem-meaning')).toBe('pet');
+    expect(rule('condolence-messages-loss-of-spouse')).toBe('sympathy-partner');
+    expect(rule('what-to-write-sympathy-card-coworker')).toBe('sympathy');
+    expect(rule('heartfelt-retirement-messages-uk')).toBe('retirement');
+    expect(rule('farewell-card-ideas-for-colleagues')).toBe('leaving');
+    expect(rule('how-to-organise-send-forth-colleague-nigeria')).toBe('leaving');
+    expect(rule('get-well-soon-messages-uk-colleague')).toBe('get-well');
+    expect(rule('what-to-write-thank-you-card-uk')).toBe('thank-you');
+    expect(rule('best-christmas-card-messages-for-colleagues')).toBe('christmas');
+    expect(rule('automate-birthday-anniversary-cards-uk-hr-2025')).toBe('birthday');
+  });
+  it('never puts romantic anniversary covers on work-anniversary posts', () => {
+    expect(rule('work-anniversary-messages-uk-colleague')).toBe('work-anniversary');
+    expect(rule('wedding-anniversary-messages-nigerian-couple')).toBe('wedding-anniversary');
+  });
+  it('shows nothing where there is no matching cover set', () => {
+    expect(rule('what-to-write-baby-shower-card-uk')).toBeNull();
+    expect(rule('covenant-university-graduates-changing-nigerian-hr')).toBeNull();
+    expect(rule('hr-admin-automation-what-to-automate-first')).toBeNull();
+  });
+  it('gives four covers of the matching occasion, lead first for specific events', () => {
+    const grad = coversForBlogPost({ slug: 'graduation-messages-university-graduate', title: '' });
+    expect(grad.designs).toHaveLength(4);
+    expect(grad.designs[0].id).toBe('illus-congratulations-c7-grad-cap');
+    expect(grad.designs.slice(1).some(d => /new-baby|new-home/.test(d.id))).toBe(false);
+    const pet = coversForBlogPost({ slug: 'how-to-memorialise-a-pet', title: '' });
+    expect(pet.designs.every(d => d.sympathyGroup === 'pet')).toBe(true);
+  });
+  it('never shows two covers with the same headline side by side', () => {
+    const c = coversForBlogPost({ slug: 'get-well-soon-messages-colleague-friend-nigeria', title: '' });
+    const keys = c.designs.map(d => d.name.toLowerCase().replace(/[^a-z0-9]/g, ''));
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('placing the strip inside a post', () => {
+  const intro = '<p>' + 'A proper introduction paragraph for this article. '.repeat(3) + '</p>';
+  it('splits before the first section heading', () => {
+    const [a, b] = splitArticleForStrip(`${intro}<h2>One</h2><p>x</p>`);
+    expect(a).toBe(intro);
+    expect(b.startsWith('<h2>One</h2>')).toBe(true);
+  });
+  it('never splits inside an open element', () => {
+    const html = `<div>${intro}<h2>Inside</h2></div>`;
+    expect(splitArticleForStrip(html)).toEqual([html, '']);
+  });
+  it('goes after the first section when a post opens with a heading', () => {
+    const html = `<h2>First</h2>${intro}<h2>Second</h2><p>y</p>`;
+    const [a, b] = splitArticleForStrip(html);
+    expect(a).toBe(`<h2>First</h2>${intro}`);
+    expect(b.startsWith('<h2>Second</h2>')).toBe(true);
+  });
+  it('falls back to the end when there is no heading', () => {
+    expect(splitArticleForStrip(intro)).toEqual([intro, '']);
+  });
+});

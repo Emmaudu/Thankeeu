@@ -25,7 +25,8 @@ import { takeIntent } from '../utils/cardIntent';
 import { applyCardIntent } from '../utils/applyCardIntent';
 import DeliveryCountryField from '../components/DeliveryCountryField';
 import CoverFieldToggle from '../components/CoverFieldToggle';
-import { zonedToUTC, utcToZoned, guessCountryFromBrowser } from '../utils/timezones';
+import { zonedToUTC, utcToZoned, guessCountryFromBrowser, earliestDeliveryDate, scheduleProblem } from '../utils/timezones';
+import { DEFAULT_ILLUSTRATED_DESIGN } from '../utils/illustratedCardDesigns';
 
 // Default recipient country = the creator's own (from the browser's zone).
 const DEFAULT_PLACE = guessCountryFromBrowser();
@@ -106,7 +107,7 @@ const CreateCard = () => {
 
  // Card form
  const [form, setForm] = useState({
- occasion: 'birthday', design_theme: 'birthday-featured-01', background_color: '#FBEAF0',
+ occasion: 'birthday', design_theme: DEFAULT_ILLUSTRATED_DESIGN.id, background_color: DEFAULT_ILLUSTRATED_DESIGN.background,
  font_style: 'elegant', card_layout: 'album',
  title: `${creatorName.split(' ')[0]}'s Birthday Card`,
  recipient_name: '', recipient_email: '', send_date: '',
@@ -439,7 +440,8 @@ const CreateCard = () => {
   // Only real image/artwork covers for this occasion (retire old plain templates).
   const ccAvailableDesigns = (() => {
     const realCovers = CARD_DESIGNS.filter(d => (d.artwork || d.image) && d.occasion === form.occasion);
-    return realCovers.length ? realCovers : CARD_DESIGNS.filter(d => d.artwork || d.image).slice(0, 10);
+    // Covers with printed occasion wording (finished art) never stand in for another occasion.
+    return realCovers.length ? realCovers : CARD_DESIGNS.filter(d => (d.artwork || d.image) && !d.finishedArt).slice(0, 10);
  })();
 
  const handleOccasionSelect = (occ) => {
@@ -457,6 +459,7 @@ const CreateCard = () => {
  // must not yank the customer to the payment step while they are still editing.
  const handleCreateDraft = async ({ silent = false } = {}) => {
  if (!form.recipient_name) { if (!silent) toast.error('Recipient name is required'); return null; }
+ if (!silent) { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }); if (problem) { toast.error(problem); return null; } }
  if (!silent) setLoading(true);
  if (!silent) setPaymentStage('creating');
  try {
@@ -525,12 +528,19 @@ const CreateCard = () => {
  return;
  }
 
+ // No recipient email = the card could never be delivered at its time. Check
+ // before anything is published or paid. (Time is not re-checked here: if it
+ // passes while paying, the server delivers the card straight away.)
+ { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }, 0);
+   if (problem) { toast.error(problem); setLoading(false); setPaymentStage('idle'); return; } }
  // Persist gift toggle + scheduling fields BEFORE payment.
- // This is critical — if this fails, warn loudly so the user can retry.
+ // This is critical — if it fails, stop: nothing is published or charged.
  try {
  const { send_date: utcSD, send_time: utcST } = toUTCDelivery(form.send_date, form.send_time);
  const { send_date: utcDL, send_time: utcDLT } = toUTCSendTime(form.deadline, form.deadline_time);
  const fullUpdate = {
+ recipient_name: form.recipient_name,
+ recipient_email: form.recipient_email?.trim() || null,
  is_gift_enabled: form.is_gift_enabled,
  recipient_country: form.recipient_country,
  delivery_timezone: form.delivery_timezone,
@@ -552,9 +562,12 @@ const CreateCard = () => {
  }
  console.log('[pre-payment-update] Saved dates:', { send_date: utcSD, send_time: utcST, deadline: utcDL });
  } catch (updateErr) {
+ // Fatal on purpose: going live without the schedule is exactly how a card
+ // "misses" its delivery time. Stop here so nothing is published or charged.
  console.error('[pre-payment-update] FAILED to save dates before payment:', updateErr?.response?.data || updateErr?.message);
- // Non-fatal — payment continues, but warn the user their schedule may not be set
- toast('Could not save delivery schedule. Card will activate but may need re-scheduling.', { duration: 5000 });
+ toast.error(updateErr?.response?.data?.error || "We couldn't save the delivery time. Please check your connection and try again.");
+ setLoading(false); setPaymentStage('idle');
+ return;
  }
 
 
@@ -665,7 +678,7 @@ const CreateCard = () => {
  setMsgForm({ content: '', font_style: 'handwritten', is_private: false }); setCreatorMessageAlreadyPosted(false);
  setGiftAmount(null); setCustomGift(''); setInviteEmails('');
  setRecipientPhoto({ file: null, preview: null });
- setForm({ occasion:'birthday', design_theme:'birthday-art-1', background_color:'#FBEAF0', font_style:'elegant', card_layout:'album',
+ setForm({ occasion:'birthday', design_theme:DEFAULT_ILLUSTRATED_DESIGN.id, background_color:DEFAULT_ILLUSTRATED_DESIGN.background, font_style:'elegant', card_layout:'album',
  title:`${creatorName.split(' ')[0]}'s Birthday Card`, recipient_name:'', recipient_email:'', send_date:'',
  send_time:'09:00', deadline:'', deadline_time:'23:59', is_gift_enabled:true, gift_type:'pot', suggested_amount:2500,
  allow_private_messages:true, send_reminders:true, hide_amounts:false, hide_view_messages_button:false, notification_scope:'department',
@@ -864,8 +877,9 @@ const CreateCard = () => {
  {ccAvailableDesigns.map((d, idx) => (
  <button key={d.id} type="button" className={`ccg-item ${form.design_theme===d.id?'sel':''}`} onClick={() => handleDesignSelect(d)}>
  <CardCoverPreview design={d} occasionLabel={getOccasionLabel(form.occasion)} recipientName={form.recipient_name} title={form.title} senderName={form.cover_sender || creatorName} compact/>
- {idx < 3 && <span className="ccg-badge ccg-new">New</span>}
- {idx >= 3 && idx < 7 && <span className="ccg-badge ccg-more">More</span>}
+ {/* Finished-art covers print their headline at the very top — no corner badge over it. */}
+ {!d.finishedArt && idx < 3 && <span className="ccg-badge ccg-new">New</span>}
+ {!d.finishedArt && idx >= 3 && idx < 7 && <span className="ccg-badge ccg-more">More</span>}
  </button>
  ))}
  </div>
@@ -1029,14 +1043,14 @@ const CreateCard = () => {
  <div>
  <div className="flex items-center justify-between gap-2 mb-1.5">
   <label className="block text-sm font-semibold text-warm-700">Card title</label>
-  <CoverFieldToggle field="title" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+  <CoverFieldToggle field="title" design={selectedDesign} layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
  </div>
  <input className="input" placeholder="e.g. Amaka's Birthday Card " value={form.title} onChange={e => set('title', e.target.value)}/>
  </div>
  <div>
  <div className="flex items-center justify-between gap-2 mb-1.5">
   <label className="block text-sm font-semibold text-warm-700">Sender name on cover</label>
-  <CoverFieldToggle field="sender" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+  <CoverFieldToggle field="sender" design={selectedDesign} layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
  </div>
  <input className="input" placeholder="e.g. Tola and the whole team" value={form.cover_sender || ''} onChange={e => set('cover_sender', e.target.value)}/>
  </div>
@@ -1044,7 +1058,7 @@ const CreateCard = () => {
  <div>
  <div className="flex items-center justify-between gap-2 mb-1.5">
   <label className="block text-sm font-semibold text-warm-700">Recipient's name *</label>
-  <CoverFieldToggle field="recipient" layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
+  <CoverFieldToggle field="recipient" design={selectedDesign} layout={form.cover_layout} onChange={next => set('cover_layout', next)}/>
  </div>
  <input className="input" placeholder="e.g. Amaka" value={form.recipient_name} onChange={e => set('recipient_name', e.target.value)} required/>
  </div>
@@ -1133,7 +1147,7 @@ const CreateCard = () => {
  />
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery date <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
- <input type="date" className="input" value={form.send_date} min={new Date().toISOString().split('T')[0]} onChange={e => set('send_date', e.target.value)}/>
+ <input type="date" className="input" value={form.send_date} min={earliestDeliveryDate(form.delivery_timezone)} onChange={e => set('send_date', e.target.value)}/>
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Delivery time <span className="text-warm-400 font-normal text-xs">(their time)</span></label>
@@ -1141,7 +1155,7 @@ const CreateCard = () => {
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Signing deadline</label>
- <input type="date" className="input" value={form.deadline} min={new Date().toISOString().split('T')[0]} onChange={e => set('deadline', e.target.value)}/>
+ <input type="date" className="input" value={form.deadline} min={earliestDeliveryDate(form.delivery_timezone)} onChange={e => set('deadline', e.target.value)}/>
  </div>
  <div>
  <label className="block text-sm font-semibold text-warm-700 mb-1.5">Deadline time</label>
@@ -1183,6 +1197,7 @@ const CreateCard = () => {
  <button
  onClick={async () => {
  if (!form.recipient_name?.trim()) { toast.error('Recipient name is required'); return; }
+ { const problem = scheduleProblem({ sendDate: form.send_date, sendTime: form.send_time, timeZone: form.delivery_timezone, recipientEmail: form.recipient_email }); if (problem) { toast.error(problem); return; } }
  if (!user && !isCompanyUser) {
  // Guest: just save to localStorage and advance — no API call yet
  // The draft is created at Step 3 when they click "Save draft & continue"
@@ -1525,6 +1540,16 @@ const CreateCard = () => {
      : <><Icon name="Sparkles" size={17}/>Create Now, Pay Later</>}
    </button>
   </div>
+  {form.send_date && (
+   // A scheduled card that is still unpaid at its delivery time is held, not sent.
+   <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3" role="note">
+    <Icon name="Clock" size={16} className="mt-0.5 flex-shrink-0 text-amber-600"/>
+    <p className="text-xs leading-relaxed text-amber-900">
+     <strong>Scheduled for {form.send_date} at {form.send_time || '09:00'}.</strong> Pay before then and it's delivered right on time.
+     An unpaid card is held — not delivered — until you pay; if the time has passed by then, it goes out the moment you pay.
+    </p>
+   </div>
+  )}
   <div className="mt-3 flex items-start gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3">
    <Icon name="Heart" size={16} className="mt-0.5 flex-shrink-0 text-emerald-600"/>
    <p className="text-xs leading-relaxed text-emerald-800">

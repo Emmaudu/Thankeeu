@@ -124,7 +124,7 @@ import FarewellPage    from './pages/occasions/Farewell';
 import AnniversaryPage from './pages/occasions/Anniversary';
 import PromotionPage   from './pages/occasions/Promotion';
 import {
-  SympathyCardPageRevamped, LeavingCardUKPageRevamped, BirthdayCardUKPageRevamped,
+  SympathyCardPageRevamped, BirthdayCardUKPageRevamped,
   BabyShowerPageRevamped, WeddingPageRevamped, MaternityLeavePageRevamped,
   OnlineBirthdayNigeriaPageRevamped, OnlineGroupCardRevamped,
 } from './pages/occasions/RevampedOccasionPages';
@@ -504,7 +504,8 @@ const App = () => {
             <Route path="/cards/fathers-day"                   element={<FathersDayCardPage />} />
             <Route path="/online-birthday-cards-nigeria"      element={<OnlineBirthdayNigeriaPageRevamped />} />
             {/* UK-specific occasion pages */}
-            <Route path="/leaving-cards-uk"                   element={<LeavingCardUKPageRevamped />} />
+            {/* Merged into /cards/leaving-card (67% duplicate content was splitting rankings). */}
+            <Route path="/leaving-cards-uk"                   element={<Navigate to="/cards/leaving-card" replace />} />
             <Route path="/birthday-cards-uk"                  element={<BirthdayCardUKPageRevamped />} />
             <Route path="/retirement-cards-uk"                element={<RetirementCardUKPage />} />
             <Route path="/get-well-soon-cards-uk"             element={<GetWellSoonUKPage />} />

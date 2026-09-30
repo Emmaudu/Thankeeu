@@ -8,6 +8,7 @@ import { useSEO } from '../hooks/useSEO';
 import { LEAVING_CARD_DESIGNS } from '../utils/leavingCardDesigns';
 import { OCCASION_CARD_DESIGNS, OCCASION_FILTERS, getOccasionLabel } from '../utils/occasionCardDesigns';
 import { PRIORITY_CARD_DESIGNS } from '../utils/priorityCardDesigns';
+import { ILLUSTRATED_CARD_DESIGNS } from '../utils/illustratedCardDesigns';
 
 const PAGE_SIZE = 16;
 
@@ -21,7 +22,18 @@ const LEAVING_DESIGNS = LEAVING_CARD_DESIGNS.map(design => ({
   palette: ['#102a43', '#7c3aed', '#0f766e', '#be123c', '#ca8a04'],
 }));
 
-const ALL_DESIGNS = [...PRIORITY_CARD_DESIGNS, ...LEAVING_DESIGNS, ...OCCASION_CARD_DESIGNS];
+const OLDER_DESIGNS = [...PRIORITY_CARD_DESIGNS, ...LEAVING_DESIGNS, ...OCCASION_CARD_DESIGNS];
+const ALL_DESIGNS = [...ILLUSTRATED_CARD_DESIGNS, ...OLDER_DESIGNS];
+
+// "All designs" view: the illustrated collection round-robin across occasions
+// (birthday, leaving, thank you, …) so the first page shows the whole range.
+const ILLUSTRATED_MIXED = (() => {
+  const byOccasion = ILLUSTRATED_CARD_DESIGNS.reduce((m, d) => ((m[d.occasion] ||= []).push(d), m), {});
+  const lists = Object.values(byOccasion);
+  const out = [];
+  for (let i = 0; out.length < ILLUSTRATED_CARD_DESIGNS.length; i += 1) lists.forEach(l => { if (l[i]) out.push(l[i]); });
+  return out;
+})();
 
 const CardGallery = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -47,12 +59,18 @@ const CardGallery = () => {
     const needle = query.trim().toLowerCase();
     const matches = ALL_DESIGNS.filter(design => {
       const occasionMatches = activeOccasion === 'all' || design.occasion === activeOccasion;
-      const haystack = `${design.name} ${design.coverTitle || ''} ${getOccasionLabel(design.occasion)}`.toLowerCase();
+      const haystack = `${design.name} ${design.coverTitle || ''} ${design.coverSubtitle || ''} ${getOccasionLabel(design.occasion)}`.toLowerCase();
       return occasionMatches && (!needle || haystack.includes(needle));
     });
 
     if (sort === 'name') return [...matches].sort((a, b) => a.name.localeCompare(b.name));
-    if (sort === 'newest') return [...matches].reverse();
+    // The illustrated collection is the newest, so it stays on top for "newest" too.
+    const isNew = d => d.collection === 'illustrated';
+    if (sort === 'newest') return [...matches.filter(isNew), ...matches.filter(d => !isNew(d)).reverse()];
+    if (activeOccasion === 'all' && !needle) {
+      const shown = new Set(matches.map(d => d.id));
+      return [...ILLUSTRATED_MIXED.filter(d => shown.has(d.id)), ...matches.filter(d => !isNew(d))];
+    }
     return matches;
   }, [activeOccasion, query, sort]);
 

@@ -1,8 +1,11 @@
 import { LEAVING_CARD_DESIGNS } from './leavingCardDesigns';
 import { OCCASION_CARD_DESIGNS } from './occasionCardDesigns';
 import { PRIORITY_CARD_DESIGNS } from './priorityCardDesigns';
+import { ILLUSTRATED_CARD_DESIGNS } from './illustratedCardDesigns';
 
 export const CARD_DESIGNS = [
+  // Newest illustrated collection leads every occasion.
+  ...ILLUSTRATED_CARD_DESIGNS,
   ...PRIORITY_CARD_DESIGNS,
   {
     id: 'rose_love',
@@ -156,8 +159,12 @@ export const FONT_STYLES = [
   { id: 'modern', name: 'Modern', family: "'Plus Jakarta Sans', sans-serif" },
 ];
 
+// Unknown ids (old or admin-uploaded designs) keep the fallback they always had,
+// rather than whichever cover happens to be listed first now.
+const FALLBACK_DESIGN = PRIORITY_CARD_DESIGNS[0] || CARD_DESIGNS[0];
+
 export const getCardDesign = id =>
-  CARD_DESIGNS.find(design => design.id === id) || CARD_DESIGNS[0];
+  CARD_DESIGNS.find(design => design.id === id) || FALLBACK_DESIGN;
 
 export const getFontStyle = id =>
   FONT_STYLES.find(font => font.id === id) || FONT_STYLES[0];

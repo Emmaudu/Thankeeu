@@ -1,6 +1,8 @@
 import { SCHEMAS } from '../../hooks/useSEO';
 import OccasionHeroTemplate, { CHECK, CROSS, PAID, DEFAULT_COMP_CARDS } from './OccasionHeroTemplate';
-import { BIRTHDAY_PRIORITY_DESIGNS } from '../../utils/priorityCardDesigns';
+import { getIllustratedCovers } from '../../utils/illustratedCardDesigns';
+
+const BIRTHDAY_COVERS = getIllustratedCovers('birthday');
 
 /* ─── HeroShowcase data — birthday-specific ──────────────────────────── */
 const BIRTHDAY_SAMPLE_MESSAGES = [
@@ -166,11 +168,11 @@ export default function BirthdayPage() {
       finalCtaSubline="Free to create. The whole team signs. Delivered at exactly the right moment."
       sampleMessages={BIRTHDAY_SAMPLE_MESSAGES}
       demoMessages={BIRTHDAY_DEMO_MESSAGES}
-      priorityDesigns={BIRTHDAY_PRIORITY_DESIGNS}
+      priorityDesigns={BIRTHDAY_COVERS}
       priorityDesignOccasion="birthday"
-      priorityDesignEyebrow="20 new birthday covers"
+      priorityDesignEyebrow={`${BIRTHDAY_COVERS.length} new birthday covers`}
       priorityDesignTitle="Pick a birthday cover that already feels special"
-      priorityDesignDescription="Browse ten premium A4 designs at a time. Choose one to open it in the album studio, then personalise the cover, messages and media."
+      priorityDesignDescription="Browse ten illustrated covers at a time. Pick one to open it in the album studio, then everyone adds messages, photos, GIFs and voice notes."
     />
   );
 }

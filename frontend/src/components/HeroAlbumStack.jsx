@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import Icon from './ui/Icon';
 import CardCoverPreview from './CardCoverPreview';
-import { BIRTHDAY_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
+import { getIllustratedCovers } from '../utils/illustratedCardDesigns';
 import NaturalFlipBook, { flipViews, viewOf } from './NaturalFlipBook';
 
 /* ── shared typography ───────────────────────────────────────────────────── */
@@ -328,6 +328,7 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
           recipientName={recipient}
           title={`Happy ${occasion}, ${recipient}!`}
           senderName="The Team"
+          layout={design?.finishedArt ? HERO_COVER_LAYOUT : undefined}
           inBook
         />
       </div>
@@ -396,13 +397,16 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
 
 /* ── Three-album stack ────────────────────────────────────────────────────── */
 
-// Pre-build designs once.
-// All three albums use the real featured photo covers from
-// /cards/priority/birthday instead of the old procedural SVG artwork —
-// Sarah's card is now a birthday card too (was Valentine's).
-const JANE_DESIGN    = BIRTHDAY_PRIORITY_DESIGNS[1] || BIRTHDAY_PRIORITY_DESIGNS[0]; // birthday_02 — cake & balloons
-const JACKSON_DESIGN = BIRTHDAY_PRIORITY_DESIGNS[0]; // birthday_01 — rocket launch
-const SARAH_DESIGN   = BIRTHDAY_PRIORITY_DESIGNS[7]; // birthday_08 — music studio
+// Pre-build designs once — three contrasting covers from the illustrated
+// birthday collection (cream cake, purple crown, lilac balloons).
+const BIRTHDAY_COVERS = getIllustratedCovers('birthday');
+const pickCover = stem => BIRTHDAY_COVERS.find(d => d.id.endsWith(`-${stem}`)) || BIRTHDAY_COVERS[0];
+const JANE_DESIGN    = pickCover('b1-cake');     // "Happy birthday!"
+const JACKSON_DESIGN = pickCover('b2-balloons'); // "Hip hip hooray!"
+const SARAH_DESIGN   = pickCover('bd3-crown');   // "Birthday royalty"
+// Finished-art covers print their own headline; the demo only adds the
+// recipient's name in the free band at the top, as a creator can.
+const HERO_COVER_LAYOUT = { recipient: { show: true } };
 
 const ALBUMS = [
   {

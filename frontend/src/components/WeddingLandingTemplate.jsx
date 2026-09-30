@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import Icon from './ui/Icon';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import PriorityDesignGallery from './PriorityDesignGallery';
 
 const CHECK = <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100"><Icon name="Check" size={14} className="text-green-600" strokeWidth={3}/></span>;
 const CROSS = <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-50"><Icon name="X" size={14} className="text-red-400" strokeWidth={3}/></span>;
@@ -36,6 +37,7 @@ const DEFAULT_FAQS = [
 ];
 
 export default function WeddingLandingTemplate({
+  coverDesigns,        // optional: group-card covers shown right after the hero
   headline,
   subheadline,
   tagline,
@@ -71,6 +73,18 @@ export default function WeddingLandingTemplate({
           </div>
         </div>
       </section>
+
+      {coverDesigns?.length > 0 && (
+        <PriorityDesignGallery
+          designs={coverDesigns}
+          occasion="wedding"
+          eyebrow={`${coverDesigns.length} new wedding card covers`}
+          title="Choose a cover for the happy couple"
+          description="Browse ten illustrated wedding covers at a time. Pick one and every guest signs the same card — messages, photos, voice notes and a gift."
+          background="#ffffff"
+          id="covers"
+        />
+      )}
 
       {/* Features */}
       <section className="py-14 px-4 bg-white">

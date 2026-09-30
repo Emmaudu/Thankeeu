@@ -4,7 +4,10 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
 import SympathyDesignGallery, { createSympathyCardUrl } from '../components/SympathyDesignGallery';
-import { PET_LOSS_PRIORITY_DESIGNS } from '../utils/priorityCardDesigns';
+import { getIllustratedCovers } from '../utils/illustratedCardDesigns';
+
+// Illustrated pet-sympathy covers (cats, dogs, bunnies, rainbow bridge).
+const PET_COVERS = getIllustratedCovers('sympathy', { group: 'pet' });
 
 /* ── Rainbow-bridge themed SVG hero (self-contained, no external asset) ── */
 const RainbowBridgeHero = () => (
@@ -94,7 +97,7 @@ export default function PetLossCardPage() {
     ],
   });
 
-  const topDesign = PET_LOSS_PRIORITY_DESIGNS[0];
+  const topDesign = PET_COVERS[0];
   const startUrl = topDesign ? createSympathyCardUrl(topDesign.id, 'pet-loss-hero') : '/card/customize?occasion=sympathy&layout=album';
 
   return (
@@ -151,14 +154,14 @@ export default function PetLossCardPage() {
 
       {/* ── Design gallery (auto-updates from sympathy designs) ── */}
       <SympathyDesignGallery
-        designs={PET_LOSS_PRIORITY_DESIGNS}
+        designs={PET_COVERS}
         source="pet-loss-gallery"
         recipient="Bella"
         title="Forever in our hearts"
         background="#faf7ff"
         eyebrow="Pet memorial cover designs"
         heading="Choose a cover that honours their memory"
-        description="These are our softest, most comforting covers — perfect for a dog, cat, bird or any beloved pet. Pick one and everyone can add their message, photo and favourite memory. New designs appear here automatically."
+        description="These are our softest, most comforting covers — perfect for a dog, cat, bird or any beloved pet. Pick one and everyone can add their message, photo and favourite memory."
       />
 
       {/* ── How it works ── */}

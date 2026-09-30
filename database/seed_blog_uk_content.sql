@@ -466,7 +466,7 @@ ARRAY['welcome card','new starter','UK','what to write','onboarding'],
 
 INSERT INTO blog_posts (title,slug,excerpt,content,category,tags,status,is_featured,author_name,read_time,published_at,meta_title,meta_description)
 VALUES (
-'Online Leaving Cards UK — Virtual Leaving Cards for Every Colleague',
+'Paper vs Online Leaving Cards — Why UK Teams Are Switching',
 'online-leaving-card-uk',
 'Why UK teams are switching from paper leaving cards to online group cards — better messages, remote colleagues included, the leaving collection handled at the same time. And how to create one in two minutes.',
 $content$<h2>Why the paper leaving card isn't working anymore</h2>
@@ -493,7 +493,7 @@ $content$<h2>Why the paper leaving card isn't working anymore</h2>
 'How-To Guides',
 ARRAY['online leaving card','UK','virtual','group card','farewell'],
 'published', false, 'Thankeeu Team', 6, now(),
-'Online Leaving Cards UK — Virtual Leaving Cards for Every Colleague',
+'Paper vs Online Leaving Cards — Why UK Teams Are Switching | Thankeeu',
 'Why UK teams are switching from paper leaving cards to online group cards — everyone signs remotely, the leaving collection is built in, and it arrives perfectly on the day. Create one in two minutes.'
 ) ON CONFLICT (slug) DO NOTHING;
 

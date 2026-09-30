@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Icon from './ui/Icon';
 import { cardsAPI } from '../utils/api';
 import { CARD_DESIGNS } from '../utils/cardDesigns';
+import { getIllustratedCovers } from '../utils/illustratedCardDesigns';
 
 /**
  * OccasionCoverGallery — shows the latest top 10 cover designs for one
@@ -23,12 +24,20 @@ export default function OccasionCoverGallery({
   background = '#ffffff',
 }) {
   const occasionForCovers = coverOccasion || cardOccasion;
-  const [covers, setCovers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // The illustrated collection leads and needs no network, so it renders on the
+  // first paint (also what the prerendered HTML contains). Admin uploads and the
+  // older catalogue fill any remaining slots of the top 10.
+  const illustrated = getIllustratedCovers(occasionForCovers, { limit: 10 })
+    .map(d => ({ id: d.id, name: d.name, alt: d.alt, image: d.image, isNew: true }));
+  const staticRest = () => CARD_DESIGNS
+    .filter(d => d.image && d.occasion === occasionForCovers && d.collection !== 'illustrated')
+    .map(d => ({ id: d.id, name: d.name, image: d.image, isNew: false }));
+  const [covers, setCovers] = useState(illustrated.length ? illustrated : []);
+  const [loading, setLoading] = useState(!illustrated.length);
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
+    if (!illustrated.length) setLoading(true); // illustrated covers are already on screen
     cardsAPI.getCoverDesigns(occasionForCovers)
       .then(r => {
         if (cancelled) return;
@@ -38,21 +47,16 @@ export default function OccasionCoverGallery({
           image: row.image_url,
           isNew: true,
         }));
-        const staticRows = CARD_DESIGNS
-          .filter(d => d.image && d.occasion === occasionForCovers)
-          .map(d => ({ id: d.id, name: d.name, image: d.image, isNew: false }));
-        setCovers([...adminRows, ...staticRows].slice(0, 10));
+        setCovers([...illustrated, ...adminRows, ...staticRest()].slice(0, 10));
       })
       .catch(() => {
         if (cancelled) return;
         // Never let this section break the page — fall back to static-only.
-        const staticRows = CARD_DESIGNS
-          .filter(d => d.image && d.occasion === occasionForCovers)
-          .map(d => ({ id: d.id, name: d.name, image: d.image, isNew: false }));
-        setCovers(staticRows.slice(0, 10));
+        setCovers([...illustrated, ...staticRest()].slice(0, 10));
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [occasionForCovers]);
 
   const coverUrl = designId =>
@@ -97,7 +101,7 @@ export default function OccasionCoverGallery({
                   <div className="relative overflow-hidden bg-purple-50">
                     <img
                       src={design.image}
-                      alt={`${design.name} cover design`}
+                      alt={design.alt ? `${design.alt} — group card cover` : `${design.name} cover design`}
                       className="w-full aspect-[210/297] object-cover transition-transform duration-500 group-hover:scale-[1.025]"
                       loading="lazy"
                     />

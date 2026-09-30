@@ -6,6 +6,8 @@ import Icon from '../components/ui/Icon';
 import { blogAPI } from '../utils/api';
 import { useSEO, SCHEMAS, BASE_URL } from '../hooks/useSEO';
 import { format } from 'date-fns';
+import BlogCoverStrip from '../components/BlogCoverStrip';
+import { coversForBlogPost, splitArticleForStrip } from '../utils/blogCoverMatch';
 
 // ── Minimal markdown-like HTML sanitizer / renderer ──────────────────────────
 // We trust admin-entered content and render it as HTML directly.
@@ -300,12 +302,21 @@ const BlogPost = () => {
                 </div>
               </div>
 
-              {/* Post content — rendered HTML */}
-              <div
-                className="prose-blog"
-                itemProp="articleBody"
-                dangerouslySetInnerHTML={{ __html: post.content }}
-              />
+              {/* Post content — rendered HTML, with matching card covers after the intro */}
+              {(() => {
+                const covers = coversForBlogPost(post);
+                if (!covers) {
+                  return <div className="prose-blog" itemProp="articleBody" dangerouslySetInnerHTML={{ __html: post.content }} />;
+                }
+                const [intro, rest] = splitArticleForStrip(post.content);
+                return (
+                  <div itemProp="articleBody">
+                    <div className="prose-blog" dangerouslySetInnerHTML={{ __html: intro }} />
+                    <BlogCoverStrip covers={covers} slug={post.slug} />
+                    {rest && <div className="prose-blog" dangerouslySetInnerHTML={{ __html: rest }} />}
+                  </div>
+                );
+              })()}
 
               {/* Tags footer */}
               <div className="mt-8 pt-6 border-t border-purple-100">

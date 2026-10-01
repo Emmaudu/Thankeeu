@@ -21,6 +21,8 @@ import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
 import { DEFAULT_CURRENCY, formatCurrency, formatUSD, convertToNGN, getFLWPaymentParams, getCurrency } from '../utils/currency';
 import occasionEmoji from '../utils/occasionEmoji';
+import { useSignatureDraft, readSavedSignature, checkSavedSignature } from '../utils/signatureDraft';
+import { KeepPageOpenNote, useLeaveWarning } from '../components/SigningSafety';
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
 
@@ -92,6 +94,43 @@ const SignCard = () => {
 
   // 'guest' | 'signup' — radio selection shown after gift box
   const [submitMode, setSubmitMode] = useState('guest');
+
+  // Unfinished signature: kept in this browser and saved as a draft on the
+  // server, so it is not lost if the person leaves before it is submitted.
+  const draftGiftNGN = customAmount ? convertToNGN(Number(customAmount) || 0, giftCurrency) : Number(selectedAmount || 0);
+  const { draftKey, markSubmitted } = useSignatureDraft(slug, {
+    author_name: form.author_name, author_email: form.author_email, content: form.content,
+    is_private: form.is_private, font_style: form.font_style,
+    has_media: mediaFiles.length > 0,
+    gift_intent: card?.is_gift_enabled && draftGiftNGN > 0 ? draftGiftNGN : null,
+    extra: { layout: 'standard' },
+  }, !!card && !submitted);
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (!card || submitted || restoredRef.current) return;
+    restoredRef.current = true;
+    const saved = readSavedSignature(slug);
+    if (!saved) return;
+    // Already on the card (it went through just as the page closed)? The
+    // server knows, including for private messages this page cannot see.
+    checkSavedSignature(slug, saved).then((state) => {
+      const onCard = state === 'posted'
+        || (card.messages || []).some(m => m && String(m.content || '').trim() === saved.content.trim());
+      if (onCard) { markSubmitted(saved.content); return; }
+      setForm(prev => (prev.content.trim() ? prev : {
+        ...prev,
+        content: saved.content,
+        author_name: prev.author_name || saved.author_name || '',
+        author_email: prev.author_email || saved.author_email || '',
+      }));
+      toast('We brought back the message you had started. Review it and press Sign when ready.');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card, submitted, slug]);
+  // Warn before leaving while the signature itself is uploading (not during
+  // the payment redirect that may follow it).
+  const [msgUploading, setMsgUploading] = useState(false);
+  useLeaveWarning(msgUploading);
 
   // Sign-up form fields
   const [signupForm, setSignupForm] = useState({
@@ -358,9 +397,13 @@ const SignCard = () => {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
       if (!isSignedIn && submitMode === 'guest') fd.append('is_guest', 'true');
+      fd.append('draft_key', draftKey());
 
-      const msgRes = await messagesAPI.add(slug, fd);
+      setMsgUploading(true);
+      let msgRes;
+      try { msgRes = await messagesAPI.add(slug, fd); } finally { setMsgUploading(false); }
       const messageId = msgRes.data?.id;
+      markSubmitted(form.content);
 
       // ── STEP 2: Create account if chosen (non-blocking on failure) ─────────
       if (!isSignedIn && submitMode === 'signup') {
@@ -609,7 +652,10 @@ const SignCard = () => {
       fd.append('product_price', selectedProduct.price);
       if (!isSignedIn && submitMode === 'guest') fd.append('is_guest', 'true');
       mediaFiles.forEach((mf, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, mf.file));
-      await messagesAPI.sign(slug, fd);
+      fd.append('draft_key', draftKey());
+      setMsgUploading(true);
+      try { await messagesAPI.sign(slug, fd); } finally { setMsgUploading(false); }
+      markSubmitted(form.content);
 
       if (!isSignedIn && submitMode === 'signup') {
         try {
@@ -1189,6 +1235,7 @@ const SignCard = () => {
                     : wantsGift ? `✍️ Sign card + pay ${formatCurrency(amountNGN, giftCurrency)} gift` : `✍️ Sign this card`}
                 </button>
             }
+            <KeepPageOpenNote hasMedia={mediaFiles.length > 0} />
 
             {/* Memory Movie teaser */}
             <div className="mt-3 rounded-xl px-4 py-3 flex items-center gap-3"

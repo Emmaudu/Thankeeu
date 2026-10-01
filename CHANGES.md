@@ -89,3 +89,30 @@ Deploy: run `database/migration_delivery_reliability.sql`; optional `database/op
 - Fonts embedded as subsets in each SVG (DM Serif Display regular/italic, Kaushan Script, Alfa Slab One, Nunito 800) so lettering renders inside <img>.
 - Order per occasion: the first row (4) stays the cartoon lead covers; each following row of 4 holds 2 existing + 2 new covers in random slots (seeded shuffle, stable between builds); same motifs kept apart. When one kind runs out, the rest follow.
 - 659 covers total (was 299). Tests updated, including a row-mixing test.
+
+## Round 23: Memory Movie "Not authorised" for recipients
+
+- Cause: the card page showed Generate to the creator and the recipient, but the server only allowed the creator, and it also required a login. Recipients got "Not authorised".
+- `backend/controllers/movieController.js`: new `canManageMovie()` allows the creator (user, company or team member), anyone holding the card's private link token, a signed-in user or member whose email is the recipient email, and the recipient inbox (`received_cards`, `member_received_cards`). Clearer error message.
+- `backend/routes/movies.js`: generate and regenerate use `optionalAuth`, so a recipient opening the card from their link can create the movie without signing in.
+- `frontend/src/components/MemoryMoviePlayer.jsx`: sends the card link token, and also uses the team member login.
+- `frontend/src/pages/CardView.jsx`: passes the token to the player.
+- Test: `backend/tests/unit/movie-auth.test.js`.
+
+## Round 24: signing safety, signature drafts, Transactions tab
+
+**Run first:** `database/migration_signature_drafts.sql` in Supabase.
+
+Signing
+- `components/SigningSafety.jsx`: a note under the Sign button asks signers to keep the page open until the confirmation page appears. While the message is uploading, closing the tab shows the browser's "Leave site?" prompt (not during the payment redirect).
+- `utils/signatureDraft.js`: what a signer writes is kept in their browser (restored if they come back) and saved to the server 3 seconds after they stop typing, and again when the page is closed or hidden (sendBeacon).
+- `backend/utils/signatureDrafts.js` + `POST /api/messages/:slug/draft`: stores drafts. When the real signature is saved, `addMessage` closes the draft before replying. Limits: 15 new drafts per IP per card per hour, 300 open per card.
+- Admin → Cards: a "N drafts" badge; card details has a "Signature drafts" section with Post and Remove. Post adds the text as the signer's message (no duplicates: double clicks are refused, and an identical existing signature is linked instead), emails the creator as usual, and emails the signer that their message is on the card. Only text is kept; files and gifts are not.
+
+Transactions
+- Admin → Transactions (`components/admin/TransactionsTab.jsx`, `backend/controllers/adminTransactionsController.js`).
+- Flutterwave: live from Flutterwave, every attempt with the decline reason, name, email, phone, card brand, masked card, issuer, card country, method (card, bank transfer, USSD…), IP, fee and settlement. 10 per page (Flutterwave's page size).
+- Lemon Squeezy: every checkout we started, with paid order details (name, country, tax, receipt). Lemon Squeezy does not give card details, phone numbers or decline reasons through its API; unpaid checkouts show as "Not completed".
+- `lemonSqueezy.js` now records the customer name and, when a checkout cannot be created, the reason.
+
+Tests: `backend/tests/unit/signature-drafts.test.js`, `admin-transactions.test.js`, `frontend/src/tests/signature-draft.test.jsx`.

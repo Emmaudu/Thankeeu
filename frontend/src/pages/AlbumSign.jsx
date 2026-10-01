@@ -38,6 +38,8 @@ import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
 import { DEFAULT_CURRENCY, formatCurrency, formatUSD, convertToNGN, getFLWPaymentParams } from '../utils/currency';
 import NaturalFlipBook from '../components/NaturalFlipBook';
+import { useSignatureDraft, readSavedSignature, checkSavedSignature } from '../utils/signatureDraft';
+import { KeepPageOpenNote, useLeaveWarning } from '../components/SigningSafety';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -570,6 +572,43 @@ const AlbumSign = ({ card: initialCard, slug }) => {
   });
   const isNewStyle = Object.values(pageNumCounts).every(c=>c<=1) && messages.length <= 200;
 
+  // Unfinished signature: kept in this browser and saved as a draft on the
+  // server, so it is not lost if the person leaves before it is submitted.
+  const draftGiftNGN = customAmount ? convertToNGN(Number(customAmount) || 0, giftCurrency) : Number(selectedAmount || 0);
+  const draftPos = defaultPosition(messages.length);
+  const { draftKey, markSubmitted } = useSignatureDraft(slug, {
+    author_name: form.author_name, author_email: form.author_email, content: form.content,
+    is_private: form.is_private, font_style: form.font_style,
+    has_media: mediaFiles.length > 0,
+    gift_intent: card?.is_gift_enabled && draftGiftNGN > 0 ? draftGiftNGN : null,
+    extra: isNewStyle
+      ? { layout: 'album_new', font_color: form.font_color, font_size: form.font_size }
+      : { layout: 'album_legacy', font_color: form.font_color, font_size: form.font_size, position_x: draftPos.x, position_y: draftPos.y, rotation: draftPos.rot },
+  }, !!card);
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (!card || restoredRef.current) return;
+    restoredRef.current = true;
+    const saved = readSavedSignature(slug);
+    if (!saved) return;
+    checkSavedSignature(slug, saved).then((state) => {
+      const onCard = state === 'posted' || messages.some(m => String(m.content || '').trim() === saved.content.trim());
+      if (onCard) { markSubmitted(saved.content); return; }
+      setForm(prev => (prev.content.trim() ? prev : {
+        ...prev,
+        content: saved.content,
+        author_name: prev.author_name || saved.author_name || '',
+        author_email: prev.author_email || saved.author_email || '',
+      }));
+      setInlineCompose(true);
+      toast('We brought back the message you had started. Review it and press Sign when ready.');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card, slug]);
+  // Warn before leaving while the signature itself is uploading.
+  const [msgUploading, setMsgUploading] = useState(false);
+  useLeaveWarning(msgUploading);
+
   // Build page list:
   // page 0 = cover (always)
   // For legacy: pages 1..N are MSGS_PER_PAGE groups
@@ -830,7 +869,11 @@ const AlbumSign = ({ card: initialCard, slug }) => {
       fd.append('product_price', selectedProduct.price);
       if (!isSignedIn) fd.append('is_guest', 'true');
       mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
-      const msgRes = await messagesAPI.add(slug, fd);
+      fd.append('draft_key', draftKey());
+      setMsgUploading(true);
+      let msgRes;
+      try { msgRes = await messagesAPI.add(slug, fd); } finally { setMsgUploading(false); }
+      markSubmitted(form.content);
       const messageId = msgRes.data?.id;
       if (messageId) { setMyMsgIds(prev => [...prev, messageId]); storeEditToken(messageId, msgRes.data?.edit_token); }
       const refreshed = await cardsAPI.getPublic(slug);
@@ -883,7 +926,11 @@ const AlbumSign = ({ card: initialCard, slug }) => {
       fd.append('page_number', newPageNum);
       if(!isSignedIn) fd.append('is_guest','true');
       mediaFiles.forEach((m,i)=>fd.append(i===0?'media':`media_gallery_${i}`,m.file));
-      const msgRes=await messagesAPI.add(slug,fd);
+      fd.append('draft_key', draftKey());
+      setMsgUploading(true);
+      let msgRes;
+      try { msgRes=await messagesAPI.add(slug,fd); } finally { setMsgUploading(false); }
+      markSubmitted(form.content);
       const messageId=msgRes.data?.id;
       if(messageId) { setMyMsgIds(prev=>[...prev,messageId]); storeEditToken(messageId, msgRes.data?.edit_token); }
       const refreshed=await cardsAPI.getPublic(slug);
@@ -999,6 +1046,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
               style={{flex:'1 1 auto',background:'linear-gradient(135deg,#7C3AED,#5B21B6)',color:'#fff',border:'none',borderRadius:12,padding:'11px 16px',fontWeight:800,fontSize:14,cursor:'pointer',boxShadow:'0 4px 16px rgba(124,58,237,0.35)'}}>
               {submitting ? 'Signing…' : (card.is_gift_enabled ? 'Sign & add gift →' : 'Add to card ✓')}
             </button>
+            <KeepPageOpenNote hasMedia={mediaFiles.length > 0} className="w-full" />
             <button type="button" onClick={()=>fileInputRef.current?.click()} title="Add photo"
               style={{width:44,height:44,borderRadius:12,border:`1.5px solid ${accentC}44`,background:'#fff',cursor:'pointer',fontSize:17}}>🖼️</button>
             <button type="button" onClick={()=>setShowGif(s=>!s)} title="Add GIF"

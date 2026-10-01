@@ -51,6 +51,7 @@ export default function AdminCardDetails({ cardId, onClose }) {
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [draftBusy, setDraftBusy] = useState(null); // draft id being posted/removed
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -96,6 +97,40 @@ export default function AdminCardDetails({ cardId, onClose }) {
     }
   };
 
+  const reload = () => adminAPI.getCardDetails(cardId).then(r => setData(r.data)).catch(() => {});
+
+  const signedEmails = useMemo(() => new Set((data?.messages || []).map(m => String(m.author_email || '').toLowerCase()).filter(Boolean)), [data]);
+  const alreadySigned = (d) => !!d.author_email && signedEmails.has(String(d.author_email).toLowerCase());
+
+  const postDraft = async (d) => {
+    const who = d.author_name || d.author_email || 'this signer';
+    if (alreadySigned(d) && !window.confirm(`${d.author_email} has already signed this card with a different message. Check the Signers list first.\n\nPost this draft as well?`)) return;
+    const extras = [d.has_media && 'their photos, videos or voice notes', Number(d.gift_intent) > 0 && 'their gift'].filter(Boolean);
+    if (!window.confirm(`Post ${who}'s message to the card now?${extras.length ? `\n\nOnly the text can be posted. ${extras.join(' and ')} were not saved.` : ''}\n\nThey will get an email saying their message is on the card.`)) return;
+    setDraftBusy(d.id);
+    try {
+      const r = await adminAPI.postSignatureDraft(cardId, d.id);
+      toast.success(r.data?.already_signed ? 'They had already signed with this message, so nothing new was posted' : 'Posted to the card');
+      await reload();
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not post this draft');
+      if (e.response?.status === 409) reload();
+    } finally { setDraftBusy(null); }
+  };
+
+  const discardDraft = async (d) => {
+    if (!window.confirm(`Remove ${d.author_name || 'this'} draft? It will not be posted.`)) return;
+    setDraftBusy(d.id);
+    try {
+      await adminAPI.discardSignatureDraft(cardId, d.id);
+      setData(prev => ({ ...prev, drafts: (prev.drafts || []).filter(x => x.id !== d.id), stats: { ...prev.stats, drafts: Math.max(0, (prev.stats.drafts || 1) - 1) } }));
+      toast.success('Draft removed');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not remove this draft');
+      if (e.response?.status === 409) reload();
+    } finally { setDraftBusy(null); }
+  };
+
   const repliesByMessage = useMemo(() => {
     const m = {};
     for (const r of data?.replies || []) (m[r.message_id] = m[r.message_id] || []).push(r);
@@ -138,13 +173,14 @@ export default function AdminCardDetails({ cardId, onClose }) {
         {data && (
           <div className="space-y-4 p-5">
             {/* Stats */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-7">
               <Stat label="Signatures" value={data.stats.signers} />
               <Stat label="Unique signers" value={data.stats.unique_signers} />
               <Stat label="Gift pot" value={formatNGN(Math.max(data.stats.gift_total, data.stats.card_total_collected))} tone="#059669" />
               <Stat label="Gifts" value={data.stats.gifts_count} tone="#059669" />
               <Stat label="Replies" value={data.stats.replies} tone="#DB2777" />
               <Stat label="Visitors" value={data.stats.visitors} tone="#0891B2" />
+              <Stat label="Drafts" value={data.stats.drafts || 0} tone="#B45309" />
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
@@ -252,6 +288,52 @@ export default function AdminCardDetails({ cardId, onClose }) {
                               style={{ minHeight: 0 }}>
                               {deletingId === m.id ? '…' : 'Delete'}
                             </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Section>
+
+            <Section title="Signature drafts" count={(data.drafts || []).length}>
+              <p className="mb-3 text-xs text-warm-500">
+                People who started signing but left before their signature was submitted. Check the message, then press Post to add it to the card for them.
+                Only the text is kept; attached files and gifts are not.
+              </p>
+              {(data.drafts || []).length === 0 ? <p className="text-xs text-warm-400">No unfinished signatures.</p> : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead><tr className="text-left text-[11px] uppercase tracking-wide text-warm-400">
+                      <th className="py-1.5 pr-3">Signer</th><th className="py-1.5 pr-3">Message</th><th className="py-1.5 pr-3">Left out</th><th className="py-1.5 pr-3">Last saved</th><th className="py-1.5"></th>
+                    </tr></thead>
+                    <tbody className="divide-y divide-purple-50">
+                      {data.drafts.map(d => (
+                        <tr key={d.id} className="align-top">
+                          <td className="py-2 pr-3"><p className="font-bold text-warm-800">{d.author_name || 'No name given'}</p><p className="break-all text-warm-400">{d.author_email || 'No email'}</p>
+                            {alreadySigned(d) && <span className="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">Already signed this card</span>}</td>
+                          <td className="max-w-[340px] py-2 pr-3 text-warm-700">
+                            {d.is_private && <span className="mr-1 rounded bg-warm-100 px-1 text-[10px] font-bold">private</span>}
+                            <span className="whitespace-pre-wrap break-words">{d.content}</span>
+                          </td>
+                          <td className="py-2 pr-3 text-warm-500">
+                            {[d.has_media && 'Files', Number(d.gift_intent) > 0 && `Gift ${formatNGN(d.gift_intent)}`].filter(Boolean).join(', ') || '—'}
+                          </td>
+                          <td className="whitespace-nowrap py-2 pr-3 text-warm-500">{fmt(d.updated_at)}</td>
+                          <td className="whitespace-nowrap py-2">
+                            {d.status === 'posting' ? <span className="text-[11px] font-bold text-amber-600">Posting…</span> : (
+                              <div className="flex gap-1.5">
+                                <button type="button" onClick={() => postDraft(d)} disabled={draftBusy === d.id}
+                                  className="rounded-lg bg-primary-600 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-primary-700 disabled:opacity-50" style={{ minHeight: 0 }}>
+                                  {draftBusy === d.id ? '…' : 'Post'}
+                                </button>
+                                <button type="button" onClick={() => discardDraft(d)} disabled={draftBusy === d.id}
+                                  className="rounded-lg border border-warm-200 px-2 py-1 text-[11px] font-bold text-warm-500 hover:bg-warm-50 disabled:opacity-50" style={{ minHeight: 0 }}>
+                                  Remove
+                                </button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}

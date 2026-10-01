@@ -26,8 +26,10 @@ const STATUS_META = {
  * @param {string}   [initialStatus] — status from card row (movie_status)
  * @param {boolean}  [canGenerate]   — true if this viewer is the card owner
  * @param {string}   [accessToken]   — for authenticated requests
+ * @param {string}   [cardToken]     — the card's private link token (?token=), lets a
+ *                                     recipient who is not signed in create the movie
  */
-export default function MemoryMoviePlayer({ cardId, initialStatus = 'none', canGenerate = false, accessToken }) {
+export default function MemoryMoviePlayer({ cardId, initialStatus = 'none', canGenerate = false, accessToken, cardToken }) {
   const [status,    setStatus]    = useState(initialStatus);
   const [movieUrl,  setMovieUrl]  = useState(null);
   const [thumbUrl,  setThumbUrl]  = useState(null);
@@ -73,6 +75,7 @@ export default function MemoryMoviePlayer({ cardId, initialStatus = 'none', canG
       // company). Pick whichever is present so the card owner is recognised.
       const token = accessToken
         || localStorage.getItem('thankeeu_token')
+        || localStorage.getItem('thankeeu_member_token')
         || localStorage.getItem('thankeeu_company_token');
       const endpoint = regen ? 'regenerate' : 'generate';
       const res = await fetch(`${API}/movies/${cardId}/${endpoint}`, {
@@ -81,6 +84,8 @@ export default function MemoryMoviePlayer({ cardId, initialStatus = 'none', canG
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        credentials: 'include',
+        body: JSON.stringify(cardToken ? { token: cardToken } : {}),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not start generation');

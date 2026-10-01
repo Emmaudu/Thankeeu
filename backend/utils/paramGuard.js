@@ -257,10 +257,21 @@ const signCardLimiter = makeRateLimiter({
   // middleware level; req.params is not (params are parsed per-route).
   keyGenerator: (req) => req.ip + ':' + req.path,
   // Only apply to POST requests (signing) — not GET (viewing)
-  skip: (req) => req.method !== 'POST',
+  // Draft saves (POST /:slug/draft) have their own limiter: they are small and
+  // frequent, and must never use up the quota for real signatures.
+  skip: (req) => req.method !== 'POST' || /\/draft\/?$/.test(req.path),
+});
+
+// Signature draft autosaves: one every few seconds per person while typing.
+// Generous so a whole office on one IP can sign at once.
+const makeDraftLimiter = () => makeRateLimiter({
+  windowMs: 60 * 1000,
+  max: 400,
+  message: { error: 'Too many draft saves. Please wait a moment.' },
 });
 
 module.exports = {
+  makeDraftLimiter,
   // Middleware
   validateUUIDParam,
   validateSlugParam,

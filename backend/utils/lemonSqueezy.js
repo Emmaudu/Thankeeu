@@ -160,7 +160,10 @@ async function createCheckout({ reference, type, amountNGN, email, name, redirec
     expected_ngn: Number(amountNGN),
     customer_email: cleanEmail,
     // Price as asked for in the store currency; the webhook compares like with like.
-    meta: { ...(meta || {}), store_currency: ids.storeCurrency, store_amount_minor: storeMinor },
+    meta: {
+      ...(meta || {}), store_currency: ids.storeCurrency, store_amount_minor: storeMinor,
+      ...(name ? { customer_name: String(name).slice(0, 120) } : {}),
+    },
     status: 'pending',
   });
   if (insErr) {
@@ -211,8 +214,15 @@ async function createCheckout({ reference, type, amountNGN, email, name, redirec
   } catch (err) {
     const detail = err.response?.data?.errors?.[0]?.detail || err.message;
     console.error('[lemonsqueezy] checkout failed', reference, detail);
-    await supabase.from(TABLE).update({ status: 'init_failed', updated_at: new Date().toISOString() })
-      .eq('reference', reference).then(() => {}, () => {});
+    // Keep the reason for Admin → Transactions.
+    await supabase.from(TABLE).update({
+      status: 'init_failed', updated_at: new Date().toISOString(),
+      meta: {
+        ...(meta || {}), store_currency: ids.storeCurrency, store_amount_minor: storeMinor,
+        ...(name ? { customer_name: String(name).slice(0, 120) } : {}),
+        error: String(detail || 'unknown').slice(0, 300),
+      },
+    }).eq('reference', reference).then(() => {}, () => {});
     return { ok: false, status: 502, message: 'Payment could not start. Please try again or choose Flutterwave.' };
   }
 }
@@ -297,5 +307,5 @@ function _resetForTests() { tableOk = null; tableCheckedAt = 0; resolved = null;
 
 module.exports = {
   isConfigured, isEnabled, isTestMode, getStoreId, usdCentsFor, createCheckout,
-  isValidSignature, getPayment, claimForFulfilment, setStatus, _resetForTests,
+  isValidSignature, getPayment, frontendUrl, apiHeaders, API_BASE: API, claimForFulfilment, setStatus, _resetForTests,
 };

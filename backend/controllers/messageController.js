@@ -250,6 +250,11 @@ const addMessage = async (req, res) => {
       } catch (ve) { console.warn('Visitor track:', ve.message); }
     }
 
+    // The signature is saved: close this signer's autosaved draft so it no
+    // longer shows as unfinished. Done before replying, so it still happens
+    // if the signer closes the page the moment the request lands.
+    await require('../utils/signatureDrafts').closeDraftsForMessage(card.id, message, req.body.draft_key);
+
     res.status(201).json(message);
 
     // Let the card creator know someone new just signed — best-effort,
@@ -673,4 +678,4 @@ const updatePosition = async (req, res) => {
   }
 };
 
-module.exports = { addMessage, reactToMessage, deleteMessage, sendReply, updatePosition, upload, _shouldEmailLike: shouldEmailLike };
+module.exports = { notifyCreatorNewSignature, addMessage, reactToMessage, deleteMessage, sendReply, updatePosition, upload, _shouldEmailLike: shouldEmailLike };

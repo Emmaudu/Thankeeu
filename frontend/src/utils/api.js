@@ -311,6 +311,12 @@ export const adminAPI = {
   getCardDetails: (cardId)               => api.get(`/admin/cards/${cardId}/details`),
   redeliverCard: (cardId)               => api.post(`/admin/cards/${cardId}/redeliver`),
   deleteCard:   (cardId)                => api.delete(`/admin/cards/${cardId}`),
+  // Signature drafts (someone started signing but did not finish)
+  postSignatureDraft:    (cardId, draftId) => api.post(`/admin/cards/${cardId}/drafts/${draftId}/post`),
+  discardSignatureDraft: (cardId, draftId) => api.delete(`/admin/cards/${cardId}/drafts/${draftId}`),
+  // Transactions (Flutterwave and Lemon Squeezy)
+  getTransactions:       (provider, params) => api.get(`/admin/transactions/${provider}`, { params }),
+  getTransactionDetail:  (provider, id)     => api.get(`/admin/transactions/${provider}/${encodeURIComponent(id)}`),
   broadcastPreview: (segment)           => api.get(`/admin/broadcast/preview?segment=${segment}`),
   broadcast:    (data)                  => api.post('/admin/broadcast', data),
   // Settings

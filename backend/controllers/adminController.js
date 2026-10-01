@@ -289,7 +289,8 @@ const getAllCards = async (req, res) => {
       .limit(2000);
     if (error) throw error;
     const withCreators = await attachCreators(data || []);
-    res.json(withCreators.map(c => ({ ...c, signed_count: c.messages?.[0]?.count || 0, messages: undefined })));
+    const drafts = await require('../utils/signatureDrafts').openDraftCounts().catch(() => ({}));
+    res.json(withCreators.map(c => ({ ...c, signed_count: c.messages?.[0]?.count || 0, draft_count: drafts[c.id] || 0, messages: undefined })));
   } catch (err) {
     console.error('[admin] getAllCards error:', err.message);
     res.status(500).json({ error: 'Failed to fetch cards' });
@@ -321,6 +322,7 @@ const getCardDetails = async (req, res) => {
       safe(supabase.from('activity_logs').select('actor_name, actor_type, action, details, created_at').eq('entity_id', String(cardId)).order('created_at', { ascending: true })),
       safe(supabase.from('contribution_wallets').select('*').eq('card_id', cardId)),
     ]);
+    const drafts = await require('../utils/signatureDrafts').listOpenDrafts(cardId).catch(() => []);
 
     const okContribs = contributions.filter(c => c.status === 'success');
     const giftTotal = okContribs.reduce((n, c) => n + (Number(c.amount) || 0), 0);
@@ -364,8 +366,9 @@ const getCardDetails = async (req, res) => {
         pending_gifts: contributions.filter(c => c.status === 'pending').length,
         replies: replies.length,
         visitors: visitors.length,
+        drafts: drafts.filter(d => d.status === 'draft').length,
       },
-      messages, contributions, claims, replies, wallet: wallet[0] || null,
+      messages, drafts, contributions, claims, replies, wallet: wallet[0] || null,
       timeline: ev,
     });
   } catch (err) {

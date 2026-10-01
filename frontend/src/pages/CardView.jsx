@@ -2137,6 +2137,7 @@ const CardView = () => {
                   cardId={card.id}
                   initialStatus={card.movie_status || 'none'}
                   canGenerate={Boolean(card.isCreator || card.isRecipient)}
+                  cardToken={token || undefined}
                 />
               ) : (
                 <div className="text-center py-16 px-6 rounded-3xl border-2 border-purple-100 bg-purple-50">

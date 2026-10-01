@@ -9,6 +9,7 @@ import Icon from '../components/ui/Icon';
 import { asArray } from '../utils/asArray';
 import { DEFAULT_HERO, splitHeroTitle, HERO_WORD_TOKEN } from '../utils/heroDefaults';
 import AdminCardDetails from '../components/admin/AdminCardDetails';
+import TransactionsTab from '../components/admin/TransactionsTab';
 import AnnouncementEditor from '../components/admin/AnnouncementEditor';
 
 // ── Mini helpers ──────────────────────────────────────────────────────────────
@@ -1733,6 +1734,7 @@ const Admin = () => {
             { id:'discounts', icon:'🎟', label:'Discount Codes', badge:null },
             { id:'header',    icon:'🏠', label:'Header',        badge:null },
             { id:'currency',  icon:'💱', label:'Currency',      badge:null },
+            { id:'transactions', icon:'🧾', label:'Transactions', badge:null },
             { id:'coverdesigns', icon:'🎨', label:'Cover Design', badge:null },
             { id:'settings',  icon:'🎵', label:'Settings',       badge:null },
           ].map(item => {
@@ -1799,6 +1801,7 @@ const Admin = () => {
             { id:'discounts', icon:'Tag', label:'Discount Codes', badge:null },
             { id:'header',    icon:'Home', label:'Header', badge:null },
             { id:'currency',  icon:'Dollar', label:'Currency', badge:null },
+            { id:'transactions', icon:'Card', label:'Transactions', badge:null },
             { id:'coverdesigns', icon:'Image', label:'Cover Design', badge:null },
             { id:'settings',  icon:'Settings', label:'Settings', badge:null },
           ].map(item => {
@@ -1831,7 +1834,7 @@ const Admin = () => {
         <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <div>
             <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
-              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','discounts':'Discount Codes','header':'Homepage Header','currency':'Currency and prices','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
+              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','discounts':'Discount Codes','header':'Homepage Header','currency':'Currency and prices','transactions':'Transactions','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
             </h1>
             <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
           </div>
@@ -1980,7 +1983,14 @@ const Admin = () => {
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs font-semibold text-warm-700">{c.signed_count ?? '—'}</td>
+                      <td className="px-4 py-3 text-xs font-semibold text-warm-700">
+                        {c.signed_count ?? '—'}
+                        {c.draft_count > 0 && (
+                          <span title="Unfinished signatures. Open the card details to post them." className="ml-1.5 whitespace-nowrap rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                            {c.draft_count} draft{c.draft_count === 1 ? '' : 's'}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-xs font-semibold text-green-700">{c.total_collected ? formatNGN(c.total_collected) : '—'}</td>
                       <td className="px-4 py-3 text-xs text-warm-500 whitespace-nowrap">{c.send_date ? format(new Date(c.send_date),'MMM d, HH:mm') : '—'}</td>
                       <td className="px-4 py-3 text-xs text-warm-400 whitespace-nowrap">{c.created_at ? format(new Date(c.created_at),'MMM d, yyyy') : '—'}</td>
@@ -2958,6 +2968,7 @@ const Admin = () => {
         {/* ── SETTINGS TAB ── */}
         {tab === 'header' && <HeaderTab />}
         {tab === 'currency' && <CurrencyTab />}
+        {tab === 'transactions' && <TransactionsTab />}
         {detailCardId && <AdminCardDetails cardId={detailCardId} onClose={() => setDetailCardId(null)} />}
         {tab === 'coverdesigns' && <CoverDesignTab />}
         {tab === 'settings' && <SettingsTab />}

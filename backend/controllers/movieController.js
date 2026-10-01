@@ -119,27 +119,58 @@ async function runRenderJob(cardId) {
   }
 }
 
+/**
+ * May this caller start (or restart) the Memory Movie for this card?
+ * Same people the card page shows the Movie tab to (cardController.getCard):
+ *   • the creator: user, company member, or the company account;
+ *   • the recipient: the card's private link token, a logged-in user or member
+ *     whose email is the recipient's, or someone the card was transferred to.
+ * Before, only creators passed, so a recipient opening a delivered card saw
+ * "Generate" and then "Not authorised".
+ */
+async function canManageMovie(req, card) {
+  const userId    = req.user?.id;
+  const companyId = req.company?.id || req.member?.company_id;
+  if ((userId && card.creator_id === userId)
+    || (companyId && card.company_id === companyId)
+    || (req.member?.id && card.created_by_member_id === req.member.id)) return true;
+
+  const token = String(req.body?.token || req.query?.token || '');
+  if (token && card.access_token && token.length === String(card.access_token).length
+    && require('crypto').timingSafeEqual(Buffer.from(token), Buffer.from(String(card.access_token)))) return true;
+
+  const rcpt = String(card.recipient_email || '').trim().toLowerCase();
+  if (rcpt && req.user?.email && req.user.email.trim().toLowerCase() === rcpt) return true;
+  if (rcpt && req.member?.email && req.member.email.trim().toLowerCase() === rcpt) return true;
+
+  if (userId) {
+    const { data } = await supabase.from('received_cards').select('id')
+      .eq('card_id', card.id).eq('recipient_user_id', userId).maybeSingle();
+    if (data) return true;
+  }
+  if (req.member?.id) {
+    const { data } = await supabase.from('member_received_cards').select('id')
+      .eq('card_id', card.id).eq('recipient_member_id', req.member.id).maybeSingle();
+    if (data) return true;
+  }
+  return false;
+}
+
 // ── POST /api/movies/:cardId/generate ────────────────────────────────────────
 async function generateMovie(req, res) {
   const { cardId } = req.params;
 
-  // Verify caller owns the card
-  const userId    = req.user?.id;
-  const companyId = req.company?.id || req.member?.company_id;
-
   const { data: card, error } = await supabase
     .from('cards')
-    .select('id, creator_id, company_id, created_by_member_id, movie_status')
+    .select('id, creator_id, company_id, created_by_member_id, movie_status, access_token, recipient_email')
     .eq('id', cardId)
     .single();
 
   if (error || !card) return res.status(404).json({ error: 'Card not found' });
 
-  const isOwner = (userId && card.creator_id === userId)
-    || (companyId && card.company_id === companyId)
-    || (req.member?.id && card.created_by_member_id === req.member.id);
-
-  if (!isOwner) return res.status(403).json({ error: 'Not authorised' });
+  if (!(await canManageMovie(req, card))) {
+    return res.status(403).json({ error: 'Only the card creator or recipient can create the Memory Movie. Open the card from your link or sign in.' });
+  }
 
   // If already running or completed recently, return current status
   if (activeJobs.has(cardId)) {
@@ -201,22 +232,18 @@ async function getMovieStatus(req, res) {
 // ── POST /api/movies/:cardId/regenerate ──────────────────────────────────────
 async function regenerateMovie(req, res) {
   const { cardId } = req.params;
-  const userId    = req.user?.id;
-  const companyId = req.company?.id || req.member?.company_id;
 
   const { data: card, error } = await supabase
     .from('cards')
-    .select('id, creator_id, company_id, created_by_member_id')
+    .select('id, creator_id, company_id, created_by_member_id, access_token, recipient_email')
     .eq('id', cardId)
     .single();
 
   if (error || !card) return res.status(404).json({ error: 'Card not found' });
 
-  const isOwner = (userId && card.creator_id === userId)
-    || (companyId && card.company_id === companyId)
-    || (req.member?.id && card.created_by_member_id === req.member.id);
-
-  if (!isOwner) return res.status(403).json({ error: 'Not authorised' });
+  if (!(await canManageMovie(req, card))) {
+    return res.status(403).json({ error: 'Only the card creator or recipient can create the Memory Movie. Open the card from your link or sign in.' });
+  }
 
   if (activeJobs.has(cardId)) {
     return res.json({ status: 'rendering', message: 'Already rendering' });
@@ -231,4 +258,4 @@ async function regenerateMovie(req, res) {
   return res.json({ status: 'queued', message: 'Regenerating Memory Movie' });
 }
 
-module.exports = { generateMovie, getMovieStatus, regenerateMovie, runMovieJob: runRenderJob, activeJobs };
+module.exports = { generateMovie, getMovieStatus, regenerateMovie, canManageMovie, runMovieJob: runRenderJob, activeJobs };

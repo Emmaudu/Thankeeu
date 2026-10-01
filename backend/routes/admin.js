@@ -43,6 +43,57 @@ router.get('/cards/:cardId/details', validateUUIDParam('cardId'), getCardDetails
 router.post('/cards/:cardId/redeliver', validateUUIDParam('cardId'), redeliverCard);
 router.delete('/cards/:cardId',     validateUUIDParam('cardId'),    deleteCard);
 
+// Transactions (Admin → Transactions)
+const tx = require('../controllers/adminTransactionsController');
+router.get('/transactions/flutterwave',      tx.listFlutterwave);
+router.get('/transactions/flutterwave/:id',  tx.flutterwaveDetail);
+router.get('/transactions/lemonsqueezy',     tx.listLemonSqueezy);
+router.get('/transactions/lemonsqueezy/:id', tx.lemonSqueezyDetail);
+
+// Signature drafts: signatures someone started but did not finish submitting.
+const signatureDrafts = require('../utils/signatureDrafts');
+const escHtml = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+router.post('/cards/:cardId/drafts/:draftId/post', validateUUIDParam('cardId'), validateUUIDParam('draftId'), async (req, res) => {
+  try {
+    const r = await signatureDrafts.postDraft(req.params.cardId, req.params.draftId);
+    res.status(r.status).json(r.body);
+    if (r.status !== 201 || !r.message) return;
+    // Same as a normal signature: tell the creator. Also tell the signer their
+    // message is on the card now, since they may think it was lost.
+    const { notifyCreatorNewSignature } = require('../controllers/messageController');
+    notifyCreatorNewSignature(r.card, r.message).catch(e => console.warn('[drafts] creator notify failed:', e.message));
+    if (r.message.author_email) {
+      const { sendEmail } = require('../utils/email');
+      const { frontendUrl } = require('../utils/lemonSqueezy');
+      const who = r.card.recipient_name ? `${r.card.recipient_name}'s card` : 'the card';
+      sendEmail({
+        to: r.message.author_email,
+        subject: `Your message is now on ${who}`,
+        html: `<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#1A1730;">
+          <p>Hi ${escHtml(r.message.author_name)},</p>
+          <p>It looks like your message for ${escHtml(who)} did not finish sending, so we have added it for you. Here is what was posted:</p>
+          <blockquote style="margin:16px 0;padding:12px 16px;background:#F5F3FF;border-left:4px solid #7C6EFF;border-radius:8px;white-space:pre-wrap;">${escHtml(r.message.content)}</blockquote>
+          <p>If you had also attached photos, a video, a voice note or a gift, those were not saved. You can open the card and add them.</p>
+          <p><a href="${frontendUrl()}/sign/${encodeURIComponent(r.card.slug)}" style="color:#6C5CE7;font-weight:bold;">Open the card</a></p>
+          <p style="color:#888;font-size:12px;">Thankeeu</p>
+        </div>`,
+      }).catch(e => console.warn('[drafts] signer email failed:', e.message));
+    }
+  } catch (e) {
+    console.error('[admin] post draft failed:', e.message);
+    if (!res.headersSent) res.status(500).json({ error: 'Could not post this draft. ' + (e.message || '') });
+  }
+});
+router.delete('/cards/:cardId/drafts/:draftId', validateUUIDParam('cardId'), validateUUIDParam('draftId'), async (req, res) => {
+  try {
+    const r = await signatureDrafts.discardDraft(req.params.cardId, req.params.draftId);
+    res.status(r.status).json(r.body);
+  } catch (e) {
+    console.error('[admin] discard draft failed:', e.message);
+    res.status(500).json({ error: 'Could not remove this draft.' });
+  }
+});
+
 // Discount codes
 router.get('/discount-codes',                                            listDiscountCodes);
 router.post('/discount-codes',                                           createDiscountCode);

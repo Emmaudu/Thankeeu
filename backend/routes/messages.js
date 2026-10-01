@@ -95,6 +95,24 @@ const handleUpload = (req, res, next) => {
 // Position, copy and inline attachment edits. Multipart is optional, so JSON
 // drag/typing updates continue to use this same endpoint.
 router.patch('/position/:message_id', validateUUIDParam('message_id'), flexAuth, handleUpload, updatePosition);
+// Unfinished signature, saved while the person types and when they leave the
+// page (see utils/signatureDrafts.js). The page-close save is sent with
+// navigator.sendBeacon as text/plain, so both JSON and text bodies are read.
+const { saveDraft } = require('../utils/signatureDrafts');
+const draftLimiter = require('../utils/paramGuard').makeDraftLimiter();
+router.post('/:card_slug/draft', validateSlugParam('card_slug'), draftLimiter,
+  express.text({ type: 'text/plain', limit: '64kb' }),
+  async (req, res) => {
+    let body = req.body;
+    if (typeof body === 'string') { try { body = JSON.parse(body); } catch { return res.status(400).json({ error: 'Invalid draft' }); } }
+    try {
+      const r = await saveDraft(req.params.card_slug, body || {}, { ip: req.ip });
+      return res.status(r.status).json(r.body);
+    } catch (e) {
+      console.error('[drafts] save failed:', e.message);
+      return res.status(500).json({ error: 'Could not save draft' });
+    }
+  });
 router.post('/:card_slug',        validateSlugParam('card_slug'), flexAuth, handleUpload, addMessage);
 // Access-token recipients can reply without a login session
 router.post('/:card_slug/reply',  validateSlugParam('card_slug'), flexAuth, requireAuth, sendReply);

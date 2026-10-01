@@ -32,6 +32,13 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // Currency helper: all stored and displayed amounts are Nigerian naira.
 // Guest-facing gift figures show the US-dollar equivalent (platform display
 // currency), at today's rate from utils/pricing.js.
+// Today's card fee in USD (Admin → Currency), e.g. "$3.15".
+const cardFeeLabel = () => {
+  try {
+    const v = require('./pricing').priceUSD('card_fee');
+    return Number.isInteger(v) ? `$${v}` : `$${v.toFixed(2)}`;
+  } catch { return '$3.15'; }
+};
 const fmtUSD = (ngnAmount) => {
   let rate = 0.00063; // long-standing rate, used if pricing can't be loaded
   try { rate = require('./pricing').fxRate('USD') || rate; } catch { /* keep fallback */ }
@@ -624,7 +631,7 @@ const teamsTemplates = {
         Hi ${data.creatorName || 'there'} — your card for <strong>${data.recipientName}</strong> has been
         created and is ready for everyone to sign.
       </p>
-      ${data.usedFreeCredit ? `<div style="background:#EDE9FE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#5B21B6;font-size:13px;margin:0;">✨ This one was on us — your free credit has been used. Cards after this are ${data.feeLabel || '$3.15'} each, or cheaper with a credit pack.</p></div>` : ''}
+      ${data.usedFreeCredit ? `<div style="background:#EDE9FE;border-radius:8px;padding:14px;margin:16px 0;"><p style="color:#5B21B6;font-size:13px;margin:0;">✨ This one was on us — your free credit has been used. Cards after this are ${data.feeLabel || cardFeeLabel()} each, or cheaper with a credit pack.</p></div>` : ''}
       ${data.sendDate ? `<p style="color:#555;line-height:1.8;">It will be delivered to ${data.recipientName} on <strong>${data.sendDate}</strong>.</p>` : ''}
       ${btn('Share the signing link', `${FRONTEND_URL}/sign/${data.cardSlug}`, '#7C3AED')}
       <p style="color:#555;line-height:1.6;font-size:13px;margin-top:16px;">
@@ -954,7 +961,7 @@ Object.assign(emailTemplates, {
           </div>`
         : `<div style="background:#faf5ff;border:1.5px solid #ddd6fe;border-radius:12px;padding:14px 20px;margin:16px 0;">
             <p style="color:#6d28d9;font-weight:700;margin:0 0 2px;font-size:14px;">💳 No credits yet? No problem.</p>
-            <p style="color:#7c3aed;font-size:12px;margin:0;">A card credit is just $3.15 — activate your birthday card in seconds.</p>
+            <p style="color:#7c3aed;font-size:12px;margin:0;">A card credit is just ${cardFeeLabel()} — activate your birthday card in seconds.</p>
           </div>`
       }
       ${btn('Create my birthday card →', d.createCardUrl, '#E84393')}
@@ -972,7 +979,7 @@ Object.assign(emailTemplates, {
             <p style="color:#16a34a;font-size:12px;margin:0;">Your card will be activated instantly with no payment needed. Don't let it go to waste!</p>
           </div>`
         : `<div style="background:#faf5ff;border:1.5px solid #ddd6fe;border-radius:12px;padding:14px 20px;margin:16px 0;">
-            <p style="color:#6d28d9;font-weight:700;margin:0 0 2px;font-size:14px;">💳 Activate for just $3.15</p>
+            <p style="color:#6d28d9;font-weight:700;margin:0 0 2px;font-size:14px;">💳 Activate for just ${cardFeeLabel()}</p>
             <p style="color:#7c3aed;font-size:12px;margin:0;">One card credit is all you need. Pay instantly and your birthday card goes live.</p>
           </div>`
       }
@@ -1298,7 +1305,7 @@ const payLaterSummary = (d) => {
   if (d.sendDate) rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Scheduled delivery</td><td align="right" style="padding:4px 0;"><strong>${esc(d.sendDate)}</strong></td></tr>`);
   if (typeof d.signedCount === 'number') rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Signatures so far</td><td align="right" style="padding:4px 0;"><strong>${d.signedCount}</strong></td></tr>`);
   if (d.giftTotal > 0) rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Gift pot</td><td align="right" style="padding:4px 0;"><strong>${fmtUSD(d.giftTotal)}</strong></td></tr>`);
-  rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Card fee</td><td align="right" style="padding:4px 0;"><strong>${esc(d.feeLabel || '$3.15')} one-time</strong></td></tr>`);
+  rows.push(`<tr><td style="padding:4px 0;color:#6B5B95;">Card fee</td><td align="right" style="padding:4px 0;"><strong>${esc(d.feeLabel || cardFeeLabel())} one-time</strong></td></tr>`);
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;background:#F9F5FF;border:1px solid #EDE9FE;border-radius:10px;padding:12px 16px;margin:16px 0;">${rows.join('')}</table>`;
 };
 

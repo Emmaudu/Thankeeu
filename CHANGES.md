@@ -82,3 +82,4 @@ Deploy: run `database/migration_delivery_reliability.sql`; optional `database/op
 - Fixes found in review: credit purchases now verify the amount paid; subscription verify and webhook compare in the charged currency (amount_settled is not naira); first checkouts after a restart wait for the admin prices; a near-free discount no longer becomes a ₦100 charge.
 - Note: prerendered static HTML (for crawlers) still contains the launch prices until the next build; discount codes' max_discount_ngn caps are still in naira.
 - Payment dialog: Lemon Squeezy option notes that sales tax or VAT may be added at checkout depending on country.
+- Live prices also in emails (card fee lines and "a card credit is just …") and in blog post bodies (launch prices in DB articles are swapped for today's price when shown).

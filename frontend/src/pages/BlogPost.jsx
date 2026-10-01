@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { livePriceText, usePricing } from '../utils/pricing';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import Navbar  from '../components/Navbar';
 import Footer  from '../components/Footer';
@@ -100,6 +101,7 @@ const ShareButton = ({ url, title }) => {
 
 // ── Blog post page ────────────────────────────────────────────────────────────
 const BlogPost = () => {
+  usePricing(); // re-render when today's prices arrive
   const { slug }                 = useParams();
   const navigate                 = useNavigate();
   const [post,    setPost]       = useState(null);
@@ -306,14 +308,14 @@ const BlogPost = () => {
               {(() => {
                 const covers = coversForBlogPost(post);
                 if (!covers) {
-                  return <div className="prose-blog" itemProp="articleBody" dangerouslySetInnerHTML={{ __html: post.content }} />;
+                  return <div className="prose-blog" itemProp="articleBody" dangerouslySetInnerHTML={{ __html: livePriceText(post.content) }} />;
                 }
                 const [intro, rest] = splitArticleForStrip(post.content);
                 return (
                   <div itemProp="articleBody">
-                    <div className="prose-blog" dangerouslySetInnerHTML={{ __html: intro }} />
+                    <div className="prose-blog" dangerouslySetInnerHTML={{ __html: livePriceText(intro) }} />
                     <BlogCoverStrip covers={covers} slug={post.slug} />
-                    {rest && <div className="prose-blog" dangerouslySetInnerHTML={{ __html: rest }} />}
+                    {rest && <div className="prose-blog" dangerouslySetInnerHTML={{ __html: livePriceText(rest) }} />}
                   </div>
                 );
               })()}

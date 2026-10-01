@@ -83,3 +83,9 @@ Deploy: run `database/migration_delivery_reliability.sql`; optional `database/op
 - Note: prerendered static HTML (for crawlers) still contains the launch prices until the next build; discount codes' max_discount_ngn caps are still in naira.
 - Payment dialog: Lemon Squeezy option notes that sales tax or VAT may be added at checkout depending on country.
 - Live prices also in emails (card fee lines and "a card credit is just …") and in blog post bodies (launch prices in DB articles are swapped for today's price when shown).
+
+## Round 22: 360 new covers mixed into every occasion
+- Three new styles, 10 covers per occasion each: mature cool (mc-), mature happy and adventurous (ad-), artistic (ar-). Files in public/cards/illustrated/<occasion>/ with those prefixes; general sympathy covers go to sympathy-colleague.
+- Fonts embedded as subsets in each SVG (DM Serif Display regular/italic, Kaushan Script, Alfa Slab One, Nunito 800) so lettering renders inside <img>.
+- Order per occasion: the first row (4) stays the cartoon lead covers; each following row of 4 holds 2 existing + 2 new covers in random slots (seeded shuffle, stable between builds); same motifs kept apart. When one kind runs out, the rest follow.
+- 659 covers total (was 299). Tests updated, including a row-mixing test.

@@ -1,5 +1,7 @@
 /**
- * Illustrated cover collection (299 finished SVG greeting-card covers).
+ * Illustrated cover collection (659 finished SVG greeting-card covers: the
+ * original cartoon set plus three newer styles, mature cool (mc-), mature happy
+ * and adventurous (ad-) and artistic (ar-), mixed in after the first row).
  *
  * These covers are complete cards: each already carries its own headline and
  * tagline ("Happy birthday! · Make a wish (or three)"). They are therefore
@@ -10,7 +12,7 @@
  * They are listed FIRST in every occasion — ahead of admin uploads and the
  * older catalogue — wherever covers are shown.
  *
- * Files: /public/cards/illustrated/<folder>/<stem>.svg (Nunito subset embedded,
+ * Files: /public/cards/illustrated/<folder>/<stem>.svg (font subsets embedded,
  * so the lettering renders as designed inside <img>).
  */
 import { ILLUSTRATED_COVER_ROWS } from './illustratedCoverRows';

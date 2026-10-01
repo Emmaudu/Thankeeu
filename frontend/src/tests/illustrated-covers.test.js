@@ -12,9 +12,9 @@ const WIZARD_OCCASIONS = ['birthday', 'leaving', 'retirement', 'anniversary', 'w
   'congratulations', 'get_well', 'thank_you', 'sympathy', 'baby_shower', 'graduation'];
 
 describe('illustrated cover collection', () => {
-  it('has all 299 covers with unique ids and existing files', () => {
-    expect(ILLUSTRATED_CARD_DESIGNS).toHaveLength(299);
-    expect(new Set(ILLUSTRATED_CARD_DESIGNS.map(d => d.id)).size).toBe(299);
+  it('has all 659 covers with unique ids and existing files', () => {
+    expect(ILLUSTRATED_CARD_DESIGNS).toHaveLength(659);
+    expect(new Set(ILLUSTRATED_CARD_DESIGNS.map(d => d.id)).size).toBe(659);
     for (const d of ILLUSTRATED_CARD_DESIGNS) {
       expect(fs.existsSync(path.join(PUBLIC, d.image)), d.image).toBe(true);
       expect(d.finishedArt).toBe(true);
@@ -26,15 +26,36 @@ describe('illustrated cover collection', () => {
     const counts = {};
     ILLUSTRATED_CARD_DESIGNS.forEach(d => { counts[d.occasion] = (counts[d.occasion] || 0) + 1; });
     expect(Object.keys(counts).sort()).toEqual([...WIZARD_OCCASIONS].sort());
-    expect(counts).toMatchObject({ birthday: 22, leaving: 20, retirement: 10, sympathy: 40, christmas: 25,
-      wedding: 22, anniversary: 20, congratulations: 20, get_well: 20, thank_you: 20, baby_shower: 50, graduation: 30 });
+    // Original cartoon set + 30 newer covers per occasion (three styles of 10).
+    expect(counts).toMatchObject({ birthday: 52, leaving: 50, retirement: 40, sympathy: 70, christmas: 55,
+      wedding: 52, anniversary: 50, congratulations: 50, get_well: 50, thank_you: 50, baby_shower: 80, graduation: 60 });
   });
 
-  it('files each sympathy folder into sympathy, general first and pet last', () => {
-    const groups = getIllustratedCovers('sympathy').map(d => d.sympathyGroup);
-    expect(groups.slice(0, 10).every(g => g === 'colleague')).toBe(true);
-    expect(groups.slice(-10).every(g => g === 'pet')).toBe(true);
+  it('files each sympathy folder into sympathy, general first and pet after the other groups', () => {
+    const list = getIllustratedCovers('sympathy');
+    const isNew = (d) => /-(mc|ad|ar)-/.test(d.id);
+    const groups = list.map(d => d.sympathyGroup);
+    expect(groups.slice(0, 4).every(g => g === 'colleague')).toBe(true);
+    const old = list.filter(d => !isNew(d)).map(d => d.sympathyGroup);
+    expect(old.slice(-10).every(g => g === 'pet')).toBe(true);
     expect(getIllustratedCovers('sympathy', { group: 'partner' })).toHaveLength(10);
+    expect(getIllustratedCovers('sympathy', { group: 'pet' })).toHaveLength(10);
+  });
+
+  it('keeps the cartoon lead row on top and mixes 2 newer covers into each row after it', () => {
+    const isNew = (d) => /-(mc|ad|ar)-/.test(d.id);
+    for (const occ of WIZARD_OCCASIONS) {
+      const list = getIllustratedCovers(occ);
+      expect(list.slice(0, 4).some(isNew), occ).toBe(false);
+      // While both kinds remain, every row of 4 holds exactly 2 newer covers.
+      const oldLeft = list.filter(d => !isNew(d)).length - 4;
+      const newCount = list.filter(isNew).length;
+      const mixedRows = Math.min(Math.floor(oldLeft / 2), Math.floor(newCount / 2));
+      for (let r = 0; r < mixedRows; r += 1) {
+        const row = list.slice(4 + r * 4, 8 + r * 4);
+        if (row.length === 4) expect(row.filter(isNew).length, `${occ} row ${r + 2}`).toBe(2);
+      }
+    }
   });
 
   it('lists the new covers first in every occasion', () => {

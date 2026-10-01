@@ -81,3 +81,4 @@ Deploy: run `database/migration_delivery_reliability.sql`; optional `database/op
 - Frontend loads /api/payments/pricing at start (and every 10 minutes / on tab focus); every price display, plan card, FAQ answer, page title and JSON-LD now shows the live price ("$3.15" launch copy is swapped for today's price).
 - Fixes found in review: credit purchases now verify the amount paid; subscription verify and webhook compare in the charged currency (amount_settled is not naira); first checkouts after a restart wait for the admin prices; a near-free discount no longer becomes a ₦100 charge.
 - Note: prerendered static HTML (for crawlers) still contains the launch prices until the next build; discount codes' max_discount_ngn caps are still in naira.
+- Payment dialog: Lemon Squeezy option notes that sales tax or VAT may be added at checkout depending on country.

@@ -95,6 +95,7 @@ function MethodDialog({ initialCurrency, flwUsdFor, amountNGN, onDone }) {
             lines: [
               'Visa, Mastercard, Amex, Apple Pay, Google Pay or PayPal.',
               'Processed by Lemon Squeezy and charged in US dollars.',
+              'Sales tax or VAT may be added at checkout depending on your country.',
               ...(approx ? [approx] : []),
             ],
             price: usd ? `${usd} USD` : null,

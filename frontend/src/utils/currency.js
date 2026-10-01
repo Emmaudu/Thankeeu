@@ -16,7 +16,7 @@ export const currencyCountry = (code) => WORLD_BY_CODE[code]?.[1] || '';
 export const CURRENCIES = [
   // USD first: it is the platform's display/default currency. NGN remains the
   // storage base (rate 1) — see NGN_BASE below; never rely on array order for that.
-  { code: 'USD', symbol: '$',  name: 'US Dollar',         flag: '🇺🇸', rate: 0.00063 }, // ₦1 ≈ $0.00063 — keep in sync with backend utils/cardPayment.js CARD_FEE_FX
+  { code: 'USD', symbol: '$',  name: 'US Dollar',         flag: '🇺🇸', rate: 0.00063 }, // ₦1 ≈ $0.00063 until today's rate loads (utils/pricing.js updates every rate here)
   { code: 'NGN', symbol: '₦',  name: 'Nigerian Naira',    flag: '🇳🇬', rate: 1      },
   { code: 'GBP', symbol: '£',  name: 'British Pound',     flag: '🇬🇧', rate: 0.00049 },
   { code: 'EUR', symbol: '€',  name: 'Euro',              flag: '🇪🇺', rate: 0.00058 },

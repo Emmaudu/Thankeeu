@@ -83,6 +83,34 @@ router.get('/settings', async (req, res) => {
   }
 });
 
+// ── Prices in USD (Admin → Currency tab) ────────────────────────────────────
+// GET /admin/pricing → current USD prices, today's rates and per-currency preview
+// PUT /admin/pricing { usd: { card_fee: 3.5, pack5: 14, ... } } → saves, applies at once
+router.get('/pricing', async (_req, res) => {
+  try {
+    const pricing = require('../utils/pricing');
+    await pricing.loadPrices().catch(() => {});
+    res.json({ ok: true, pricing: pricing.snapshot(), limits: { min: pricing.MIN_USD, max: pricing.MAX_USD } });
+  } catch (err) {
+    console.error('[admin/pricing] GET error:', err.message);
+    res.status(500).json({ error: 'Could not load prices' });
+  }
+});
+
+router.put('/pricing', async (req, res) => {
+  try {
+    const pricing = require('../utils/pricing');
+    const { values, error } = pricing.validatePrices(req.body);
+    if (error) return res.status(400).json({ error });
+    const snap = await pricing.savePrices(values);
+    console.log('[admin/pricing] prices updated by', req.user?.email || req.user?.id || 'admin', JSON.stringify(values));
+    res.json({ ok: true, pricing: snap });
+  } catch (err) {
+    console.error('[admin/pricing] PUT error:', err.message);
+    res.status(500).json({ error: 'Could not save prices. Does the site_settings table exist (database/RUN_THIS_IN_SUPABASE.sql)?' });
+  }
+});
+
 // ── Homepage hero header (Admin → Header tab) ──────────────────────────────
 // GET  /admin/hero → { hero: { title, subtitle, tagline, updated_at } }
 // PUT  /admin/hero { title?, subtitle?, tagline? } — '' or null resets a field

@@ -577,6 +577,9 @@ const { runPalAutomation } = require('./utils/palAutomation');
 cron.schedule('0 * * * *', () => runPalAutomation().catch(e => console.error('Pal automation error:', e.message)));
 
 const PORT = process.env.PORT || 5000;
+// Prices (admin-set USD) and daily exchange rates; refreshed in the background.
+require('./utils/pricing').start();
+
 app.listen(PORT, () => {
   console.log(`🚀 Thankeeu API running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV}`);

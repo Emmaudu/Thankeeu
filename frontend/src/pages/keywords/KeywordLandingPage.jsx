@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { livePlan, usePricing, formatPrice, livePriceText } from '../../utils/pricing';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 import { CurrencyToggle } from '../../utils/currencyUI';
-import { formatCurrency } from '../../utils/currency';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Icon from '../../components/ui/Icon';
@@ -43,7 +43,7 @@ const ExitIntentModal = ({ onClose, data }) => (
         <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white"><Icon name="Sparkles" size={20} className="text-primary-500"/></span>
         <div>
           <p style={{fontWeight:800,fontSize:13,color:'#1A1035',margin:0}}>Free to create</p>
-          <p style={{fontSize:12,color:'#7A6CA8',margin:'2px 0 0'}}>{data.priceLabel} · No subscription</p>
+          <p style={{fontSize:12,color:'#7A6CA8',margin:'2px 0 0'}}>{livePriceText(data.priceLabel)} · No subscription</p>
         </div>
       </div>
       <Link to={`/card/new${data.occasionParam}`} onClick={onClose}
@@ -57,15 +57,16 @@ const ExitIntentModal = ({ onClose, data }) => (
 
 /* ─── Pricing section — identical structure/breakpoints to LeavingCardPage ── */
 const PricingSection = ({ occasionParam }) => {
+  usePricing(); // re-render when today's prices arrive
   const [currency, setCurrency] = useState('USD');
-  // formatCurrency handles every currency in the picker, including
-    // display-only ones (INR, KRW, …) and their decimals.
-    const fmt = (ngn) => formatCurrency(ngn, currency);
+  // formatPrice handles every currency in the picker (display-only ones
+    // too) and shows naira prices rounded to ₦100, as charged.
+    const fmt = (ngn) => formatPrice(ngn, currency);
   const plans = [
-    { name:'Classic', ngn:5000,  badge:null,          highlight:false, btn:'Create your card',  btnStyle:'bg-primary-600 hover:bg-primary-700 text-white', href:`/card/new${occasionParam}`, features:['1 group card', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Memory Movie included'] },
-    { name:'Standard', ngn:9000,  badge:'Most popular', highlight:true,  btn:'Get 2 credits',      btnStyle:'bg-gradient-to-r from-primary-500 to-purple-600 text-white shadow-lg', href:'/signup?plan=standard', features:['Everything in Classic', '2 group cards', 'Priority support', 'HD Memory Movie', 'Credits never expire'] },
-    { name:'Pack of 5', ngn:20000, badge:'Best value',   highlight:false, btn:'Buy 5 credits',      btnStyle:'bg-warm-900 hover:bg-warm-800 text-white', href:'/signup?plan=pack5', features:['Everything in Standard', '5 group cards', 'Dedicated support', 'Early feature access'] },
-  ];
+    { id:'single', name:'Classic',  badge:null,          highlight:false, btn:'Create your card',  btnStyle:'bg-primary-600 hover:bg-primary-700 text-white', href:`/card/new${occasionParam}`, features:['1 group card', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Memory Movie included'] },
+    { id:'standard', name:'Standard',  badge:'Most popular', highlight:true,  btn:'Get 2 credits',      btnStyle:'bg-gradient-to-r from-primary-500 to-purple-600 text-white shadow-lg', href:'/signup?plan=standard', features:['Everything in Classic', '2 group cards', 'Priority support', 'HD Memory Movie', 'Credits never expire'] },
+    { id:'pack5', name:'Pack of 5', badge:'Best value',   highlight:false, btn:'Buy 5 credits',      btnStyle:'bg-warm-900 hover:bg-warm-800 text-white', href:'/signup?plan=pack5', features:['Everything in Standard', '5 group cards', 'Dedicated support', 'Early feature access'] },
+  ].map(livePlan);
   return (
     <section className="py-16 md:py-24 px-4 bg-white" id="pricing">
       <div className="max-w-5xl mx-auto">
@@ -114,6 +115,7 @@ const PricingSection = ({ occasionParam }) => {
 
 /* ═══════════════════════════════════════════════════════════════════ */
 export default function KeywordLandingPage({ slug: slugProp }) {
+  usePricing(); // re-render when today's prices arrive
   const params = useParams();
   const slug = slugProp || params.slug;
   const data = KEYWORD_PAGES[slug];
@@ -179,7 +181,7 @@ export default function KeywordLandingPage({ slug: slugProp }) {
               </span>
               <span className="text-white/40 text-sm hidden sm:inline">·</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-4 py-1.5 text-sm font-bold text-emerald-200">
-                <Icon name="Tag" size={13}/>{data.priceLabel}
+                <Icon name="Tag" size={13}/>{livePriceText(data.priceLabel)}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-3 mb-7">
@@ -343,7 +345,7 @@ export default function KeywordLandingPage({ slug: slugProp }) {
                 <summary className="px-5 py-4 font-semibold text-warm-800 text-sm cursor-pointer list-none flex items-center justify-between">
                   {q}<Icon name="ChevronDown" size={16} className="text-warm-400 flex-shrink-0 ml-3"/>
                 </summary>
-                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{a}</p>
+                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{livePriceText(a)}</p>
               </details>
             ))}
           </div>

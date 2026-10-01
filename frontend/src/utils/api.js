@@ -320,6 +320,9 @@ export const adminAPI = {
   // Homepage hero header (Admin → Header)
   getHero:      ()                      => api.get('/admin/hero'),
   saveHero:     (data)                  => api.put('/admin/hero', data),
+  // Prices in USD (Admin → Currency)
+  getPricing:   ()                      => api.get('/admin/pricing'),
+  savePricing:  (usd)                   => api.put('/admin/pricing', { usd }),
   getAnnouncement:  ()                  => api.get('/admin/announcement'),
   saveAnnouncement: (data)              => api.put('/admin/announcement', data),
   // Cover designs (bulk upload per occasion)

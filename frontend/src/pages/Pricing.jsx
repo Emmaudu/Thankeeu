@@ -1,4 +1,5 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { livePlan, usePricing, formatPrice, usdLabel, cardFeeNGN, livePriceText } from '../utils/pricing';
 import { choosePaymentMethod } from '../utils/paymentMethod';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -14,17 +15,17 @@ import { formatCurrency, getCurrency, convertFromNGN } from '../utils/currency';
 // ── Plans ─────────────────────────────────────────────────────────────────────
 // Pack-of-N options with progressive per-card discount
 const PACK_OPTIONS = [
- { id: 'pack5', credits: 5, priceNGN: 20000, perCardNGN: 4000, savingsNGN: 5000 },
- { id: 'pack10', credits: 10, priceNGN: 40000, perCardNGN: 4000, savingsNGN: 10000 },
- { id: 'pack25', credits: 25, priceNGN: 100000, perCardNGN: 4000, savingsNGN: 25000 },
- { id: 'pack50', credits: 50, priceNGN: 200000, perCardNGN: 4000, savingsNGN: 50000 },
- { id: 'pack70', credits: 70, priceNGN: 280000, perCardNGN: 4000, savingsNGN: 70000 },
- { id: 'pack100', credits: 100, priceNGN: 400000, perCardNGN: 4000, savingsNGN: 100000 },
-];
+ { id: 'pack5', credits: 5 },
+ { id: 'pack10', credits: 10 },
+ { id: 'pack25', credits: 25 },
+ { id: 'pack50', credits: 50 },
+ { id: 'pack70', credits: 70 },
+ { id: 'pack100', credits: 100 },
+].map(livePlan);
 
 const INDIVIDUAL_PLANS = [
  {
- id: 'single', name: 'Classic', priceNGN: 5000, credits: 1, savingsNGN: 0,
+ id: 'single', name: 'Classic', credits: 1,
  label: 'Send one card — full experience included',
  btn: 'Create your card →', btnIcon: 'Sparkles', popular: false,
  btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
@@ -42,7 +43,7 @@ const INDIVIDUAL_PLANS = [
  ],
  },
  {
- id: 'standard', name: 'Standard', priceNGN: 9000, credits: 2, savingsNGN: 1000,
+ id: 'standard', name: 'Standard', credits: 2,
  label: 'Two cards — save on the second',
  btn: 'Get 2 cards', btnIcon: 'Star', popular: true,
  btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
@@ -60,7 +61,7 @@ const INDIVIDUAL_PLANS = [
  ],
  },
  {
- id: 'pack5', name: 'Pack of 5', priceNGN: 20000, credits: 5,
+ id: 'pack5', name: 'Pack of 5', credits: 5,
  label: '5 card credits — lowest per-card price',
  btn: 'Buy 5 credits', btnIcon: 'Gift', popular: false,
  btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
@@ -77,7 +78,7 @@ const INDIVIDUAL_PLANS = [
  { text: 'Credits never expire', ok: true },
  ],
  },
-];
+].map(livePlan);
 
 const COMPANY_PLANS = [
  {
@@ -102,9 +103,10 @@ import { CurrencyToggle, RotatingPrice } from '../utils/currencyUI';
 
 // ── Main Pricing page ─────────────────────────────────────────────────────────
 const Pricing = () => {
+ usePricing(); // re-render when today's prices arrive
  useSEO({
- title: 'Pricing — Group Cards, Memory Movies & Photo Walls from $3.15 | Thankeeu',
- description: 'Send a group card from $3.15 USD / £2.45 GBP. Every plan includes the Memory Movie slideshow and Live Photo Wall for collecting guest photos via QR code. Pool a gift in USD, GBP, EUR, NGN and more. Team plans with HR automation. Free to create — pay when you send.',
+ title: `Pricing — Group Cards, Memory Movies & Photo Walls from ${usdLabel('card_fee')} | Thankeeu`,
+ description: `Send a group card from ${usdLabel('card_fee')} USD. Every plan includes the Memory Movie slideshow and Live Photo Wall for collecting guest photos via QR code. Pool a gift in USD, GBP, EUR, NGN and more. Team plans with HR automation. Free to create — pay when you send.`,
  keywords: 'group card price, online group card cost, Thankeeu pricing, team card subscription, memory movie included, live photo wall price, event photo sharing cost, birthday card price',
  canonical: '/pricing',
  jsonLd: [
@@ -167,7 +169,7 @@ const Pricing = () => {
 
  const cur = getCurrency(currency);
 
- const fmt = (ngn) => formatCurrency(ngn, currency);
+ const fmt = (ngn) => formatPrice(ngn, currency);
 
  // Applies the active discount to any NGN amount, respecting an optional
  // per-code max-discount cap the same way checkout does server-side.
@@ -251,10 +253,10 @@ const Pricing = () => {
  <div className="inline-flex flex-col items-center bg-white rounded-2xl border-2 border-primary-100 px-6 py-4 shadow-sm mb-6">
  <p className="text-xs text-warm-400 mb-1 font-medium">One card — from</p>
  <div className="text-3xl font-extrabold text-primary-600 min-w-[120px] text-center">
- {activeDiscount ? <RotatingPrice amountNGN={applyDiscount(5000)} /> : <RotatingPrice amountNGN={5000} />}
+ {activeDiscount ? <RotatingPrice amountNGN={applyDiscount(cardFeeNGN())} /> : <RotatingPrice amountNGN={cardFeeNGN()} />}
  </div>
  {activeDiscount && (
-   <p className="text-xs text-warm-400 line-through">{fmt(5000)}</p>
+   <p className="text-xs text-warm-400 line-through">{fmt(cardFeeNGN())}</p>
  )}
  <p className="text-xs text-warm-400 mt-1">Select your currency below · Memory Movie + Photo Wall included</p>
  </div>
@@ -330,7 +332,7 @@ const Pricing = () => {
  )}
  </div>
  {['GHS','KES','ZAR'].includes(currency) && (
- <p className="text-xs text-warm-400 mb-1">≈ ₦{plan.priceNGN.toLocaleString('en-NG')} NGN</p>
+ <p className="text-xs text-warm-400 mb-1">≈ {formatPrice(plan.priceNGN, 'NGN')} NGN</p>
  )}
  {plan.savingsNGN > 0 && (
  <p className="text-primary-600 text-xs font-bold mb-1">
@@ -402,7 +404,7 @@ const Pricing = () => {
  )}
  </div>
  {['GHS','KES','ZAR'].includes(currency) && (
- <p className="text-xs text-warm-400 mb-1">≈ ₦{(activeDiscount ? applyDiscount(selectedPack.priceNGN) : selectedPack.priceNGN).toLocaleString('en-NG')} NGN</p>
+ <p className="text-xs text-warm-400 mb-1">≈ {formatPrice(activeDiscount ? applyDiscount(selectedPack.priceNGN) : selectedPack.priceNGN, 'NGN')} NGN</p>
  )}
  <p className="text-green-700 text-xs font-bold mb-0.5">
  {activeDiscount ? fmtDiscounted(selectedPack.perCardNGN) : fmt(selectedPack.perCardNGN)} per card (flat rate) · {activeDiscount ? fmtDiscounted(selectedPack.priceNGN) : fmt(selectedPack.priceNGN)} total
@@ -566,7 +568,7 @@ const Pricing = () => {
  </button>
  {openFAQ === i && (
  <div className="px-4 sm:px-5 pb-4 sm:pb-5">
- <p className="text-sm text-warm-600 leading-relaxed">{f.a}</p>
+ <p className="text-sm text-warm-600 leading-relaxed">{livePriceText(f.a)}</p>
  </div>
  )}
  </div>

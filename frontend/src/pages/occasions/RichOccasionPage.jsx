@@ -1,8 +1,8 @@
 import { useState } from 'react';
+import { livePlan, usePricing, formatPrice, livePriceText } from '../../utils/pricing';
 import { Link } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 import { CurrencyToggle } from '../../utils/currencyUI';
-import { formatCurrency } from '../../utils/currency';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Icon from '../../components/ui/Icon';
@@ -38,25 +38,26 @@ const DEFAULT_COMPARISON_ROWS = [
 ];
 
 const DEFAULT_PLANS = [
-  { name: 'Classic', priceNGN: 5000, credits: 1, popular: false, label: 'One perfect card',
+  { id: 'single', name: 'Classic', credits: 1, popular: false, label: 'One perfect card',
     features: ['Send 1 group card', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
     btn: 'Create your card →', btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
     href: null }, // resolved dynamically below using createCardUrl
-  { name: 'Standard', priceNGN: 9000, credits: 2, popular: true, label: 'Two cards — save on the second',
+  { id: 'standard', name: 'Standard', credits: 2, popular: true, label: 'Two cards — save on the second',
     features: ['Send 2 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
     btn: 'Get 2 credits', btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
     href: '/signup?plan=standard' },
-  { name: 'Pack of 5', priceNGN: 20000, credits: 5, popular: false, label: '5 cards — best per-card price',
+  { id: 'pack5', name: 'Pack of 5', credits: 5, popular: false, label: '5 cards — best per-card price',
     features: ['Send 5 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
     btn: 'Buy 5 credits', btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
     href: '/signup?plan=pack5' },
-];
+].map(livePlan);
 
 const PricingSection = ({ createCardUrl }) => {
+  usePricing(); // re-render when today's prices arrive
   const [currency, setCurrency] = useState('USD');
-  // formatCurrency handles every currency in the picker, including
-    // display-only ones (INR, KRW, …) and their decimals.
-    const fmt = (ngn) => formatCurrency(ngn, currency);
+  // formatPrice handles every currency in the picker (display-only ones
+    // too) and shows naira prices rounded to ₦100, as charged.
+    const fmt = (ngn) => formatPrice(ngn, currency);
   return (
     <section className="py-16 md:py-24 px-4 bg-white" id="pricing">
       <div className="max-w-5xl mx-auto">
@@ -91,7 +92,7 @@ const PricingSection = ({ createCardUrl }) => {
                   <span className="text-4xl font-extrabold text-warm-900">{fmt(plan.priceNGN)}</span>
                 </div>
                 <p className="text-xs text-warm-400 mt-1">
-                  {fmt(Math.round(plan.priceNGN / plan.credits))} per card{plan.credits > 1 ? ` · ${plan.credits} credits` : ''}
+                  {fmt(plan.perCardNGN)} per card{plan.credits > 1 ? ` · ${plan.credits} credits` : ''}
                 </p>
               </div>
               <ul className="space-y-2.5 mb-7 flex-1">
@@ -119,6 +120,7 @@ const PricingSection = ({ createCardUrl }) => {
 };
 
 export default function RichOccasionPage({ config }) {
+  usePricing(); // re-render when today's prices arrive
   const {
     cardOccasion, coverOccasion,
     seoTitle, seoDescription, seoKeywords, canonical,
@@ -407,7 +409,7 @@ export default function RichOccasionPage({ config }) {
                 <summary className="px-5 py-4 font-semibold text-warm-800 text-sm cursor-pointer list-none flex items-center justify-between">
                   {q}<Icon name="ChevronDown" size={16} className="text-warm-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-3" />
                 </summary>
-                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{a}</p>
+                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{livePriceText(a)}</p>
               </details>
             ))}
           </div>

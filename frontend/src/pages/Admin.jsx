@@ -325,6 +325,151 @@ const HeaderTab = () => {
   );
 };
 
+// ── Currency Tab — set prices in USD; every other currency follows ──────────
+const PRICE_ORDER = ['card_fee', 'standard', 'pack5', 'pack10', 'pack25', 'pack50', 'pack70', 'pack100'];
+const PREVIEW_CURRENCIES = [
+  ['NGN', '₦', 0], ['GBP', '£', 2], ['EUR', '€', 2], ['CAD', 'C$', 2], ['GHS', 'GH₵', 2], ['KES', 'KSh', 0], ['ZAR', 'R', 2],
+];
+const CurrencyTab = () => {
+  const [snap, setSnap]       = React.useState(null);   // server snapshot
+  const [form, setForm]       = React.useState({});     // product → string
+  const [limits, setLimits]   = React.useState({ min: 0.5, max: 10000 });
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving]   = React.useState(false);
+  const [pct, setPct]         = React.useState('');
+
+  const apply = (p) => {
+    setSnap(p);
+    const f = {};
+    for (const k of PRICE_ORDER) f[k] = p?.products?.[k] ? p.products[k].usd.toFixed(2) : '';
+    setForm(f);
+  };
+  React.useEffect(() => {
+    adminAPI.getPricing()
+      .then(r => { apply(r.data?.pricing); if (r.data?.limits) setLimits(r.data.limits); })
+      .catch(e => toast.error(e.response?.data?.error || 'Could not load prices'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const num = (k) => Number(form[k]);
+  const valid = (k) => Number.isFinite(num(k)) && num(k) >= limits.min && num(k) <= limits.max && /^\d+(\.\d{1,2})?$/.test(String(form[k]).trim());
+  const changed = snap ? PRICE_ORDER.filter(k => valid(k) && Math.round(num(k) * 100) !== Math.round(snap.products[k].usd * 100)) : [];
+  const invalid = PRICE_ORDER.filter(k => !valid(k));
+
+  const rates = snap?.usd_rates || {};
+  const local = (usd, cur) => {
+    const r = Number(rates[cur]);
+    if (!(r > 0) || !Number.isFinite(usd)) return '–';
+    let v = usd * r;
+    if (cur === 'NGN') v = Math.max(100, Math.round(v / 100) * 100);      // charged to the nearest ₦100
+    const [, sym, dp] = PREVIEW_CURRENCIES.find(c => c[0] === cur);
+    return `${sym}${v.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp })}`;
+  };
+
+  const raiseAll = () => {
+    const p = Number(pct);
+    if (!Number.isFinite(p) || p === 0 || p < -90 || p > 500) { toast.error('Enter a percentage between -90 and 500'); return; }
+    setForm(f => {
+      const next = { ...f };
+      for (const k of PRICE_ORDER) if (valid(k)) next[k] = (Math.round(num(k) * (1 + p / 100) * 100) / 100).toFixed(2);
+      return next;
+    });
+    toast(`Prices ${p > 0 ? 'raised' : 'lowered'} by ${Math.abs(p)}% in the form. Check them, then save.`);
+  };
+
+  const save = async () => {
+    if (invalid.length) { toast.error(`Fix the highlighted price${invalid.length > 1 ? 's' : ''} first`); return; }
+    if (!changed.length) return;
+    const summary = changed.map(k => `${snap.products[k].label}: $${snap.products[k].usd.toFixed(2)} → $${num(k).toFixed(2)}`).join('\n');
+    if (!window.confirm(`Save these new prices? They apply to every new checkout right away.\n\n${summary}`)) return;
+    setSaving(true);
+    try {
+      const usd = Object.fromEntries(changed.map(k => [k, num(k)]));
+      const r = await adminAPI.savePricing(usd);
+      apply(r.data?.pricing);
+      toast.success('Prices saved. New checkouts use them now; pages update within a minute.');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Could not save prices');
+    } finally { setSaving(false); }
+  };
+
+  if (loading) return <div style={{ padding:40, textAlign:'center', color:'#9CA3AF' }}>Loading…</div>;
+  if (!snap) return <div style={{ padding:40, textAlign:'center', color:'#9CA3AF' }}>Prices could not be loaded.</div>;
+
+  const th = { textAlign:'left', padding:'10px 12px', fontSize:11, fontWeight:800, letterSpacing:'0.06em', textTransform:'uppercase', color:'#7A6CA8', whiteSpace:'nowrap' };
+  const td = { padding:'10px 12px', fontSize:13, color:'#1A1035', whiteSpace:'nowrap', borderTop:'1px solid #F3F0FF' };
+
+  return (
+    <div style={{ maxWidth: 1100, margin: '0 auto', padding: '28px 16px' }}>
+      <h2 style={{ fontWeight: 800, fontSize: 22, color: '#1A1035', marginBottom: 6 }}>Currency and prices</h2>
+      <p style={{ color: '#7A6CA8', fontSize: 14, marginBottom: 6, lineHeight: 1.5 }}>
+        Set each price in US dollars. Every other currency is worked out from today’s exchange rate. Naira prices are rounded to the nearest ₦100.
+        Changes apply to new checkouts as soon as you save. Payments already started keep the price they were started with.
+      </p>
+      <p style={{ color: '#9CA3AF', fontSize: 12, marginBottom: 20 }}>
+        {snap.rates_live ? <>Exchange rates updated {snap.rates_updated_at ? new Date(snap.rates_updated_at).toLocaleString() : 'today'} (refreshed automatically every day).</> : <>Live exchange rates are not available right now, so the standard fixed rates are being used.</>}
+        {snap.prices_updated_at && <> Prices last saved {new Date(snap.prices_updated_at).toLocaleString()}.</>}
+        {' '}₦{Number(snap.ngn_per_usd).toLocaleString('en-US', { maximumFractionDigits: 2 })} = $1.
+      </p>
+
+      <div style={{ background:'#fff', border:'2px solid #EDE9FE', borderRadius:20, padding:'6px 0', overflowX:'auto' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse' }}>
+          <thead>
+            <tr>
+              <th style={th}>Product</th>
+              <th style={th}>Price (USD)</th>
+              {PREVIEW_CURRENCIES.map(([c]) => <th key={c} style={th}>{c}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {PRICE_ORDER.map(k => {
+              const p = snap.products[k];
+              const bad = !valid(k);
+              const isChanged = changed.includes(k);
+              return (
+                <tr key={k}>
+                  <td style={td}><span style={{ fontWeight:700 }}>{p.label}</span>{p.credits > 1 && <span style={{ color:'#9CA3AF', fontSize:12 }}> · ${valid(k) ? (num(k) / p.credits).toFixed(2) : '–'} per card</span>}</td>
+                  <td style={td}>
+                    <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                      <span style={{ color:'#7A6CA8', fontWeight:700 }}>$</span>
+                      <input aria-label={`${p.label} price in US dollars`} inputMode="decimal" value={form[k]}
+                        onChange={e => { const v = e.target.value; setForm(f => ({ ...f, [k]: v })); }}
+                        style={{ width:90, padding:'7px 9px', borderRadius:10, fontSize:14, fontWeight:700,
+                          border:`2px solid ${bad ? '#F87171' : isChanged ? '#A78BFA' : '#EDE9FE'}`, background: bad ? '#FEF2F2' : '#fff' }} />
+                    </div>
+                    {bad && <p style={{ fontSize:11, color:'#DC2626', margin:'4px 0 0' }}>${limits.min.toFixed(2)} to ${limits.max}, up to 2 decimals</p>}
+                  </td>
+                  {PREVIEW_CURRENCIES.map(([c]) => <td key={c} style={{ ...td, color: isChanged ? '#6D28D9' : '#4B3F72' }}>{local(valid(k) ? num(k) : NaN, c)}</td>)}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ display:'flex', flexWrap:'wrap', gap:10, alignItems:'center', marginTop:18 }}>
+        <button type="button" disabled={!changed.length || saving || invalid.length > 0} onClick={save}
+          style={{ padding:'10px 20px', borderRadius:12, border:'none', fontWeight:800, fontSize:13,
+            background: changed.length && !invalid.length ? 'linear-gradient(135deg,#7C3AED,#EC4899)' : '#E5E7EB',
+            color: changed.length && !invalid.length ? '#fff' : '#9CA3AF', cursor: changed.length && !invalid.length ? 'pointer' : 'default' }}>
+          {saving ? 'Saving…' : changed.length ? `Save ${changed.length} price${changed.length > 1 ? 's' : ''}` : 'No changes'}
+        </button>
+        {changed.length > 0 && <button type="button" onClick={() => apply(snap)} style={{ padding:'10px 12px', background:'none', border:'none', color:'#6B7280', fontSize:12, fontWeight:700, cursor:'pointer' }}>Discard changes</button>}
+        <span style={{ flex:'1 1 auto' }} />
+        <label htmlFor="raise-pct" style={{ fontSize:13, fontWeight:700, color:'#4B3F72' }}>Change all prices by</label>
+        <input id="raise-pct" inputMode="decimal" value={pct} onChange={e => setPct(e.target.value)} placeholder="10"
+          style={{ width:70, padding:'7px 9px', borderRadius:10, border:'2px solid #EDE9FE', fontSize:14, fontWeight:700 }} />
+        <span style={{ fontSize:13, color:'#4B3F72' }}>%</span>
+        <button type="button" onClick={raiseAll} style={{ padding:'9px 14px', borderRadius:12, border:'1px solid #DDD6FE', background:'#fff', color:'#7C3AED', fontWeight:700, fontSize:13, cursor:'pointer' }}>Apply to form</button>
+      </div>
+      <p style={{ fontSize:12, color:'#9CA3AF', marginTop:14, lineHeight:1.5 }}>
+        Lemon Squeezy (international cards) charges the USD price. Flutterwave charges the price in the customer’s currency shown above.
+        Discount codes apply to the new prices automatically. Company plans keep their per-company rate.
+      </p>
+    </div>
+  );
+};
+
 const SettingsTab = () => {
   const [currentUrl, setCurrentUrl] = React.useState(null);
   const [loading,    setLoading]    = React.useState(true);
@@ -1587,6 +1732,7 @@ const Admin = () => {
             { id:'pals',      icon:'🤝', label:'Pals',          badge:palApplications.filter(p=>p.status==='pending').length||null },
             { id:'discounts', icon:'🎟', label:'Discount Codes', badge:null },
             { id:'header',    icon:'🏠', label:'Header',        badge:null },
+            { id:'currency',  icon:'💱', label:'Currency',      badge:null },
             { id:'coverdesigns', icon:'🎨', label:'Cover Design', badge:null },
             { id:'settings',  icon:'🎵', label:'Settings',       badge:null },
           ].map(item => {
@@ -1652,6 +1798,7 @@ const Admin = () => {
             { id:'pals',      icon:'HeartHandshake', label:'Pals', badge:palApplications.filter(p=>p.status==='pending').length||null },
             { id:'discounts', icon:'Tag', label:'Discount Codes', badge:null },
             { id:'header',    icon:'Home', label:'Header', badge:null },
+            { id:'currency',  icon:'Dollar', label:'Currency', badge:null },
             { id:'coverdesigns', icon:'Image', label:'Cover Design', badge:null },
             { id:'settings',  icon:'Settings', label:'Settings', badge:null },
           ].map(item => {
@@ -1684,7 +1831,7 @@ const Admin = () => {
         <div className="hidden lg:flex" style={{ padding:'14px 28px', borderBottom:'1px solid #EDE9FF', background:'rgba(255,255,255,0.96)', backdropFilter:'blur(8px)', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:30 }}>
           <div>
             <h1 style={{ margin:0, fontSize:19, fontWeight:800, color:'#1a1a2e' }}>
-              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','discounts':'Discount Codes','header':'Homepage Header','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
+              {({'overview':'Overview','analytics':'Analytics','users':'Users','cards':'Cards','companies':'Companies','broadcast':'Broadcast','support':'Support','demos':'Demo Requests','visitors':'Visitors','blog':'Blog','vendors':'Vendors','pals':'Pals','discounts':'Discount Codes','header':'Homepage Header','currency':'Currency and prices','coverdesigns':'Cover Design','settings':'Settings'})[tab] || tab}
             </h1>
             <p style={{ margin:'2px 0 0', fontSize:11, color:'#9CA3AF' }}>Signed in as {user?.full_name}</p>
           </div>
@@ -2810,6 +2957,7 @@ const Admin = () => {
 
         {/* ── SETTINGS TAB ── */}
         {tab === 'header' && <HeaderTab />}
+        {tab === 'currency' && <CurrencyTab />}
         {detailCardId && <AdminCardDetails cardId={detailCardId} onClose={() => setDetailCardId(null)} />}
         {tab === 'coverdesigns' && <CoverDesignTab />}
         {tab === 'settings' && <SettingsTab />}

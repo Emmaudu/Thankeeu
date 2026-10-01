@@ -31,9 +31,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Currency helper: all stored and displayed amounts are Nigerian naira.
 // Guest-facing gift figures show the US-dollar equivalent (platform display
-// currency). Rate kept in sync with utils/cardPayment.js CARD_FEE_FX.USD.
+// currency), at today's rate from utils/pricing.js.
 const fmtUSD = (ngnAmount) => {
-  const usd = Math.round(Number(ngnAmount || 0) * 0.00063 * 100) / 100;
+  let rate = 0.00063; // long-standing rate, used if pricing can't be loaded
+  try { rate = require('./pricing').fxRate('USD') || rate; } catch { /* keep fallback */ }
+  const usd = Math.round(Number(ngnAmount || 0) * rate * 100) / 100;
   if (usd >= 100) return `$${Math.round(usd).toLocaleString('en-US')}`;
   return Number.isInteger(usd) ? `$${usd}` : `$${usd.toFixed(2)}`;
 };

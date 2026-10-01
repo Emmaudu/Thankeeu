@@ -8,7 +8,7 @@ Gift contributions stay on Flutterwave (a merchant of record cannot collect mone
 Nothing changes until all steps below are done: the option stays hidden.
 
 ## 1. Lemon Squeezy dashboard
-1. Create the store with currency **USD** and submit it for activation
+1. Set the store currency to **USD** (Settings > General). Customers then see US dollars on the Lemon Squeezy page. (NGN also works, but international customers would see naira.) Create the store and submit it for activation
    (describe Thankeeu as "digital group greeting cards, software").
 2. Create one product, e.g. "Thankeeu payment", with one variant. Any price: the app sets the real price per checkout.
 3. Settings > API: create an API key.

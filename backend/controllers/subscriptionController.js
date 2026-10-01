@@ -92,11 +92,11 @@ const saveSubscription = async (companyId, plan, flwReference, expiresAt, amount
 // ── Initialize payment ───────────────────────────────────────────────────────
 const initializeSubscription = async (req, res) => {
   try {
+    await require('../utils/pricing').ready(); // today's rates loaded after a restart
     const { plan, currency: reqCurrency, employee_count: reqCount, provider } = req.body;
     if (!['monthly','yearly'].includes(plan))
       return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
 
-    const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
     // Currencies switched off via FLW_DISABLED_CURRENCIES are charged in USD, as everywhere else.
     const currency = require('../utils/flwCurrency').resolveChargeCurrency(require('../utils/cardPayment').chargeableCurrency(reqCurrency));
 
@@ -138,7 +138,7 @@ const initializeSubscription = async (req, res) => {
       if (!ls.ok) return res.status(ls.status).json({ error: ls.message });
       return res.json({ payment_link: ls.url, authorization_url: ls.url, reference: txRef, provider: 'lemonsqueezy', currency: 'USD', amount: ls.amountUsd });
     }
-    const amount = currency === 'NGN' ? naira : parseFloat((naira * FX[currency]).toFixed(2));
+    const amount = require('../utils/cardPayment').chargeAmountFor(naira, currency); // today's rate
 
     const response = await axios.post(`${FLW_BASE}/payments`, {
       tx_ref:       txRef,
@@ -151,7 +151,7 @@ const initializeSubscription = async (req, res) => {
         description: `${label} subscription`,
         logo:        `${FRONTEND_URL}/logo.png`,
       },
-      meta: { type: 'company_subscription', company_id: req.company.id, plan },
+      meta: { type: 'company_subscription', company_id: req.company.id, plan, expected_ngn: naira, expected_amount: amount, currency },
     }, { headers: headers() });
 
     if (response.data.status !== 'success') throw new Error(response.data.message);
@@ -201,10 +201,18 @@ const verifySubscription = async (req, res) => {
           : employeeCount * ratePerHead;
         // Allow ±5% tolerance for currency conversion rounding, but require at minimum
         // 90% of the expected naira amount (comparing to NGN equivalent of txn.amount)
-        const paidNGN = txn.currency === 'NGN' ? txn.amount : txn.amount_settled;
         const tolerance = 0.90;
-        if (expectedNaira > 0 && paidNGN && paidNGN < expectedNaira * tolerance) {
-          console.error(`[verifySubscription] UNDERPAYMENT: expected ≥₦${Math.round(expectedNaira * tolerance)}, got ₦${paidNGN}. Company: ${req.company.id}, ref: ${reference}`);
+        const meta = txn.meta || {};
+        // Compare in the currency charged, against what was asked for at init
+        // (amount_settled is in the settlement currency, after fees, so it
+        // is not naira and must not be compared with a naira price).
+        const sameCur = meta.currency && String(meta.currency).toUpperCase() === String(txn.currency || '').toUpperCase()
+          && Number(meta.expected_amount) > 0;
+        const underpaid = sameCur
+          ? Number(txn.amount) < Number(meta.expected_amount) * tolerance
+          : (txn.currency === 'NGN' && expectedNaira > 0 && Number(txn.amount) < expectedNaira * tolerance);
+        if (underpaid) {
+          console.error(`[verifySubscription] UNDERPAYMENT: got ${txn.amount} ${txn.currency}, expected ${sameCur ? `${meta.expected_amount} ${meta.currency}` : `₦${expectedNaira}`}. Company: ${req.company.id}, ref: ${reference}`);
           return res.status(400).json({ error: 'Payment amount does not match the subscription price. Please contact support.' });
         }
       }
@@ -224,7 +232,7 @@ const verifySubscription = async (req, res) => {
       ? new Date(new Date(now).setFullYear(now.getFullYear() + 1))
       : new Date(new Date(now).setMonth(now.getMonth() + 1));
 
-    await saveSubscription(req.company.id, resolvedPlan, reference, expires_at, txn.currency === 'NGN' ? txn.amount : txn.amount_settled);
+    await saveSubscription(req.company.id, resolvedPlan, reference, expires_at, Number(txn.meta?.expected_ngn) > 0 ? Number(txn.meta.expected_ngn) : (txn.currency === 'NGN' ? txn.amount : null));
 
     logActivity({
       company_id:  req.company.id,

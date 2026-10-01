@@ -3,6 +3,7 @@
  * birthday, farewell, graduation, anniversary, promotion, new-baby
  * Shows a beautiful example card with messages, voice note, photo, and gift pot.
  */
+import { usePricing, usdLabel } from '../utils/pricing';
 import { useParams, Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -122,6 +123,7 @@ const OCCASIONS = {
 };
 
 export default function OccasionPage() {
+  usePricing(); // re-render when today's prices arrive
  const { occasion } = useParams();
  const data = OCCASIONS[occasion];
 
@@ -273,7 +275,7 @@ export default function OccasionPage() {
  ))}
  </div>
  <Link to="/card/new" className="btn-primary inline-block mt-8 px-8 py-4 text-base">
- Get started — $3.15 to send
+ Get started — {usdLabel('card_fee')} to send
  </Link>
  </div>
  </section>

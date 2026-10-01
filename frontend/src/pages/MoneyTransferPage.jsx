@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { usePricing, cardFeeNGN } from '../utils/pricing';
 import { Link } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { RotatingPrice } from '../utils/currencyUI';
@@ -54,6 +55,7 @@ const FAQS = [
 ];
 
 export default function MoneyTransferPage() {
+  usePricing(); // re-render when today's prices arrive
   useSEO({
     title: 'Send Money in a Greeting Card | Thankeeu Money Transfer',
     description: 'Send money to friends and family tucked inside a beautiful greeting card. They open a 3D card, read your message, and withdraw to their bank or as a gift card. A warmer alternative to a cold transfer.',
@@ -214,7 +216,7 @@ export default function MoneyTransferPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center text-white">
           <h2 className="font-display font-extrabold text-3xl sm:text-4xl mb-3">Free to make. Small fee to send.</h2>
           <p className="text-white/85 text-lg mb-8">
-            Personalise the whole card for free. Pay a small one-time fee only when you send — starting from <RotatingPrice amountNGN={5000} className="font-bold" />. The money you add goes to your recipient. No subscription.
+            Personalise the whole card for free. Pay a small one-time fee only when you send — starting from <RotatingPrice amountNGN={cardFeeNGN()} className="font-bold" />. The money you add goes to your recipient. No subscription.
           </p>
           <Link to={CTA} className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-white text-primary-700 font-bold text-lg hover:bg-primary-50 transition-colors">
             Send money in a card <Icon name="ArrowRight" size={20} />

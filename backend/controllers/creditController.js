@@ -56,18 +56,25 @@ const flwHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
-const PLANS = {
-  classic:  { priceNGN: 5000,   credits: 1,   label: 'Classic (1 credit)'      },
-  standard: { priceNGN: 9000,   credits: 2,   label: 'Standard (2 credits)'    },
-  pack5:    { priceNGN: 20000,  credits: 5,   label: 'Pack of 5 (5 credits)'   },
-  pack10:   { priceNGN: 40000,  credits: 10,  label: 'Pack of 10 (10 credits)' },
-  pack25:   { priceNGN: 100000, credits: 25,  label: 'Pack of 25 (25 credits)' },
-  pack50:   { priceNGN: 200000, credits: 50,  label: 'Pack of 50 (50 credits)' },
-  pack70:   { priceNGN: 280000, credits: 70,  label: 'Pack of 70 (70 credits)' },
-  pack100:  { priceNGN: 400000, credits: 100, label: 'Pack of 100 (100 credits)'},
+// Credit plans. Prices are set in USD by the admin (Admin → Currency) and
+// converted at today's rate by utils/pricing.js; priceNGN is read live.
+const pricing = require('../utils/pricing');
+const PLAN_DEFS = {
+  classic:  { product: 'card_fee', credits: 1,   label: 'Classic (1 credit)'      },
+  standard: { product: 'standard', credits: 2,   label: 'Standard (2 credits)'    },
+  pack5:    { product: 'pack5',    credits: 5,   label: 'Pack of 5 (5 credits)'   },
+  pack10:   { product: 'pack10',   credits: 10,  label: 'Pack of 10 (10 credits)' },
+  pack25:   { product: 'pack25',   credits: 25,  label: 'Pack of 25 (25 credits)' },
+  pack50:   { product: 'pack50',   credits: 50,  label: 'Pack of 50 (50 credits)' },
+  pack70:   { product: 'pack70',   credits: 70,  label: 'Pack of 70 (70 credits)' },
+  pack100:  { product: 'pack100',  credits: 100, label: 'Pack of 100 (100 credits)'},
 };
+const PLANS = Object.fromEntries(Object.entries(PLAN_DEFS).map(([id, d]) => [id, {
+  credits: d.credits,
+  label: d.label,
+  get priceNGN() { return pricing.priceNGN(d.product); },
+}]));
 
-const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
 
 // ── GET /api/credits/balance — get user's current credit balance ─────────────
 const getBalance = async (req, res) => {
@@ -108,6 +115,7 @@ const getHistory = async (req, res) => {
 // ── POST /api/credits/purchase — buy credits, returns FLW payment link ───────
 const purchaseCredits = async (req, res) => {
   try {
+    await pricing.ready(); // admin prices loaded after a restart
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
@@ -131,7 +139,8 @@ const purchaseCredits = async (req, res) => {
       appliedDiscount = { id: result.discount.id, code: result.discount.code, amountNGN: discountAmountNGN };
     }
 
-    const amount = currency === 'NGN' ? priceNGN : parseFloat((priceNGN * FX[currency]).toFixed(2));
+    // Naira prices are charged rounded to the nearest ₦100; others at today's rate.
+    const amount = require('../utils/cardPayment').priceChargeAmount(priceNGN, currency);
 
     // Get user info
     const { data: user } = await supabase.from('users')
@@ -211,6 +220,9 @@ const purchaseCredits = async (req, res) => {
         credits: plan.credits,
         user_id: userId,
         expected_ngn: priceNGN,
+        // What was asked for, in the charged currency, so verify can check it.
+        expected_amount: amount,
+        currency,
         discount_code_id: appliedDiscount?.id || null,
         discount_code: appliedDiscount?.code || null,
       },
@@ -255,6 +267,16 @@ const verifyPurchase = async (req, res) => {
     }
 
     const meta     = txn.meta || {};
+    // The charge must cover the pack (compared in the currency charged, using
+    // the amounts recorded when the payment started). Without this an
+    // underpaid transaction carrying credit meta would get the full pack.
+    if (Number(meta.expected_ngn) > 0) {
+      const { isCardFeeAmountOk } = require('../utils/cardPayment');
+      if (!isCardFeeAmountOk(txn)) {
+        console.error(`[verifyPurchase] UNDERPAYMENT: ${txn.amount} ${txn.currency} for ${txRef} (expected ${meta.expected_amount || '?'} ${meta.currency || ''} / ₦${meta.expected_ngn})`);
+        return res.status(400).json({ error: 'Payment amount does not match. Please contact support with ref: ' + txRef });
+      }
+    }
     const planType = meta.plan_type;
     const credits  = Number(meta.credits) || 0;
     const userId   = meta.user_id;

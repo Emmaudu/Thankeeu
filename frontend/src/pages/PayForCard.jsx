@@ -19,10 +19,10 @@ import DashboardLayout from '../components/DashboardLayout';
 import Icon from '../components/ui/Icon';
 import { cardsAPI, creditsAPI, paymentsAPI } from '../utils/api';
 import { DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
+import { cardFeeNGN, formatPrice, usePricing } from '../utils/pricing';
 import { formatInZone } from '../utils/timezones';
 import { choosePaymentMethod } from '../utils/paymentMethod';
 
-const FEE_NGN = 5000;
 
 const sendInstant = (card) => {
   if (!card?.send_date) return null;
@@ -33,6 +33,7 @@ const sendInstant = (card) => {
 };
 
 export default function PayForCard() {
+  usePricing(); // re-render when today's prices arrive
   useSEO({ title: 'Pay for your card', description: 'Pay the one-time card fee so your card can be delivered.', noIndex: true });
   const { slug } = useParams();
   const { user } = useAuth();
@@ -93,7 +94,7 @@ export default function PayForCard() {
         return;
       }
       const code = discount?.ngn != null ? discountCode.trim() : undefined;
-      const choice = await choosePaymentMethod({ currency, amountNGN: discount?.ngn != null ? discount.ngn : FEE_NGN });
+      const choice = await choosePaymentMethod({ currency, amountNGN: discount?.ngn != null ? discount.ngn : cardFeeNGN() });
       if (!choice) { setBusy(false); return; }
       setCurrency(choice.currency);
       const r = await paymentsAPI.initCardFee(slug, choice.currency, user?.email, code, choice.provider);
@@ -114,7 +115,7 @@ export default function PayForCard() {
   const due = sendInstant(card);
   const dueLabel = due ? formatInZone(due, card?.delivery_timezone) : null;
   const overdue = due ? new Date(due).getTime() <= Date.now() : false;
-  const feeLabel = discount?.ngn != null ? formatCurrency(discount.ngn, currency) : formatCurrency(FEE_NGN, currency);
+  const feeLabel = formatPrice(discount?.ngn != null ? discount.ngn : cardFeeNGN(), currency);
 
   let body;
   if (state === 'loading') {
@@ -154,7 +155,7 @@ export default function PayForCard() {
         <section className="rounded-3xl border border-purple-100 bg-white p-6">
           {declined && (
             <div role="alert" className="mb-4 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">
-              <strong>Your last payment was declined and you were not charged.</strong> If your card is from the US, Canada, the UK or Europe, press Pay again and choose International card. You can also approve overseas payments in your banking app, or try another card.
+              <strong>Your last payment was declined and you were not charged.</strong> If your card is from the US, Canada, the UK or Europe, press Pay again and choose Lemon Squeezy (International). You can also approve overseas payments in your banking app, or try another card.
             </div>
           )}
           <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-primary-600">Your card</p>

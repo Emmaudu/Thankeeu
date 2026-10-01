@@ -26,6 +26,7 @@
  * Step 3 shows normal payment panel.
  */
 
+import { cardFeeNGN, formatPrice, usePricing } from '../utils/pricing';
 import { CurrencySelect } from '../utils/currencyUI';
 import { choosePaymentMethod } from '../utils/paymentMethod';
 import { useState, useEffect } from 'react';
@@ -105,6 +106,7 @@ const StepIndicator = ({ current }) => (
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const CardStart = () => {
+ usePricing(); // re-render when today's prices arrive
  useSEO({
  title: 'Create a Free Online Group Card | Thankeeu',
  description: 'Make a stunning group card for any occasion — birthday, farewell, promotion, and more. Add a gift pot, invite everyone via WhatsApp, schedule delivery. Free to start.',
@@ -674,7 +676,7 @@ const CardStart = () => {
  // Card payment: the customer picks Flutterwave or Lemon Squeezy (international cards).
  const choice = await choosePaymentMethod({
    currency: selectedCurrency,
-   amountNGN: discountStatus === 'applied' && discountedNGN != null ? discountedNGN : 5000,
+   amountNGN: discountStatus === 'applied' && discountedNGN != null ? discountedNGN : cardFeeNGN(),
  });
  if (!choice) { setLoading(false); setPaymentStage('idle'); return; }
  const { provider, currency: payCurrency } = choice;
@@ -1254,7 +1256,7 @@ const CardStart = () => {
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time || '09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time || '23:59'}` : 'Not set'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount || 2500)} suggested` : 'No'],
- ['Card fee', `${formatUSD(5000)} one-time — pay later, before delivery`],
+ ['Card fee', `${formatUSD(cardFeeNGN())} one-time — pay later, before delivery`],
  ].map(([k, v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1349,7 +1351,7 @@ const CardStart = () => {
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time || '09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time || '23:59'}` : 'Not set'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount || 2500)} suggested` : 'No'],
- ['Card fee', `${formatUSD(5000)} one-time — pay later, before delivery`],
+ ['Card fee', `${formatUSD(cardFeeNGN())} one-time — pay later, before delivery`],
  ['Status', 'Draft — sign in to launch (pay later)'],
  ].map(([k, v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
@@ -1442,8 +1444,8 @@ const CardStart = () => {
  : payMode === 'credit' && creditBalance > 0
  ? [['Card fee', `1 credit (${creditBalance} remaining)`]]
  : discountStatus === 'applied' && discountedNGN !== null
- ? [['Card fee', `${formatCurrency(discountedNGN, selectedCurrency)} (${discountCode} applied)`]]
- : [['Card fee', `${formatCurrency(5000, selectedCurrency)} one-time`]]),
+ ? [['Card fee', `${formatPrice(discountedNGN, selectedCurrency)} (${discountCode} applied)`]]
+ : [['Card fee', `${formatPrice(cardFeeNGN(), selectedCurrency)} one-time`]]),
  ].map(([k, v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-3 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1512,8 +1514,8 @@ const CardStart = () => {
  : isCompanyUser ? 'Create Card (Free)'
  : payMode === 'credit' ? 'Use 1 Credit & Launch'
  : discountStatus === 'applied' && discountedNGN !== null
- ? `Pay ${formatCurrency(discountedNGN, selectedCurrency)} & Launch Card`
- : `Pay ${formatCurrency(5000, selectedCurrency)} & Launch Card`}
+ ? `Pay ${formatPrice(discountedNGN, selectedCurrency)} & Launch Card`
+ : `Pay ${formatPrice(cardFeeNGN(), selectedCurrency)} & Launch Card`}
  </button>
  </div>
  <p className="text-xs text-center text-warm-400 mt-3">

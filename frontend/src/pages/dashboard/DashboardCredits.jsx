@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { livePlan, usePricing, formatPrice } from '../../utils/pricing';
 import { choosePaymentMethod } from '../../utils/paymentMethod';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -10,35 +11,36 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { asArray } from '../../utils/asArray';
 
-// Pack of N options — plan_id, credits, priceNGN, per-card price, savings label
+// Pack of N options. Prices are live (admin-set USD, today's rate): see utils/pricing.js
 const PACK_OPTIONS = [
-  { id: 'pack5',   credits: 5,   priceNGN: 20000,  perCardNGN: 4000, savingsNGN: 5000 },
-  { id: 'pack10',  credits: 10,  priceNGN: 40000,  perCardNGN: 4000, savingsNGN: 10000 },
-  { id: 'pack25',  credits: 25,  priceNGN: 100000, perCardNGN: 4000, savingsNGN: 25000 },
-  { id: 'pack50',  credits: 50,  priceNGN: 200000, perCardNGN: 4000, savingsNGN: 50000 },
-  { id: 'pack70',  credits: 70,  priceNGN: 280000, perCardNGN: 4000, savingsNGN: 70000 },
-  { id: 'pack100', credits: 100, priceNGN: 400000, perCardNGN: 4000, savingsNGN: 100000 },
-];
+  { id: 'pack5',   credits: 5 },
+  { id: 'pack10',  credits: 10 },
+  { id: 'pack25',  credits: 25 },
+  { id: 'pack50',  credits: 50 },
+  { id: 'pack70',  credits: 70 },
+  { id: 'pack100', credits: 100 },
+].map(livePlan);
 
 const PLANS = [
   {
-    id: 'classic', name: 'Classic', priceNGN: 5000, credits: 1,
+    id: 'classic', name: 'Classic', credits: 1,
     emoji: '💜', color: 'border-purple-200 bg-gradient-to-br from-purple-50 to-rose-50',
     btnStyle: 'border-2 border-purple-300 text-primary-700 hover:bg-primary-50',
     desc: 'One card, one-time payment',
     features: ['1 card credit', 'Unlimited contributors', '100+ premium designs', 'Video, photo & voice messages', 'Scheduled delivery', 'Gift pot collection', 'WhatsApp invite link'],
   },
   {
-    id: 'standard', name: 'Standard', priceNGN: 9000, credits: 2,
+    id: 'standard', name: 'Standard', credits: 2,
     emoji: '⭐', color: 'border-primary-400 bg-gradient-to-br from-primary-50 to-purple-50',
     btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
     popular: true,
     desc: 'Best value for 2 cards',
     features: ['2 card credits', 'All Classic features', 'Priority support (12hr)', 'Card analytics (views, opens)', 'Custom card title', 'Exclusive premium designs', 'Early access to new features'],
   },
-];
+].map(livePlan);
 
 export default function DashboardCredits() {
+  usePricing(); // re-render when today's prices arrive
   const { user }    = useAuth();
   const navigate    = useNavigate();
 
@@ -56,7 +58,7 @@ export default function DashboardCredits() {
   });
   const [selectedPack, setSelectedPack] = useState(PACK_OPTIONS[0]); // default: pack of 5
 
-  const fmt = (ngn) => formatCurrency(ngn, currency);
+  const fmt = (ngn) => formatPrice(ngn, currency);
 
   useEffect(() => {
     const load = async () => {

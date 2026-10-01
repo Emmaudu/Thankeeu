@@ -49,16 +49,26 @@ let resolveFailedAt = 0;
 async function resolveIds() {
   const envStore = env('LEMONSQUEEZY_STORE_ID');
   const envVariant = env('LEMONSQUEEZY_VARIANT_ID');
-  if (envStore && envVariant) return { storeId: envStore, variantId: envVariant };
   if (resolved) return resolved;
   if (Date.now() - resolveFailedAt < 60_000) return null;
   try {
+    // The store's currency matters: custom_price is in the STORE currency's
+    // minor units (a store set to NGN reads 315 as ₦3.15, not $3.15).
     let storeId = envStore;
+    let storeCurrency;
     if (!storeId) {
       const r = await axios.get(`${API}/stores`, { headers: apiHeaders(), timeout: TIMEOUT });
       const stores = r.data?.data || [];
       if (stores.length !== 1) throw new Error(`found ${stores.length} stores; set LEMONSQUEEZY_STORE_ID`);
       storeId = String(stores[0].id);
+      storeCurrency = stores[0].attributes?.currency;
+    } else {
+      const r = await axios.get(`${API}/stores/${encodeURIComponent(storeId)}`, { headers: apiHeaders(), timeout: TIMEOUT });
+      storeCurrency = r.data?.data?.attributes?.currency;
+    }
+    storeCurrency = String(storeCurrency || '').toUpperCase();
+    if (!require('./cardPayment').fxRate(storeCurrency)) {
+      throw new Error(`store currency "${storeCurrency || 'unknown'}" is not supported here; set the store currency to USD in Lemon Squeezy (Settings > General)`);
     }
     let variantId = envVariant;
     if (!variantId) {
@@ -71,8 +81,9 @@ async function resolveIds() {
       if (!pick) throw new Error(`product ${products[0].id} has no variant; set LEMONSQUEEZY_VARIANT_ID`);
       variantId = String(pick.id);
     }
-    resolved = { storeId, variantId };
-    console.log(`[lemonsqueezy] using store ${storeId}, variant ${variantId} (looked up from the API)`);
+    resolved = { storeId, variantId, storeCurrency };
+    console.log(`[lemonsqueezy] using store ${storeId} (${storeCurrency}), variant ${variantId}`);
+    if (storeCurrency !== 'USD') console.warn(`[lemonsqueezy] store currency is ${storeCurrency}. Customers will see ${storeCurrency} prices on the Lemon Squeezy page; set it to USD in Settings > General for international customers.`);
     return resolved;
   } catch (e) {
     resolveFailedAt = Date.now();
@@ -125,9 +136,13 @@ async function createCheckout({ reference, type, amountNGN, email, name, redirec
   const ids = await resolveIds(); // cached by isEnabled(); never null here
   if (!ids) return { ok: false, status: 400, message: 'This payment method is not available right now. Please choose Flutterwave.' };
 
+  // USD cents: what we expect Lemon Squeezy to report as total_usd.
   const cents = usdCentsFor(amountNGN);
-  // Lemon Squeezy's minimum order is above zero; guard against a rounding to 0.
-  if (!Number.isInteger(cents) || cents < 50) {
+  // Checkout price in the store currency's minor units.
+  const { priceChargeAmount } = require('./cardPayment');
+  const storeMinor = Math.round(priceChargeAmount(amountNGN, ids.storeCurrency) * 100);
+  // Lemon Squeezy's minimum order is about US$0.50.
+  if (!Number.isInteger(cents) || cents < 50 || !(storeMinor > 0)) {
     return { ok: false, status: 400, message: 'This amount is too small to pay by this method. Please choose Flutterwave.' };
   }
   const cleanEmail = String(email || '').trim();
@@ -144,7 +159,8 @@ async function createCheckout({ reference, type, amountNGN, email, name, redirec
     amount_usd_cents: cents,
     expected_ngn: Number(amountNGN),
     customer_email: cleanEmail,
-    meta: meta || {},
+    // Price as asked for in the store currency; the webhook compares like with like.
+    meta: { ...(meta || {}), store_currency: ids.storeCurrency, store_amount_minor: storeMinor },
     status: 'pending',
   });
   if (insErr) {
@@ -157,7 +173,7 @@ async function createCheckout({ reference, type, amountNGN, email, name, redirec
     data: {
       type: 'checkouts',
       attributes: {
-        custom_price: cents,
+        custom_price: storeMinor,
         product_options: {
           ...(productName ? { name: productName } : {}),
           ...(description ? { description } : {}),

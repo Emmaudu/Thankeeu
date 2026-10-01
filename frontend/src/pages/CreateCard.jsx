@@ -1,4 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
+import { cardFeeNGN, formatPrice, usePricing } from '../utils/pricing';
 import { CurrencySelect } from '../utils/currencyUI';
 import { choosePaymentMethod } from '../utils/paymentMethod';
 import { useEffect, useRef, useState } from 'react';
@@ -75,6 +76,7 @@ const StepIndicator = ({ current }) => (
 );
 
 const CreateCard = () => {
+ usePricing(); // re-render when today's prices arrive
  useSEO({ title: 'Create a Card', description: 'Create a new group card.', noIndex: true });
 
  const { user } = useAuth();
@@ -636,7 +638,7 @@ const CreateCard = () => {
  }
 
  // Card payment: the customer picks Flutterwave or Lemon Squeezy (international cards).
- const choice = await choosePaymentMethod({ currency: selectedCurrency, amountNGN: 5000 });
+ const choice = await choosePaymentMethod({ currency: selectedCurrency, amountNGN: cardFeeNGN() });
  if (!choice) { setLoading(false); setPaymentStage('idle'); return; }
  const { provider, currency: payCurrency } = choice;
  setSelectedCurrency(payCurrency);
@@ -711,7 +713,7 @@ const CreateCard = () => {
    </p>
    <p className="mb-3 text-sm leading-relaxed text-amber-800">
     Collect signatures, photos, voice notes and gifts first. When you're happy with how it's going, pay the
-    one-time {formatUSD(5000)} fee and the card is delivered to {form.recipient_name || 'the recipient'} automatically
+    one-time {formatUSD(cardFeeNGN())} fee and the card is delivered to {form.recipient_name || 'the recipient'} automatically
     {form.send_date ? ' on the date you scheduled' : ''} — with the Memory Movie and every gift. Until it's paid it won't be delivered.
     We've emailed you the details.
    </p>
@@ -1288,7 +1290,7 @@ const CreateCard = () => {
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount||2500)} suggested` : 'No'],
- ['Card fee', `${formatUSD(5000)} one-time — pay later, before delivery`],
+ ['Card fee', `${formatUSD(cardFeeNGN())} one-time — pay later, before delivery`],
  ].map(([k,v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1413,7 +1415,7 @@ const CreateCard = () => {
  ['Delivery date', form.send_date ? `${form.send_date} at ${form.send_time||'09:00'}` : 'Not set'],
  ['Signing deadline', form.deadline ? `${form.deadline} at ${form.deadline_time||'23:59'}` : 'Not set'],
  ['Gift pot', form.is_gift_enabled ? `Yes — ${formatUSD(form.suggested_amount||2500)} suggested` : 'No'],
- ['Card fee', `${formatUSD(5000)} one-time — pay later, before delivery`],
+ ['Card fee', `${formatUSD(cardFeeNGN())} one-time — pay later, before delivery`],
  ['Status', 'Draft — sign in to launch (pay later)'],
  ].map(([k,v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-2.5 gap-2">
@@ -1523,9 +1525,9 @@ const CreateCard = () => {
  ['Gift', form.is_gift_enabled?`Yes — ${formatUSD(form.suggested_amount)} suggested`:'No'],
  ...(isCompanyUser?[['Card fee','Free (company)']]:
  isActiveEdit?[]:
- !showPayNow?[['Card fee',`${formatUSD(5000)} one-time — pay later, before delivery`]]:
+ !showPayNow?[['Card fee',`${formatUSD(cardFeeNGN())} one-time — pay later, before delivery`]]:
  payMode==='credit'&&creditBalance>0?[['Card fee',`1 credit (${creditBalance} remaining)`]]:
- [['Card fee',`${formatCurrency(5000,selectedCurrency)} one-time`]]),
+ [['Card fee',`${formatPrice(cardFeeNGN(),selectedCurrency)} one-time`]]),
  ].map(([k,v]) => (
  <div key={k} className="flex justify-between items-start px-4 py-3 gap-2">
  <span className="text-sm text-warm-500 shrink-0">{k}</span>
@@ -1610,7 +1612,7 @@ const CreateCard = () => {
  : isActiveEdit ? 'Save changes'
  : isCompanyUser ? 'Create Card (Free)'
  : payMode==='credit' ? 'Use 1 Credit & Launch'
- : `Pay ${formatCurrency(5000, selectedCurrency)} now & launch`}
+ : `Pay ${formatPrice(cardFeeNGN(), selectedCurrency)} now & launch`}
  </button>
  </div>
  )}

@@ -20,10 +20,15 @@
 
 const supabase = require('./supabase');
 
-const CARD_FEE_NGN = 5000;
+const pricing = require('./pricing');
+
 const CARD_FEE_CURRENCIES = ['NGN', 'USD', 'GBP', 'EUR', 'CAD', 'GHS', 'KES', 'ZAR'];
-// Approximate — Flutterwave converts at live rates at checkout.
-const CARD_FEE_FX = { NGN: 1, USD: 0.00063, GBP: 0.00049, EUR: 0.00058, CAD: 0.00086, GHS: 0.0095, KES: 0.082, ZAR: 0.011 };
+// Prices and exchange rates live in utils/pricing.js (admin-set USD prices,
+// daily rates). These are thin readers kept for the existing call sites.
+/** Internal NGN value of the card fee right now. */
+const cardFeeNGN = () => pricing.cardFeeNGN();
+/** NGN → currency rate right now (null for a currency we can't charge in). */
+const fxRate = (currency) => pricing.fxRate(currency);
 
 const isMissingColumnError = (err) => !!err && (
   err.code === '42703' || err.code === 'PGRST204' ||
@@ -169,26 +174,17 @@ function isCardFeeAmountOk(txn) {
   const meta = txn?.meta || {};
   const paid = Number(txn?.amount);
   if (!isFinite(paid) || paid <= 0) return false;
-  const expectedNGN = Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn) : CARD_FEE_NGN;
+  const expectedNGN = Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn) : cardFeeNGN();
   const currency = String(txn?.currency || meta.currency || 'NGN').toUpperCase();
   if (currency === 'NGN') return paid >= expectedNGN * 0.9;
   const expectedInCurrency =
     Number(meta.expected_amount) > 0 && String(meta.currency || '').toUpperCase() === currency
       ? Number(meta.expected_amount)
-      : (CARD_FEE_FX[currency] ? expectedNGN * CARD_FEE_FX[currency] : null);
+      : (fxRate(currency) ? expectedNGN * fxRate(currency) : null);
   if (!expectedInCurrency) return false; // unknown currency — refuse, support can resolve
   return paid >= expectedInCurrency * 0.9;
 }
 
-/**
- * Amount to ask Flutterwave for when charging an NGN-denominated value in
- * `currency`. Always computed server-side — never trust a client-sent amount.
- */
-// Currencies charged in whole units only. CAD goes through Fincra, whose
-// checkout takes an integer amount, so CAD prices are rounded UP to the next
-// whole dollar (the card fee is CAD 5). The frontend applies the same rule in
-// utils/currency.js so the price shown is exactly the price charged.
-const WHOLE_UNIT_CURRENCIES = new Set([]); // add 'CAD' together with the frontend rule when CAD moves to Fincra
 
 /**
  * The currency to charge in for what the customer picked. Many display
@@ -201,13 +197,26 @@ function chargeableCurrency(requested) {
   return CARD_FEE_CURRENCIES.includes(cur) ? cur : 'USD';
 }
 
+/**
+ * Amount to ask the gateway for when charging an NGN-denominated value in
+ * `currency`. Always computed server-side — never trust a client-sent amount.
+ */
 function chargeAmountFor(amountNGN, currency) {
   const cur = String(currency || 'NGN').toUpperCase();
-  if (cur === 'NGN' || !CARD_FEE_FX[cur]) return Math.round(Number(amountNGN));
-  // Round to cents first so float noise (4.0000001) never bumps a whole unit.
-  const cents = parseFloat((Number(amountNGN) * CARD_FEE_FX[cur]).toFixed(2));
-  if (WHOLE_UNIT_CURRENCIES.has(cur)) return Math.max(1, Math.ceil(cents));
-  return Math.max(0.01, cents);
+  const rate = fxRate(cur);
+  if (cur === 'NGN' || !rate) return Math.round(Number(amountNGN));
+  return Math.max(0.01, parseFloat((Number(amountNGN) * rate).toFixed(2)));
+}
+
+/**
+ * Like chargeAmountFor, for a PRICE (card fee, credit pack, plan): naira
+ * prices are rounded to the nearest ₦100 so they read as round numbers.
+ * Gift amounts must use chargeAmountFor, which never rounds them.
+ */
+function priceChargeAmount(amountNGN, currency) {
+  const cur = String(currency || 'NGN').toUpperCase();
+  if (cur === 'NGN') return pricing.roundNairaPrice(amountNGN);
+  return chargeAmountFor(amountNGN, cur);
 }
 
 /**
@@ -228,8 +237,8 @@ function isContributionAmountOk(txn, expectedNGN) {
   }
   if (currency === 'NGN') return paid >= want * 0.99;
   // Different/unknown charge currency — approximate FX, looser tolerance.
-  if (!CARD_FEE_FX[currency]) return false;
-  return paid >= want * CARD_FEE_FX[currency] * 0.9;
+  if (!fxRate(currency)) return false;
+  return paid >= want * fxRate(currency) * 0.9;
 }
 
 /** "Friday, 3 October 2026, 09:00 UTC"-style label for emails. */
@@ -251,10 +260,10 @@ function humanSendDate(sendDate, timeZone) {
 
 module.exports = {
   chargeableCurrency,
-  WHOLE_UNIT_CURRENCIES,
-  CARD_FEE_NGN,
+  cardFeeNGN,
+  fxRate,
+  priceChargeAmount,
   CARD_FEE_CURRENCIES,
-  CARD_FEE_FX,
   isMissingColumnError,
   cardRequiresFee,
   isPaymentPending,

@@ -233,6 +233,14 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
     }
 
     if ((type === 'company_subscription' || isSubTxRef) && subCompanyId) {
+      // The charge must cover the plan, compared in the currency charged
+      // against what was asked for at init (older payments have no meta: skipped).
+      if (meta.currency && Number(meta.expected_amount) > 0
+          && String(meta.currency).toUpperCase() === String(txn.currency || '').toUpperCase()
+          && Number(txn.amount) < Number(meta.expected_amount) * 0.9) {
+        console.error(`Webhook subscription UNDERPAYMENT: ${txn.amount} ${txn.currency} < ${meta.expected_amount} (${txRef})`);
+        return;
+      }
       const companyId = subCompanyId;
       const plan      = subPlan || 'monthly';
       if (!plan) { console.warn('Webhook: missing plan in subscription meta'); return; }
@@ -253,7 +261,7 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
 
       // Use shared saveSubscription helper (handles both tables, proper error logging)
       const { saveSubscription } = require('../controllers/subscriptionController');
-      await saveSubscription(companyId, plan, txRef, expires_at, String(txn.currency || 'NGN').toUpperCase() === 'NGN' ? txn.amount : txn.amount_settled);
+      await saveSubscription(companyId, plan, txRef, expires_at, Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn) : (String(txn.currency || 'NGN').toUpperCase() === 'NGN' ? txn.amount : null));
 
       console.log('Webhook: subscription activated, company:', companyId, 'plan:', plan);
       return;

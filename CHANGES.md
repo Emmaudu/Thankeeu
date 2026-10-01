@@ -72,3 +72,12 @@ Deploy: run `database/migration_delivery_reliability.sql`; optional `database/op
 - Fixed: Irish visitors (Europe/Dublin) defaulted to GBP; they now get EUR.
 - Checkout: the "How would you like to pay?" dialog now has the currency dropdown too. Changing it there updates both prices, and the chosen currency is what gets charged (the page's own selector follows it).
 - Lemon Squeezy store and variant IDs are now optional: looked up from the API when there is one store with one product.
+- Lemon Squeezy: checkout price now uses the store's own currency (an NGN store read 315 as ₦3.15 and was rejected). Amount check compares in the store currency when the order is in it. A non-USD store logs a warning.
+
+## Round 21: Admin → Currency (prices in USD) and gateway labels
+- Payment dialog: "Flutterwave · For African countries" and "Lemon Squeezy · International: countries outside Africa".
+- New Admin → Currency tab: set the card fee and every credit pack in USD; see the resulting NGN, GBP, EUR, CAD, GHS, KES, ZAR prices at today's rate; "change all prices by %" helper; confirm before saving. Stored in site_settings ('pricing_usd'); applies to new checkouts immediately.
+- backend/utils/pricing.js is now the single source of prices and rates (daily live rates, legacy fixed rates as fallback). Removed the hard-coded ₦5,000 / plan prices / 0.00063 tables from payments, credits, subscriptions, Lemon Squeezy and emails. Naira prices are rounded to the nearest ₦100 (display and charge).
+- Frontend loads /api/payments/pricing at start (and every 10 minutes / on tab focus); every price display, plan card, FAQ answer, page title and JSON-LD now shows the live price ("$3.15" launch copy is swapped for today's price).
+- Fixes found in review: credit purchases now verify the amount paid; subscription verify and webhook compare in the charged currency (amount_settled is not naira); first checkouts after a restart wait for the admin prices; a near-free discount no longer becomes a ₦100 charge.
+- Note: prerendered static HTML (for crawlers) still contains the launch prices until the next build; discount codes' max_discount_ngn caps are still in naira.

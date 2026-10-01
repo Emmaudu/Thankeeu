@@ -13,6 +13,7 @@
 
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { usePricing, livePriceText, priceUSD, cardFeeNGN, formatPrice } from '../utils/pricing';
 
 const RAW_BASE_URL = import.meta.env.VITE_APP_URL || 'https://www.thankeeu.com';
 const BASE_URL = RAW_BASE_URL
@@ -72,7 +73,8 @@ function setJsonLd(data, id = 'ld-page') {
   const payload = Array.isArray(data)
     ? { '@context': 'https://schema.org', '@graph': data }
     : { '@context': 'https://schema.org', ...data };
-  s.textContent = JSON.stringify(payload);
+  // Prices quoted in schema text follow the live prices (Admin → Currency).
+  s.textContent = livePriceText(JSON.stringify(payload));
   document.head.appendChild(s);
 }
 
@@ -103,6 +105,7 @@ export function useSEO({
   jsonLd      = null,
 } = {}) {
   const location = useLocation();
+  usePricing(); // titles/descriptions quoting a price update when prices load
 
   useEffect(() => {
     // Don't double-append brand if title already ends with "| Thankeeu"
@@ -111,8 +114,9 @@ export function useSEO({
           ? title
           : `${title} | ${SITE_NAME}`)
       : `${SITE_NAME} — Group Cards & Gifts for Every Occasion`;
+    const liveTitle = livePriceText(fullTitle);
 
-    const desc = (description || SITE_DESC).slice(0, 160);
+    const desc = livePriceText(description || SITE_DESC).slice(0, 160);
 
     // Use explicit canonical if provided (path or full URL), otherwise current path
     const canonicalPath = canonical
@@ -124,7 +128,7 @@ export function useSEO({
     const gbot     = noIndex ? 'noindex,nofollow' : 'index,follow';
 
     // ── <title> ───────────────────────────────────────────────────────────────
-    setTitle(fullTitle);
+    setTitle(liveTitle);
 
     // ── Standard meta ────────────────────────────────────────────────────────
     setMeta('name', 'description', desc);
@@ -136,7 +140,7 @@ export function useSEO({
     setMeta('name', 'theme-color', '#7F77DD');
 
     // ── Open Graph (Facebook, LinkedIn, WhatsApp, Telegram) ──────────────────
-    setMeta('property', 'og:title',        fullTitle);
+    setMeta('property', 'og:title',        liveTitle);
     setMeta('property', 'og:description',  desc);
     setMeta('property', 'og:url',          canonicalPath);
     setMeta('property', 'og:type',         ogType);
@@ -153,7 +157,7 @@ export function useSEO({
     setMeta('name', 'twitter:card',        twitterCard);
     setMeta('name', 'twitter:site',        TWITTER_HANDLE);
     setMeta('name', 'twitter:creator',     TWITTER_HANDLE);
-    setMeta('name', 'twitter:title',       fullTitle);
+    setMeta('name', 'twitter:title',       liveTitle);
     setMeta('name', 'twitter:description', desc);
     setMeta('name', 'twitter:image',       img);
     setMeta('name', 'twitter:image:alt',   `${SITE_NAME} — ${title || 'Group Cards & Gifts'}`);
@@ -270,11 +274,14 @@ export const SCHEMAS = {
       'Remote and hybrid team friendly — sign from any device',
       'Worldwide support with local currency gift pools',
     ],
-    offers: [
-      { '@type': 'Offer', price: '2.45',  priceCurrency: 'GBP', description: 'Classic — 1 group card in GBP' },
-      { '@type': 'Offer', price: '3.15',  priceCurrency: 'USD', description: 'Classic — 1 group card in USD' },
-      { '@type': 'Offer', price: '0',     priceCurrency: 'USD', description: 'Free to create — pay only when sending' },
-    ],
+    // Live prices (Admin → Currency); read when the schema is serialised.
+    get offers() {
+      return [
+        { '@type': 'Offer', price: formatPrice(cardFeeNGN(), 'GBP').replace(/[^0-9.]/g, ''), priceCurrency: 'GBP', description: 'Classic — 1 group card in GBP' },
+        { '@type': 'Offer', price: priceUSD('card_fee').toFixed(2), priceCurrency: 'USD', description: 'Classic — 1 group card in USD' },
+        { '@type': 'Offer', price: '0',     priceCurrency: 'USD', description: 'Free to create — pay only when sending' },
+      ];
+    },
     publisher: { '@id': `${BASE_URL}/#organization` },
   },
 

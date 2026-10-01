@@ -5,11 +5,11 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ||
 process.env.SUPABASE_KEY = process.env.SUPABASE_KEY || 'test';
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { chargeAmountFor, isContributionAmountOk, CARD_FEE_NGN } = require('../../utils/cardPayment');
+const { chargeAmountFor, isContributionAmountOk, cardFeeNGN } = require('../../utils/cardPayment');
 
 describe('chargeAmountFor', () => {
   it('converts NGN to USD cents server-side', () => {
-    assert.equal(chargeAmountFor(CARD_FEE_NGN, 'USD'), 3.15);
+    assert.equal(chargeAmountFor(cardFeeNGN(), 'USD'), 3.15);
     assert.equal(chargeAmountFor(10000, 'USD'), 6.3);
   });
   it('keeps NGN whole and falls back to NGN for unknown currencies', () => {

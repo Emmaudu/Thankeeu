@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { usePricing, usdLabel, livePriceText } from '../utils/pricing';
 import { Link } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { CurrencyToggle } from '../utils/currencyUI';
@@ -27,7 +28,7 @@ const ExitIntentModal = ({ onClose }) => (
         <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-white"><Icon name="Sparkles" size={20} className="text-primary-500"/></span>
         <div>
           <p style={{fontWeight:800,fontSize:13,color:'#1A1035',margin:0}}>Free to create</p>
-          <p style={{fontSize:12,color:'#7A6CA8',margin:'2px 0 0'}}>From $3.15 to send · Voice notes & gift pot included</p>
+          <p style={{fontSize:12,color:'#7A6CA8',margin:'2px 0 0'}}>From {usdLabel('card_fee')} to send · Voice notes & gift pot included</p>
         </div>
       </div>
       <Link to="/card/new" onClick={onClose}
@@ -58,6 +59,7 @@ const FAQS = [
 ];
 
 export default function GroupGreetingAlternative() {
+  usePricing(); // re-render when today's prices arrive
   const [showExit, setShowExit] = useState(false);
   const exitFiredRef = useRef(false);
 
@@ -114,7 +116,7 @@ export default function GroupGreetingAlternative() {
               </span>
               <span className="text-white/40 text-sm hidden sm:inline">·</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-4 py-1.5 text-sm font-bold text-emerald-200">
-                <Icon name="Tag" size={13}/>From $3.15 to send
+                <Icon name="Tag" size={13}/>From {usdLabel('card_fee')} to send
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-3 mb-7">
@@ -253,7 +255,7 @@ export default function GroupGreetingAlternative() {
                 <summary className="px-5 py-4 font-semibold text-warm-800 text-sm cursor-pointer list-none flex items-center justify-between">
                   {q}<Icon name="ChevronDown" size={16} className="text-warm-400 flex-shrink-0 ml-3"/>
                 </summary>
-                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{a}</p>
+                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{livePriceText(a)}</p>
               </details>
             ))}
           </div>

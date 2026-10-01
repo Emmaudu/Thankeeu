@@ -20,7 +20,7 @@ router.post('/discount-preview', async (req, res) => {
     const { code } = req.body;
     const result = await validateDiscountCode(code);
     if (!result.valid) return res.status(400).json({ error: result.error });
-    const { discountedNGN, discountAmountNGN } = applyDiscountToFeeNGN(5000, result.discount);
+    const { discountedNGN, discountAmountNGN } = applyDiscountToFeeNGN(require('../utils/cardPayment').cardFeeNGN(), result.discount);
     res.json({
       ok: true,
       code: result.discount.code,
@@ -56,6 +56,12 @@ router.get('/verify-contribution',      verifyContribution); // ?tx_ref=
 // polling for the return pages (the signed webhook is what marks it paid).
 const { getProviders, getStatus: getLemonStatus } = require('../controllers/lemonSqueezyController');
 router.get('/providers', getProviders);
+
+// Current prices (admin-set USD) with today's naira price and rates.
+router.get('/pricing', (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=60');
+  return res.json(require('../utils/pricing').snapshot());
+});
 
 // Daily USD exchange rates for showing local prices (display only).
 router.get('/fx-rates', async (_req, res) => {

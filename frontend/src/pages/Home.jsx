@@ -1,4 +1,5 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { usePricing, usdLabel, livePriceText, cardFeeNGN, formatPrice } from '../utils/pricing';
 import { useState, useEffect, useMemo } from 'react';
 import { RotatingPrice, CurrencyToggle } from '../utils/currencyUI';
 import { formatCurrency } from '../utils/currency';
@@ -526,7 +527,7 @@ const WhatsAppVsThankeeu = ({ demo = DEFAULT_DEMO }) => (
 );
 
 /* Article text may contain [anchor text](/path) internal links. */
-const withLinks = (text) => String(text).split(/(\[[^\]]+\]\(\/[^)\s]*\))/g).map((part, i) => {
+const withLinks = (text) => String(livePriceText(text)).split(/(\[[^\]]+\]\(\/[^)\s]*\))/g).map((part, i) => {
   const m = part.match(/^\[([^\]]+)\]\((\/[^)\s]*)\)$/);
   return m ? <Link key={i} to={m[2]} className="font-semibold text-primary-600 underline decoration-primary-200 underline-offset-2 hover:text-primary-700">{m[1]}</Link> : part;
 });
@@ -557,13 +558,15 @@ const FaqItem = ({ q, a }) => {
 
 
 const Home = ({ landing: landingProp = null } = {}) => {
+  usePricing(); // re-render when today's prices arrive
  // Landing pages: attach the page's own long-form article and drop the
  // homepage-only Send Money block (see data/landingArticles.js).
  const landing = useMemo(
    () => (landingProp ? withArticle({ hideSendMoney: true, ...landingProp }) : null),
    [landingProp],
  );
- const faqs = landing ? landingFaqs(landing) : HOME_FAQS;
+ // Answers mention prices; keep them (and the FAQ schema) at today's price.
+ const faqs = (landing ? landingFaqs(landing) : HOME_FAQS).map(f => ({ ...f, a: livePriceText(f.a) }));
  const ctaTo = landing?.ctaTo || '/card/new';
  const sampleMessages = landing?.sampleMessages || SAMPLE_MESSAGES;
  const demo = { ...DEFAULT_DEMO, ...(landing?.demo || {}) };
@@ -580,7 +583,7 @@ const Home = ({ landing: landingProp = null } = {}) => {
    SCHEMAS.breadcrumb([{ name: 'Thankeeu', url: '/' }]),
    // Built from the SAME array the visible FAQ renders, so the markup can
    // never describe content a crawler cannot find on the page.
-   SCHEMAS.faqPage(HOME_FAQS),
+   SCHEMAS.faqPage(faqs),
    // Mirrors the three visible steps under the homepage input. Answer engines
    // ("how do I make a group card quickly?") quote a clean procedure far more
    // readily than marketing prose.
@@ -690,7 +693,7 @@ const Home = ({ landing: landingProp = null } = {}) => {
    </span>
    <span className="text-warm-300 text-sm">·</span>
    <span className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold" style={{background:'#ECFDF5',color:'#065F46'}}>
-     <Icon name="Tag" size={12}/>From $3.15 to send
+     <Icon name="Tag" size={12}/>From {usdLabel('card_fee')} to send
    </span>
    <span className="text-warm-300 text-sm hidden sm:inline">·</span>
    <span className="text-xs font-semibold text-warm-400 hidden sm:inline">No subscription</span>
@@ -1331,7 +1334,7 @@ const Home = ({ landing: landingProp = null } = {}) => {
  <div className="w-12 h-12 rounded-2xl bg-white border-2 border-purple-200 flex items-center justify-center mb-4"><Icon name="Heart" size={22} className="text-primary-500"/></div>
  <h3 className="text-2xl font-bold text-warm-900 mb-1">For individuals</h3>
  <div className="flex items-baseline gap-2 mb-1">
- <span className="text-primary-600 font-extrabold text-2xl">{formatCurrency(5000, homeCurrency)}</span>
+ <span className="text-primary-600 font-extrabold text-2xl">{formatPrice(cardFeeNGN(), homeCurrency)}</span>
  <span className="text-warm-400 text-sm">one time</span>
  </div>
  {homeCurrency !== 'USD' && homeCurrency !== 'GBP' && <p className="text-xs text-warm-400 mb-3">See your currency above</p>}
@@ -1554,7 +1557,7 @@ const Home = ({ landing: landingProp = null } = {}) => {
  {landing?.ctaLead || 'Make someone feel'}<br/>
  <span style={{ background:'linear-gradient(135deg,#8B5CF6,#7C3AED 50%,#F43F5E)', WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', backgroundClip:'text' }}>{landing?.ctaAccent || 'genuinely loved'}</span>
  </h2>
- <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={5000} showFlags={!landing}/> per card · Pay only when you send · Works worldwide</p>
+ <p className="text-warm-500 mb-8 text-base sm:text-lg">From <RotatingPrice amountNGN={cardFeeNGN()} showFlags={!landing}/> per card · Pay only when you send · Works worldwide</p>
  <div className="flex flex-col sm:flex-row gap-3 justify-center">
  <Link to={ctaTo} className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Sparkles" size={16}/>Get started in a minute</Link>
  <Link to="/pricing" className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2"><Icon name="Card" size={16}/>See pricing</Link>

@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { paymentsAPI } from './api';
 import { formatCurrency, isChargeableCurrency, hasLiveRate } from './currency';
+import { formatPrice } from './pricing';
 import Icon from '../components/ui/Icon';
 import { CurrencySelect } from './currencyUI';
 
@@ -46,7 +47,7 @@ function MethodDialog({ initialCurrency, flwUsdFor, amountNGN, onDone }) {
   const hasAmount = Number(amountNGN) > 0;
   const usd = hasAmount ? formatCurrency(amountNGN, 'USD') : null;
   // What Flutterwave will really charge (some currencies are charged in USD).
-  const local = hasAmount ? formatCurrency(amountNGN, flwCurrency) : null;
+  const local = hasAmount ? formatPrice(amountNGN, flwCurrency) : null;
   // For a display-only currency (INR, KRW, …) also show the approximate local price.
   const approx = hasAmount && !isChargeableCurrency(currency) && hasLiveRate(currency)
     ? `About ${formatCurrency(amountNGN, currency)} in ${currency}. Your bank converts it.` : null;
@@ -89,8 +90,8 @@ function MethodDialog({ initialCurrency, flwUsdFor, amountNGN, onDone }) {
         </div>
         <div className="space-y-3">
           {option('lemonsqueezy', {
-            title: 'International card',
-            badge: 'Best for cards outside Africa',
+            title: 'Lemon Squeezy',
+            badge: 'International: countries outside Africa',
             lines: [
               'Visa, Mastercard, Amex, Apple Pay, Google Pay or PayPal.',
               'Processed by Lemon Squeezy and charged in US dollars.',
@@ -100,6 +101,7 @@ function MethodDialog({ initialCurrency, flwUsdFor, amountNGN, onDone }) {
           }, firstBtn)}
           {option('flutterwave', {
             title: 'Flutterwave',
+            badge: 'For African countries',
             lines: [
               'Card, bank transfer and other local options.',
               flwCurrency === 'USD' ? 'Charged in US dollars.' : `Charged in ${flwCurrency}.`,
@@ -108,7 +110,7 @@ function MethodDialog({ initialCurrency, flwUsdFor, amountNGN, onDone }) {
           })}
         </div>
         <p className="mt-4 text-xs leading-relaxed text-warm-400">
-          If your bank declined a card payment before, choose International card.
+          Outside Africa, or your bank declined a card payment before? Choose Lemon Squeezy.
         </p>
       </div>
     </div>

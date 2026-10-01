@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { livePlan, usePricing, formatPrice, usdLabel, livePriceText, priceUSD } from '../utils/pricing';
 import { Link } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { RotatingPrice, CurrencyToggle } from '../utils/currencyUI';
-import { formatCurrency } from '../utils/currency';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
@@ -36,7 +36,7 @@ const ExitIntentModal = ({ onClose }) => (
         <span style={{fontSize:28}}>🎉</span>
         <div>
           <p style={{fontWeight:800,fontSize:13,color:'#1A1035',margin:0}}>Free to start</p>
-          <p style={{fontSize:12,color:'#7A6CA8',margin:'2px 0 0'}}>From $3.15 to send · No subscription · Credits never expire</p>
+          <p style={{fontSize:12,color:'#7A6CA8',margin:'2px 0 0'}}>From {usdLabel('card_fee')} to send · No subscription · Credits never expire</p>
         </div>
       </div>
       <Link to="/card/new?occasion=leaving"
@@ -85,35 +85,36 @@ const COMPARISON_ROWS = [
 /* ─── Pricing component ──────────────────────────────────────────────── */
 const PLANS = [
   {
-    name: 'Classic', planId: 'single', priceNGN: 5000, credits: 1, popular: false,
+    id: 'single', name: 'Classic', planId: 'single', credits: 1, popular: false,
     label: 'One perfect farewell card',
     features: ['Send 1 group card', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
     btn: 'Create your leaving card →', btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
     href: '/card/new?occasion=leaving',
   },
   {
-    name: 'Standard', planId: 'standard', priceNGN: 9000, credits: 2, popular: true,
+    id: 'standard', name: 'Standard', planId: 'standard', credits: 2, popular: true,
     label: 'Two cards — save on the second',
     features: ['Send 2 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
     btn: 'Get 2 credits', btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
     href: '/signup?plan=standard',
   },
   {
-    name: 'Pack of 5', planId: 'pack5', priceNGN: 20000, credits: 5, popular: false,
+    id: 'pack5', name: 'Pack of 5', planId: 'pack5', credits: 5, popular: false,
     label: '5 cards — best per-card price',
     features: ['Send 5 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery', 'Memory Movie™ included', 'Credits never expire'],
     btn: 'Buy 5 credits', btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
     href: '/signup?plan=pack5',
   },
-];
+].map(livePlan);
 
 const PricingSection = () => {
+  usePricing(); // re-render when today's prices arrive
   // Fix #1: default to GBP for UK/US/Europe visitors — they see a recognisable
   // price immediately rather than USD or NGN requiring mental conversion.
   const [currency, setCurrency] = useState('USD');
-  // formatCurrency handles every currency in the picker, including
-    // display-only ones (INR, KRW, …) and their decimals.
-    const fmt = (ngn) => formatCurrency(ngn, currency);
+  // formatPrice handles every currency in the picker (display-only ones
+    // too) and shows naira prices rounded to ₦100, as charged.
+    const fmt = (ngn) => formatPrice(ngn, currency);
 
   return (
     <section className="py-16 md:py-24 px-4 bg-white" id="pricing">
@@ -155,7 +156,7 @@ const PricingSection = () => {
                   <span className="text-4xl font-extrabold text-warm-900">{fmt(plan.priceNGN)}</span>
                 </div>
                 <p className="text-xs text-warm-400 mt-1">
-                  {fmt(Math.round(plan.priceNGN / plan.credits))} per card
+                  {fmt(plan.perCardNGN)} per card
                   {plan.credits > 1 ? ` · ${plan.credits} credits` : ''}
                 </p>
               </div>
@@ -198,6 +199,7 @@ const LeavingDesignPreviewSection = () => (
 );
 
 export default function LeavingCardPage() {
+  usePricing(); // re-render when today's prices arrive
   // Fix #8: exit-intent — fires once per session when mouse approaches top of viewport
   const [showExit, setShowExit] = useState(false);
   const exitFiredRef = useRef(false);
@@ -239,7 +241,7 @@ export default function LeavingCardPage() {
           height: 630,
         },
       }),
-      SCHEMAS.product('Online Leaving Card', 'Group farewell card the whole team signs from one link — messages, photos, GIFs, voice notes and an optional leaving gift collection.', 3.15, 'USD', '/cards/leaving-card'),
+      SCHEMAS.product('Online Leaving Card', 'Group farewell card the whole team signs from one link — messages, photos, GIFs, voice notes and an optional leaving gift collection.', priceUSD('card_fee'), 'USD', '/cards/leaving-card'),
       SCHEMAS.faqPage(LEAVING_FAQS),
     ],
   });
@@ -268,16 +270,15 @@ export default function LeavingCardPage() {
             <p className="text-base max-w-lg mb-4 font-semibold" style={{color:'rgba(253,230,138,0.9)'}}>
               Set it up in 2 minutes. Share the link. Everyone signs before Friday.
             </p>
-            {/* #1 fix — real USD price visible in the hero before any scrolling.
-                NGN 5000 × rate 0.00063 = $3.15. Not a placeholder — the actual price.
-                Rate source: utils/currency.js USD entry. Update if rate changes. */}
+            {/* Real USD price visible in the hero before any scrolling. It is the
+                live card fee set in Admin → Currency (utils/pricing.js). */}
             <div className="flex flex-wrap items-center gap-2 mb-6">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/25 px-4 py-1.5 text-sm font-bold text-white">
                 <Icon name="Check" size={14} className="text-emerald-300"/>Free to start
               </span>
               <span className="text-white/40 text-sm hidden sm:inline">·</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 px-4 py-1.5 text-sm font-bold text-emerald-200">
-                <Icon name="Tag" size={13}/>From $3.15 to send
+                <Icon name="Tag" size={13}/>From {usdLabel('card_fee')} to send
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-3 mb-7">
@@ -590,7 +591,7 @@ export default function LeavingCardPage() {
                 <summary className="px-5 py-4 font-semibold text-warm-800 text-sm cursor-pointer list-none flex items-center justify-between">
                   {q}<Icon name="ChevronDown" size={16} className="text-warm-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-3" />
                 </summary>
-                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{a}</p>
+                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{livePriceText(a)}</p>
               </details>
             ))}
           </div>

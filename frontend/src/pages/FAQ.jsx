@@ -1,4 +1,5 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { usePricing, livePriceText } from '../utils/pricing';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -28,6 +29,7 @@ const FAQS = [
 const cats = ['All', ...new Set(FAQS.map(f => f.cat))];
 
 export default function FAQ() {
+  usePricing(); // re-render when today's prices arrive
   useSEO({
     title: 'FAQ — Group Cards, Gift Pots & Payments Explained | Thankeeu',
     description: 'Answers to the most common questions about Thankeeu. How to create a group card, pool a gift, pay securely with Flutterwave, withdraw money to your bank, and more.',
@@ -39,7 +41,7 @@ export default function FAQ() {
       SCHEMAS.webPage('Thankeeu FAQ', 'Answers to common questions about Thankeeu group cards, gift pots and payments.', '/faq'),
       // FAQPage schema generated from the real on-page Q&As — this is what powers
       // Google's FAQ rich results and AI answer-engine (GEO) citations.
-      SCHEMAS.faqPage(FAQS.map(({ q, a }) => ({ q, a }))),
+      SCHEMAS.faqPage(FAQS),
     ],
   });
 
@@ -85,7 +87,7 @@ export default function FAQ() {
                 </button>
                 {open === i && (
                   <div className="px-5 pb-5 animate-fade-in">
-                    <p className="text-sm text-warm-600 leading-relaxed">{faq.a}</p>
+                    <p className="text-sm text-warm-600 leading-relaxed">{livePriceText(faq.a)}</p>
                   </div>
                 )}
               </div>

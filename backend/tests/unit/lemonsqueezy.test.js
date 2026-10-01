@@ -54,7 +54,14 @@ function setEnv() {
     LEMONSQUEEZY_WEBHOOK_SECRET: SECRET, LEMONSQUEEZY_TEST_MODE: '', FRONTEND_URL: 'https://www.thankeeu.com',
   });
 }
-beforeEach(() => { db.lemon_payments = []; setEnv(); ls._resetForTests(); mock.restoreAll(); });
+beforeEach(() => {
+  db.lemon_payments = []; setEnv(); ls._resetForTests(); mock.restoreAll();
+  // Store lookup: a USD store unless a test says otherwise.
+  mock.method(axios, 'get', async (url) => {
+    if (/\/stores\/42$/.test(url)) return { data: { data: { id: '42', attributes: { currency: 'USD' } } } };
+    throw new Error('unexpected GET ' + url);
+  });
+});
 
 const resMock = () => {
   const r = { code: 200 };
@@ -219,7 +226,7 @@ test('display-only currencies are charged in USD; no currency stays naira', () =
 
 test('fx rates are cached and a failure never throws', async () => {
   const fx = require('../../utils/fxRates');
-  fx._resetForTests();
+  fx._resetForTests(); mock.restoreAll();
   let calls = 0;
   mock.method(axios, 'get', async () => { calls += 1; return { data: { result: 'success', rates: { USD: 1, INR: 83, BAD: -1 }, time_last_update_utc: 'x' } }; });
   const a = await fx.getUsdRates();
@@ -236,9 +243,9 @@ test('fx rates are cached and a failure never throws', async () => {
 
 test('store and variant IDs are looked up when not set', async () => {
   delete process.env.LEMONSQUEEZY_STORE_ID; delete process.env.LEMONSQUEEZY_VARIANT_ID;
-  ls._resetForTests();
+  ls._resetForTests(); mock.restoreAll();
   mock.method(axios, 'get', async (url) => {
-    if (url.endsWith('/stores')) return { data: { data: [{ id: 55 }] } };
+    if (url.endsWith('/stores')) return { data: { data: [{ id: 55, attributes: { currency: 'USD' } }] } };
     if (url.includes('/products?')) { assert.ok(url.includes('filter[store_id]=55')); return { data: { data: [{ id: 9 }] } }; }
     if (url.includes('/variants?')) return { data: { data: [{ id: 101, attributes: { status: 'pending' } }, { id: 102, attributes: { status: 'published' } }] } };
     throw new Error('unexpected ' + url);
@@ -254,7 +261,27 @@ test('store and variant IDs are looked up when not set', async () => {
 
 test('two stores and no store ID set: Lemon Squeezy stays off', async () => {
   delete process.env.LEMONSQUEEZY_STORE_ID; delete process.env.LEMONSQUEEZY_VARIANT_ID;
-  ls._resetForTests();
+  ls._resetForTests(); mock.restoreAll();
   mock.method(axios, 'get', async () => ({ data: { data: [{ id: 1 }, { id: 2 }] } }));
   assert.equal(await ls.isEnabled(), false);
+});
+
+
+test('an NGN store is priced in kobo and checked in naira, not USD', async () => {
+  mock.restoreAll();
+  mock.method(axios, 'get', async () => ({ data: { data: { id: '42', attributes: { currency: 'NGN' } } } }));
+  let sent;
+  mock.method(axios, 'post', async (u, body) => { sent = body; return { data: { data: { id: 'c', attributes: { url: 'https://x' } } } }; });
+  const r = await ls.createCheckout({ reference: 'TK-FEE-30', type: 'card_fee', amountNGN: 5000, email: 'a@b.c', redirectPath: '/x', meta: { card_slug: 's30' } });
+  assert.equal(r.ok, true);
+  assert.equal(sent.data.attributes.custom_price, 500000);          // ₦5,000.00
+  const row = db.lemon_payments[0];
+  assert.equal(row.meta.store_currency, 'NGN');
+  // Naira weakened: total_usd below our fixed-rate USD, but the naira total is right.
+  const paid = mock.method(cardPayment, 'markCardFeePaid', async () => ({ card: null, wasPending: false }));
+  const res = resMock();
+  await ctl.handleWebhook(signedReq(order('TK-FEE-30', { currency: 'NGN', total: 500000, total_usd: 290 })), res);
+  assert.equal(res.code, 200);
+  assert.equal(paid.mock.callCount(), 1);
+  assert.equal(db.lemon_payments[0].status, 'paid');
 });

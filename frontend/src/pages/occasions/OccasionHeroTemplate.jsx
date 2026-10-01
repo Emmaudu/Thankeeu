@@ -27,11 +27,11 @@
  *   finalCtaSubline  string
  */
 
+import { livePlan, usePricing, formatPrice, livePriceText } from '../../utils/pricing';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../../hooks/useSEO';
 import { CurrencyToggle } from '../../utils/currencyUI';
-import { formatCurrency } from '../../utils/currency';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Icon from '../../components/ui/Icon';
@@ -45,27 +45,27 @@ import PriorityDesignGallery from '../../components/PriorityDesignGallery';
 /* ─── Shared pricing plans ────────────────────────────────────────────── */
 export const SHARED_PLANS = [
   {
-    name: 'Classic', priceNGN: 5000, credits: 1, popular: false,
+    id: 'single', name: 'Classic', credits: 1, popular: false,
     label: 'One card — full experience included',
     btn: 'Send this card',
     btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
     features: ['Send 1 group card', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery — any date & time', 'Memory Movie™ auto-generated', 'Credit never expires'],
   },
   {
-    name: 'Standard', priceNGN: 9000, credits: 2, popular: true,
+    id: 'standard', name: 'Standard', credits: 2, popular: true,
     label: 'Two cards — save on the second',
     btn: 'Get 2 credits',
     btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
     features: ['Send 2 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery — any date & time', 'Memory Movie™ auto-generated', 'Credits never expire'],
   },
   {
-    name: 'Pack of 5', priceNGN: 20000, credits: 5, popular: false,
+    id: 'pack5', name: 'Pack of 5', credits: 5, popular: false,
     label: '5 cards — best per-card price',
     btn: 'Buy 5 credits',
     btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
     features: ['Send 5 group cards', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Scheduled delivery — any date & time', 'Memory Movie™ auto-generated', 'Credits never expire'],
   },
-];
+].map(livePlan);
 
 /* ─── Check / Cross icons ─────────────────────────────────────────────── */
 export const CHECK   = <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100"><Icon name="Check" size={13} className="text-green-600" strokeWidth={3}/></span>;
@@ -219,10 +219,11 @@ const HeroSlideshow = ({ slides, ctaPath, ctaLabel }) => {
 
 /* ─── Pricing section ──────────────────────────────────────────────────── */
 const PricingSection = ({ headline, subline, ctaPath, ctaLabelOverride }) => {
+  usePricing(); // re-render when today's prices arrive
   const [currency, setCurrency] = useState('USD');
-  // formatCurrency handles every currency in the picker, including
-    // display-only ones (INR, KRW, …) and their decimals.
-    const fmt = (ngn) => formatCurrency(ngn, currency);
+  // formatPrice handles every currency in the picker (display-only ones
+    // too) and shows naira prices rounded to ₦100, as charged.
+    const fmt = (ngn) => formatPrice(ngn, currency);
 
   return (
     <section className="py-16 md:py-24 px-4 bg-white" id="pricing">
@@ -257,7 +258,7 @@ const PricingSection = ({ headline, subline, ctaPath, ctaLabelOverride }) => {
               <div className="mb-6">
                 <span className="text-4xl font-extrabold text-warm-900">{fmt(plan.priceNGN)}</span>
                 <p className="text-xs text-warm-400 mt-1">
-                  {fmt(Math.round(plan.priceNGN / plan.credits))} per card
+                  {fmt(plan.perCardNGN)} per card
                   {plan.credits > 1 ? ` · ${plan.credits} credits` : ''}
                 </p>
               </div>
@@ -414,6 +415,7 @@ export default function OccasionHeroTemplate({
   priorityDesignTitle,
   priorityDesignDescription,
 }) {
+  usePricing(); // re-render when today's prices arrive
   useSEO(seoProps);
 
   return (
@@ -624,7 +626,7 @@ export default function OccasionHeroTemplate({
                 <summary className="px-5 py-4 font-semibold text-warm-800 text-sm cursor-pointer list-none flex items-center justify-between">
                   {q}<Icon name="ChevronDown" size={16} className="text-warm-400 group-open:rotate-180 transition-transform flex-shrink-0 ml-3"/>
                 </summary>
-                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{a}</p>
+                <p className="px-5 pb-4 text-sm text-warm-500 leading-relaxed">{livePriceText(a)}</p>
               </details>
             ))}
           </div>

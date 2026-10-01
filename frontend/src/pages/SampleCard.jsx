@@ -7,6 +7,7 @@
  * Gift area: demo accepts any amount and shows success (no FLW redirect).
  * Thankeeu purple theme background — no Thankbox sky-blue.
  */
+import { usePricing, usdLabel } from '../utils/pricing';
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
@@ -212,6 +213,7 @@ function FlipCard({ messages, onAddMessage }) {
 
 /* ─── Main SampleCard ────────────────────────────────────────────────── */
 export default function SampleCard() {
+  usePricing(); // re-render when today's prices arrive
  useSEO({
  title: 'See a Live Demo Card | Thankeeu',
  description: 'Try Thankeeu before you commit. Sign this demo group card, add a gift, and see exactly what your recipients will experience.',
@@ -408,7 +410,7 @@ export default function SampleCard() {
  {/* ── CTA ── */}
  <div style={{ background:'#fff', padding:'60px 24px', textAlign:'center' }}>
  <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:28, color:'#1A1035', marginBottom:8 }}>Create a card like this for someone special</h2>
- <p style={{ color:'#6B7280', marginBottom:32, fontSize:16 }}>Beautiful group cards with gift pots. From $3.15. Pay only when you send.</p>
+ <p style={{ color:'#6B7280', marginBottom:32, fontSize:16 }}>Beautiful group cards with gift pots. From {usdLabel('card_fee')}. Pay only when you send.</p>
  <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
  <Link to="/card/new" style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:8 }}>Create a card — it's free</Link>
  <Link to="/signup" style={{ background:'#F5F0FF', color:'#7C3AED', border:'2px solid #DDD6FE', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none' }}>Get started free →</Link>

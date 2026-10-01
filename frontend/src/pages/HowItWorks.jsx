@@ -1,4 +1,5 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { usePricing, livePriceText } from '../utils/pricing';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -14,6 +15,7 @@ const STEPS = [
 ];
 
 export default function HowItWorks() {
+  usePricing(); // re-render when today's prices arrive
   useSEO({
     title: 'How It Works — Create an Online Group Card in 2 Minutes | Thankeeu',
     description: 'Create a group card, share one link, collect messages, photos and gifts, then deliver it automatically. Optionally add a Memory Movie slideshow and a Live Photo Wall to collect guest photos via QR code. No signup needed to sign. Free to start.',
@@ -66,7 +68,7 @@ export default function HowItWorks() {
                 <div className="pb-8 flex-1">
                   <div className="w-12 h-12 rounded-2xl bg-primary-50 flex items-center justify-center mb-3"><Icon name={s.icon} size={22} className="text-primary-600"/></div>
                   <h2 style={{ fontFamily:"'Nunito',sans-serif", fontWeight:800, fontSize:'1.25rem', color:'#1A1035', marginBottom:'0.5rem', letterSpacing:'-0.01em' }}>{s.title}</h2>
-                  <p className="text-warm-600 text-sm leading-relaxed mb-3">{s.desc}</p>
+                  <p className="text-warm-600 text-sm leading-relaxed mb-3">{livePriceText(s.desc)}</p>
                   <div className="bg-primary-50 border border-primary-100 rounded-xl px-4 py-2.5 text-xs text-primary-700 font-medium flex items-start gap-2">
                     <Icon name="Lightbulb" size={14} className="flex-shrink-0 mt-0.5"/> {s.tip}
                   </div>

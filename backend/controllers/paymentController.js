@@ -1,17 +1,5 @@
 /**
- 
-
-    // Verify amount paid matches contribution amount recorded in DB
-    const { data: contrib } = await supabase
-      .from('contributions')
-      .select('amount')
-      .eq('tx_ref', txRef)
-      .maybeSingle();
-    if (contrib && txn.amount < contrib.amount * 0.90) {
-      console.error(`[verifyContribution] UNDERPAYMENT: expected ₦${contrib.amount}, got ₦${txn.amount}. ref: ${txRef}`);
-      return res.status(400).json({ error: 'Payment amount does not match. Please contact support.' });
-    }
-* paymentController.js — Flutterwave payments
+ * paymentController.js — Flutterwave payments
  *
  * FLOW:
  *  CONTRIBUTION (gift) flow — FLW Inline JS (no redirect):
@@ -37,7 +25,7 @@ const supabase = require('../utils/supabase');
 const { safeTxRef, safeError } = require('../utils/paramGuard');
 const { validateDiscountCode, applyDiscountToFeeNGN, recordDiscountRedemption } = require('./discountCodeController');
 const {
-  CARD_FEE_NGN, CARD_FEE_CURRENCIES, CARD_FEE_FX, chargeAmountFor, isContributionAmountOk,
+  cardFeeNGN, priceChargeAmount, CARD_FEE_CURRENCIES, chargeAmountFor, isContributionAmountOk,
   markCardFeePaid, isCardFeeAmountOk,
 } = require('../utils/cardPayment');
 const { resolveChargeCurrency, createPaymentLink } = require('../utils/flwCurrency');
@@ -186,6 +174,7 @@ const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountN
 // ═══════════════════════════════════════════════════════════════════════════════
 const initCardFee = async (req, res) => {
   try {
+    await require('../utils/pricing').ready(); // admin prices loaded after a restart
     const { card_slug, currency: reqCurrency, discount_code, provider } = req.body;
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
 
@@ -208,8 +197,8 @@ const initCardFee = async (req, res) => {
     // resolveChargeCurrency: currencies switched off via FLW_DISABLED_CURRENCIES are charged in USD.
     const currency = resolveChargeCurrency(require('../utils/cardPayment').chargeableCurrency(reqCurrency));
     // FX rates (approximate — FLW uses live rates at checkout)
-    const FX = CARD_FEE_FX;
-    const baseFeeNGN = CARD_FEE_NGN;
+    // Card fee in NGN from the admin's USD price and today's rate (utils/pricing.js).
+    const baseFeeNGN = cardFeeNGN();
 
     // Discount code — validated server-side only; the frontend never decides the price.
     let feeNGN = baseFeeNGN;
@@ -222,7 +211,8 @@ const initCardFee = async (req, res) => {
       appliedDiscount = { id: result.discount.id, code: result.discount.code, amountNGN: discountAmountNGN };
     }
 
-    const feeInCurrency = currency === 'NGN' ? feeNGN : parseFloat((feeNGN * FX[currency]).toFixed(2));
+    // Naira prices are charged rounded to the nearest ₦100; others at today's rate.
+    const feeInCurrency = priceChargeAmount(feeNGN, currency);
 
     // A 100%-off code (or a cap/rate that reduces the fee to effectively nothing —
     // including cases where a small NGN fee rounds to 0.00 after FX conversion)
@@ -365,7 +355,7 @@ const verifyCardFee = async (req, res) => {
         failed: true,
         card_slug: slugHint,
         currency: txn.currency || null,
-        error: 'Your bank declined this payment, so you were not charged. Try again and choose International card, or approve overseas payments in your banking app.',
+        error: 'Your bank declined this payment, so you were not charged. Try again and choose Lemon Squeezy (International), or approve overseas payments in your banking app.',
       });
     }
 
@@ -388,7 +378,7 @@ const verifyCardFee = async (req, res) => {
     // Uses meta.expected_ngn / expected_amount set at init time so a legitimately
     // discounted payment isn't mistaken for underpayment, and compares in the
     // currency actually charged (txn.amount is USD for a USD payment).
-    const CARD_FEE = Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn) : CARD_FEE_NGN;
+    const CARD_FEE = Number(meta.expected_ngn) > 0 ? Number(meta.expected_ngn) : cardFeeNGN();
     if (!isCardFeeAmountOk(txn)) {
       console.error(`[verifyCardFee] UNDERPAYMENT: expected ₦${CARD_FEE} (${meta.expected_amount || '?'} ${meta.currency || ''}), got ${txn.amount} ${txn.currency}. card: ${cardSlug}, ref: ${txRef}`);
       return res.status(400).json({ error: 'Payment amount does not match. Please contact support.' });
@@ -410,7 +400,7 @@ const verifyCardFee = async (req, res) => {
         cardSlug,
         txRef,
         email: txn.customer?.email || null,
-        amountBeforeNGN: 5000,
+        amountBeforeNGN: cardFeeNGN(),
         amountAfterNGN: CARD_FEE,
       }).catch(() => {});
     }
@@ -436,6 +426,7 @@ const verifyCardFee = async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 const initContribution = async (req, res) => {
   try {
+    await require('../utils/pricing').ready(); // today's rates loaded after a restart
     const { card_slug, amount, contributor_name, contributor_email, message_id,
             flw_amount, flw_currency, display_currency } = req.body;
 

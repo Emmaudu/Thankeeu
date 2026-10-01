@@ -57,7 +57,7 @@ async function fulfil(row) {
     if (meta.discount_code_id) {
       recordDiscountRedemption({
         discountId: meta.discount_code_id, cardSlug: meta.card_slug, txRef: row.reference,
-        email: row.customer_email || null, amountBeforeNGN: 5000, amountAfterNGN: Number(row.expected_ngn),
+        email: row.customer_email || null, amountBeforeNGN: require('../utils/cardPayment').cardFeeNGN(), amountAfterNGN: Number(row.expected_ngn),
       }).catch(() => {});
     }
     return;
@@ -165,10 +165,17 @@ const handleWebhook = async (req, res) => {
   }
 
   const totalUsdCents = Number(attrs.total_usd);
-  // Tax may be added on top of our price, so the total can be higher, never
-  // meaningfully lower. 1% covers rounding only.
-  if (!(totalUsdCents >= row.amount_usd_cents * 0.99)) {
-    console.error(`[lemonsqueezy webhook] AMOUNT MISMATCH ${ref}: expected ${row.amount_usd_cents}c, got ${attrs.total_usd}c`);
+  // Compare in the store currency when the order is in it (exact: no FX drift);
+  // otherwise in USD. Tax may be added on top, so the total can be higher,
+  // never meaningfully lower. 1% covers rounding only.
+  const meta = row.meta || {};
+  const sameCurrency = meta.store_currency && String(attrs.currency || '').toUpperCase() === meta.store_currency
+    && Number(meta.store_amount_minor) > 0;
+  const amountOk = sameCurrency
+    ? Number(attrs.total) >= Number(meta.store_amount_minor) * 0.99
+    : totalUsdCents >= row.amount_usd_cents * 0.99;
+  if (!amountOk) {
+    console.error(`[lemonsqueezy webhook] AMOUNT MISMATCH ${ref}: expected ${sameCurrency ? `${meta.store_amount_minor} ${meta.store_currency} minor` : `${row.amount_usd_cents} USD cents`}, got total ${attrs.total} ${attrs.currency} / ${attrs.total_usd} USD cents`);
     await ls.setStatus(ref, 'amount_mismatch', { order_id: String(event.data.id), paid_total_usd_cents: isFinite(totalUsdCents) ? totalUsdCents : null });
     return res.sendStatus(200);
   }

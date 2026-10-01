@@ -2,6 +2,10 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import { loadPricing } from './utils/pricing'
+
+// Prices (admin-set USD) and today's rates; pages re-render when they arrive.
+loadPricing()
 
 class ErrorBoundary extends React.Component {
   constructor(props) {

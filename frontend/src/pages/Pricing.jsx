@@ -1,4 +1,5 @@
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { choosePaymentMethod } from '../utils/paymentMethod';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -140,7 +141,7 @@ const Pricing = () => {
  try {
  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
  const lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
- if (tz.startsWith('Europe/London') || tz === 'Europe/Dublin' || lang.startsWith('en-gb')) return 'GBP';
+ if (tz.startsWith('Europe/London') || lang.startsWith('en-gb')) return 'GBP';
  if (tz.startsWith('America/') && lang.startsWith('en-ca')) return 'CAD';
  if (tz.startsWith('Europe/')) return 'EUR';
  } catch (_) {}
@@ -195,10 +196,14 @@ const Pricing = () => {
    navigate('/signup?plan=' + planId);
    return;
  }
+ const planNGN = [...INDIVIDUAL_PLANS, ...PACK_OPTIONS].find(p => p.id === planId)?.priceNGN;
+ const choice = await choosePaymentMethod({ currency, amountNGN: planNGN != null ? applyDiscount(planNGN) : undefined });
+ if (!choice) return;
+ setCurrency(choice.currency);
  setLoadingPlan(planId);
  try {
  // Use creditsAPI — these are credit purchases, not direct card payments
- const res = await creditsAPI.purchase(planId, currency, activeDiscount?.code);
+ const res = await creditsAPI.purchase(planId, choice.currency, activeDiscount?.code, choice.provider);
  if (res.data?.already_active) {
    toast.success(`${res.data.credits_added} credits added — discount covered the full price!`);
    navigate('/dashboard/credits');
@@ -211,9 +216,12 @@ const Pricing = () => {
 
  const handleCompanySubscribe = async (plan) => {
  if (!company) { navigate('/company/signup'); return; }
+ const choice = await choosePaymentMethod({ currency });
+ if (!choice) return;
+ setCurrency(choice.currency);
  setLoadingPlan(plan);
  try {
- const res = await subscriptionAPI.initialize(plan, currency);
+ const res = await subscriptionAPI.initialize(plan, choice.currency, choice.provider);
  window.location.href = res.data.payment_link || res.data.authorization_url;
  } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
  };
@@ -236,7 +244,7 @@ const Pricing = () => {
  </h1>
  <p className="text-warm-600 mb-2">Pay only when you send. No subscriptions for individual cards.</p>
  <p className="text-warm-500 text-sm mb-6">
- Pay in USD, GBP, EUR, NGN, CAD, GHS and 30+ currencies — priced for every market.
+ Pay in USD, GBP, EUR, CAD, NGN and more, and see prices in 130+ currencies.
  </p>
 
  {/* Rotating price showcase */}
@@ -321,7 +329,7 @@ const Pricing = () => {
    </>
  )}
  </div>
- {currency !== 'NGN' && currency !== 'GBP' && currency !== 'USD' && currency !== 'EUR' && currency !== 'CAD' && (
+ {['GHS','KES','ZAR'].includes(currency) && (
  <p className="text-xs text-warm-400 mb-1">≈ ₦{plan.priceNGN.toLocaleString('en-NG')} NGN</p>
  )}
  {plan.savingsNGN > 0 && (
@@ -393,7 +401,7 @@ const Pricing = () => {
    </>
  )}
  </div>
- {currency !== 'NGN' && !['GBP','USD','EUR','CAD'].includes(currency) && (
+ {['GHS','KES','ZAR'].includes(currency) && (
  <p className="text-xs text-warm-400 mb-1">≈ ₦{(activeDiscount ? applyDiscount(selectedPack.priceNGN) : selectedPack.priceNGN).toLocaleString('en-NG')} NGN</p>
  )}
  <p className="text-green-700 text-xs font-bold mb-0.5">

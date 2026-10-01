@@ -12,6 +12,7 @@
  *   New cards (isNewStyle) give every signer their own page.
  */
 
+import { CurrencySelect } from '../utils/currencyUI';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -35,7 +36,7 @@ import GifPicker from '../components/GifPicker';
 import Icon from '../components/ui/Icon';
 import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
-import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD, convertToNGN, getFLWPaymentParams } from '../utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency, formatUSD, convertToNGN, getFLWPaymentParams } from '../utils/currency';
 import NaturalFlipBook from '../components/NaturalFlipBook';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -1024,14 +1025,9 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                 onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}}
                 placeholder={`Or enter a custom amount (${giftCurrency})`}
                 style={{width:'100%',marginTop:8,border:'1px solid #FDE68A',borderRadius:8,padding:'7px 9px',fontSize:12,outline:'none'}}/>
-              <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:5,marginTop:8}}>
-                <span style={{fontSize:11,fontWeight:700,color:'#92400E'}}>Pay in:</span>
-                {CURRENCIES.map(c=>(
-                  <button key={c.code} type="button" onClick={()=>{setGiftCurrency(c.code);setCustomAmount('');}}
-                    style={{border:`1.5px solid ${giftCurrency===c.code?'#F59E0B':'#FDE68A'}`,background:giftCurrency===c.code?'#F59E0B':'#fff',color:giftCurrency===c.code?'#fff':'#92400E',borderRadius:8,padding:'3px 7px',fontSize:11,fontWeight:800,cursor:'pointer'}}>
-                    {c.flag} {c.code}
-                  </button>
-                ))}
+              <div style={{marginTop:8}}>
+                <span style={{display:'block',fontSize:11,fontWeight:700,color:'#92400E',marginBottom:4}}>Pay in:</span>
+                <CurrencySelect selected={giftCurrency} onChange={(c)=>{setGiftCurrency(c);setCustomAmount('');}} align="left" label="Pay in" />
               </div>
             </div>
           )}
@@ -1418,14 +1414,9 @@ const AlbumSign = ({ card: initialCard, slug }) => {
                     </div>
                     <input type="number" inputMode="decimal" min="0" step={giftCurrency==='NGN'?'100':'0.01'} className="input" placeholder={`Custom amount (${giftCurrency}) · min ${formatCurrency(2500,giftCurrency)}`}
                       value={customAmount} onChange={e=>{setCustomAmount(e.target.value);setSelectedAmount(null);}} style={{fontSize:14}}/>
-                    <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:5,marginTop:8,marginBottom:4}}>
-                <span style={{fontSize:11,fontWeight:700,color:'#92400E'}}>Pay in:</span>
-                {CURRENCIES.map(c=>(
-                  <button key={c.code} type="button" onClick={()=>{setGiftCurrency(c.code);setCustomAmount('');}}
-                    style={{border:`1.5px solid ${giftCurrency===c.code?'#F59E0B':'#FDE68A'}`,background:giftCurrency===c.code?'#F59E0B':'#fff',color:giftCurrency===c.code?'#fff':'#92400E',borderRadius:8,padding:'3px 7px',fontSize:11,fontWeight:800,cursor:'pointer'}}>
-                    {c.flag} {c.code}
-                  </button>
-                ))}
+                    <div style={{marginTop:8,marginBottom:4}}>
+                <span style={{display:'block',fontSize:11,fontWeight:700,color:'#92400E',marginBottom:4}}>Pay in:</span>
+                <CurrencySelect selected={giftCurrency} onChange={(c)=>{setGiftCurrency(c);setCustomAmount('');}} align="left" label="Pay in" />
               </div>
                   </>
                 )}

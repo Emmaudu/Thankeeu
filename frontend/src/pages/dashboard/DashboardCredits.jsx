@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { choosePaymentMethod } from '../../utils/paymentMethod';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { creditsAPI, paymentsAPI } from '../../utils/api';
@@ -70,9 +71,13 @@ export default function DashboardCredits() {
   }, []);
 
   const handleBuy = async (planId) => {
+    const planNGN = [...PLANS, ...PACK_OPTIONS].find(p => p.id === planId)?.priceNGN;
+    const choice = await choosePaymentMethod({ currency, amountNGN: planNGN });
+    if (!choice) return;
+    setCurrency(choice.currency);
     setBuying(planId);
     try {
-      const res = await creditsAPI.purchase(planId, currency);
+      const res = await creditsAPI.purchase(planId, choice.currency, undefined, choice.provider);
       window.location.assign(res.data.payment_link);
     } catch (err) {
       toast.error(err.response?.data?.error || 'Failed to start payment');

@@ -9,16 +9,18 @@
  * Linked from the congratulations/reminder emails, the dashboard "Pay Now"
  * buttons and the card page.
  */
+import { CurrencySelect } from '../utils/currencyUI';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useSEO } from '../hooks/useSEO';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 import Icon from '../components/ui/Icon';
 import { cardsAPI, creditsAPI, paymentsAPI } from '../utils/api';
-import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
 import { formatInZone } from '../utils/timezones';
+import { choosePaymentMethod } from '../utils/paymentMethod';
 
 const FEE_NGN = 5000;
 
@@ -38,7 +40,9 @@ export default function PayForCard() {
   const [state, setState] = useState('loading'); // loading | ready | paid | notfound | forbidden
   const [credits, setCredits] = useState(0);
   const [method, setMethod] = useState('direct');
-  const [currency, setCurrency] = useState(DEFAULT_CURRENCY);
+  const [searchParams] = useSearchParams();
+  const declined = searchParams.get('declined') === '1';
+  const [currency, setCurrency] = useState(searchParams.get('cur') === 'USD' ? 'USD' : DEFAULT_CURRENCY);
   const [discountCode, setDiscountCode] = useState('');
   const [discount, setDiscount] = useState(null); // { ngn, message } | { error }
   const [busy, setBusy] = useState(false);
@@ -89,7 +93,10 @@ export default function PayForCard() {
         return;
       }
       const code = discount?.ngn != null ? discountCode.trim() : undefined;
-      const r = await paymentsAPI.initCardFee(slug, currency, user?.email, code);
+      const choice = await choosePaymentMethod({ currency, amountNGN: discount?.ngn != null ? discount.ngn : FEE_NGN });
+      if (!choice) { setBusy(false); return; }
+      setCurrency(choice.currency);
+      const r = await paymentsAPI.initCardFee(slug, choice.currency, user?.email, code, choice.provider);
       if (r.data?.already_active || r.data?.already_paid) {
         setDone({ viaCredit: false });
         setState('paid');
@@ -145,6 +152,11 @@ export default function PayForCard() {
     body = (
       <div className="mx-auto grid max-w-4xl gap-6 lg:grid-cols-[1fr_380px]">
         <section className="rounded-3xl border border-purple-100 bg-white p-6">
+          {declined && (
+            <div role="alert" className="mb-4 rounded-2xl bg-rose-50 p-4 text-sm text-rose-800">
+              <strong>Your last payment was declined and you were not charged.</strong> If your card is from the US, Canada, the UK or Europe, press Pay again and choose International card. You can also approve overseas payments in your banking app, or try another card.
+            </div>
+          )}
           <p className="text-[11px] font-extrabold uppercase tracking-[0.18em] text-primary-600">Your card</p>
           <h2 className="mt-1 text-xl font-extrabold text-warm-900">{card.title}</h2>
           <p className="text-sm text-warm-500">For {card.recipient_name}</p>
@@ -187,14 +199,7 @@ export default function PayForCard() {
           {method === 'direct' && (
             <>
               <p className="mb-1.5 text-xs font-semibold text-warm-500">Pay in:</p>
-              <div className="mb-4 flex flex-wrap gap-1.5">
-                {CURRENCIES.map(c => (
-                  <button key={c.code} type="button" onClick={() => setCurrency(c.code)}
-                    className={`rounded-xl px-2.5 py-1 text-xs font-bold ${currency === c.code ? 'bg-primary-500 text-white' : 'border border-primary-200 bg-primary-50 text-primary-600'}`}>
-                    {c.flag} {c.code}
-                  </button>
-                ))}
-              </div>
+              <CurrencySelect selected={currency} onChange={setCurrency} align="left" label="Pay in" className="mb-4" />
               <p className="mb-1.5 text-xs font-semibold text-warm-500">Discount code (optional):</p>
               <div className="mb-1 flex gap-2">
                 <input className="input flex-1 py-2 text-sm" value={discountCode} placeholder="e.g. LAUNCH20"

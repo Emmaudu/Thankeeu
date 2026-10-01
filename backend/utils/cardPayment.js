@@ -184,10 +184,30 @@ function isCardFeeAmountOk(txn) {
  * Amount to ask Flutterwave for when charging an NGN-denominated value in
  * `currency`. Always computed server-side — never trust a client-sent amount.
  */
+// Currencies charged in whole units only. CAD goes through Fincra, whose
+// checkout takes an integer amount, so CAD prices are rounded UP to the next
+// whole dollar (the card fee is CAD 5). The frontend applies the same rule in
+// utils/currency.js so the price shown is exactly the price charged.
+const WHOLE_UNIT_CURRENCIES = new Set([]); // add 'CAD' together with the frontend rule when CAD moves to Fincra
+
+/**
+ * The currency to charge in for what the customer picked. Many display
+ * currencies (INR, KRW, …) are shown for convenience but cannot be charged;
+ * those are charged in USD. No currency at all means naira (legacy callers).
+ */
+function chargeableCurrency(requested) {
+  const cur = String(requested || '').trim().toUpperCase();
+  if (!cur) return 'NGN';
+  return CARD_FEE_CURRENCIES.includes(cur) ? cur : 'USD';
+}
+
 function chargeAmountFor(amountNGN, currency) {
   const cur = String(currency || 'NGN').toUpperCase();
   if (cur === 'NGN' || !CARD_FEE_FX[cur]) return Math.round(Number(amountNGN));
-  return Math.max(0.01, parseFloat((Number(amountNGN) * CARD_FEE_FX[cur]).toFixed(2)));
+  // Round to cents first so float noise (4.0000001) never bumps a whole unit.
+  const cents = parseFloat((Number(amountNGN) * CARD_FEE_FX[cur]).toFixed(2));
+  if (WHOLE_UNIT_CURRENCIES.has(cur)) return Math.max(1, Math.ceil(cents));
+  return Math.max(0.01, cents);
 }
 
 /**
@@ -230,6 +250,8 @@ function humanSendDate(sendDate, timeZone) {
 }
 
 module.exports = {
+  chargeableCurrency,
+  WHOLE_UNIT_CURRENCIES,
   CARD_FEE_NGN,
   CARD_FEE_CURRENCIES,
   CARD_FEE_FX,

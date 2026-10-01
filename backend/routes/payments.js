@@ -52,6 +52,20 @@ router.post('/initialize/contribution', initContribution);
 router.post('/verify-contribution',     verifyContribution);
 router.get('/verify-contribution',      verifyContribution); // ?tx_ref=
 
+// Which payment methods the checkout may offer, and Lemon Squeezy status
+// polling for the return pages (the signed webhook is what marks it paid).
+const { getProviders, getStatus: getLemonStatus } = require('../controllers/lemonSqueezyController');
+router.get('/providers', getProviders);
+
+// Daily USD exchange rates for showing local prices (display only).
+router.get('/fx-rates', async (_req, res) => {
+  const d = await require('../utils/fxRates').getUsdRates();
+  if (!d) return res.status(503).json({ error: 'Rates unavailable' });
+  res.set('Cache-Control', 'public, max-age=3600');
+  return res.json({ base: 'USD', rates: d.rates, updated_at: d.updatedAt });
+});
+router.get('/lemonsqueezy/status/:ref', getLemonStatus);
+
 // Generic verify — PaymentCallback fallback for any payment type
 router.get('/verify/:txRef', verifyPayment);
 router.get('/verify',        verifyPayment); // ?tx_ref=

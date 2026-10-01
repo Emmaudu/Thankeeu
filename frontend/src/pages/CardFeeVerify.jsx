@@ -10,6 +10,24 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { paymentsAPI, creditsAPI } from '../utils/api';
 import toast from 'react-hot-toast';
 
+// Lemon Squeezy confirms by webhook, usually within seconds. Poll our own
+// status endpoint for up to about 90 seconds before handing off to the dashboard.
+async function waitForLemonPayment(ref, k) {
+  const DONE = new Set(['paid', 'amount_mismatch', 'refunded', 'failed', 'init_failed']);
+  let last = null;
+  for (let i = 0; i < 45; i++) {
+    try {
+      const r = await paymentsAPI.lemonStatus(ref, k);
+      last = r.data;
+      if (DONE.has(last?.status)) return last;
+    } catch (e) {
+      if (e.response?.status === 404) return null;
+    }
+    await new Promise(res => setTimeout(res, 2000));
+  }
+  return last;
+}
+
 export default function CardFeeVerify() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -27,6 +45,31 @@ export default function CardFeeVerify() {
       }
 
       try {
+        // ── Lemon Squeezy: its signed webhook marks the payment paid on our
+        //    server; here we only wait for that to happen.
+        if (searchParams.get('provider') === 'lemonsqueezy') {
+          setMsg('Confirming your payment…');
+          const ls = await waitForLemonPayment(txRef, searchParams.get('k'));
+          if (!ls || ls.status === 'pending' || ls.status === 'processing') {
+            toast('Your payment is still being confirmed. It completes on its own within a few minutes, so check your dashboard shortly.', { duration: 8000 });
+            navigate(txRef.startsWith('TK-CR-') ? '/dashboard/credits' : '/dashboard', { replace: true });
+            return;
+          }
+          if (ls.status !== 'paid') {
+            toast.error(`We could not confirm this payment. If you were charged, contact support with reference ${txRef}.`, { duration: 10000 });
+            navigate('/dashboard', { replace: true });
+            return;
+          }
+          if (ls.type === 'card_credits') {
+            toast.success(`${ls.credits || ''} credit${ls.credits === 1 ? '' : 's'} added!`.trim());
+            navigate('/dashboard/credits', { replace: true });
+            return;
+          }
+          // Card fee: continue with the same steps as any other paid card.
+          await finishCardFee({ card_slug: ls.card_slug, was_pay_later: ls.was_pay_later, already_active: false });
+          return;
+        }
+
         // Detect payment type by prefix
         if (txRef.startsWith('TK-CR-')) {
           // ── Credit purchase ─────────────────────────────────────────────
@@ -43,8 +86,29 @@ export default function CardFeeVerify() {
         } else {
           // ── Card fee payment ─────────────────────────────────────────────
           setMsg('Activating your card…');
-          const res = await paymentsAPI.verifyCardFee(txRef);
-          const { card_slug, already_active, was_pay_later } = res.data;
+          const txnId = searchParams.get('transaction_id');
+          let res = await paymentsAPI.verifyCardFee(txRef, txnId);
+          // 202 = the bank is still finishing (3D Secure on foreign cards). Wait and ask again.
+          for (let i = 0; res.status === 202 && i < 8; i++) {
+            setMsg('Your bank is confirming the payment…');
+            await new Promise(r => setTimeout(r, 2500));
+            res = await paymentsAPI.verifyCardFee(txRef, txnId);
+          }
+          if (res.status === 202) {
+            toast('Your bank is still confirming. Your card activates on its own once it clears.');
+            navigate('/dashboard', { replace: true });
+            return;
+          }
+          await finishCardFee(res.data);
+        }
+
+      } catch (err) {
+        handleError(err);
+      }
+    };
+
+    // Shared by Flutterwave and Lemon Squeezy once the card fee is confirmed paid.
+    const finishCardFee = async ({ card_slug, already_active, was_pay_later }) => {
           if (was_pay_later) {
             // "Create Now, Pay Later" card: it was already live — this payment
             // unlocks delivery. The pay page shows when it will be delivered.
@@ -92,15 +156,26 @@ export default function CardFeeVerify() {
           }
 
           navigate(`/card/${card_slug}`, { replace: true });
-        }
-
-      } catch (err) {
-        const errMsg = err.response?.data?.error || err.message;
-        console.error('CardFeeVerify error:', errMsg);
-        toast.error('Payment received but something went wrong. Check your dashboard.');
-        navigate('/dashboard', { replace: true });
-      }
     };
+
+    const handleError = (err) => {
+        const status = searchParams.get('status');
+        const data = err.response?.data || {};
+        const errMsg = data.error || err.message;
+        console.error('CardFeeVerify error:', errMsg);
+        if (data.failed) {
+          // Declined by the bank: nothing was charged. Send them back to pay again.
+          toast.error(errMsg, { duration: 8000 });
+          const slug = data.card_slug;
+          navigate(slug ? `/pay/${slug}?declined=1` : '/dashboard', { replace: true });
+          return;
+        }
+        toast.error(status === 'failed'
+          ? 'The payment did not go through, so you were not charged. Please try again.'
+          : 'We could not confirm your payment yet. Check your dashboard, and contact support if you were charged.');
+        navigate('/dashboard', { replace: true });
+    };
+
     run();
   }, []);
 

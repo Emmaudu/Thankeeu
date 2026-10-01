@@ -1,4 +1,6 @@
 import { useSEO } from '../hooks/useSEO';
+import { CurrencySelect } from '../utils/currencyUI';
+import { choosePaymentMethod } from '../utils/paymentMethod';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -12,7 +14,7 @@ import MemberLayout from '../components/member/MemberLayout';
 import Icon from '../components/ui/Icon';
 import QRButton from '../components/QRButton';
 import toast from 'react-hot-toast';
-import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
 import { CARD_DESIGNS, FONT_STYLES, cardArtClass, getFontStyle } from '../utils/cardDesigns';
 import { getOccasionLabel } from '../utils/occasionCardDesigns';
 import CoverTextStudio from '../components/CoverTextStudio';
@@ -633,10 +635,14 @@ const CreateCard = () => {
  }
  }
 
- // Flutterwave direct
+ // Card payment: the customer picks Flutterwave or Lemon Squeezy (international cards).
+ const choice = await choosePaymentMethod({ currency: selectedCurrency, amountNGN: 5000 });
+ if (!choice) { setLoading(false); setPaymentStage('idle'); return; }
+ const { provider, currency: payCurrency } = choice;
+ setSelectedCurrency(payCurrency);
  setPaymentStage('redirecting');
  const userEmail = user?.email || member?.email || company?.email || '';
- const payRes = await paymentsAPI.initCardFee(slug, selectedCurrency, userEmail);
+ const payRes = await paymentsAPI.initCardFee(slug, payCurrency, userEmail, undefined, provider);
  const { payment_link, already_active, card_slug: activatedSlug } = payRes.data;
 
  // Card was already activated by a previous payment (e.g. user's JWT expired during
@@ -1586,14 +1592,7 @@ const CreateCard = () => {
  {payMode==='direct' && (
  <div className="mb-3">
  <p className="text-xs font-semibold text-warm-500 mb-1.5">Pay in:</p>
- <div className="flex flex-wrap gap-1.5">
- {CURRENCIES.map(c => (
- <button key={c.code} type="button" onClick={() => setSelectedCurrency(c.code)}
- className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${selectedCurrency===c.code?'bg-primary-500 text-white':'bg-primary-50 text-primary-600 border border-primary-200'}`}>
- {c.flag} {c.code}
- </button>
- ))}
- </div>
+ <CurrencySelect selected={selectedCurrency} onChange={setSelectedCurrency} align="left" label="Pay in" />
  </div>
  )}
  </div>

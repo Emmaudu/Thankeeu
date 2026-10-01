@@ -68,7 +68,6 @@ const PLANS = {
 };
 
 const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
-const SUPPORTED = Object.keys(FX);
 
 // ── GET /api/credits/balance — get user's current credit balance ─────────────
 const getBalance = async (req, res) => {
@@ -112,12 +111,13 @@ const purchaseCredits = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Not authenticated' });
 
-    const { plan_type, currency: reqCurrency, discount_code } = req.body;
+    const { plan_type, currency: reqCurrency, discount_code, provider } = req.body;
+    const useLemon = provider === 'lemonsqueezy';
     const plan = PLANS[plan_type];
     if (!plan) return res.status(400).json({ error: 'Invalid plan. Choose classic, standard, pack5, pack10, pack25, pack50, pack70, or pack100.' });
 
     // Currencies switched off via FLW_DISABLED_CURRENCIES are charged in USD.
-    const currency = resolveChargeCurrency(SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN');
+    const currency = resolveChargeCurrency(require('../utils/cardPayment').chargeableCurrency(reqCurrency));
 
     // Discount code — validated server-side only; the frontend price shown is
     // never trusted as-is.
@@ -158,16 +158,40 @@ const purchaseCredits = async (req, res) => {
 
     const txRef = `TK-CR-${Date.now()}-${Math.random().toString(36).slice(2,7).toUpperCase()}`;
 
-    // Log purchase attempt
+    // Log purchase attempt. A Lemon Squeezy purchase is always charged in USD.
     await supabase.from('credit_purchases').insert({
       user_id:       userId,
       plan_type,
       credits_bought: plan.credits,
       amount_paid:   priceNGN,
-      currency,
+      currency:      useLemon ? 'USD' : currency,
       flw_reference: txRef,
       status:        'pending',
     });
+
+    // ── Lemon Squeezy (international cards, USD). Credits are added by its
+    //    signed webhook; /create-card/verify polls until that happens.
+    if (useLemon) {
+      const ls = await require('../utils/lemonSqueezy').createCheckout({
+        reference: txRef,
+        type: 'card_credits',
+        amountNGN: priceNGN,
+        email: user.email,
+        name: user.full_name || '',
+        redirectPath: `/create-card/verify?provider=lemonsqueezy&tx_ref=${encodeURIComponent(txRef)}`,
+        productName: `Thankeeu ${plan.label}`,
+        description: `${plan.credits} card credit${plan.credits > 1 ? 's' : ''}`,
+        meta: {
+          user_id: userId, plan_type, credits: plan.credits, list_price_ngn: plan.priceNGN,
+          discount_code_id: appliedDiscount?.id || null, discount_code: appliedDiscount?.code || null,
+        },
+      });
+      if (!ls.ok) {
+        await supabase.from('credit_purchases').update({ status: 'failed' }).eq('flw_reference', txRef).then(() => {}, () => {});
+        return res.status(ls.status).json({ error: ls.message });
+      }
+      return res.json({ payment_link: ls.url, tx_ref: txRef, plan, currency: 'USD', amount: ls.amountUsd, provider: 'lemonsqueezy' });
+    }
 
     // Create FLW payment link
     const payload = {
@@ -329,12 +353,13 @@ const addCreditsToUser = async (userId, creditsToAdd, planType, txRef) => {
     // is gated by status !== 'paid'). Leave status as-is so a retry of
     // verifyPurchase can pick it up again.
     console.error(`addCreditsToUser: FAILED to add ${creditsToAdd} credits for user ${userId} (txRef ${txRef}) after ${MAX_ATTEMPTS} attempts — purchase NOT marked paid, safe to retry.`);
-    return;
+    return false;
   }
 
   // Mark purchase as paid
   await supabase.from('credit_purchases')
     .update({ status: 'paid' }).eq('flw_reference', txRef);
+  return true;
 };
 
 // ── POST /api/credits/spend — deduct 1 credit to activate a card ────────────
@@ -483,4 +508,4 @@ const spendCredit = async (req, res) => {
   }
 };
 
-module.exports = { getBalance, getHistory, purchaseCredits, verifyPurchase, spendCredit };
+module.exports = { getBalance, getHistory, purchaseCredits, verifyPurchase, spendCredit, addCreditsToUser };

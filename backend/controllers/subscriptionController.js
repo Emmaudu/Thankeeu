@@ -42,7 +42,9 @@ const getPlans = (employeeCount = 0) => ({
 });
 
 // ── Helper: write subscription to BOTH tables so any query path finds it ─────
-const saveSubscription = async (companyId, plan, flwReference, expiresAt) => {
+// amountNaira: what was paid, in NGN. (This insert used to read an undefined
+// PLANS variable, which threw for a company's very first subscription.)
+const saveSubscription = async (companyId, plan, flwReference, expiresAt, amountNaira) => {
   const log = (msg) => console.log(`[subscription] ${msg}`);
 
   // 1. companies.subscription_status — simplest fallback, always works
@@ -77,7 +79,7 @@ const saveSubscription = async (companyId, plan, flwReference, expiresAt) => {
       company_id:    companyId,
       plan,
       status:        'active',
-      amount:        PLANS[plan]?.naira || 200000,
+      amount:        Number(amountNaira) > 0 ? Number(amountNaira) : 0,
       flw_reference: flwReference,
       starts_at:     new Date(),
       expires_at:    expiresAt,
@@ -90,13 +92,13 @@ const saveSubscription = async (companyId, plan, flwReference, expiresAt) => {
 // ── Initialize payment ───────────────────────────────────────────────────────
 const initializeSubscription = async (req, res) => {
   try {
-    const { plan, currency: reqCurrency, employee_count: reqCount } = req.body;
+    const { plan, currency: reqCurrency, employee_count: reqCount, provider } = req.body;
     if (!['monthly','yearly'].includes(plan))
       return res.status(400).json({ error: 'Invalid plan. Choose monthly or yearly.' });
 
-    const SUPPORTED = ['NGN','USD','GBP','EUR','CAD','GHS','KES','ZAR'];
     const FX = { NGN:1, USD:0.00063, GBP:0.00049, EUR:0.00058, CAD:0.00086, GHS:0.0095, KES:0.082, ZAR:0.011 };
-    const currency = SUPPORTED.includes(reqCurrency) ? reqCurrency : 'NGN';
+    // Currencies switched off via FLW_DISABLED_CURRENCIES are charged in USD, as everywhere else.
+    const currency = require('../utils/flwCurrency').resolveChargeCurrency(require('../utils/cardPayment').chargeableCurrency(reqCurrency));
 
     // Get employee count from DB — unique emails across both tables
     const employeeCount = await countUniqueEmployees(req.company.id);
@@ -118,6 +120,24 @@ const initializeSubscription = async (req, res) => {
     const label = `${employeeCount} employees × ₦${ratePerHead.toLocaleString('en-NG')} per head`;
 
     const txRef = `TK-SUB-${req.company.id.slice(0,8).toUpperCase()}-${Date.now()}`;
+
+    // ── Lemon Squeezy (international cards, USD). Activated by its signed
+    //    webhook; the subscription page polls until then.
+    if (provider === 'lemonsqueezy') {
+      const ls = await require('../utils/lemonSqueezy').createCheckout({
+        reference: txRef,
+        type: 'company_subscription',
+        amountNGN: naira,
+        email: req.company.email,
+        name: req.company.name || '',
+        redirectPath: `/company/subscription?provider=lemonsqueezy&tx_ref=${encodeURIComponent(txRef)}`,
+        productName: 'Thankeeu for Teams',
+        description: `${label}, ${plan} plan`,
+        meta: { company_id: req.company.id, plan, employee_count: employeeCount },
+      });
+      if (!ls.ok) return res.status(ls.status).json({ error: ls.message });
+      return res.json({ payment_link: ls.url, authorization_url: ls.url, reference: txRef, provider: 'lemonsqueezy', currency: 'USD', amount: ls.amountUsd });
+    }
     const amount = currency === 'NGN' ? naira : parseFloat((naira * FX[currency]).toFixed(2));
 
     const response = await axios.post(`${FLW_BASE}/payments`, {
@@ -204,7 +224,7 @@ const verifySubscription = async (req, res) => {
       ? new Date(new Date(now).setFullYear(now.getFullYear() + 1))
       : new Date(new Date(now).setMonth(now.getMonth() + 1));
 
-    await saveSubscription(req.company.id, resolvedPlan, reference, expires_at);
+    await saveSubscription(req.company.id, resolvedPlan, reference, expires_at, txn.currency === 'NGN' ? txn.amount : txn.amount_settled);
 
     logActivity({
       company_id:  req.company.id,

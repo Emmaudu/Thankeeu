@@ -63,6 +63,7 @@ const Dashboard = () => {
           for (let attempt = 0; attempt < 4; attempt += 1) {
             try {
               verification = await paymentsAPI.verifyCardFee(ref);
+              if (verification?.data?.pending) throw new Error('Your bank is still confirming the payment. Reload in a minute.');
               break;
             } catch (verifyError) {
               if (attempt === 3) throw verifyError;

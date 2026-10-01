@@ -26,6 +26,8 @@
  * Step 3 shows normal payment panel.
  */
 
+import { CurrencySelect } from '../utils/currencyUI';
+import { choosePaymentMethod } from '../utils/paymentMethod';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
@@ -42,7 +44,7 @@ import { cardsAPI, paymentsAPI, creditsAPI, messagesAPI, wallAPI } from '../util
 import { CARD_DESIGNS, FONT_STYLES, getFontStyle } from '../utils/cardDesigns';
 import { getOccasionLabel } from '../utils/occasionCardDesigns';
 import { ALBUM_THEMES, getContrastTextColor } from '../utils/albumThemes';
-import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency, formatUSD } from '../utils/currency';
 import CardCoverPreview from '../components/CardCoverPreview';
 import AlbumStudioPreview, { makeWallPreviewCard } from '../components/AlbumStudioPreview';
 import CoverTextStudio from '../components/CoverTextStudio';
@@ -669,12 +671,19 @@ const CardStart = () => {
  }
  }
 
- // Flutterwave
+ // Card payment: the customer picks Flutterwave or Lemon Squeezy (international cards).
+ const choice = await choosePaymentMethod({
+   currency: selectedCurrency,
+   amountNGN: discountStatus === 'applied' && discountedNGN != null ? discountedNGN : 5000,
+ });
+ if (!choice) { setLoading(false); setPaymentStage('idle'); return; }
+ const { provider, currency: payCurrency } = choice;
+ setSelectedCurrency(payCurrency);
  setPaymentStage('redirecting');
  const userEmail = user?.email || member?.email || company?.email || '';
  let payRes;
  try {
-   payRes = await paymentsAPI.initCardFee(slug, selectedCurrency, userEmail, discountCode.trim() || undefined);
+   payRes = await paymentsAPI.initCardFee(slug, payCurrency, userEmail, discountCode.trim() || undefined, provider);
  } catch (payErr) {
    toast.error(payErr.response?.data?.error || 'Failed to start payment. Please try again.');
    setLoading(false); setPaymentStage('idle');
@@ -1463,14 +1472,7 @@ const CardStart = () => {
  {payMode === 'direct' && (
  <div className="mb-3">
  <p className="text-xs font-semibold text-warm-500 mb-1.5">Pay in:</p>
- <div className="flex flex-wrap gap-1.5">
- {CURRENCIES.map(c => (
- <button key={c.code} type="button" onClick={() => setSelectedCurrency(c.code)}
- className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold transition-all ${selectedCurrency === c.code ? 'bg-primary-500 text-white' : 'bg-primary-50 text-primary-600 border border-primary-200'}`}>
- {c.flag} {c.code}
- </button>
- ))}
- </div>
+ <CurrencySelect selected={selectedCurrency} onChange={setSelectedCurrency} align="left" label="Pay in" />
  </div>
  )}
  {payMode === 'direct' && (

@@ -39,7 +39,8 @@ export default function PaymentCallback() {
       try {
         // Try card fee verify first
         setMsg('Activating your card...');
-        const res = await paymentsAPI.verifyCardFee(txRef);
+        const res = await paymentsAPI.verifyCardFee(txRef, searchParams.get('transaction_id'));
+        if (res.data?.pending) throw new Error('Your bank is still confirming the payment. Your card activates on its own once it clears.');
         const { card_slug } = res.data;
 
         if (card_slug) {

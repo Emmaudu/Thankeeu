@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { RotatingPrice, CurrencyToggle } from '../utils/currencyUI';
-import { convertFromNGN, getCurrency } from '../utils/currency';
+import { formatCurrency } from '../utils/currency';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Icon from '../components/ui/Icon';
@@ -111,11 +111,9 @@ const PricingSection = () => {
   // Fix #1: default to GBP for UK/US/Europe visitors — they see a recognisable
   // price immediately rather than USD or NGN requiring mental conversion.
   const [currency, setCurrency] = useState('USD');
-  const curr = getCurrency(currency);
-  const fmt = (ngn) => {
-    const v = convertFromNGN(ngn, currency);
-    return `${curr.symbol}${currency === 'NGN' ? v.toLocaleString() : v.toFixed(2)}`;
-  };
+  // formatCurrency handles every currency in the picker, including
+    // display-only ones (INR, KRW, …) and their decimals.
+    const fmt = (ngn) => formatCurrency(ngn, currency);
 
   return (
     <section className="py-16 md:py-24 px-4 bg-white" id="pricing">

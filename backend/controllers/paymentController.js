@@ -71,8 +71,21 @@ const flwHeaders = () => ({
 });
 
 // ─── Verify a transaction with FLW ──────────────────────────────────────────
-const fetchFlwTransaction = async (txRef) => {
+// When Flutterwave's redirect gives us transaction_id we verify that exact
+// attempt. verify_by_reference alone can return an earlier declined attempt
+// when the customer tried a second card on the same checkout (common with
+// foreign cards, e.g. a Canadian card declined once, then approved), which
+// made a paid card look unpaid.
+const fetchFlwTransaction = async (txRef, transactionId) => {
   if (!txRef) throw new Error('tx_ref is required');
+  const id = String(transactionId || '').trim();
+  if (/^\d{1,20}$/.test(id)) {
+    try {
+      const byId = await axios.get(`${FLW_BASE}/transactions/${id}/verify`, { headers: flwHeaders(), timeout: FLW_TIMEOUT });
+      const d = byId.data?.data;
+      if (byId.data?.status === 'success' && d && String(d.tx_ref) === String(txRef).trim()) return d;
+    } catch (e) { /* fall back to reference lookup below */ }
+  }
   const r = await axios.get(
     `${FLW_BASE}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(String(txRef).trim())}`,
     { headers: flwHeaders(), timeout: FLW_TIMEOUT }
@@ -173,7 +186,7 @@ const updateMessageAfterGift = async ({ txRef, cardId, contributorEmail, amountN
 // ═══════════════════════════════════════════════════════════════════════════════
 const initCardFee = async (req, res) => {
   try {
-    const { card_slug, currency: reqCurrency, discount_code } = req.body;
+    const { card_slug, currency: reqCurrency, discount_code, provider } = req.body;
     if (!card_slug) return res.status(400).json({ error: 'card_slug is required' });
 
     // Guard against double-charging: a card that is live AND paid (previous
@@ -193,7 +206,7 @@ const initCardFee = async (req, res) => {
     }
     // Currency: default NGN, support USD/GBP/EUR etc. for international users
     // resolveChargeCurrency: currencies switched off via FLW_DISABLED_CURRENCIES are charged in USD.
-    const currency = resolveChargeCurrency(CARD_FEE_CURRENCIES.includes(reqCurrency) ? reqCurrency : 'NGN');
+    const currency = resolveChargeCurrency(require('../utils/cardPayment').chargeableCurrency(reqCurrency));
     // FX rates (approximate — FLW uses live rates at checkout)
     const FX = CARD_FEE_FX;
     const baseFeeNGN = CARD_FEE_NGN;
@@ -248,6 +261,32 @@ const initCardFee = async (req, res) => {
       req.company?.contact_person || req.company?.name || email;
 
     const txRef = `TK-FEE-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+    // ── Lemon Squeezy (international cards, charged in USD). The card is
+    //    activated by its signed webhook; /create-card/verify polls until then.
+    if (provider === 'lemonsqueezy') {
+      const ls = await require('../utils/lemonSqueezy').createCheckout({
+        reference: txRef,
+        type: 'card_fee',
+        amountNGN: feeNGN,
+        email,
+        name: callerName,
+        redirectPath: `/create-card/verify?provider=lemonsqueezy&tx_ref=${encodeURIComponent(txRef)}`,
+        productName: 'Thankeeu card',
+        description: `One-time fee for your card "${String(existingCard.title || existingCard.recipient_name || '').slice(0, 80)}"`,
+        meta: {
+          card_slug,
+          was_pay_later: !!existingCard.payment_pending,
+          discount_code_id: appliedDiscount?.id || null,
+          discount_code: appliedDiscount?.code || null,
+        },
+      });
+      if (!ls.ok) return res.status(ls.status).json({ error: ls.message });
+      try { await supabase.from('cards').update({ payment_ref: txRef }).eq('slug', card_slug); }
+      catch (e) { console.warn('payment_ref store:', e.message); }
+      console.log('initCardFee (Lemon Squeezy) OK ref:', txRef, 'card:', card_slug);
+      return res.json({ payment_link: ls.url, tx_ref: txRef, amount: ls.amountUsd, currency: 'USD', provider: 'lemonsqueezy' });
+    }
 
     const payload = {
       tx_ref:    txRef,
@@ -311,9 +350,23 @@ const verifyCardFee = async (req, res) => {
     const txRef = safeTxRef(req.query.tx_ref || req.params.txRef);
     if (!txRef) return res.status(400).json({ error: 'tx_ref is required and must be a valid reference' });
 
-    const txn = await fetchFlwTransaction(txRef);
+    const txn = await fetchFlwTransaction(txRef, req.query.transaction_id);
     if (!FLW_SUCCESS.has(txn.status)) {
-      return res.status(400).json({ error: `Payment not completed (status: ${txn.status})` });
+      const st = String(txn.status || '').toLowerCase();
+      const slugHint = txn.meta?.card_slug || null;
+      // Foreign cards often sit in "pending" for a few seconds while the bank
+      // finishes 3D Secure. Tell the page to wait and ask again instead of
+      // reporting a failure; the webhook also activates the card when it settles.
+      if (st === 'pending' || st === 'processing') {
+        return res.status(202).json({ pending: true, card_slug: slugHint });
+      }
+      console.warn(`[verifyCardFee] not successful: ${st} ${txn.amount} ${txn.currency} ref ${txRef} — ${txn.processor_response || ''}`);
+      return res.status(402).json({
+        failed: true,
+        card_slug: slugHint,
+        currency: txn.currency || null,
+        error: 'Your bank declined this payment, so you were not charged. Try again and choose International card, or approve overseas payments in your banking app.',
+      });
     }
 
     const meta     = txn.meta || {};
@@ -408,7 +461,7 @@ const initContribution = async (req, res) => {
     // The charge amount is derived here from the NGN amount — a client-sent
     // flw_amount is ignored (it let a "₦5,000,000" gift be paid with $0.01).
     const reqCur      = String(flw_currency || display_currency || 'NGN').toUpperCase();
-    const payCurrency = resolveChargeCurrency(CARD_FEE_CURRENCIES.includes(reqCur) ? reqCur : 'NGN');
+    const payCurrency = resolveChargeCurrency(require('../utils/cardPayment').chargeableCurrency(reqCur));
     const payAmount   = chargeAmountFor(amountNaira, payCurrency);
     if (flw_amount != null && Math.abs(Number(flw_amount) - payAmount) > 0.02 * payAmount) {
       console.warn('initContribution: client flw_amount', flw_amount, flw_currency, 'differs from server', payAmount, payCurrency, 'card:', card_slug);

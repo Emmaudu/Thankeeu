@@ -1,6 +1,6 @@
 import { useSEO } from '../../hooks/useSEO';
 import { useState, useEffect, useRef } from 'react';
-import { subscriptionAPI } from '../../utils/api';
+import { subscriptionAPI, paymentsAPI } from '../../utils/api';
 import CompanyLayout from '../../components/company/CompanyLayout';
 import toast from 'react-hot-toast';
 import { format, differenceInDays } from 'date-fns';
@@ -47,6 +47,24 @@ export default function SubscriptionPage() {
     if (isReturn) window.history.replaceState({}, '', '/company/subscription');
 
     const init = async () => {
+      // Lemon Squeezy: its signed webhook activates the plan on our server;
+      // wait here (up to about 90 seconds) for that to land.
+      if (isReturn && ref && params.get('provider') === 'lemonsqueezy') {
+        setChecking(true);
+        try {
+          let st = null;
+          for (let i = 0; i < 45; i++) {
+            try { st = (await paymentsAPI.lemonStatus(ref, params.get('k'))).data?.status; } catch (e) { if (e.response?.status === 404) break; }
+            if (st && !['pending', 'processing'].includes(st)) break;
+            await new Promise(r => setTimeout(r, 2000));
+          }
+          if (st === 'paid') toast.success('Subscription activated!');
+          else if (!st || st === 'pending' || st === 'processing') toast('Your payment is still being confirmed. Your plan activates on its own within a few minutes.', { duration: 8000 });
+          else toast.error(`We could not confirm this payment. If you were charged, contact support with reference ${ref}.`, { duration: 10000 });
+        } finally { setChecking(false); }
+        await fetchSub();
+        return;
+      }
       if (isReturn && ref) {
         setChecking(true);
         try {

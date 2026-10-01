@@ -44,3 +44,31 @@ Deploy: run `database/migration_delivery_reliability.sql`; optional `database/op
 - Graduation (wizard occasion graduation): /occasions/graduation now shows the 30 graduation covers instead of congratulations; library filter; general and global landing pages; keyword showcase.
 - Blog strips: baby shower, maternity and new baby posts now get baby covers (post-birth covers never on shower/maternity posts, shower covers never on new baby posts, nothing on baby loss posts); graduation posts get graduation covers ("Class of 2026" kept off evergreen posts). Checked against all seeded posts: exactly the 5 baby and 5 graduation posts match.
 - Static HTML for /cards/baby-shower, /cards/maternity-leave, /occasions/new-baby and /occasions/graduation lists the first 10 covers; their static titles/descriptions now match the live pages (the old Nigeria/Naira static titles are gone).
+
+## Round 18: CAD card fee for individual Canadian users
+- Verify page no longer says "Payment received but something went wrong" when the bank declined the card. A decline now returns 402 with a clear "you were not charged" message and sends the user back to /pay/:slug, preset to USD, with a notice.
+- Pending (3D Secure still finishing on foreign cards) returns 202 and the verify page waits and re-checks instead of reporting failure.
+- Verification uses Flutterwave's transaction_id from the redirect (checked against tx_ref), so a first declined attempt followed by a successful second card on the same checkout is no longer read as unpaid.
+- Dashboard / PaymentCallback treat pending as "retry", never as success.
+- Tests: tests/unit/card-fee-verify.test.js.
+
+## Round 19: Lemon Squeezy as a second payment gateway
+- New payment method dialog (`utils/paymentMethod.jsx`) for every non-NGN checkout: International card (Lemon Squeezy, USD) or Flutterwave. Hidden until Lemon Squeezy is configured.
+- Wired into card fee (CardStart, CreateCard, PayForCard), credit packs (Pricing, DashboardCredits) and company subscriptions (Pricing). Gifts stay on Flutterwave.
+- Backend: `utils/lemonSqueezy.js`, `controllers/lemonSqueezyController.js`, `/webhook/lemonsqueezy` (HMAC-SHA256, raw body), `/api/payments/providers`, `/api/payments/lemonsqueezy/status/:ref?k=`.
+- The signed webhook is the only thing that marks a payment paid; claim-before-fulfil prevents double fulfilment; credits have their own claim; stuck payments are reclaimed after 5 minutes.
+- New table: `database/migration_lemon_payments.sql`. Setup: `LEMONSQUEEZY_SETUP.md`.
+- Fixed: `saveSubscription` referenced an undefined `PLANS`, which threw on a company's first subscription.
+- Subscriptions now respect `FLW_DISABLED_CURRENCIES` like other payments.
+- Decline messages now point to the International card option.
+- Removed the unused Fincra card-checkout draft (Fincra CAD is Interac only; to be built after approval).
+
+## Round 20: Currency dropdown with 130+ currencies
+- Every currency picker (pricing, landing pages, card fee pages, gift pages) is now one dropdown: "🇮🇳 INR · Indian Rupee · India". Chargeable currencies (USD, NGN, GBP, EUR, CAD, GHS, KES, ZAR) first, then every currency Lemon Squeezy can show, A to Z.
+- Display-only currencies show approximate local prices from daily USD rates (`/api/payments/fx-rates`, open.er-api.com, cached 12h, attribution shown). No rate → USD price shown, never a guess.
+- Payments in display-only currencies are charged in USD on both gateways (`chargeableCurrency` on the backend; previously an unknown currency fell back to NGN).
+- Payment dialog shows the approximate local price under the USD charge.
+- Landing page price helpers now use `formatCurrency` (correct symbols and decimals for any currency).
+- Fixed: Irish visitors (Europe/Dublin) defaulted to GBP; they now get EUR.
+- Checkout: the "How would you like to pay?" dialog now has the currency dropdown too. Changing it there updates both prices, and the chosen currency is what gets charged (the page's own selector follows it).
+- Lemon Squeezy store and variant IDs are now optional: looked up from the API when there is one store with one product.

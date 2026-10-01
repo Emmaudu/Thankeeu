@@ -42,7 +42,7 @@ export default function DashboardHome() {
       (async () => {
         try {
           let v;
-          for (let i=0;i<4;i++) { try { v=await paymentsAPI.verifyCardFee(ref); break; } catch(e) { if(i===3) throw e; await new Promise(r=>setTimeout(r,750*(i+1))); } }
+          for (let i=0;i<4;i++) { try { v=await paymentsAPI.verifyCardFee(ref); if(v?.data?.pending) throw new Error('Your bank is still confirming the payment. Reload in a minute.'); break; } catch(e) { if(i===3) throw e; await new Promise(r=>setTimeout(r,750*(i+1))); } }
           const pending = JSON.parse(localStorage.getItem('thankeeu_pending_card')||'null');
           let slug = v?.data?.card_slug || pending?.slug;
           if (!slug) { const r=await cardsAPI.create(pending.cardData); slug=r.data.slug; }

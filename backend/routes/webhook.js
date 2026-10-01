@@ -21,6 +21,12 @@ const sendEmail = emailUtil.sendEmail || emailUtil;
 const GAMES_URL = (process.env.GAMES_URL || 'https://www.thankeeu.com/games').replace(/\/$/, '');
 const escapeHtml = (value) => String(value || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+// Lemon Squeezy — HMAC-SHA256 over the raw body (see controllers/lemonSqueezyController.js).
+// Webhook URL in the Lemon Squeezy dashboard: https://YOUR-RAILWAY-URL/webhook/lemonsqueezy
+router.post('/lemonsqueezy', express.raw({ type: '*/*', limit: '1mb' }),
+  (req, res) => require('../controllers/lemonSqueezyController').handleWebhook(req, res)
+    .catch((e) => { console.error('[lemonsqueezy webhook] error', e.message); if (!res.headersSent) res.sendStatus(500); }));
+
 router.post('/flutterwave', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     // ── 1. Verify signature ───────────────────────────────────────────────────
@@ -247,7 +253,7 @@ router.post('/flutterwave', express.raw({ type: 'application/json' }), async (re
 
       // Use shared saveSubscription helper (handles both tables, proper error logging)
       const { saveSubscription } = require('../controllers/subscriptionController');
-      await saveSubscription(companyId, plan, txRef, expires_at);
+      await saveSubscription(companyId, plan, txRef, expires_at, String(txn.currency || 'NGN').toUpperCase() === 'NGN' ? txn.amount : txn.amount_settled);
 
       console.log('Webhook: subscription activated, company:', companyId, 'plan:', plan);
       return;

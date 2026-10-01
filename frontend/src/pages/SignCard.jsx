@@ -1,4 +1,5 @@
 import { useSEO } from '../hooks/useSEO';
+import { CurrencySelect } from '../utils/currencyUI';
 import Icon from '../components/ui/Icon';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
@@ -18,7 +19,7 @@ import Navbar from '../components/Navbar';
 import { readableTextColor, backgroundIsDark } from '../utils/textContrast';
 import toast from 'react-hot-toast';
 import { openFlwCheckout } from '../utils/flwInline';
-import { CURRENCIES, DEFAULT_CURRENCY, formatCurrency, formatUSD, convertToNGN, getFLWPaymentParams } from '../utils/currency';
+import { DEFAULT_CURRENCY, formatCurrency, formatUSD, convertToNGN, getFLWPaymentParams, getCurrency } from '../utils/currency';
 import occasionEmoji from '../utils/occasionEmoji';
 
 const AMOUNTS_NGN = [2500, 5000, 10000, 20000, 50000, 100000];
@@ -991,7 +992,7 @@ const SignCard = () => {
                 </div>
                 <div className="relative">
                   <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-warm-500">
-                    {CURRENCIES.find(c => c.code === giftCurrency)?.symbol}
+                    {getCurrency(giftCurrency).displayOnly && !getCurrency(giftCurrency).rate ? '$' : getCurrency(giftCurrency).symbol}
                   </span>
                   <input type="number" inputMode="decimal" min="0" step={giftCurrency === 'NGN' ? '100' : '0.01'}
                     className="input text-base" style={{ paddingLeft: '2.75rem' }}
@@ -1001,15 +1002,9 @@ const SignCard = () => {
                 {customAmount && !wantsGift && (
                   <p className="text-xs text-amber-700 mt-1.5">Minimum gift is {formatCurrency(2500, giftCurrency)}.</p>
                 )}
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span className="text-xs font-semibold text-warm-500 mr-1">Pay in:</span>
-                  {CURRENCIES.map(c => (
-                    <button key={c.code} type="button"
-                      onClick={() => { setGiftCurrency(c.code); setCustomAmount(''); }}
-                      className={`rounded-xl px-2.5 py-1 text-xs font-bold transition-all ${giftCurrency === c.code ? 'bg-primary-500 text-white' : 'border border-primary-200 bg-primary-50 text-primary-600'}`}>
-                      {c.flag} {c.code}
-                    </button>
-                  ))}
+                <div className="mt-3">
+                  <p className="mb-1.5 text-xs font-semibold text-warm-500">Pay in:</p>
+                  <CurrencySelect selected={giftCurrency} onChange={(c) => { setGiftCurrency(c); setCustomAmount(''); }} align="left" label="Pay in" />
                 </div>
               </div>
             )}

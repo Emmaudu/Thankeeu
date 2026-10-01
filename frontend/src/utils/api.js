@@ -257,10 +257,13 @@ export const paymentsAPI = {
   // Uses publicAxios (no auth required) — email passed in body as fallback when
   // the user's JWT has expired mid-session. optionalAuth on the backend still
   // picks up any valid token that IS present via the Authorization header.
-  initCardFee:         (card_slug, currency, email, discount_code) => publicAxios.post('/payments/initialize/purchase', { card_slug, currency: currency || 'NGN', ...(email ? { email } : {}), ...(discount_code ? { discount_code } : {}) }),
+  initCardFee:         (card_slug, currency, email, discount_code, provider) => publicAxios.post('/payments/initialize/purchase', { card_slug, currency: currency || 'NGN', ...(email ? { email } : {}), ...(discount_code ? { discount_code } : {}), ...(provider ? { provider } : {}) }),
+  // Which payment methods are switched on, and Lemon Squeezy return-page polling
+  providers:           () => publicAxios.get('/payments/providers'),
+  lemonStatus:         (ref, k) => publicAxios.get(`/payments/lemonsqueezy/status/${encodeURIComponent(ref)}?k=${encodeURIComponent(k || '')}`),
   discountPreview:     (code) => publicAxios.post('/payments/discount-preview', { code }),
   getActiveBanner:     () => publicAxios.get('/payments/active-banner'),
-  verifyCardFee:       (txRef)     => anyAxios.get(`/payments/verify-card-fee?tx_ref=${encodeURIComponent(txRef)}`),
+  verifyCardFee:       (txRef, transactionId) => anyAxios.get(`/payments/verify-card-fee?tx_ref=${encodeURIComponent(txRef)}${transactionId ? `&transaction_id=${encodeURIComponent(transactionId)}` : ''}`),
 
   // Gift contribution — returns { payment_link }
   initContribution:    (data)      => publicAxios.post('/payments/initialize/contribution', data, { timeout: 30000 }),
@@ -362,7 +365,7 @@ export const teamsAPI = {
 export const subscriptionAPI = {
   get:        ()          => companyAxios.get('/subscription'),
   getQuote:   ()          => companyAxios.get('/subscription/quote'),
-  initialize: (plan, currency) => companyAxios.post('/subscription/initialize', { plan, currency: currency || 'NGN' }),
+  initialize: (plan, currency, provider) => companyAxios.post('/subscription/initialize', { plan, currency: currency || 'NGN', ...(provider ? { provider } : {}) }),
   verify:     (reference) => companyAxios.get(`/subscription/verify/${reference}`),
   cancel:     ()          => companyAxios.post('/subscription/cancel'),
 };
@@ -469,7 +472,7 @@ export const notificationsAPI = {
 export const creditsAPI = {
   getBalance:  ()           => api.get('/credits/balance'),
   getHistory:  ()           => api.get('/credits/history'),
-  purchase:    (plan_type, currency, discount_code) => api.post('/credits/purchase', { plan_type, currency: currency || 'NGN', ...(discount_code ? { discount_code } : {}) }),
+  purchase:    (plan_type, currency, discount_code, provider) => api.post('/credits/purchase', { plan_type, currency: currency || 'NGN', ...(discount_code ? { discount_code } : {}), ...(provider ? { provider } : {}) }),
   verify:      (txRef)      => api.get(`/credits/verify/${encodeURIComponent(txRef)}`),
   spend:       (card_slug)  => smartAxios.post('/credits/spend', { card_slug }),
 };

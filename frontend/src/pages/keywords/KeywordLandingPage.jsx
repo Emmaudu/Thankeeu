@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { useSEO, SCHEMAS } from '../../hooks/useSEO';
 import { CurrencyToggle } from '../../utils/currencyUI';
-import { convertFromNGN, getCurrency } from '../../utils/currency';
+import { formatCurrency } from '../../utils/currency';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
 import Icon from '../../components/ui/Icon';
@@ -58,11 +58,9 @@ const ExitIntentModal = ({ onClose, data }) => (
 /* ─── Pricing section — identical structure/breakpoints to LeavingCardPage ── */
 const PricingSection = ({ occasionParam }) => {
   const [currency, setCurrency] = useState('USD');
-  const curr = getCurrency(currency);
-  const fmt = (ngn) => {
-    const v = convertFromNGN(ngn, currency);
-    return `${curr.symbol}${currency === 'NGN' ? v.toLocaleString() : v.toFixed(2)}`;
-  };
+  // formatCurrency handles every currency in the picker, including
+    // display-only ones (INR, KRW, …) and their decimals.
+    const fmt = (ngn) => formatCurrency(ngn, currency);
   const plans = [
     { name:'Classic', ngn:5000,  badge:null,          highlight:false, btn:'Create your card',  btnStyle:'bg-primary-600 hover:bg-primary-700 text-white', href:`/card/new${occasionParam}`, features:['1 group card', 'Unlimited signers', '100+ premium designs', 'Voice, photo & video messages', 'Gift collection included', 'Memory Movie included'] },
     { name:'Standard', ngn:9000,  badge:'Most popular', highlight:true,  btn:'Get 2 credits',      btnStyle:'bg-gradient-to-r from-primary-500 to-purple-600 text-white shadow-lg', href:'/signup?plan=standard', features:['Everything in Classic', '2 group cards', 'Priority support', 'HD Memory Movie', 'Credits never expire'] },

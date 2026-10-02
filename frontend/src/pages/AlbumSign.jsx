@@ -584,7 +584,7 @@ const AlbumSign = ({ card: initialCard, slug }) => {
     extra: isNewStyle
       ? { layout: 'album_new', font_color: form.font_color, font_size: form.font_size }
       : { layout: 'album_legacy', font_color: form.font_color, font_size: form.font_size, position_x: draftPos.x, position_y: draftPos.y, rotation: draftPos.rot },
-  }, !!card);
+  }, !!card, mediaFiles);
   const restoredRef = useRef(false);
   useEffect(() => {
     if (!card || restoredRef.current) return;

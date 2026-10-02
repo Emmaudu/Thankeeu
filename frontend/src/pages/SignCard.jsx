@@ -98,13 +98,16 @@ const SignCard = () => {
   // Unfinished signature: kept in this browser and saved as a draft on the
   // server, so it is not lost if the person leaves before it is submitted.
   const draftGiftNGN = customAmount ? convertToNGN(Number(customAmount) || 0, giftCurrency) : Number(selectedAmount || 0);
-  const { draftKey, markSubmitted } = useSignatureDraft(slug, {
+  const { draftKey, markSubmitted, preparedMedia } = useSignatureDraft(slug, {
     author_name: form.author_name, author_email: form.author_email, content: form.content,
     is_private: form.is_private, font_style: form.font_style,
     has_media: mediaFiles.length > 0,
-    gift_intent: card?.is_gift_enabled && draftGiftNGN > 0 ? draftGiftNGN : null,
+    gift_intent: card?.is_gift_enabled && giftMode !== 'product' && draftGiftNGN > 0 ? draftGiftNGN : null,
+    gift: card?.is_gift_enabled ? (giftMode === 'product' && selectedProduct
+      ? { product: { vendor: selectedVendor?.business_name || null, name: selectedProduct.name, price: Number(selectedProduct.price) || null } }
+      : draftGiftNGN > 0 ? { amount_ngn: draftGiftNGN, currency: giftCurrency, display: formatCurrency(draftGiftNGN, giftCurrency) } : null) : null,
     extra: { layout: 'standard' },
-  }, !!card && !submitted);
+  }, !!card && !submitted, mediaFiles);
   const restoredRef = useRef(false);
   useEffect(() => {
     if (!card || submitted || restoredRef.current) return;
@@ -115,7 +118,9 @@ const SignCard = () => {
     // server knows, including for private messages this page cannot see.
     checkSavedSignature(slug, saved).then((state) => {
       const onCard = state === 'posted'
-        || (card.messages || []).some(m => m && String(m.content || '').trim() === saved.content.trim());
+        || (card.messages || []).some(m => m && String(m.content || '').trim() === saved.content.trim()
+          && (!saved.author_email || !m.author_email || String(m.author_email).toLowerCase() === String(saved.author_email).toLowerCase())
+          && (!saved.author_name || !m.author_name || m.author_name.trim() === String(saved.author_name).trim()));
       if (onCard) { markSubmitted(saved.content); return; }
       setForm(prev => (prev.content.trim() ? prev : {
         ...prev,
@@ -395,7 +400,10 @@ const SignCard = () => {
       // ── STEP 1: Upload message (no gift yet, message saved to DB) ──────────
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
+      // Attachments the draft already uploaded are sent as links, not again.
+      const prepared = preparedMedia(mediaFiles);
+      if (prepared) fd.append('prepared_media', JSON.stringify(prepared));
+      else mediaFiles.forEach((m, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, m.file));
       if (!isSignedIn && submitMode === 'guest') fd.append('is_guest', 'true');
       fd.append('draft_key', draftKey());
 
@@ -651,7 +659,9 @@ const SignCard = () => {
       fd.append('product_name', selectedProduct.name);
       fd.append('product_price', selectedProduct.price);
       if (!isSignedIn && submitMode === 'guest') fd.append('is_guest', 'true');
-      mediaFiles.forEach((mf, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, mf.file));
+      const prepared = preparedMedia(mediaFiles);
+      if (prepared) fd.append('prepared_media', JSON.stringify(prepared));
+      else mediaFiles.forEach((mf, i) => fd.append(i === 0 ? 'media' : `media_gallery_${i}`, mf.file));
       fd.append('draft_key', draftKey());
       setMsgUploading(true);
       try { await messagesAPI.sign(slug, fd); } finally { setMsgUploading(false); }

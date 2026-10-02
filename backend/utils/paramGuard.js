@@ -259,7 +259,7 @@ const signCardLimiter = makeRateLimiter({
   // Only apply to POST requests (signing) — not GET (viewing)
   // Draft saves (POST /:slug/draft) have their own limiter: they are small and
   // frequent, and must never use up the quota for real signatures.
-  skip: (req) => req.method !== 'POST' || /\/draft\/?$/.test(req.path),
+  skip: (req) => req.method !== 'POST' || /\/draft(\/media)?\/?$/.test(req.path),
 });
 
 // Signature draft autosaves: one every few seconds per person while typing.
@@ -270,8 +270,16 @@ const makeDraftLimiter = () => makeRateLimiter({
   message: { error: 'Too many draft saves. Please wait a moment.' },
 });
 
+// Attachment uploads for drafts: one file per request, 30 per hour per IP.
+const makeDraftMediaLimiter = () => makeRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  message: { error: 'Too many uploads. Please wait a while.' },
+});
+
 module.exports = {
   makeDraftLimiter,
+  makeDraftMediaLimiter,
   // Middleware
   validateUUIDParam,
   validateSlugParam,

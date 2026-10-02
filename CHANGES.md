@@ -116,3 +116,42 @@ Transactions
 - `lemonSqueezy.js` now records the customer name and, when a checkout cannot be created, the reason.
 
 Tests: `backend/tests/unit/signature-drafts.test.js`, `admin-transactions.test.js`, `frontend/src/tests/signature-draft.test.jsx`.
+
+## Round 25: 88 country landing pages, Top 5 blog post, PDF keepsake, drafts keep files and gifts
+
+**Run first in Supabase:** `database/migration_signature_drafts.sql` (again: adds the `media` column) and `backend/migrations/migration_blog_best_online_group_card_websites_2026.sql` (the new post, linked from every landing page).
+
+Landing pages (`frontend/src/data/occasionLandings/`, `pages/OccasionCountryLanding.jsx`)
+- 88 pages. Group cards, farewell, birthday, baby shower and anniversary (couples and work), two pages each, for the UK, US, Canada, Germany, the Netherlands, Colombia, Mauritius and the Philippines. Farewell and birthday, two pages each, for Australia and France. URLs, languages and link text in `manifest.js`.
+- One page per country and occasion is in German, Dutch, Spanish or French for Germany, the Netherlands, Colombia and France; the rest are English.
+- Each page has:
+  - three flipbook albums in the hero, like the homepage, with its own recipients and messages;
+  - its own hero background: a country colour plus an occasion pattern (`heroBackdrop.js`), with no gradients and no pills;
+  - 12 sample covers across categories, how it works, features, 3 or more country sections and 8 or more message ideas;
+  - a live price table in the local currency, a competitor comparison and 12 or more FAQs;
+  - links to every other page in the same country, the same page in other countries, supporting blog posts and core pages.
+- SEO: unique titles and descriptions, canonical, reciprocal hreflang clusters (`en-GB`, `de-DE`, `fr-FR`…), `<html lang>`, FAQ, breadcrumb and WebPage JSON-LD. The prerendered HTML contains the full page, and the sitemap includes every page with its alternates.
+- Fonts and sizes match the homepage (Nunito headings, Nunito Sans text). Blog post titles now use the same weight.
+- Quality gate `src/tests/occasion-landings.test.js` checks every page for:
+  - no hyphens or emojis, and no filler phrases;
+  - minimum length and unique titles;
+  - no two pages sharing 20% of their phrases;
+  - real covers, icons and links;
+  - complete hreflang clusters;
+  - no prices that would go out of date.
+
+Blog: "The 5 Best Online Group Card Websites in 2026". It ranks Thankeeu first, with the best pick for leaving, birthday, wedding, anniversary and congratulations cards. Competitor facts come from their own pricing pages (October 2026).
+
+PDF keepsake (`components/CardKeepsake.jsx`): the card's Download PDF button now opens an A5 booklet on cream paper:
+- the card's own front cover;
+- a dedication page;
+- one or two messages per page, kept whole with their photos and centred;
+- a back cover listing every signer.
+
+It saves through the browser's Save as PDF with zero margins, so there are no headers, URLs or watermarks.
+
+Signature drafts now keep files and gifts:
+- Attachments upload as they are added (`POST /api/messages/:slug/draft/media?k=`). This is checked before any upload and limited to 30 an hour per IP.
+- On submit, files already uploaded are sent as links instead of being uploaded again (`prepared_media`).
+- The gift a signer chose (an amount or a vendor product) is recorded, never charged.
+- Admin card details shows the files and the gift. Post adds the files to the message, and the email to the signer explains that the gift was not paid.

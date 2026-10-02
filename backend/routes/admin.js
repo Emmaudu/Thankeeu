@@ -73,7 +73,8 @@ router.post('/cards/:cardId/drafts/:draftId/post', validateUUIDParam('cardId'), 
           <p>Hi ${escHtml(r.message.author_name)},</p>
           <p>It looks like your message for ${escHtml(who)} did not finish sending, so we have added it for you. Here is what was posted:</p>
           <blockquote style="margin:16px 0;padding:12px 16px;background:#F5F3FF;border-left:4px solid #7C6EFF;border-radius:8px;white-space:pre-wrap;">${escHtml(r.message.content)}</blockquote>
-          <p>If you had also attached photos, a video, a voice note or a gift, those were not saved. You can open the card and add them.</p>
+          ${(r.draft?.media || []).length ? '<p>The photos, videos or voice notes you attached were added too.</p>' : ''}
+          ${(r.draft?.extra?.gift || Number(r.draft?.gift_intent) > 0) ? '<p>You had also chosen to give a gift, but the payment never went through, so nothing was charged. If you would still like to chip in, open the card and add it there.</p>' : ''}
           <p><a href="${frontendUrl()}/sign/${encodeURIComponent(r.card.slug)}" style="color:#6C5CE7;font-weight:bold;">Open the card</a></p>
           <p style="color:#888;font-size:12px;">Thankeeu</p>
         </div>`,

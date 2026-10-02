@@ -14,6 +14,7 @@ import { getAlbumTheme, getContrastTextColor } from '../utils/albumThemes';
 import { readableTextColor, backgroundIsDark, backgroundIsPhoto, legibilityShadow } from '../utils/textContrast';
 import { messageMediaItems, messageGift } from '../utils/messageMedia';
 import CardCoverPreview from '../components/CardCoverPreview';
+import CardKeepsake from '../components/CardKeepsake';
 import BankAccountTab from '../components/BankAccountTab';
 import Navbar from '../components/Navbar';
 import QRButton from '../components/QRButton';
@@ -1339,6 +1340,7 @@ const CardView = () => {
   };
   const [showAll,      setShowAll]      = useState(false);
   const [searchQuery,  setSearchQuery]  = useState('');
+  const [showKeepsake, setShowKeepsake] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
   const [openMessage, setOpenMessage] = useState(null);
   const [replyText, setReplyText] = useState('');
@@ -1606,6 +1608,10 @@ const CardView = () => {
     : showAll ? messages : messages.slice(-8);
   const totalCollected = card.total_collected || 0;
   const design = getCardDesign(card.design_theme);
+  // The printable booklet uses the card's real cover, including an uploaded one.
+  const keepsakeCover = (typeof card.background_color === 'string' && /^https?:\/\//.test(card.background_color))
+    ? { ...design, id: 'custom_upload', image: card.background_color, artwork: null, background: '#1a1035', ink: '#ffffff', dark: true }
+    : design;
   const isCustomCoverUrl = typeof card.background_color === 'string' && /^https?:\/\//.test(card.background_color);
   const coverBackground = card.background_color?.startsWith('#')
     ? `linear-gradient(145deg, ${card.background_color}26, transparent 68%), ${design.background}`
@@ -2089,8 +2095,8 @@ const CardView = () => {
                         toast.success('✓ Private link copied!');
                       }}
                       className={`${chip} border border-purple-200 bg-white text-primary-700 hover:bg-purple-50`}>Copy</button>
-                    <button type="button" style={{ minHeight: 0 }} onClick={() => window.print()}
-                      className={`${chip} border border-purple-200 bg-white text-primary-700 hover:bg-purple-50`}>Save / print</button>
+                    <button type="button" style={{ minHeight: 0 }} onClick={() => setShowKeepsake(true)}
+                      className={`${chip} border border-purple-200 bg-white text-primary-700 hover:bg-purple-50`}>Download PDF</button>
                     {card.isCreatorPersonal && <TransferCardButton slug={slug} compact />}
                   </div>
                 </div>
@@ -2098,6 +2104,10 @@ const CardView = () => {
             </div>
           );
         })()}
+
+        {showKeepsake && (
+          <CardKeepsake card={card} messages={messages} coverDesign={keepsakeCover} coverTextColor={coverTextColor} onClose={() => setShowKeepsake(false)} />
+        )}
 
         {/* Wall tab in main */}
         {cardViewTab === 'wall' && (

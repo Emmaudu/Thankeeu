@@ -8,10 +8,11 @@
  * When the signature is submitted, the server closes the draft (the submit
  * sends draft_key) and markSubmitted() clears the local copy.
  *
- * Only text is saved. Attached files are uploaded on submit, so the draft
- * just records that there were some.
+ * Attached files (photos, GIFs, videos, voice notes) are uploaded as soon
+ * as they are added, so the draft keeps them too. A gift the signer chose is
+ * recorded (never charged) so the admin can follow up.
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const API = import.meta.env.VITE_API_URL || '/api';
 const SAVE_DELAY_MS = 3000;
@@ -67,9 +68,10 @@ export async function checkSavedSignature(slug, saved) {
  * @param {string}  slug
  * @param {object}  draft    { author_name, author_email, content, is_private, font_style, has_media, gift_intent, extra }
  * @param {boolean} enabled  false while the card is loading, after submit, etc.
+ * @param {Array}   files    the signer's attachments: [{ file: File, type }]
  * @returns {{ draftKey: () => string, markSubmitted: (submittedContent: string) => void }}
  */
-export function useSignatureDraft(slug, draft, enabled = true) {
+export function useSignatureDraft(slug, draft, enabled = true, files = []) {
   const keyRef = useRef(null);
   const sentRef = useRef('');        // last payload the server has
   const latestRef = useRef(null);    // latest payload (for the page-close save)
@@ -78,10 +80,33 @@ export function useSignatureDraft(slug, draft, enabled = true) {
 
   if (!keyRef.current && slug) keyRef.current = readLocal(slug)?.key || newKey();
 
+  // Upload each attachment once, in the background.
+  const uploadsRef = useRef(new WeakMap()); // File → { state, item }
+  const [, setUploadTick] = useState(0);
+  useEffect(() => {
+    if (!enabled || !slug) return;
+    for (const f of files || []) {
+      if (!f?.file || uploadsRef.current.has(f.file)) continue;
+      uploadsRef.current.set(f.file, { state: 'uploading' });
+      const fd = new FormData();
+      fd.append('media', f.file);
+      // The key goes in the URL so the server can check it before accepting the file.
+      fetch(`${API}/messages/${encodeURIComponent(slug)}/draft/media?k=${keyRef.current}`, { method: 'POST', body: fd })
+        .then(r => (r.ok ? r.json() : null))
+        .then(j => {
+          const item = j?.files?.[0];
+          uploadsRef.current.set(f.file, item ? { state: 'done', item } : { state: 'failed' });
+          setUploadTick(t => t + 1);
+        })
+        .catch(() => { uploadsRef.current.set(f.file, { state: 'failed' }); setUploadTick(t => t + 1); });
+    }
+  }, [files, enabled, slug]);
+  const media = (files || []).map(f => f?.file && uploadsRef.current.get(f.file)).filter(x => x?.state === 'done').map(x => x.item);
+
   const content = String(draft?.content || '');
   if (submittedRef.current !== null && content !== submittedRef.current) submittedRef.current = null;
-  const payload = enabled && slug && content.trim() && submittedRef.current === null
-    ? JSON.stringify({ draft_key: keyRef.current, ...draft })
+  const payload = enabled && slug && (content.trim() || media.length) && submittedRef.current === null
+    ? JSON.stringify({ draft_key: keyRef.current, ...draft, media })
     : null;
   latestRef.current = payload;
 
@@ -157,5 +182,16 @@ export function useSignatureDraft(slug, draft, enabled = true) {
     submittedRef.current = String(submittedContent ?? '');
   }, [slug]);
 
-  return { draftKey, markSubmitted };
+  /**
+   * When every attachment is already uploaded, their URLs in order (the
+   * submit can send these instead of uploading the same files again);
+   * otherwise null.
+   */
+  const preparedMedia = useCallback((list) => {
+    const items = (list || []).map(f => f?.file && uploadsRef.current.get(f.file));
+    if (!items.length || items.some(x => x?.state !== 'done')) return null;
+    return items.map(x => x.item);
+  }, []);
+
+  return { draftKey, markSubmitted, preparedMedia };
 }

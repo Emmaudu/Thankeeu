@@ -1,6 +1,7 @@
 -- ════════════════════════════════════════════════════════════════════════════
 -- Signature drafts.
--- While someone signs a group card, what they have written is saved here every
+-- While someone signs a group card, their message, name, email and attached
+-- files are saved here every
 -- few seconds and again when the page is closed. If they leave before their
 -- signature is submitted, the draft stays here so an admin can post it for
 -- them (Admin → Cards → card details → Signature drafts).
@@ -39,4 +40,8 @@ CREATE INDEX IF NOT EXISTS idx_signature_drafts_card_status ON signature_drafts 
 -- No public access: RLS on, no policies. The backend's service key bypasses RLS.
 ALTER TABLE signature_drafts ENABLE ROW LEVEL SECURITY;
 
+NOTIFY pgrst, 'reload schema';
+
+-- Attached files (uploaded while the person was signing) and gift details.
+ALTER TABLE signature_drafts ADD COLUMN IF NOT EXISTS media JSONB NOT NULL DEFAULT '[]'::jsonb;
 NOTIFY pgrst, 'reload schema';

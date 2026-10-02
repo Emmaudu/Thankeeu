@@ -34,6 +34,7 @@ import path from 'path';
 import https from 'https';
 import http from 'http';
 import { fileURLToPath } from 'url';
+import { LANDING_MANIFEST, hreflangCluster } from '../src/data/occasionLandings/manifest.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -276,7 +277,7 @@ function lastmodFrom(post) {
   return d.toISOString().slice(0, 10);
 }
 
-function renderUrl({ loc, changefreq, priority, hreflang, image }) {
+function renderUrl({ loc, changefreq, priority, hreflang, image, alternates }) {
   const fullLoc = `${APP_URL}${loc}`;
   const lines = [];
   lines.push('  <url>');
@@ -284,7 +285,9 @@ function renderUrl({ loc, changefreq, priority, hreflang, image }) {
   lines.push(`    <lastmod>${STATIC_LASTMOD[loc] || TODAY}</lastmod>`);
   if (changefreq) lines.push(`    <changefreq>${changefreq}</changefreq>`);
   if (priority)   lines.push(`    <priority>${priority}</priority>`);
-  if (hreflang) {
+  if (alternates) {
+    for (const alt of alternates) lines.push(`    <xhtml:link rel="alternate" hreflang="${alt.hreflang}" href="${escapeXML(`${APP_URL}${alt.path}`)}"/>`);
+  } else if (hreflang) {
     // hreflang can be true (generic 'en') or a specific locale string (e.g. 'en-GB')
     const lang = typeof hreflang === 'string' ? hreflang : 'en';
     lines.push(`    <xhtml:link rel="alternate" hreflang="${lang}" href="${escapeXML(fullLoc)}"/>`);
@@ -335,7 +338,9 @@ async function main() {
   const postsBySlug = new Map(FALLBACK_BLOG_POSTS.map(post => [post.slug, post]));
   posts.filter(p => p && p.slug).forEach(post => postsBySlug.set(post.slug, post));
 
-  const staticBlocks = STATIC_PAGES.map(renderUrl);
+  // Occasion × country landing pages, each with its hreflang cluster.
+  const landingPages = LANDING_MANIFEST.map(m => ({ loc: m.path, changefreq: 'monthly', priority: '0.8', alternates: hreflangCluster(m) }));
+  const staticBlocks = [...STATIC_PAGES, ...landingPages].map(renderUrl);
   const blogBlocks   = [...postsBySlug.values()].map(renderBlogPostUrl);
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -353,7 +358,7 @@ ${blogBlocks.join('\n\n')}
 `;
 
   fs.writeFileSync(OUT_PATH, xml);
-  console.log(`[generate-sitemap] wrote ${STATIC_PAGES.length} static pages + ${blogBlocks.length} blog posts to ${OUT_PATH}`);
+  console.log(`[generate-sitemap] wrote ${STATIC_PAGES.length + LANDING_MANIFEST.length} static pages + ${blogBlocks.length} blog posts to ${OUT_PATH}`);
 }
 
 main();

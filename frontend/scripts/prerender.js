@@ -46,6 +46,10 @@ import { COUNTRY_LANDINGS, GENERAL_LANDINGS, OCCASION_LABELS, LANDING_COVERS_PER
 import { ILLUSTRATED_COVER_ROWS } from '../src/utils/illustratedCoverRows.js';
 import { weddingLanding, WEDDING_LANDING_KEYS } from '../src/data/weddingLandings.js';
 import { withArticle } from '../src/data/landingArticles.js';
+import { ALL_LANDING_PAGES } from '../src/data/occasionLandings/all.js';
+import { hreflangCluster } from '../src/data/occasionLandings/manifest.js';
+import { landingLinks } from '../src/data/occasionLandings/index.js';
+import { coverPlanFor, COMPARISON, UI as LANDING_UI, COUNTRY_META as LANDING_COUNTRIES } from '../src/data/occasionLandings/shared.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -132,7 +136,7 @@ function buildHreflangLinks(canonicalPath) {
   return `${links}\n    <link rel="alternate" hreflang="x-default" href="${APP_URL}/" />`;
 }
 
-function buildPage({ title, description, canonicalPath, ogType = 'website', jsonLd, rootHtml }) {
+function buildPage({ title, description, canonicalPath, ogType = 'website', jsonLd, rootHtml, alternates = null, lang = null }) {
   const fullTitle = title;
   const url = `${APP_URL}${canonicalPath}`;
   let html = TEMPLATE;
@@ -146,8 +150,13 @@ function buildPage({ title, description, canonicalPath, ogType = 'website', json
     `<meta name="description" content="${esc(description)}" />`
   );
 
-  // hreflang cluster (geo pages only)
-  const hreflangLinks = buildHreflangLinks(canonicalPath);
+  // Page language
+  if (lang && lang !== 'en') html = html.replace('<html lang="en"', `<html lang="${lang}"`);
+
+  // hreflang cluster (geo pages only); landing pages pass their own cluster
+  const hreflangLinks = alternates
+    ? alternates.map(a => `<link rel="alternate" hreflang="${a.hreflang}" href="${APP_URL}${a.path}" />`).join('\n    ')
+    : buildHreflangLinks(canonicalPath);
   if (hreflangLinks) {
     // Drop the template's homepage-only hreflang pair so the page doesn't
     // declare two different x-default / "en" alternates.
@@ -312,11 +321,75 @@ function babyCoverPageHtml({ path: p, h1, intro, h2, occasion, source, leadStems
   return `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="${p}">${esc(h1)}</a></nav><main><h1>${esc(h1)}</h1><p>${esc(intro)}</p><h2>${esc(h2)}</h2><ul>${items}</ul><p>${footerLinks || '<a href="/cards/baby-shower">Baby shower cards</a> | <a href="/occasions/new-baby">New baby cards</a> | <a href="/cards/maternity-leave">Maternity leave cards</a>'} | <a href="/pricing">Pricing</a></p></main>`;
 }
 
+// ── Occasion × country landing pages (data/occasionLandings) ────────────────
+// Same copy, FAQs and links the React page renders, so crawlers read it all
+// before JavaScript runs. Prices are the launch prices (the live page swaps
+// in today's).
+const LAUNCH_USD = [['card_fee', 1, 3.15], ['standard', 2, 5.67], ['pack5', 5, 12.6], ['pack10', 10, 25.2], ['pack25', 25, 63], ['pack50', 50, 126], ['pack100', 100, 252]];
+function occasionLandingStaticPage(p) {
+  const h = (t) => esc(t);
+  const lk = (t) => h(t).replace(/\[([^\]]+)\]\((\/[^)\s]*)\)/g, '<a href="$2">$1</a>');
+  const ui = LANDING_UI[p.lang] || LANDING_UI.en;
+  const meta = LANDING_COUNTRIES[p.country];
+  const plan = coverPlanFor(p);
+  const source = `landing-${p.path.slice(1)}`;
+  const coverRow = (occ, n) => ILLUSTRATED_COVER_ROWS.filter(r => r[2] === occ).slice(0, n);
+  const covers = [...coverRow(plan.lead, 6), ...plan.others.map(o => coverRow(o, 1)[0]).filter(Boolean)].slice(0, 12);
+  const coverItems = covers.map(([folder, stem, occasion, , headline, tagline]) => {
+    const id = `illus-${folder}-${stem}`;
+    const href = `/card/customize?occasion=${encodeURIComponent(occasion)}&design=${encodeURIComponent(id)}&layout=album&source=${encodeURIComponent(source)}`;
+    const alt = `${headline}${tagline ? `, ${tagline}` : ''}, ${(OCCASION_LABELS[occasion] || occasion).toLowerCase()} group card cover`;
+    return `<li><a href="${h(href)}"><img src="/cards/illustrated/${folder}/${stem}.svg" alt="${h(alt)}" width="210" height="297" loading="lazy" /> ${h(headline)}</a></li>`;
+  }).join('');
+  const links = landingLinks(p);
+  const cellText = (v) => (v === true ? ui.cells.yes : v === false ? ui.cells.no : ui.cells[v] || v);
+  const thankeeu = { price: '$3.15', packPrice: '$2.52', unlimited: true, video: 'thankeeuVideo', voice: 'thankeeuVoice', cashGift: 'thankeeuGift', movie: 'thankeeuMovie', wall: 'thankeeuWall', expiry: 'never' };
+  const list = (items) => `<ul>${items.map(([href, label]) => `<li><a href="${href}">${h(label)}</a></li>`).join('')}</ul>`;
+  const rootHtml = `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="${p.path}">${h(p.breadcrumb)}</a></nav>
+<main lang="${p.lang}">
+  <p>${h(p.tagline)}</p>
+  <h1>${h(p.h1)}</h1>
+  <p>${lk(p.subtitle)}</p>
+  <p><strong>${h(ui.freeLine)}</strong></p>
+  <p><a href="/card/new?occasion=${plan.createOccasion}">${h(ui.create)}</a> | <a href="/sample">${h(ui.demo)}</a></p>
+  <ul>${p.highlights.map(([t, b]) => `<li><strong>${h(t)}</strong>: ${h(b)}</li>`).join('')}</ul>
+  <h2>${h(p.coversTitle)}</h2><p>${lk(p.coversIntro)}</p><ul>${coverItems}</ul>
+  <h2>${h(p.stepsTitle)}</h2><ol>${p.steps.map(([t, b]) => `<li><strong>${h(t)}</strong>: ${lk(b)}</li>`).join('')}</ol>
+  <h2>${h(p.featuresTitle)}</h2><p>${lk(p.featuresIntro)}</p><ul>${p.features.map(([, t, b]) => `<li><h3>${h(t)}</h3><p>${lk(b)}</p></li>`).join('')}</ul>
+  ${p.sections.map(sec => `<h2>${h(sec.h2)}</h2>${sec.paragraphs.map(t => `<p>${lk(t)}</p>`).join('')}${sec.items ? `<ul>${sec.items.map(([t, b]) => `<li><strong>${h(t)}</strong>: ${lk(b)}</li>`).join('')}</ul>` : ''}`).join('\n  ')}
+  <h2>${h(p.messagesTitle)}</h2><p>${lk(p.messagesIntro)}</p><ul>${p.messages.map(t => `<li>${h(t)}</li>`).join('')}</ul>
+  <h2>${h(ui.pricingTitle(meta.short))}</h2><p>${lk(p.pricingIntro)}</p>
+  <table><thead><tr>${ui.pricingCols.map(c => `<th>${h(c)}</th>`).join('')}</tr></thead><tbody><tr><td colspan="2">${h(ui.freeRow)}</td><td colspan="2">${h(ui.free)}</td></tr>${LAUNCH_USD.map(([id, n, usd]) => `<tr><td>${h(ui.plans[id])}</td><td>${n}</td><td>$${usd.toFixed(2)}</td><td>$${(usd / n).toFixed(2)}</td></tr>`).join('')}</tbody></table>
+  <p>${h(ui.pricingFoot)}</p>
+  <h2>${h(ui.compareTitle)}</h2><p>${lk(p.comparisonIntro)}</p>
+  <table><thead><tr><th>${h(ui.compareFeature)}</th>${COMPARISON.columns.map(c => `<th>${h(c)}</th>`).join('')}</tr></thead><tbody>${COMPARISON.rows.map(([row, o]) => `<tr><td>${h(ui.rows[row])}</td><td>${h(cellText(thankeeu[row]))}</td><td>${h(cellText(o.kudoboard))}</td><td>${h(cellText(o.thankbox))}</td><td>${h(cellText(o.groupgreeting))}</td></tr>`).join('')}</tbody></table>
+  <p>${h(ui.compareNote)}</p>
+  <h2>${h(ui.faqTitle)}</h2>
+  ${p.faqs.map(f => `<h3>${h(f.q)}</h3><p>${lk(f.a)}</p>`).join('\n  ')}
+  <h2>${h(ui.linksTitle(meta.short))}</h2>${list(links.sameCountry)}
+  <h2>${h(ui.otherCountries)}</h2>${list(links.otherCountries)}
+  <h2>${h(ui.guides)}</h2>${list(links.guides)}
+  <h2>${h(ui.alsoSee)}</h2>${list(links.core)}
+  <h2>${h(p.ctaTitle)}</h2><p>${h(p.ctaText)}</p>
+</main>`;
+  const url = (path) => `${APP_URL}${path}`;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      { '@type': 'WebPage', '@id': `${url(p.path)}#webpage`, url: url(p.path), name: p.title, description: p.description, inLanguage: p.lang },
+      { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Thankeeu', item: url('/') }, { '@type': 'ListItem', position: 2, name: p.breadcrumb, item: url(p.path) }] },
+      { '@type': 'FAQPage', mainEntity: p.faqs.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') } })) },
+    ],
+  };
+  return { path: p.path, title: p.title, description: p.description, rootHtml, jsonLd, alternates: hreflangCluster(p), lang: p.lang };
+}
+
 // ── 1. Static marketing pages ────────────────────────────────────────────────
 // Meta copied verbatim from each page's existing useSEO() call, so nothing
 // user-facing changes — we're just making it visible to crawlers before JS.
 const STATIC_PAGES = [
   ...countryLandingPages(),
+  ...ALL_LANDING_PAGES.map(occasionLandingStaticPage),
   {
     path: '/groupgreeting-alternative',
     title: 'GroupGreeting Alternative — Voice Notes, Gift Pot & Memory Movie | Thankeeu',
@@ -647,6 +720,8 @@ function prerenderStaticPages() {
         canonicalPath: page.path,
         rootHtml: page.rootHtml || genericRootHtml,
         jsonLd: page.jsonLd,
+        alternates: page.alternates || null,
+        lang: page.lang || null,
       });
       writeStatic(page.path, html);
       count++;

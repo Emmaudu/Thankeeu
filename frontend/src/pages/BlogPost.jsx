@@ -280,7 +280,7 @@ const BlogPost = () => {
               </div>
 
               {/* Title */}
-              <h1 className="font-display text-2xl sm:text-3xl md:text-2xl sm:text-4xl font-semibold text-warm-900 leading-tight mb-5"
+              <h1 className="font-display text-3xl sm:text-4xl font-extrabold text-warm-900 leading-tight mb-5" style={{ letterSpacing: '-0.02em' }}
                 itemProp="headline">
                 {post.title}
               </h1>

@@ -72,10 +72,24 @@ const addMessage = async (req, res) => {
       else media_type = 'image';
     }
 
+    // Files the signer's draft already uploaded (see utils/signatureDrafts):
+    // sent as URLs so they are not uploaded a second time.
+    let preparedGallery = null;
+    if (!primaryFile && req.body.prepared_media) {
+      let list = [];
+      try { list = JSON.parse(req.body.prepared_media); } catch { list = []; }
+      const media = require('../utils/signatureDrafts').cleanMedia(list);
+      if (media.length) {
+        media_url = media[0].url;
+        media_type = media[0].type;
+        if (media.length > 1) preparedGallery = JSON.stringify(media.slice(1).map(m => ({ media_url: m.url, media_type: m.type })));
+      }
+    }
+
     // Additional gallery files
     const appUrl2 = FRONTEND_URL;
     const galleryFiles = (req.files || []).filter(f => f.fieldname !== 'media' && f.fieldname.startsWith('media_gallery'));
-    const media_gallery = galleryFiles.length > 0
+    const media_gallery = preparedGallery || (galleryFiles.length > 0
       ? JSON.stringify(galleryFiles.map(f => ({
           media_url: f.path?.startsWith('http')
             ? f.path
@@ -85,7 +99,7 @@ const addMessage = async (req, res) => {
             : f.mimetype === 'image/gif' ? 'gif'
             : 'image'
         })))
-      : null;
+      : null);
 
     // Sanitize message fields before storing — messages appear on card view and in emails
     const { stripHtml } = require('../utils/sanitize');

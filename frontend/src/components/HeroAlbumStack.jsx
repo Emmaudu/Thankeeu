@@ -46,15 +46,19 @@ const GIF = {
 };
 
 /* ── Voice note ─────────────────────────────────────────────────────────── */
-const pickVoice = () => {
+const pickVoice = (lang = 'en') => {
   const list = window.speechSynthesis?.getVoices?.() || [];
+  if (lang && lang !== 'en') {
+    const local = list.find(v => new RegExp(`^${lang}(-|_|$)`, 'i').test(v.lang));
+    if (local) return local;
+  }
   const en = list.filter(v => /^en(-|_|$)/i.test(v.lang));
   const prefer = [/Google UK English Male/i, /Daniel/i, /Arthur/i, /Guy/i, /Ryan/i, /Male/i, /Google US English/i, /Alex/i];
   for (const re of prefer) { const v = en.find(x => re.test(x.name)); if (v) return v; }
   return en[0] || list[0] || null;
 };
 
-const VoiceNote = ({ line, length, accent }) => {
+const VoiceNote = ({ line, length, accent, lang = 'en' }) => {
   const [playing, setPlaying] = useState(false);
   const [t, setT]   = useState(0);
   const uttRef       = useRef(null);
@@ -71,8 +75,8 @@ const VoiceNote = ({ line, length, accent }) => {
     if (!synth || typeof window.SpeechSynthesisUtterance === 'undefined') { setTimeout(() => { setPlaying(false); setT(0); }, length * 1000); return; }
     synth.cancel();
     const u = new window.SpeechSynthesisUtterance(line);
-    const v = pickVoice(); if (v) u.voice = v;
-    u.lang = v?.lang || 'en-GB'; u.rate = 0.86; u.pitch = 0.82; u.volume = 1;
+    const v = pickVoice(lang); if (v) u.voice = v;
+    u.lang = v?.lang || (lang === 'en' ? 'en-GB' : lang); u.rate = 0.86; u.pitch = 0.82; u.volume = 1;
     u.onend = () => { if (uttRef.current === u) { uttRef.current = null; setPlaying(false); setT(0); } };
     u.onerror = u.onend; uttRef.current = u; synth.speak(u);
   };
@@ -102,7 +106,7 @@ const VoiceNote = ({ line, length, accent }) => {
 // Landing pages ask for plain text: no emojis, no dashes.
 const plainText = (t) => String(t).replace(/\s—\s/g, ', ').replace(/(?!\u2122)[\p{Extended_Pictographic}\uFE0F]/gu, '').replace(/\s{2,}/g, ' ').trim();
 
-const SignerPage = ({ signer, number, plain = false }) => (
+const SignerPage = ({ signer, number, plain = false, lang = 'en' }) => (
   <div className="flex h-full flex-col overflow-hidden p-4 sm:p-5" style={{ background: PAGE_BG, color: INK }}>
     <div className="flex items-center gap-2.5">
       <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-extrabold text-white" style={{ background: signer.tint }}>{signer.initials}</span>
@@ -144,7 +148,7 @@ const SignerPage = ({ signer, number, plain = false }) => (
     )}
 
     <p className={`mt-3 break-words leading-snug ${signer.font}`} style={{ fontSize: signer.size, color:'#374151' }}>{plain ? plainText(signer.text) : signer.text}</p>
-    {signer.media.kind === 'voice' && <VoiceNote line={signer.media.line} length={signer.media.length} accent={signer.tint} />}
+    {signer.media.kind === 'voice' && <VoiceNote line={signer.media.line} length={signer.media.length} accent={signer.tint} lang={lang} />}
 
     <div className="mt-auto flex items-center justify-between pt-3">
       <span className="inline-flex items-center gap-1 text-[12px] font-bold opacity-60">{plain ? <Icon name="Heart" size={12} /> : '❤️ 🎉 '}<span className="ml-0.5">{signer.reactions}</span></span>
@@ -153,21 +157,30 @@ const SignerPage = ({ signer, number, plain = false }) => (
   </div>
 );
 
-const InsidePage = ({ recipient, accent }) => (
-  <div className="flex h-full flex-col items-center justify-center p-6 text-center" style={{ background:'linear-gradient(160deg,#FFFDF8,#FBF5FF)', color: INK }}>
-    <p className="text-[10px] font-extrabold uppercase tracking-[0.24em]" style={{ color: accent }}>For</p>
+// Default words; landing pages pass their own (and their own language).
+const DEFAULT_LABELS = {
+  for: 'For', intro: 'Every page in this book was written by someone who cares about you.', turn: 'Turn the page →',
+  gift: 'Group gift', chipped: (n) => `from ${n} people who chipped in`, withLove: 'With love,',
+  signed: (n) => `${n} people signed this card`, movie: 'Memory Movie ready to watch', cta: 'Create a card like this',
+};
+// `plain` pages use flat colours instead of gradients.
+const pageBg = (plain, gradient, flat) => (plain ? flat : gradient);
+
+const InsidePage = ({ recipient, accent, labels = DEFAULT_LABELS, plain = false }) => (
+  <div className="flex h-full flex-col items-center justify-center p-6 text-center" style={{ background: pageBg(plain, 'linear-gradient(160deg,#FFFDF8,#FBF5FF)', '#FFFDF8'), color: INK }}>
+    <p className="text-[10px] font-extrabold uppercase tracking-[0.24em]" style={{ color: accent }}>{labels.for}</p>
     <p className="font-vibes text-5xl leading-tight" style={{ color: accent }}>{recipient}</p>
-    <p className="mt-3 max-w-[14rem] text-sm leading-relaxed text-warm-500">Every page in this book was written by someone who cares about you.</p>
-    <p className="mt-5 text-xs font-bold text-warm-400">Turn the page →</p>
+    <p className="mt-3 max-w-[14rem] text-sm leading-relaxed text-warm-500">{labels.intro}</p>
+    <p className="mt-5 text-xs font-bold text-warm-400">{labels.turn}</p>
   </div>
 );
 
-const GiftPage = ({ signers, recipient, amount, currency, claimLine, plain = false }) => (
-  <div className="flex h-full flex-col items-center justify-center p-5 text-center" style={{ background:'linear-gradient(160deg,#ECFDF5,#FFFDF8 60%)', color: INK }}>
+const GiftPage = ({ signers, recipient, amount, currency, claimLine, plain = false, labels = DEFAULT_LABELS }) => (
+  <div className="flex h-full flex-col items-center justify-center p-5 text-center" style={{ background: pageBg(plain, 'linear-gradient(160deg,#ECFDF5,#FFFDF8 60%)', '#F0FDF7'), color: INK }}>
     {plain ? <Icon name="Gift" size={44} className="text-emerald-600" /> : <span className="text-5xl" aria-hidden="true">🎁</span>}
-    <p className="mt-3 text-[10px] font-extrabold uppercase tracking-[0.2em] text-emerald-700">Group gift</p>
+    <p className="mt-3 text-[10px] font-extrabold uppercase tracking-[0.2em] text-emerald-700">{labels.gift}</p>
     <p className="mt-1 text-3xl font-extrabold text-emerald-700 sm:text-4xl">{currency}{amount}</p>
-    <p className="mt-1 text-sm text-warm-500">from {signers.length + 17} people who chipped in</p>
+    <p className="mt-1 text-sm text-warm-500">{labels.chipped(signers.length + 17)}</p>
     <div className="mt-4 flex -space-x-2">
       {signers.map(s => (
         <span key={s.name} className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-white text-[10px] font-extrabold text-white" style={{ background: s.tint }}>{s.initials}</span>
@@ -178,15 +191,15 @@ const GiftPage = ({ signers, recipient, amount, currency, claimLine, plain = fal
   </div>
 );
 
-const BackPage = ({ signerCount, ctaTo = '/card/new' }) => (
-  <div className="flex h-full flex-col items-center justify-center p-5 text-center" style={{ background:'linear-gradient(160deg,#F5F0FF,#FFF0F7)', color: INK }}>
-    <p className="font-vibes text-4xl text-primary-700">With love,</p>
-    <p className="mt-1 text-sm font-bold text-warm-600">{signerCount} people signed this card</p>
-    <div className="mt-4 flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-bold text-primary-700 shadow-sm">
-      <Icon name="Film" size={14} /> Memory Movie ready to watch
+const BackPage = ({ signerCount, ctaTo = '/card/new', labels = DEFAULT_LABELS, plain = false }) => (
+  <div className="flex h-full flex-col items-center justify-center p-5 text-center" style={{ background: pageBg(plain, 'linear-gradient(160deg,#F5F0FF,#FFF0F7)', '#F7F3FF'), color: INK }}>
+    <p className="font-vibes text-4xl text-primary-700">{labels.withLove}</p>
+    <p className="mt-1 text-sm font-bold text-warm-600">{labels.signed(signerCount)}</p>
+    <div className={`mt-4 flex items-center gap-2 text-xs font-bold text-primary-700 ${plain ? '' : 'rounded-full bg-white px-4 py-2 shadow-sm'}`}>
+      <Icon name="Film" size={14} /> {labels.movie}
     </div>
-    <Link to={ctaTo} className="gc-btn-primary mt-5 inline-flex items-center gap-2 text-sm" onClick={e => e.stopPropagation()}>
-      <Icon name="Sparkles" size={16} /> Create a card like this
+    <Link to={ctaTo} className={`${plain ? 'rounded-xl bg-primary-600 px-4 py-2.5 font-bold text-white hover:bg-primary-700' : 'gc-btn-primary'} mt-5 inline-flex items-center gap-2 text-sm`} onClick={e => e.stopPropagation()}>
+      <Icon name="Sparkles" size={16} /> {labels.cta}
     </Link>
   </div>
 );
@@ -269,7 +282,7 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
   const [mobile, setMobile]   = useState(() => typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches);
   const autoTurning = useRef(false);
 
-  const { recipient, signers, design, accent, occasion, gift, ctaTo, plain } = config;
+  const { recipient, signers, design, accent, occasion, gift, ctaTo, plain, labels = DEFAULT_LABELS, lang = 'en', coverTitle } = config;
   const FULL_PAGES = useMemo(() => [
     { type:'cover' },
     { type:'inside' },
@@ -329,19 +342,19 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
           occasionLabel={occasion}
           occasionStyle={{ color:'#ffffff', background:'rgba(0,0,0,0.32)' }}
           recipientName={recipient}
-          title={`Happy ${occasion}, ${recipient}!`}
+          title={coverTitle || `Happy ${occasion}, ${recipient}!`}
           senderName="The Team"
           layout={design?.finishedArt ? HERO_COVER_LAYOUT : undefined}
           inBook
         />
       </div>
     );
-    if (p.type === 'inside') return <InsidePage recipient={recipient} accent={accent} />;
-    if (p.type === 'signer') return <SignerPage signer={p.signer} number={p.number} plain={plain} />;
-    if (p.type === 'gift') return <GiftPage signers={signers} recipient={recipient} amount={gift.amount} currency={gift.currency} claimLine={gift.claimLine} plain={plain} />;
-    return <BackPage signerCount={signers.length + 18} ctaTo={ctaTo} />;
+    if (p.type === 'inside') return <InsidePage recipient={recipient} accent={accent} labels={labels} plain={plain} />;
+    if (p.type === 'signer') return <SignerPage signer={p.signer} number={p.number} plain={plain} lang={lang} />;
+    if (p.type === 'gift') return <GiftPage signers={signers} recipient={recipient} amount={gift.amount} currency={gift.currency} claimLine={gift.claimLine} plain={plain} labels={labels} />;
+    return <BackPage signerCount={signers.length + 18} ctaTo={ctaTo} labels={labels} plain={plain} />;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [design, recipient, accent, occasion, signers, gift, ctaTo, plain]);
+  }, [design, recipient, accent, occasion, signers, gift, ctaTo, plain, labels, lang, coverTitle]);
 
   const pages = useMemo(() => PAGES.map((p, i) => ({
     key:`${p.type}-${i}`,
@@ -355,7 +368,7 @@ function AlbumFlipbook({ config, isActive, fullyLoad }) {
       onMouseLeave={() => setHover(false)}
       onKeyDown={stopAuto}>
       <div role="region" aria-roledescription="book" tabIndex={isActive ? 0 : -1}
-        aria-label={`${recipient}'s ${occasion} card`}
+        aria-label={labels.aria ? labels.aria(recipient, occasion) : `${recipient}'s ${occasion} card`}
         className={`relative rounded-2xl pb-2 pt-4 outline-none focus-visible:ring-4 focus-visible:ring-primary-200 ${isActive ? 'px-10 sm:px-12' : 'px-2'}`}>
         <NaturalFlipBook
           ref={bookRef}
@@ -490,10 +503,16 @@ const WEDDING_ALBUMS = [
     signers: WEDDING_SIGNERS_C, ctaTo:'/card/new?occasion=wedding', gift: null },
 ];
 
-export default function HeroAlbumStack({ variant, plain = false } = {}) {
+/**
+ * @param {string}  [variant]  'wedding' for the wedding set
+ * @param {boolean} [plain]    no emojis, dashes or gradients
+ * @param {Array}   [albums]   three custom album configs (ids jane, sarah, jackson);
+ *                             landing pages build these from their own data
+ */
+export default function HeroAlbumStack({ variant, plain = false, albums: customAlbums = null } = {}) {
   const albums = useMemo(
-    () => (variant === 'wedding' ? WEDDING_ALBUMS : ALBUMS).map(a => (plain ? { ...a, plain: true } : a)),
-    [variant, plain],
+    () => (customAlbums || (variant === 'wedding' ? WEDDING_ALBUMS : ALBUMS)).map(a => (plain ? { ...a, plain: true } : a)),
+    [variant, plain, customAlbums],
   );
   const [order, setOrder] = useState(INITIAL_ORDER);
   // Once an album has been brought to the front, keep its full content

@@ -29,6 +29,14 @@ const deliveryLabel = (card) => {
 const TYPE_LABEL = { individual: 'Individual', company: 'Company (HR)', team_member: 'Team member', pal_group: 'Pals group', guest: 'Guest' };
 const EVENT_ICON = { created: '🆕', claimed: '🔗', published: '🚀', paid: '💳', reminder: '📧', signed: '✍️', gift: '🎁', gift_pending: '⏳', reply: '💬', claim: '🏦', delivered: '📬', opened: '👀', redelivered: '🔁', log: '📝' };
 
+// What a draft's signer had chosen to give (never charged).
+const giftLabel = (d) => {
+  const g = d.extra?.gift;
+  if (g?.product?.name) return `${g.product.name}${g.product.vendor ? ` from ${g.product.vendor}` : ''}`;
+  if (g?.display) return g.display;
+  return Number(d.gift_intent) > 0 ? formatNGN(d.gift_intent) : '';
+};
+
 const Stat = ({ label, value, tone = '#7C3AED' }) => (
   <div className="rounded-2xl border border-purple-100 bg-white px-4 py-3">
     <p className="text-xl font-extrabold" style={{ color: tone }}>{value}</p>
@@ -105,8 +113,13 @@ export default function AdminCardDetails({ cardId, onClose }) {
   const postDraft = async (d) => {
     const who = d.author_name || d.author_email || 'this signer';
     if (alreadySigned(d) && !window.confirm(`${d.author_email} has already signed this card with a different message. Check the Signers list first.\n\nPost this draft as well?`)) return;
-    const extras = [d.has_media && 'their photos, videos or voice notes', Number(d.gift_intent) > 0 && 'their gift'].filter(Boolean);
-    if (!window.confirm(`Post ${who}'s message to the card now?${extras.length ? `\n\nOnly the text can be posted. ${extras.join(' and ')} were not saved.` : ''}\n\nThey will get an email saying their message is on the card.`)) return;
+    const files = (d.media || []).length;
+    const gift = giftLabel(d);
+    const notes = [
+      files ? `${files} attached file${files === 1 ? '' : 's'} will be posted with it.` : '',
+      gift ? `They chose a gift (${gift}) but did not pay it, so no money is added. The email asks them to add it.` : '',
+    ].filter(Boolean).join('\n');
+    if (!window.confirm(`Post ${who}'s message to the card now?${notes ? `\n\n${notes}` : ''}\n\n${d.author_email ? `An email goes to ${d.author_email} saying their message is on the card. Check the address and the message look genuine first.` : 'No email address was given, so nobody is emailed.'}`)) return;
     setDraftBusy(d.id);
     try {
       const r = await adminAPI.postSignatureDraft(cardId, d.id);
@@ -300,13 +313,13 @@ export default function AdminCardDetails({ cardId, onClose }) {
             <Section title="Signature drafts" count={(data.drafts || []).length}>
               <p className="mb-3 text-xs text-warm-500">
                 People who started signing but left before their signature was submitted. Check the message, then press Post to add it to the card for them.
-                Only the text is kept; attached files and gifts are not.
+                Their text, name, email and attached files are kept and posted together. A gift they chose is shown here but was never paid, so it is not added to the pot.
               </p>
               {(data.drafts || []).length === 0 ? <p className="text-xs text-warm-400">No unfinished signatures.</p> : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead><tr className="text-left text-[11px] uppercase tracking-wide text-warm-400">
-                      <th className="py-1.5 pr-3">Signer</th><th className="py-1.5 pr-3">Message</th><th className="py-1.5 pr-3">Left out</th><th className="py-1.5 pr-3">Last saved</th><th className="py-1.5"></th>
+                      <th className="py-1.5 pr-3">Signer</th><th className="py-1.5 pr-3">Message</th><th className="py-1.5 pr-3">Files and gift</th><th className="py-1.5 pr-3">Last saved</th><th className="py-1.5"></th>
                     </tr></thead>
                     <tbody className="divide-y divide-purple-50">
                       {data.drafts.map(d => (
@@ -315,10 +328,21 @@ export default function AdminCardDetails({ cardId, onClose }) {
                             {alreadySigned(d) && <span className="mt-1 inline-block rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">Already signed this card</span>}</td>
                           <td className="max-w-[340px] py-2 pr-3 text-warm-700">
                             {d.is_private && <span className="mr-1 rounded bg-warm-100 px-1 text-[10px] font-bold">private</span>}
-                            <span className="whitespace-pre-wrap break-words">{d.content}</span>
+                            <span className="whitespace-pre-wrap break-words">{d.content || <em className="text-warm-400">No written message yet</em>}</span>
                           </td>
                           <td className="py-2 pr-3 text-warm-500">
-                            {[d.has_media && 'Files', Number(d.gift_intent) > 0 && `Gift ${formatNGN(d.gift_intent)}`].filter(Boolean).join(', ') || '—'}
+                            {(d.media || []).length > 0 && (
+                              <div className="mb-1 flex flex-wrap gap-1">
+                                {d.media.map((m, i) => (
+                                  m.type === 'image' || m.type === 'gif'
+                                    ? <a key={i} href={m.url} target="_blank" rel="noreferrer"><img src={m.url} alt={m.name || 'Attached image'} className="h-10 w-10 rounded object-cover" /></a>
+                                    : <a key={i} href={m.url} target="_blank" rel="noreferrer" className="rounded border border-purple-100 px-1.5 py-0.5 text-[11px] font-semibold text-primary-700 underline">{m.type === 'voice' ? 'Voice note' : 'Video'}</a>
+                                ))}
+                              </div>
+                            )}
+                            {d.has_media && !(d.media || []).length && <p className="text-[11px]">Files were attached but had not finished uploading</p>}
+                            {giftLabel(d) && <p className="text-[11px] font-semibold text-amber-700">Chose a gift: {giftLabel(d)} (not paid)</p>}
+                            {!(d.media || []).length && !d.has_media && !giftLabel(d) && '—'}
                           </td>
                           <td className="whitespace-nowrap py-2 pr-3 text-warm-500">{fmt(d.updated_at)}</td>
                           <td className="whitespace-nowrap py-2">

@@ -100,6 +100,36 @@ router.patch('/position/:message_id', validateUUIDParam('message_id'), flexAuth,
 // navigator.sendBeacon as text/plain, so both JSON and text bodies are read.
 const { saveDraft } = require('../utils/signatureDrafts');
 const draftLimiter = require('../utils/paramGuard').makeDraftLimiter();
+// Files attached to an unfinished signature, uploaded as soon as they are
+// added so the draft keeps them even if the page is closed before submit.
+// Strict limit: uploads cost storage, so far fewer than text saves.
+const draftMediaLimiter = require('../utils/paramGuard').makeDraftMediaLimiter();
+// Checked BEFORE any file is accepted: a valid draft key (in the query) and
+// a published card. Only then does multer upload the file.
+const checkDraftUpload = async (req, res, next) => {
+  try {
+    const key = String(req.query.k || '');
+    if (!/^[a-f0-9]{32}$/.test(key)) return res.status(400).json({ error: 'Invalid draft' });
+    const { data: card } = await supabase.from('cards').select('id, status').eq('slug', req.params.card_slug).maybeSingle();
+    if (!card || card.status === 'draft') return res.status(404).json({ error: 'Card not found' });
+    return next();
+  } catch { return res.status(500).json({ error: 'Could not upload' }); }
+};
+router.post('/:card_slug/draft/media', validateSlugParam('card_slug'), draftMediaLimiter, checkDraftUpload, handleUpload, async (req, res) => {
+  try {
+    const base = require('../utils/lemonSqueezy').frontendUrl();
+    const files = (req.files || []).slice(0, 1).map(f => ({
+      url: f.path?.startsWith('http') ? f.path : `${base}/uploads/${require('path').basename(f.path)}`,
+      type: f.mimetype.startsWith('video/') ? 'video' : f.mimetype.startsWith('audio/') ? 'voice' : f.mimetype === 'image/gif' ? 'gif' : 'image',
+      name: String(f.originalname || '').slice(0, 120),
+    }));
+    if (!files.length) return res.status(400).json({ error: 'No file received' });
+    return res.status(201).json({ files });
+  } catch (e) {
+    console.error('[drafts] media upload failed:', e.message);
+    return res.status(500).json({ error: 'Could not upload' });
+  }
+});
 router.post('/:card_slug/draft', validateSlugParam('card_slug'), draftLimiter,
   express.text({ type: 'text/plain', limit: '64kb' }),
   async (req, res) => {

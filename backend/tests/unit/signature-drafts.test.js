@@ -135,3 +135,39 @@ test('one IP cannot create more than 15 new drafts per card per hour', async () 
   // Someone else on another IP is not affected.
   assert.equal((await d.saveDraft('bday', { draft_key: 'f'.repeat(32), content: 'x' }, { ip: '5.6.7.8' })).status, 201);
 });
+
+test('keeps uploaded files and the chosen gift, and posts the files with the message', async () => {
+  const media = [
+    { url: 'https://res.cloudinary.com/demo/image/upload/a.jpg', type: 'image', name: 'a.jpg' },
+    { url: 'https://res.cloudinary.com/demo/video/upload/v.mp3', type: 'voice' },
+    { url: 'https://evil.example/x.jpg', type: 'image' },
+  ];
+  await d.saveDraft('bday', { draft_key: KEY, author_name: 'Bola', author_email: 'b@x.com', content: 'Hi', media, gift: { amount_ngn: 5000, currency: 'GBP', display: '£2.50' } });
+  const row = db.signature_drafts[0];
+  assert.equal(row.media.length, 2, 'outside URLs are dropped');
+  assert.equal(row.has_media, true);
+  assert.equal(row.extra.gift.currency, 'GBP');
+  const r = await d.postDraft('c1', row.id);
+  assert.equal(r.status, 201);
+  const m = db.messages[0];
+  assert.equal(m.media_url, media[0].url);
+  assert.equal(m.media_type, 'image');
+  assert.deepEqual(JSON.parse(m.media_gallery), [{ media_url: media[1].url, media_type: 'voice' }]);
+});
+
+test('a draft needs words; files alone are not saved yet', async () => {
+  const r = await d.saveDraft('bday', { draft_key: KEY, content: '', media: [{ url: 'https://res.cloudinary.com/demo/image/upload/a.jpg', type: 'image' }] });
+  assert.equal(r.body.skipped, true);
+  assert.equal(db.signature_drafts.length, 0);
+});
+
+test('only our own Cloudinary account is accepted when the cloud name is set', () => {
+  process.env.CLOUDINARY_CLOUD_NAME = 'thankeeu';
+  try {
+    const out = d.cleanMedia([
+      { url: 'https://res.cloudinary.com/thankeeu/image/upload/a.jpg', type: 'image' },
+      { url: 'https://res.cloudinary.com/someone-else/image/upload/b.jpg', type: 'image' },
+    ]);
+    assert.deepEqual(out.map(m => m.url), ['https://res.cloudinary.com/thankeeu/image/upload/a.jpg']);
+  } finally { delete process.env.CLOUDINARY_CLOUD_NAME; }
+});

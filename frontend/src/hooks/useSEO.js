@@ -103,6 +103,8 @@ export function useSEO({
   keywords    = '',
   locale      = 'en',
   jsonLd      = null,
+  lang        = null,   // page language for <html lang>, e.g. 'de'
+  alternates  = null,   // [{ hreflang: 'en-GB', path: '/x' }]: this page in other countries/languages
 } = {}) {
   const location = useLocation();
   usePricing(); // titles/descriptions quoting a price update when prices load
@@ -168,15 +170,36 @@ export function useSEO({
     // ── Canonical ─────────────────────────────────────────────────────────────
     setLink('canonical', canonicalPath);
 
-    // ── hreflang (Primary language) ───────────────────────────────────
-    setLink('alternate', canonicalPath, { hreflang: 'en' });
-    setLink('alternate', canonicalPath, { hreflang: 'x-default' });
+    // ── hreflang ───────────────────────────────────────────────────────
+    // Pages with country/language versions list all of them (reciprocal);
+    // everything else declares itself as the English default.
+    document.querySelectorAll('link[rel="alternate"][data-seo-alt]').forEach(el => el.remove());
+    if (Array.isArray(alternates) && alternates.length) {
+      document.querySelectorAll('link[rel="alternate"][hreflang]').forEach(el => el.remove());
+      for (const a of alternates) {
+        const el = document.createElement('link');
+        el.setAttribute('rel', 'alternate');
+        el.setAttribute('hreflang', a.hreflang);
+        el.setAttribute('href', `${BASE_URL}${a.path}`);
+        el.setAttribute('data-seo-alt', '');
+        document.head.appendChild(el);
+      }
+    } else {
+      setLink('alternate', canonicalPath, { hreflang: 'en' });
+      setLink('alternate', canonicalPath, { hreflang: 'x-default' });
+    }
+
+    // ── <html lang> ──────────────────────────────────────────────────────
+    const prevLang = document.documentElement.getAttribute('lang');
+    if (lang) document.documentElement.setAttribute('lang', lang);
 
     // ── JSON-LD ───────────────────────────────────────────────────────────────
     setJsonLd(jsonLd, 'ld-page');
 
     // ── Cleanup on unmount ────────────────────────────────────────────────────
     return () => {
+      if (lang) document.documentElement.setAttribute('lang', prevLang || 'en');
+      document.querySelectorAll('link[rel="alternate"][data-seo-alt]').forEach(el => el.remove());
       const ldScript = document.getElementById('ld-page');
       if (ldScript) ldScript.remove();
     };

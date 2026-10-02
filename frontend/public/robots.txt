@@ -1,111 +1,101 @@
-# Thankeeu — robots.txt
-# https://www.thankeeu.com
-# Last updated: 2026-07-17
-
-# ── Default: allow all crawlers ───────────────────────────────────────────────
 User-agent: *
 Allow: /
 
-# Block private / authenticated pages (no SEO value, auth-gated)
-Disallow: /dashboard
-Disallow: /teams
-Disallow: /members
-Disallow: /employees
-Disallow: /deductions
-Disallow: /subscription
-Disallow: /settings
-Disallow: /support
-Disallow: /hris
-Disallow: /create-card
-Disallow: /reset-password
-Disallow: /forgot-password
-Disallow: /gift/
-# Private per-recipient money cards — carry a claim token, never index
-Disallow: /money/
-Disallow: /card/
-Disallow: /sign/
-Disallow: /admin
-Disallow: /company/dashboard
-Disallow: /company/teams
-Disallow: /company/members
-Disallow: /company/deductions
-Disallow: /company/subscription
-Disallow: /company/settings
-Disallow: /company/support
-Disallow: /company/hris
-Disallow: /company/reset-password
-Disallow: /company/forgot-password
-Disallow: /member/dashboard
-Disallow: /member/occasions
-Disallow: /member/reset-password
-Disallow: /member/forgot-password
-
-# ── Allow social crawlers for OG previews ────────────────────────────────────
-User-agent: facebookexternalhit
-Allow: /
-
-User-agent: WhatsApp
-Allow: /
-
-User-agent: TelegramBot
-Allow: /
-
-User-agent: LinkedInBot
-Allow: /
-
-User-agent: Slackbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-# ── Allow AI search crawlers (GEO — must be able to read public pages) ────────
-# These power ChatGPT, Perplexity, Gemini, Copilot citations.
-# Blocking them = invisible to AI recommendations entirely.
+# AI answer-engine crawlers — explicitly allowed for GEO (generative engine
+# optimization). "Allow: /" above already permits these, but listing them
+# explicitly signals intent and matches what GPTBot/ClaudeBot/PerplexityBot
+# etc. look for when deciding how much of the site to ingest.
 User-agent: GPTBot
 Allow: /
-Disallow: /dashboard
-Disallow: /teams
-Disallow: /members
-Disallow: /employees
-Disallow: /settings
-Disallow: /hris
-Disallow: /create-card
-Disallow: /gift/
-# Private per-recipient money cards — carry a claim token, never index
-Disallow: /money/
-Disallow: /admin
-Disallow: /company/dashboard
-Disallow: /member/dashboard
 
 User-agent: ChatGPT-User
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-Disallow: /dashboard
-Disallow: /teams
-Disallow: /members
-Disallow: /employees
-Disallow: /settings
-Disallow: /hris
-Disallow: /create-card
-Disallow: /gift/
-# Private per-recipient money cards — carry a claim token, never index
-Disallow: /money/
-Disallow: /admin
-
-User-agent: anthropic-ai
 Allow: /
 
 User-agent: ClaudeBot
 Allow: /
 
+User-agent: Claude-User
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
 User-agent: Google-Extended
 Allow: /
 
-User-agent: Bytespider
-Disallow: /
+User-agent: CCBot
+Allow: /
 
-# ── Sitemap ───────────────────────────────────────────────────────────────────
-Sitemap: https://www.thankeeu.com/sitemap.xml
+User-agent: Bytespider
+Allow: /
+
+# High-priority errand service pages — ensure full crawl
+Allow: /errands
+Allow: /errands/lagos
+Allow: /errands/abuja
+Allow: /errands/port-harcourt
+Allow: /errands/ibadan
+Allow: /errands/kano
+Allow: /errands/benin-city
+Allow: /errands/enugu
+Allow: /errands/warri
+Allow: /errands/owerri
+Allow: /errands/calabar
+Allow: /errands/uyo
+Allow: /errands/ilorin
+Allow: /errands/abeokuta
+Allow: /errands/onitsha
+Allow: /errands/jos
+Allow: /diaspora
+Allow: /diaspora/uk
+Allow: /diaspora/usa
+Allow: /diaspora/canada
+Allow: /vs/jiji
+Allow: /errand-runner-near-me
+Allow: /house-land-inspection
+Allow: /delivery
+Allow: /document-pickup
+Allow: /office-support
+Allow: /business-support
+
+# Service pages
+Allow: /property-inspection
+Allow: /field-engineers
+Allow: /installations
+Allow: /asset-verification
+Allow: /merchandising
+
+# Teams
+Allow: /teams
+
+# Blog
+Allow: /blog
+
+# Disallow internal dashboard routes from indexing
+Disallow: /dashboard
+Disallow: /requester/dashboard
+Disallow: /tasker/dashboard
+Disallow: /admin
+Disallow: /payment/callback
+Disallow: /auth/verified
+Disallow: /auth/tasker-approved
+
+# Country sites stay crawlable; their dashboards do not need indexing.
+Disallow: /*/requester$
+Disallow: /*/requester?
+Disallow: /*/tasker$
+Disallow: /*/tasker?
+Disallow: /*/auth
+
+Sitemap: https://taskeeu.com/sitemap.xml
+Sitemap: https://taskeeu.com/sitemap-countries.xml
+Sitemap: https://taskeeu.com/sitemap-us.xml
+Sitemap: https://taskeeu.com/sitemap-uk.xml
+Sitemap: https://taskeeu.com/sitemap-ireland.xml
+Sitemap: https://taskeeu.com/sitemap-australia.xml
+Sitemap: https://taskeeu.com/sitemap-new-zealand.xml
+Sitemap: https://taskeeu.com/sitemap-canada.xml
+Sitemap: https://taskeeu.com/sitemap-singapore.xml

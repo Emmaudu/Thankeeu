@@ -1,1183 +1,332 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const helmet = require('helmet');
+const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
-const cron         = require('node-cron');
-const cookieParser = require('cookie-parser');
-const supabase      = require('./utils/supabase');
-const { tenantResolver } = require('./middleware/tenant');
-const FRONTEND_URL = (() => {
-  const raw = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
-  let s = raw.trim();
-  if (!s.startsWith('http') && s.includes('=')) s = s.slice(s.lastIndexOf('=') + 1).trim();
-  s = s.replace(/['"]/g, '').trim().replace(/\/$/, '');
-  return (s.startsWith('http') ? s : 'https://thankeeu.com');
-})();
-const { sendEmail } = require('./utils/email');
+const bcrypt = require('bcryptjs');
+const { sanitizeBody, sanitizeQuery, removeSensitiveFields, checkPasswordLength } = require('./middleware/sanitize');
 
 const app = express();
-
-// Trust Railway's reverse proxy so req.ip / X-Forwarded-For are read correctly.
-// Without this, express-rate-limit throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR on
-// every request and falls back to the proxy's IP, breaking per-IP rate limits.
+// Trust the first proxy hop (Railway, Vercel, etc.)
+// This makes req.ip reflect the real client IP from X-Forwarded-For
 app.set('trust proxy', 1);
+app.disable('x-powered-by'); // don't advertise Express version
+const server = http.createServer(app);
 
-// Security
+// ─── Socket.io ────────────────────────────────────────────────────
+const io = new Server(server, {
+  cors: {
+    origin: (process.env.FRONTEND_URL || 'http://localhost:5173').split(',').map(u => u.trim()),
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+  },
+  pingTimeout: 60000,
+});
+
+app.set('io', io);
+require('./socket/chatSocket')(io);
+
+// ─── Middleware ───────────────────────────────────────────────────
 app.use(helmet({
+  crossOriginResourcePolicy: false,
   contentSecurityPolicy: {
     directives: {
-      defaultSrc:     ["'self'"],
-      scriptSrc:      ["'self'", "'unsafe-inline'", "https://api.flutterwave.com", "https://checkout.flutterwave.com"],
-      styleSrc:       ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc:        ["'self'", "https://fonts.gstatic.com"],
-      imgSrc:         ["'self'", "data:", "https:", "blob:"],
-      connectSrc:     ["'self'", "https://api.flutterwave.com", "https://auth.reloadly.com", "https://giftcards.reloadly.com", "https://giftcards-sandbox.reloadly.com", "https://*.supabase.co", "https://res.cloudinary.com", "https://api.cloudinary.com"],
-      frameSrc:       ["https://checkout.flutterwave.com"],
-      objectSrc:      ["'none'"],
-      upgradeInsecureRequests: [],
-      frameAncestors: ["'none'"],
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://checkout.flutterwave.com", "https://api.flutterwave.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      connectSrc: ["'self'", "https://api.flutterwave.com", "https://checkout.flutterwave.com"],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
     },
   },
-  crossOriginEmbedderPolicy: false,
-}));
-
-// Additional security headers not covered by helmet defaults
-const {
-  securityHeaders,
-  publicCardLimiter,
-  paymentVerifyLimiter,
-  bankVerifyLimiter,
-  signCardLimiter,
-} = require('./utils/paramGuard');
-app.use(securityHeaders);
-app.use(cookieParser(process.env.COOKIE_SECRET || process.env.JWT_SECRET));
-/**
- * CORS.
- *
- * This used to build an allowlist and then `return callback(null, true)`
- * unconditionally on the last line, so every origin on the internet was
- * allowed — with `credentials: true` and `sameSite: 'none'` cookies behind it.
- * Any page anywhere could make authenticated calls as a signed-in user.
- *
- * The allowlist is now actually enforced. It is deliberately generous about
- * the things that legitimately vary — Vercel preview deployments, workspace
- * subdomains, local dev — and closed to everything else.
- *
- * The old bare substring test for our brand name is gone: it matched
- * evil-thankeeu.com and thankeeu.attacker.net just as happily as our own
- * domains. Suffix and exact matches only, https everywhere but localhost.
- *
- * If a legitimate origin is ever missing, CORS_EXTRA_ORIGINS (comma-separated)
- * adds it without a code change, and every rejection is logged with the exact
- * value to add.
- */
-const APEX = ['https://thankeeu.com', 'https://www.thankeeu.com'];
-
-const staticOrigins = new Set([
-  ...APEX,
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:5000',
-  'http://127.0.0.1:5173',
-  ...String(process.env.CORS_EXTRA_ORIGINS || '')
-    .split(',').map(o => o.trim()).filter(Boolean),
-].filter(Boolean));
-
-const originAllowed = (origin) => {
-  if (staticOrigins.has(origin)) return true;
-
-  let url;
-  try { url = new URL(origin); } catch { return false; }
-  const host = url.hostname;
-
-  // Local development, including *.localhost workspace testing. The only place
-  // plain http is acceptable.
-  const isLocal = host === 'localhost' || host.endsWith('.localhost') || host === '127.0.0.1';
-  if (isLocal) return url.protocol === 'http:' || url.protocol === 'https:';
-
-  // Everything else must be https. Session cookies here are `secure` and
-  // `sameSite: none`; honouring an http origin on our own domain would invite
-  // a downgrade and hand a network attacker a foothold.
-  if (url.protocol !== 'https:') return false;
-
-  // Our own wildcard subdomains: company workspaces, games, mentorship, admin.
-  if (host === 'thankeeu.com' || host.endsWith('.thankeeu.com')) return true;
-  // Vercel preview deployments for this project.
-  if (host.endsWith('.vercel.app')) return true;
-
-  return false;
-};
-
-const rejectedOrigins = new Set();   // log each unknown origin once, not per request
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // No Origin header: same-origin, curl, server-to-server, native apps and
-    // the Flutterwave webhook. These are not browser cross-origin requests and
-    // are not what CORS protects against.
-    if (!origin) return callback(null, true);
-    if (originAllowed(origin)) return callback(null, true);
-
-    if (!rejectedOrigins.has(origin)) {
-      rejectedOrigins.add(origin);
-      console.warn(`[cors] blocked origin: ${origin} — if this is yours, add it to CORS_EXTRA_ORIGINS`);
-    }
-    // `false`, not an Error: the request is answered without CORS headers, so
-    // the browser blocks it. Passing an Error would surface a 500 in logs for
-    // what is ordinary, expected traffic.
-    return callback(null, false);
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
   },
-  credentials: true,
+  noSniff: true,
+  xssFilter: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
+app.use(morgan('dev'));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      const allowed = (process.env.FRONTEND_URL || 'http://localhost:5173')
+        .split(',').map(u => u.trim()).filter(Boolean);
+      // Allow same-origin requests (no origin header) and explicitly listed origins
+      if (!origin || allowed.some(a => origin === a || origin.startsWith(a))) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
+    credentials: true,
+  })
+);
 
-// Query-string sanitisation
-app.use((req, _res, next) => {
-  if (req.query) {
-    for (const k of Object.keys(req.query)) {
-      if (typeof req.query[k] === 'string') req.query[k] = req.query[k].slice(0, 500);
-    }
-  }
-  next();
+// Raw body for Flutterwave webhook BEFORE json middleware
+app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
+app.use('/api/payments/rapyd-webhook', express.raw({ type: '*/*' }));
+
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '2mb' }));
+
+// ─── Input Sanitization ───────────────────────────────────────────
+app.use(sanitizeBody);
+app.use(sanitizeQuery);
+app.use(removeSensitiveFields); // never leak password_hash in any response
+
+// ─── Rate Limiters ───────────────────────────────────────────────
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 min
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many requests. Please slow down.' },
+  skip: (req) => req.path === '/health', // never limit health check
 });
 
-// Webhook must be mounted BEFORE express.json so the raw body is intact for HMAC verification
-app.use('/webhook', require('./routes/webhook'));
-
-// Body parsing (all other routes)
-app.use(express.json({ limit: '1mb' }));   // 1mb is plenty for JSON APIs
-app.use(tenantResolver);
-// Note: file uploads use multipart/form-data (multer), not JSON body — unaffected
-
-// ── Startup env validation ────────────────────────────────────────────────────
-const _rawEnvFE = process.env.FRONTEND_URL || process.env.FRONTEND_URLS || '';
-if (_rawEnvFE.includes('=') && !_rawEnvFE.startsWith('http')) {
-  console.warn('⚠️  FRONTEND_URL env var appears malformed:', JSON.stringify(_rawEnvFE));
-  console.warn('   Fix: in Railway, set FRONTEND_URL = https://thankeeu.com (no KEY= prefix)');
-  console.warn('   The app has auto-corrected this and will work normally.');
-}
-const _startupFE = (() => {
-  let s = _rawEnvFE.trim();
-  if (s.includes('=') && !s.startsWith('http')) s = s.slice(s.indexOf('=') + 1).trim();
-  s = s.replace(/['"]/g, '').replace(/\/$/, '').trim();
-  return s.startsWith('http') ? s : 'https://thankeeu.com';
-})();
-console.log('✓ FRONTEND_URL resolved to:', _startupFE);
-app.use(express.urlencoded({ extended: true }));
-
-// ── Tiered rate limiting ──────────────────────────────────────────────────
-// Placed after body-parsing so authLimiter's keyGenerator can read
-// req.body.email (POST bodies aren't available to middleware mounted
-// before express.json()/express.urlencoded()).
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, max: 2000,
-  standardHeaders: true, legacyHeaders: false,
-  message: { error: 'Too many requests. Please try again later.' },
-});
-
-// Key auth attempts by (IP + email) rather than IP alone. Without this,
-// express-rate-limit's default IP-based key means one account being
-// hammered with bad passwords from a shared IP (office network, mobile
-// carrier NAT, VPN) locks out every OTHER account on that same IP too.
-// Falling back to IP alone when no email is present in the body keeps
-// non-credential endpoints (if ever added to this limiter) protected.
-const authKeyGenerator = (req) => {
-  const email = (req.body && typeof req.body.email === 'string')
-    ? req.body.email.trim().toLowerCase()
-    : '';
-  return email ? `${req.ip}:${email}` : req.ip;
-};
-
+// Auth limiter for LOGIN — keyed by email+IP so one user can't block others
 const authLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 5,  // 5 attempts per hour per IP+email
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    const email = (req.body?.email || '').toLowerCase().trim();
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    return email ? `${email}::${ip}` : ip;
+  },
   skipSuccessfulRequests: true,
-  standardHeaders: true, legacyHeaders: false,
-  keyGenerator: authKeyGenerator,
-  message: { error: 'Too many sign-in attempts. Please wait 1 hour and try again.' },
+  message: { success: false, message: 'Too many login attempts. Please wait 15 minutes before trying again.' },
 });
-const demoLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 5,
-  message: { error: 'Too many demo requests from this IP. Please try again later.' },
-});
-app.use('/api/', generalLimiter);
-app.use('/api/auth/login',           authLimiter);
-app.use('/api/auth/signup',          authLimiter);
-app.use('/api/company/login',        authLimiter);
-app.use('/api/members/login',        authLimiter);
-app.use('/api/members/signup',       authLimiter);
-app.use('/api/pals/signup',           authLimiter);
-app.use('/api/pals/login',            authLimiter);
-app.use('/api/auth/forgot-password',        authLimiter);
-app.use('/api/auth/reset-password',         authLimiter);
-app.use('/api/company/signup',              authLimiter);
-app.use('/api/company/forgot-password',     authLimiter);
-app.use('/api/auth/send-code',              authLimiter);
-app.use('/api/auth/verify-code',            authLimiter);
-app.use('/api/members/forgot-password',     authLimiter);
-app.use('/api/members/reset-password',      authLimiter);
-app.use('/api/vendor/login',                authLimiter);
-app.use('/api/vendor/signup',               authLimiter);
-app.use('/api/pals/forgot-password',        authLimiter);
-app.use('/api/pals/reset-password',         authLimiter);
-app.use('/api/vendor/forgot-password',      authLimiter);
-app.use('/api/vendor/reset-password',       authLimiter);
-app.use('/api/company/reset-password',      authLimiter);
-app.use('/api/demo/request',         demoLimiter);
 
-// Routes
+// Register limiter — much more lenient (signup is multi-step)
+// Keyed by IP only since we don't have email at all steps (e.g. photo upload)
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour window
+  max: 50, // 50 signup attempts per hour per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { success: false, message: 'Too many registration attempts. Please try again later.' },
+});
+
+// Upload limiter
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 30,
+  message: { success: false, message: 'Too many uploads. Try again later.' },
+});
+
+// Support ticket limiter
+const supportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: { success: false, message: 'Too many support tickets. Try again later.' },
+});
+
+app.use('/api', globalLimiter);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', registerLimiter);
+app.use('/api/auth/register/tasker/step2', uploadLimiter);
+app.use('/api/auth/register/tasker/step3', uploadLimiter);
+// Apply support ticket creation rate limit only to POST /api/support/tickets
+app.post('/api/support/tickets', supportLimiter);
+
+// ─── Routes ───────────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/dashboard', require('./routes/dashboard'));
-// Card public route gets its own tighter rate limit to prevent slug enumeration
-app.use('/api/cards/public', publicCardLimiter);
-app.use('/api/cards', require('./routes/cards'));
-// Message signing has its own per-IP+slug rate limit
-app.use('/api/messages', signCardLimiter);
-app.use('/api/messages', require('./routes/messages'));
-// Payment verification is a high-value target — tight limit
-app.use('/api/payments/verify', paymentVerifyLimiter);
+app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/reviews', require('./routes/reviews'));
+app.use('/api/taskers', require('./routes/taskers'));
 app.use('/api/payments', require('./routes/payments'));
-app.use('/api/notifications', require('./routes/notifications'));
-// Bank account verification is a lookup that could be abused to enumerate accounts
-app.use('/api/banks/verify', bankVerifyLimiter);
-app.use('/api/banks',     require('./routes/banks'));
-app.use('/api/giftcards', require('./routes/giftcards'));
-app.use('/api/money',     require('./routes/moneyTransfer'));
-app.use('/api/gifs',      require('./routes/gifs'));
-app.use('/api/credits',   require('./routes/credits'));
-app.use('/api/visitors', require('./routes/visitors'));
-app.use('/api/core-team', require('./routes/coreTeam'));
+app.use('/api/chat', require('./routes/chat'));
 app.use('/api/admin', require('./routes/admin'));
-// Teams / Company routes
-app.use('/api/company', require('./routes/company'));
 app.use('/api/teams', require('./routes/teams'));
-app.use('/api/subscription', require('./routes/subscription'));
-app.use('/api/support', require('./routes/support'));
-app.use('/api/occasions',    require('./routes/occasions'));
-app.use('/api/analytics',    require('./routes/analytics'));
-app.use('/api/activity-log', require('./routes/activityLog'));
-app.use('/api/vendor',       require('./routes/vendor'));
-app.use('/api/members', require('./routes/companyMembers'));
-app.use('/api/games', require('./routes/games'));
-app.use('/api/deductions', require('./routes/deductions'));
-app.use('/api/hris', require('./routes/hrisPublic')); // public: zoho-callback (no auth)
-app.use('/api/hris', require('./routes/hris'));       // protected: all other hris routes
+app.use('/api/enterprise-tasks', require('./routes/enterprise-tasks'));
+app.use('/api/certifications', require('./routes/certifications'));
 app.use('/api/demo', require('./routes/demo'));
-app.use('/api/mentorship', require('./routes/mentorship'));
-app.use('/api/blog',   require('./routes/blog'));
-app.use('/api/movies', require('./routes/movies'));
-app.use('/api/wall',   require('./routes/wall'));
-app.use('/api/reminders', require('./routes/reminders'));
-app.use('/api/pals', require('./routes/pals'));
-// Public site content — homepage hero text edited in Admin → Header
-app.use('/api/site', require('./routes/site'));
+app.use('/api/contact', require('./routes/contact'));
+app.use('/api/support', require('./routes/support'));
+app.use('/api/blog', require('./routes/blog'));
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/referrals', require('./routes/referrals'));
+app.use('/api/push', require('./routes/push'));
+app.use('/api/track', require('./routes/track'));
+app.use('/api/vooom', require('./routes/vooom'));
 
-// Health check
-app.get('/health', (req, res) => res.json({
-  status: 'ok', app: 'Thankeeu API', time: new Date(),
-  lastDeliverySweep: deliveryEngine.getLastSweep(),
-}));
-
-// Why hasn't a scheduled card gone out? Lists every overdue undelivered card
-// with the reason (draft / unpaid / no recipient email / email backoff).
-app.get('/api/internal/delivery-status', async (req, res) => {
-  if (!process.env.ADMIN_SECRET || req.headers['x-admin-secret'] !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  try { res.json({ lastSweep: deliveryEngine.getLastSweep(), cards: await deliveryEngine.deliveryStatus({ limit: 200 }) }); }
-  catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// Manual trigger for debugging/testing — protected by ADMIN_SECRET.
-// Lets you verify the delivery pipeline works without waiting for 8AM,
-// and surfaces exactly which cards were found and whether each succeeded.
-// NOTE: placed here (before the 404 catch-all, and on a path that does not
-// collide with the existing /api/admin router + its adminAuth middleware).
-app.post('/api/internal/run-auto-send', async (req, res) => {
-  const providedSecret = req.headers['x-admin-secret'];
-  if (!process.env.ADMIN_SECRET || providedSecret !== process.env.ADMIN_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-  try {
-    const result = await autoSendDueCards();
-    res.json(result);
-  } catch (err) {
-    console.error('[auto-send] Manual trigger error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Serve local uploads when Cloudinary is not configured
-const path = require('path');
-const uploadsDir = path.join(__dirname, '../uploads');
-const fs = require('fs');
-if (fs.existsSync(uploadsDir)) {
-  app.use('/uploads', require('express').static(uploadsDir));
+// ── Expiry cron — every 30 minutes ──────────────────────────────────────────
+const tasksRouter = require('./routes/tasks');
+if (tasksRouter.runExpiryCron) {
+  tasksRouter.runExpiryCron(); // run once on boot
+  setInterval(tasksRouter.runExpiryCron, 30 * 60 * 1000);
 }
 
-// 404
-app.use('*', (req, res) => res.status(404).json({ error: 'Route not found' }));
-
-// ── Global error handler ───────────────────────────────────────────────────
-// This is the final safety net for any unhandled errors that reach here via
-// next(err). Individual controllers that catch their own errors and call
-// res.status(500).json({ error: err.message }) still leak — see paramGuard.js
-// safeError() for the per-controller fix. This handler covers anything that
-// falls through (e.g. middleware errors, unhandled promise rejections that
-// Express catches for async route handlers in Express 5 / with express-async-errors).
-app.use((err, req, res, next) => {
-  // Always log full details server-side (Railway logs, not visible to attacker)
-  console.error('[GlobalErrorHandler]', {
-    method:  req.method,
-    path:    req.path,
-    message: err?.message,
-    code:    err?.code,
-    stack:   err?.stack?.split('\n').slice(0, 5).join(' | '),
+// ─── Health check ─────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Taskeeu API is running',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    env: process.env.NODE_ENV,
   });
-
-  // Map known Supabase/Postgres error codes to safe messages
-  const code = err?.code;
-  if (code === '23505') return res.status(409).json({ error: 'This record already exists.' });
-  if (code === '23503') return res.status(400).json({ error: 'Related record not found.' });
-  if (code === '23502') return res.status(400).json({ error: 'A required field is missing.' });
-  if (code === 'PGRST116') return res.status(404).json({ error: 'Record not found.' });
-
-  // HTTP errors with safe messages — only expose if explicitly marked safe
-  // Never expose err.message for 5xx errors or errors without expose flag
-  if (err?.status && err?.status >= 400 && err?.status < 500 && err?.expose && typeof err?.message === 'string' && err.message.length < 200) {
-    return res.status(err.status).json({ error: err.message });
-  }
-
-  // Everything else: generic message — never expose err.message to client
-  res.status(500).json({ error: 'Something went wrong. Please try again.' });
 });
 
-// CRON: Auto-send cards on scheduled date + send reminders 2 days before deadline
-// Visitor nurture emails — weekly Mondays
-cron.schedule('0 9 * * 1', () => sendNudgeEmails().catch(console.error));
-
-// "Set your password" reminders for quick-start test-card accounts: once a day,
-// at most twice, then it stops. Runs mid-morning so it does not land overnight.
-cron.schedule('0 10 * * *', async () => {
-  try {
-    const { sweepPasswordNudges } = require('./utils/passwordNudge');
-    await sweepPasswordNudges();
-  } catch (err) {
-    console.error('[cron] password nudge sweep failed:', err.message);
-  }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// CARD DELIVERY ENGINE
-// ─────────────────────────────────────────────────────────────────────────────
-const crypto = require('crypto');
-const scheduler = require('./utils/scheduler');
-const { isPaymentPending, queryExcludingUnpaid } = require('./utils/cardPayment');
-
-// ── Delivery engine: utils/deliveryEngine.js (moved out so it can be tested) ──
-const { createDeliveryEngine } = require('./utils/deliveryEngine');
-const deliveryEngine = createDeliveryEngine();
-const { deliverCard, autoSendDueCards, scheduleAllActive } = deliveryEngine;
-scheduler.init(deliverCard);
-
-
-// Per-minute sweep: safety net for cards whose setTimeout was missed (e.g. server restart).
-cron.schedule('* * * * *', async () => {
-  try { await autoSendDueCards(); }
-  catch (err) { console.error('[auto-send cron] Unhandled error:', err.message); }
-  // Due cards that cannot go out (no recipient email / unpaid) → tell the creator now.
-  try { await deliveryEngine.alertBlockedDueCards(); }
-  catch (err) { console.error('[delivery-blocked alert] error:', err.message); }
-  try { await require('./utils/payLaterEmails').sweepPayLaterReminders({ overdueOnly: true }); }
-  catch (err) { console.error('[pay-later overdue] error:', err.message); }
-  // Scheduled Send Money cards ride the same per-minute clock rather than
-  // introducing a second scheduler with its own drift and failure modes.
-  try { await require('./controllers/moneyTransferController').sweepDueTransfers(); }
-  catch (err) { console.error('[money-transfer sweep] Unhandled error:', err.message); }
-});
-
-// ── Memory Movie pre-render cron ─────────────────────────────────────────────
-// Runs every 5 minutes. Finds cards delivering in the next 45 minutes that
-// have messages but haven't had their movie started yet. Kicks off the render
-// early so the movie is ready (or nearly so) by the time the card lands in the
-// recipient's inbox — no manual generate button needed, no "coming soon" email.
-cron.schedule('*/5 * * * *', async () => {
-  try { await preRenderUpcomingMovies(); }
-  catch (err) { console.error('[pre-render cron] Unhandled error:', err.message); }
-});
-
-async function preRenderUpcomingMovies() {
-  const now  = new Date();
-  const soon = new Date(now.getTime() + 45 * 60 * 1000); // 45 min window
-
-  // Find active, undelivered cards with a send_date in the next 45 minutes
-  // whose movie hasn't been started (movie_status is null, 'none', or 'failed').
-  // We exclude 'queued', 'rendering', 'completed' to avoid duplicate jobs.
-  // Unpaid pay-later cards are skipped: they will not be delivered at
-  // send_date, and the movie renders once they are paid (at delivery, or by
-  // this cron if the date is still ahead).
-  const { data: cards, error } = await queryExcludingUnpaid((excludeUnpaid) => {
-    let q = supabase
-      .from('cards')
-      .select('id, slug, movie_status, movie_pre_render_at, recipient_email')
-      .eq('status', 'active')
-      .eq('recipient_notified', false)
-      .not('recipient_email', 'is', null)
-      .not('send_date', 'is', null)
-      .gte('send_date', now.toISOString())
-      .lte('send_date', soon.toISOString());
-    if (excludeUnpaid) q = q.eq('payment_pending', false);
-    return q;
-  }, 'preRenderUpcomingMovies');
-
-  if (error) {
-    console.error('[pre-render] Query error:', error.message);
-    return;
-  }
-
-  const eligible = (cards || []).filter(c => {
-    if (!c.movie_status || c.movie_status === 'none') return true;
-    if (c.movie_status === 'failed') {
-      // Only retry a previously failed card if it's been at least 10 minutes
-      // since the last attempt — avoids hammering a broken card every 5 min.
-      if (!c.movie_pre_render_at) return true;
-      const msSinceLast = Date.now() - new Date(c.movie_pre_render_at).getTime();
-      return msSinceLast > 10 * 60 * 1000;
-    }
-    return false; // queued/rendering/completed — skip
-  });
-
-  if (!eligible.length) return;
-  console.log(`[pre-render] ${eligible.length} card(s) due within 45 min, checking messages...`);
-
-  const { runMovieJob, activeJobs } = require('./controllers/movieController');
-
-  for (const card of eligible) {
-    try {
-      // Skip if already in the in-memory job queue (e.g. previous cron tick)
-      if (activeJobs && activeJobs.has(card.id)) {
-        console.log(`[pre-render] ${card.slug}: already queued in memory`);
-        continue;
-      }
-
-      // Only render if there are actual messages to build a movie from
-      const { count } = await supabase.from('messages')
-        .select('*', { count: 'exact', head: true }).eq('card_id', card.id);
-      if (!count || count < 1) {
-        console.log(`[pre-render] ${card.slug}: no messages, skipping`);
-        continue;
-      }
-
-      console.log(`[pre-render] Kicking off movie for ${card.slug} (${count} messages, delivers within 45 min)`);
-
-      // Stamp the attempt time before firing so repeated cron ticks don't
-      // re-queue a 'failed' card more than once every 10 minutes.
-      // Supabase query builders are thenables WITHOUT a .catch method, so the
-      // old `.eq(...).catch(() => {})` threw a TypeError here — which the
-      // catch below swallowed, silently skipping runMovieJob on every tick.
-      // A failed stamp (e.g. the optional column is missing) is non-fatal.
-      try {
-        const { error: stampErr } = await supabase.from('cards')
-          .update({ movie_pre_render_at: new Date().toISOString() })
-          .eq('id', card.id);
-        if (stampErr) console.warn(`[pre-render] could not stamp ${card.slug}:`, stampErr.message);
-      } catch (_) { /* non-fatal */ }
-
-      // Fire-and-forget — don't await, cron must not block
-      runMovieJob(card.id).catch(e =>
-        console.warn(`[pre-render] render failed for ${card.slug}:`, e.message)
-      );
-    } catch (e) {
-      console.warn(`[pre-render] Error processing ${card.slug}:`, e.message);
-    }
-  }
-}
-
-
-cron.schedule('0 8 * * *', async () => {
-  console.log('Running daily cron jobs...');
-  try {
-  const now = new Date();
-  const twoDaysFromNow = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
-
-  // ── Deadline reminders (48hrs before deadline) — only for company cards ──
-  // with a defined audience (company_id set). Targets colleagues who were
-  // originally notified but have NOT yet signed — previously this sent to
-  // people who had ALREADY signed (querying messages.author_email), which
-  // was backwards and meant unsigned colleagues never got a deadline nudge.
-  {
-    const { data: closingSoon } = await supabase
-      .from('cards')
-      .select('id, slug, recipient_name, deadline, company_id, created_by_member_id, notification_scope, send_reminders, deadline_reminded')
-      .eq('status', 'active')
-      .eq('send_reminders', true)
-      .not('company_id', 'is', null)
-      .eq('deadline_reminded', false)
-      .gte('deadline', now.toISOString())
-      .lte('deadline', twoDaysFromNow.toISOString());
-
-    for (const card of (closingSoon || [])) {
-      const hoursLeft = Math.round((new Date(card.deadline) - now) / 3600000);
-
-      // Who already signed this card?
-      const { data: signedRows } = await supabase.from('messages').select('author_email').eq('card_id', card.id);
-      const signedEmails = new Set((signedRows || []).map(r => r.author_email?.toLowerCase()).filter(Boolean));
-
-      // Resolve the original audience for this card. For department-scoped
-      // cards, the department comes from the creator's company_members row
-      // (cards itself has no department column).
-      let department = null;
-      if (card.notification_scope === 'department' && card.created_by_member_id) {
-        const { data: creator } = await supabase.from('company_members')
-          .select('department').eq('id', card.created_by_member_id).maybeSingle();
-        department = creator?.department || null;
-      }
-
-      let colleagueQuery = supabase.from('company_members')
-        .select('email').eq('company_id', card.company_id)
-        .eq('status', 'approved');
-      if (department) colleagueQuery = colleagueQuery.eq('department', department);
-      const { data: colleagues } = await colleagueQuery;
-      const unsigned = (colleagues || []).filter(c => c.email && !signedEmails.has(c.email.toLowerCase()));
-
-      for (const c of unsigned) {
-        await sendEmail({
-          to: c.email,
-          template: 'cardReminder',
-          data: { recipientName: card.recipient_name, cardSlug: card.slug, hoursLeft }
-        }).catch(() => {});
-      }
-
-      await supabase.from('cards').update({ deadline_reminded: true }).eq('id', card.id);
-      console.log(`[deadline-reminder] ${card.slug}: ${unsigned.length} unsigned colleagues notified`);
-    }
-  }
-  } catch (cronErr) {
-    console.error('[daily-cron] Unhandled error — job stopped early:', cronErr.message, cronErr.stack);
-  }
-});
-
-// Create Now, Pay Later — hourly nudge to creators of unpaid live cards:
-// "pay so it can be delivered on the date" (and "it's on hold" once the date
-// passes). At minute 17 so it does not pile onto the top-of-hour jobs.
-cron.schedule('17 * * * *', async () => {
-  try { await require('./utils/payLaterEmails').sweepPayLaterReminders(); }
-  catch (err) { console.error('[pay-later reminders] sweep failed:', err.message); }
-});
-
-// Abandoned drafts — reminders 1 day, 3 days and (final) 8 days after the
-// creator stopped working on an unpublished card.
-cron.schedule('37 * * * *', async () => {
-  try { await require('./utils/abandonedCardReminders').sweepAbandonedCards(); }
-  catch (err) { console.error('[abandoned] sweep failed:', err.message); }
-});
-
-// Thankeeu Pals automation — auto-create cards, send reminders, settle gift pots
-const { runPalAutomation } = require('./utils/palAutomation');
-cron.schedule('0 * * * *', () => runPalAutomation().catch(e => console.error('Pal automation error:', e.message)));
-
-const PORT = process.env.PORT || 5000;
-// Prices (admin-set USD) and daily exchange rates; refreshed in the background.
-require('./utils/pricing').start();
-
-app.listen(PORT, () => {
-  console.log(`🚀 Thankeeu API running on port ${PORT}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  // On startup: (1) sweep for any past-due cards and deliver immediately,
-  // (2) register precise setTimeout for all future-scheduled active cards.
-  setTimeout(async () => {
-    try {
-      await autoSendDueCards();      // deliver anything already past due
-      await scheduleAllActive();     // arm setTimeout for future cards
-    } catch (e) {
-      console.error('[startup] Scheduling init error:', e.message);
-    }
-  }, 5000); // 5s delay to let DB connection stabilise
-});
-
-// CRON: Birthday automation for Teams — runs every day at 7AM
-// ═══════════════════════════════════════════════════════════
-// CRON: All Occasion Types — runs daily at 6AM
-// ═══════════════════════════════════════════════════════════
-// PostgREST caps results at 1000 rows per request by default. This helper
-// pages through `.range()` until a short page is returned, so the cron
-// doesn't silently drop data once Thankeeu scales past 1000 rows in any of
-// these tables.
-async function fetchAllPages(buildQuery, label) {
-  const PAGE_SIZE = 1000;
-  const all = [];
-  let from = 0;
-  while (true) {
-    const { data: page, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
-    if (error) { console.error(`Occasions cron: ${label} page error:`, error.message); break; }
-    all.push(...(page || []));
-    if (!page || page.length < PAGE_SIZE) break;
-    from += PAGE_SIZE;
-  }
-  return all;
-}
-
-// Runs daily at 12:00pm (noon) — handles department notifications, mid-period
-// reminders, and delivery of finished cards to the celebrant. Previously ran
-// at 6am, which meant celebrants received their card before most colleagues
-// were even awake/at work; 12pm ensures cards are delivered by midday as
-// expected, and gives colleagues a more reasonable notification time too.
-cron.schedule('0 12 * * *', async () => {
-  console.log('Running all-occasions cron (source: company_members)...');
-  try {
-    const { getMemberOccasions } = require('./utils/occasionEngine');
-    const today = new Date();
-    const year  = today.getFullYear();
-    today.setHours(0, 0, 0, 0);
-
-    // Companies with active subscriptions OR admin-set pricing_multiplier (free or paid).
-    // A company with pricing_multiplier set (even 0 = free) has full automation.
-    const [subsResult, freeCompaniesResult] = await Promise.all([
-      fetchAllPages(() => supabase
-        .from('company_subscriptions').select('company_id')
-        .eq('status', 'active').gt('expires_at', new Date().toISOString()),
-        'company_subscriptions'),
-      supabase.from('companies').select('id')
-        .not('pricing_multiplier', 'is', null),
-    ]);
-    const subIds  = (subsResult || []).map(s => s.company_id);
-    const freeIds = (freeCompaniesResult.data || []).map(c => c.id);
-    const companyIds = [...new Set([...subIds, ...freeIds])];
-    if (!companyIds.length) return;
-
-    // Active occasion types per company, keyed by company_id then name
-    const occasionTypes = await fetchAllPages(() => supabase
-      .from('occasion_types')
-      .select('*')
-      .in('company_id', companyIds)
-      .eq('is_active', true), 'occasion_types');
-
-    const otByCompany = {};
-    for (const ot of occasionTypes) {
-      if (!otByCompany[ot.company_id]) otByCompany[ot.company_id] = {};
-      otByCompany[ot.company_id][ot.name] = ot;
-    }
-
-    // Companies (for country, name, contact)
-    const companies = await fetchAllPages(() => supabase
-      .from('companies').select('*').in('id', companyIds), 'companies');
-    const companyById = Object.fromEntries(companies.map(c => [c.id, c]));
-
-    // All active company_members for these companies — only members who have
-    // actually accepted their invite (approved/active) receive automated
-    // signing emails. Members still pending invite acceptance, or with stale
-    // null status, are excluded.
-    const members = await fetchAllPages(() => supabase
-      .from('company_members')
-      .select('*')
-      .in('company_id', companyIds)
-      .eq('status', 'approved'), 'company_members');
-
-    for (const m of members) {
-      const company = companyById[m.company_id];
-      if (!company) continue;
-      const otMap = otByCompany[m.company_id] || {};
-
-      const occasions = getMemberOccasions(m, company, year);
-      let trackingChanged = false;
-      const tracking = { ...(m.occasion_tracking || {}) };
-
-      for (const occ of occasions) {
-        const ot = otMap[occ.occasionName];
-        if (!ot) continue; // company doesn't have this occasion type configured/active
-
-        const notifyDays = ot.notify_days_before || 7;
-        const occasionDate = new Date(occ.occasionDate + 'T00:00:00');
-        if (isNaN(occasionDate)) continue;
-
-        const daysUntil = Math.round((occasionDate - today) / 86400000);
-        const trackKey = occ.occasionName;
-        const track = tracking[trackKey] || {};
-
-        // Skip if already fully processed for this occasion this year
-        // (recurring occasions reset each year; one-time occasions don't repeat —
-        //  track.year stays fixed to the year they were processed, so this
-        //  condition permanently blocks re-processing for one-time occasions).
-        if (track.year === year && track.celebrant_notified) continue;
-        if (!occ.isRecurring && track.celebrant_notified) continue; // one-time, ever-processed
-
-        // ── STEP 1: Notify department N days before the occasion ──
-        // For one-time occasions (promotion/leaving/new_hire), also catch up if
-        // the date has already passed by up to 7 days (e.g. HR entered it late,
-        // or the cron missed a run) and it hasn't been processed yet.
-        const isDeptDue = occ.isRecurring
-          ? (daysUntil >= 0 && daysUntil <= notifyDays)
-          : (daysUntil <= notifyDays && daysUntil >= -7);
-
-        if (isDeptDue && !(track.year === year && track.dept_notified) && !(!occ.isRecurring && track.dept_notified)) {
-          await notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate, year, tracking, trackKey });
-          trackingChanged = true;
-        }
-
-        // ── STEP 1.5: Mid-period reminder to colleagues who haven't signed yet ──
-        // Fires roughly halfway between the initial notification and the
-        // occasion date (minimum 1 day after the initial notification, and
-        // at least 1 day before the occasion), so colleagues who saw the
-        // first email but didn't act get a second nudge. Only meaningful
-        // when there's a gap of 2+ days to work with (notifyDays >= 3).
-        const midDay = Math.floor(notifyDays / 2);
-        const isMidDue = notifyDays >= 3 && midDay > 0 && midDay < notifyDays && daysUntil === midDay;
-
-        if (isMidDue && (track.year === year && track.dept_notified) && !(track.year === year && track.mid_reminded)) {
-          await sendMidReminder({ m, ot, occ, company, occasionDate, daysUntil, year, tracking, trackKey });
-          trackingChanged = true;
-        }
-
-        // ── STEP 2: Deliver card to celebrant ON the occasion date ──
-        // For one-time occasions, also catch up if the date has passed by up to
-        // 7 days and the card hasn't been delivered yet.
-        const isCelebrantDue = occ.isRecurring
-          ? daysUntil === 0
-          : (daysUntil <= 0 && daysUntil >= -7);
-
-        if (isCelebrantDue && !(track.year === year && track.celebrant_notified) && !(!occ.isRecurring && track.celebrant_notified)) {
-          await deliverCompanyCard({ m, ot, occ, company, year, tracking, trackKey });
-          trackingChanged = true;
-        }
-      }
-
-      if (trackingChanged) {
-        await supabase.from('company_members')
-          .update({ occasion_tracking: tracking, updated_at: new Date() })
-          .eq('id', m.id);
-      }
-    }
-
-    // ── Individual user birthday reminders (unrelated to company_members) ──
-    try {
-      const now7  = new Date(today); now7.setDate(now7.getDate() + 7);
-      const now2  = new Date(today); now2.setDate(now2.getDate() + 2);
-      const r7mm  = String(now7.getMonth()+1).padStart(2,'0'), r7dd = String(now7.getDate()).padStart(2,'0');
-      const r2mm  = String(now2.getMonth()+1).padStart(2,'0'), r2dd = String(now2.getDate()).padStart(2,'0');
-      const rymm  = String(new Date(today.getTime()-864e5).getMonth()+1).padStart(2,'0');
-      const rydd  = String(new Date(today.getTime()-864e5).getDate()).padStart(2,'0');
-
-      const { data: u7 } = await supabase.from('users')
-        .select('id,email,full_name').not('date_of_birth','is',null)
-        .ilike('date_of_birth',`%-${r7mm}-${r7dd}`).eq('birthday_reminded_7d',false);
-      for (const u of (u7||[])) {
-        const { data: cc7 } = await supabase.from('card_credits')
-          .select('credits_remaining').eq('user_id', u.id).maybeSingle();
-        const creditBalance = cc7?.credits_remaining || 0;
-        await sendEmail({ to:u.email, template:'birthdayReminder7Days', data:{ name:u.full_name, daysLeft:7, createCardUrl:`${FRONTEND_URL}/create-card`, creditBalance }}).catch(()=>{});
-        await supabase.from('users').update({ birthday_reminded_7d:true }).eq('id',u.id);
-      }
-      const { data: u2 } = await supabase.from('users')
-        .select('id,email,full_name').not('date_of_birth','is',null)
-        .ilike('date_of_birth',`%-${r2mm}-${r2dd}`).eq('birthday_reminded_2d',false);
-      for (const u of (u2||[])) {
-        const { data: cc2 } = await supabase.from('card_credits')
-          .select('credits_remaining').eq('user_id', u.id).maybeSingle();
-        const creditBalance = cc2?.credits_remaining || 0;
-        await sendEmail({ to:u.email, template:'birthdayReminder2Days', data:{ name:u.full_name, daysLeft:2, createCardUrl:`${FRONTEND_URL}/create-card`, creditBalance }}).catch(()=>{});
-        await supabase.from('users').update({ birthday_reminded_2d:true }).eq('id',u.id);
-      }
-      await supabase.from('users')
-        .update({ birthday_reminded_7d:false, birthday_reminded_2d:false })
-        .ilike('date_of_birth',`%-${rymm}-${rydd}`);
-    } catch (e) { console.error('User birthday reminder error:', e.message); }
-
-  } catch (err) { console.error('Occasions cron error:', err); }
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// notifyDepartment — Step 1: create the card + notify colleagues N days before
-// ─────────────────────────────────────────────────────────────────────────────
-async function notifyDepartment({ m, ot, occ, company, notifyDays, occasionDate, year, tracking, trackKey }) {
-  const { nanoid } = require('nanoid');
-
-  // ── Company-wide "everyone, same date" occasions (Valentine's Day, ──
-  // Workers' Day) ── these are not personal milestones: every employee has
-  // the same occasion on the same date. Without this guard, the cron would
-  // create ONE CARD PER EMPLOYEE and email the entire company for each one
-  // (e.g. a 200-person company would generate 200 cards and 40,000 emails
-  // on Valentine's Day alone). Instead, create a single shared company card
-  // for the occasion+year, and every member's tracking just points at it —
-  // only the first member processed actually creates and notifies.
-  const isCompanyWideForAll = ['valentines_day', 'workers_day'].includes(ot.name);
-
-  if (isCompanyWideForAll) {
-    const { data: sharedCards, error: sharedErr } = await supabase.from('cards')
-      .select('id, slug').eq('occasion_type_id', ot.id).eq('company_id', ot.company_id)
-      .gte('created_at', `${year}-01-01T00:00:00Z`)
-      .order('created_at', { ascending: true })
-      .limit(1);
-
-    if (sharedErr) {
-      console.error(`[${ot.label}] shared-card lookup error:`, sharedErr.message);
-      return;
-    }
-
-    if (sharedCards && sharedCards.length) {
-      tracking[trackKey] = { ...(tracking[trackKey]||{}), year, dept_notified: true, card_slug: sharedCards[0].slug };
-      return;
-    }
-
-    const slug = `${(company.name || 'team').toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${ot.name.replace(/_/g,'-')}-${year}-${nanoid(6)}`;
-    let deadline = new Date(occasionDate.getTime() + notifyDays * 86400000);
-    const minDeadline = new Date(Date.now() + 7 * 86400000);
-    if (deadline < minDeadline) deadline = minDeadline;
-
-    const { data: card } = await supabase.from('cards').insert({
-      slug, recipient_name: company.name || 'the team',
-      recipient_email: company.email || null, occasion: ot.name,
-      title: `${ot.icon} Happy ${ot.label}, ${company.name || 'Team'}!`,
-      design_theme: 'rose_love', background_color: '#FBEAF0',
-      status: 'active', is_gift_enabled: false, gift_type: 'pot',
-      send_date: occasionDate.toISOString(),
-      deadline: deadline.toISOString(), allow_private_messages: true,
-      company_id: ot.company_id, occasion_type_id: ot.id,
-      notification_scope: 'company_wide',
-      scope_approved_at: new Date(), // auto-created, no HR approval needed
-    }).select().maybeSingle();
-    if (!card) return;
-
-    tracking[trackKey] = { year, dept_notified: true, card_slug: slug };
-
-    // Notify the entire company once
-    const { data: allMembers } = await supabase.from('company_members')
-      .select('email, first_name').eq('company_id', ot.company_id)
-      .eq('status', 'approved');
-
-    const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
-    const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
-
-    for (const colleague of (allMembers || [])) {
-      await sendEmail({ to: colleague.email, template: 'occasionNotice', data: {
-        icon: ot.icon, occasionLabel: ot.label,
-        memberName: company.name || 'the whole team',
-        memberFirstName: colleague.first_name,
-        department: 'the whole company',
-        companyName: company.name,
-        cardSlug: slug, giftEnabled: false,
-        occasionDate: occasionDateStr,
-        daysLeft: daysUntil,   // actual days until occasion, not the notification window
-        deadline: dlStr,
-      }}).catch(() => {});
-    }
-    console.log(`[${ot.label}] Shared company card created for ${company.name}: ${(allMembers||[]).length} emails`);
-    return;
-  }
-
-  // Check for existing card for this person/occasion/year BEFORE inserting
-  const { data: existingCards, error: existingErr } = await supabase.from('cards')
-    .select('id, slug').eq('occasion_type_id', ot.id).eq('recipient_email', m.email)
-    .gte('created_at', `${year}-01-01T00:00:00Z`)
-    .order('created_at', { ascending: true })
-    .limit(1);
-
-  if (existingErr) {
-    console.error(`[${ot.label}] existing-card lookup error:`, existingErr.message);
-    return;
-  }
-
-  if (existingCards && existingCards.length) {
-    console.log(`[${ot.label}] Card already exists for ${m.first_name} ${m.last_name} this year — skipping`);
-    tracking[trackKey] = { ...(tracking[trackKey]||{}), year, dept_notified: true, card_slug: existingCards[0].slug };
-    return;
-  }
-
-  const slug = `${m.first_name.toLowerCase()}-${ot.name.replace('_','-')}-${nanoid(6)}`;
-
-  // send_date = when card is delivered to celebrant. Must be at least 24h from now
-  // so colleagues have time to sign before the 8AM auto-delivery cron flips it to 'sent'.
-  // If birthday is today or in the past (catch-up), defer delivery to tomorrow.
-  const minSendDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const sendDate = occasionDate > minSendDate ? occasionDate : minSendDate;
-
-  // Deadline: contributions close notifyDays after the send date, minimum 7 days from now.
-  let deadline = new Date(sendDate.getTime() + notifyDays * 86400000);
-  const minDeadline = new Date(Date.now() + 7 * 86400000);
-  if (deadline < minDeadline) deadline = minDeadline;
-  const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
-
-  const { data: card } = await supabase.from('cards').insert({
-    slug, recipient_name: `${m.first_name} ${m.last_name}`,
-    recipient_email: m.email, occasion: ot.name,
-    title: `Happy ${ot.label}, ${m.first_name}! ${ot.icon}`,
-    design_theme: 'rose_love', background_color: '#FBEAF0',
-    status: 'active', is_gift_enabled: true, gift_type: 'pot',
-    suggested_amount: 2500, send_date: sendDate.toISOString(), // min 24h from now
-    deadline: deadline.toISOString(), allow_private_messages: true,
-    company_id: ot.company_id, occasion_type_id: ot.id,
-    // Team leaders always notify the entire company regardless of scope toggle.
-    // Team members follow the HR scope toggle.
-    notification_scope: (m.role === 'team_leader') ? 'company_wide' : (ot.default_scope || 'department'),
-    // hide_amounts: read from companies.occasion_hide_amounts (set in Occasions Manager)
-    hide_amounts: !!(company.occasion_hide_amounts?.[ot.name]),
-    // Auto-created cards bypass HR approval — mark as already approved
-    scope_approved_at: ((m.role === 'team_leader') || (ot.default_scope === 'company_wide')) ? new Date() : null,
-  }).select().maybeSingle();
-  if (!card) return;
-
-  tracking[trackKey] = { year, dept_notified: true, card_slug: slug };
-
-  // Create wallet for card
-  try {
-    await supabase.from('contribution_wallets').insert({
-      card_id: card.id, company_id: ot.company_id,
-      total_contributed: 0, platform_fee: 0, net_after_fee: 0, amount_to_celebrant: 0,
+// ─── Admin Seed ───────────────────────────────────────────────────
+// POST /api/seed-admin — force-create or fix admin account
+// In production: requires header x-seed-secret matching SEED_SECRET env var
+app.post('/api/seed-admin', async (req, res) => {
+  const seedSecret = req.headers['x-seed-secret'] || req.body?.seed_secret;
+  const isAllowed = process.env.NODE_ENV !== 'production'
+    || (process.env.SEED_SECRET && seedSecret === process.env.SEED_SECRET);
+
+  if (!isAllowed) {
+    return res.status(403).json({
+      success: false,
+      message: 'In production, set SEED_SECRET env var and pass it as x-seed-secret header.',
     });
-  } catch (walletError) {
-    console.error('Contribution wallet creation failed:', walletError);
   }
 
-  // Determine effective scope:
-  // - team_leader → company_wide (all departments notified, always)
-  // - team_member → follow HR scope toggle (department or company_wide)
-  const effectiveScope = (m.role === 'team_leader')
-    ? 'company_wide'
-    : (ot.default_scope || 'department');
+  const supabaseClient = require('./utils/supabase');
+  const email = 'admin@taskeeu.com';
+  const password = 'Admin@Taskeeu2025!';
 
-  let colleagueQuery = supabase.from('company_members')
-    .select('email, first_name').eq('company_id', ot.company_id)
-    .eq('status', 'approved').neq('id', m.id);
-
-  if (effectiveScope === 'department' || effectiveScope === 'pending_approval') {
-    colleagueQuery = colleagueQuery.eq('department', m.department);
-  }
-  const { data: colleagues } = await colleagueQuery;
-
-  const allEmails = new Set((colleagues || []).map(c => c.email));
-  allEmails.delete(m.email);
-
-  const dlStr = deadline.toLocaleDateString('en', { day: 'numeric', month: 'long' });
-
-  for (const email of allEmails) {
-    if (ot.name === 'new_hire') {
-      await sendEmail({ to: email, template: 'newHireDeptNotice', data: {
-        newHireName: `${m.first_name} ${m.last_name}`,
-        newHireFirstName: m.first_name,
-        department: m.department,
-        companyName: company.name,
-        startDate: occasionDateStr,
-        jobTitle: m.job_title || '',
-        cardSlug: slug,
-        deadline: dlStr,
-      }});
-    } else if (ot.name === 'leaving') {
-      await sendEmail({ to: email, template: 'farewellDeptNotice', data: {
-        leavingName: `${m.first_name} ${m.last_name}`,
-        leavingFirstName: m.first_name,
-        department: m.department,
-        companyName: company.name,
-        lastDay: occasionDateStr,
-        cardSlug: slug,
-        giftEnabled: true,
-        deadline: dlStr,
-      }});
-    } else {
-      await sendEmail({ to: email, template: 'occasionNotice', data: {
-        icon: ot.icon, occasionLabel: ot.label,
-        memberName: `${m.first_name} ${m.last_name}`,
-        memberFirstName: m.first_name,
-        department: m.department,
-        companyName: company.name,
-        cardSlug: slug, giftEnabled: true,
-        occasionDate: occasionDateStr,
-        daysLeft: daysUntil,   // actual days until occasion, not the notification window
-        deadline: dlStr,
-      }});
-    }
-  }
-  console.log(`[${ot.label}] Dept notified for ${m.first_name}: ${allEmails.size} emails`);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// sendMidReminder — Step 1.5: nudge colleagues who haven't signed yet,
-// roughly halfway between the initial notification and the occasion date.
-// ─────────────────────────────────────────────────────────────────────────────
-async function sendMidReminder({ m, ot, occ, company, occasionDate, daysUntil, year, tracking, trackKey }) {
-  const track = tracking[trackKey] || {};
-  const cardSlug = track.card_slug;
-  if (!cardSlug) return; // no card yet (shouldn't happen if dept_notified is true)
-
-  const { data: card } = await supabase.from('cards').select('id, deadline, mid_reminded_at').eq('slug', cardSlug).maybeSingle();
-  if (!card) return;
-
-  // ── Company-wide "everyone" occasions (Valentine's Day, Workers' Day) ──
-  // The shared card's mid-reminder is sent once for the whole company.
-  // Per-member occasion_tracking can't dedup this — every member has their
-  // own independent tracking object, so each member processed would
-  // otherwise trigger its own duplicate round of reminders. Instead we use
-  // a flag on the shared card row itself (mid_reminded_at), claimed
-  // atomically via a conditional update so only one member's pass actually
-  // sends the emails.
-  const isCompanyWideForAll = ['valentines_day', 'workers_day'].includes(ot.name);
-  if (isCompanyWideForAll) {
-    if (!card.mid_reminded_at) {
-      // Atomically claim the reminder: only succeeds if still null
-      const { data: claimed } = await supabase.from('cards')
-        .update({ mid_reminded_at: new Date().toISOString() })
-        .eq('id', card.id).is('mid_reminded_at', null)
-        .select('id').maybeSingle();
-
-      if (claimed) {
-        const { data: signedRows } = await supabase.from('messages').select('author_email').eq('card_id', card.id);
-        const signedEmails = new Set((signedRows || []).map(r => r.author_email?.toLowerCase()).filter(Boolean));
-
-        const { data: allMembers } = await supabase.from('company_members')
-          .select('email, first_name').eq('company_id', ot.company_id)
-          .eq('status', 'approved');
-        const unsigned = (allMembers || []).filter(c => c.email && !signedEmails.has(c.email.toLowerCase()));
-
-        const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
-        const dlStr = card.deadline ? new Date(card.deadline).toLocaleDateString('en', { day: 'numeric', month: 'long' }) : 'soon';
-
-        for (const c of unsigned) {
-          await sendEmail({ to: c.email, template: 'occasionReminder', data: {
-            occasionLabel: ot.label,
-            memberName: company.name || 'the whole team',
-            memberFirstName: c.first_name,
-            companyName: company.name,
-            cardSlug, giftEnabled: false,
-            occasionDate: occasionDateStr,
-            daysLeft: daysUntil,
-            deadline: dlStr,
-          }}).catch(() => {});
-        }
-        console.log(`[${ot.label}] Shared-card mid-reminder sent for ${company.name}: ${unsigned.length} unsigned`);
-      }
-    }
-    tracking[trackKey] = { ...track, year, mid_reminded: true };
-    return;
-  }
-
-  // Who has already signed?
-  const { data: signedRows } = await supabase.from('messages').select('author_email').eq('card_id', card.id);
-  const signedEmails = new Set((signedRows || []).map(r => r.author_email?.toLowerCase()).filter(Boolean));
-
-  // Who was originally notified (same audience as notifyDepartment)
-  let colleagueQuery = supabase.from('company_members')
-    .select('email, first_name').eq('company_id', ot.company_id)
-    .eq('status', 'approved').neq('id', m.id);
-
-  if (ot.default_scope === 'department' || ot.default_scope === 'pending_approval') {
-    colleagueQuery = colleagueQuery.eq('department', m.department);
-  }
-  const { data: colleagues } = await colleagueQuery;
-
-  const unsigned = (colleagues || []).filter(c => c.email && !signedEmails.has(c.email.toLowerCase()) && c.email !== m.email);
-  if (!unsigned.length) {
-    tracking[trackKey] = { ...track, year, mid_reminded: true };
-    return;
-  }
-
-  const occasionDateStr = occasionDate.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long' });
-  const dlStr = card.deadline ? new Date(card.deadline).toLocaleDateString('en', { day: 'numeric', month: 'long' }) : 'soon';
-
-  for (const c of unsigned) {
-    await sendEmail({ to: c.email, template: 'occasionReminder', data: {
-      occasionLabel: ot.label,
-      memberName: `${m.first_name} ${m.last_name}`,
-      memberFirstName: m.first_name,
-      companyName: company.name,
-      cardSlug, giftEnabled: true,
-      occasionDate: occasionDateStr,
-      daysLeft: daysUntil,
-      deadline: dlStr,
-    }}).catch(() => {});
-  }
-
-  tracking[trackKey] = { ...track, year, mid_reminded: true };
-  console.log(`[${ot.label}] Mid-reminder sent for ${m.first_name}: ${unsigned.length} unsigned colleagues`);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// deliverCompanyCard — Step 2: deliver the finished card to the celebrant on the day
-// ─────────────────────────────────────────────────────────────────────────────
-async function deliverCompanyCard({ m, ot, occ, company, year, tracking, trackKey }) {
-  const track = tracking[trackKey] || {};
-  const cardSlug = track.card_slug;
-  if (!cardSlug) return; // STEP 1 hasn't created the card yet (shouldn't normally happen if notify_days_before >= 0)
-
-  const { data: card } = await supabase.from('cards').select('*').eq('slug', cardSlug).maybeSingle();
-  if (!card) return;
-
-  // ── Company-wide "everyone" occasions (Valentine's Day, Workers' Day) ──
-  // There's no individual celebrant to email — just close the shared card
-  // (move it from active to sent) once, the first time any member's
-  // tracking reaches this step. Every other member just records tracking.
-  if (['valentines_day', 'workers_day'].includes(ot.name)) {
-    if (card.status !== 'sent') {
-      await supabase.from('cards').update({ status: 'sent', recipient_notified: true, delivered_at: new Date() }).eq('slug', cardSlug);
-      console.log(`[${ot.label}] Shared company card closed for ${company.name}`);
-    }
-    tracking[trackKey] = { ...track, year, celebrant_notified: true };
-    return;
-  }
-
-  const { count } = await supabase.from('messages').select('*', { count: 'exact', head: true }).eq('card_id', card.id);
-  const signerCount = count || 0;
-
-  // Calculate gift amount after fee
-  const { data: wallet } = await supabase.from('contribution_wallets').select('amount_to_celebrant').eq('card_id', card.id).maybeSingle();
-  const giftAmount = wallet?.amount_to_celebrant > 0 ? wallet.amount_to_celebrant : null;
-
-  let deliveryTemplate = 'occasionCelebrant';
-  let deliveryData = { icon: ot.icon, occasionLabel: ot.label, firstName: m.first_name, companyName: company.name, cardSlug, accessToken: card.access_token, signerCount, giftAmount };
-
-  if (ot.name === 'new_hire') {
-    deliveryTemplate = 'newHireWelcome';
-    deliveryData = { firstName: m.first_name, companyName: company.name, department: m.department, jobTitle: m.job_title || '', cardSlug, accessToken: card.access_token, signerCount, giftAmount };
-  } else if (ot.name === 'leaving') {
-    deliveryTemplate = 'farewellCelebrant';
-    deliveryData = { firstName: m.first_name, companyName: company.name, department: m.department, cardSlug, accessToken: card.access_token, signerCount, giftAmount };
-  }
-
-  await sendEmail({ to: m.email, template: deliveryTemplate, data: deliveryData });
-  await supabase.from('cards').update({ status: 'sent', recipient_notified: true, delivered_at: new Date() }).eq('slug', cardSlug);
-
-  tracking[trackKey] = { ...track, year, celebrant_notified: true };
-  console.log(`[${ot.label}] Card delivered to ${m.first_name} ${m.last_name}`);
-}
-
-// ═══════════════════════════════════════════════════════════
-// CRON: HRIS Auto-sync — daily at 5AM for companies with auto_sync=true
-// ═══════════════════════════════════════════════════════════
-cron.schedule('0 5 * * *', async () => {
-  console.log('Running HRIS auto-sync...');
   try {
-    const { data: autoConns } = await supabase
-      .from('hris_connections')
-      .select('*, companies(id, name)')
-      .eq('is_active', true)
-      .eq('auto_sync', true)
-      .eq('is_verified', true);
+    const password_hash = await bcrypt.hash(password, 12);
 
-    if (!autoConns?.length) return;
-    const { PROVIDER_FETCHERS, syncEmployeesToOccasionTables } = require('./controllers/hrisController');
+    // Check if admin already exists
+    const { data: existing } = await supabaseClient
+      .from('users').select('id').eq('email', email).eq('role', 'admin').maybeSingle();
 
-    for (const conn of autoConns) {
-      try {
-        const fetcher   = PROVIDER_FETCHERS[conn.provider];
-        if (!fetcher) continue;
-        const employees = await fetcher(conn);
-        const { data: ots } = await supabase.from('occasion_types').select('*').eq('company_id', conn.company_id).eq('is_active', true);
-        const { counts } = await syncEmployeesToOccasionTables(conn.company_id, employees, ots || []);
-        await supabase.from('hris_connections').update({ last_synced_at: new Date(), last_sync_status: 'success', last_sync_count: employees.length }).eq('id', conn.id);
-        console.log(`[HRIS Auto-sync] ${conn.companies?.name}: ${employees.length} employees synced`);
-      } catch (err) {
-        await supabase.from('hris_connections').update({ last_sync_status: 'failed', last_sync_error: err.message }).eq('id', conn.id);
-        console.error(`[HRIS Auto-sync] Failed for company ${conn.company_id}:`, err.message);
-      }
+    if (existing) {
+      // Update existing admin — correct password, ensure active
+      await supabaseClient.from('users').update({
+        password_hash,
+        email_verified: true,
+        is_active: true,
+      }).eq('id', existing.id);
+      return res.json({ success: true, message: `Admin updated! Login: ${email} / ${password}` });
     }
-  } catch (err) { console.error('HRIS cron error:', err); }
+
+    // Also check if email exists with a different role
+    const { data: otherRole } = await supabaseClient
+      .from('users').select('id, role').eq('email', email).maybeSingle();
+
+    if (otherRole) {
+      // Promote to admin
+      await supabaseClient.from('users').update({
+        role: 'admin', password_hash, email_verified: true, is_active: true,
+      }).eq('id', otherRole.id);
+      return res.json({ success: true, message: `Existing user promoted to admin! Login: ${email} / ${password}` });
+    }
+
+    // Fresh insert — no conflict possible since we checked above
+    const { error } = await supabaseClient.from('users').insert({
+      email,
+      full_name: 'Taskeeu Admin',
+      phone: '08012345678',
+      password_hash,
+      role: 'admin',
+      email_verified: true,
+      is_active: true,
+    });
+    if (error) throw error;
+
+    res.json({ success: true, message: `Admin created! Login: ${email} / ${password}` });
+  } catch (err) {
+    console.error('[seed-admin]', err.message);
+    res.status(500).json({ success: false, message: `Failed: ${err.message}` });
+  }
 });
 
-// A stray rejected promise must never take the delivery clock down with it.
-process.on('unhandledRejection', (reason) => {
-  console.error('[process] Unhandled promise rejection (kept running):', reason?.stack || reason);
+// ─── Nigerian States & Cities (static helper) ────────────────────
+app.get('/api/locations/states', (req, res) => {
+  res.json({ success: true, states: NIGERIAN_STATES });
 });
-// A truly uncaught exception leaves the process in an unknown state: log and
-// exit so Railway (restartPolicyType = ALWAYS) starts a clean instance, whose
-// startup sweep delivers anything that fell due meanwhile.
-process.on('uncaughtException', (err) => {
-  console.error('[process] Uncaught exception — restarting:', err?.stack || err);
-  setTimeout(() => process.exit(1), 500).unref();
+
+app.get('/api/locations/cities/:state', (req, res) => {
+  const cities = NIGERIAN_CITIES[req.params.state] || [];
+  res.json({ success: true, cities });
 });
+
+// ─── 404 handler ─────────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: 'Resource not found' });
+});
+
+// ─── Global error handler ─────────────────────────────────────────
+app.use((err, req, res, next) => {
+  // Log full error internally only
+  const errId = Date.now().toString(36);
+  console.error(`[ERR ${errId}]`, err?.message, err?.stack ? '\n' + err.stack.split('\n').slice(0,3).join('\n') : '');
+
+  // Multer file size errors
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ success: false, message: 'File too large. Maximum size is 5MB.' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ success: false, message: 'Request body too large.' });
+  }
+
+  // JWT errors that bubble up
+  if (err.name === 'JsonWebTokenError' || err.name === 'TokenExpiredError') {
+    return res.status(401).json({ success: false, message: 'Invalid or expired session. Please log in again.' });
+  }
+
+  // Supabase/DB duplicate key
+  if (err?.code === '23505') {
+    return res.status(409).json({ success: false, message: 'This record already exists.' });
+  }
+
+  // Never expose stack traces or DB errors to client
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    success: false,
+    message: process.env.NODE_ENV === 'production'
+      ? 'Something went wrong. Please try again.'
+      : (err.message || 'Internal server error'),
+  });
+});
+
+// ─── Start server ─────────────────────────────────────────────────
+const PORT = process.env.PORT || 5000;
+server.listen(PORT, () => {
+  console.log(`\nTaskeeu Backend running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`WebSocket ready`);
+  console.log(`API: http://localhost:${PORT}/api/health`);
+  console.log(`\nTo seed admin: POST http://localhost:${PORT}/api/seed-admin`);
+  console.log(`Default admin credentials set. Run /api/seed-admin to create.\n`);
+});
+
+// ─── Nigerian Location Data ───────────────────────────────────────
+const NIGERIAN_STATES = [
+  'Abia','Adamawa','Akwa Ibom','Anambra','Bauchi','Bayelsa','Benue','Borno',
+  'Cross River','Delta','Ebonyi','Edo','Ekiti','Enugu','FCT Abuja','Gombe',
+  'Imo','Jigawa','Kaduna','Kano','Katsina','Kebbi','Kogi','Kwara','Lagos',
+  'Nasarawa','Niger','Ogun','Ondo','Osun','Oyo','Plateau','Rivers','Sokoto',
+  'Taraba','Yobe','Zamfara',
+];
+
+const NIGERIAN_CITIES = {
+  Lagos: ['Lagos Island','Lagos Mainland','Ikeja','Surulere','Lekki','Victoria Island',
+    'Ajah','Ikorodu','Badagry','Epe','Mushin','Yaba','Gbagada','Magodo','Berger',
+    'Ojodu','Agege','Alimosho','Oshodi','Apapa'],
+  Abuja: ['Garki','Wuse','Maitama','Asokoro','Gwarinpa','Kubwa','Nyanya','Karu',
+    'Lugbe','Gwagwalada','Dutse','Galadimawa','Utako','Jabi','Central Area'],
+  Kano: ['Kano Municipal','Fagge','Dala','Gwale','Tarauni','Nassarawa','Ungogo'],
+  Rivers: ['Port Harcourt','Obio/Akpor','Eleme','Oyigbo','Emohua'],
+  Oyo: ['Ibadan North','Ibadan South','Egbeda','Lagelu','Akinyele','Ogbomoso'],
+  Edo: ['Benin City','Oredo','Ikpoba-Okha','Egor'],
+  Delta: ['Asaba','Warri','Ughelli','Sapele'],
+  Anambra: ['Onitsha','Awka','Nnewi','Ekwulobia'],
+  Enugu: ['Enugu','Nsukka','Agbani'],
+  Kaduna: ['Kaduna','Kafanchan','Zaria'],
+};

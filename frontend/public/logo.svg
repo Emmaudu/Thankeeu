@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none">
+  <!-- Rose gradient background pill -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ff2d62"/>
+      <stop offset="100%" stop-color="#c41445"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#ffe0eb" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+  <rect width="240" height="240" rx="56" fill="url(#bg)"/>
+  <!-- Subtle inner glow -->
+  <rect width="240" height="240" rx="56" fill="url(#accent)" fill-opacity="0.06"/>
+  <!-- Bold T mark -->
+  <!-- Horizontal crossbar -->
+  <rect x="40" y="60" width="160" height="28" rx="14" fill="white"/>
+  <!-- Vertical stem -->
+  <rect x="106" y="60" width="28" height="100" rx="14" fill="white"/>
+  <!-- Green checkmark accent -->
+  <path d="M44 192 L76 164 L152 108" stroke="#00C37E" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

@@ -1,68 +1,77 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
-import './index.css'
-import { loadPricing } from './utils/pricing'
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App.jsx';
+import './index.css';
 
-// Prices (admin-set USD) and today's rates; pages re-render when they arrive.
-loadPricing()
+// Auto-reload once when a dynamic import chunk fails to load (stale Vercel deploy).
+// Prevents users seeing the blank "Failed to fetch dynamically imported module" error.
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  // Only reload once — guard against infinite reload loops
+  const key = 'taskeeu_chunk_reload';
+  if (!sessionStorage.getItem(key)) {
+    sessionStorage.setItem(key, '1');
+    window.location.reload();
+  }
+});
 
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props)
-    this.state = { error: null }
-  }
-  static getDerivedStateFromError(error) {
-    return { error }
-  }
-  componentDidCatch(error, info) {
-    console.error('App crashed:', error, info)
-  }
-  render() {
-    if (this.state.error) {
-      return (
-        <div style={{
-          minHeight: '100vh', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', flexDirection: 'column', gap: 16,
-          fontFamily: 'sans-serif', padding: 24, background: '#fdf4ff'
-        }}>
-          <div style={{ fontSize: 48 }}>⚠️</div>
-          <h1 style={{ color: '#7C3AED', margin: 0 }}>Thankeeu failed to load</h1>
-          <p style={{ color: '#555', margin: 0 }}>Error: {this.state.error.message}</p>
-          <pre style={{
-            background: '#fff', border: '1px solid #e0d4f7', borderRadius: 8,
-            padding: '12px 16px', fontSize: 12, color: '#333',
-            maxWidth: '90vw', overflow: 'auto', whiteSpace: 'pre-wrap'
-          }}>
-            {this.state.error.stack}
-          </pre>
-          <button onClick={() => window.location.reload()}
-            style={{ background: '#7C3AED', color: '#fff', border: 'none',
-              padding: '10px 24px', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>
-            Reload page
-          </button>
-        </div>
-      )
+// Also catch unhandled dynamic import errors
+window.addEventListener('error', (event) => {
+  if (event?.message?.includes('dynamically imported module') || event?.message?.includes('Failed to fetch')) {
+    const key = 'taskeeu_chunk_reload';
+    if (!sessionStorage.getItem(key)) {
+      sessionStorage.setItem(key, '1');
+      window.location.reload();
     }
-    return this.props.children
   }
-}
-
-const AppReady = ({ children }) => {
-  React.useLayoutEffect(() => {
-    document.body.classList.remove('loading')
-  }, [])
-
-  return children
-}
+});
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <AppReady>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
-    </AppReady>
+    <App />
   </React.StrictMode>
-)
+);
 
+// Hide PWA splash screen now that React has mounted.
+if (typeof window.__hideSplash === 'function') window.__hideSplash();
+
+// Register the service worker (enables PWA install + push). Registered after
+// load so it never blocks first paint. Detects a new deployed version and
+// prompts the user to refresh, so users never stay on a stale copy.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      // If an update is found, wait for it to install, then prompt refresh.
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          // A new SW is installed AND there's an existing controller = update.
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Lightweight, non-blocking prompt. Keeps users off stale builds.
+            const bar = document.createElement('div');
+            bar.setAttribute('role', 'status');
+            bar.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;z-index:9999;max-width:440px;margin:0 auto;background:#12091a;color:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 10px 40px rgba(0,0,0,.35);display:flex;align-items:center;gap:12px;font-family:sans-serif;font-size:14px';
+            bar.innerHTML = '<span style="flex:1">A new version of Taskeeu is available.</span>';
+            const btn = document.createElement('button');
+            btn.textContent = 'Refresh';
+            btn.style.cssText = 'background:#ff2d62;color:#fff;border:none;border-radius:9px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;flex-shrink:0';
+            btn.onclick = () => { newWorker.postMessage('SKIP_WAITING'); };
+            bar.appendChild(btn);
+            document.body.appendChild(bar);
+          }
+        });
+      });
+    }).catch((err) => {
+      console.warn('Service worker registration failed:', err?.message);
+    });
+
+    // When the new SW takes control, reload once to get the fresh app.
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+  });
+}

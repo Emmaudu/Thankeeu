@@ -1,376 +1,393 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import Navbar  from '../components/Navbar';
-import Footer  from '../components/Footer';
-import Icon from '../components/ui/Icon';
-import { blogAPI } from '../utils/api';
-import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Search, Clock, Eye, ArrowRight, BookOpen } from 'lucide-react';
+import { blogApi } from '../utils/api';
 import { format } from 'date-fns';
-import { asArray } from '../utils/asArray';
+import { clsx } from 'clsx';
+import SEO from '../components/seo/SEO';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const CATEGORY_ICONS = {
-  'All':              'Book',
-  'Workplace Culture':'Building',
-  'HR & Technology':  'Link',
-  'Gifting':          'Gift',
-  'Product Updates':  'Rocket',
-  'Occasions':        'Cake',
-  'General':          'Message',
+const CATEGORY_COLORS = {
+  'Product News':    { pill: 'bg-rose-100 text-rose-700',   dot: '#ff2d62' },
+  'For Taskers':     { pill: 'bg-blue-100 text-blue-700',   dot: '#3b82f6' },
+  'For Businesses':  { pill: 'bg-violet-100 text-violet-700', dot: '#8b5cf6' },
+  'Africa Insights': { pill: 'bg-orange-100 text-orange-700', dot: '#f97316' },
+  'How-to Guides':   { pill: 'bg-amber-100 text-amber-700', dot: '#f59e0b' },
+  'Comparisons':     { pill: 'bg-teal-100 text-teal-700',   dot: '#14b8a6' },
+  'Guides':          { pill: 'bg-green-100 text-green-700', dot: '#22c55e' },
+  'Safety & Health': { pill: 'bg-red-100 text-red-700',     dot: '#ef4444' },
+  'General':         { pill: 'bg-gray-100 text-gray-600',   dot: '#9ca3af' },
 };
+const getCat = (cat) => CATEGORY_COLORS[cat] || CATEGORY_COLORS['General'];
 
-// ── Per-slug cover images (synced with seed_blog_posts.sql) ─────────────────
-// Every post has a unique, context-appropriate Unsplash photo so the blog
-// always looks varied even when cover_image isn't stored in the DB yet.
-const SLUG_COVERS = {
-  'best-online-group-cards-nigeria-2025':              'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&q=70',
-  'thankbox-vs-thankeeu-nigeria-2025':                 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&q=70',
-  'automate-birthday-anniversary-cards-nigeria-hr':    'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&q=70',
-  'kudoboard-alternatives-nigeria-africa-2025':        'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=70',
-  'birthday-card-messages-colleagues-nigeria':         'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70',
-  'farewell-card-ideas-nigeria-colleagues':            'https://images.unsplash.com/photo-1524863479829-916d8e77f114?w=800&q=70',
-  'work-anniversary-messages-nigeria-employees':       'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=70',
-  'group-cards-nigerian-banks-fintechs':               'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=70',
-  'womens-day-cards-nigerian-office-2025':             'https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=800&q=70',
-  'groupgreeting-vs-thankeeu-nigeria':                 'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=70',
-  'best-online-group-cards-uk-2025':                   'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=70',
-  'thankbox-vs-kudoboard-vs-thankeeu-uk-2025':         'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=70',
-  'automate-birthday-anniversary-cards-uk-hr-2025':    'https://images.unsplash.com/photo-1573497491208-6b1acb260507?w=800&q=70',
-  'farewell-card-messages-uk-colleagues-2025':         'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&q=70',
-  'hibob-vs-bamboohr-birthday-cards-uk-2025':          'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=70',
-  'birthday-card-messages-uk-colleagues-2025':         'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=70',
-  'work-anniversary-recognition-uk-2025':              'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=70',
-  'remote-hybrid-team-group-cards-uk-2025':            'https://images.unsplash.com/photo-1588196749597-9ff075ee6b5b?w=800&q=70',
-  'tribute-vs-thankeeu-uk-farewell-2025':              'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=800&q=70',
-  'collect-money-colleague-gift-uk-2025':              'https://images.unsplash.com/photo-1579621970795-87facc2f976d?w=800&q=70',
-  'best-online-group-cards-us-2025':                   'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&q=70',
-  'kudoboard-vs-thankeeu-us-hr-2025':                  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=70',
-  'automate-birthday-cards-us-bamboohr-rippling-gusto':'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=70',
-  'online-farewell-cards-us-employees-2025':           'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&q=70',
-  'adp-workforce-now-birthday-cards-us':               'https://images.unsplash.com/photo-1556155092-490a1ba16284?w=800&q=70',
-  'employee-recognition-statistics-us-2025':           'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=70',
-  'work-from-home-teams-us-remote-celebration':        'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=800&q=70',
-  'rippling-vs-gusto-employee-birthday-recognition-us':'https://images.unsplash.com/photo-1554774853-719586f82d77?w=800&q=70',
-  'group-card-ideas-us-workplace-occasions':           'https://images.unsplash.com/photo-1543269664-56d93c1b41a6?w=800&q=70',
-  'gusto-vs-bamboohr-birthday-cards-us-2025':          'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&q=70',
-  'best-online-group-cards-canada-2025':               'https://images.unsplash.com/photo-1600880292089-90a7e086ee0c?w=800&q=70',
-  'thankbox-vs-thankeeu-canada-2025':                  'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&q=70',
-  'automate-birthday-anniversary-cards-canada-hr':     'https://images.unsplash.com/photo-1528605248644-14dd04022da1?w=800&q=70',
-  'farewell-card-messages-canadian-colleagues-2025':   'https://images.unsplash.com/photo-1526958097901-5e6d742d3371?w=800&q=70',
-  'group-cards-bilingual-canadian-teams':              'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&q=70',
-  'work-anniversary-messages-canadian-employees':      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q=70',
-  'remote-work-culture-canada-distributed-teams':      'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=70',
-  'employee-birthday-cards-canadian-startups-tech':    'https://images.unsplash.com/photo-1543269664-647163b38060?w=800&q=70',
-  'bamboohr-canada-automate-employee-celebrations':    'https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=800&q=70',
-  'online-group-cards-global-comparison-canada-uk-us-nigeria': 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=70',
-};
-
-// Category-level fallbacks — varied by theme so the grid never looks uniform
-const CATEGORY_COVERS = {
-  'HR':          'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=70',  // diverse team meeting
-  'Comparison':  'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=70',  // analytics dashboard
-  'Birthday':    'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=70',  // birthday celebration
-  'Farewell':    'https://images.unsplash.com/photo-1524863479829-916d8e77f114?w=800&q=70', // farewell gathering
-  'Anniversary': 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=800&q=70',  // milestone celebration
-  'Remote':      'https://images.unsplash.com/photo-1585776245991-cf89dd7fc73a?w=800&q=70', // remote work desk
-  'Culture':     'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=70', // team culture
-  'Guide':       'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&q=70', // planning / guide
-  'Message':     'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800&q=70', // writing / messages
-  'General':     'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=70', // modern office
-};
-
-// Fallback pool — cycling so repeated unknowns still look varied
-const FALLBACK_POOL = [
-  'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&q=70',
-  'https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&q=70',
-  'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800&q=70',
-  'https://images.unsplash.com/photo-1573497491208-6b1acb260507?w=800&q=70',
-  'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=800&q=70',
-  'https://images.unsplash.com/photo-1551434678-e076c223a692?w=800&q=70',
-  'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&q=70',
-  'https://images.unsplash.com/photo-1515187029135-18ee286d815b?w=800&q=70',
-];
-
-// Resolve the best cover for a post: DB value → slug map → category → cycling fallback
-let _fallbackIdx = 0;
-const getPostCover = (post) => {
-  if (post.cover_image) return post.cover_image;
-  if (post.slug && SLUG_COVERS[post.slug]) return SLUG_COVERS[post.slug];
-  if (post.category && CATEGORY_COVERS[post.category]) return CATEGORY_COVERS[post.category];
-  return FALLBACK_POOL[(_fallbackIdx++) % FALLBACK_POOL.length];
-};
-
-const PostCard = ({ post, featured = false }) => {
-  const cover = getPostCover(post);
-  const date  = post.published_at ? format(new Date(post.published_at), 'MMM d, yyyy') : '';
-
-  if (featured) {
-    return (
-      <Link to={`/blog/${post.slug}`}
-        className="group block bg-white rounded-3xl md:rounded-3xl overflow-hidden border border-purple-100 shadow-sm hover:shadow-xl transition-all duration-300 md:flex">
-        <div className="md:w-1/2 h-48 md:h-auto overflow-hidden">
-          <img src={cover} alt={post.cover_alt || post.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="eager"
-            onError={e => { e.currentTarget.src = FALLBACK_POOL[1]; e.currentTarget.onerror = null; }} />
-        </div>
-        <div className="p-5 md:p-8 md:w-1/2 flex flex-col justify-center">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1 rounded-full inline-flex items-center gap-1.5">
-              <Icon name={CATEGORY_ICONS[post.category] || 'File'} size={12}/> {post.category}
-            </span>
-            <span className="text-xs text-warm-400">Featured</span>
-          </div>
-          <h2 className="font-display text-xl md:text-2xl font-semibold text-warm-900 group-hover:text-primary-600 transition-colors mb-3 leading-tight">
-            {post.title}
-          </h2>
-          <p className="text-warm-600 text-sm leading-relaxed mb-4 line-clamp-3">{post.excerpt}</p>
-          <div className="flex items-center justify-between mt-auto">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-primary-100 rounded-full flex items-center justify-center text-xs font-bold text-primary-600">
-                {post.author_name?.charAt(0) || 'T'}
-              </div>
-              <div>
-                <p className="text-xs font-medium text-warm-700">{post.author_name}</p>
-                <p className="text-xs text-warm-400">{date} · {post.read_time} min read</p>
-              </div>
-            </div>
-            <span className="text-primary-400 text-sm font-medium group-hover:translate-x-1 transition-transform inline-block">
-              Read →
-            </span>
-          </div>
-        </div>
-      </Link>
-    );
-  }
-
+// ── Hero / Featured card ─────────────────────────────────────────────
+function FeaturedCard({ post }) {
+  const cat = getCat(post.category);
   return (
-    <Link to={`/blog/${post.slug}`}
-      className="group block bg-white rounded-3xl overflow-hidden border border-purple-100 shadow-sm hover:shadow-lg transition-all duration-300">
-      <div className="h-40 sm:h-44 overflow-hidden">
-        <img src={cover} alt={post.cover_alt || post.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy" width="400" height="176"
-          onError={e => { e.currentTarget.src = FALLBACK_POOL[2]; e.currentTarget.onerror = null; }} />
-      </div>
-      <div className="p-4 md:p-5">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs bg-purple-50 text-warm-600 px-2.5 py-0.5 rounded-full font-medium inline-flex items-center gap-1.5">
-            <Icon name={CATEGORY_ICONS[post.category] || 'File'} size={12}/> {post.category}
+    <Link to={`/blog/${post.slug}`} className="group block relative overflow-hidden rounded-3xl bg-dark" style={{ minHeight: 400 }}>
+      {post.cover_image_url ? (
+        <img src={post.cover_image_url} alt={post.cover_image_alt || post.title}
+          className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-60 transition-opacity duration-500" onError={(e) => { e.target.style.display = 'none'; }} />
+      ) : (
+        <div className="absolute inset-0 bg-gradient-to-br from-rose-700 to-rose-500 opacity-80" />
+      )}
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+      <div className="relative h-full flex flex-col justify-end p-8 md:p-10" style={{ minHeight: 400 }}>
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/20">
+            Featured
           </span>
-          {post.is_featured && (
-            <span className="text-xs bg-primary-50 text-primary-500 px-2 py-0.5 rounded-full inline-flex items-center gap-1"><Icon name="Star" size={10}/> Featured</span>
-          )}
+          <span className={clsx('text-xs font-bold px-3 py-1.5 rounded-full', cat.pill)}>
+            {post.category}
+          </span>
         </div>
-        <h3 className="font-display text-base md:text-lg font-semibold text-warm-900 group-hover:text-primary-600 transition-colors mb-2 leading-snug line-clamp-2">
+        <h2 className="font-heading text-2xl md:text-3xl font-black text-white leading-tight mb-3 group-hover:text-rose-200 transition-colors" style={{ maxWidth: 640 }}>
           {post.title}
-        </h3>
-        <p className="text-warm-500 text-sm leading-relaxed line-clamp-2 mb-4">{post.excerpt}</p>
-        <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-primary-100 rounded-full flex items-center justify-center text-xs font-bold text-primary-600">
-              {post.author_name?.charAt(0) || 'T'}
+        </h2>
+        <p className="text-gray-300 text-sm leading-relaxed mb-5 line-clamp-2" style={{ maxWidth: 560 }}>
+          {post.excerpt}
+        </p>
+        <div className="flex items-center gap-4 text-gray-400 text-xs">
+          <span className="flex items-center gap-1.5">
+            <div className="w-6 h-6 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold text-xs">
+              {(post.author_name || 'T')[0]}
             </div>
-            <p className="text-xs text-warm-500">{date} · {post.read_time} min</p>
-          </div>
-          <p className="text-xs text-warm-400">{(post.views || 0).toLocaleString()} views</p>
+            {post.author_name || 'Taskeeu Team'}
+          </span>
+          {post.published_at && (
+            <span>{format(new Date(post.published_at), 'MMM d, yyyy')}</span>
+          )}
+          <span className="flex items-center gap-1"><Clock size={11} /> {post.reading_time_minutes} min read</span>
+          {post.views > 0 && <span className="flex items-center gap-1"><Eye size={11} /> {post.views.toLocaleString()}</span>}
         </div>
       </div>
     </Link>
   );
-};
+}
 
-// ── Blog listing page ─────────────────────────────────────────────────────────
-const Blog = () => {
-  const [subEmail, setSubEmail] = useState('');
-  const [subbing,  setSubbing]  = useState(false);
-
-  const handleSubscribe = async (e) => {
-    e.preventDefault();
-    if (!subEmail.trim()) return;
-    setSubbing(true);
-    try {
-      const res = await blogAPI.subscribe({ email: subEmail.trim() });
-      import('react-hot-toast').then(m => m.default.success(res.data.message || 'Check your inbox to confirm!', { duration: 6000 }));
-      setSubEmail('');
-    } catch (err) {
-      import('react-hot-toast').then(m => m.default.error(err.response?.data?.error || 'Could not subscribe. Please try again.'));
-    } finally { setSubbing(false); }
-  };
-
-  const [posts,      setPosts]      = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [category,   setCategory]   = useState('All');
-  const [page,       setPage]       = useState(1);
-  const [total,      setTotal]      = useState(0);
-  const [loading,    setLoading]    = useState(true);
-  const LIMIT = 9;
-
-  useSEO({
-    title:       'Blog — Group Card Ideas, HR Tips & Celebration Guides | Thankeeu',
-    description: 'The Thankeeu blog. Ideas for birthday cards, farewell messages, work anniversary speeches, gift ideas for colleagues, and HR recognition best practices.',
-    keywords:    'group card ideas Nigeria, birthday message ideas colleagues, farewell message for colleague, HR recognition tips, work anniversary wishes, thankeeu blog, workplace culture, hr tips, group cards guide',
-    canonical:   '/blog',
-    jsonLd: [
-      SCHEMAS.organization,
-      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Blog', url: '/blog' }]),
-      SCHEMAS.webPage(
-        'Blog — Tips, Guides & Updates from Thankeeu',
-        'The Thankeeu blog. Guides on workplace celebrations, HRIS integration, and group gifting for companies worldwide.',
-        '/blog'
-      ),
-      {
-        '@type':       'Blog',
-        '@id':         'https://www.thankeeu.com/blog#blog',
-        name:          'Thankeeu Blog',
-        description:   'Workplace celebration tips, HRIS guides, and product updates.',
-        url:           'https://www.thankeeu.com/blog',
-        publisher:     { '@id': 'https://www.thankeeu.com/#organization' },
-        inLanguage:    'en',
-      },
-    ],
-  });
-
-  useEffect(() => {
-    blogAPI.getCategories()
-      .then(r => setCategories(asArray(r.data)))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    const params = { limit: LIMIT, page, ...(category !== 'All' ? { category } : {}) };
-    blogAPI.getPosts(params)
-      .then(r => {
-        setPosts(r.data.posts || []);
-        setTotal(r.data.total || 0);
-      })
-      .catch(() => setPosts([]))
-      .finally(() => setLoading(false));
-  }, [category, page]);
-
-  const totalPages = Math.ceil(total / LIMIT);
-  const featured   = posts.find(p => p.is_featured);
-  const rest        = posts.filter(p => !p.is_featured || posts.indexOf(p) > 0);
-
+// ── Regular post card ────────────────────────────────────────────────
+function PostCard({ post }) {
+  const cat = getCat(post.category);
   return (
-    <div className="min-h-screen bg-warm-100">
-      <Navbar />
-
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-primary-50 to-white pt-10 pb-8 md:pt-16 md:pb-12 border-b border-purple-100">
-        <div className="section-container">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-primary-100 text-primary-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-4">
-              <Icon name="Book" size={13}/> Thankeeu Blog
-            </div>
-            <h1 className="font-display text-3xl sm:text-4xl md:text-3xl sm:text-5xl font-semibold text-warm-900 mb-3 leading-tight">
-              Insights for modern<br className="hidden sm:block" /> modern workplaces
-            </h1>
-            <p className="text-warm-600 text-base md:text-lg leading-relaxed">
-              Guides on workplace celebrations, HRIS integration, group gifting, and building better team cultures.
-            </p>
+    <Link to={`/blog/${post.slug}`}
+      className="group flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300" style={{ boxShadow: '0 1px 8px rgba(18,9,26,0.06)' }}>
+      {/* Image */}
+      <div className="relative overflow-hidden bg-gray-100" style={{ height: 200 }}>
+        {post.cover_image_url ? (
+          <img src={post.cover_image_url} alt={post.cover_image_alt || post.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+        ) : null}
+        <div className="w-full h-full items-center justify-center bg-gradient-to-br from-rose-50 to-rose-100" style={{ display: post.cover_image_url ? 'none' : 'flex', position: post.cover_image_url ? 'absolute' : 'static', inset: 0 }}>
+          <div className="text-center">
+            <BookOpen size={32} className="text-rose-300 mx-auto mb-2" />
+            <p className="text-xs text-rose-300 font-medium">{post.category}</p>
           </div>
         </div>
-      </section>
-
-      {/* Category filter */}
-      <div className="sticky top-14 md:top-16 z-30 bg-white border-b border-purple-100 shadow-sm">
-        <div className="section-container">
-          <div className="flex gap-1 overflow-x-auto scrollbar-hide py-2">
-            {categories.map(cat => (
-              <button key={cat.name} onClick={() => { setCategory(cat.name); setPage(1); }}
-                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                  category === cat.name
-                    ? 'bg-primary-400 text-white shadow-sm'
-                    : 'text-warm-600 hover:bg-warm-100'
-                }`}>
-                <Icon name={CATEGORY_ICONS[cat.name] || "File"} size={13}/>
-                <span>{cat.name}</span>
-                <span className={`text-xs px-1.5 py-0.5 rounded-full ${category === cat.name ? 'bg-white/20 text-white' : 'bg-purple-50 text-warm-500'}`}>
-                  {cat.count}
-                </span>
-              </button>
-            ))}
-          </div>
+        <div className="absolute top-3 left-3">
+          <span className={clsx('text-xs font-bold px-2.5 py-1 rounded-full', cat.pill)}>
+            {post.category}
+          </span>
         </div>
       </div>
 
-      <main className="section-container py-8 md:py-12">
-        {loading ? (
-          <div className="space-y-6">
-            <div className="h-64 bg-white rounded-3xl border border-purple-100 animate-pulse" />
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-72 bg-white rounded-3xl border border-purple-100 animate-pulse" />
-              ))}
-            </div>
-          </div>
-        ) : posts.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-4"><Icon name="File" size={28} className="text-purple-300"/></div>
-            <h3 className="text-lg font-semibold text-warm-700 mb-2">No posts yet</h3>
-            <p className="text-warm-500 text-sm">Check back soon — we are working on great content!</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {/* Featured post */}
-            {featured && page === 1 && <PostCard post={featured} featured />}
+      {/* Body */}
+      <div className="flex flex-col flex-1 p-5">
+        <h2 className="font-heading font-bold text-gray-900 text-base leading-snug mb-2.5 group-hover:text-rose-600 transition-colors line-clamp-2">
+          {post.title}
+        </h2>
+        <p className="text-gray-500 text-sm leading-relaxed line-clamp-3 flex-1 mb-4">
+          {post.excerpt}
+        </p>
 
-            {/* Post grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-              {(featured && page === 1 ? rest : posts).map(post => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-4">
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  className="btn-secondary px-4 py-2 text-sm disabled:opacity-40">← Prev</button>
-                <div className="flex gap-1">
-                  {[...Array(totalPages)].map((_, i) => (
-                    <button key={i} onClick={() => setPage(i + 1)}
-                      className={`w-9 h-9 rounded-xl text-sm font-medium transition-all ${
-                        page === i + 1 ? 'bg-primary-400 text-white' : 'text-warm-600 hover:bg-purple-50'
-                      }`}>{i + 1}</button>
-                  ))}
-                </div>
-                <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="btn-secondary px-4 py-2 text-sm disabled:opacity-40">Next →</button>
-              </div>
-            )}
+        {/* Tags */}
+        {post.tags?.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {post.tags.slice(0, 3).map(tag => (
+              <span key={tag} className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-0.5 rounded-full">
+                #{tag}
+              </span>
+            ))}
           </div>
         )}
 
-        {/* Newsletter CTA */}
-        <div className="mt-12 md:mt-16 bg-gradient-to-br from-primary-400 to-primary-600 rounded-3xl md:rounded-3xl p-6 md:p-10 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center mx-auto mb-2"><Icon name="Mail" size={22} className="text-white"/></div>
-          <h3 className="font-display text-xl md:text-2xl font-semibold text-white mb-2">
-            Get new articles in your inbox
-          </h3>
-          <p className="text-primary-100 text-sm mb-5 max-w-md mx-auto">
-            HR tips, product updates, and celebration ideas for teams worldwide — delivered weekly.
-          </p>
-          <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-2 max-w-sm mx-auto">
-            <input type="email" placeholder="your@company.com"
-              value={subEmail}
-              onChange={e => setSubEmail(e.target.value)}
-              required
-              className="input flex-1 text-sm bg-white/10 border-white/30 text-white placeholder-white/60 focus:ring-white/50" />
-            <button type="submit" disabled={subbing}
-              className="bg-white text-primary-600 font-semibold px-5 py-3 rounded-xl text-sm hover:bg-primary-50 transition-colors disabled:opacity-60">
-              {subbing ? 'Subscribing…' : 'Subscribe'}
-            </button>
-          </form>
-          <p className="text-primary-200 text-xs mt-3">No spam. Unsubscribe any time.</p>
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+          <div className="flex items-center gap-3 text-xs text-gray-400">
+            <span className="flex items-center gap-1"><Clock size={11} /> {post.reading_time_minutes} min</span>
+            {post.published_at && (
+              <span>{format(new Date(post.published_at), 'MMM d')}</span>
+            )}
+          </div>
+          <span className="flex items-center gap-1 text-xs font-semibold text-rose-500 group-hover:gap-2 transition-all">
+            Read <ArrowRight size={12} />
+          </span>
         </div>
-      </main>
+      </div>
+    </Link>
+  );
+}
 
-      <Footer />
+// ── Skeleton ─────────────────────────────────────────────────────────
+function SkeletonCard() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+      <div className="bg-gray-200" style={{ height: 200 }} />
+      <div className="p-5 space-y-3">
+        <div className="h-3 bg-gray-200 rounded-full w-20" />
+        <div className="h-4 bg-gray-200 rounded-full w-full" />
+        <div className="h-4 bg-gray-200 rounded-full w-4/5" />
+        <div className="h-3 bg-gray-100 rounded-full w-3/5" />
+      </div>
     </div>
   );
-};
+}
 
-export default Blog;
+export default function Blog() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [posts, setPosts]               = useState([]);
+  const [categories, setCategories]     = useState([]);
+  const [pagination, setPagination]     = useState({ total: 0, pages: 0, page: 1 });
+  const [loading, setLoading]           = useState(true);
+  const [searchInput, setSearchInput]   = useState(searchParams.get('search') || '');
+
+  const activeCategory = searchParams.get('category') || '';
+  const activeTag      = searchParams.get('tag')      || '';
+  const activePage     = parseInt(searchParams.get('page') || '1');
+  const activeSearch   = searchParams.get('search')   || '';
+
+  const loadPosts = async () => {
+    setLoading(true);
+    try {
+      const params = { page: activePage, limit: 9 };
+      if (activeCategory) params.category = activeCategory;
+      if (activeTag)      params.tag = activeTag;
+      if (activeSearch)   params.search = activeSearch;
+      const [postsRes, catsRes] = await Promise.all([
+        blogApi.listPosts(params),
+        categories.length === 0 ? blogApi.getCategories() : Promise.resolve({ data: { categories } }),
+      ]);
+      setPosts(postsRes.data.posts || []);
+      setPagination(postsRes.data.pagination || {});
+      if (categories.length === 0) setCategories(catsRes.data.categories || []);
+    } catch {} finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadPosts(); }, [activeCategory, activeTag, activeSearch, activePage]);
+
+  const setFilter = (key, val) => {
+    const p = new URLSearchParams(searchParams);
+    if (val) p.set(key, val); else p.delete(key);
+    p.delete('page');
+    setSearchParams(p);
+  };
+
+  const handleSearch = (e) => { e.preventDefault(); setFilter('search', searchInput); };
+  const clearFilters = () => { setSearchInput(''); setSearchParams({}); };
+  const hasFilters = activeCategory || activeTag || activeSearch;
+  const featuredPost  = !hasFilters && activePage === 1 ? (posts.find(p => p.featured) || null) : null;
+  const regularPosts  = featuredPost ? posts.filter(p => p.id !== featuredPost.id) : posts;
+
+  const seoTitle = activeCategory
+    ? `${activeCategory} | Taskeeu Blog`
+    : activeSearch
+    ? `"${activeSearch}" | Taskeeu Blog`
+    : 'Taskeeu Blog | Errand Service Guides, Tips & News for Nigeria';
+
+  const seoDesc = "Errand service guides, how-to articles, and insights from Taskeeu, Nigeria's #1 errand marketplace. Lagos, Abuja, Port Harcourt & all 36 states.";
+
+  return (
+    <>
+      <SEO
+        title={seoTitle}
+        description={seoDesc}
+        canonical="https://taskeeu.com/blog" keywords="errand service Nigeria blog, errand runner Lagos guide, how to hire errand runner Nigeria, errand services list Nigeria, task outsourcing Nigeria" breadcrumbs={[
+          { name: 'Home', url: 'https://taskeeu.com' },
+          { name: 'Blog', url: 'https://taskeeu.com/blog' },
+        ]}
+      />
+
+      <div className="pt-20 min-h-screen" style={{ background: '#faf9fc' }}>
+
+        {/* ── Header ───────────────────────────────────────── */}
+        <div style={{ background: 'white', borderBottom: '1px solid #f0ecf8', paddingTop: 48, paddingBottom: 48 }}>
+          <div className="container-xl">
+            <div className="flex flex-col md:flex-row md:items-end gap-6 justify-between">
+              <div>
+                <span className="inline-block text-xs font-bold uppercase tracking-widest text-rose-500 mb-3">Taskeeu Blog
+                </span>
+                <h1 className="font-heading text-3xl md:text-4xl font-black text-dark leading-tight mb-3" style={{ letterSpacing: '-0.03em' }}>
+                  Insights for Africa's<br className="hidden md:block" /> Gig Economy
+                </h1>
+                <p className="text-gray-500 leading-relaxed" style={{ maxWidth: 480 }}>
+                  Tips for taskers, enterprise guides, market analysis, and platform updates: everything for Nigeria's field operations economy.
+                </p>
+              </div>
+              {/* Search */}
+              <form onSubmit={handleSearch} className="flex gap-2 w-full md:w-auto">
+                <div className="relative flex-1 md:w-72">
+                  <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input type="search" value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                    placeholder="Search articles..." className="input pl-10 py-2.5 text-sm w-full" />
+                </div>
+                <button type="submit" className="btn-primary px-5 py-2.5 text-sm whitespace-nowrap">Search</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div className="container-xl py-10 md:py-14">
+          <div className="flex flex-col lg:flex-row gap-8 xl:gap-12">
+
+            {/* ── Sidebar ───────────────────────────────────── */}
+            <aside className="lg:w-60 xl:w-64 flex-shrink-0">
+              <div className="sticky top-24 space-y-5">
+
+                {/* Categories */}
+                <div className="bg-white rounded-2xl border border-gray-100 p-5" style={{ boxShadow: '0 1px 8px rgba(18,9,26,0.05)' }}>
+                  <h3 className="font-heading font-bold text-gray-800 text-sm mb-4 uppercase tracking-wide" style={{ letterSpacing: '0.06em', fontSize: 11 }}>
+                    Categories
+                  </h3>
+                  <div className="space-y-0.5">
+                    <button onClick={() => setFilter('category', '')}
+                      className={clsx('w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between',
+                        !activeCategory ? 'bg-rose-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50')}>
+                      <span>All Posts</span>
+                      {pagination.total > 0 && <span className="text-xs text-gray-400 tabular-nums">{pagination.total}</span>}
+                    </button>
+                    {categories.map(cat => (
+                      <button key={cat.slug} onClick={() => setFilter('category', cat.name)}
+                        className={clsx('w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-between',
+                          activeCategory === cat.name ? 'bg-rose-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50')}>
+                        <span className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: getCat(cat.name).dot }} />
+                          {cat.name}
+                        </span>
+                        {cat.post_count > 0 && (
+                          <span className="text-xs text-gray-400 tabular-nums">{cat.post_count}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Active filters */}
+                {hasFilters && (
+                  <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+                    <p className="font-bold text-xs text-amber-700 mb-2.5 uppercase tracking-wide" style={{ fontSize: 10 }}>Active Filters</p>
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {activeCategory && (
+                        <span className="flex items-center gap-1 bg-white text-rose-700 text-xs px-2.5 py-1 rounded-full border border-rose-200 font-medium">
+                          {activeCategory}
+                          <button onClick={() => setFilter('category', '')} className="hover:text-rose-900 ml-0.5"></button>
+                        </span>
+                      )}
+                      {activeTag && (
+                        <span className="flex items-center gap-1 bg-white text-blue-700 text-xs px-2.5 py-1 rounded-full border border-blue-200 font-medium">
+                          #{activeTag}
+                          <button onClick={() => setFilter('tag', '')} className="hover:text-blue-900 ml-0.5"></button>
+                        </span>
+                      )}
+                      {activeSearch && (
+                        <span className="flex items-center gap-1 bg-white text-amber-700 text-xs px-2.5 py-1 rounded-full border border-amber-200 font-medium">
+                          "{activeSearch}"<button onClick={() => { setSearchInput(''); setFilter('search', ''); }} className="hover:text-amber-900 ml-0.5"></button>
+                        </span>
+                      )}
+                    </div>
+                    <button onClick={clearFilters} className="text-xs text-red-500 hover:text-red-700 font-semibold">
+                      Clear all
+                    </button>
+                  </div>
+                )}
+
+                {/* CTA */}
+                <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0d2e 0%, #2d1148 100%)' }}>
+                  <div className="p-5">
+                    <p className="font-heading font-black text-white text-sm mb-1">For Businesses</p>
+                    <p className="text-gray-400 text-xs leading-relaxed mb-4">
+                      Deploy field agents across Nigeria with GPS-verified proof of work.
+                    </p>
+                    <Link to="/teams" className="flex items-center justify-center gap-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors">
+                      Explore for Teams <ArrowRight size={12} />
+                    </Link>
+                  </div>
+                </div>
+
+              </div>
+            </aside>
+
+            {/* ── Main ─────────────────────────────────────── */}
+            <main className="flex-1 min-w-0">
+
+              {/* Results count */}
+              {hasFilters && !loading && (
+                <p className="text-sm text-gray-500 mb-6">
+                  <span className="font-semibold text-gray-700">{pagination.total || 0} {pagination.total === 1 ? 'post' : 'posts'}</span>
+                  {activeCategory && <> in <span className="text-rose-600 font-semibold">"{activeCategory}"</span></>}
+                  {activeSearch && <> matching <span className="text-rose-600 font-semibold">"{activeSearch}"</span></>}
+                  {activeTag && <> tagged <span className="text-rose-600 font-semibold">#{activeTag}</span></>}
+                </p>
+              )}
+
+              {loading ? (
+                <div className="space-y-8">
+                  <div className="rounded-3xl bg-gray-200 animate-pulse" style={{ height: 400 }} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+                  </div>
+                </div>
+              ) : posts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-5">
+                    <BookOpen size={28} className="text-gray-300" />
+                  </div>
+                  <h3 className="font-heading font-bold text-gray-700 text-lg mb-2">No posts found</h3>
+                  <p className="text-gray-400 text-sm mb-6">
+                    {hasFilters ? 'Try adjusting your filters.' : 'No posts published yet.'}
+                  </p>
+                  {hasFilters && (
+                    <button onClick={clearFilters} className="btn-outline btn-sm">Clear Filters</button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {/* Featured hero */}
+                  {featuredPost && (
+                    <FeaturedCard post={featuredPost} />
+                  )}
+
+                  {/* Regular grid */}
+                  {regularPosts.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {regularPosts.map(post => <PostCard key={post.id} post={post} />)}
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {pagination.pages > 1 && (
+                    <div className="flex items-center justify-center gap-2 pt-4">
+                      <button onClick={() => setFilter('page', String(activePage - 1))} disabled={activePage === 1}
+                        className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-rose-300 disabled:opacity-40 transition-colors">
+                        ← Prev
+                      </button>
+                      {Array.from({ length: Math.min(pagination.pages, 7) }, (_, i) => i + 1).map(p => (
+                        <button key={p} onClick={() => setFilter('page', String(p))}
+                          className={clsx('w-10 h-10 rounded-xl text-sm font-semibold transition-colors',
+                            p === activePage ? 'bg-rose-500 text-white shadow-sm' : 'bg-white border border-gray-200 text-gray-600 hover:border-rose-300')}>
+                          {p}
+                        </button>
+                      ))}
+                      <button onClick={() => setFilter('page', String(activePage + 1))} disabled={activePage === pagination.pages}
+                        className="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 hover:border-rose-300 disabled:opacity-40 transition-colors">
+                        Next →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </main>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

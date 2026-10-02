@@ -1,109 +1,90 @@
-import { useSEO, SCHEMAS } from '../hooks/useSEO';
-import { usePricing, livePriceText } from '../utils/pricing';
+import SEO from '../components/seo/SEO';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import Icon from '../components/ui/Icon';
+import { ChevronDown } from 'lucide-react';
 
 const FAQS = [
-  { cat:'Getting started', q:'Is Thankeeu free to use?', a:'Creating a card and collecting messages and contributions is completely free. You pay a one-time $3.15 activation fee when you\'re ready to send the card to the recipient. No subscriptions for personal use.' },
-  { cat:'Getting started', q:'Do I need a Thankeeu account to sign a card?', a:'No. Signers just need the link. They click it, write their message, and optionally contribute to the gift pot — no account or app required.' },
-  { cat:'Getting started', q:'Does the recipient need an account?', a:'No. The recipient receives an email with a link to their card. They can read all messages, watch videos, listen to voice notes and claim the gift without signing up.' },
-  { cat:'Getting started', q:'How long does it take to create a card?', a:'Less than 2 minutes. Pick an occasion, set the recipient\'s name, choose a design, set a delivery date, pay $3.15 and share the signing link. Done.' },
-  { cat:'Payments & gifts', q:'What payment methods are supported?', a:'All Nigerian debit and credit cards (Visa, Mastercard, Verve), bank transfers, USSD (*737#, *822# etc) and mobile money via Flutterwave. Flutterwave also accepts some international cards.' },
-  { cat:'Payments & gifts', q:'How does the gift pot work?', a:'When you create a card, you can optionally enable a gift pot. Contributors pay via Flutterwave when they sign the card. All contributions are pooled automatically. The recipient can withdraw the total to their bank account when the card arrives.' },
-  { cat:'Payments & gifts', q:'Is there a minimum gift contribution?', a:'Yes — $1.58 minimum per contributor (the equivalent is shown in your currency). This ensures payment processing fees don\'t eat into small contributions.' },
-  { cat:'Payments & gifts', q:'Can people outside Nigeria contribute?', a:'Yes. Flutterwave accepts international Visa and Mastercard. Your signers can chip in from anywhere in the world.' },
-  { cat:'Payments & gifts', q:'How does the recipient withdraw their gift?', a:'The recipient saves their Nigerian bank account details in their Thankeeu profile (or when they first claim). Then they click "Withdraw to bank" and the money is transferred via Flutterwave usually within 1–2 business days.' },
-  { cat:'Cards & media', q:'What types of messages can contributors leave?', a:'Text messages, photos, videos (up to 50MB), voice notes, and GIFs. Multiple media files can be attached per message. Private messages are only visible to the recipient.' },
-  { cat:'Cards & media', q:'Can I schedule a card to send on a specific date?', a:'Yes. Pick any future date and time during card creation. Thankeeu sends the card automatically even if you forget — great for birthdays you want to plan ahead.' },
-  { cat:'Cards & media', q:'Is there a limit on how many people can sign?', a:'No. Invite your entire company, school, or friend group. The more signatures, the more meaningful the card.' },
-  { cat:'Cards & media', q:'Can signers set a deadline for signing?', a:'The card creator sets a signing deadline. After the deadline, the card is locked and sent. Contributors who miss the deadline won\'t be able to add their message.' },
-  { cat:'For companies', q:'What is Thankeeu for Teams?', a:'Thankeeu for Teams is a subscription service for HR teams. It automatically creates birthday and occasion cards for your employees, notifies their department to sign, and handles the gift pot — all without any manual effort.' },
-  { cat:'For companies', q:'How does the HRIS integration work?', a:'Connect your HRIS platform (SeamlessHR, BambooHR, Zoho People, WorkPay etc). Thankeeu imports all employee birthdays and occasion data. After that, cards are created and sent automatically on schedule.' },
-  { cat:'For companies', q:'What is the company subscription price?', a:'Pricing is based on your team headcount — the more employees you have, the lower the per-person rate. Sign up and import your team to get an exact quote. HRIS sync and advanced analytics included.' },
-  { cat:'For companies', q:'Can team leaders request deductions from gift pots?', a:'Yes. Team leaders can request a deduction from a card\'s gift pot (e.g. for physical decorations or a team lunch). HR approves the amount, and the leader withdraws directly to their bank account.' },
+  {
+    q: 'What is Taskeeu?',
+    a: 'Taskeeu is a task outsourcing platform that connects you with KYC-verified taskers who can handle errands, pickups, deliveries, verifications, and more across Africa, without you needing to be there physically.',
+  },
+  {
+    q: 'How do payments work?',
+    a: 'Payments are held in escrow by Taskeeu until the task is completed. You pay upfront, but the tasker only receives the funds once you confirm completion using a 6-digit code. This protects both sides.',
+  },
+  {
+    q: 'How are taskers verified?',
+    a: 'Every tasker must submit a government-issued ID, proof of address, and a clear face photo. Our legal team reviews each application before any tasker goes live on the platform.',
+  },
+  {
+    q: 'What if my task is not done correctly?',
+    a: 'You can raise a dispute through the platform. If the task was not completed as agreed, funds can be refunded. Our support team reviews every dispute within 24 to 48 hours.',
+  },
+  {
+    q: 'How do I post a task?',
+    a: 'Create a requester account, click "Post a Task", describe what you need, set a deadline and budget, and verified taskers near you will bid. You review bids and accept the one you prefer.',
+  },
+  {
+    q: 'How do I become a tasker?',
+    a: 'Sign up as a tasker, upload your profile photo and KYC documents (ID, proof of address), and submit your application. Our legal team typically reviews within 24 to 48 hours.',
+  },
+  {
+    q: 'What task types are supported?',
+    a: 'Pickups and deliveries, errands, shopping, document collection, equipment sourcing, on-site verifications, photography, admin tasks, and many more. If it can be done by a person on the ground, Taskeeu can handle it.',
+  },
+  {
+    q: 'Is there a fee for requesters?',
+    a: 'Posting tasks is free. Taskeeu charges a service fee on completed payments. See our Pricing page for full details.',
+  },
+  {
+    q: 'How quickly can a task be accepted?',
+    a: 'Most tasks in active cities receive bids within minutes of posting, especially during business hours.',
+  },
+  {
+    q: 'What is Taskeeu for Teams?',
+    a: 'Taskeeu for Teams is our enterprise product for companies that need to deploy verified taskers at scale across multiple branches, departments, and states, with centralised billing and reporting.',
+  },
 ];
 
-const cats = ['All', ...new Set(FAQS.map(f => f.cat))];
+function FAQItem({ q, a }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom: '1px solid var(--border-light)' }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', gap: 16 }}
+      >
+        <span style={{ fontWeight: 800, fontSize: 15, color: 'var(--text)', flex: 1 }}>{q}</span>
+        <ChevronDown size={18} style={{ color: 'var(--muted)', flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </button>
+      {open && (
+        <p style={{ color: 'var(--muted)', fontSize: 15, lineHeight: 1.75, paddingBottom: 20 }}>{a}</p>
+      )}
+    </div>
+  );
+}
 
 export default function FAQ() {
-  usePricing(); // re-render when today's prices arrive
-  useSEO({
-    title: 'FAQ — Group Cards, Gift Pots & Payments Explained | Thankeeu',
-    description: 'Answers to the most common questions about Thankeeu. How to create a group card, pool a gift, pay securely with Flutterwave, withdraw money to your bank, and more.',
-    keywords: 'Thankeeu FAQ, group card questions, how to withdraw gift money, Flutterwave group card',
-    canonical: '/faq',
-    jsonLd: [
-      SCHEMAS.organization,
-      SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'FAQ', url: '/faq' }]),
-      SCHEMAS.webPage('Thankeeu FAQ', 'Answers to common questions about Thankeeu group cards, gift pots and payments.', '/faq'),
-      // FAQPage schema generated from the real on-page Q&As — this is what powers
-      // Google's FAQ rich results and AI answer-engine (GEO) citations.
-      SCHEMAS.faqPage(FAQS),
-    ],
-  });
-
-  const [activeCat, setActiveCat] = useState('All');
-  const [open, setOpen] = useState(null);
-  const filtered = activeCat === 'All' ? FAQS : FAQS.filter(f => f.cat === activeCat);
-
   return (
-    <div className="min-h-screen flex flex-col gc-font" style={{ background:'#FDFCFF' }}>
-      <Navbar />
-
-      <section className="py-12 md:py-16 px-4 text-center section-dots" style={{ background:'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
-        <div className="mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="HelpCircle" size={13}/> FAQ</div>
-        <h1 className="font-extrabold" style={{ fontSize:'clamp(2.1rem,6.5vw,3.6rem)', letterSpacing:'-0.02em', color:'#1A1035', marginBottom:'0.75rem' }}>
-          Frequently asked questions
-        </h1>
-        <p className="text-warm-600 max-w-xl mx-auto">Everything you need to know about Thankeeu.</p>
-      </section>
-
-      <section className="py-10 md:py-14 px-4 flex-1">
-        <div className="max-w-3xl mx-auto">
-          {/* Category pills */}
-          <div className="flex flex-wrap gap-2 mb-8 justify-center">
-            {cats.map(cat => (
-              <button key={cat} onClick={() => setActiveCat(cat)}
-                className={`px-4 py-2 rounded-full text-sm font-bold transition-all border-2 ${activeCat === cat ? 'bg-primary-500 text-white border-primary-500' : 'bg-white text-warm-600 border-purple-200 hover:border-primary-300'}`}>
-                {cat}
-              </button>
-            ))}
+    <>
+      <SEO title="FAQs | Taskeeu" description="Frequently asked questions about Taskeeu: how it works, payments, tasker verification, and more." />
+      <div style={{ background: 'var(--surface)', minHeight: '100vh', paddingTop: 80 }}>
+        <section style={{ background: 'linear-gradient(135deg, var(--dark) 0%, #1e0a30 100%)', padding: '64px 0' }}>
+          <div className="container-xl text-center">
+            <p style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--rose)', marginBottom: 16 }}>Help Center</p>
+            <h1 style={{ color: 'white', fontWeight: 900, fontSize: 38, letterSpacing: '-0.03em', marginBottom: 16 }}>Frequently Asked Questions</h1>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 16, maxWidth: 500, margin: '0 auto' }}>
+              Everything you need to know about Taskeeu. Can't find an answer? Visit <a href="/contact" style={{ color: 'var(--rose)' }}>our Contact page</a>
+            </p>
           </div>
-
-          {/* FAQs */}
-          <div className="space-y-2">
-            {filtered.map((faq, i) => (
-              <div key={i} className="gc-card overflow-hidden">
-                <button onClick={() => setOpen(open === i ? null : i)}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 text-left gap-4 hover:bg-purple-50 transition-colors">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-primary-50 text-primary-600 flex-shrink-0 mt-0.5">{faq.cat}</span>
-                    <span className="font-bold" style={{ fontSize:'0.875rem', color:'#1A1035' }}>{faq.q}</span>
-                  </div>
-                  <span className={`text-primary-400 flex-shrink-0 text-xl font-bold transition-transform ${open === i ? 'rotate-45' : ''}`}>+</span>
-                </button>
-                {open === i && (
-                  <div className="px-5 pb-5 animate-fade-in">
-                    <p className="text-sm text-warm-600 leading-relaxed">{livePriceText(faq.a)}</p>
-                  </div>
-                )}
-              </div>
-            ))}
+        </section>
+        <section style={{ padding: '64px 0' }}>
+          <div className="container-xl" style={{ maxWidth: 740 }}>
+            <div className="card p-8">
+              {FAQS.map(item => <FAQItem key={item.q} {...item} />)}
+            </div>
           </div>
-        </div>
-      </section>
-
-      <section className="py-12 px-4 text-center section-dots" style={{ background:'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
-        <div className="max-w-lg mx-auto">
-          <h2 className="font-extrabold" style={{ fontSize:'1.5rem', letterSpacing:'-0.01em', color:'#1A1035', marginBottom:'0.5rem' }}>Still have questions?</h2>
-          <p className="text-warm-600 text-sm mb-6">Our team responds within 24 hours.</p>
-          <a href="mailto:support@thankeeu.com" className="gc-btn-primary px-8 py-3.5 inline-flex items-center gap-2"><Icon name="Mail" size={16}/> Email support</a>
-        </div>
-      </section>
-      <Footer />
-    </div>
+        </section>
+      </div>
+    </>
   );
 }

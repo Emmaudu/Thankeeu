@@ -35,6 +35,7 @@ import https from 'https';
 import http from 'http';
 import { fileURLToPath } from 'url';
 import { LANDING_MANIFEST, hreflangCluster } from '../src/data/occasionLandings/manifest.js';
+import { TEAMS_MANIFEST, teamsHreflang } from '../src/data/teamsLandings/manifest.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -339,7 +340,10 @@ async function main() {
   posts.filter(p => p && p.slug).forEach(post => postsBySlug.set(post.slug, post));
 
   // Occasion × country landing pages, each with its hreflang cluster.
-  const landingPages = LANDING_MANIFEST.map(m => ({ loc: m.path, changefreq: 'monthly', priority: '0.8', alternates: hreflangCluster(m) }));
+  const landingPages = [
+    ...LANDING_MANIFEST.map(m => ({ loc: m.path, changefreq: 'monthly', priority: '0.8', alternates: hreflangCluster(m) })),
+    ...TEAMS_MANIFEST.map(m => ({ loc: m.path, changefreq: 'monthly', priority: '0.9', alternates: teamsHreflang(m) })),
+  ];
   const staticBlocks = [...STATIC_PAGES, ...landingPages].map(renderUrl);
   const blogBlocks   = [...postsBySlug.values()].map(renderBlogPostUrl);
 
@@ -358,7 +362,7 @@ ${blogBlocks.join('\n\n')}
 `;
 
   fs.writeFileSync(OUT_PATH, xml);
-  console.log(`[generate-sitemap] wrote ${STATIC_PAGES.length + LANDING_MANIFEST.length} static pages + ${blogBlocks.length} blog posts to ${OUT_PATH}`);
+  console.log(`[generate-sitemap] wrote ${STATIC_PAGES.length + LANDING_MANIFEST.length + TEAMS_MANIFEST.length} static pages + ${blogBlocks.length} blog posts to ${OUT_PATH}`);
 }
 
 main();

@@ -33,7 +33,7 @@ const ALBUM_IDS = ['jane', 'sarah', 'jackson'];
 const initials = (name) => String(name).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
 // [text](/path) → a link; everything else stays text.
-function RichText({ text }) {
+export function RichText({ text }) {
   const parts = [];
   const re = /\[([^\]]+)\]\((\/[^)\s]*)\)/g;
   let last = 0; let m;
@@ -183,7 +183,7 @@ function ComparisonTable({ ui }) {
   );
 }
 
-const SectionHead = ({ title, intro, center = true }) => (
+export const SectionHead = ({ title, intro, center = true }) => (
   <div className={`mb-8 ${center ? 'text-center' : ''}`}>
     <h2 className="font-bold text-warm-900" style={{ fontSize: 'clamp(1.85rem,5.5vw,2.75rem)', lineHeight: 1.15 }}>{title}</h2>
     {intro && <p className={`mt-3 text-base leading-relaxed text-warm-500 ${center ? 'mx-auto max-w-2xl' : ''}`}><RichText text={intro} /></p>}
@@ -221,7 +221,7 @@ function LandingBody({ page }) {
   });
 
   return (
-    <div className="min-h-screen bg-[#FFFDF8]" lang={page.lang}>
+    <div className="min-h-screen overflow-x-hidden bg-[#FFFDF8]" lang={page.lang}>
       <Navbar />
 
       {/* Hero */}
@@ -233,8 +233,8 @@ function LandingBody({ page }) {
           </nav>
           <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
             <div>
-              <p className="mb-4 text-sm font-bold uppercase tracking-[0.14em] text-primary-700">{page.tagline}</p>
-              <h1 className="font-extrabold text-warm-900" style={{ fontSize: 'clamp(2rem,4.4vw,3.15rem)', lineHeight: 1.08, letterSpacing: '-0.02em' }}>{page.h1}</h1>
+              <p className="mb-4 text-sm font-bold uppercase tracking-[0.14em] text-primary-700" style={{ overflowWrap: 'anywhere' }}>{page.tagline}</p>
+              <h1 className="font-extrabold text-warm-900" style={{ fontSize: Math.max(...page.h1.split(/\s+/).map(w => w.length)) > 18 ? 'clamp(1.45rem,4.4vw,3.15rem)' : 'clamp(2rem,4.4vw,3.15rem)', lineHeight: 1.08, letterSpacing: '-0.02em', overflowWrap: 'anywhere', hyphens: 'auto', WebkitHyphens: 'auto' }}>{page.h1}</h1>
               <p className="mt-4 max-w-xl text-warm-600" style={{ fontSize: 'clamp(1rem,2vw,1.12rem)', lineHeight: 1.55 }}><RichText text={page.subtitle} /></p>
               <div className="mt-7 flex flex-wrap gap-3">
                 <Link to={ctaTo} className="inline-flex items-center gap-2 rounded-2xl bg-primary-600 px-6 py-3.5 text-base font-bold text-white shadow-sm hover:bg-primary-700">

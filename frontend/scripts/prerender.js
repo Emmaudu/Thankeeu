@@ -48,6 +48,9 @@ import { weddingLanding, WEDDING_LANDING_KEYS } from '../src/data/weddingLanding
 import { withArticle } from '../src/data/landingArticles.js';
 import { ALL_LANDING_PAGES } from '../src/data/occasionLandings/all.js';
 import { hreflangCluster } from '../src/data/occasionLandings/manifest.js';
+import { ALL_TEAMS_PAGES } from '../src/data/teamsLandings/all.js';
+import { teamsHreflang } from '../src/data/teamsLandings/manifest.js';
+import { TEAMS_UI, HRIS as TEAMS_HRIS, COMPETITORS as TEAMS_COMPETITORS, COMPARE_WITH as TEAMS_COMPARE_WITH, COMPARE_ROWS as TEAMS_COMPARE_ROWS, TEAMS_BLOG, TEAMS_COUNTRY } from '../src/data/teamsLandings/shared.js';
 import { landingLinks } from '../src/data/occasionLandings/index.js';
 import { coverPlanFor, COMPARISON, UI as LANDING_UI, COUNTRY_META as LANDING_COUNTRIES } from '../src/data/occasionLandings/shared.js';
 
@@ -384,12 +387,53 @@ function occasionLandingStaticPage(p) {
   return { path: p.path, title: p.title, description: p.description, rootHtml, jsonLd, alternates: hreflangCluster(p), lang: p.lang };
 }
 
+// ── Thankeeu for Teams pages (data/teamsLandings) ───────────────────────────
+function teamsStaticPage(p) {
+  const h = (t) => esc(t);
+  const lk = (t) => h(t).replace(/\[([^\]]+)\]\((\/[^)\s]*)\)/g, '<a href="$2">$1</a>');
+  const ui = TEAMS_UI[p.lang] || TEAMS_UI.en;
+  const cards = (list) => `<ul>${list.map(([a, b, c]) => (c !== undefined ? `<li><h3>${h(b)}</h3><p>${lk(c)}</p></li>` : `<li><strong>${h(a)}</strong>: ${lk(b)}</li>`)).join('')}</ul>`;
+  const others = TEAMS_COMPARE_WITH[p.country].map(k => TEAMS_COMPETITORS[k]);
+  const cell = (v) => (v === true ? ui.cells.yes : v === false ? ui.cells.no : ui.cells[v] || v);
+  const ours = (row) => (row === 'price' ? `${ui.standardRate}, ${ui.perEmployee}. ${ui.yearlyNote}` : ui.us[row]);
+  const rootHtml = `<nav aria-label="Breadcrumb"><a href="/">Thankeeu</a> / <a href="${p.path}">${h(p.breadcrumb)}</a></nav>
+<main lang="${p.lang}">
+  <p>${h(p.tagline)}</p><h1>${h(p.h1)}</h1><p>${lk(p.subtitle)}</p>
+  <p><a href="/business">${h(ui.demo)}</a> | <a href="/company/signup">${h(ui.signup)}</a></p><p>${h(ui.trust)}</p>
+  ${cards(p.proof)}
+  <h2>${h(p.problemTitle)}</h2><p>${lk(p.problemIntro)}</p>${cards(p.problems)}
+  <h2>${h(p.automationTitle)}</h2><p>${lk(p.automationIntro)}</p>${cards(p.automations)}
+  <p><strong>${h(ui.integrations)}</strong>: ${h(TEAMS_HRIS.join(', '))}, ${h(ui.integrationsNote)} ${lk(p.integrationsIntro)}</p>
+  <h2>${h(p.featuresTitle)}</h2><p>${lk(p.featuresIntro)}</p>${cards(p.features)}
+  ${p.sections.map(sec => `<h2>${h(sec.h2)}</h2>${sec.paragraphs.map(t => `<p>${lk(t)}</p>`).join('')}${sec.items ? cards(sec.items) : ''}`).join('\n  ')}
+  <h2>${h(p.rolloutTitle)}</h2><ol>${p.rollout.map(([t, b]) => `<li><strong>${h(t)}</strong>: ${lk(b)}</li>`).join('')}</ol>
+  <h2>${h(ui.pricingTitle(TEAMS_COUNTRY[p.country].short))}</h2><p>${lk(p.pricingIntro)}</p><p>${h(ui.yearlyNote)} ${h(ui.pricingFoot)}</p><p><strong>${h(ui.freeTitle)}</strong>: ${h(ui.freeText)}</p>
+  <h2>${h(ui.compareTitle)}</h2><p>${lk(p.comparisonIntro)}</p>
+  <table><thead><tr><th>${h(ui.feature)}</th><th>Thankeeu for Teams</th>${others.map(c => `<th>${h(c.name)}</th>`).join('')}</tr></thead><tbody>${TEAMS_COMPARE_ROWS.map(r => `<tr><td>${h(ui.rows[r])}</td><td>${h(ours(r))}</td>${others.map(c => `<td>${h(cell(c[r]))}</td>`).join('')}</tr>`).join('')}</tbody></table><p>${h(ui.compareNote)}</p>
+  <h2>${h(ui.faqTitle)}</h2>
+  ${p.faqs.map(f => `<h3>${h(f.q)}</h3><p>${lk(f.a)}</p>`).join('\n  ')}
+  <h2>${h(ui.guides)}</h2><ul>${TEAMS_BLOG.map(([href, label]) => `<li><a href="${href}">${h(label)}</a></li>`).join('')}</ul>
+  <h2>${h(p.ctaTitle)}</h2><p>${h(p.ctaText)}</p>
+</main>`;
+  const url = (path) => `${APP_URL}${path}`;
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      { '@type': 'WebPage', '@id': `${url(p.path)}#webpage`, url: url(p.path), name: p.title, description: p.description, inLanguage: p.lang },
+      { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'Thankeeu', item: url('/') }, { '@type': 'ListItem', position: 2, name: p.breadcrumb, item: url(p.path) }] },
+      { '@type': 'FAQPage', mainEntity: p.faqs.map(f => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1') } })) },
+    ],
+  };
+  return { path: p.path, title: p.title, description: p.description, rootHtml, jsonLd, alternates: teamsHreflang(p), lang: p.lang };
+}
+
 // ── 1. Static marketing pages ────────────────────────────────────────────────
 // Meta copied verbatim from each page's existing useSEO() call, so nothing
 // user-facing changes — we're just making it visible to crawlers before JS.
 const STATIC_PAGES = [
   ...countryLandingPages(),
   ...ALL_LANDING_PAGES.map(occasionLandingStaticPage),
+  ...ALL_TEAMS_PAGES.map(teamsStaticPage),
   {
     path: '/groupgreeting-alternative',
     title: 'GroupGreeting Alternative — Voice Notes, Gift Pot & Memory Movie | Thankeeu',

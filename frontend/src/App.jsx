@@ -113,9 +113,15 @@ import BirthdayPage    from './pages/occasions/BirthdayPage';
 import { GroupCardsUK, GroupCardsUS, GroupCardsCanada, GroupCardsNigeria } from './pages/occasions/CountryLandingPage';
 import OccasionCountryLanding from './pages/OccasionCountryLanding';
 import { LANDING_MANIFEST } from './data/occasionLandings/manifest';
+import TeamsCountryLanding from './pages/TeamsCountryLanding';
+import { TEAMS_MANIFEST } from './data/teamsLandings/manifest';
 // Occasion × country landing pages (data/occasionLandings/manifest.js).
 const OCCASION_LANDINGS_ROUTES = LANDING_MANIFEST.map(m => (
   <Route key={m.path} path={m.path} element={<OccasionCountryLanding pageKey={m.key} />} />
+));
+// Thankeeu for Teams landing pages (data/teamsLandings/manifest.js).
+const TEAMS_LANDINGS_ROUTES = TEAMS_MANIFEST.map(m => (
+  <Route key={m.path} path={m.path} element={<TeamsCountryLanding pageKey={m.key} />} />
 ));
 import LeavingCardPage from './pages/LeavingCardPage';
 import MoneyTransferPage from './pages/MoneyTransferPage';
@@ -476,6 +482,7 @@ const App = () => {
             <Route path="/online-group-cards-canada"  element={<GroupCardsCanada />} />
             <Route path="/online-group-cards-nigeria" element={<GroupCardsNigeria />} />
             {OCCASION_LANDINGS_ROUTES}
+            {TEAMS_LANDINGS_ROUTES}
             <Route path="/cards/leaving-card"    element={<LeavingCardPage />} />
             {/* The keyword URL is canonical (MoneyTransferPage declares it);
                 /send-money is kept as a short alias that redirects, so the two

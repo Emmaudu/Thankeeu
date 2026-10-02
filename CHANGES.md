@@ -155,3 +155,29 @@ Signature drafts now keep files and gifts:
 - On submit, files already uploaded are sent as links instead of being uploaded again (`prepared_media`).
 - The gift a signer chose (an amount or a vendor product) is recorded, never charged.
 - Admin card details shows the files and the gift. Post adds the files to the message, and the email to the signer explains that the gift was not paid.
+
+## Round 26: Thankeeu for Teams landing pages (HR buyers)
+
+Ten B2B pages, two per country, built to bring HR managers and founders to book a demo (/business) or create a free company account (/company/signup):
+
+| Country | Page A (recognition platform) | Page B (automated staff cards) |
+|---|---|---|
+| US | /employee-recognition-platform-us | /automated-employee-birthday-cards-us |
+| UK | /staff-recognition-platform-uk | /staff-birthday-and-leaving-cards-uk |
+| Canada | /employee-recognition-software-canada | /work-anniversary-and-birthday-automation-canada |
+| Germany | /employee-recognition-software-germany | /mitarbeiter-wertschaetzung-tool (German) |
+| Mauritius | /employee-recognition-mauritius | /staff-celebration-software-mauritius |
+
+- Files: `frontend/src/data/teamsLandings/` (manifest, shared facts, brief, pages per country) and `frontend/src/pages/TeamsCountryLanding.jsx`.
+- Each page has:
+  - three workplace flipbooks in the hero and its own hero background;
+  - a section on what goes wrong today, six automations, the list of HR systems, six features, cards to send, three country sections and a one week rollout plan;
+  - live pricing at the standard per employee rate in the local currency, with team size examples and the yearly saving;
+  - a comparison with three competitors relevant to the country;
+  - 14 or more FAQs;
+  - links to the occasion pages for the same country and to guides.
+- Pricing shown is the standard ₦2,000 per employee a month (about $1.26 at today's rate). If an admin sets a custom rate for a company, that company pays its own rate; the pages say larger organisations get a tailored quote.
+- Facts checked against the code and the competitors' pricing pages (October 2026). There are no claims about SSO, compliance, Slack or Teams apps, opt outs, or delivery in each recipient's own time zone for automated cards.
+- Prerendered HTML, hreflang clusters, sitemap entries and `<html lang="de">` for the German page.
+- Long German words no longer overflow on phones; long headlines scale down automatically. This also applies to the occasion pages.
+- Quality gate: `src/tests/teams-landings.test.js`.

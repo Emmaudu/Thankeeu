@@ -18,6 +18,16 @@ const COUNTRY_STYLE = {
   france:      { bg: '#F1F3FB', ink: '#3B4CA0' },
 };
 
+// Thankeeu for Teams pages: their own, slightly cooler colours per country
+// and variant, so the B2B pages never look like the occasion pages.
+const TEAMS_STYLE = {
+  us:        { a: { bg: '#EEF2FB', ink: '#3A57A5' }, b: { bg: '#F7F1E8', ink: '#9A5B2E' } },
+  uk:        { a: { bg: '#F0F3F8', ink: '#2E4A7A' }, b: { bg: '#F8F0F0', ink: '#9C3B3B' } },
+  canada:    { a: { bg: '#F6EEEE', ink: '#A33A32' }, b: { bg: '#EEF4F1', ink: '#2F7A5B' } },
+  germany:   { a: { bg: '#F1F1EC', ink: '#5B5A3A' }, b: { bg: '#F3EFF8', ink: '#5A3F8C' } },
+  mauritius: { a: { bg: '#E9F5F3', ink: '#17796A' }, b: { bg: '#F8F3E6', ink: '#A77A1C' } },
+};
+
 // Small motifs, drawn in a 0 0 24 24 box.
 const M = {
   plane: '<path d="M2 12 22 3 15 21 11 13Z" fill="none" stroke-width="1.6" stroke-linejoin="round"/><path d="M11 13 22 3" fill="none" stroke-width="1.6"/>',
@@ -43,6 +53,7 @@ const SETS = {
   babyshower:  ['cloud', 'star', 'heart', 'dot', 'sparkle', 'ring'],
   anniversary: ['heart', 'rings', 'sparkle', 'dot', 'star', 'heart'],
   work:        ['star', 'check', 'sparkle', 'dot', 'ring', 'confetti'],
+  teams:       ['envelope', 'check', 'star', 'heart', 'sparkle', 'dot'],
 };
 
 // Positions in a 240 x 240 tile: [x, y, scale, rotation, opacity].
@@ -61,7 +72,7 @@ const svgTile = (ink, motifs, layout) => {
 
 /** Style for a landing page hero: background colour plus a repeating pattern. */
 export function heroBackdrop(page) {
-  const c = COUNTRY_STYLE[page.country] || COUNTRY_STYLE.uk;
+  const c = (page.occasion === 'teams' && TEAMS_STYLE[page.country]?.[page.variant]) || COUNTRY_STYLE[page.country] || COUNTRY_STYLE.uk;
   const set = page.occasion === 'anniversary' && page.variant === 'b' ? SETS.work : SETS[page.occasion] || SETS.group;
   const tile = svgTile(c.ink, set, LAYOUTS[page.variant] || LAYOUTS.a);
   return {
@@ -72,4 +83,4 @@ export function heroBackdrop(page) {
   };
 }
 
-export const heroInk = (page) => (COUNTRY_STYLE[page.country] || COUNTRY_STYLE.uk).ink;
+export const heroInk = (page) => ((page.occasion === 'teams' && TEAMS_STYLE[page.country]?.[page.variant]) || COUNTRY_STYLE[page.country] || COUNTRY_STYLE.uk).ink;

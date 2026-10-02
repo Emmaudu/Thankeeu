@@ -1,884 +1,317 @@
-const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
-const { body, validationResult } = require('express-validator');
+const express  = require('express');
+const router   = express.Router();
+const multer   = require('multer');
+const { companyAuth } = require('../middleware/companyAuth');
 const supabase = require('../utils/supabase');
-const { authenticate, requireRole } = require('../middleware/auth');
-const { uploadAvatar, uploadAvatarBuffer } = require('../utils/cloudinary');
-const { initializePayment, verifyPayment, generateReference } = require('../utils/flutterwave');
-const { Resend } = require('resend');
+const { getWorkersDayDate } = require('../utils/workersDay');
+const { validateUUIDParam } = require('../utils/paramGuard');
+const {
+  downloadTemplate, importTeamMembers, getTeamMembers,
+  getDepartments, deleteTeamMember, getTeamsDashboard,
+} = require('../controllers/teamsController');
 
-const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
-const FROM = `Taskeeu Teams <${process.env.EMAIL_FROM || 'teams@taskeeu.com'}>`;
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
-const PLANS = {
-  monthly: { amount: 200000, label: 'Monthly', durationDays: 30 },
-  yearly:  { amount: 2400000, label: 'Yearly',  durationDays: 365 },
-};
+router.use(companyAuth);
 
-// ── Helper: send HTML email ────────────────────────────────────────
-const sendEmail = async (to, subject, html) => {
-  if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 're_placeholder') {
-    console.error(`❌ TEAMS EMAIL NOT SENT — RESEND_API_KEY not set. [${subject}] To: ${to}`);
-    return null;
-  }
+// Template download & Excel import
+router.get('/template',                downloadTemplate);
+router.post('/import', upload.single('file'), importTeamMembers);
+
+// List / dashboard
+router.get('/',                        getTeamMembers);
+router.get('/departments',             getDepartments);
+router.get('/dashboard',               getTeamsDashboard);
+
+// Extended member list with birthday + edit
+router.get('/all-members', async (req, res) => {
+  console.log('[all-members] START — company:', req.company?.id);
   try {
-    const { data, error } = await resend.emails.send({ from: FROM, to, subject, html });
-    if (error) { console.error(`❌ Teams email error to ${to} [${subject}]:`, JSON.stringify(error)); return null; }
-    console.log(`✅ Teams email sent to ${to} [${subject}] id=${data?.id}`);
-    return data;
-  } catch (err) {
-    console.error(`❌ Teams email exception to ${to} [${subject}]:`, err?.message);
-    return null;
-  }
-};
+    const search = (req.query.search || '').trim();
+    const dept   = (req.query.dept   || '').trim();
+    const role   = (req.query.role   || '').trim();
+    const companyId = req.company.id;
 
-const teamsEmail = (content) => `
-<!DOCTYPE html><html><head><style>
-body{font-family:'Segoe UI',sans-serif;background:#f5f7f5;margin:0}
-.wrap{max-width:580px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden}
-.head{background:linear-gradient(135deg,#0D1117,#1a2e3a);padding:28px 32px}
-.head h1{color:#00C37E;margin:0;font-size:20px;font-weight:700}
-.head p{color:rgba(255,255,255,0.6);margin:6px 0 0;font-size:13px}
-.body{padding:28px 32px}.body p{color:#374151;line-height:1.6;font-size:14px}
-.btn{display:inline-block;background:#00C37E;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;margin:12px 0}
-.box{background:#f9fafb;border-radius:8px;padding:16px;margin:12px 0;border-left:3px solid #00C37E}
-.foot{background:#f9fafb;padding:16px 32px;text-align:center;color:#9ca3af;font-size:11px;border-top:1px solid #e5e7eb}
-</style></head><body>
-<div class="wrap">
-<div class="head"><h1>⚡ Taskeeu for Teams</h1><p>Nigeria's Field Operations Platform</p></div>
-<div class="body">${content}</div>
-<div class="foot">© ${new Date().getFullYear()} Taskeeu Technologies Ltd · Lagos, Nigeria</div>
-</div></body></html>`;
-
-// ── GET /teams/task-types — public list ───────────────────────────
-router.get('/task-types', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('enterprise_task_types')
+    // Step 1: company_members — use select('*') so no column name can cause 500
+    let q = supabase
+      .from('company_members')
       .select('*')
-      .eq('is_active', true)
-      .order('category')
-      .order('name');
-    if (error) throw error;
-    res.json({ success: true, task_types: data });
+      .eq('company_id', companyId)
+      .order('first_name', { ascending: true });
+    if (search) q = q.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+    if (dept)   q = q.eq('department', dept);
+    if (role)   q = q.eq('role', role);
+
+    const { data: cmRaw, error: cmErr } = await q;
+    if (cmErr) {
+      console.error('[all-members] company_members FAIL:', JSON.stringify(cmErr));
+      return res.status(500).json({ error: 'company_members: ' + cmErr.message });
+    }
+    // Exclude deactivated members — but rows with status NULL/undefined
+    // (e.g. older HRIS-synced records) count as active, not deactivated.
+    const cmData = (cmRaw || []).filter(m => m.status !== 'deactivated');
+    console.log('[all-members] company_members OK:', (cmRaw||[]).length, 'rows total,', cmData.length, 'after status filter');
+
+    // Step 2: occasion_members supplement — non-fatal if it fails
+    const cmEmails = new Set((cmData||[]).map(m=>m.email?.toLowerCase()).filter(Boolean));
+    let omData = [];
+    try {
+      let omQ = supabase
+        .from('occasion_members')
+        .select('id, email, first_name, last_name, department, gender, member_id')
+        .eq('company_id', companyId);
+      if (dept)   omQ = omQ.eq('department', dept);
+      if (search) omQ = omQ.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
+      const { data: omRows, error: omErr } = await omQ;
+      if (omErr) console.error('[all-members] occasion_members non-fatal:', omErr.message);
+      else omData = omRows || [];
+    } catch(omEx) { console.error('[all-members] occasion_members exception:', omEx.message); }
+    console.log('[all-members] occasion_members OK:', omData.length, 'rows');
+
+    const omUnique = Object.values(
+      omData
+        .filter(m => m.email && !cmEmails.has(m.email.toLowerCase()))
+        .reduce((acc, m) => {
+          const k = m.email.toLowerCase();
+          if (!acc[k] || (!acc[k].member_id && m.member_id)) acc[k] = m;
+          return acc;
+        }, {})
+    ).map(m => ({ ...m, id: m.member_id||`om_${m.email}`, status:'approved', role:m.role||'member', source:'occasion_import' }));
+
+    const allMembers  = [...(cmData||[]), ...omUnique];
+    const departments = [...new Set(allMembers.map(m=>m.department).filter(Boolean))];
+
+    // leaving_date and promotion_date are now native company_members columns
+    // (added via migration_credit_system.sql) — already present in cmData rows
+    // via select('*'). omUnique (occasion_members-only supplement rows) don't
+    // have these columns, so default them to null.
+    for (const m of allMembers) {
+      if (m.leaving_date   === undefined) m.leaving_date   = null;
+      if (m.promotion_date === undefined) m.promotion_date = null;
+    }
+
+    // workers_day_date is computed from the company's country — same for everyone,
+    // not stored per-member.
+    const workersDayDate = getWorkersDayDate(req.company?.country, new Date().getFullYear());
+    for (const m of allMembers) m.workers_day_date = workersDayDate;
+
+    console.log('[all-members] DONE — total:', allMembers.length);
+    res.json({ members: allMembers, teams_count: departments.length, departments });
+
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed to fetch task types' });
+    console.error('[all-members] CRASH:', err.message, '\n', err.stack);
+    res.status(500).json({ error: 'Failed to load members' });
   }
 });
 
-// ── POST /teams/companies/register — HR creates company account ───
-router.post('/companies/register',
-  uploadAvatar.single('logo'),
-  [
-    body('company_name').trim().isLength({ min: 2 }),
-    body('company_domain').trim().matches(/^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/),
-    body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 8 }),
-    body('hr_first_name').trim().notEmpty(),
-    body('hr_last_name').trim().notEmpty(),
-    body('hr_phone').trim().notEmpty(),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+// Edit member
+// company_members (Team Members page) is the single source of truth for
+// occasion automation. Editing birthday, work anniversary, gender, farewell,
+// or promotion date here directly controls what the daily cron will act on —
+// no separate occasion_members rows to keep in sync.
+router.put('/members/:id', validateUUIDParam('id'), async (req, res) => {
+  try {
+    const raw = req.body;
+    const { sanitizeName, sanitizePhone, sanitizeDate, sanitizeText, validateEmail } = require('../utils/sanitize');
+    // Explicitly block is_core_team from being set via this route
+    delete req.body.is_core_team;
+    const u = { updated_at: new Date() };
+    if (raw.first_name    !== undefined) u.first_name     = sanitizeName(raw.first_name, 'First name', { required: false, maxLen: 60 });
+    if (raw.last_name     !== undefined) u.last_name      = sanitizeName(raw.last_name,  'Last name',  { required: false, maxLen: 60 });
+    if (raw.email         !== undefined) u.email          = raw.email ? validateEmail(raw.email) : null;
+    if (raw.department    !== undefined) u.department     = sanitizeText(raw.department, 'Department', { maxLen: 100 });
+    if (raw.role          !== undefined) u.role           = sanitizeText(raw.role, 'Role', { maxLen: 60 });
+    if (raw.phone         !== undefined) u.phone          = sanitizePhone(raw.phone);
+    if (raw.job_title     !== undefined) u.job_title      = sanitizeText(raw.job_title, 'Job title', { maxLen: 100 });
+    if (raw.date_of_birth !== undefined) u.date_of_birth  = sanitizeDate(raw.date_of_birth, 'Date of birth') || null;
+    if (raw.gender        !== undefined) u.gender         = raw.gender || null;
+    if (raw.resumption_date!==undefined) u.resumption_date= sanitizeDate(raw.resumption_date, 'Resumption date', { allowFuture: true }) || null;
+    if (raw.leaving_date  !== undefined) u.leaving_date   = sanitizeDate(raw.leaving_date,   'Leaving date',   { allowFuture: true }) || null;
+    if (raw.promotion_date!== undefined) u.promotion_date = sanitizeDate(raw.promotion_date, 'Promotion date', { allowFuture: true }) || null;
 
-    const {
-      company_name, company_domain, branch_name, branch_address,
-      industry, company_size, company_address,
-      email, password, hr_first_name, hr_last_name, hr_phone,
-    } = req.body;
+    // Fetch current row first so we can detect date CHANGES and reset
+    // per-occasion notification tracking only for the occasion(s) that changed.
+    const { data: before } = await supabase.from('company_members')
+      .select('date_of_birth, resumption_date, leaving_date, promotion_date, occasion_tracking')
+      .eq('id', req.params.id).eq('company_id', req.company.id).maybeSingle();
 
-    const domain = company_domain.toLowerCase().replace(/^@/, '');
-    const branch = (branch_name || '').trim() || 'Head Office';
-
-    try {
-      // Check domain+branch combo not already registered
-      const { data: existing } = await supabase.from('companies')
-        .select('id, company_name')
-        .eq('company_domain', domain)
-        .ilike('branch_name', branch)
-        .maybeSingle();
-      if (existing) return res.status(409).json({ success: false, message: `${existing.company_name} (${branch}) already has a Taskeeu for Teams account` });
-
-      // Check email not taken
-      const { data: emailEx } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
-      if (emailEx) return res.status(409).json({ success: false, message: 'Email already registered' });
-
-      const password_hash = await bcrypt.hash(password, 12);
-      const full_name = `${hr_first_name} ${hr_last_name}`;
-
-      // Create user
-      const { data: user, error: uErr } = await supabase
-        .from('users')
-        .insert({ email, full_name, phone: hr_phone, password_hash, role: 'requester', email_verified: true })
-        .select().maybeSingle();
-      if (uErr) throw uErr;
-
-      // Create company with branch
-      const logoUrl = req.file?.buffer
-        ? (await uploadAvatarBuffer(req.file.buffer)).secure_url
-        : null;
-      const { data: company, error: cErr } = await supabase
-        .from('companies')
-        .insert({
-          hr_user_id: user.id, company_name, company_domain: domain,
-          branch_name: branch, branch_address: branch_address || company_address || null,
-          industry, company_size, company_address, company_logo_url: logoUrl,
-        })
-        .select().maybeSingle();
-      if (cErr) throw cErr;
-
-      // Create HR company member
-      const { data: member } = await supabase
-        .from('company_members')
-        .insert({
-          user_id: user.id, company_id: company.id, first_name: hr_first_name,
-          last_name: hr_last_name, work_email: email, job_role: 'HR Administrator',
-          permission_level: 'hr', status: 'active', is_hr: true,
-          approved_by: user.id, approved_at: new Date().toISOString(),
-        })
-        .select().maybeSingle();
-
-      // Create wallet
-      await supabase.from('company_wallets').insert({ company_id: company.id });
-
-      // Welcome email
-      sendEmail(email, '🎉 Welcome to Taskeeu for Teams!', teamsEmail(`
-        <p>Hi ${hr_first_name},</p>
-        <p>Your company account for <strong>${company_name} — ${branch}</strong> has been created successfully!</p>
-        <div class="box">
-          <p><strong>Company Domain:</strong> @${domain}</p>
-          <p><strong>Branch:</strong> ${branch}</p>
-          <p><strong>Your Role:</strong> HR Administrator (Full Access)</p>
-        </div>
-        <p><strong>Next steps:</strong></p>
-        <p>1. Subscribe to activate your account (₦200,000/month or ₦2.4M/year)</p>
-        <p>2. Create departments and assign team leaders</p>
-        <p>3. Fund your task wallet</p>
-        <p>4. Share your company domain <strong>@${domain}</strong> so team members can self-register</p>
-        <a href="${process.env.FRONTEND_URL}/teams/dashboard/hr" class="btn">Go to HR Dashboard →</a>
-      `))
-      .catch(() => {});
-
-      const jwt = require('jsonwebtoken');
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-      res.status(201).json({
-        success: true,
-        message: 'Company account created! Subscribe to activate.',
-        token,
-        user: { id: user.id, email, full_name, role: 'requester' },
-        company: { id: company.id, company_name, company_domain: domain, branch_name: branch },
-        member: { id: member.id, permission_level: 'hr', is_hr: true },
-      });
-    } catch (err) {
-      console.error('Company register error:', err);
-      console.error('[teams.js] Registration failed:', err?.message);
-      res.status(500).json({ success: false, message: 'Registration failed' });
+    const tracking = { ...(before?.occasion_tracking || {}) };
+    const dateChanged = (field, occasionKey) => {
+      if (u[field] === undefined) return;
+      const oldVal = before?.[field] || null;
+      const newVal = u[field] || null;
+      if (oldVal !== newVal && tracking[occasionKey]) {
+        delete tracking[occasionKey]; // allow automation to re-fire for the new date
+      }
+    };
+    dateChanged('date_of_birth',    'birthday');
+    dateChanged('resumption_date',  'work_anniversary');
+    dateChanged('resumption_date',  'new_hire');
+    dateChanged('leaving_date',     'leaving');
+    dateChanged('promotion_date',   'promotion');
+    if (Object.keys(tracking).length !== Object.keys(before?.occasion_tracking || {}).length) {
+      u.occasion_tracking = tracking;
     }
-  }
-);
 
-// ── POST /teams/members/signup — team member creates account ──────
-// LOGIC: Normal members → auto-approved (instant access)
-//        Team Leaders  → auto-approved as member, HR notified to grant leader rights
-router.post('/members/signup',
-  [
-    body('first_name').trim().notEmpty(),
-    body('last_name').trim().notEmpty(),
-    body('work_email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 8 }),
-    body('department').trim().notEmpty(),
-    body('job_role').trim().notEmpty(),
-  ],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
+    const { data, error } = await supabase.from('company_members')
+      .update(u).eq('id', req.params.id).eq('company_id', req.company.id).select().maybeSingle();
+    if (error) throw error;
 
-    const { first_name, last_name, work_email, password, department, job_role, requested_role } = req.body;
-    // requested_role: 'team_leader' | 'member' (default)
-    const isTeamLeader = requested_role === 'team_leader';
+    res.json(data);
 
+    // ── Immediate catch-up: if a date that drives occasion automation changed
+    // (birthday, work anniversary, promotion, leaving) AND the new date puts
+    // the occasion within the 7-day notification window, create the card and
+    // notify colleagues RIGHT NOW — don't wait for the nightly cron.
+    const dateFields = ['date_of_birth', 'resumption_date', 'leaving_date', 'promotion_date'];
+    const anyDateChanged = dateFields.some(f => u[f] !== undefined && u[f] !== (before?.[f] || null));
+
+    if (anyDateChanged && data) {
+      setImmediate(async () => {
+        try {
+          const { catchUpMemberCards } = require('../utils/catchUpCards');
+          // Fetch full company row — catchUpMemberCards needs country, occasion_scopes etc.
+          const { data: company } = await supabase
+            .from('companies')
+            .select('id, name, email, country, occasion_scopes, occasion_hide_amounts')
+            .eq('id', req.company.id)
+            .maybeSingle();
+          if (company) {
+            console.log(`[teams] Date changed for ${data.first_name} ${data.last_name} — running catch-up`);
+            await catchUpMemberCards(data, company);
+          }
+        } catch (e) {
+          console.error('[teams] catch-up after edit failed:', e.message);
+        }
+      });
+    }
+  } catch (err) { console.error('[teams]', err.message);
+    const { isSanitizeError } = require('../utils/sanitize');
+    if (isSanitizeError(err)) return res.status(err.status).json({ error: err.error });
+    res.status(500).json({ error: 'Operation failed' }); }
+});
+
+// POST /teams/members/:id/sync-occasions — immediately run catch-up card creation
+// for a single member. Frontend calls this after editing birthday/dates.
+// This is a no-auth-required background operation — catchUpMemberCards handles
+// all the logic, including checking if a card already exists this year.
+router.post('/members/:id/sync-occasions', validateUUIDParam('id'), companyAuth, async (req, res) => {
+  // Respond immediately so the frontend isn't blocked waiting
+  res.json({ ok: true, message: 'Occasion sync started in background' });
+  setImmediate(async () => {
     try {
-      const emailDomain = work_email.split('@')[1]?.toLowerCase();
-      if (!emailDomain) return res.status(400).json({ success: false, message: 'Invalid email address' });
+      const { catchUpMemberCards } = require('../utils/catchUpCards');
+      const { data: member } = await supabase.from('company_members')
+        .select('*').eq('id', req.params.id).eq('company_id', req.company.id).maybeSingle();
+      if (!member) return;
+      const { data: company } = await supabase.from('companies')
+        .select('id, name, email, country, occasion_scopes, occasion_hide_amounts')
+        .eq('id', req.company.id).maybeSingle();
+      if (!company) return;
+      await catchUpMemberCards(member, company);
+    } catch (e) {
+      console.error('[sync-occasions]', e.message);
+    }
+  });
+});
 
-      // Find matching company by domain
-      const { data: company } = await supabase
-        .from('companies')
-        .select('id, company_name, branch_name, company_domain, subscription_status, hr_user_id')
-        .eq('company_domain', emailDomain)
-        .eq('is_active', true)
-        .maybeSingle();
+// Delete member — hard delete from ALL tables.
+// Accepts real UUIDs (company_members.id / occasion_members.member_id)
+// and the synthetic 'om_<email>' IDs all-members uses for occasion-only rows.
+// Also records the email in company_deleted_members so HRIS auto-sync
+// never re-creates this person (without HR explicitly re-adding them).
+router.delete('/members/:id', async (req, res) => {
+  try {
+    const companyId = req.company.id;
+    const memberId  = req.params.id;
 
-      if (!company) return res.status(404).json({ success: false, message: `No Taskeeu for Teams account found for @${emailDomain}. Contact your HR.` });
-      if (!['trial','active'].includes(company.subscription_status))
-        return res.status(403).json({ success: false, message: 'Your company subscription is not active. Contact your HR.' });
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const OM_RE   = /^om_.{3,320}$/;
+    if (!UUID_RE.test(memberId) && !OM_RE.test(memberId)) {
+      return res.status(400).json({ error: 'Invalid member id format' });
+    }
 
-      // Check not already a member
-      const { data: existingMember } = await supabase
-        .from('company_members').select('id,status').eq('work_email', work_email).eq('company_id', company.id).maybeSingle();
-      if (existingMember) return res.status(409).json({ success: false, message: 'This email already has an account. Please log in.' });
+    // Helper: wipe a member email from ALL member-related tables
+    const purgeByEmail = async (email) => {
+      const e = email?.toLowerCase().trim();
+      if (!e) return;
+      await Promise.allSettled([
+        supabase.from('company_members').delete().eq('company_id', companyId).eq('email', e),
+        supabase.from('occasion_members').delete().eq('company_id', companyId).eq('email', e),
+        supabase.from('team_members').delete().eq('company_id', companyId).eq('email', e),
+      ]);
+      // Record in blocklist so HRIS sync skips this email in future
+      await supabase.from('company_deleted_members')
+        .upsert({ company_id: companyId, email: e, deleted_at: new Date() },
+          { onConflict: 'company_id,email' })
+        .catch(() => {}); // non-fatal if table doesn't exist yet
+    };
 
-      // Match department
-      let deptId = null;
-      const { data: dept } = await supabase
-        .from('company_departments')
-        .select('id').eq('company_id', company.id).ilike('name', `%${department}%`).maybeSingle();
-      if (dept) deptId = dept.id;
+    // ── 1. Real UUID → look up company_members first ──────────────────────
+    if (UUID_RE.test(memberId)) {
+      const { data: cmRows, error: cmErr } = await supabase
+        .from('company_members')
+        .delete()
+        .eq('id', memberId)
+        .eq('company_id', companyId)
+        .select('email');
+      if (cmErr) throw cmErr;
 
-      // Create or find user
-      let userId;
-      const { data: existingUser } = await supabase.from('users').select('id').eq('email', work_email).maybeSingle();
-      if (existingUser) {
-        userId = existingUser.id;
-      } else {
-        const password_hash = await bcrypt.hash(password, 12);
-        const { data: newUser, error: nuErr } = await supabase
-          .from('users')
-          .insert({ email: work_email, full_name: `${first_name} ${last_name}`, password_hash, role: 'requester', email_verified: true })
-          .select().maybeSingle();
-        if (nuErr) throw nuErr;
-        userId = newUser.id;
+      if (cmRows && cmRows.length > 0) {
+        await purgeByEmail(cmRows[0].email);
+        return res.json({ message: 'Member removed' });
       }
 
-      // Auto-approve all members immediately.
-      // Team leaders get 'member' status but leader_right_status = 'pending' (HR grants full rights)
-      const { data: member, error: mErr } = await supabase
-        .from('company_members')
-        .insert({
-          user_id: userId,
-          company_id: company.id,
-          department_id: deptId,
-          first_name, last_name, work_email, job_role,
-          permission_level: isTeamLeader ? 'member' : 'member', // leader rights granted by HR separately
-          status: 'active', // ALL members are auto-approved
-          approved_by: userId,
-          approved_at: new Date().toISOString(),
-          leader_right_status: isTeamLeader ? 'pending' : 'none',
-        })
-        .select().maybeSingle();
-      if (mErr) throw mErr;
-
-      // Welcome email to member
-      sendEmail(work_email, `✅ Welcome to ${company.company_name}${company.branch_name ? ' — ' + company.branch_name : ''}!`, teamsEmail(`
-        <p>Hi ${first_name},</p>
-        <p>You have successfully joined <strong>${company.company_name}${company.branch_name ? ' — ' + company.branch_name : ''}</strong> on Taskeeu for Teams!</p>
-        <div class="box">
-          <p><strong>Department:</strong> ${department}</p>
-          <p><strong>Role:</strong> ${job_role}</p>
-          ${isTeamLeader ? '<p><strong>Team Leader Rights:</strong> Pending HR approval</p>' : ''}
-        </div>
-        ${isTeamLeader
-          ? '<p>Your account is active and you can log in now. Your <strong>Team Leader privileges</strong> are pending HR approval — you will be notified once granted.</p>'
-          : '<p>Your account is active. You can log in and start posting enterprise tasks right away!</p>'
-        }
-        <a href="${process.env.FRONTEND_URL}/teams/login" class="btn">Log In Now →</a>
-      `))
-      .catch(() => {});
-
-      // If team leader, notify HR for rights approval
-      if (isTeamLeader) {
-        const { data: hrUser } = await supabase.from('users').select('email, full_name').eq('id', company.hr_user_id).maybeSingle();
-
-        if (hrUser) {
-          sendEmail(hrUser.email, `👔 Team Leader Joined — Approval Needed: ${first_name} ${last_name}`, teamsEmail(`
-            <p>Hi,</p>
-            <p>A new team member has joined <strong>${company.company_name}</strong> and has requested <strong>Team Leader</strong> privileges for their department:</p>
-            <div class="box">
-              <p><strong>Name:</strong> ${first_name} ${last_name}</p>
-              <p><strong>Email:</strong> ${work_email}</p>
-              <p><strong>Department:</strong> ${department}</p>
-              <p><strong>Requested Role:</strong> Team Leader</p>
-            </div>
-            <p>They have been given basic member access. Please review and grant them full Team Leader rights in your HR dashboard.</p>
-            <a href="${process.env.FRONTEND_URL}/teams/dashboard/hr" class="btn">Review in HR Dashboard →</a>
-          `))
-      .catch(() => {});
-        }
-
-        // In-app notification for HR
-        (async () => {
-          try {
-            await supabase.from('notifications').insert({
-            user_id: company.hr_user_id,
-            type: 'team_leader_pending',
-            title: `👔 Team Leader Rights Pending: ${first_name} ${last_name}`,
-            message: `${first_name} ${last_name} joined as a team leader. Grant full rights in the HR dashboard.`,
-            data: { member_id: member.id, company_id: company.id },
-            action_url: `/teams/dashboard/hr`,
-            });
-          } catch (_) {}
-        })();
-      }
-
-      res.status(201).json({
-        success: true,
-        message: isTeamLeader
-          ? 'Account created! You can log in now. Team Leader rights are pending HR approval.'
-          : 'Account created successfully! You can log in right away.',
-        auto_approved: true,
-        is_team_leader_pending: isTeamLeader,
-        member_id: member.id,
-      });
-    } catch (err) {
-      console.error('Member signup error:', err);
-      console.error('[teams.js] Signup failed:', err?.message);
-      res.status(500).json({ success: false, message: 'Signup failed' });
-    }
-  }
-);
-router.post('/members/login',
-  [body('email').isEmail().normalizeEmail(), body('password').notEmpty()],
-  async (req, res) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() });
-
-    const { email, password } = req.body;
-    try {
-      const { data: user } = await supabase.from('users').select('*').eq('email', email).maybeSingle();
-      if (!user) return res.status(401).json({ success: false, message: 'Invalid email or password' });
-
-      const valid = await bcrypt.compare(password, user.password_hash);
-      if (!valid) return res.status(401).json({ success: false, message: 'Invalid email or password' });
-
-      const { data: member } = await supabase
-        .from('company_members')
-        .select('*, company:companies(id,company_name,company_domain,subscription_status,company_logo_url), department:company_departments(id,name,budget_allocated,budget_spent)')
-        .eq('work_email', email)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(1)
+      // Not in company_members — try occasion_members by member_id
+      const { data: omRow } = await supabase
+        .from('occasion_members')
+        .select('email')
+        .eq('company_id', companyId)
+        .eq('member_id', memberId)
         .maybeSingle();
 
-      if (!member) return res.status(403).json({ success: false, message: 'No active company account found for this email. Contact your HR.' });
-      if (!['trial','active'].includes(member.company?.subscription_status))
-        return res.status(403).json({ success: false, message: 'Your company subscription is not active.' });
-
-      // Get permissions
-      const { data: permissions } = await supabase
-        .from('company_permission_grants')
-        .select('permission').eq('granted_to_member', member.id).eq('is_active', true);
-
-      const jwt = require('jsonwebtoken');
-      const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
-
-      res.json({
-        success: true, token,
-        user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role },
-        member, permissions: permissions?.map(p => p.permission) || [],
-      });
-    } catch (err) {
-      console.error('Member login error:', err);
-      res.status(500).json({ success: false, message: 'Login failed' });
-    }
-  }
-);
-
-// ── GET /teams/companies/me — company info for HR ────────────────
-router.get('/companies/me', authenticate, async (req, res) => {
-  try {
-    const { data: company } = await supabase
-      .from('companies')
-      .select('*, wallet:company_wallets(*)')
-      .eq('hr_user_id', req.user.id)
-      .maybeSingle();
-    if (!company) return res.status(404).json({ success: false, message: 'No company found' });
-    res.json({ success: true, company });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Fetch failed' });
-  }
-});
-
-// ── GET /teams/companies/:id/members — list members ──────────────
-router.get('/companies/:id/members', authenticate, async (req, res) => {
-  try {
-    const { status } = req.query;
-    let q = supabase
-      .from('company_members')
-      .select('*, department:company_departments(id,name), user:users!user_id(email, avatar_url, last_seen)')
-      .eq('company_id', req.params.id)
-      .order('created_at', { ascending: false });
-    if (status) q = q.eq('status', status);
-    const { data: members, error } = await q;
-    if (error) throw error;
-    res.json({ success: true, members });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Fetch failed' });
-  }
-});
-
-// ── POST /teams/companies/:id/members/:memberId/approve ───────────
-router.post('/companies/:id/members/:memberId/approve', authenticate, async (req, res) => {
-  try {
-    const { data: member } = await supabase
-      .from('company_members')
-      .select('*, company:companies(company_name)')
-      .eq('id', req.params.memberId).eq('company_id', req.params.id).maybeSingle();
-
-    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
-
-    const { permission_level, department_id } = req.body;
-
-    await supabase.from('company_members').update({
-      status: 'active',
-      permission_level: permission_level || 'member',
-      department_id: department_id || member.department_id,
-      approved_by: req.user.id,
-      approved_at: new Date().toISOString(),
-    }).eq('id', req.params.memberId);
-
-    sendEmail(member.work_email, `✅ Account Approved — ${member.company?.company_name}`, teamsEmail(`
-      <p>Hi ${member.first_name},</p>
-      <p>Your account has been approved! You now have access to <strong>${member.company?.company_name}</strong> on Taskeeu for Teams.</p>
-      <a href="${process.env.FRONTEND_URL}/teams/login" class="btn">Log In to Your Account →</a>
-    `))
-      .catch(() => {});
-
-    res.json({ success: true, message: 'Member approved' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Approve failed' });
-  }
-});
-
-// ── POST /teams/companies/:id/members/:memberId/action ────────────
-router.post('/companies/:id/members/:memberId/action', authenticate, async (req, res) => {
-  try {
-    const { action, reason } = req.body; // suspend | remove | activate
-    const statusMap = { suspend: 'suspended', remove: 'removed', activate: 'active' };
-    if (!statusMap[action]) return res.status(400).json({ success: false, message: 'Invalid action' });
-
-    await supabase.from('company_members').update({ status: statusMap[action] }).eq('id', req.params.memberId);
-    res.json({ success: true, message: `Member ${action}d` });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Action failed' });
-  }
-});
-
-// ── POST /teams/companies/:id/members/:memberId/permissions ───────
-router.post('/companies/:id/members/:memberId/permissions', authenticate, async (req, res) => {
-  try {
-    const { permissions, permission_level } = req.body;
-
-    if (permission_level) {
-      await supabase.from('company_members')
-        .update({ permission_level }).eq('id', req.params.memberId);
+      if (omRow?.email) {
+        await purgeByEmail(omRow.email);
+        return res.json({ message: 'Member removed' });
+      }
     }
 
-    if (permissions && Array.isArray(permissions)) {
-      // Remove old grants first
-      await supabase.from('company_permission_grants')
-        .update({ is_active: false })
-        .eq('company_id', req.params.id)
-        .eq('granted_to_member', req.params.memberId);
-
-      // Insert new grants
-      const grants = permissions.map(p => ({
-        company_id: req.params.id,
-        granted_to_member: req.params.memberId,
-        granted_by: req.user.id,
-        permission: p,
-        is_active: true,
-      }));
-      if (grants.length > 0) await supabase.from('company_permission_grants').upsert(grants, { onConflict: 'company_id,granted_to_member,permission' });
+    // ── 2. Synthetic 'om_<email>' ID ─────────────────────────────────────
+    if (OM_RE.test(memberId)) {
+      const match = String(memberId).match(/^om_(.+)$/);
+      if (match) {
+        await purgeByEmail(match[1]);
+        return res.json({ message: 'Member removed' });
+      }
     }
 
-    res.json({ success: true, message: 'Permissions updated' });
+    // Nothing matched — still 200 so the UI removes the row (already gone)
+    res.json({ message: 'Member removed' });
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Permission update failed' });
+    console.error('[teams] delete member:', err.message);
+    res.status(500).json({ error: 'Failed to remove member' });
   }
 });
 
-// ── DEPARTMENTS ───────────────────────────────────────────────────
-router.get('/companies/:id/departments', authenticate, async (req, res) => {
+// Suspend / unsuspend member
+router.patch('/members/:id/status', validateUUIDParam('id'), async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('company_departments')
-      .select('*, leader:company_members!leader_member_id(first_name,last_name,work_email)')
-      .eq('company_id', req.params.id).eq('is_active', true).order('name');
+    const { status } = req.body;
+    // Allowlist check prevents prototype pollution via status='__proto__' etc.
+    if (!['approved','suspended','pending'].includes(String(status || '')))
+      return res.status(400).json({ error: 'Invalid status. Must be approved, suspended or pending.' });
+    const cleanStatus = String(status);
+    const { data, error } = await supabase.from('company_members')
+      .update({ status: cleanStatus, updated_at: new Date() }).eq('id', req.params.id).eq('company_id', req.company.id).select().maybeSingle();
     if (error) throw error;
-    res.json({ success: true, departments: data });
+    res.json(data);
   } catch (err) {
-    res.status(500).json({ success: false, message: 'Fetch failed' });
+    console.error('[teams]', err.message);
+    res.status(500).json({ error: 'Failed to update status' });
   }
 });
 
-router.post('/companies/:id/departments', authenticate, async (req, res) => {
-  try {
-    const { name, description, leader_member_id, budget_allocated } = req.body;
-    if (!name) return res.status(400).json({ success: false, message: 'Department name required' });
-    const { data, error } = await supabase
-      .from('company_departments')
-      .insert({ company_id: req.params.id, name, description, leader_member_id, budget_allocated: budget_allocated || 0 })
-      .select().maybeSingle();
-    if (error) throw error;
-    res.status(201).json({ success: true, department: data });
-  } catch (err) {
-    console.error('[teams.js] Create failed:', err?.message);
-      res.status(500).json({ success: false, message: 'Create failed' });
-  }
-});
-
-router.put('/companies/:id/departments/:deptId', authenticate, async (req, res) => {
-  try {
-    const { name, description, leader_member_id, budget_allocated } = req.body;
-    await supabase.from('company_departments')
-      .update({ name, description, leader_member_id, budget_allocated })
-      .eq('id', req.params.deptId).eq('company_id', req.params.id);
-    res.json({ success: true, message: 'Department updated' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Update failed' });
-  }
-});
-
-// ── WALLET ────────────────────────────────────────────────────────
-router.get('/companies/:id/wallet', authenticate, async (req, res) => {
-  try {
-    const { data: wallet } = await supabase.from('company_wallets').select('*').eq('company_id', req.params.id).maybeSingle();
-    const { data: txns } = await supabase.from('wallet_transactions')
-      .select('*').eq('company_id', req.params.id)
-      .order('created_at', { ascending: false }).limit(50);
-    res.json({ success: true, wallet, transactions: txns || [] });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Fetch failed' });
-  }
-});
-
-router.post('/companies/:id/wallet/topup', authenticate, async (req, res) => {
-  try {
-    const { amount } = req.body;
-    if (!amount || amount < 1000) return res.status(400).json({ success: false, message: 'Minimum topup is ₦1,000' });
-
-    const reference = generateReference('WALLET');
-    const { data: company } = await supabase.from('companies').select('company_name').eq('id', req.params.id).maybeSingle();
-    const payData = await initializePayment({
-      email: req.user.email, amount,
-      currency: 'NGN',
-      customerName: req.user.full_name || req.user.email,
-      reference,
-      metadata: { type: 'wallet_topup', company_id: req.params.id, company_name: company?.company_name },
-      callbackUrl: `${process.env.FRONTEND_URL}/teams/payment/callback`,
-    });
-
-    // Log pending transaction
-    await supabase.from('wallet_transactions').insert({
-      company_id: req.params.id, transaction_type: 'topup',
-      amount, description: 'Wallet top-up via Flutterwave',
-      flw_reference: reference, initiated_by: req.user.id,
-    });
-
-    res.json({ success: true, authorization_url: payData.authorization_url, reference });
-  } catch (err) {
-    console.error('[teams.js] Top-up init failed:', err?.message);
-      res.status(500).json({ success: false, message: 'Top-up init failed' });
-  }
-});
-
-router.post('/companies/:id/wallet/verify/:reference', authenticate, async (req, res) => {
-  try {
-    const txn = await verifyPayment(req.params.reference);
-    if (txn.status !== 'successful') return res.json({ success: false, message: 'Payment not successful' });
-
-    const { data: pendingTxn } = await supabase.from('wallet_transactions')
-      .select('*').eq('flw_reference', req.params.reference).maybeSingle();
-    if (!pendingTxn) return res.status(404).json({ success: false, message: 'Transaction not found' });
-
-    // Update wallet balance
-    const { data: wallet } = await supabase.from('company_wallets').select('total_balance').eq('company_id', req.params.id).maybeSingle();
-    const newBalance = parseFloat(wallet.total_balance || 0) + parseFloat(pendingTxn.amount);
-    await supabase.from('company_wallets').update({ total_balance: newBalance }).eq('company_id', req.params.id);
-    await supabase.from('wallet_transactions').update({ balance_after: newBalance }).eq('flw_reference', req.params.reference);
-
-    res.json({ success: true, message: 'Wallet funded!', new_balance: newBalance });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Verify failed' });
-  }
-});
-
-router.post('/companies/:id/wallet/allocate', authenticate, async (req, res) => {
-  try {
-    const { department_id, amount, use_general_purse } = req.body;
-
-    if (typeof use_general_purse === 'boolean') {
-      await supabase.from('company_wallets').update({ use_general_purse }).eq('company_id', req.params.id);
-    }
-
-    if (department_id && amount) {
-      // Check wallet has enough
-      const { data: wallet } = await supabase.from('company_wallets').select('available_balance').eq('company_id', req.params.id).maybeSingle();
-      if (parseFloat(wallet.available_balance) < parseFloat(amount))
-        return res.status(400).json({ success: false, message: 'Insufficient wallet balance' });
-
-      // Deduct from general and add to dept budget
-      await supabase.from('company_wallets').update({ total_balance: supabase.rpc('decrement', { x: amount }) }).eq('company_id', req.params.id);
-      await supabase.from('company_departments').update({ budget_allocated: supabase.rpc('increment', { x: amount }) }).eq('id', department_id);
-
-      await supabase.from('wallet_transactions').insert({
-        company_id: req.params.id, department_id,
-        transaction_type: 'dept_allocation', amount,
-        description: `Budget allocated to department`, initiated_by: req.user.id,
-      });
-    }
-
-    res.json({ success: true, message: 'Allocation updated' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Allocation failed' });
-  }
-});
-
-// ── SUBSCRIPTION ──────────────────────────────────────────────────
-router.post('/companies/:id/subscribe', authenticate, async (req, res) => {
-  try {
-    const { plan } = req.body;
-    if (!PLANS[plan]) return res.status(400).json({ success: false, message: 'Invalid plan' });
-
-    const reference = generateReference('SUB');
-    const planInfo = PLANS[plan];
-    const { data: company } = await supabase.from('companies').select('company_name').eq('id', req.params.id).maybeSingle();
-
-    const payData = await initializePayment({
-      email: req.user.email,
-      amount: planInfo.amount,
-      currency: 'NGN',
-      customerName: req.user.full_name || req.user.email,
-      reference,
-      metadata: { type: 'subscription', company_id: req.params.id, plan, company_name: company?.company_name },
-      callbackUrl: `${process.env.FRONTEND_URL}/teams/payment/callback?type=subscription`,
-    });
-
-    await supabase.from('company_subscriptions').insert({
-      company_id: req.params.id, plan,
-      amount: planInfo.amount, flw_reference: reference, status: 'pending',
-    });
-
-    res.json({ success: true, authorization_url: payData.authorization_url, reference });
-  } catch (err) {
-    console.error('[teams.js] Subscription init failed:', err?.message);
-      res.status(500).json({ success: false, message: 'Subscription init failed' });
-  }
-});
-
-router.post('/companies/:id/subscribe/verify/:reference', authenticate, async (req, res) => {
-  try {
-    const txn = await verifyPayment(req.params.reference);
-    if (txn.status !== 'successful') return res.json({ success: false, message: 'Payment not successful' });
-
-    const { data: sub } = await supabase.from('company_subscriptions')
-      .select('*').eq('flw_reference', req.params.reference).maybeSingle();
-    if (!sub) return res.status(404).json({ success: false, message: 'Subscription not found' });
-
-    const planInfo = PLANS[sub.plan];
-    const now = new Date();
-    const end = new Date(now.getTime() + planInfo.durationDays * 86400000);
-
-    await supabase.from('company_subscriptions').update({
-      status: 'active', period_start: now.toISOString(), period_end: end.toISOString(),
-    }).eq('flw_reference', req.params.reference);
-
-    await supabase.from('companies').update({
-      subscription_status: 'active', subscription_plan: sub.plan,
-      subscription_start: now.toISOString(), subscription_end: end.toISOString(),
-    }).eq('id', req.params.id);
-
-    res.json({ success: true, message: `${planInfo.label} subscription activated!`, expires: end });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Verify failed' });
-  }
-});
-
-// ── GET /teams/member/me — current member profile ─────────────────
-router.get('/member/me', authenticate, async (req, res) => {
-  try {
-    const { data: member } = await supabase
-      .from('company_members')
-      .select('*, company:companies(id,company_name,company_domain,company_logo_url,subscription_status), department:company_departments(id,name,budget_allocated,budget_spent)')
-      .eq('user_id', req.user.id).eq('status', 'active')
-      .order('created_at', { ascending: false }).limit(1).maybeSingle();
-
-    if (!member) return res.status(404).json({ success: false, message: 'No active company membership found' });
-
-    const { data: permissions } = await supabase
-      .from('company_permission_grants')
-      .select('permission').eq('granted_to_member', member.id).eq('is_active', true);
-
-    res.json({ success: true, member, permissions: permissions?.map(p => p.permission) || [] });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Fetch failed' });
-  }
-});
-
-// ── GET /teams/companies/:id/leaders/pending — list pending team leaders ──
-router.get('/companies/:id/leaders/pending', authenticate, async (req, res) => {
-  try {
-    const { data: leaders, error } = await supabase
-      .from('company_members')
-      .select('*, user:users!user_id(email, avatar_url, last_seen), department:company_departments(id,name)')
-      .eq('company_id', req.params.id)
-      .eq('leader_right_status', 'pending')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    res.json({ success: true, leaders: leaders || [] });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Fetch failed' });
-  }
-});
-
-// ── POST /teams/companies/:id/leaders/:memberId/grant-rights ──────
-router.post('/companies/:id/leaders/:memberId/grant-rights', authenticate, async (req, res) => {
-  try {
-    const { department_id } = req.body;
-
-    const { data: member } = await supabase
-      .from('company_members')
-      .select('*, company:companies(company_name, branch_name)')
-      .eq('id', req.params.memberId).eq('company_id', req.params.id).maybeSingle();
-    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
-
-    // Update to dept_leader permission
-    await supabase.from('company_members').update({
-      permission_level: 'dept_leader',
-      department_id: department_id || member.department_id,
-      leader_right_status: 'approved',
-      leader_right_approved_at: new Date().toISOString(),
-      leader_right_approved_by: req.user.id,
-    }).eq('id', req.params.memberId);
-
-    // If department specified, set them as dept leader
-    if (department_id || member.department_id) {
-      await supabase.from('company_departments')
-        .update({ leader_member_id: req.params.memberId })
-        .eq('id', department_id || member.department_id);
-    }
-
-    // Grant standard dept-leader permissions
-    const perms = ['approve_tasks', 'view_all_tasks'];
-    const grants = perms.map(p => ({
-      company_id: req.params.id,
-      granted_to_member: req.params.memberId,
-      granted_by: req.user.id,
-      permission: p,
-      is_active: true,
-    }));
-    await supabase.from('company_permission_grants').upsert(grants, { onConflict: 'company_id,granted_to_member,permission' });
-
-    // Notify the member
-    sendEmail(member.work_email, `✅ Team Leader Rights Granted — ${member.company?.company_name}`, teamsEmail(`
-      <p>Hi ${member.first_name},</p>
-      <p>Your <strong>Team Leader privileges</strong> have been approved for <strong>${member.company?.company_name}${member.company?.branch_name ? ' — ' + member.company.branch_name : ''}</strong>.</p>
-      <p>You can now manage your department's team members and approve tasks.</p>
-      <a href="${process.env.FRONTEND_URL}/teams/dashboard" class="btn">Open Dashboard →</a>
-    `))
-      .catch(() => {});
-
-    (async () => {
-      try {
-        await supabase.from('notifications').insert({
-        user_id: member.user_id,
-        type: 'leader_rights_granted',
-        title: 'Team Leader Rights Granted',
-        message: 'Your Team Leader privileges are now active. You can manage your department.',
-        action_url: '/teams/dashboard',
-        });
-      } catch (_) {}
-    })();
-
-    res.json({ success: true, message: 'Team Leader rights granted!' });
-  } catch (err) {
-    console.error('Grant leader rights error:', err);
-    console.error('[teams.js] Failed:', err?.message);
-      res.status(500).json({ success: false, message: 'Failed' });
-  }
-});
-
-// ── POST /teams/companies/:id/leaders/:memberId/reject-rights ─────
-router.post('/companies/:id/leaders/:memberId/reject-rights', authenticate, async (req, res) => {
-  try {
-    const { reason } = req.body;
-    const { data: member } = await supabase
-      .from('company_members').select('work_email, first_name, user_id').eq('id', req.params.memberId).maybeSingle();
-    if (!member) return res.status(404).json({ success: false, message: 'Member not found' });
-
-    await supabase.from('company_members').update({
-      leader_right_status: 'rejected',
-      permission_level: 'member',
-    }).eq('id', req.params.memberId);
-
-    sendEmail(member.work_email, 'Team Leader Request Update', teamsEmail(`
-      <p>Hi ${member.first_name}, your request for Team Leader privileges was not approved at this time.${reason ? ' Reason: ' + reason : ''}</p>
-      <p>You still have full member access. Contact your HR for more information.</p>
-    `))
-      .catch(() => {});
-
-    res.json({ success: true, message: 'Request rejected' });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Failed' });
-  }
-});
-
-// ── GET /teams/companies/:id/file-history — task proof file history ──
-router.get('/companies/:id/file-history', authenticate, async (req, res) => {
-  try {
-    const { task_id, tasker_id, page = 1, limit = 50, date_from, date_to } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    // Use the view or join directly
-    let q = supabase
-      .from('enterprise_task_proofs')
-      .select(`
-        id, proof_type, proof_category, file_url, gps_lat, gps_lng,
-        gps_address, taken_at, caption, is_approved, created_at,
-        device_info, original_filename,
-        enterprise_task:enterprise_tasks!enterprise_task_id(
-          id, title, status, completed_at, custom_task_type, member_department,
-          company_id,
-          task_type:enterprise_task_types(name, category),
-          member:company_members!member_id(first_name, last_name, job_role)
-        ),
-        tasker:users!tasker_id(id, full_name, email, avatar_url),
-        tasker_profile:tasker_profiles!tasker_id(task_city, task_state, enterprise_certified)
-      `, { count: 'exact' })
-      .eq('enterprise_task.company_id', req.params.id)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + parseInt(limit) - 1);
-
-    if (task_id) q = q.eq('enterprise_task_id', task_id);
-    if (tasker_id) q = q.eq('tasker_id', tasker_id);
-    if (date_from) q = q.gte('created_at', date_from);
-    if (date_to) q = q.lte('created_at', date_to);
-
-    const { data: files, error, count } = await q;
-    if (error) throw error;
-
-    res.json({
-      success: true,
-      files: files || [],
-      pagination: { total: count, page: parseInt(page), limit: parseInt(limit), pages: Math.ceil((count || 0) / parseInt(limit)) },
-    });
-  } catch (err) {
-    console.error('File history error:', err);
-    res.status(500).json({ success: false, message: 'Failed to fetch file history' });
-  }
-});
-
-
-// ─── GET /teams/admin/companies — admin view all companies ───────────
-router.get('/admin/companies', authenticate, async (req, res) => {
-  if (req.user?.role !== 'admin') return res.status(403).json({ success: false, message: 'Admin only' });
-  try {
-    const { data: companies, error } = await supabase
-      .from('companies')
-      .select('id, company_name, industry, company_size, subscription_status, created_at, contact_email')
-      .order('created_at', { ascending: false })
-      .limit(100);
-    if (error) throw error;
-    res.json({ success: true, companies: companies || [] });
-  } catch (err) {
-    res.status(500).json({ success: false, message: 'Could not fetch companies' });
-  }
-});
+// Delete by old route
+router.delete('/:memberId', deleteTeamMember);
 
 module.exports = router;
-

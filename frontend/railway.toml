@@ -1,7 +1,0 @@
-# Railway deployment config for Taskeeu Frontend (static)
-[build]
-builder = "NIXPACKS"
-buildCommand = "npm install && npm run build"
-
-[deploy]
-staticDir = "dist"

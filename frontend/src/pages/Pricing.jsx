@@ -1,417 +1,645 @@
-import { useState } from 'react';
-import SEO, { makeFAQSchema } from '../components/seo/SEO';
-import { Link } from 'react-router-dom';
-import { CheckCircle, X, Building2 } from 'lucide-react';
+import { useSEO, SCHEMAS } from '../hooks/useSEO';
+import { livePlan, usePricing, formatPrice, usdLabel, cardFeeNGN, livePriceText } from '../utils/pricing';
+import { choosePaymentMethod } from '../utils/paymentMethod';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useCompanyAuth } from '../context/CompanyAuthContext';
+import { subscriptionAPI, creditsAPI, paymentsAPI } from '../utils/api';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import Icon from '../components/ui/Icon';
+import toast from 'react-hot-toast';
+import { formatCurrency, getCurrency, convertFromNGN } from '../utils/currency';
+
+// ── Plans ─────────────────────────────────────────────────────────────────────
+// Pack-of-N options with progressive per-card discount
+const PACK_OPTIONS = [
+ { id: 'pack5', credits: 5 },
+ { id: 'pack10', credits: 10 },
+ { id: 'pack25', credits: 25 },
+ { id: 'pack50', credits: 50 },
+ { id: 'pack70', credits: 70 },
+ { id: 'pack100', credits: 100 },
+].map(livePlan);
 
 const INDIVIDUAL_PLANS = [
-  {
-    name: 'Free',
-    emoji: '',
-    price: 0,
-    period: 'forever',
-    desc: 'For occasional requesters',
-    color: 'border-gray-200',
-    btnClass: 'btn-outline',
-    btnLabel: 'Get Started Free',
-    href: '/auth',
-    features: [
-      { text: 'Post up to 3 tasks/month', included: true },
-      { text: 'Browse verified taskers', included: true },
-      { text: 'Real-time chat', included: true },
-      { text: 'Basic escrow payments', included: true },
-      { text: 'Standard tasker matching', included: true },
-      { text: 'Email notifications', included: true },
-      { text: 'Priority support', included: false },
-      { text: 'Bulk task posting', included: false },
-    ],
-  },
-  {
-    name: 'Pro',
-    emoji: '',
-    price: 5000,
-    period: '/month',
-    desc: 'For power users & small teams',
-    color: 'border-rose-500',
-    popular: true,
-    btnClass: 'btn-primary',
-    btnLabel: 'Start Pro',
-    href: '/auth',
-    features: [
-      { text: 'Unlimited task posting', included: true },
-      { text: 'Browse verified taskers', included: true },
-      { text: 'Real-time chat + file uploads', included: true },
-      { text: 'Full escrow payment suite', included: true },
-      { text: 'Priority tasker matching', included: true },
-      { text: 'Email + SMS notifications', included: true },
-      { text: 'Priority support', included: true },
-      { text: 'Task history & analytics', included: true },
-    ],
-  },
+ {
+ id: 'single', name: 'Classic', credits: 1,
+ label: 'Send one card — full experience included',
+ btn: 'Create your card →', btnIcon: 'Sparkles', popular: false,
+ btnStyle: 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50',
+ features: [
+ { text: 'Send 1 group card (use any time)', ok: true },
+ { text: 'Unlimited contributors — anyone can sign', ok: true },
+ { text: '100+ premium card designs', ok: true },
+ { text: 'Video, photo & voice messages', ok: true },
+ { text: 'Scheduled delivery on any date', ok: true },
+ { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
+ { text: 'WhatsApp & email invite links', ok: true },
+ { text: 'Memory Movie™ — card auto-generates a cinematic MP4 with music', ok: true, link: '/memory-movie' },
+ { text: 'Live Memory Wall™ — guests upload photos via QR code, no app needed', ok: true, link: '/live-memory-wall' },
+ { text: 'Download card as PDF', ok: true },
+ ],
+ },
+ {
+ id: 'standard', name: 'Standard', credits: 2,
+ label: 'Two cards — save on the second',
+ btn: 'Get 2 cards', btnIcon: 'Star', popular: true,
+ btnStyle: 'bg-primary-500 text-white hover:bg-primary-600',
+ features: [
+ { text: 'Send 2 group cards (use any time)', ok: true },
+ { text: 'All the same card features as Classic', ok: true },
+ { text: 'Unlimited contributors — anyone can sign', ok: true },
+ { text: '100+ premium card designs', ok: true },
+ { text: 'Video, photo & voice messages', ok: true },
+ { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
+ { text: 'WhatsApp & email invite links', ok: true },
+ { text: 'Memory Movie™ — card auto-generates a cinematic MP4 with music', ok: true, link: '/memory-movie' },
+ { text: 'Live Memory Wall™ — guests upload photos via QR code, no app needed', ok: true, link: '/live-memory-wall' },
+ { text: 'Credits never expire', ok: true },
+ ],
+ },
+ {
+ id: 'pack5', name: 'Pack of 5', credits: 5,
+ label: '5 card credits — lowest per-card price',
+ btn: 'Buy 5 credits', btnIcon: 'Gift', popular: false,
+ btnStyle: 'border-2 border-green-300 text-green-700 hover:bg-green-50',
+ features: [
+ { text: '5 card credits (use any time)', ok: true },
+ { text: 'All the same card features as Classic', ok: true },
+ { text: 'Unlimited contributors — anyone can sign', ok: true },
+ { text: '100+ premium card designs', ok: true },
+ { text: 'Video, photo & voice messages', ok: true },
+ { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
+ { text: 'WhatsApp & email invite links', ok: true },
+ { text: 'Memory Movie™ — card auto-generates a cinematic MP4 with music', ok: true, link: '/memory-movie' },
+ { text: 'Live Memory Wall™ — guests upload photos via QR code, no app needed', ok: true, link: '/live-memory-wall' },
+ { text: 'Credits never expire', ok: true },
+ ],
+ },
+].map(livePlan);
+
+const COMPANY_PLANS = [
+ {
+ id: 'monthly', name: 'Monthly', period: '/month',
+ features: ['Unlimited employees','Automated birthday emails','Birthday card delivery','Gift pooling · Visa, Mastercard & bank transfer','HR dashboard & analytics','Import & re-import team data','Memory Movie™ — included on every card','Live Memory Wall™ — guests upload via QR code on every card','Email support within 24 hours'],
+ },
+ {
+ id: 'yearly', name: 'Yearly', period: '/year', popular: true,
+ features: ['Everything in Monthly','2 months FREE vs monthly','Priority phone & email support','Custom email branding','Dedicated account manager','Advanced birthday analytics','Memory Movie™ — included on every card','Live Memory Wall™ — guests upload via QR code on every card','Team data export anytime'],
+ },
 ];
 
-const ENTERPRISE_FEATURES = [
-  { emoji: '', text: 'Company account with domain-verified access' },
-  { emoji: '', text: 'Unlimited team members across departments' },
-  { emoji: '', text: 'Multi-level permissions (HR, Dept Leader, Finance, Member)' },
-  { emoji: '', text: '44 fixed-price task types (₦10k to ₦25k)' },
-  { emoji: '', text: 'Task Wallet with per-department budget allocation' },
-  { emoji: '', text: 'Line manager approval workflow for every task' },
-  { emoji: '', text: 'GPS timestamp photo proof system with SLA enforcement' },
-  { emoji: '', text: 'Auto-generated authorization letters for taskers' },
-  { emoji: '', text: 'Integrated Jitsi video meetings with all taskers' },
-  { emoji: '', text: 'Broadcast messaging to all accepted taskers' },
-  { emoji: '', text: 'Tasker blacklisting per company' },
-  { emoji: '', text: 'Full audit history for HR and team leaders' },
-  { emoji: '', text: '80/20 tasker payout model (paid 2 days after approval)' },
-  { emoji: '', text: 'Full escrow protection: funds reserved, not spent until approved' },
-  { emoji: '', text: 'Automated email alerts for every action' },
-  { emoji: '', text: 'Multi-state deployment in a single task' },
+const FAQ = [
+ { q: 'Does Thankeeu work outside the US?', a: 'Yes — Thankeeu works globally. Contributors can pay in USD, GBP, EUR, CAD, NGN, GHS, KES and ZAR. The card creator pays the card fee in their preferred currency, automatically converted at checkout.' },
+ { q: 'How does the gift pot work?', a: 'Contributors pay securely when signing using Visa, Mastercard, or bank transfer. Money is securely held and the recipient can withdraw to their bank account or redeem a gift card — instantly.' },
+ { q: 'Does the recipient need an account?', a: 'No — recipients open and enjoy their card without any account. Only the card creator needs one.' },
+ { q: 'What payment methods are accepted?', a: 'Visa, Mastercard, American Express, and bank transfers depending on your country. All processed securely by our payments partner.' },
+ { q: 'What happens if I cancel my company subscription?', a: 'Automation stops after your current period ends, but all your team data is preserved.' },
 ];
 
-const TASKER_PRICING = [
-  { emoji: '', label: 'Signup', desc: 'Free to sign up and apply' },
-  { emoji: '', label: 'KYC Review', desc: 'Free admin verification' },
-  { emoji: '', label: 'Bidding', desc: 'Free to bid on tasks' },
-  { emoji: '', label: 'Earnings', desc: '80% of workmanship fee' },
-  { emoji: '', label: 'Payout', desc: '2 days after task approval' },
-  { emoji: '', label: 'Transfer', desc: 'Direct to your bank account' },
-];
+import { CurrencyToggle, RotatingPrice } from '../utils/currencyUI';
 
-const FAQS = [
-  { q: 'Is there a free trial for Taskeeu for Teams?', a: 'Yes. When you register your company, you get a 7-day trial period to explore the platform before subscribing.' },
-  { q: 'Can I switch between monthly and yearly?', a: 'Yes. You can upgrade from monthly to yearly at any time. The difference will be prorated.' },
-  { q: 'How does the Task Wallet work?', a: 'You fund your wallet via Flutterwave. When a task is posted and approved by a line manager, the estimated cost is reserved (not deducted). The actual deduction happens only after GPS proof is approved and the task is marked complete.' },
-  { q: 'Are task costs included in the subscription?', a: 'No. The subscription fee (₦200k/month or ₦2.4M/year) covers platform access. Task costs are separate and paid from your Task Wallet at ₦10,000 to ₦25,000 per person per task.' },
-  { q: 'What is the platform fee?', a: 'Taskeeu charges a 20% platform fee on all enterprise task workmanship. Taskers receive 80% of the task rate, paid 2 days after task completion and approval.' },
-  { q: 'Can different departments have separate budgets?', a: 'Yes. HR can either use a shared general wallet for all departments or allocate specific budgets to each department. Team members see their department\'s available balance in their dashboard.' },
-  { q: 'What if no taskers are available in my area?', a: 'You will be notified. You can expand the search radius or wait for new taskers to join in your area. The Taskeeu tasker network is growing daily across Africa.' },
-  { q: 'Can I cancel my subscription?', a: 'Yes. Monthly plans can be cancelled before the next billing cycle. Yearly plans can be cancelled but are non-refundable after the first 14 days.' },
-];
+// ── Main Pricing page ─────────────────────────────────────────────────────────
+const Pricing = () => {
+ usePricing(); // re-render when today's prices arrive
+ useSEO({
+ title: `Pricing — Group Cards, Memory Movies & Photo Walls from ${usdLabel('card_fee')} | Thankeeu`,
+ description: `Send a group card from ${usdLabel('card_fee')} USD. Every plan includes the Memory Movie slideshow and Live Photo Wall for collecting guest photos via QR code. Pool a gift in USD, GBP, EUR, NGN and more. Team plans with HR automation. Free to create — pay when you send.`,
+ keywords: 'group card price, online group card cost, Thankeeu pricing, team card subscription, memory movie included, live photo wall price, event photo sharing cost, birthday card price',
+ canonical: '/pricing',
+ jsonLd: [
+   SCHEMAS.organization,
+   SCHEMAS.breadcrumb([{ name: 'Home', url: '/' }, { name: 'Pricing', url: '/pricing' }]),
+   SCHEMAS.webPage('Thankeeu Pricing', 'Group card pricing — free to create, pay only when you send. Memory Movie and Live Photo Wall included on every plan.', '/pricing'),
+   // Product/Offer schema for the two headline individual plans, priced in USD
+   // (the site's primary marketed currency, matching the page title/description).
+   // USD amounts are derived from the same NGN base + rate table the page uses
+   // to display prices, so the schema can never drift from what users actually see.
+   SCHEMAS.product(
+     'Thankeeu Classic Group Card',
+     'One group card everyone signs — messages, photos, GIFs and voice notes, a pooled gift, plus the Memory Movie and Live Photo Wall. Free to create; one-time fee to send.',
+     convertFromNGN(INDIVIDUAL_PLANS[0].priceNGN, 'USD').toFixed(2),
+     'USD',
+   ),
+   SCHEMAS.product(
+     'Thankeeu Standard (2 cards)',
+     'Two group card credits at a lower per-card price. Includes the Memory Movie slideshow, Live Photo Wall and gift collection on every card.',
+     convertFromNGN(INDIVIDUAL_PLANS[1].priceNGN, 'USD').toFixed(2),
+     'USD',
+   ),
+ ],
+ });
 
-function FAQ({ q, a }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-    <div className="card overflow-hidden">
-      <button onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors">
-        <span className="font-semibold text-gray-800 text-sm pr-4">{q}</span>
-        <span className={`text-rose-500 flex-shrink-0 text-xl transition-transform ${open ? 'rotate-45' : ''}`}>+</span>
-      </button>
-      {open && (
-        <div className="px-5 pb-5 text-sm text-muted leading-relaxed border-t border-gray-100 pt-4">{a}</div>
-      )}
-    </div>
-  
-    </>);
-}
+ const { user } = useAuth();
+ const { company } = useCompanyAuth();
+ const navigate = useNavigate();
 
-export default function Pricing() {
-  const [billingCycle, setBillingCycle] = useState('monthly');
+ const [tab, setTab] = useState('individual');
+ const [currency, setCurrency] = useState(() => {
+ // Detect user's likely currency from browser locale + timezone — no API call needed.
+ // UK visitors see GBP by default; Nigerians see NGN; others default to USD.
+ try {
+ const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+ const lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+ if (tz.startsWith('Europe/London') || lang.startsWith('en-gb')) return 'GBP';
+ if (tz.startsWith('America/') && lang.startsWith('en-ca')) return 'CAD';
+ if (tz.startsWith('Europe/')) return 'EUR';
+ } catch (_) {}
+ return 'USD'; // Always default USD — Nigerian/African users can switch manually
+ });
+ const [loadingPlan, setLoadingPlan] = useState(null);
+ const [openFAQ, setOpenFAQ] = useState(null);
+ const [showDemo, setShowDemo] = useState(false);
+ const [selectedPack, setSelectedPack] = useState(PACK_OPTIONS[0]);
+ const [searchParams] = useSearchParams();
+ const [activeDiscount, setActiveDiscount] = useState(null); // { code, percent_off } | null
 
-  return (
-      <>
-      <SEO
-        title="Pricing | Free, Pro & Enterprise Plans" description="Taskeeu is free for individuals. Pro plan at ₦5,000/month for power users. Taskeeu for Teams enterprise plan from ₦200,000/month for companies needing nationwide field operations." canonical="https://taskeeu.com/pricing" keywords="Taskeeu pricing, task outsourcing price Africa  Taskeeu for Teams cost, enterprise field ops pricing" breadcrumbs={[{name:'Home',url:'https://taskeeu.com'},{name:'Pricing',url:'https://taskeeu.com/pricing'}]}
-      />
-    <div className="pt-20 page-enter">
+ // Discount code arrives via ?discount=CODE (from the promo banner). Validate
+ // it against the backend rather than trust the URL — an expired/invalid code
+ // in a stale shared link should just silently not apply, not show a false promise.
+ useEffect(() => {
+   const code = searchParams.get('discount');
+   if (!code) return;
+   paymentsAPI.discountPreview(code)
+     .then(res => setActiveDiscount({ code: res.data.code, percent_off: res.data.percent_off, max_discount_ngn: res.data.max_discount_ngn }))
+     .catch(() => setActiveDiscount(null));
+ }, [searchParams]);
 
-      {/* ── HERO ────────────────────────────────────────────────── */}
-      <section className="bg-white border-b border-gray-100 py-16 md:py-20">
-        <div className="container-xl text-center">
-          <span className="inline-flex badge-green mb-4">Pricing</span>
-          <h1 className="font-heading text-4xl md:text-5xl font-bold text-dark mb-5">
-            Simple, transparent pricing
-          </h1>
-          <p className="text-muted text-lg max-w-2xl mx-auto">
-            Whether you are an individual outsourcing personal tasks or a company running nationwide field operations, Taskeeu has a plan for you.
-          </p>
-        </div>
-      </section>
+ const cur = getCurrency(currency);
 
-      {/* ── INDIVIDUAL PLANS ─────────────────────────────────────── */}
-      <section className="py-20 bg-surface">
-        <div className="container-xl">
-          <div className="text-center mb-12">
-            <span className="inline-flex badge-blue mb-3">For Individuals</span>
-            <h2 className="font-heading text-3xl font-bold text-dark">Personal task outsourcing</h2>
-            <p className="text-muted mt-2">Post tasks and hire verified taskers across Africa</p>
-          </div>
+ const fmt = (ngn) => formatPrice(ngn, currency);
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {INDIVIDUAL_PLANS.map(plan => (
-              <div key={plan.name}
-                className={`card p-8 border-2 ${plan.color} relative ${plan.popular ? 'shadow-glow' : ''}`}>
-                {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-xs font-bold px-4 py-1 rounded-full">
-                    MOST POPULAR
-                  </div>
-                )}
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="text-3xl">{plan.emoji}</span>
-                  <div>
-                    <h3 className="font-heading font-bold text-xl text-dark">{plan.name}</h3>
-                    <p className="text-sm text-muted">{plan.desc}</p>
-                  </div>
-                </div>
-                <div className="flex items-end gap-1 mb-6">
-                  {plan.price === 0 ? (
-                    <span className="font-heading font-black text-4xl text-dark">Free</span>
-                  ) : (
-                    <>
-                      <span className="font-heading font-black text-4xl text-dark">
-                        ₦{Number(plan.price).toLocaleString()}
-                      </span>
-                      <span className="text-muted mb-1.5">{plan.period}</span>
-                    </>
-                  )}
-                </div>
-                <div className="space-y-3 mb-8">
-                  {plan.features.map((f, i) => (
-                    <div key={i} className="flex items-center gap-2.5 text-sm">
-                      {f.included
-                        ? <CheckCircle size={15} className="text-rose-500 flex-shrink-0" />
-                        : <X size={15} className="text-gray-300 flex-shrink-0" />}
-                      <span className={f.included ? 'text-gray-700' : 'text-gray-400'}>{f.text}</span>
-                    </div>
-                  ))}
-                </div>
-                <Link to={plan.href} className={`${plan.btnClass} w-full text-center block`}>
-                  {plan.btnLabel}
-                </Link>
-              </div>
-            ))}
-          </div>
+ // Applies the active discount to any NGN amount, respecting an optional
+ // per-code max-discount cap the same way checkout does server-side.
+ const applyDiscount = (ngn) => {
+   if (!activeDiscount) return ngn;
+   let off = Math.round(ngn * (activeDiscount.percent_off / 100));
+   if (activeDiscount.max_discount_ngn && off > activeDiscount.max_discount_ngn) {
+     off = activeDiscount.max_discount_ngn;
+   }
+   return Math.max(0, ngn - Math.min(off, ngn));
+ };
+ const fmtDiscounted = (ngn) => fmt(applyDiscount(ngn));
 
-          {/* Tasker note */}
-          <div className="mt-10 max-w-3xl mx-auto">
-            <div className="card p-6 bg-dark text-white border-0">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-rose-500 flex items-center justify-center text-xl"></div>
-                <div>
-                  <h3 className="font-heading font-bold">Earning as a Tasker</h3>
-                  <p className="text-gray-400 text-sm">Always free to join. No subscription. No upfront cost.</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {TASKER_PRICING.map(t => (
-                  <div key={t.label} className="p-3 bg-white/5 rounded-xl">
-                    <div className="text-xl mb-1">{t.emoji}</div>
-                    <p className="font-semibold text-sm text-white">{t.label}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{t.desc}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between flex-wrap gap-3">
-                <p className="text-gray-400 text-sm">For individual tasks: Taskeeu charges <strong className="text-white">10%</strong> platform fee on workmanship</p>
-                <Link to="/tasker/signup" className="btn-primary btn-sm">Apply as Tasker →</Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+ const handleIndividualPurchase = async (planId) => {
+ // Classic (single 1-credit card) — send visitor straight to card creation.
+ // No account required to start; they'll be prompted to sign in at checkout.
+ // Every other plan (Standard 2-credits, packs) still requires an account
+ // because they involve credit purchases that need a wallet to hold credits.
+ if (planId === 'single') {
+   navigate(activeDiscount ? `/card/new?discount=${encodeURIComponent(activeDiscount.code)}` : '/card/new');
+   return;
+ }
+ if (!user) {
+   // Require account — store intended plan and redirect to signup
+   sessionStorage.setItem('post_signup_plan', planId);
+   navigate('/signup?plan=' + planId);
+   return;
+ }
+ const planNGN = [...INDIVIDUAL_PLANS, ...PACK_OPTIONS].find(p => p.id === planId)?.priceNGN;
+ const choice = await choosePaymentMethod({ currency, amountNGN: planNGN != null ? applyDiscount(planNGN) : undefined });
+ if (!choice) return;
+ setCurrency(choice.currency);
+ setLoadingPlan(planId);
+ try {
+ // Use creditsAPI — these are credit purchases, not direct card payments
+ const res = await creditsAPI.purchase(planId, choice.currency, activeDiscount?.code, choice.provider);
+ if (res.data?.already_active) {
+   toast.success(`${res.data.credits_added} credits added — discount covered the full price!`);
+   navigate('/dashboard/credits');
+   setLoadingPlan(null);
+   return;
+ }
+ window.location.href = res.data.payment_link;
+ } catch (err) { toast.error(err.response?.data?.error || 'Failed to start payment. Please try again.'); setLoadingPlan(null); }
+ };
 
-      {/* ── ENTERPRISE PLANS ─────────────────────────────────────── */}
-      <section className="py-20 bg-white" id="enterprise">
-        <div className="container-xl">
-          <div className="text-center mb-12">
-            <span className="inline-flex badge-orange mb-3">For Enterprises</span>
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-dark mb-3">
-              Taskeeu for Teams
-            </h2>
-            <p className="text-muted text-lg max-w-2xl mx-auto">
-              Africa's field operations infrastructure platform. Built for banks, telecoms, FMCG, insurance, NGOs, and any company running physical field tasks .
-            </p>
-          </div>
+ const handleCompanySubscribe = async (plan) => {
+ if (!company) { navigate('/company/signup'); return; }
+ const choice = await choosePaymentMethod({ currency });
+ if (!choice) return;
+ setCurrency(choice.currency);
+ setLoadingPlan(plan);
+ try {
+ const res = await subscriptionAPI.initialize(plan, choice.currency, choice.provider);
+ window.location.href = res.data.payment_link || res.data.authorization_url;
+ } catch { toast.error('Failed to start payment. Please try again.'); setLoadingPlan(null); }
+ };
 
-          {/* Billing toggle */}
-          <div className="flex items-center justify-center gap-4 mb-10">
-            <span className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-dark' : 'text-muted'}`}>Monthly</span>
-            <button
-              onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
-              className="toggle on-light" data-on={String(billingCycle === 'yearly')}
-              aria-label="Toggle billing cycle"/>
-            <span className={`text-sm font-medium ${billingCycle === 'yearly' ? 'text-dark' : 'text-muted'}`}>
-              Yearly <span className="badge-green ml-1">Save ₦1.2M</span>
-            </span>
-          </div>
+ return (
+ <div className="min-h-screen gc-font">
+ <Navbar />
+ {activeDiscount && (
+   <div className="bg-green-50 border-b border-green-200 text-green-700 text-center text-xs sm:text-sm font-semibold px-4 py-2.5">
+     ✓ Code {activeDiscount.code} applied — {activeDiscount.percent_off}% off will be applied at checkout
+   </div>
+ )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Pricing card */}
-            <div className="card p-8 border-2 border-rose-500 relative">
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-xs font-bold px-4 py-1 rounded-full flex items-center gap-1">
-                <Building2 size={11}/> ENTERPRISE
-              </div>
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-2xl"></div>
-                <div>
-                  <h3 className="font-heading font-bold text-xl text-dark">Taskeeu for Teams</h3>
-                  <p className="text-sm text-muted">Full field ops infrastructure</p>
-                </div>
-              </div>
+ {/* Hero */}
+ <section className="py-12 md:py-16 px-4 text-center section-dots" style={{ background: 'linear-gradient(160deg,#F5F0FF,#FDFCFF 60%,#FFF0F5)' }}>
+ <div className="max-w-2xl mx-auto">
+ <div className="mx-auto mb-4 inline-flex items-center gap-1.5"><Icon name="Globe" size={13}/>For everyone, everywhere</div>
+ <h1 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(2.1rem,6.5vw,3.6rem)' }}>
+ Pay once. Keep the memory forever.
+ </h1>
+ <p className="text-warm-600 mb-2">Pay only when you send. No subscriptions for individual cards.</p>
+ <p className="text-warm-500 text-sm mb-6">
+ Pay in USD, GBP, EUR, CAD, NGN and more, and see prices in 130+ currencies.
+ </p>
 
-              <div className="flex items-end gap-2 mb-2">
-                <span className="font-heading font-black text-5xl text-dark">
-                  {billingCycle === 'monthly' ? '₦200k' : '₦2.4M'}
-                </span>
-                <span className="text-muted mb-2 text-base">/{billingCycle === 'monthly' ? 'month' : 'year'}</span>
-              </div>
-              {billingCycle === 'monthly'? <p className="text-sm text-muted mb-2">Billed monthly. Cancel anytime.</p>
-                : <p className="text-sm text-rose-600 font-semibold mb-2">You save ₦1,200,000 vs monthly billing </p>
-              }
+ {/* Rotating price showcase */}
+ <div className="inline-flex flex-col items-center bg-white rounded-2xl border-2 border-primary-100 px-6 py-4 shadow-sm mb-6">
+ <p className="text-xs text-warm-400 mb-1 font-medium">One card — from</p>
+ <div className="text-3xl font-extrabold text-primary-600 min-w-[120px] text-center">
+ {activeDiscount ? <RotatingPrice amountNGN={applyDiscount(cardFeeNGN())} /> : <RotatingPrice amountNGN={cardFeeNGN()} />}
+ </div>
+ {activeDiscount && (
+   <p className="text-xs text-warm-400 line-through">{fmt(cardFeeNGN())}</p>
+ )}
+ <p className="text-xs text-warm-400 mt-1">Select your currency below · Memory Movie + Photo Wall included</p>
+ </div>
 
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-700 mb-5">Task costs (₦10k to ₦25k/person) are separate and funded from your Task Wallet, not the subscription fee.
-              </div>
+ {/* Currency selector */}
+ <div className="mb-2">
+ <p className="text-xs font-semibold text-warm-500 mb-2">Select your currency to see prices:</p>
+ <CurrencyToggle selected={currency} onChange={setCurrency} />
+ </div>
+ </div>
+ </section>
 
-              <div className="space-y-2 mb-8">
-                {ENTERPRISE_FEATURES.slice(0, 10).map((f, i) => (
-                  <div key={i} className="flex items-start gap-2.5 text-sm">
-                    <span className="flex-shrink-0 text-base">{f.emoji}</span>
-                    <span className="text-gray-700">{f.text}</span>
-                  </div>
-                ))}
-                <p className="text-xs text-rose-600 font-semibold pt-1">+ {ENTERPRISE_FEATURES.length - 10} more features →</p>
-              </div>
+ {/* Tab switcher */}
+ <div className="bg-white border-b border-purple-100 sticky top-0 z-10 shadow-sm">
+ <div className="max-w-4xl mx-auto px-4">
+ <div className="flex">
+ {[
+ { id: 'individual', label: 'Individual', icon: 'Heart', sub: 'Personal cards & gifts' },
+ { id: 'company', label: 'For Teams', icon: 'Building', sub: 'Birthday automation' },
+ ].map(t => (
+ <button key={t.id} onClick={() => setTab(t.id)}
+ className={`flex-1 py-3 sm:py-4 text-center border-b-2 transition-all min-h-[56px] ${
+ tab === t.id ? 'border-primary-500 text-primary-600' : 'border-transparent text-warm-500'
+ }`}>
+ <p className="font-bold text-sm inline-flex items-center gap-1.5"><Icon name={t.icon} size={14}/> {t.label}</p>
+ <p className="text-xs text-warm-400 hidden sm:block mt-0.5">{t.sub}</p>
+ </button>
+ ))}
+ </div>
+ </div>
+ </div>
 
-              <div className="space-y-3">
-                <Link to="/teams/register" className="btn-primary w-full text-center block btn-lg">
-                  Register Your Company
-                </Link>
-                <Link to="/teams" className="btn-outline w-full text-center block text-sm">
-                  Learn More About Teams →
-                </Link>
-              </div>
-            </div>
+ {/* Individual plans */}
+ {tab === 'individual' && (
+ <section className="py-10 md:py-16 px-4 bg-white">
+ <div className="max-w-5xl mx-auto">
 
-            {/* Features column */}
-            <div className="space-y-3">
-              <h4 className="font-heading font-bold text-lg text-dark mb-4">Everything included:</h4>
-              {ENTERPRISE_FEATURES.map((f, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 bg-surface rounded-xl">
-                  <span className="flex-shrink-0 text-lg">{f.emoji}</span>
-                  <span className="text-sm text-gray-700">{f.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+ {/* Currency selector (repeated for convenience) */}
+ <div className="text-center mb-8">
+ <p className="text-xs font-semibold text-warm-500 mb-2">Showing prices in {cur.flag} {cur.name}</p>
+ <CurrencyToggle selected={currency} onChange={setCurrency} />
+ {currency !== 'NGN' && (
+ <p className="text-xs text-warm-400 mt-2">
+ Approximate {cur.name} equivalent · Live exchange rate applied at checkout
+ </p>
+ )}
+ </div>
 
-          {/* Add-on: Task costs breakdown */}
-          <div className="mt-12 max-w-4xl mx-auto">
-            <div className="card p-6 bg-surface border border-gray-200">
-              <h4 className="font-heading font-bold text-gray-800 mb-5">Enterprise Task Cost Reference (per person per task)</h4>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                {[
-                  { name: 'Address Verification', price: 10000 },
-                  { name: 'Delivery Verification', price: 10000 },
-                  { name: 'Mystery Shopping', price: 11000 },
-                  { name: 'Photo & Video Documentation', price: 11000 },
-                  { name: 'Merchant Verification', price: 12000 },
-                  { name: 'ATM Inspection', price: 12000 },
-                  { name: 'Inventory Audits', price: 14000 },
-                  { name: 'Property Inspection', price: 15000 },
-                  { name: 'Brand Compliance Audits', price: 15000 },
-                  { name: 'Solar Installation Verification', price: 18000 },
-                  { name: 'Insurance Claims Inspection', price: 20000 },
-                  { name: 'Construction Site Inspection', price: 20000 },
-                  { name: 'Safety Compliance Audits', price: 22000 },
-                  { name: 'Telecom Tower Inspection', price: 22000 },
-                  { name: 'Drone Site Coverage', price: 25000 },
-                  { name: 'Emergency Dispatch Tasks', price: 25000 },
-                ].map(t => (
-                  <div key={t.name} className="p-3 bg-white rounded-xl border border-gray-100">
-                    <p className="text-xs text-gray-700 font-medium leading-tight">{t.name}</p>
-                    <p className="text-rose-600 font-bold text-sm mt-1.5">₦{Number(t.price).toLocaleString()}</p>
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-muted mt-4">* Members can bulk-modify prices (add, subtract, multiply, or divide) before submitting tasks. Custom task types also supported with member-defined pricing.</p>
-              <p className="text-xs text-muted mt-1">* Taskeeu retains 20% of task workmanship as platform fee. Taskers receive 80%, paid 2 days after task completion and proof approval.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+ <div className="pricing-plans-grid grid grid-cols-1 md:grid-cols-3 gap-5 mb-12">
+ {/* Classic + Standard */}
+ {INDIVIDUAL_PLANS.filter(p => p.id !== 'pack5').map(plan => (
+ <div key={plan.id} className="gc-card relative p-6 flex flex-col"
+ style={plan.popular ? { border: '2px solid #7C3AED' } : undefined}>
+ {plan.popular && (
+ <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-xl whitespace-nowrap inline-flex items-center gap-1.5">
+ <Icon name="Star" size={12}/>Most popular
+ </div>
+ )}
+ <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
+ <p className="text-warm-500 text-xs mb-4">{plan.label}</p>
+ <div className="flex items-end gap-1 mb-1 flex-wrap">
+ {activeDiscount ? (
+   <>
+     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmtDiscounted(plan.priceNGN)}</span>
+     <span className="text-warm-400 text-sm pb-1">· one-time</span>
+     <span className="text-warm-400 text-sm line-through w-full">{fmt(plan.priceNGN)}</span>
+   </>
+ ) : (
+   <>
+     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(plan.priceNGN)}</span>
+     <span className="text-warm-400 text-sm pb-1">· one-time</span>
+   </>
+ )}
+ </div>
+ {['GHS','KES','ZAR'].includes(currency) && (
+ <p className="text-xs text-warm-400 mb-1">≈ {formatPrice(plan.priceNGN, 'NGN')} NGN</p>
+ )}
+ {plan.savingsNGN > 0 && (
+ <p className="text-primary-600 text-xs font-bold mb-1">
+ Save {fmt(plan.savingsNGN)} vs {plan.credits} classics
+ </p>
+ )}
+ <div className="h-px bg-purple-100 my-4" />
+ <ul className="space-y-2.5 mb-7 flex-1">
+ {plan.features.map((f, i) => (
+ <li key={i} className="flex items-start gap-2 text-sm">
+ <span className={`flex-shrink-0 mt-0.5 ${f.ok ? 'text-green-500' : 'text-warm-300'}`}>
+ <Icon name={f.ok ? 'Check' : 'X'} size={15}/>
+ </span>
+ {f.link
+ ? <Link to={f.link} className="text-primary-600 hover:underline font-medium">{f.text}</Link>
+ : <span className={f.ok ? 'text-warm-700' : 'text-warm-400 line-through'}>{f.text}</span>}
+ </li>
+ ))}
+ </ul>
+ <button onClick={() => handleIndividualPurchase(plan.id)} disabled={loadingPlan === plan.id}
+ className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50 ${plan.btnStyle}`}>
+ {loadingPlan === plan.id
+ ? <span className="flex items-center justify-center gap-2">
+ <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+ Processing…
+ </span>
+ : <span className="inline-flex items-center justify-center gap-2"><Icon name={plan.btnIcon} size={15}/> {plan.btn}</span>}
+ </button>
+ </div>
+ ))}
 
-      {/* ── COMPARISON TABLE ─────────────────────────────────────── */}
-      <section className="py-20 bg-surface">
-        <div className="container-xl max-w-4xl">
-          <div className="text-center mb-10">
-            <h2 className="font-heading text-2xl font-bold text-dark">Individual vs Enterprise</h2>
-          </div>
-          <div className="card overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-100">
-                  <tr>
-                    <th className="px-5 py-4 text-left font-semibold text-gray-600">Feature</th>
-                    <th className="px-5 py-4 text-center font-semibold text-gray-600">Free</th>
-                    <th className="px-5 py-4 text-center font-semibold text-rose-600">Pro </th>
-                    <th className="px-5 py-4 text-center font-semibold text-gray-600">Teams </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ['Task posting', '3/month', 'Unlimited', 'Unlimited'],
-                    ['Tasker bidding', '', '', '(Fixed prices)'],
-                    ['Real-time chat', '', '', ''],
-                    ['Escrow payments', 'Basic', 'Full suite', 'Full suite'],
-                    ['Department management', 'Not included', 'Not included', ''],
-                    ['Task wallet & budgets', 'Not included', 'Not included', ''],
-                    ['GPS photo proof system', 'Not included', 'Not included', ''],
-                    ['Line manager approval flow', 'Not included', 'Not included', ''],
-                    ['Auto authorization letters', 'Not included', 'Not included', ''],
-                    ['Broadcast to taskers', 'Not included', 'Not included', ''],
-                    ['Video meeting integration', 'Not included', 'Not included', ''],
-                    ['Multi-state deployment', 'Not included', 'Not included', ''],
-                    ['Tasker blacklisting', 'Not included', 'Not included', ''],
-                    ['HR & permission system', 'Not included', 'Not included', ''],
-                    ['Platform fee on workmanship', '10%', '10%', '20%'],
-                    ['Tasker payout timing', 'Instant', 'Instant', '2 days'],
-                  ].map(([feat, free, pro, teams], i) => (
-                    <tr key={i} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3 font-medium text-gray-700">{feat}</td>
-                      <td className="px-5 py-3 text-center text-gray-600">{free}</td>
-                      <td className="px-5 py-3 text-center text-gray-700 font-medium">{pro}</td>
-                      <td className="px-5 py-3 text-center text-rose-600 font-medium">{teams}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
+ {/* Credit Pack — dropdown to pick pack size */}
+ <div className="gc-card relative p-6 flex flex-col" style={{ border: '2px solid #16a34a' }}>
+ <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-green-600 text-white text-xs font-bold px-4 py-1.5 rounded-xl whitespace-nowrap inline-flex items-center gap-1.5">
+ Lowest per-card price
+ </div>
+ <h3 className="text-xl font-bold text-warm-900 mb-1">Credit Pack</h3>
+ <p className="text-warm-500 text-xs mb-4">Choose how many cards you need</p>
 
-      {/* ── FAQs ─────────────────────────────────────────────────── */}
-      <section className="py-20 bg-white">
-        <div className="container-xl max-w-3xl">
-          <div className="text-center mb-10">
-            <span className="inline-flex badge-blue mb-3">FAQs</span>
-            <h2 className="font-heading text-2xl font-bold text-dark">Pricing questions answered</h2>
-          </div>
-          <div className="space-y-3">
-            {FAQS.map((faq, i) => <FAQ key={i} q={faq.q} a={faq.a} />)}
-          </div>
-        </div>
-      </section>
+ {/* Pack size dropdown — key={currency} forces remount so options show correct currency */}
+ <div className="mb-3">
+ <label className="block text-xs font-bold text-warm-600 mb-1.5">Pack size</label>
+ <select
+   key={currency}
+   value={selectedPack.id}
+   onChange={e => setSelectedPack(PACK_OPTIONS.find(p => p.id === e.target.value))}
+   className="w-full rounded-xl border-2 border-green-200 bg-white text-warm-900 text-sm font-semibold px-3 py-2.5 focus:outline-none focus:border-green-500 cursor-pointer"
+ >
+   {PACK_OPTIONS.map(p => (
+     <option key={p.id} value={p.id}>
+       {p.credits} cards — {activeDiscount ? fmtDiscounted(p.perCardNGN) : fmt(p.perCardNGN)}/card ({activeDiscount ? fmtDiscounted(p.priceNGN) : fmt(p.priceNGN)})
+     </option>
+   ))}
+ </select>
+ </div>
 
-      {/* ── CTA ──────────────────────────────────────────────────── */}
-      <section className="py-20 hero-gradient hero-mesh">
-        <div className="container-xl text-center">
-          <h2 className="font-heading text-3xl md:text-4xl font-bold text-white mb-4">
-            Ready to outsource across Africa?
-          </h2>
-          <p className="text-white/70 mb-8 max-w-xl mx-auto">
-            Start for free with individual tasks or set up your company account to power nationwide field operations.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/auth" className="btn-primary btn-lg">Get Started Free</Link>
-            <Link to="/teams/register" className="bg-white/10 border border-white/25 text-white font-semibold px-8 py-4 rounded-2xl hover:bg-white/20 transition-colors text-lg">
-              Register Company →
-            </Link>
-          </div>
-        </div>
-      </section>
-    </div>
-    </>
-  );
-}
+ <div className="flex items-end gap-1 mb-1 flex-wrap">
+ {activeDiscount ? (
+   <>
+     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmtDiscounted(selectedPack.priceNGN)}</span>
+     <span className="text-warm-400 text-sm pb-1">· one-time</span>
+     <span className="text-warm-400 text-sm line-through w-full">{fmt(selectedPack.priceNGN)}</span>
+   </>
+ ) : (
+   <>
+     <span className="text-3xl sm:text-4xl font-bold text-warm-900">{fmt(selectedPack.priceNGN)}</span>
+     <span className="text-warm-400 text-sm pb-1">· one-time</span>
+   </>
+ )}
+ </div>
+ {['GHS','KES','ZAR'].includes(currency) && (
+ <p className="text-xs text-warm-400 mb-1">≈ {formatPrice(activeDiscount ? applyDiscount(selectedPack.priceNGN) : selectedPack.priceNGN, 'NGN')} NGN</p>
+ )}
+ <p className="text-green-700 text-xs font-bold mb-0.5">
+ {activeDiscount ? fmtDiscounted(selectedPack.perCardNGN) : fmt(selectedPack.perCardNGN)} per card (flat rate) · {activeDiscount ? fmtDiscounted(selectedPack.priceNGN) : fmt(selectedPack.priceNGN)} total
+ </p>
+ {selectedPack.savingsNGN > 0 && (
+ <p className="text-green-600 text-xs font-bold mb-1">Save {fmt(selectedPack.savingsNGN)} vs {selectedPack.credits} singles{activeDiscount ? ' + discount' : ''}</p>
+ )}
+
+ <div className="h-px bg-purple-100 my-4" />
+ <ul className="space-y-2.5 mb-7 flex-1">
+ {[
+ { text: `${selectedPack.credits} card credits (never expire)`, ok: true },
+ { text: 'Unlimited contributors — anyone can sign', ok: true },
+ { text: '100+ premium card designs', ok: true },
+ { text: 'Video, photo & voice messages', ok: true },
+ { text: 'Gift pooling · Visa, Mastercard & bank transfer', ok: true },
+ { text: 'Memory Movie™ — every card auto-generates a cinematic MP4', ok: true },
+ { text: 'Live Memory Wall™ — guests upload photos via QR code, no app', ok: true },
+ { text: 'Use credits across any cards, any time', ok: true },
+ { text: 'Credits never expire', ok: true },
+ ].map((f, i) => (
+ <li key={i} className="flex items-start gap-2 text-sm">
+ <span className="flex-shrink-0 mt-0.5 text-green-500"><Icon name="Check" size={15}/></span>
+ <span className="text-warm-700">{f.text}</span>
+ </li>
+ ))}
+ </ul>
+ <button onClick={() => handleIndividualPurchase(selectedPack.id)} disabled={loadingPlan === selectedPack.id}
+ className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50 bg-green-600 text-white hover:bg-green-700">
+ {loadingPlan === selectedPack.id
+ ? <span className="flex items-center justify-center gap-2">
+ <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+ Processing…
+ </span>
+ : <span className="inline-flex items-center justify-center gap-2">
+ <Icon name="Gift" size={15}/>Buy {selectedPack.credits} credits — {activeDiscount ? fmtDiscounted(selectedPack.priceNGN) : fmt(selectedPack.priceNGN)}
+ </span>}
+ </button>
+ </div>
+ </div>
+
+ {/* Gift pot fees */}
+ <div className="gc-card p-5 sm:p-8 max-w-2xl mx-auto" style={{ background: '#F0FDF4', border: '1px solid #BBF7D0' }}>
+ <h3 className="text-xl font-bold text-warm-900 mb-1 text-center flex items-center justify-center gap-2"><Icon name="Wallet" size={18} className="text-green-600"/>Gift pot fees</h3>
+ <p className="text-warm-500 text-center text-sm mb-6">A small platform cut keeps Thankeeu running</p>
+ <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+ {[
+ { icon: 'Gift', title: 'Gift vouchers', sub: '3% cut' },
+ { icon: 'Card', title: 'Cash withdrawal', sub: '3% platform fee' },
+ { icon: 'Globe', title: 'Global payouts', sub: 'FLW live FX rate' },
+ ].map(r => (
+ <div key={r.title} className="text-center">
+ <div className="w-11 h-11 bg-white rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-sm"><Icon name={r.icon} size={20} className="text-green-600"/></div>
+ <p className="font-bold text-warm-900 text-xs">{r.title}</p>
+ <p className="text-green-600 text-xs font-bold mt-1">{r.sub}</p>
+ </div>
+ ))}
+ </div>
+ </div>
+ </div>
+ </section>
+ )}
+
+ {/* Company plans */}
+ {tab === 'company' && (
+ <section className="py-10 md:py-16 px-4 bg-white">
+ <div className="max-w-4xl mx-auto">
+ <div className="text-center mb-8">
+ <div className="mx-auto mb-3 inline-flex items-center gap-1.5"><Icon name="Building" size={13}/>Thankeeu for Teams</div>
+ <h2 className="font-extrabold text-warm-900 mb-3" style={{ fontSize: 'clamp(1.85rem,5.5vw,2.5rem)' }}>
+ Automate team celebrations
+ </h2>
+ <p className="text-warm-500 max-w-lg mx-auto text-sm leading-relaxed">
+ Upload your employees once. Thankeeu handles everything — cards, emails, gift pots. All automatic.
+ </p>
+ <p className="text-primary-600 font-semibold text-sm mt-2">Price based on your team headcount — get a quote to see your rate</p>
+
+ {/* Currency toggle for company plans */}
+ <div className="mt-5">
+ <p className="text-xs font-semibold text-warm-500 mb-2">Showing prices in {cur.flag} {cur.name}</p>
+ <CurrencyToggle selected={currency} onChange={setCurrency} />
+ </div>
+ </div>
+
+ <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-8">
+ <div className="bg-green-50 border border-green-200 rounded-2xl p-4">
+ <p className="font-bold text-green-800 text-sm mb-2 flex items-center gap-2"><Icon name="Check" size={15}/>Always free</p>
+ <ul className="space-y-1.5">
+ {['Company account','Team template download','Unlimited employee upload','View birthdays dashboard'].map(f => (
+ <li key={f} className="text-xs text-green-700 flex gap-1.5"><Icon name="Check" size={13} className="flex-shrink-0 mt-0.5"/>{f}</li>
+ ))}
+ </ul>
+ </div>
+ <div className="bg-primary-50 border border-primary-200 rounded-2xl p-4">
+ <p className="font-bold text-primary-800 text-sm mb-2 flex items-center gap-2"><Icon name="Card" size={15}/>Requires subscription</p>
+ <ul className="space-y-1.5">
+ {['Auto birthday dept emails','Auto card creation & sending','Gift pot collection','HR analytics & tracking'].map(f => (
+ <li key={f} className="text-xs text-primary-700 flex gap-1.5"><Icon name="ArrowRight" size={13} className="flex-shrink-0 mt-0.5"/>{f}</li>
+ ))}
+ </ul>
+ </div>
+ </div>
+
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto mb-10">
+ {COMPANY_PLANS.map(plan => (
+ <div key={plan.id} className="gc-card relative p-6" style={plan.popular ? { border: '2px solid #7C3AED' } : undefined}>
+ {plan.popular && (
+ <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-4 py-1.5 rounded-xl whitespace-nowrap inline-flex items-center gap-1.5">
+ <Icon name="Star" size={12}/>Best value
+ </div>
+ )}
+ <h3 className="text-xl font-bold text-warm-900 mb-1">{plan.name}</h3>
+ <div className="mb-3">
+ <p className="text-2xl font-bold text-warm-900">Get a quote</p>
+ <p className="text-xs text-warm-400 mt-1">Price based on your team headcount</p>
+ </div>
+ <div className="h-px bg-purple-100 mb-4" />
+ <ul className="space-y-2 mb-7">
+ {plan.features.map((f, i) => (
+ <li key={i} className="flex items-start gap-2 text-sm">
+ <span className="text-green-500 mt-0.5 flex-shrink-0"><Icon name="Check" size={15}/></span>
+ <span className="text-warm-700">{f}</span>
+ </li>
+ ))}
+ </ul>
+ <button onClick={() => setShowDemo(true)}
+ className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all ${
+ plan.popular ? 'bg-primary-500 text-white hover:bg-primary-600' : 'border-2 border-purple-200 text-primary-600 hover:bg-primary-50'
+ }`}>
+ Get a quote — it's free
+ </button>
+ </div>
+ ))}
+ </div>
+
+ {!company && (
+ <div className="text-center">
+ <Link to="/company/signup" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base inline-flex items-center gap-2">
+ <Icon name="Building" size={16}/>Create free company account
+ </Link>
+ <p className="text-xs text-warm-400 mt-3">
+ Already have one? <Link to="/company/login" className="text-primary-500 font-bold">Sign in →</Link>
+ </p>
+ </div>
+ )}
+ </div>
+ </section>
+ )}
+
+ {/* FAQ */}
+ <section className="py-12 md:py-16 px-4 section-dots" style={{ background: '#F5F0FF' }}>
+ <div className="max-w-2xl mx-auto">
+ <h3 className="text-2xl sm:text-3xl font-bold text-warm-900 text-center mb-7">Frequently asked</h3>
+ <div className="space-y-3">
+ {FAQ.map((f, i) => (
+ <div key={i} className="gc-card overflow-hidden">
+ <button onClick={() => setOpenFAQ(openFAQ === i ? null : i)}
+ className="w-full flex items-center justify-between p-4 sm:p-5 text-left gap-3 min-h-[56px]">
+ <span className="font-semibold text-warm-900 text-sm">{f.q}</span>
+ <span className={`text-primary-400 flex-shrink-0 transition-transform text-lg ${openFAQ === i ? 'rotate-180' : ''}`}>▾</span>
+ </button>
+ {openFAQ === i && (
+ <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+ <p className="text-sm text-warm-600 leading-relaxed">{livePriceText(f.a)}</p>
+ </div>
+ )}
+ </div>
+ ))}
+ </div>
+ </div>
+ </section>
+
+ {/* CTA */}
+ <section className="py-14 px-4 text-center" style={{ background: 'linear-gradient(135deg,#F5F0FF,#FFF0F5)' }}>
+ <div className="max-w-xl mx-auto">
+ <h2 className="text-2xl sm:text-3xl font-bold text-warm-900 mb-2">Ready to get started?</h2>
+ <p className="text-warm-500 mb-2">Works in the US, UK, Canada, Australia, Europe and 30+ countries.</p>
+ <p className="text-warm-400 text-sm mb-7">Pay in your local currency. Celebrate anyone, anywhere.</p>
+ <div className="flex flex-col sm:flex-row gap-3 justify-center">
+ <Link to="/card/new" className="gc-btn-primary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
+ <Icon name="Heart" size={16}/>Create personal card
+ </Link>
+ <Link to="/company/signup" className="gc-btn-secondary px-6 py-3.5 text-sm sm:text-base w-full sm:w-auto inline-flex items-center justify-center gap-2">
+ <Icon name="Building" size={16}/>Set up for my team
+ </Link>
+ </div>
+ </div>
+ </section>
+
+ {/* Get a quote modal */}
+ {showDemo && (
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+ style={{ background:'rgba(26,16,53,0.7)', backdropFilter:'blur(8px)' }}
+ onClick={() => setShowDemo(false)}>
+ <div className="bg-white rounded-3xl p-7 max-w-md w-full" onClick={e => e.stopPropagation()}>
+ <h3 className="text-xl font-bold text-warm-900 mb-1">Get a quote for your team</h3>
+ <p className="text-sm text-warm-500 mb-5">Tell us about your company and we will send you a custom price within 24 hours.</p>
+ <form onSubmit={async e => {
+ e.preventDefault();
+ const fd = new FormData(e.target);
+ try {
+ await fetch('/api/demo/request', {
+ method: 'POST',
+ headers: { 'Content-Type': 'application/json' },
+ body: JSON.stringify(Object.fromEntries(fd))
+ });
+ toast.success('Request sent! We will reach out within 24 hours.');
+ setShowDemo(false);
+ } catch { toast.error('Failed to send. Email us at hello@thankeeu.com'); }
+ }} className="space-y-3">
+ <input name="contact_name" required placeholder="Your name" className="input w-full" />
+ <input name="email" type="email" required placeholder="Work email" className="input w-full" />
+ <input name="company_name" required placeholder="Company name" className="input w-full" />
+ <input name="team_size" placeholder="Team size (e.g. 50)" className="input w-full" />
+ <textarea name="message" placeholder="Anything else?" rows={2} className="input w-full" />
+ <div className="flex gap-3 pt-1">
+ <button type="button" onClick={() => setShowDemo(false)} className="btn-secondary flex-1 py-2.5 text-sm">Cancel</button>
+ <button type="submit" className="btn-primary flex-1 py-2.5 text-sm">Send request →</button>
+ </div>
+ </form>
+ </div>
+ </div>
+ )}
+
+ {/* Fade-slide animation */}
+ <style>{`
+ @keyframes fadeSlideIn {
+ from { opacity: 0; transform: translateY(-6px); }
+ to { opacity: 1; transform: translateY(0); }
+ }
+ `}</style>
+
+ <Footer />
+ </div>
+ );
+};
+
+export default Pricing;

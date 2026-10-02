@@ -1,518 +1,2410 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
 
-  <!-- Home -->
   <url>
-    <loc>https://taskeeu.com/</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/</loc>
+    <lastmod>2026-09-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/"/>
+    <image:image>
+      <image:loc>https://www.thankeeu.com/og-image.png</image:loc>
+      <image:title>Thankeeu — Group Cards and Gifts</image:title>
+      <image:caption>Create beautiful group cards and collect gifts together, paid securely through Flutterwave.</image:caption>
+    </image:image>
   </url>
 
-  <!-- Browse Tasks -->
   <url>
-    <loc>https://taskeeu.com/tasks</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Taskers Directory -->
-  <url>
-    <loc>https://taskeeu.com/taskers</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Post a Task -->
-  <url>
-    <loc>https://taskeeu.com/post-task</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/pricing</loc>
+    <lastmod>2026-09-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/pricing"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/pricing"/>
   </url>
 
-  <!-- How It Works -->
   <url>
-    <loc>https://taskeeu.com/how-it-works</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/how-it-works</loc>
+    <lastmod>2026-09-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/how-it-works"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/how-it-works"/>
   </url>
 
-  <!-- Pricing -->
   <url>
-    <loc>https://taskeeu.com/pricing</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/sample</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
-  </url>
-
-  <!-- Taskeeu for Teams -->
-  <url>
-    <loc>https://taskeeu.com/teams</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- ── VOOOM LOGISTICS ─────────────────────────────────── -->
-  <url><loc>https://taskeeu.com/vooom</loc><lastmod>2026-08-22</lastmod><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://taskeeu.com/vooom/browse</loc><lastmod>2026-08-22</lastmod><changefreq>hourly</changefreq><priority>0.9</priority></url>
-  <url><loc>https://taskeeu.com/vooom/vs-uber-bolt</loc><lastmod>2026-08-22</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://taskeeu.com/vooom/nigeria-diaspora-delivery</loc><lastmod>2026-08-22</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://taskeeu.com/vooom/uk-nigeria-delivery</loc><lastmod>2026-08-22</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://taskeeu.com/vooom/us-nigeria-delivery</loc><lastmod>2026-08-22</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://taskeeu.com/vooom/local-delivery-nigeria</loc><lastmod>2026-08-22</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
-
-  <!-- ── SERVICE LANDING PAGES ─────────────────────────── -->
-
-  <!-- Errands — PRIMARY TARGET (max priority) -->
-  <url>
-    <loc>https://taskeeu.com/errands</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>1.0</priority>
-  </url>
-
-  <!-- Delivery -->
-  <url>
-    <loc>https://taskeeu.com/delivery</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-
-  <!-- Property Inspection -->
-  <url>
-    <loc>https://taskeeu.com/property-inspection</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Field Engineers -->
-  <url>
-    <loc>https://taskeeu.com/field-engineers</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Installations -->
-  <url>
-    <loc>https://taskeeu.com/installations</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Office Support -->
-  <url>
-    <loc>https://taskeeu.com/office-support</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Document Pickup -->
-  <url>
-    <loc>https://taskeeu.com/document-pickup</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Asset Verification -->
-  <url>
-    <loc>https://taskeeu.com/asset-verification</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Merchandising -->
-  <url>
-    <loc>https://taskeeu.com/merchandising</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Business Support -->
-  <url>
-    <loc>https://taskeeu.com/business-support</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- ── CITY-SPECIFIC ERRAND PAGES (new — high SEO value) ── -->
-
-  <!-- Errand Service Lagos -->
-  <!-- Diaspora — Errands for Nigerians Abroad -->
-  <url>
-    <loc>https://taskeeu.com/diaspora</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Grocery Shopping Service -->
-  <url>
-    <loc>https://taskeeu.com/grocery-shopping</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/sample"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/sample"/>
   </url>
 
   <url>
-    <loc>https://taskeeu.com/errands/lagos</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-
-  <!-- Errand Service Abuja -->
-  <url>
-    <loc>https://taskeeu.com/errands/abuja</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.95</priority>
-  </url>
-
-  <!-- Errand Service Port Harcourt -->
-  <url>
-    <loc>https://taskeeu.com/errands/port-harcourt</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
-  </url>
-
-  <!-- Errand Service Ibadan -->
-  <url>
-    <loc>https://taskeeu.com/errands/ibadan</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- Errand Service Kano -->
-  <url>
-    <loc>https://taskeeu.com/errands/kano</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Benin City -->
-  <url>
-    <loc>https://taskeeu.com/errands/benin-city</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Enugu -->
-  <url>
-    <loc>https://taskeeu.com/errands/enugu</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Warri -->
-  <url>
-    <loc>https://taskeeu.com/errands/warri</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Owerri -->
-  <url>
-    <loc>https://taskeeu.com/errands/owerri</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Calabar -->
-  <url>
-    <loc>https://taskeeu.com/errands/calabar</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Uyo -->
-  <url>
-    <loc>https://taskeeu.com/errands/uyo</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Ilorin -->
-  <url>
-    <loc>https://taskeeu.com/errands/ilorin</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Abeokuta -->
-  <url>
-    <loc>https://taskeeu.com/errands/abeokuta</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Onitsha -->
-  <url>
-    <loc>https://taskeeu.com/errands/onitsha</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Errand Service Jos -->
-  <url>
-    <loc>https://taskeeu.com/errands/jos</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Diaspora UK -->
-  <url>
-    <loc>https://taskeeu.com/diaspora/uk</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Diaspora USA -->
-  <url>
-    <loc>https://taskeeu.com/diaspora/usa</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Diaspora Canada -->
-  <url>
-    <loc>https://taskeeu.com/diaspora/canada</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Taskeeu vs Jiji -->
-  <url>
-    <loc>https://taskeeu.com/vs/jiji</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- Errand Runner Near Me -->
-  <url>
-    <loc>https://taskeeu.com/errand-runner-near-me</loc>
-    <lastmod>2026-07-20</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- House & Land Inspection -->
-  <url>
-    <loc>https://taskeeu.com/house-land-inspection</loc>
-    <lastmod>2026-08-15</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.85</priority>
-  </url>
-
-  <!-- ── BLOG ──────────────────────────────────────────── -->
-  <url>
-    <loc>https://taskeeu.com/blog</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- ── COMPANY ───────────────────────────────────────── -->
-  <url>
-    <loc>https://taskeeu.com/about</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/careers</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/contact</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/faq</loc>
+    <lastmod>2026-09-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/faq</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/demo</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/faq"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/faq"/>
   </url>
 
-  <!-- ── AUTH ─────────────────────────────────────────── -->
   <url>
-    <loc>https://taskeeu.com/requester/signup</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/online-group-cards-uk</loc>
+    <lastmod>2026-10-02</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/tasker/signup</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-group-cards-uk"/>
   </url>
 
-  <!-- ── LEGAL ─────────────────────────────────────────── -->
   <url>
-    <loc>https://taskeeu.com/policy</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/online-group-cards-us</loc>
+    <lastmod>2026-10-02</lastmod>
     <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-group-cards-us"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-group-cards-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-group-cards-canada"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-group-cards-nigeria</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://www.thankeeu.com/online-group-cards-nigeria"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/send-money-greeting-card</loc>
+    <lastmod>2026-09-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/send-money-greeting-card"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/send-money-greeting-card"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/leaving-card</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/leaving-card"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/leaving-card"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/leaving-card/gallery</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/leaving-card/gallery"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/leaving-card/gallery"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/create</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/create"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/create"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/ecards</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/ecards"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/ecards"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/virtual-cards</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/virtual-cards"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/virtual-cards"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/group-ecard</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/group-ecard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/group-ecard"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/digital-greeting-cards</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/digital-greeting-cards"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/digital-greeting-cards"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/virtual-birthday-card</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/virtual-birthday-card"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/virtual-birthday-card"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/virtual-farewell-card</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/virtual-farewell-card"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/virtual-farewell-card"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/ecard-for-coworker</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/ecard-for-coworker"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/ecard-for-coworker"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/free-ecards-for-friends-and-family</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/free-ecards-for-friends-and-family"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/free-ecards-for-friends-and-family"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/canva-cards-alternative</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/canva-cards-alternative"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/canva-cards-alternative"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/sendwishonline-alternative</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/sendwishonline-alternative"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/sendwishonline-alternative"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/groupgreeting-alternative</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/groupgreeting-alternative"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/groupgreeting-alternative"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/pet-loss-card</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/pet-loss-card"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/pet-loss-card"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/retirement</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/retirement"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/retirement"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/get-well-soon</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/get-well-soon"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/get-well-soon"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/thank-you</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/thank-you"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/thank-you"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/maternity-leave</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/maternity-leave"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/maternity-leave"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/christmas</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/christmas"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/christmas"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/sympathy</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/sympathy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/sympathy"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/welcome</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/welcome"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/welcome"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/good-luck</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/good-luck"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/good-luck"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/baby-shower</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/baby-shower"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/baby-shower"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/teacher-thank-you</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/teacher-thank-you"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/teacher-thank-you"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/engagement</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/engagement"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/engagement"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/new-home</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/new-home"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/new-home"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/administrative-professionals-day</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/administrative-professionals-day"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/administrative-professionals-day"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/boss-day</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/boss-day"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/boss-day"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/teacher-appreciation</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/teacher-appreciation"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/teacher-appreciation"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/thanksgiving</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/thanksgiving"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/thanksgiving"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/mothers-day</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/mothers-day"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/mothers-day"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/cards/fathers-day</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/cards/fathers-day"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/cards/fathers-day"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-cards-nigeria</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-NG" href="https://www.thankeeu.com/online-birthday-cards-nigeria"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/memory-movie</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/memory-movie"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/memory-movie"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/live-memory-wall</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/live-memory-wall"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/live-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-memory-wall</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-memory-wall"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-memory-wall</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/birthday-memory-wall"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/birthday-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/church-memory-wall</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/church-memory-wall"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/church-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/employee-memory-wall</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/employee-memory-wall"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/employee-memory-wall"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/games</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/games"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/games"/>
+    <image:image>
+      <image:loc>https://www.thankeeu.com/og-image.png</image:loc>
+      <image:title>Thankeeu Games - Inter-Company Employee Engagement League</image:title>
+      <image:caption>Department-based weekly employee engagement games with public leaderboards and congratulations group cards signed with messages, GIFs, photos, videos and voice notes.</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/games/leaderboard</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/games/leaderboard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/games/leaderboard"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/thankeeu-vs-wedtrove</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/thankeeu-vs-wedtrove"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/thankeeu-vs-wedtrove"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/thankeeu-vs-thankbox</loc>
+    <lastmod>2026-07-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/thankeeu-vs-thankbox"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/thankeeu-vs-thankbox"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/thankeeu-vs-kudoboard</loc>
+    <lastmod>2026-07-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.85</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/thankeeu-vs-kudoboard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/thankeeu-vs-kudoboard"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/thankeeu-vs-thankbox-vs-kudoboard</loc>
+    <lastmod>2026-07-17</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/thankeeu-vs-thankbox-vs-kudoboard"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/thankeeu-vs-thankbox-vs-kudoboard"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/weduploader-alternative</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/weduploader-alternative"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/weduploader-alternative"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/guestpix-alternative</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/guestpix-alternative"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/guestpix-alternative"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/kululu-alternative</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/kululu-alternative"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/kululu-alternative"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/pov-alternative</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/pov-alternative"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/pov-alternative"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/guestcam-alternative</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/guestcam-alternative"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/guestcam-alternative"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-photo-sharing-app</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-photo-sharing-app"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-photo-sharing-app"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-photo-upload-app</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-photo-upload-app"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-photo-upload-app"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/qr-code-for-wedding-photos</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/qr-code-for-wedding-photos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/qr-code-for-wedding-photos"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/collect-wedding-guest-photos</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/collect-wedding-guest-photos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/collect-wedding-guest-photos"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/digital-wedding-guest-book</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/digital-wedding-guest-book"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/digital-wedding-guest-book"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-memory-book</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-memory-book"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-memory-book"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-photo-gallery</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-photo-gallery"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-photo-gallery"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-photo-album-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-photo-album-online"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-photo-album-online"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/best-wedding-photo-sharing-app</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/best-wedding-photo-sharing-app"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/best-wedding-photo-sharing-app"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-guest-photo-collection</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-guest-photo-collection"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-guest-photo-collection"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-wedding-guestbook</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/online-wedding-guestbook"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/online-wedding-guestbook"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-video-message-book</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-video-message-book"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-video-message-book"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-voice-note-guest-book</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-voice-note-guest-book"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-voice-note-guest-book"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-cash-gift-platform</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-cash-gift-platform"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-cash-gift-platform"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/wedding-group-card</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/wedding-group-card"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/wedding-group-card"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/uk-wedding-photo-sharing</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/uk-wedding-photo-sharing"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/usa-wedding-photo-sharing</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/usa-wedding-photo-sharing"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-group-card</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/online-group-card"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/online-group-card"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-cards-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-cards-uk"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/retirement-cards-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/retirement-cards-uk"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/get-well-soon-cards-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/get-well-soon-cards-uk"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/occasions/birthday</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/occasions/birthday"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/occasions/birthday"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/occasions/staff-appreciation</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/occasions/staff-appreciation"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/occasions/staff-appreciation"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/occasions/farewell</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/occasions/farewell"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/occasions/farewell"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/occasions/anniversary</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/occasions/anniversary"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/occasions/anniversary"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/occasions/promotion</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/occasions/promotion"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/occasions/promotion"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/occasions/graduation</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/occasions/graduation"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/occasions/graduation"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/occasions/new-baby</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/occasions/new-baby"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/occasions/new-baby"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/occasions/wedding</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/occasions/wedding"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/occasions/wedding"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/signup</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/signup"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/signup"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/business</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.95</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/business"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/business"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/company/signup</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/company/signup"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/company/signup"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/member/signup</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/member/signup"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/member/signup"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/policy</loc>
+    <lastmod>2026-09-30</lastmod>
+    <changefreq>yearly</changefreq>
     <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/policy"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/policy"/>
   </url>
+
   <url>
-    <loc>https://taskeeu.com/terms</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/blog</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/blog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/blog"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/group-ecard-uk</loc>
+    <lastmod>2026-10-02</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.4</priority>
-  </url>
-
-  <!-- ── CITY-SPECIFIC TASK PAGES ─────────────────────── -->
-  <url>
-    <loc>https://taskeeu.com/tasks?city=Lagos</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
     <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/tasks?city=Abuja</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/tasks?city=Port+Harcourt</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/tasks?city=Ibadan</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/tasks?city=Kano</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/tasks?city=Enugu</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/tasks?city=Benin+City</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/group-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/group-ecard-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/group-ecard-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-group-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-group-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-group-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-group-card-philippines"/>
   </url>
 
-  <!-- ── TASKER CITY PAGES ─────────────────────────────── -->
   <url>
-    <loc>https://taskeeu.com/taskers?city=Lagos</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/taskers?city=Abuja</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://taskeeu.com/taskers?city=Port+Harcourt</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <!-- ── TEAMS ─────────────────────────────────────────── -->
-  <url>
-    <loc>https://taskeeu.com/teams/register</loc>
-    <lastmod>2026-07-08</lastmod>
+    <loc>https://www.thankeeu.com/office-group-card-uk</loc>
+    <lastmod>2026-10-02</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/office-group-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/office-group-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/office-group-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/gruppenkarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/groepskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-grupal-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/office-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/office-group-card-philippines"/>
   </url>
 
-  <!-- ── BLOG POSTS — errand SEO targets ──────────────────────── -->
-
-  <!-- Post 1: Best errand service platform Nigeria (comparison, high intent) -->
   <url>
-    <loc>https://taskeeu.com/blog/best-errand-service-platform-nigeria</loc>
-    <lastmod>2026-07-06</lastmod>
+    <loc>https://www.thankeeu.com/group-ecard-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/group-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/group-ecard-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/group-ecard-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-group-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-group-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-group-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/office-group-card-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/office-group-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/office-group-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/office-group-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/gruppenkarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/groepskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-grupal-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/office-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/office-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/group-ecard-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/group-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/group-ecard-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/group-ecard-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-group-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-group-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-group-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/office-group-card-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/office-group-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/office-group-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/office-group-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/gruppenkarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/groepskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-grupal-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/office-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/office-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-group-card-germany</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/group-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/group-ecard-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/group-ecard-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-group-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-group-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-group-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/gruppenkarte-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/office-group-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/office-group-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/office-group-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/gruppenkarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/groepskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-grupal-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/office-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/office-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-group-card-netherlands</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/group-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/group-ecard-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/group-ecard-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-group-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-group-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-group-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/groepskaart-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/office-group-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/office-group-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/office-group-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/gruppenkarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/groepskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-grupal-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/office-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/office-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-group-card-colombia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/group-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/group-ecard-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/group-ecard-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-group-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-group-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-group-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/tarjeta-grupal-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/office-group-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/office-group-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/office-group-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/gruppenkarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/groepskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-grupal-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/office-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/office-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-group-card-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/group-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/group-ecard-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/group-ecard-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-group-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-group-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-group-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/office-group-card-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/office-group-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/office-group-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/office-group-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/gruppenkarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/groepskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-grupal-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/office-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/office-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-group-card-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/group-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/group-ecard-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/group-ecard-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-group-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-group-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-group-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/office-group-card-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/office-group-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/office-group-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/office-group-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/gruppenkarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/groepskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-grupal-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/office-group-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/office-group-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/leaving-card-for-colleague-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/goodbye-card-for-coworker-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/going-away-card-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-germany</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/abschiedskarte-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-netherlands</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/afscheidskaart-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-colombia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/tarjeta-de-despedida-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/leaving-card-for-colleague-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/despedida-card-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-australia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/farewell-card-for-workmate-australia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-farewell-card-france</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-farewell-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-farewell-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-farewell-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-farewell-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-farewell-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-farewell-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-farewell-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-farewell-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-farewell-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-farewell-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/carte-de-depart-en-ligne</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/leaving-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/goodbye-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/going-away-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/abschiedskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/afscheidskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-despedida-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/leaving-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/despedida-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/farewell-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-de-depart-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-ecard-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-card-for-colleague-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-card-for-coworker-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-card-for-coworker-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-germany</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/geburtstagskarte-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-netherlands</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/verjaardagskaart-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-colombia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/tarjeta-de-cumpleanos-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-card-for-colleague-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-card-for-officemate-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-australia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/birthday-card-for-workmate-australia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-birthday-card-france</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-ecard-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-birthday-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-birthday-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-birthday-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-birthday-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-birthday-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-birthday-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-birthday-card-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/online-birthday-card-australia"/>
+    <xhtml:link rel="alternate" hreflang="en-FR" href="https://www.thankeeu.com/online-birthday-card-france"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/carte-anniversaire-en-ligne</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/birthday-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/birthday-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/birthday-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/geburtstagskarte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/verjaardagskaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-de-cumpleanos-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/birthday-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/birthday-card-for-officemate-philippines"/>
+    <xhtml:link rel="alternate" hreflang="en-AU" href="https://www.thankeeu.com/birthday-card-for-workmate-australia"/>
+    <xhtml:link rel="alternate" hreflang="fr-FR" href="https://www.thankeeu.com/carte-anniversaire-en-ligne"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-baby-shower-card-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-baby-shower-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-baby-shower-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-baby-shower-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-baby-shower-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-baby-shower-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-baby-shower-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-baby-shower-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-baby-shower-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/baby-shower-card-for-colleague-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/baby-shower-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/baby-shower-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/baby-shower-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/babyparty-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/babyshower-kaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-baby-shower-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/baby-shower-card-for-officemate-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-baby-shower-card-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-baby-shower-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-baby-shower-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-baby-shower-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-baby-shower-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-baby-shower-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-baby-shower-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-baby-shower-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-baby-shower-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/baby-shower-card-for-coworker-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/baby-shower-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/baby-shower-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/baby-shower-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/babyparty-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/babyshower-kaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-baby-shower-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/baby-shower-card-for-officemate-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-baby-shower-card-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-baby-shower-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-baby-shower-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-baby-shower-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-baby-shower-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-baby-shower-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-baby-shower-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-baby-shower-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-baby-shower-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/baby-shower-card-for-coworker-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/baby-shower-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/baby-shower-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/baby-shower-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/babyparty-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/babyshower-kaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-baby-shower-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/baby-shower-card-for-officemate-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-baby-shower-card-germany</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-baby-shower-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-baby-shower-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-baby-shower-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-baby-shower-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-baby-shower-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-baby-shower-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-baby-shower-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-baby-shower-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/babyparty-karte-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/baby-shower-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/baby-shower-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/baby-shower-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/babyparty-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/babyshower-kaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-baby-shower-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/baby-shower-card-for-officemate-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-baby-shower-card-netherlands</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-baby-shower-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-baby-shower-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-baby-shower-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-baby-shower-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-baby-shower-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-baby-shower-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-baby-shower-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-baby-shower-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/babyshower-kaart-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/baby-shower-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/baby-shower-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/baby-shower-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/babyparty-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/babyshower-kaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-baby-shower-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/baby-shower-card-for-officemate-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-baby-shower-card-colombia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-baby-shower-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-baby-shower-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-baby-shower-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-baby-shower-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-baby-shower-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-baby-shower-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-baby-shower-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-baby-shower-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/tarjeta-baby-shower-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/baby-shower-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/baby-shower-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/baby-shower-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/babyparty-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/babyshower-kaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-baby-shower-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/baby-shower-card-for-officemate-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-baby-shower-card-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-baby-shower-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-baby-shower-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-baby-shower-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-baby-shower-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-baby-shower-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-baby-shower-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-baby-shower-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-baby-shower-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/baby-shower-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/baby-shower-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/baby-shower-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/babyparty-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/babyshower-kaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-baby-shower-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/baby-shower-card-for-officemate-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-baby-shower-card-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-baby-shower-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-baby-shower-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-baby-shower-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-baby-shower-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-baby-shower-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-baby-shower-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-baby-shower-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-baby-shower-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/baby-shower-card-for-officemate-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/baby-shower-card-for-colleague-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/baby-shower-card-for-coworker-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/baby-shower-card-for-coworker-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/babyparty-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/babyshower-kaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-baby-shower-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/baby-shower-card-for-colleague-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/baby-shower-card-for-officemate-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-anniversary-card-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-anniversary-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-anniversary-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-anniversary-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/work-anniversary-card-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/work-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/work-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/dienstjubilaeum-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/jubileumkaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-aniversario-laboral-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/work-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/work-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-anniversary-card-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-anniversary-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-anniversary-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-anniversary-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/work-anniversary-card-us</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/work-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/work-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/dienstjubilaeum-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/jubileumkaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-aniversario-laboral-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/work-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/work-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-anniversary-card-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-anniversary-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-anniversary-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-anniversary-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/work-anniversary-card-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/work-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/work-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/dienstjubilaeum-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/jubileumkaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-aniversario-laboral-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/work-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/work-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-anniversary-card-germany</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-anniversary-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-anniversary-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-anniversary-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/dienstjubilaeum-karte-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/work-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/work-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/dienstjubilaeum-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/jubileumkaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-aniversario-laboral-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/work-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/work-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-anniversary-card-netherlands</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-anniversary-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-anniversary-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-anniversary-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/jubileumkaart-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/work-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/work-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/dienstjubilaeum-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/jubileumkaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-aniversario-laboral-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/work-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/work-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-anniversary-card-colombia</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-anniversary-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-anniversary-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-anniversary-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/tarjeta-aniversario-laboral-online</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/work-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/work-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/dienstjubilaeum-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/jubileumkaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-aniversario-laboral-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/work-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/work-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-anniversary-card-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-anniversary-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-anniversary-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-anniversary-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/work-anniversary-card-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/work-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/work-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/dienstjubilaeum-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/jubileumkaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-aniversario-laboral-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/work-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/work-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/online-anniversary-card-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/online-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/online-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/online-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/online-anniversary-card-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-NL" href="https://www.thankeeu.com/online-anniversary-card-netherlands"/>
+    <xhtml:link rel="alternate" hreflang="en-CO" href="https://www.thankeeu.com/online-anniversary-card-colombia"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/online-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/online-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/work-anniversary-card-philippines</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/work-anniversary-card-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/work-anniversary-card-us"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-card-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/dienstjubilaeum-karte-online"/>
+    <xhtml:link rel="alternate" hreflang="nl-NL" href="https://www.thankeeu.com/jubileumkaart-online"/>
+    <xhtml:link rel="alternate" hreflang="es-CO" href="https://www.thankeeu.com/tarjeta-aniversario-laboral-online"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/work-anniversary-card-mauritius"/>
+    <xhtml:link rel="alternate" hreflang="en-PH" href="https://www.thankeeu.com/work-anniversary-card-philippines"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/employee-recognition-platform-us</loc>
+    <lastmod>2026-10-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
-  </url>
-
-  <!-- Post 2: Complete list of errand services Nigeria (informational, high volume) -->
-  <url>
-    <loc>https://taskeeu.com/blog/run-errands-in-nigeria-from-abroad</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/employee-recognition-platform-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-recognition-platform-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/employee-recognition-software-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/employee-recognition-software-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/employee-recognition-mauritius"/>
   </url>
 
   <url>
-    <loc>https://taskeeu.com/blog/grocery-shopping-service-lagos</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
-    <loc>https://taskeeu.com/blog/helpmewaka-alternatives-nigeria</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-
-  <url>
-    <loc>https://taskeeu.com/blog/list-of-errand-services-nigeria</loc>
-    <lastmod>2026-07-06</lastmod>
+    <loc>https://www.thankeeu.com/automated-employee-birthday-cards-us</loc>
+    <lastmod>2026-10-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/automated-employee-birthday-cards-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-birthday-and-leaving-cards-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-and-birthday-automation-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/mitarbeiter-wertschaetzung-tool"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/staff-celebration-software-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/staff-recognition-platform-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/employee-recognition-platform-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-recognition-platform-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/employee-recognition-software-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/employee-recognition-software-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/employee-recognition-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/staff-birthday-and-leaving-cards-uk</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/automated-employee-birthday-cards-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-birthday-and-leaving-cards-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-and-birthday-automation-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/mitarbeiter-wertschaetzung-tool"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/staff-celebration-software-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/employee-recognition-software-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/employee-recognition-platform-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-recognition-platform-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/employee-recognition-software-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/employee-recognition-software-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/employee-recognition-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/work-anniversary-and-birthday-automation-canada</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/automated-employee-birthday-cards-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-birthday-and-leaving-cards-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-and-birthday-automation-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/mitarbeiter-wertschaetzung-tool"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/staff-celebration-software-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/employee-recognition-software-germany</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/employee-recognition-platform-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-recognition-platform-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/employee-recognition-software-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/employee-recognition-software-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/employee-recognition-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/mitarbeiter-wertschaetzung-tool</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/automated-employee-birthday-cards-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-birthday-and-leaving-cards-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-and-birthday-automation-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/mitarbeiter-wertschaetzung-tool"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/staff-celebration-software-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/employee-recognition-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/employee-recognition-platform-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-recognition-platform-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/employee-recognition-software-canada"/>
+    <xhtml:link rel="alternate" hreflang="en-DE" href="https://www.thankeeu.com/employee-recognition-software-germany"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/employee-recognition-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/staff-celebration-software-mauritius</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="en-US" href="https://www.thankeeu.com/automated-employee-birthday-cards-us"/>
+    <xhtml:link rel="alternate" hreflang="en-GB" href="https://www.thankeeu.com/staff-birthday-and-leaving-cards-uk"/>
+    <xhtml:link rel="alternate" hreflang="en-CA" href="https://www.thankeeu.com/work-anniversary-and-birthday-automation-canada"/>
+    <xhtml:link rel="alternate" hreflang="de-DE" href="https://www.thankeeu.com/mitarbeiter-wertschaetzung-tool"/>
+    <xhtml:link rel="alternate" hreflang="en-MU" href="https://www.thankeeu.com/staff-celebration-software-mauritius"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/blog/birthday-wishes-for-colleague-nigeria-prayers-pidgin</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/blog/birthday-wishes-for-colleague-nigeria-prayers-pidgin"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/blog/birthday-wishes-for-colleague-nigeria-prayers-pidgin"/>
+  </url>
+
+  <url>
+    <loc>https://www.thankeeu.com/blog/condolence-messages-loss-of-pet</loc>
+    <lastmod>2026-07-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.thankeeu.com/blog/condolence-messages-loss-of-pet"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.thankeeu.com/blog/condolence-messages-loss-of-pet"/>
   </url>
 
 </urlset>

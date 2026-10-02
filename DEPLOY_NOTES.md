@@ -1,120 +1,293 @@
-# Taskeeu — deploy notes
+# Deploy notes — what changed in this build
 
-## Order
-1. **Database** (Supabase → SQL Editor). All are safe to run more than once:
-   1. `database/ADVANCE_PAYMENTS_MIGRATION.sql`
-   2. `database/REVIEWS_MIGRATION.sql`
-   3. `database/PROFILE_LINKS_MIGRATION.sql`
-   4. `database/TASK_WORKSPACE_MIGRATION.sql`   (activity log, proof files, Taskeeu ratings)
-   5. `database/KEEU_CHAT_ASSISTANT_MIGRATION.sql`   (Keeu chat assistant)
-   6. `database/TASKER_FEE_OVERRIDE_MIGRATION.sql`   ← new in v10: per-tasker fee
-   7. `database/PLATFORM_EARNINGS_MIGRATION.sql`   (Taskeeu earnings ledger + backfill)
-   8. `database/TASK_COSTS_MIGRATION.sql`   ← new in v11: cost breakdown on tasks
-   9. `database/TIPS_MIGRATION.sql`   ← new in v11: tips / extra money (run after VOOOM_MIGRATION)
-2. **Backend**: replace files under `backend/`, redeploy (no new packages).
-3. **Frontend**: replace files under `frontend/src/`, rebuild, deploy.
+Everything below is in the codebase and passing. Read §1 before you deploy.
 
-## What's included
-### New in v11
-- **Requester must rate before the code:** the completion code is only released after the
-  requester rates and reviews the tasker AND rates Taskeeu (both compulsory). If a task was
-  completed first (older codes), the requester still owes both ratings and is blocked from
-  posting until done. The Taskeeu rating is now compulsory with every review.
-- **Cost breakdown when posting** (public /post-task and dashboard): Workmanship (required),
-  Transportation, Waybill, Items or equipment (if applicable), each with a short
-  explanation. One total is shown everywhere (/tasks, task page, dashboards, admin, SEO).
-  Older range tasks show their higher figure. Costs cannot change once the task is paid.
-- **Tips and extra money:** "Add money for tasker" on the task list and task page while the
-  task is in progress ("Sudden unforeseen cost? Add money so your tasker can withdraw it"),
-  plus optional "Tips to the tasker?" in the code step, the review form and after completion.
-  Paid through Flutterwave; no platform fee; withdrawable immediately (even mid-task);
-  shown in the admin activity log; never counted as Taskeeu income.
-- Dashboards use the Taskeeu brand colour (no purple gradients).
-- Public pages: em/en dashes and decorative emojis removed from all visible copy and SEO
-  text; ranges read "1 to 3 days"; titles use "Page | Taskeeu".
+---
 
-### New in v10 — platform fee and Taskeeu's own earnings
-- **Fee on the full task payment.** Taskeeu's fee is 20% of the whole amount the requester
-  paid, not of the balance left after advances. Example: ₦5,000 paid, ₦800 advance →
-  fee ₦1,000, final payout ₦3,200 (tasker total ₦4,000 = 80%). Charged once, at the final
-  withdrawal; cancelled tasks are never charged.
-- **Per-tasker fee (Admin → Tasker KYC → open a tasker → "Platform fee").** Remove the fee
-  (tasker keeps 100%), set any rate from 0–20% (e.g. 12.5), or reset to the standard 20%.
-  Every other tasker stays on 20%. It applies to the tasker's next withdrawal, including
-  balances already waiting. Each change is audit-logged, the tasker is notified, and a
-  "Fee x%" badge shows in the tasker list.
-- **Taskeeu earnings ledger** (`platform_earnings`): one row per task payout (task payment,
-  rate, fee, advance, payout, bank reference). Nothing is recorded if the bank rejects the
-  transfer; an unclear bank reply is recorded as "awaiting bank". Past payouts are
-  backfilled with the fee that was actually charged then (marked "before ledger").
-- **Admin → Revenue & Earnings**: all-time, today, this month, fees due (completed tasks not
-  yet withdrawn), upcoming (funded tasks in progress), awaiting bank, month-by-month, and
-  every fee record. **Overview** gets a "Taskeeu earnings (fees)" card (click → details).
-  The old "Revenue" figure is renamed "Payments received" (it is money in, not profit).
-- Taskers now see "Taskeeu fee … of the full task payment" and "You get ₦…" per task.
-- Audit fixes: proof videos/PDFs are now also deleted from Cloudinary; admin force-cancel is
-  logged, notifies bidders once, is double-click safe and refuses completed tasks;
-  agreed cancellations no longer appear twice in the admin log; Keeu migration makes sure
-  chat_messages.sender_id allows NULL.
+## 1. Before deploying — run two migrations
 
-### New in v9 — Keeu 👩🏾, the friendly chat assistant
-- Posts in every requester ⇄ tasker task chat (not Vooom). Both people see the same message.
-- **Welcome** when the chat is first opened: agree on distance, transport, equipment/items,
-  courier and workmanship; the requester pays ONE total into escrow; the tasker can request
-  an advance for transport/items/courier on the task page; workmanship is paid at the end.
-  If the chat opens after payment, a short "paid" welcome is used instead.
-- **Reminders** (rotating): price breakdown (only before payment), photo proofs in chat or
-  WhatsApp + proof upload is compulsory before payout, stay respectful and use the Support tab.
-- **Not spammy**: only right after someone sends a message, at least 25 min apart, at least
-  6 messages since her last one, max 4 per chat per day, silent once the task is completed
-  or cancelled. Tune with env `KEEU_GAP_MS` / `KEEU_MIN_HUMAN_MESSAGES` if you like.
-- Keeu messages never count as unread, never trigger emails, can't be deleted, and appear
-  in the admin chat tab and activity log.
+```
+database/migration_money_transfers.sql        # Send Money table
+database/migration_test_card_quickstart.sql   # test-card accounts + password nudges
+```
 
-### New in v8 — everything about a task lives inside that task
-- **Tasker 3-step completion flow** on the task page: 1) upload proof of work (any file
-  type, many at once, preview, remove) → Save; 2) rate the requester (stars + comment) and
-  rate Taskeeu → Save; 3) enter the completion code. Steps unlock in order, the server
-  enforces the order, and the page switches to "Task completed" instantly (no refresh).
-- **Advance inside the task** for both sides: tasker requests / tracks / withdraws;
-  requester approves (or lowers) / rejects and sees the balance. Earnings → Advances and
-  Payments → Advance Requests are now simple lists with "Open task →".
-  Notification links open the task directly.
-- Requester sees the tasker's live progress (x/3) and can open every proof file.
-- **Cancelled task → every bidder is notified** (in-app + email), once.
-- **Admin task activity log**: advance requested/approved/rejected/withdrawn, proofs (with
-  file links), completion, every rating with stars and comments (incl. Taskeeu rating),
-  tasker chosen/switched/removed, chats opened, cancellations, deadline changes,
-  earnings withdrawn — colour-coded by who did it, with filters. Chat tab shows which chat
-  (bidder) each message belongs to.
-- Needs Cloudinary env vars (already used for avatars/KYC). Tasks already in progress will
-  need steps 1–2 before the code is accepted. Removing a non-image proof hides it but
-  does not delete the file from Cloudinary.
+Both are safe to re-run. No new environment variables. No new dependencies —
+`package.json` is unchanged on both sides.
 
-### Earlier
-- Advance payments & escrow balance fixes.
-- Two-way compulsory star + comment reviews.
-- /tasks cards redesigned.
-- Requester can chat with several bidders and switch tasker until paid.
-- Tasker profile links: every tasker has one permanent readable link
-  (/tasker/emmanuel-uduebholo; same names get -2, -3; accents handled).
-  Links use the site you're on (no hard-coded www.taskeeu.com). Old id/username
-  links still work and redirect to the clean link. Unapproved profiles say so clearly.
-  Requesters can open each bidder's profile from their bid list.
-- "Tasks Done" is counted live from completed tasks everywhere (profile, Browse Taskers,
-  dashboard, bid list); stale stored counts are repaired automatically and by the migration.
-- When a requester chooses a tasker, every other open bidder gets an encouraging email +
-  in-app notice (your bid stays open, pitch well, update your profile photo). Once per task.
-- SECURITY: the public tasker listing no longer exposes ID documents, bank details,
-  home/office addresses, admin notes or phone numbers; public task pages no longer
-  show the requester's phone number.
-- Fixed: Flutterwave webhooks were silently ignored; payment confirmation is race-safe.
-- Fixed: "Withdraw" failed for taskers with 2+ completed tasks.
-- Clearer advance wording (approved-but-not-withdrawn advance is included in final payout).
+---
 
-## Verified (real PostgreSQL 16 + PostgREST, full server, real Chromium)
-v11 backend: costs + review gate + tips 31/31, workspace 47/47, reviews 55/55, fee +
-earnings 28/28, advance 33/33, payout 9/9, Keeu 25/25, admin cancel 6/6, bidding 31/31,
-live 13/13, not-selected 14/14, profile links 20/20. Browser: posting + tips 12/12, task
-workspace (incl. requester rate → code) 35/35, Keeu 4/4, fee card 6/6. Frontend unit tests
-217/217. Build clean; lint 0 errors. All 9 migrations applied twice on a fresh database.
+## 2. What is new
+
+### Homepage type-to-create
+A customer types one line — *"birthday card for my sister Ada, sending Friday,
+deadline Wednesday, collecting 50k, from Emmanuel"* — and lands in the card
+wizard with the occasion, cover design, cover text colour, recipient, title,
+delivery date, signing deadline, sender and gift pot already filled in.
+
+- `frontend/src/utils/cardIntent.js` — the parser. Runs in the browser. **No API
+  key, no AI service, no running cost.**
+- `frontend/src/utils/applyCardIntent.js` — maps a parsed sentence onto the
+  wizard form, and picks a readable cover ink for the design it chose.
+- `frontend/src/components/CardIntentBar.jsx` — the homepage input. Full width,
+  above the fold on desktop, laptop and phone. Starts pre-filled with an
+  editable example. As soon as the sentence names an occasion, a horizontal row
+  of matching cover designs appears above the box — tap one and it becomes the
+  card's cover, with the title ink contrast-checked against it.
+- `frontend/src/components/IntentSummaryStrip.jsx` — "here's what we set up".
+- Wired into `pages/Home.jsx`, `pages/CardStart.jsx`, `pages/CreateCard.jsx`.
+
+### Sign-up without a verification code
+Creating a card no longer sends anyone to `/login` or `/signup`, and no longer
+asks for a 6-digit code, a username or a date of birth.
+
+- `frontend/src/components/InlineAuthPanel.jsx` — asks "first card or not",
+  then takes name + email + password (new) or email + password (returning),
+  using the existing `/auth/signup` and `/auth/login` endpoints. Username is
+  generated from the email.
+- A 10-second hand-off screen, then the dashboard review step.
+
+**The emailed code is unchanged for money claims.** That check is what stops
+someone claiming a money card addressed to another person, and it stays.
+
+### Resume alert
+`frontend/src/components/ResumeDraftAlert.jsx` — replaces the toast that used to
+flash for three seconds. A saved-but-unpaid card now says so, with a
+"Continue to payment" button.
+
+### Send Money fixes
+- The recipient's card rendered **no attachments at all**. Fixed.
+- Multiple attachments now show as a swipeable carousel
+  (`components/MediaSwiper.jsx`) in both the composer preview and the card.
+- Sender-chosen cover text colour, guarded for contrast.
+- Incremental saves no longer lose earlier attachments, and removing an
+  attachment now actually removes it (`backend/controllers/moneyTransferController.js`,
+  `pickMedia`).
+- `?draft=` is now loaded instead of silently overwritten with a blank form.
+- Individual-vs-group messaging on the dashboard, landing page and homepage.
+
+### Dates and times, written however people write them
+Customers should not have to learn a format. The parser now reads:
+
+- **Relatives** — today, tonight, tomorrow, day after tomorrow, a week today,
+  a week tomorrow, in 3 days, in 2 weeks / in two weeks, in 3 months.
+- **Weekdays, qualified** — this / next / coming / following Friday and week
+  after next, full or abbreviated (`fri`, `weds`, `thurs`, `mon`).
+  *"this Friday" and "next Friday" are seven days apart and are treated as
+  such*, including the awkward case of saying "next Friday" on a Friday.
+- **Weekends** — this weekend, next weekend.
+- **Month edges** — end of the month, end of next month, beginning of next
+  month, mid next month.
+- **Named months, either order, abbreviated or not** — 25 December, Dec 25,
+  20th Sept, 1 Jan.
+- **Numeric** — 25/12, 25/12/2026, 25-12-2026, and ISO 2026-12-25. Read
+  **day-first**, the Nigerian and UK convention.
+- **Holidays** — Christmas, Boxing Day, New Year's Day, New Year's Eve,
+  Valentine's Day.
+- **Times** — morning 09:00, lunchtime 12:00, afternoon 14:00, evening 18:00,
+  night 20:00, "first thing" 07:00, midnight; and explicit clock times
+  ("at 11am", "3:30pm", "9 a.m.", "8 o'clock") override the vague ones.
+
+Everything resolves **forward** — a card is never scheduled into the past — and
+anything it is not sure of is left blank so the wizard's own default stands.
+The delivery time and the signing-deadline time come from their own clauses, so
+*"sending next Friday morning, deadline this Wednesday evening"* fills four
+separate fields correctly.
+
+### One malformed API response can no longer white-screen a page
+`res.data || []` guards null and undefined only. When an endpoint answers with
+an **object** — an error body, a paginated envelope, a shape change — it sails
+through `||`, the next `.map()` throws, and React renders a blank page with the
+error only in the console. This had already happened twice (the notification
+bell taking down every dashboard page; then `/dashboard/received`,
+`/dashboard/delivered` and `/dashboard/finances`, caught by a new route smoke
+test).
+
+`utils/asArray.js` is now the single guard, applied at **68 call sites across
+45 files**. It returns arrays untouched, coerces anything else to `[]`, and
+unwraps a common envelope (`items`/`data`/`rows`/`results`/…) so an endpoint
+that starts paginating keeps working instead of silently showing "nothing here".
+
+`harness/routes.mjs` smoke-tests **36 routes** (25 public, 11 authenticated) and
+fails on any page error or empty render. All 36 are clean.
+
+### CORS is now actually enforced
+`server.js` built an allowlist and then ended the callback with an
+unconditional `callback(null, true)`, so **every origin on the internet was
+allowed** — with `credentials: true` and `sameSite: 'none'` session cookies
+behind it. Any page anywhere could make authenticated calls as a signed-in
+user. That is fixed.
+
+What is allowed now: `thankeeu.com` and any subdomain (workspaces, games,
+mentorship, admin), Vercel previews, `FRONTEND_URL`, and localhost including
+`*.localhost` workspace testing. Everything else is refused and logged once
+with the exact value to add.
+
+Two things worth knowing:
+
+- The old `origin.includes('thankeeu')` test matched **evil-thankeeu.com** and
+  **thankeeu.attacker.net**. Gone — suffix and exact matches only.
+- Everything except localhost must be **https**. Session cookies here are
+  `secure`; honouring an http origin on our own domain invites a downgrade.
+
+**`CORS_EXTRA_ORIGINS`** (comma-separated) adds an origin without a code
+change, so a missed origin is a env-var edit, not a redeploy. Watch the logs
+for `[cors] blocked origin` after deploying — if a real one appears, add it
+there.
+
+`tests/cors.test.js` covers both directions: ten origins that must keep
+working, ten that must be refused.
+
+### One input, three steps — no panels
+Everything the box needs is asked in the **same field**, one thing at a time,
+because a sentence, an email address and a list of invitees do not fit on one
+line:
+
+1. **Describe the card** — the sentence.
+2. **Your own email** — skipped entirely when already signed in.
+3. **Invitees** — optional, comma separated, with a Skip link.
+
+Each step clears the field, changes the placeholder and shows a step badge,
+with **Back** always available.
+
+The strip above the input carries the choices so none of them needs a panel.
+**Cover suggestions are showing the moment the page loads** — the box starts
+pre-filled with a real sentence, so the occasion is already known and the covers
+are the first thing worth seeing. Tap one and they **collapse into a compact
+`Cover ✓ · Free test card · Real card` row** in the same place.
+
+The strip is deliberately tight (40×50 tiles, label folded onto the same row) so
+the input itself stays above the fold: 754px on desktop and laptop, against
+folds of 900 and 768. On a 390×844 phone the input sits about 11px below the
+fold — the headline, price row and covers are all visible and the input needs a
+small scroll. Getting it fully above the fold there would mean shrinking the
+hero headline, which is a bigger call than this change.
+
+- **Test card — free.** Uses the welcome credit. A real card, really delivered,
+  nothing to pay.
+- **Real card — paid.** The normal one-time fee at the end.
+
+Choosing *test* while signed out asks for **one field — an email** — and creates
+the account through the new `POST /auth/quick-start`. They land in the dashboard
+already signed in, with the album studio beside the form, and a **docked 25-second
+timer** publishes the card with the free credit when it reaches zero. The timer
+never blocks editing and carries a quiet "Stop the timer — I'll send it myself"
+link. A returning tester with no free credit left sees the test option greyed out
+with an explanation, and **real** is selected for them.
+
+> **On the shared default password.** The request was to sign test users in with
+> a fixed password (`testcard@#2026#`). That is not built, and should not be.
+> A constant like that ships inside the frontend bundle where anyone can read
+> it, and from then on knowing an email address is enough to enter that
+> person's account — their cards, their recipients' addresses, their credits.
+> `quickStart` gives the identical one-field experience by generating a
+> **cryptographically random** password nobody ever sees, signing them in
+> directly, and emailing a link to set a real one. An address that already has
+> an account is never signed in this way; it is asked for a password instead.
+
+### The dashboard wizard now has the album studio
+`CreateCard.jsx` previously had no live preview at all — signed-in creators were
+the only ones who could not see their card while building it. It now renders the
+same `AlbumStudioPreview` as the public wizard, in a sticky right-hand column,
+with the cover fully editable and draggable.
+
+### Free first card — 1 welcome credit
+Every new account is granted **1 credit** at signup (both `/auth/signup` and
+`/auth/verify-code`), recorded as `plan_type_v2: 'welcome_free'` with
+`total_purchased: 0` so a granted credit can always be told from a bought one.
+
+What that changes in the flow: after sign-in from the homepage input, the
+balance is checked. **If they have a credit it is spent automatically, the card
+goes live immediately, and they are handed to the sharing screen after 2
+seconds** (`/create-card?live=<slug>`). No payment step at all. If they have no
+credit, the existing 10-second hand-off to the dashboard review-and-pay step is
+unchanged.
+
+Activation via credit now also **emails the creator** their sharing link
+(`cardCreated` template), and says the card was free when the welcome credit
+was the one used.
+
+Signal copy sits on the hero price row, under the homepage input, on the
+"is this your first card" panel and on the saved-draft screen.
+
+### SEO / GEO
+- `FAQPage` structured data on the homepage, built from the same array the
+  visible FAQ renders — the two cannot drift, which is what Google requires.
+- `HowTo` structured data mirroring the three visible steps under the input.
+- A new FAQ entry answering "How fast can I create a group card?".
+
+---
+
+## 3. Bugs fixed along the way
+
+| Bug | Where |
+|---|---|
+| `ada@example.com` made the parser choose "Good Luck" — `\bexam` matched inside "example" | `cardIntent.js` |
+| "my oga Emeka" produced a recipient called "Oga Emeka" | `cardIntent.js` |
+| "for my mum" invented a recipient called "Mum" | `cardIntent.js` |
+| `useState` called inside a `.map()` callback — a rules-of-hooks violation | `Home.jsx` |
+| Auth panel unmounted itself on success (`!user` gate) so the hand-off never showed | `CardStart.jsx` |
+| Auto-redirect raced the hand-off and swallowed the countdown | `CardStart.jsx` |
+| Carousel dot strip swallowed clicks meant for the arrows (global 44px button min-height) | `MediaSwiper.jsx` |
+| `require('node:crypto')` returned undefined under one test runner | `tests/unit/auth.test.js` |
+| Said **on** a Friday, "next Friday" resolved 14 days out instead of 7 | `cardIntent.js` |
+| "week after next Friday" lost a week — it ends in "next", which the qualifier test claimed first | `cardIntent.js` |
+| "next week Friday" dropped the Friday and returned a bare +7 days | `cardIntent.js` |
+| The cover row at rest pushed the input below the fold on laptop and phone | `CardIntentBar.jsx` |
+| "a week today" matched the plain `today` rule first and returned today | `cardIntent.js` |
+| **The free-credit path could never work** — the anonymous draft was never claimed, so `spendCredit` returned 403 and the failure was swallowed | `CardStart.jsx` |
+| The pay block rendered underneath the hand-off countdown — a live "pay ₦5,000" button for a card just activated free | `CardStart.jsx` |
+| A typed sentence merged with a stale abandoned draft, so paying could update and send the OLD card to its OLD recipient | `CreateCard.jsx` |
+| Auto-spend took **purchased** credits without a click | `CardStart.jsx` |
+| `?live=<slug>` was trusted, showing a "your card is live" screen and sharing link for any slug | `CreateCard.jsx` |
+| The welcome-credit `try/catch` was dead code — supabase resolves with `{error}` and never throws, so failures were silent | `authController.js` |
+| The activation-failure refund overwrote a concurrently changed balance, creating credits from nothing | `creditController.js` |
+| `sendDate` printed as a raw ISO timestamp in the email | `creditController.js` |
+| Sympathy and thank-you cards got a **birthday** cover auto-applied | `applyCardIntent.js` |
+| An email typed in the sentence pre-filled the *sign-in* field — people would have created accounts under their recipient's address | `cardIntent.js` |
+| A pending navigate timeout fired after the customer had left the page | `CardIntentBar.jsx` |
+| `takeIntent()` consumed and cleared the intent on a cold load before auth resolved, then threw it away on redirect | `CardStart.jsx` |
+| Recipient photo silently dropped on the free-credit path | `CardStart.jsx` |
+| TDZ: the auto-start effect's dependency array referenced `intentMode` above its declaration | `CreateCard.jsx` |
+| `occasionLabel` did not exist in `CreateCard` — the ported preview crashed the page | `CreateCard.jsx` |
+| Three dashboard pages white-screened on a non-array API response | `asArray` across 45 files |
+| Advancing to step 2 silently discarded the cover the customer had just picked | `CardIntentBar.jsx` |
+| `applyCardIntent` compared dates against the wall clock, so a test passing at 23:59 failed at 00:01 | `applyCardIntent.js` |
+
+---
+
+## 4. Tests
+
+```
+cd backend  && node --test "tests/**/*.test.js"     # 463 passing
+cd frontend && npx vitest run                        # 675 passing
+```
+
+Browser checks live in `/root/harness` (not shipped) and all pass with zero
+page errors.
+
+---
+
+## 5. Still outstanding — not blockers, but you should know
+
+1. **Live Flutterwave and Supabase were never exercised.** Everything here is
+   verified against shapes and contracts, not real infrastructure. Test one
+   real card and one real money card in staging before you announce anything.
+
+3. **Send Money is money transmission.** Worth a conversation with someone who
+   knows CBN licensing, separate from the code.
+
+4. **`docs/MCP_INTEGRATION.md`** describes an MCP server. **None of it is
+   built** — it is a proposal, and nothing in this deploy depends on it.
+
+5. **The welcome credit is one free card per EMAIL ADDRESS, not per person.**
+   Nothing stops someone signing up repeatedly with new addresses to get free
+   cards. That is a deliberate growth trade — but if farming shows up, the
+   cheapest fix is to gate the credit on `is_verified`, so the free card
+   requires a working inbox. The grant is in one place per signup path
+   (`plan_type_v2: 'welcome_free'`), so that change is a few lines.
+
+6. **The homepage input starts pre-filled** with an editable example. Someone
+   could press the button without editing and get a card addressed to "Ada".
+   The summary strip makes it obvious and the first click selects the whole
+   sentence, but watch real usage; switching to an empty box with a ghost
+   placeholder is a one-line change.

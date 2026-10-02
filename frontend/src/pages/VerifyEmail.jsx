@@ -1,98 +1,43 @@
+import { useSEO } from '../hooks/useSEO';
 import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { CheckCircle, AlertCircle } from 'lucide-react';
+import { authAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import Icon from '../components/ui/Icon';
 
-// This is the page the requester actually lands on when they click "Verify
-// Email Address" in their inbox — a branded taskeeu.com URL, not the raw
-// backend domain. It calls the backend's verification API in the
-// background, then stores the returned session and redirects.
-export default function VerifyEmail() {
+const VerifyEmail = () => {
+  useSEO({ title: 'Verify Email — Thankeeu', noIndex: true });
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState('loading'); // loading | success | error
-  const [message, setMessage] = useState('');
+  const token = searchParams.get('token');
+  const { updateUser } = useAuth();
+  const [status, setStatus] = useState('loading');
 
   useEffect(() => {
-    const token = searchParams.get('token');
-    const role = searchParams.get('role') || 'requester';
+    if (!token) { setStatus('error'); return; }
+    authAPI.verifyEmail(token)
+      .then(res => { if (res.data.alreadyVerified) setStatus('already'); else { setStatus('success'); updateUser?.({ is_verified: true }); } })
+      .catch(() => setStatus('error'));
+  }, [token]);
 
-    if (!token) {
-      setStatus('error');
-      setMessage('This verification link is missing its token.');
-      return;
-    }
+  const CONFIG = {
+    loading: { icon:'⏳', title:'Verifying your email…', body:'Please wait a moment.', cta:null },
+    success: { icon:'✅', title:'Email verified!', body:"You're all set. Your Thankeeu account is fully active.", cta:<Link to="/dashboard" className="btn-primary px-8 py-3 inline-flex items-center gap-2"><Icon name="ArrowRight" size={15}/>Go to my dashboard</Link> },
+    already: { icon:'✅', title:'Already verified!', body:"Your email was already verified. You're good to go.", cta:<Link to="/dashboard" className="btn-primary px-8 py-3 inline-flex items-center gap-2"><Icon name="ArrowRight" size={15}/>Go to my dashboard</Link> },
+    error:   { icon:'⚠️', title:'Invalid or expired link', body:'This verification link is invalid or has expired. Request a new one from your dashboard.', cta:<Link to="/dashboard" className="btn-secondary px-8 py-3">Back to dashboard</Link> },
+  };
 
-    fetch(`${import.meta.env.VITE_API_URL || '/api'}/auth/verify-email/check?token=${encodeURIComponent(token)}&role=${encodeURIComponent(role)}`)
-      .then(r => r.json())
-      .then(data => {
-        if (!data.success) {
-          setStatus('error');
-          setMessage(data.message || 'This verification link is invalid or has expired.');
-          return;
-        }
-        localStorage.setItem('taskeeu_token', data.token);
-        setStatus('success');
-        setTimeout(() => {
-          // Full page reload so AuthContext re-initialises with the token
-          window.location.href = data.role === 'tasker' ? '/tasker' : '/requester';
-        }, 1500);
-      })
-      .catch(() => {
-        setStatus('error');
-        setMessage('Something went wrong verifying your email. Please try logging in directly.');
-      });
-  }, []);
+  const s = CONFIG[status];
 
   return (
-    <>
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', background: 'white', borderBottom: '1px solid #f0ecf8' }}>
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-          <img src="/logo.svg" alt="Taskeeu" style={{ width: 32, height: 32, borderRadius: 10 }} />
-          <span style={{ fontWeight: 900, fontSize: 17, color: 'var(--dark)', letterSpacing: '-0.03em' }}>Taskeeu</span>
-        </Link>
-        <Link to="/" style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', textDecoration: 'none' }}>← Home</Link>
-      </nav>
-      <div style={{ minHeight: 'calc(100vh - 57px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'var(--surface)' }}>
-        <div style={{ maxWidth: 440, width: '100%', background: 'white', borderRadius: 24, padding: 40, textAlign: 'center', boxShadow: '0 8px 40px rgba(18,9,26,0.12)' }}>
-
-          {status === 'loading' && (
-            <>
-              <div className="w-12 h-12 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mx-auto mb-6" />
-              <h2 style={{ fontWeight: 900, fontSize: 22, color: 'var(--text)', marginBottom: 8 }}>Verifying your email…</h2>
-              <p style={{ color: 'var(--muted)', fontSize: 14 }}>Just a moment.</p>
-            </>
-          )}
-
-          {status === 'success' && (
-            <>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                <CheckCircle size={32} style={{ color: '#00c37e' }} />
-              </div>
-              <h2 style={{ fontWeight: 900, fontSize: 24, color: 'var(--text)', marginBottom: 12, letterSpacing: '-0.03em' }}>
-                Email verified!
-              </h2>
-              <p style={{ color: 'var(--muted)', lineHeight: 1.7, marginBottom: 24 }}>
-                Taking you to your dashboard now…
-              </p>
-              <div className="w-8 h-8 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin mx-auto" />
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: '#fff1f2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                <AlertCircle size={32} style={{ color: '#ef4444' }} />
-              </div>
-              <h2 style={{ fontWeight: 900, fontSize: 22, color: 'var(--text)', marginBottom: 12 }}>Verification failed</h2>
-              <p style={{ color: 'var(--muted)', lineHeight: 1.7, marginBottom: 24 }}>
-                {message}
-              </p>
-              <Link to="/requester/login" className="btn-primary w-full block">
-                Go to Sign In
-              </Link>
-            </>
-          )}
-        </div>
+    <div style={{ minHeight:'100vh', background:'#12102A', display:'flex', alignItems:'center', justifyContent:'center', padding:'1rem' }}>
+      <div style={{ maxWidth:420, width:'100%', background:'rgba(255,255,255,0.04)', border:'1.5px solid rgba(139,92,246,0.2)', borderRadius:24, padding:'2.5rem', textAlign:'center' }}>
+        <div style={{ fontSize:'3rem', marginBottom:'1rem' }}>{s.icon}</div>
+        <h1 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:'1.5rem', color:'#E4E2F6', marginBottom:'0.625rem' }}>{s.title}</h1>
+        <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', color:'#9490C8', fontSize:'0.9375rem', lineHeight:1.65, marginBottom:s.cta?'1.5rem':'0' }}>{s.body}</p>
+        {s.cta && s.cta}
       </div>
-    </>
+    </div>
   );
-}
+};
+
+export default VerifyEmail;

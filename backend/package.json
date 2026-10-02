@@ -1,70 +1,47 @@
 {
-  "name": "taskeeu-backend",
+  "name": "thankeeu-backend",
   "version": "1.0.0",
-  "description": "Taskeeu Nigerian Task Outsourcing Platform API",
+  "description": "Thankeeu Nigerian Group Card Platform - Backend API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "build-client": "cd ../frontend && npm install && npm run build",
-    "build": "npm install && npm run build-client",
     "dev": "nodemon server.js",
-    "test": "jest --runInBand --forceExit --coverage",
-    "test:watch": "jest --watch"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "testMatch": [
-      "**/tests/**/*.test.js"
-    ],
-    "collectCoverageFrom": [
-      "routes/**/*.js",
-      "utils/**/*.js",
-      "middleware/**/*.js"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "lines": 60
-      }
-    },
-    "setupFiles": [
-      "./tests/setup.js"
-    ],
-    "testTimeout": 15000
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "test": "node --test tests/unit/*.test.js tests/integration/*.test.js 2>&1",
+    "test:unit": "node --test tests/unit/*.test.js 2>&1",
+    "test:integration": "node --test tests/integration/*.test.js 2>&1",
+    "test:run": "node tests/run-all.js",
+    "test:watch": "node --test --watch tests/unit/*.test.js 2>&1"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "axios": "^1.18.1",
-    "https-proxy-agent": "^5.0.1",
-    "web-push": "^3.6.7",
-    "bcrypt": "^6.0.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "argon2": "^0.44.0",
+    "axios": "^1.7.4",
     "bcryptjs": "^2.4.3",
-    "cloudinary": "^2.0.1",
+    "cloudinary": "^1.41.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "express-mongo-sanitize": "^2.2.0",
-    "express-rate-limit": "^7.1.5",
-    "express-validator": "^7.0.1",
-    "flutterwave-node-v3": "^1.4.1",
-    "form-data": "^4.0.6",
-    "helmet": "^7.1.0",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^8.0.0",
+    "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "resend": "^2.0.0",
-    "socket.io": "^4.6.1",
-    "streamifier": "^0.1.1",
-    "uuid": "^9.0.0",
-    "validator": "^13.15.35",
-    "xss": "^1.0.15"
+    "nanoid": "^3.3.7",
+    "node-cron": "^3.0.3",
+    "resend": "^4.0.0",
+    "slugify": "^1.6.6",
+    "ws": "^8.21.0",
+    "xlsx": "^0.18.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "nodemon": "^3.0.2",
-    "supertest": "^6.3.4"
+    "nodemon": "^3.0.2"
+  },
+  "overrides": {
+    "glob": "^10.4.5",
+    "inflight": "npm:lru-cache@^10.4.3"
   }
 }

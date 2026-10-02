@@ -1,136 +1,177 @@
 const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
-const streamifier = require('streamifier');
-const axios = require('axios');
-const FormData = require('form-data');
+const path = require('path');
+const fs = require('fs');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
+  api_key:    process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+  timeout:    180000, // 3 minutes — enough for multiple large files uploading sequentially
 });
 
-const memStorage = multer.memoryStorage();
+const hasCloudinary = !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET);
 
-// ── Unsigned upload via REST API (no signature needed) ────────────
-// Uses Cloudinary's unsigned upload endpoint with a preset.
-// Create preset in Cloudinary: Settings → Upload → Upload Presets
-// → Add upload preset → Signing mode: Unsigned → Save
-// Set CLOUDINARY_UPLOAD_PRESET env var to that preset name.
-async function unsignedUpload(buffer, folder) {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const preset = process.env.CLOUDINARY_UPLOAD_PRESET;
+let upload;
 
-  if (!cloudName || !preset) {
-    throw new Error('CLOUDINARY_CLOUD_NAME and CLOUDINARY_UPLOAD_PRESET must be set');
-  }
-
-  const fd = new FormData();
-  fd.append('file', buffer, { filename: 'upload.jpg', contentType: 'image/jpeg' });
-  fd.append('upload_preset', preset);
-  fd.append('folder', folder);
-
-  const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
-  const { data } = await axios.post(url, fd, { headers: fd.getHeaders() });
-  return data;
-}
-
-// ── Signed upload via SDK (for when unsigned preset is not needed) ─
-function uploadToCloudinary(buffer, options = {}) {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(options, (err, result) => {
-      if (err) return reject(err);
-      resolve(result);
-    });
-    streamifier.createReadStream(buffer).pipe(stream);
+if (hasCloudinary) {
+  const storage = new CloudinaryStorage({
+    cloudinary,
+    params: async (req, file) => {
+      const isVideo = file.mimetype.startsWith('video/');
+      const isAudio = file.mimetype.startsWith('audio/');
+      return {
+        folder: 'thankeeu/messages',
+        resource_type: isVideo || isAudio ? 'video' : 'image',
+        allowed_formats: ['jpg','jpeg','png','gif','webp','mp4','mov','webm','mp3','wav','m4a','aac','ogg'],
+        transformation: isVideo || isAudio ? [] : [{ width: 1200, crop: 'limit', quality: 'auto' }],
+      };
+    },
   });
-}
-
-const uploadAvatar = multer({ storage: memStorage, limits: { fileSize: 5  * 1024 * 1024 } });
-const uploadKYC    = multer({ storage: memStorage, limits: { fileSize: 10 * 1024 * 1024 } });
-const uploadProof  = multer({ storage: memStorage, limits: { fileSize: 10 * 1024 * 1024 } });
-const uploadChat   = multer({ storage: memStorage, limits: { fileSize: 25 * 1024 * 1024 } });
-
-async function uploadAvatarBuffer(buffer) {
-  let result;
-  if (process.env.CLOUDINARY_UPLOAD_PRESET) {
-    // Use unsigned upload — no signature, no secret needed
-    result = await unsignedUpload(buffer, 'taskeeu/avatars');
-  } else {
-    // Fall back to signed upload
-    result = await uploadToCloudinary(buffer, {
-      folder: 'taskeeu/avatars',
-      resource_type: 'image',
-    });
-  }
-  const url = result.secure_url.replace('/upload/', '/upload/c_fill,g_face,h_400,q_auto,w_400/');
-  return { ...result, secure_url: url };
-}
-
-async function uploadKYCBuffer(buffer) {
-  if (process.env.CLOUDINARY_UPLOAD_PRESET) {
-    return unsignedUpload(buffer, 'taskeeu/kyc');
-  }
-  return uploadToCloudinary(buffer, { folder: 'taskeeu/kyc' });
-}
-
-async function uploadProofBuffer(buffer) {
-  if (process.env.CLOUDINARY_UPLOAD_PRESET) {
-    return unsignedUpload(buffer, 'taskeeu/proofs');
-  }
-  return uploadToCloudinary(buffer, { folder: 'taskeeu/proofs', resource_type: 'image' });
-}
-
-async function uploadChatBuffer(buffer, resourceType = 'auto') {
-  if (process.env.CLOUDINARY_UPLOAD_PRESET) {
-    return unsignedUpload(buffer, 'taskeeu/chat');
-  }
-  return uploadToCloudinary(buffer, { folder: 'taskeeu/chat', resource_type: resourceType });
-}
-
-// ── Any file type (photos, videos, PDFs, documents…) ─────────────
-// Used for task proofs. Keeps the real file name and content type and lets
-// Cloudinary pick image / video / raw automatically ("auto").
-const uploadAnyFile = multer({
-  storage: memStorage,
-  limits: { fileSize: 25 * 1024 * 1024, files: 10 },
-});
-
-async function uploadAnyFileBuffer(buffer, { folder = 'taskeeu/files', filename = 'file', mimetype = 'application/octet-stream' } = {}) {
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  const preset = process.env.CLOUDINARY_UPLOAD_PRESET;
-  if (preset && cloudName) {
-    const fd = new FormData();
-    fd.append('file', buffer, { filename, contentType: mimetype });
-    fd.append('upload_preset', preset);
-    fd.append('folder', folder);
-    const { data } = await axios.post(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, fd, {
-      headers: fd.getHeaders(), maxBodyLength: Infinity, maxContentLength: Infinity, timeout: 120000,
-    });
-    return data;
-  }
-  return uploadToCloudinary(buffer, {
-    folder,
-    resource_type: 'auto',
-    use_filename: true,
-    unique_filename: true,
-    filename_override: filename,
+  // The product advertises and the creation/signing clients allow videos and
+  // voice notes up to 50 MB. Keep the shared production middleware aligned;
+  // image/GIF clients still enforce their smaller 9 MB limit before upload.
+  upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024, files: 10 } });
+} else {
+  // Local fallback — serve via /uploads static route
+  const uploadDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  const diskStorage = multer.diskStorage({
+    destination: uploadDir,
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname) || '.bin';
+      cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+    },
   });
+  upload = multer({ storage: diskStorage, limits: { fileSize: 50 * 1024 * 1024, files: 10 } });
 }
 
-// resourceType: 'image' (default) | 'video' | 'raw' — Cloudinary needs it to
-// delete non-image files (proof videos, PDFs, documents).
-const deleteFile = async (publicId, resourceType) => {
-  try {
-    const type = ['image', 'video', 'raw'].includes(resourceType) ? resourceType : 'image';
-    await cloudinary.uploader.destroy(publicId, { resource_type: type });
-  }
+const deleteFile = async (publicId, resourceType = 'image') => {
+  if (!hasCloudinary) return;
+  try { await cloudinary.uploader.destroy(publicId, { resource_type: resourceType }); }
   catch (err) { console.error('Cloudinary delete error:', err); }
 };
 
-module.exports = {
-  cloudinary,
-  uploadAvatar, uploadKYC, uploadProof, uploadChat, uploadAnyFile, uploadAnyFileBuffer,
-  uploadAvatarBuffer, uploadKYCBuffer, uploadProofBuffer, uploadChatBuffer,
-  deleteFile,
-};
+// ── Recipient photo upload ──────────────────────────────────────────────────
+// Separate multer instance: images only, 5 MB cap, single file
+let uploadRecipientPhoto;
+
+if (hasCloudinary) {
+  const photoStorage = new CloudinaryStorage({
+    cloudinary,
+    params: async () => ({
+      folder: 'thankeeu/recipient-photos',
+      resource_type: 'image',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 1600, crop: 'limit', quality: 'auto:good' }],
+    }),
+  });
+  uploadRecipientPhoto = multer({
+    storage: photoStorage,
+    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) cb(null, true);
+      else cb(new Error('Only image files are allowed for recipient photos'));
+    },
+  });
+} else {
+  const uploadDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  uploadRecipientPhoto = multer({
+    storage: multer.diskStorage({
+      destination: uploadDir,
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.jpg';
+        cb(null, `recipient-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+      },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024, files: 1 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) cb(null, true);
+      else cb(new Error('Only image files are allowed for recipient photos'));
+    },
+  });
+}
+
+// ── Music upload (admin only — stores to thankeeu/music, raw resource_type) ──
+let uploadMusic;
+
+if (hasCloudinary) {
+  const musicStorage = new CloudinaryStorage({
+    cloudinary,
+    params: async () => ({
+      folder: 'thankeeu/music',
+      resource_type: 'video',   // Cloudinary uses 'video' for audio files
+      allowed_formats: ['mp3', 'wav', 'm4a', 'aac', 'ogg'],
+      use_filename: true,
+      unique_filename: true,
+    }),
+  });
+  uploadMusic = multer({
+    storage: musicStorage,
+    limits: { fileSize: 20 * 1024 * 1024, files: 1 },  // 20 MB max
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('audio/') || file.mimetype === 'application/octet-stream') cb(null, true);
+      else cb(new Error('Only audio files are allowed (mp3, wav, m4a, aac, ogg)'));
+    },
+  });
+} else {
+  // Local fallback
+  const uploadDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  uploadMusic = multer({
+    storage: multer.diskStorage({
+      destination: uploadDir,
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.mp3';
+        cb(null, `music-${Date.now()}${ext}`);
+      },
+    }),
+    limits: { fileSize: 20 * 1024 * 1024, files: 1 },
+  });
+}
+
+// ── Cover design bulk upload (admin only — stores to thankeeu/cover-designs) ──
+// Images only, up to 40 files per batch (a generous ceiling; the admin UI itself
+// doesn't impose a lower artificial limit but Cloudinary/network realities do).
+let uploadCoverDesigns;
+
+if (hasCloudinary) {
+  const coverDesignStorage = new CloudinaryStorage({
+    cloudinary,
+    params: async () => ({
+      folder: 'thankeeu/cover-designs',
+      resource_type: 'image',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      transformation: [{ width: 1600, crop: 'limit', quality: 'auto:good' }],
+    }),
+  });
+  uploadCoverDesigns = multer({
+    storage: coverDesignStorage,
+    limits: { fileSize: 9 * 1024 * 1024, files: 40 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) cb(null, true);
+      else cb(new Error('Only image files (JPG, PNG, WEBP) are allowed for cover designs'));
+    },
+  });
+} else {
+  const uploadDir = path.join(__dirname, '../../uploads');
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+  uploadCoverDesigns = multer({
+    storage: multer.diskStorage({
+      destination: uploadDir,
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname) || '.jpg';
+        cb(null, `cover-design-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+      },
+    }),
+    limits: { fileSize: 9 * 1024 * 1024, files: 40 },
+    fileFilter: (_req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) cb(null, true);
+      else cb(new Error('Only image files (JPG, PNG, WEBP) are allowed for cover designs'));
+    },
+  });
+}
+
+module.exports = { upload, uploadRecipientPhoto, uploadMusic, uploadCoverDesigns, cloudinary, deleteFile };

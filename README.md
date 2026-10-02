@@ -1,305 +1,481 @@
-# ⚡ Taskeeu — Nigerian Task Outsourcing Platform
+# Thankeeu 💜
+### Nigeria's Group Card & Gift Platform — including Thankeeu for Teams
 
-> Nigeria's premier platform for outsourcing physical tasks across any city. Verified taskers, escrow payments, real-time chat, and full KYC protection.
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 18 + Tailwind CSS + Vite |
+| Backend | Node.js + Express |
+| Database | Supabase (PostgreSQL) |
+| Payments | Paystack |
+| File Storage | Cloudinary |
+| Emails | Resend |
+| Frontend Hosting | Vercel |
+| Backend Hosting | Railway |
 
 ---
 
 ## 📁 Project Structure
 
 ```
-taskeeu/
+thankeeu/
 ├── database/
-│   └── schema.sql          # Full PostgreSQL schema (run in Supabase)
-├── backend/                # Node.js + Express API
-│   ├── server.js           # Main server + Socket.io
-│   ├── .env.example        # Copy to .env and fill in
-│   ├── routes/
-│   │   ├── auth.js         # Registration, login, JWT
-│   │   ├── tasks.js        # Task CRUD, bidding, completion
-│   │   ├── taskers.js      # Tasker profiles, availability, direct apply
-│   │   ├── payments.js     # Paystack, escrow, refunds, custom payments
-│   │   ├── chat.js         # Chat rooms, messages, notifications
-│   │   └── admin.js        # KYC approvals, user management
+│   ├── schema.sql              # Run first — main tables
+│   └── schema_teams.sql        # Run second — Teams feature tables
+├── backend/
+│   ├── server.js
+│   ├── .env.example
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── cardController.js
+│   │   ├── companyController.js    # Company auth
+│   │   ├── dashboardController.js
+│   │   ├── messageController.js
+│   │   ├── paymentController.js
+│   │   ├── subscriptionController.js  # Company subscriptions
+│   │   ├── supportController.js       # Support tickets
+│   │   ├── teamsController.js         # Excel import, birthday logic
+│   │   └── adminController.js
 │   ├── middleware/
-│   │   └── auth.js         # JWT verify, role guard
-│   ├── utils/
-│   │   ├── supabase.js     # Supabase client
-│   │   ├── cloudinary.js   # File upload configs
-│   │   ├── email.js        # Resend email templates
-│   │   └── paystack.js     # Paystack API helpers
-│   └── socket/
-│       └── chatSocket.js   # Socket.io real-time chat
-└── frontend/               # React + Tailwind
-    ├── src/
-    │   ├── pages/
-    │   │   ├── Home.jsx
-    │   │   ├── Tasks.jsx           # Task listings with filters
-    │   │   ├── TaskDetail.jsx      # Task detail + bidding
-    │   │   ├── Taskers.jsx         # Tasker directory
-    │   │   ├── TaskerProfile.jsx   # Public tasker profile
-    │   │   ├── PostTask.jsx        # Multi-step task creation
-    │   │   ├── Auth.jsx            # Login + multi-step signup
-    │   │   ├── RequesterDashboard.jsx
-    │   │   ├── TaskerDashboard.jsx
-    │   │   ├── AdminDashboard.jsx
-    │   │   ├── HowItWorks.jsx
-    │   │   ├── Policy.jsx
-    │   │   └── PaymentCallback.jsx
-    │   ├── components/
-    │   │   ├── layout/
-    │   │   │   ├── Navbar.jsx      # Full responsive navbar
-    │   │   │   └── Footer.jsx
-    │   │   └── ui/
-    │   │       ├── TaskCard.jsx
-    │   │       ├── TaskerCard.jsx
-    │   │       └── ChatWindow.jsx  # Full real-time chat with reactions
-    │   ├── context/
-    │   │   ├── AuthContext.jsx     # Global auth state
-    │   │   └── SocketContext.jsx   # Socket.io state
-    │   └── utils/
-    │       └── api.js              # Axios client + all API helpers
-    └── tailwind.config.js
+│   │   ├── auth.js             # JWT for individual users
+│   │   └── companyAuth.js      # JWT for company accounts
+│   ├── routes/
+│   │   ├── auth.js
+│   │   ├── cards.js
+│   │   ├── company.js          # Company auth routes
+│   │   ├── dashboard.js
+│   │   ├── messages.js
+│   │   ├── payments.js
+│   │   ├── subscription.js     # Company subscription routes
+│   │   ├── support.js          # Support ticket routes
+│   │   ├── teams.js            # Teams import/manage routes
+│   │   └── admin.js
+│   └── utils/
+│       ├── supabase.js
+│       ├── email.js            # All email templates incl. birthday
+│       └── cloudinary.js
+└── frontend/
+    └── src/
+        ├── App.jsx             # All routes incl. company routes
+        ├── context/
+        │   ├── AuthContext.jsx
+        │   └── CompanyAuthContext.jsx  # Company session
+        ├── utils/
+        │   └── api.js          # All API calls incl. company APIs
+        ├── components/
+        │   ├── Navbar.jsx      # With Teams dropdown
+        │   ├── Footer.jsx
+        │   └── company/
+        │       └── CompanyLayout.jsx   # Sidebar layout
+        └── pages/
+            ├── Home.jsx        # With Teams section + dual CTA
+            ├── Pricing.jsx     # Individual + Company tabs
+            ├── Admin.jsx       # With support ticket management
+            └── company/
+                ├── CompanySignup.jsx
+                ├── CompanyLogin.jsx
+                ├── CompanyForgotPassword.jsx
+                ├── CompanyDashboard.jsx    # HR overview
+                ├── TeamsPage.jsx           # Import + table
+                ├── SubscriptionPage.jsx    # Plans + billing
+                ├── SettingsPage.jsx        # Profile, bank, theme
+                └── SupportPage.jsx         # Contact + history
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Setup — Step by Step
 
-### Prerequisites
-- Node.js >= 18
-- A [Supabase](https://supabase.com) project
-- A [Cloudinary](https://cloudinary.com) account
-- A [Paystack](https://paystack.com) account (Nigerian business)
-- A [Resend](https://resend.com) account for emails
-
----
-
-### 1. Database Setup (Supabase)
-
-1. Create a new Supabase project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and paste the entire contents of `database/schema.sql`
-3. Run it — this creates all tables, indexes, and triggers
+### 1. Set up Supabase
+1. Create a project at [supabase.com](https://supabase.com)
+2. Go to **SQL Editor** → paste and run `database/schema.sql`
+3. Then paste and run `database/schema_teams.sql`
 4. Copy your **Project URL** and **Service Role Key** from Settings → API
 
----
+For an existing database, run these migrations before deploying the updated code:
 
-### 2. Backend Setup
+1. `database/migration_card_payment_verification.sql`
+2. `database/migration_recipient_gift_claims.sql`
 
+### 2. Set up Paystack
+1. Create account at [paystack.com](https://paystack.com)
+2. Get your **Secret Key** and **Public Key** from Settings → API Keys
+3. Add webhook: `https://your-backend.railway.app/api/payments/webhook`
+
+### 3. Set up Cloudinary
+1. Create account at [cloudinary.com](https://cloudinary.com)
+2. Copy **Cloud Name**, **API Key**, and **API Secret**
+
+### 4. Set up Resend
+1. Create account at [resend.com](https://resend.com)
+2. Verify your sending domain
+3. Copy your **API Key**
+
+### 5. Backend
 ```bash
 cd backend
 cp .env.example .env
-# Fill in all values in .env
+# Fill in all values
 npm install
 npm run dev
+# Runs on http://localhost:5000
 ```
 
-**Required `.env` values:**
-
-| Variable | Where to get it |
-|---|---|
-| `SUPABASE_URL` | Supabase → Settings → API |
-| `SUPABASE_SERVICE_KEY` | Supabase → Settings → API → service_role key |
-| `JWT_SECRET` | Any random 32+ character string |
-| `CLOUDINARY_CLOUD_NAME` | Cloudinary Dashboard |
-| `CLOUDINARY_API_KEY` | Cloudinary Dashboard |
-| `CLOUDINARY_API_SECRET` | Cloudinary Dashboard |
-| `PAYSTACK_SECRET_KEY` | Paystack Dashboard → Settings → API |
-| `PAYSTACK_PUBLIC_KEY` | Paystack Dashboard → Settings → API |
-| `RESEND_API_KEY` | Resend Dashboard |
-| `FRONTEND_URL` | `http://localhost:5173` in dev, your Vercel URL in production |
+### 6. Frontend
+```bash
+cd frontend
+cp .env.example .env
+# Set VITE_API_URL=http://localhost:5000/api
+npm install
+npm run dev
+# Runs on http://localhost:5173
+```
 
 ---
 
-### 3. Frontend Setup
+## ☁️ Deployment
+
+### Backend → Railway
+1. Push code to GitHub
+2. New project on [railway.app](https://railway.app) → Deploy from GitHub
+3. Set root to `backend`, add all env vars
+4. Railway auto-deploys on every push
+
+### Frontend → Vercel
+1. New project on [vercel.com](https://vercel.com) → Import repo
+2. Set root to `frontend`
+3. Add env vars:
+   - `VITE_API_URL` = your Railway URL + `/api`
+   - `VITE_PAYSTACK_PUBLIC_KEY` = your Paystack public key
+4. Deploy — Vercel handles everything
+
+### Make yourself admin
+```sql
+UPDATE users SET role = 'admin' WHERE email = 'your@email.com';
+```
+
+---
+
+## 🏢 Thankeeu for Teams — How it works
+
+### Flow
+```
+HR creates company account → free
+HR downloads Excel template → free
+HR fills in employee data (unlimited) → free
+HR uploads template → free
+HR subscribes (₦20k/month or ₦200k/year)
+          ↓
+2 days before birthday:
+  → System detects upcoming birthday
+  → Auto-creates a Thankeeu card for the celebrant
+  → Emails entire department with signing link + gift pot
+          ↓
+On the birthday:
+  → System sends card + gift link to celebrant
+  → HR dashboard updates with delivery confirmation
+```
+
+### Company Subscription Pricing
+| Plan | Price | Billing |
+|------|-------|---------|
+| Monthly | ₦20,000 | Per month |
+| Yearly | ₦200,000 | Per year (save ₦40,000) |
+
+Data import is always free. Subscription only required to activate automated emails.
+
+---
+
+## 🔑 API Endpoints
+
+### Individual Auth — `/api/auth`
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `/signup` | — |
+| POST | `/login` | — |
+| GET | `/me` | ✅ |
+| PUT | `/profile` | ✅ |
+| POST | `/forgot-password` | — |
+| POST | `/reset-password` | — |
+
+### Company Auth — `/api/company`
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `/signup` | — |
+| POST | `/login` | — |
+| GET | `/me` | 🏢 |
+| PUT | `/profile` | 🏢 |
+| PUT | `/password` | 🏢 |
+| POST | `/forgot-password` | — |
+| POST | `/reset-password` | — |
+
+### Teams — `/api/teams`
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `/template` | 🏢 |
+| POST | `/import` | 🏢 |
+| GET | `/` | 🏢 |
+| GET | `/departments` | 🏢 |
+| GET | `/dashboard` | 🏢 |
+| DELETE | `/:memberId` | 🏢 |
+
+### Subscription — `/api/subscription`
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| GET | `/` | 🏢 |
+| POST | `/initialize` | 🏢 |
+| GET | `/verify/:reference` | 🏢 |
+| POST | `/cancel` | 🏢 |
+
+### Support — `/api/support`
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `/` | ✅ or 🏢 |
+| GET | `/mine` | ✅ or 🏢 |
+| GET | `/all` | 🛡️ Admin |
+| POST | `/:ticketId/reply` | 🛡️ Admin |
+
+### Cards — `/api/cards`
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `/` | ✅ |
+| GET | `/` | ✅ |
+| GET | `/public/:slug` | — |
+| PUT | `/:slug` | ✅ |
+| POST | `/:slug/activate` | ✅ |
+| POST | `/:slug/send` | ✅ |
+| DELETE | `/:slug` | ✅ |
+
+### Payments — `/api/payments`
+| Method | Endpoint | Auth |
+|--------|----------|------|
+| POST | `/initialize/purchase` | ✅ |
+| POST | `/initialize/contribution` | — |
+| GET | `/verify/:reference` | — |
+| POST | `/webhook` | — |
+
+---
+
+## 💰 Revenue Model (all built in)
+
+| Stream | Rate | Source |
+|--------|------|--------|
+| Individual card fee | ₦5,000/card | Activated after successful payment |
+| Card pack of 5 | ₦20,000 | ₦4,000/card effective |
+| Gift pot cut | 4% | Auto-deducted from each pot |
+| Flower delivery referral | 15% | Per vendor order |
+| Gift voucher cut | 3–5% | Per redemption |
+| Company monthly | ₦20,000/mo | HR subscription |
+| Company yearly | ₦200,000/yr | HR subscription |
+
+---
+
+## 📧 Email Templates (all built)
+
+| Template | Trigger |
+|----------|---------|
+| `welcome` | User signup |
+| `cardInvite` | Card activated + invite sent |
+| `cardDelivery` | Card sent to recipient |
+| `cardReminder` | 2 days before deadline |
+| `passwordReset` | Forgot password |
+| `companyWelcome` | Company signup |
+| `companyPasswordReset` | Company forgot password |
+| `birthdayDeptNotice` | 2 days before employee birthday → department |
+| `birthdayCelebrant` | On birthday → celebrant |
+| `supportTicket` | Ticket submitted → admin email |
+| `supportConfirm` | Ticket submitted → sender confirmation |
+| `supportReply` | Admin replies → sender |
+
+---
+
+## 🎯 First Steps After Deployment
+
+1. Run both SQL schema files in Supabase
+2. Set yourself as admin: `UPDATE users SET role = 'admin' WHERE email = 'your@email.com'`
+3. Test a company signup at `/company/signup`
+4. Download the team template and upload a test file
+5. Subscribe with a test Paystack card
+6. Verify birthday cron triggers correctly (check server logs)
+
+Built with 💜 for Nigeria 🇳🇬
+
+---
+
+## 🎉 Thankeeu for Teams — Advanced Features
+
+### Multiple Occasion Tables
+Run `SELECT seed_occasion_types('your-company-uuid');` in Supabase after creating a company, or it runs automatically on signup. Default tables created:
+
+| Occasion | Notification | Notice |
+|----------|-------------|--------|
+| Birthday | Department | 2 days |
+| Leaving Company | Department | 7 days |
+| Work Anniversary | Department | 7 days |
+| Promotion | Department | 7 days |
+| Wedding | Department | 7 days |
+| Valentine's Day | Company-wide | 7 days |
+| Women's Day | Company-wide (females only) | 7 days |
+| Men's Day | Company-wide (males only) | 7 days |
+| Workers' Day | Company-wide | 7 days |
+| Graduation | Department | 7 days |
+| New Baby | Department | 7 days |
+| Retirement | Company-wide | 14 days |
+
+### Run the 3rd schema file
+```sql
+-- In Supabase SQL Editor, run this AFTER schema.sql and schema_teams.sql:
+schema_occasions.sql
+```
+
+### Company Member Tiers
+```
+HR (company account)
+  ↓ creates company account, gets company code
+  ↓ uploads all occasion tables
+  ↓ approves team leaders
+
+Team Leaders (/member/signup with company code)
+  ↓ email must match company domain (@samecompany.com)
+  ↓ awaits HR approval
+  ↓ once approved, can approve team members in their dept
+  ↓ can view dept cards, request deductions
+
+Team Members (/member/signup with company code)
+  ↓ email must match company domain
+  ↓ awaits HR or Team Leader approval
+  ↓ can view dept occasions, create cards, sign cards
+```
+
+### Financial Flow (20% platform fee)
+```
+Contributors send ₦100,000 total to gift pot
+  ↓
+Platform fee: ₦20,000 (20% of gross)
+  ↓
+Net to distribute: ₦80,000
+  ↓
+Team leader requests ₦15,000 for office cake (with reason)
+  ↓
+HR reviews and approves/rejects deduction request
+  ↓
+If approved: ₦65,000 sent to celebrant via card link
+```
+
+### New API Endpoints
+
+| Route | Description |
+|-------|-------------|
+| `GET /api/occasions/types` | Get all occasion types for company |
+| `GET /api/occasions/template/:name` | Download Excel template |
+| `POST /api/occasions/:typeId/import` | Upload Excel for occasion |
+| `GET /api/occasions/:typeId/members` | View occasion members |
+| `POST /api/members/signup` | Team member/leader signup |
+| `POST /api/members/login` | Member login |
+| `GET /api/members/me` | Current member profile |
+| `GET /api/members/dashboard` | Member dashboard data |
+| `GET /api/members/all` | HR: all members |
+| `POST /api/members/:id/approve` | Approve member |
+| `POST /api/members/:id/reject` | Reject member |
+| `GET /api/deductions/wallet/:cardId` | Card wallet details |
+| `POST /api/deductions/request` | Team leader deduction request |
+| `GET /api/deductions/pending` | HR: pending deductions |
+| `POST /api/deductions/:id/approve` | HR approves deduction |
+| `POST /api/deductions/:id/reject` | HR rejects deduction |
+| `POST /api/deductions/cross-dept` | Request company-wide notification |
+| `GET /api/deductions/cross-dept` | HR: pending cross-dept requests |
+| `POST /api/deductions/cross-dept/:id/approve` | HR approves cross-dept |
+
+### New Frontend Routes
+
+| Path | Page |
+|------|------|
+| `/company/teams` | Occasion tables (multi-tab) |
+| `/company/members` | HR member approval + company code |
+| `/company/deductions` | Deduction + cross-dept requests |
+| `/member/signup` | Join company workspace |
+| `/member/login` | Team member/leader login |
+| `/member/dashboard` | Member/leader dashboard |
+| `/member/occasions` | View occasions + create cards |
+
+---
+
+## 🧪 Test Suite
+
+### Backend — 353 tests, 100% pass rate
+
+Uses Node.js 22 built-in `node:test` runner — **zero external test dependencies**.
+
+```bash
+cd backend
+
+# Run everything (recommended)
+node tests/run-all.js
+
+# Run by category
+node --test tests/unit/*.test.js          # 314 unit tests
+node --test tests/integration/*.test.js  # 39 integration tests
+
+# Run a specific file
+node --test tests/unit/payments.test.js
+```
+
+**Test breakdown:**
+
+| File | Tests | What's covered |
+|------|-------|----------------|
+| `unit/email.test.js` | 44 | All 21 email templates — subjects, HTML, links |
+| `unit/utils.test.js` | 40 | Date parsing, domain validation, wallet math, plans |
+| `unit/middleware.test.js` | 26 | JWT user/company/member auth, token type isolation |
+| `unit/auth.test.js` | 20 | Signup, login, token gen, password reset, hashing |
+| `unit/cards.test.js` | 22 | Slug gen, message visibility, stats, send validation |
+| `unit/company.test.js` | 20 | Company signup/login, member signup/approval flow |
+| `unit/occasions_deductions.test.js` | 55 | 12 occasion configs, gender filter, 20% fee, wallet, deductions |
+| `unit/payments.test.js` | 47 | Plan amounts in kobo, plan credits, webhook sig, Paystack processing |
+| `integration/routes.test.js` | 39 | Full request→controller pipeline, auth flows, email triggers |
+
+### Frontend — 3 test files (Vitest)
 
 ```bash
 cd frontend
+
+# Install deps first (after npm registry is available)
 npm install
+
+# Run tests
+npm test            # vitest run (headless)
+npm run test:watch  # vitest (watch mode)
+npm run test:coverage
 ```
 
-Create `frontend/.env`:
-```env
-VITE_API_URL=http://localhost:5000/api
-VITE_SOCKET_URL=http://localhost:5000
-```
+**Frontend test breakdown:**
 
-```bash
-npm run dev
-```
+| File | What's covered |
+|------|----------------|
+| `api.test.js` | Token management, price/fee calculations, occasion helpers, days-until, domain validation, card status logic, wallet display |
+| `auth-contexts.test.js` | AuthContext, CompanyAuthContext, MemberAuthContext — login/logout, localStorage isolation, session handling, route protection logic |
+| `components.test.js` | Form validation (signup, company, member, deduction, card), Pricing display, Navbar state, occasion labels, company code sharing, route completeness |
 
-Frontend runs at `http://localhost:5173`
+### What's tested (business logic coverage)
 
----
+✅ **20% platform fee always on gross** (not on net-after-deduction)  
+✅ **4% gift pot cut** on individual contributions  
+✅ **Domain email validation** — member email must match company domain  
+✅ **JWT token type isolation** — user/company/member tokens cannot cross auth boundaries  
+✅ **Approval hierarchy** — team leader can only approve own dept, not other leaders  
+✅ **Deduction math** — cannot exceed net, accumulates correctly  
+✅ **12 occasion types** with correct notify days and gender filters  
+✅ **Women's Day only notifies female employees**  
+✅ **Retirement has 14-day notice** (longest), **Birthday has 2-day notice**  
+✅ **All 21 email templates** generate correct HTML and subjects  
+✅ **Password hashing** — never stored or returned in plain text  
+✅ **Webhook signature** — HMAC-SHA512 verification  
+✅ **Paystack kobo amounts** — all verified in both kobo and naira  
+✅ **Subscription periods** — monthly ~30 days, yearly ~365 days  
+✅ **Company code** — UUID format, used for member signup URL  
+## Existing database migrations
 
-### 4. Create Admin Account
-
-After running the database schema, update the seeded admin password:
-
-```sql
--- In Supabase SQL Editor
-UPDATE users
-SET password_hash = '$2b$12$YOUR_BCRYPT_HASH_HERE'
-WHERE email = 'admin@taskeeu.com';
-```
-
-Generate a bcrypt hash using:
-```bash
-node -e "const b=require('bcryptjs'); b.hash('YourPassword123',12).then(console.log)"
-```
-
----
-
-## 🌍 Deployment
-
-### Backend → Railway
-
-1. Create a new Railway project at [railway.app](https://railway.app)
-2. Connect your GitHub repo, select the `backend/` folder as root
-3. Add all environment variables from `.env`
-4. Set **Start Command**: `node server.js`
-5. Railway auto-deploys on push
-
-### Frontend → Vercel
-
-1. Import project at [vercel.com](https://vercel.com)
-2. Set **Root Directory**: `frontend`
-3. Set **Build Command**: `npm run build`
-4. Add environment variables:
-   - `VITE_API_URL` = your Railway backend URL + `/api`
-   - `VITE_SOCKET_URL` = your Railway backend URL
-
-### Paystack Webhook
-
-In your Paystack Dashboard → Settings → Webhooks:
-- Add URL: `https://your-railway-url.railway.app/api/payments/webhook`
-- Events: `charge.success`, `transfer.success`, `transfer.failed`
-
----
-
-## 🎯 Key Platform Features
-
-### For Task Requesters
-- ✅ Post any type of task (pickup/delivery, on-location, purchase+ship, general)
-- ✅ City/state-based tasker matching
-- ✅ Bid review system — see ratings, price, and intro message
-- ✅ Real-time chat with accepted tasker
-- ✅ Custom payment window (equipment + shipment + workmanship)
-- ✅ Photo evidence review before releasing equipment funds
-- ✅ 6-digit completion code system for workmanship payment release
-- ✅ Direct hire a tasker from the tasker directory
-- ✅ Instant refund request system
-
-### For Taskers
-- ✅ 3-step signup: basic info → profile photo → full KYC documents
-- ✅ Admin approval before going live
-- ✅ City-based task notifications (email + in-app)
-- ✅ Updateable task city without re-uploading documents
-- ✅ Real-time chat with requesters
-- ✅ Bank account details for instant payment disbursements
-- ✅ Task completion code entry for payment release
-- ✅ Refund request handling
-- ✅ Availability toggle
-
-### For Admins
-- ✅ Full KYC review panel (approve / reject / ignore with reasons)
-- ✅ User management (activate/deactivate)
-- ✅ Task oversight and force-cancel
-- ✅ Payment volume dashboard
-- ✅ Refund dispute management
-- ✅ Full audit log of all admin actions
-- ✅ Email notifications sent on approval/rejection
-
-### Security & Trust
-- ✅ Bcrypt password hashing (cost factor 12)
-- ✅ JWT authentication with 7-day expiry
-- ✅ Rate limiting on all routes (30 req/15min on auth)
-- ✅ Helmet.js security headers
-- ✅ Paystack webhook signature verification
-- ✅ Role-based access control on every endpoint
-- ✅ Escrow payment system (funds held until conditions met)
-
----
-
-## 💳 Payment Flow
-
-```
-Requester pays Paystack
-       ↓
-Taskeeu escrow (Paystack balance)
-       ↓ (split)
-Equipment funds ──► Released after requester reviews photo evidence + clicks OK
-Workmanship    ──► Released after tasker enters 6-digit completion code
-```
-
-**Platform fee**: 10% deducted from workmanship payment before tasker payout.
-
----
-
-## 🔌 Real-Time Features (Socket.io)
-
-| Event | Description |
-|---|---|
-| `join_room` | Join a chat room |
-| `new_message` | Receive new chat message |
-| `user_typing` | Typing indicator |
-| `user_online/offline` | Online presence |
-| `reaction_update` | Emoji reactions on messages |
-| `message_deleted` | Message deletion sync |
-| `message_seen` | Read receipts |
-| `partner_status` | Is the other person in this room? |
-
----
-
-## 📧 Email Notifications (Resend)
-
-Triggered emails include:
-- Welcome email (requester + tasker signup)
-- Tasker application received
-- Tasker approved / rejected by admin
-- New bid received (requester)
-- Bid accepted / rejected (tasker)
-- New chat message (when recipient is offline >3 mins)
-- Equipment proof uploaded (requester)
-- Payment sent / refund processed
-- Task completion code (requester)
-- Refund request received (tasker)
-- Direct task application (tasker)
-
----
-
-## 🏗️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, React Router v6, Tailwind CSS 3 |
-| Backend | Node.js 18+, Express 4 |
-| Database | PostgreSQL via Supabase |
-| Real-time | Socket.io 4 |
-| Payments | Paystack (Nigerian market) |
-| File Storage | Cloudinary |
-| Email | Resend |
-| Auth | JWT (jsonwebtoken) + bcryptjs |
-| Hosting | Vercel (frontend) + Railway (backend) |
-
----
-
-## 🇳🇬 Nigerian Market Specifics
-
-- All prices in ₦ (Nigerian Naira)
-- Nigerian state/city database pre-loaded (37 states, major cities)
-- Paystack payment gateway (most trusted in Nigeria)
-- Bank transfer disbursements via Paystack Transfer API
-- KYC built around Nigerian ID documents (NIN, Driver's License, Passport)
-- Content and copy tailored for Nigerian users
-
----
-
-## 📞 Support
-
-- Email: support@taskeeu.com
-- Admin: admin@taskeeu.com
-- Security: safety@taskeeu.com
-
----
-
-*Built with ❤️ for Nigeria 🇳🇬*
+Run the SQL migrations in `database/` against an existing Supabase project. The card redesign and voice-note release requires `migration_card_art_and_voice.sql` in addition to the payment-verification and recipient-claim migrations.

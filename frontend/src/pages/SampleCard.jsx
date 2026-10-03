@@ -306,7 +306,7 @@ export default function SampleCard() {
  <header className="relative overflow-hidden">
    <div aria-hidden="true" className="absolute inset-0" style={{ background: `url("${demo().design.image}") center / cover no-repeat`, transform: 'scale(1.15)', filter: 'blur(26px) saturate(1.15)' }} />
    <div aria-hidden="true" className="absolute inset-0" style={{ background: 'rgba(255,253,248,0.55)' }} />
-   <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-6 px-4 py-8 sm:flex-row sm:items-center sm:py-10">
+   <div className="relative mx-auto flex max-w-4xl flex-col items-center gap-5 px-4 py-8 text-center sm:py-10">
      <div className="relative flex-shrink-0">
        <img src={JANE_PHOTO} onError={onJaneError} alt="Jane, smiling" width="160" height="160"
          className="h-32 w-32 rounded-full object-cover shadow-xl ring-4 ring-white sm:h-40 sm:w-40" />
@@ -314,11 +314,11 @@ export default function SampleCard() {
          <img src={demo().design.image} alt="Farewell, legend! card cover" className="h-full w-full object-cover" />
        </div>
      </div>
-     <div className="min-w-0 flex-1 text-center sm:text-left">
+     <div className="min-w-0 text-center">
        <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary-700">Sample card · Farewell</p>
        <h2 className="mt-1 text-warm-900" style={{ fontFamily: "'Great Vibes', cursive", fontSize: 'clamp(2.2rem,6vw,3.4rem)', lineHeight: 1.1 }}>Farewell, Jane!</h2>
        <p className="mt-1 text-sm font-semibold text-warm-700">From the Bluepeak Studio team · {messages.length} messages · gift pot {formatNGN(487500)}</p>
-       <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
+       <div className="mt-4 flex flex-wrap justify-center gap-2">
          <button type="button" onClick={openModal} className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-700" style={{ minHeight: 0 }}>
            <Icon name="PenLine" size={16} /> Add your message
          </button>

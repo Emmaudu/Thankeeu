@@ -14,7 +14,7 @@ import Icon from '../components/ui/Icon';
 import HeroAlbumStack from '../components/HeroAlbumStack';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { usePricing, priceNGN, priceUSD, livePriceText, formatPrice, planCredits } from '../utils/pricing';
-import { loadFxRates, hasLiveRate, formatCurrency } from '../utils/currency';
+import { loadFxRates, hasLiveRate, formatCurrency, formatLocalPrice } from '../utils/currency';
 import { getIllustratedCovers, createIllustratedCardUrl } from '../utils/illustratedCardDesigns';
 import { manifestByKey, hreflangCluster } from '../data/occasionLandings/manifest';
 import { loadLandingPage, landingLinks } from '../data/occasionLandings';
@@ -99,7 +99,7 @@ function PricingTable({ m, ui }) {
   }, [meta.chargeable, meta.currency]);
   const cur = meta.currency;
   const showLocal = cur !== 'USD' && ratesReady;
-  const local = (ngn) => (meta.chargeable ? formatPrice(ngn, cur) : formatCurrency(ngn, cur));
+  const local = (ngn) => (meta.chargeable && cur !== 'USD' && !/^\$/.test(formatPrice(ngn, cur)) ? formatPrice(ngn, cur) : formatLocalPrice(ngn, cur));
   const usd = (v) => `$${v.toFixed(2)}`;
   return (
     <div className="overflow-x-auto rounded-2xl border border-purple-100 bg-white">

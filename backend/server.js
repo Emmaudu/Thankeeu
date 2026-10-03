@@ -226,6 +226,16 @@ app.use('/api/company/reset-password',      authLimiter);
 app.use('/api/demo/request',         demoLimiter);
 
 // Routes
+// Public: the soundtrack Memory Movies use (admin set), for the /sample page.
+app.get('/api/movie-music', async (_req, res) => {
+  let url = null;
+  try {
+    const { data } = await supabase.from('site_settings').select('value').eq('key', 'movie_bg_music_url').maybeSingle();
+    url = data?.value || null;
+  } catch { /* fall back below */ }
+  if (!url && /^https:\/\//.test(process.env.MOVIE_BG_MUSIC_URL || '')) url = process.env.MOVIE_BG_MUSIC_URL;
+  res.set('Cache-Control', 'public, max-age=600').json({ url });
+});
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 // Card public route gets its own tighter rate limit to prevent slug enumeration

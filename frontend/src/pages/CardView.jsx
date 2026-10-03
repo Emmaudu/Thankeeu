@@ -2365,3 +2365,6 @@ const CardView = () => {
 };
 
 export default CardView;
+
+// The sample card (/sample) shows these exactly as recipients see them.
+export { AlbumFlipbookViewer, MessageCard, Confetti };

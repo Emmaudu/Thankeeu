@@ -176,3 +176,20 @@ export const getFLWPaymentParams = (amountNGN, selectedCurrency = 'NGN') => {
 };
 
 export const toKobo = (ngn) => Math.round(ngn * 100);
+
+/**
+ * A price in a currency that is not US dollars, written so it can never be
+ * mistaken for dollars: when the currency's own symbol is a bare "$" (Colombian
+ * pesos, Mexican pesos, Australian dollars…) the ISO code is shown instead,
+ * e.g. "COP 14,854". Currencies with no cents in everyday use show whole numbers.
+ */
+const WHOLE_UNITS = new Set(['COP', 'MUR', 'JPY', 'KRW', 'CLP', 'HUF', 'IDR', 'VND', 'NGN', 'KES', 'UGX', 'TZS', 'XOF', 'XAF']);
+export const formatLocalPrice = (amountNGN, code) => {
+  if (!code || code === 'USD') return formatCurrency(amountNGN, 'USD');
+  const shown = formatCurrency(amountNGN, code);
+  const whole = WHOLE_UNITS.has(code);
+  if (!/^\$|^-\$/.test(shown) && !whole) return shown;
+  const value = convertFromNGN(amountNGN, code);
+  const n = whole ? Math.round(value) : value;
+  return `${code} ${n.toLocaleString('en-US', { minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 })}`;
+};

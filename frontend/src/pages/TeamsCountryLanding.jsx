@@ -14,7 +14,7 @@ import Icon from '../components/ui/Icon';
 import HeroAlbumStack from '../components/HeroAlbumStack';
 import { useSEO, SCHEMAS } from '../hooks/useSEO';
 import { usePricing, livePriceText } from '../utils/pricing';
-import { loadFxRates, hasLiveRate, formatCurrency } from '../utils/currency';
+import { loadFxRates, hasLiveRate, formatCurrency, formatLocalPrice } from '../utils/currency';
 import { getIllustratedCovers, createIllustratedCardUrl } from '../utils/illustratedCardDesigns';
 import { heroBackdrop } from '../data/occasionLandings/heroBackdrop';
 import { teamsByKey, teamsHreflang, TEAMS_MANIFEST } from '../data/teamsLandings/manifest';
@@ -45,7 +45,7 @@ function useMoney(country) {
     return () => { alive = false; };
   }, [meta.chargeable, meta.currency]);
   const cur = ready ? meta.currency : 'USD';
-  return { cur, fmt: (ngn) => formatCurrency(ngn, cur), usd: (ngn) => formatCurrency(ngn, 'USD') };
+  return { cur, fmt: (ngn) => formatLocalPrice(ngn, cur), usd: (ngn) => formatCurrency(ngn, 'USD') };
 }
 
 const COVER_MIX = [['birthday', 2], ['leaving', 2], ['congratulations', 2], ['thank_you', 2], ['retirement', 1], ['baby_shower', 1], ['get_well', 1], ['wedding', 1]];

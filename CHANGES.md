@@ -181,3 +181,10 @@ Ten B2B pages, two per country, built to bring HR managers and founders to book 
 - Prerendered HTML, hreflang clusters, sitemap entries and `<html lang="de">` for the German page.
 - Long German words no longer overflow on phones; long headlines scale down automatically. This also applies to the occasion pages.
 - Quality gate: `src/tests/teams-landings.test.js`.
+
+## Round 27: /sample revamp
+- `/sample` now uses the real card components (`AlbumFlipbookViewer`, `MessageCard`, `Confetti` exported from `CardView.jsx`): flipping book album on a blurred cover background, a board with a short header and a Memory Movie tile, a Memory Movie tab, and confetti on load, after signing and after chipping in.
+- Soft background music on the whole sample page (`components/SampleMusic.jsx`): the same soundtrack Memory Movies use. It starts on the first tap or key press (browsers block autoplay), fades in at low volume, loops, pauses when the tab is hidden, and has a mute button.
+- Backend: new public `GET /api/movie-music` returns the admin set `movie_bg_music_url` (or `MOVIE_BG_MUSIC_URL`). If none is set, the page plays `/card-music.mp3`.
+- Fixed a load crash (TDZ: `realMessages` was read before the `messages` state existed).
+- /sample is now a US card: the recipient is Jane, the senders are a US team at Bluepeak Studio with US names and US spelling, amounts in USD. Jane's smiling photo sits in a circle in the hero header and on the board header (falls back to a "J" monogram if the image can't load). Removed the remaining dashes from the page copy.

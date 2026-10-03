@@ -8,7 +8,11 @@
  * Thankeeu purple theme background — no Thankbox sky-blue.
  */
 import { usePricing, usdLabel } from '../utils/pricing';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import SampleMusic from "../components/SampleMusic";
+import { AlbumFlipbookViewer, MessageCard, Confetti } from './CardView';
+import { getIllustratedCovers } from '../utils/illustratedCardDesigns';
+import { getAlbumTheme } from '../utils/albumThemes';
 import { Link } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 import Navbar from '../components/Navbar';
@@ -51,164 +55,146 @@ const GIPHY_PRESETS = [
  { url:'https://media.giphy.com/media/RrVzUOXldFe8M/giphy.gif', label:'Confetti'},
 ];
 
+// If the photo cannot load, show a soft "J" monogram instead of alt text.
+const JANE_FALLBACK = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#EDE4FF"/><text x="50" y="66" text-anchor="middle" font-family="Georgia,serif" font-size="48" fill="#6D28D9">J</text></svg>');
+const onJaneError = e => { if (e.currentTarget.src !== JANE_FALLBACK) e.currentTarget.src = JANE_FALLBACK; };
+const JANE_PHOTO = 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=320&h=320&fit=crop&crop=faces&q=80';
+
 /* ─── Seed messages ─────────────────────────────────────────────────── */
 const SEED = [
- { id:1, name:'Adaeze O.', font:'caveat', color:'#1e3a5f', bg:'#f0f4ff',
- text:'Chisom! 3 years of working with you has been a highlight. Your energy in the open office — this place will feel different without you. Wishing you everything! ',
+ { id:1, name:'Ashley R.', font:'caveat', color:'#1e3a5f', bg:'#f0f4ff',
+ text:'Jane! Three years of working with you has been a highlight. Your energy lit up the whole office and this place will feel different without you. Wishing you everything.',
  media:{ type:'gif', url:'https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif' } },
- { id:2, name:'Emeka T.', font:'patrick', color:'#1a1035', bg:'#fff8f0',
- text:'I still remember the day you walked in with those slides and owned the entire room. Go show the world what we already know. Good luck Chisom! You\'ll be a star.',
+ { id:2, name:'Michael T.', font:'patrick', color:'#1a1035', bg:'#fff8f0',
+ text:"I still remember the day you walked in with those slides and owned the entire room. Go show the world what we already know. Good luck Jane, you'll be a star.",
  media:{ type:'photo', url:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&q=80' } },
- { id:3, name:'Kemi B.', font:'architects', color:'#1e3a5f', bg:'#f0fff8',
- text:'Enjoy your travels and new job. I hope you see many beautiful places. All the best ',
+ { id:3, name:'Emily B.', font:'architects', color:'#1e3a5f', bg:'#f0fff8',
+ text:'Enjoy your travels and the new job. I hope you see so many beautiful places. All the best.',
  media:{ type:'photo', url:'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80' } },
  { id:4, name:'Jimmy P.', font:'kalam', color:'#3d1a6e', bg:'#1e1e3e', dark:true,
- text:'My favourite coffee bud! What am I gonna do without you ! All the very best at the new place!',
+ text:'My favorite coffee buddy! What am I going to do without you? All the very best at the new place.',
  media:{ type:'photo', url:'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80' } },
- { id:5, name:'Tunde A.', font:'indie', color:'#1e3a5f', bg:'#fff0f5',
- text:'Dear Chisom, can\'t believe you\'re going, but I know adventure calls you! Enjoy every moment of the new chapter.',
+ { id:5, name:'Ryan C.', font:'indie', color:'#1e3a5f', bg:'#fff0f5',
+ text:"Dear Jane, I can't believe you're going, but I know adventure is calling. Enjoy every moment of the new chapter.",
  media:{ type:'gif', url:'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' } },
- { id:6, name:'Fatima M.', font:'shadows', color:'#1e3a5f', bg:'#f5f0ff',
- text:'YOU\'RE SIMPLY THE BEST! Three years, a hundred presentations, one unforgettable farewell party.',
+ { id:6, name:'Megan H.', font:'shadows', color:'#1e3a5f', bg:'#f5f0ff',
+ text:"YOU'RE SIMPLY THE BEST! Three years, a hundred presentations, one unforgettable farewell party.",
  media:{ type:'gif', url:'https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif' }, bigText:true },
- { id:7, name:'Dr. Nkechi E.',font:'dancing', color:'#1a3d1a', bg:'#f0fff4',
- text:'Watching you grow from a brilliant newcomer to a leader who shapes this organisation has been a privilege. You are not just talented — you make every space more human. ',
+ { id:7, name:'Dr. Karen W.',font:'dancing', color:'#1a3d1a', bg:'#f0fff4',
+ text:'Watching you grow from a brilliant newcomer into a leader who shapes this company has been a privilege. You are not just talented. You make every room more human.',
  media:null },
- { id:8, name:'Victor O.', font:'caveat', color:'#3d1a00', bg:'#fffbf0',
- text:'Happy farewell to the most diplomatically skilled human I have ever encountered. This is going to be extraordinary for you.',
+ { id:8, name:'Victor S.', font:'caveat', color:'#3d1a00', bg:'#fffbf0',
+ text:'Happy farewell to the most diplomatic human I have ever worked with. This next chapter is going to be extraordinary for you.',
  media:{ type:'gif', url:'https://media.giphy.com/media/3o7abGQa0aRJUurpII/giphy.gif' } },
- { id:9, name:'Blessing O.', font:'kalam', color:'#1e3a5f', bg:'#f0f8ff',
- text:'THANK YOU FOR BEING AWESOME CHISOM. I LEARNED A LOT FROM YOU. PLEASE KEEP IN TOUCH! ',
+ { id:9, name:'Brittany O.', font:'kalam', color:'#1e3a5f', bg:'#f0f8ff',
+ text:'THANK YOU FOR BEING AWESOME JANE. I LEARNED SO MUCH FROM YOU. PLEASE KEEP IN TOUCH!',
  media:{ type:'photo', url:'https://images.unsplash.com/photo-1516571748831-5d81767b788d?w=600&q=80' }, allCaps:true },
- { id:10, name:'Remi F.', font:'patrick', color:'#1e1a3e', bg:'#fdf0ff',
- text:'You expand the possible. Every room you enter leaves thinking bigger. Go show the world.',
+ { id:10, name:'Tyler F.', font:'patrick', color:'#1e1a3e', bg:'#fdf0ff',
+ text:'You expand what feels possible. Every room you walk into leaves thinking bigger. Go show the world.',
  media:{ type:'photo', url:'https://images.unsplash.com/photo-1536936459024-2cded18fce68?w=600&q=80' } },
- { id:11, name:'Olu A.', font:'architects', color:'#1e3a5f', bg:'#fff8f0',
- text:'Happy farewell to the person who actually reads the IT security memos! Working with you has been a masterclass in excellence. Good luck! ',
+ { id:11, name:'Kevin A.', font:'architects', color:'#1e3a5f', bg:'#fff8f0',
+ text:'Happy farewell to the one person who actually reads the IT security emails! Working with you has been a masterclass. Good luck.',
  media:null },
- { id:12, name:'Amara O.', font:'indie', color:'#1a3d1a', bg:'#f0fff4',
- text:'You were the first senior person to sit with me and just talk. That conversation gave me more confidence than any training ever could. Thank you Chisom. ',
+ { id:12, name:'Sarah M.', font:'indie', color:'#1a3d1a', bg:'#f0fff4',
+ text:'You were the first senior person to sit down with me and just talk. That conversation gave me more confidence than any training ever could. Thank you, Jane.',
  media:null },
 ];
 
-/* ─── Board tile ─────────────────────────────────────────────────────── */
-function BoardTile({ msg }) {
- const f = getFont(msg.font);
- return (
- <div style={{ background:msg.bg||'#fff', borderRadius:16, overflow:'hidden', marginBottom:14, boxShadow:'0 2px 12px rgba(0,0,0,0.07)', breakInside:'avoid' }}>
- {msg.media?.type==='gif' && <img src={msg.media.url} alt="" style={{ width:'100%', display:'block', maxHeight:200, objectFit:'cover' }} loading="lazy"/>}
- {msg.media?.type==='photo' && <img src={msg.media.url} alt="" style={{ width:'100%', display:'block', maxHeight:200, objectFit:'cover' }} loading="lazy"/>}
- {msg.media?.type==='video' && <video src={msg.media.url} style={{ width:'100%', display:'block', maxHeight:200 }} controls/>}
- {msg.media?.type==='voice' && (
- <div style={{ background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', padding:'14px 16px', display:'flex', alignItems:'center', gap:10 }}>
- <span style={{ fontSize:24 }}></span>
- <audio src={msg.media.url} controls style={{ flex:1, height:32 }}/>
- </div>
- )}
- {msg.media?.type==='localImg' && <img src={msg.media.url} alt="" style={{ width:'100%', display:'block', maxHeight:200, objectFit:'cover' }}/>}
- <div style={{ padding:'14px 16px 12px' }}>
- {msg.bigText
- ? <p style={{ fontFamily:f.family, fontSize:f.size, lineHeight:f.lh, color:msg.dark?'#e0d8ff':msg.color||'#1e3a5f', margin:'0 0 8px', fontWeight:700 }}>{msg.text.split('!').slice(1).join('!').trim()}</p>
- : <p style={{ fontFamily:f.family, fontSize:f.size, lineHeight:f.lh, color:msg.dark?'#e0d8ff':msg.color||'#1e3a5f', margin:'0 0 8px', textTransform:msg.allCaps?'uppercase':'none', fontWeight:msg.allCaps?700:400, letterSpacing:msg.allCaps?'0.04em':'normal' }}>{msg.text}</p>
- }
- <p style={{ fontFamily:f.family, fontSize:'1rem', fontWeight:700, color:msg.dark?'#a89cff':'#374151', margin:0, textAlign:'right' }}>{msg.name}</p>
- </div>
- </div>
- );
-}
+/* ─── The real card components, fed with demo data ─────────────────── */
+// Resolved lazily: calling these at module load hits a circular import TDZ.
+let _demo = null;
+const demo = () => {
+  if (!_demo) {
+    const covers = getIllustratedCovers('leaving');
+    const design = covers.find(d => d.id.endsWith('-3t-farewell-legend')) || covers[0];
+    _demo = { design, theme: getAlbumTheme('cover_blur'), card: { ...DEMO_CARD_BASE, design_theme: design.id } };
+  }
+  return _demo;
+};
+const DEMO_CARD_BASE = {
+  id: 'demo', slug: 'sample', occasion: 'leaving', recipient_name: 'Jane', title: 'Farewell, legend!',
+  cover_sender: 'The Bluepeak Studio team', album_background_theme: 'cover_blur',
+  font_style: 'handwritten', status: 'sent',
+};
+const FONT_FOR = { caveat: 'handwritten', patrick: 'handwritten', architects: 'modern', indie: 'handwritten', kalam: 'classic', marker: 'modern', dancing: 'calligraphy', shadows: 'elegant' };
+const MEDIA_TYPE = { photo: 'image', localImg: 'image', gif: 'gif', video: 'video', voice: 'voice' };
+const noop = () => {};
+// Demo message → the shape real cards use.
+const toRealMessage = (m) => ({
+  id: `demo-${m.id}`,
+  author_name: m.name,
+  content: m.text,
+  font_style: FONT_FOR[m.font] || 'handwritten',
+  media_url: m.media?.url || null,
+  media_type: m.media ? MEDIA_TYPE[m.media.type] || 'image' : null,
+  is_private: false,
+  reactions: { heart: (Number(String(m.id).slice(-2)) * 7) % 23 },
+  created_at: '2026-09-26T10:00:00Z',
+});
 
-/* ─── Flipbook card view ─────────────────────────────────────────────── */
-function FlipCard({ messages, onAddMessage }) {
- const [idx, setIdx] = useState(0);
- const [flipping, setFlipping] = useState(false);
- const total = messages.length;
- if (!total) return null;
-
- const goTo = dir => {
- if (flipping) return;
- setFlipping(true);
- setTimeout(() => { setIdx(i =>Math.max(0,Math.min(total-1,i+dir))); setFlipping(false); }, 220);
- };
-
- const msg = messages[idx];
- const f = getFont(msg.font);
-
- return (
- <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
- {/* Stack */}
- <div style={{ position:'relative', width:'100%', maxWidth:540 }}>
- <div style={{ position:'absolute', left:'50%', transform:'translate(calc(-50% - 20px), 8px) rotate(-3deg)', width:'calc(100% - 28px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
- <div style={{ position:'absolute', left:'50%', transform:'translate(calc(-50% + 20px), 5px) rotate(2.5deg)', width:'calc(100% - 14px)', height:'100%', background:'#fff', borderRadius:20, border:'1.5px solid #DDD6FE', zIndex:0 }}/>
-
- {/* Active page */}
- <div style={{ position:'relative', zIndex:1, background:msg.bg||'#F5F0FF', borderRadius:20, border:'2px solid #DDD6FE', padding:'1.5rem 1.75rem 3.5rem', boxShadow:'0 8px 40px rgba(124,58,237,0.12)', minHeight:420, display:'flex', flexDirection:'column', overflow:'hidden', transform:flipping?'rotateY(90deg)':'rotateY(0)', opacity:flipping?0:1, transition:'transform 0.22s,opacity 0.22s' }}>
-
- {/* Signer header */}
- <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14, flexShrink:0 }}>
- <div style={{ width:40, height:40, borderRadius:'50%', background:'#7C3AED', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:800, fontSize:'0.875rem', flexShrink:0 }}>
- {msg.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()}
- </div>
- <div>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:'0.9375rem', color:'#1A1035', margin:0, lineHeight:1.3 }}>{msg.name}</p>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:'0.75rem', color:'#7C5CBF', margin:0 }}>signed this card</p>
- </div>
- </div>
-
- {/* Media */}
- {msg.media?.type==='gif' && <div style={{ borderRadius:12, overflow:'hidden', marginBottom:12, flexShrink:0, lineHeight:0 }}><img src={msg.media.url} alt="" style={{ width:'100%', height:180, objectFit:'cover', display:'block' }} loading="lazy"/></div>}
- {msg.media?.type==='photo' && <div style={{ borderRadius:12, overflow:'hidden', marginBottom:12, flexShrink:0, lineHeight:0 }}><img src={msg.media.url} alt="" style={{ width:'100%', height:180, objectFit:'cover', display:'block' }} loading="lazy"/></div>}
- {msg.media?.type==='localImg' && <div style={{ borderRadius:12, overflow:'hidden', marginBottom:12, flexShrink:0, lineHeight:0 }}><img src={msg.media.url} alt="" style={{ width:'100%', height:180, objectFit:'cover', display:'block' }}/></div>}
- {msg.media?.type==='video' && <div style={{ borderRadius:12, overflow:'hidden', marginBottom:12, flexShrink:0 }}><video src={msg.media.url} style={{ width:'100%', height:180, objectFit:'cover', display:'block' }} controls/></div>}
- {msg.media?.type==='voice' && (
- <div style={{ borderRadius:12, background:'linear-gradient(135deg,#EDE9FE,#F5F0FF)', marginBottom:12, padding:'12px 16px', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
- <span style={{ fontSize:28 }}></span>
- <audio src={msg.media.url} controls style={{ flex:1 }}/>
- </div>
- )}
-
- {/* Message */}
- <p style={{ fontFamily:f.family, fontSize:f.size, lineHeight:f.lh, color:msg.dark?'#c4b5fd':(msg.color||'#1e3a5f'), margin:'0 0 auto', flex:1, textTransform:msg.allCaps?'uppercase':'none' }}>
- {msg.bigText ? msg.text.split('!').slice(1).join('!').trim() : msg.text}
- </p>
-
- {/* Dots */}
- <div style={{ display:'flex', gap:6, justifyContent:'center', marginTop:12, flexShrink:0 }}>
- {messages.map((_,i) => (
- <button key={i} onClick={()=>setIdx(i)} style={{ width:i===idx?22:8, height:8, borderRadius:i===idx?4:'50%', background:i===idx?'#7C3AED':'#DDD6FE', border:'none', cursor:'pointer', padding:0, transition:'all 0.2s' }}/>
- ))}
- </div>
-
- {/* Arrows */}
- <button onClick={()=>goTo(-1)} disabled={idx===0} style={{ position:'absolute', left:-20, top:'50%', transform:'translateY(-50%)', width:38, height:38, borderRadius:'50%', background:'#fff', border:'1.5px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity:idx===0?0.3:1, zIndex:10, boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
- <Icon name="ChevronLeft" size={18}/>
- </button>
- <button onClick={()=>goTo(1)} disabled={idx===total-1} style={{ position:'absolute', right:-20, top:'50%', transform:'translateY(-50%)', width:38, height:38, borderRadius:'50%', background:'#fff', border:'1.5px solid #DDD6FE', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#7C3AED', opacity:idx===total-1?0.3:1, zIndex:10, boxShadow:'0 2px 8px rgba(0,0,0,0.1)' }}>
- <Icon name="ChevronRight" size={18}/>
- </button>
- </div>
-
- {/* Counter */}
- <div style={{ position:'absolute', top:-14, right:16, background:'#fff', border:'1.5px solid #DDD6FE', borderRadius:20, padding:'3px 12px', fontSize:'0.75rem', fontWeight:700, color:'#7C3AED', zIndex:2, display:'flex', alignItems:'center', gap:5 }}>
- <Icon name="FileText" size={12}/> {idx+1} / {total}
- </div>
- </div>
-
- {/* Bottom bar */}
- <div style={{ background:'rgba(26,16,53,0.88)', backdropFilter:'blur(12px)', borderRadius:40, width:'100%', maxWidth:540, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 18px', gap:8 }}>
- <button onClick={onAddMessage} style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', border:'none', borderRadius:24, padding:'10px 18px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, cursor:'pointer', whiteSpace:'nowrap', flexShrink:0, display:'inline-flex', alignItems:'center', gap:6 }}>
- Add my message
- </button>
- <button onClick={()=>{navigator.clipboard.writeText(window.location.href); toast.success('Link copied!');}} style={{ width:36, height:36, borderRadius:'50%', background:'rgba(255,255,255,0.12)', border:'none', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
- <Icon name="Share" size={16} style={{color:'#fff'}}/>
- </button>
- <div style={{ display:'flex', alignItems:'center', gap:6, flex:1, justifyContent:'flex-end', minWidth:0 }}>
- <Icon name="ChevronLeft" size={18} style={{ color:'#fff', cursor:'pointer', flexShrink:0 }} onClick={()=>goTo(-1)}/>
- <input type="range" min={0} max={total-1} value={idx} onChange={e=>setIdx(Number(e.target.value))} style={{ flex:1, accentColor:'#7C3AED', maxWidth:120 }}/>
- <Icon name="ChevronRight" size={18} style={{ color:'#fff', cursor:'pointer', flexShrink:0 }} onClick={()=>goTo(1)}/>
- </div>
- </div>
- </div>
- );
+/* ─── Memory Movie demo: the card played as a short film ─────────────── */
+const MOVIE_SLIDES = [
+  { photo: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=75' },
+  { photo: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&q=75' },
+  { photo: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1200&q=75' },
+  { photo: 'https://images.unsplash.com/photo-1516571748831-5d81767b788d?w=1200&q=75' },
+  { photo: 'https://images.unsplash.com/photo-1536936459024-2cded18fce68?w=1200&q=75' },
+];
+function DemoMovie({ messages }) {
+  const slides = useMemo(() => [
+    { kind: 'title' },
+    ...messages.filter(m => m.content).slice(0, 10).map((m, i) => ({ kind: 'msg', m, photo: m.media_type === 'image' ? m.media_url : MOVIE_SLIDES[i % MOVIE_SLIDES.length].photo })),
+    { kind: 'end' },
+  ], [messages]);
+  const [i, setI] = useState(0);
+  const [playing, setPlaying] = useState(true);
+  useEffect(() => {
+    if (!playing) return undefined;
+    const t = setTimeout(() => setI(x => (x + 1) % slides.length), i === 0 ? 3200 : 4200);
+    return () => clearTimeout(t);
+  }, [i, playing, slides.length]);
+  const s = slides[i];
+  return (
+    <div className="mx-auto max-w-3xl">
+      <div className="relative overflow-hidden rounded-2xl bg-black shadow-xl" style={{ aspectRatio: '16/9' }}>
+        {slides.map((sl, k) => (
+          <div key={k} className="absolute inset-0 transition-opacity duration-1000" style={{ opacity: k === i ? 1 : 0 }}>
+            {sl.kind === 'msg' && <img src={sl.photo} alt="" className="h-full w-full object-cover" style={{ transform: k === i ? 'scale(1.08)' : 'scale(1)', transition: 'transform 4.5s ease-out' }} />}
+            {sl.kind !== 'msg' && <img src={demo().design.image} alt="" className="h-full w-full object-cover" style={{ filter: 'blur(18px)', transform: 'scale(1.2)' }} />}
+            <div className="absolute inset-0" style={{ background: 'rgba(10,6,24,0.5)' }} />
+          </div>
+        ))}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white sm:p-10">
+          {s.kind === 'title' && (<>
+            <p className="text-xs font-bold uppercase tracking-[0.3em] text-white/80">A Memory Movie for</p>
+            <p style={{ fontFamily: "'Great Vibes', cursive", fontSize: 'clamp(2.6rem,8vw,4.5rem)', lineHeight: 1.1 }}>Jane</p>
+            <p className="mt-1 text-sm text-white/85">from {messages.length} people at Bluepeak Studio</p>
+          </>)}
+          {s.kind === 'msg' && (<>
+            <p className="max-w-xl text-lg leading-relaxed sm:text-2xl" style={{ fontFamily: "'Dancing Script', cursive", textShadow: '0 2px 12px rgba(0,0,0,0.5)' }}>{s.m.content}</p>
+            <p className="mt-4 text-sm font-bold uppercase tracking-[0.2em] text-white/90">{s.m.author_name}</p>
+          </>)}
+          {s.kind === 'end' && (<>
+            <p style={{ fontFamily: "'Great Vibes', cursive", fontSize: 'clamp(2.2rem,7vw,3.6rem)' }}>With love, from all of us</p>
+            <Link to="/card/new" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-bold text-primary-700">Make a card like this</Link>
+          </>)}
+        </div>
+        <div className="absolute inset-x-0 bottom-0 flex items-center gap-3 p-3">
+          <button type="button" onClick={() => setPlaying(p => !p)} aria-label={playing ? 'Pause' : 'Play'} className="flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-primary-700" style={{ minHeight: 0 }}>
+            <Icon name={playing ? 'Pause' : 'Play'} size={15} />
+          </button>
+          <div className="h-1.5 flex-1 overflow-hidden rounded bg-white/30">
+            <div className="h-full bg-white transition-all" style={{ width: `${((i + 1) / slides.length) * 100}%` }} />
+          </div>
+          <span className="text-xs font-bold text-white/90">{i + 1}/{slides.length}</span>
+        </div>
+      </div>
+      <p className="mt-4 text-center text-sm leading-relaxed text-warm-500">
+        Every Thankeeu card becomes a Memory Movie: an MP4 with music made from the messages, photos and voice notes, ready to download and share.{' '}
+        <Link to="/memory-movie" className="font-bold text-primary-700 underline underline-offset-2">How the Memory Movie works</Link>
+      </p>
+    </div>
+  );
 }
 
 /* ─── Main SampleCard ────────────────────────────────────────────────── */
@@ -220,8 +206,23 @@ export default function SampleCard() {
  canonical: '/sample',
  });
 
- const [view, setView] = useState('board');
+ const [view, setView] = useState('card');
+ // Confetti like a real delivered card: when the card opens, and again after
+ // someone signs or chips in. Skipped for people who prefer reduced motion.
+ const [celebrate, setCelebrate] = useState(false);
+ const burst = useCallback(() => {
+   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+   setCelebrate(false);
+   requestAnimationFrame(() => setCelebrate(true));
+ }, []);
+ useEffect(() => { burst(); }, [burst]);
+ useEffect(() => {
+   if (!celebrate) return undefined;
+   const t = setTimeout(() => setCelebrate(false), 9000);
+   return () => clearTimeout(t);
+ }, [celebrate]);
  const [messages, setMessages] = useState(SEED);
+ const realMessages = useMemo(() => messages.map(toRealMessage), [messages]);
  const [showModal, setShowModal] = useState(false);
  const [signDone, setSignDone] = useState(false);
  const [giftDone, setGiftDone] = useState(false);
@@ -278,6 +279,7 @@ export default function SampleCard() {
  color:'#1e3a5f', bg:'#F5F0FF', text:msgText.trim(), media,
  }]);
  setSignDone(true);
+ burst();
  };
 
  const handleGift = () => {
@@ -286,6 +288,7 @@ export default function SampleCard() {
  if (amt < convertToNGN(1,'USD')) return toast.error('Minimum gift is $1');
  toast.success(`Demo gift of ${formatNGN(amt)} accepted! (No real payment on demo)`);
  setGiftDone(true);
+ burst();
  };
 
  return (
@@ -294,125 +297,126 @@ export default function SampleCard() {
  <Navbar/>
 
  {/* Hidden H1 for SEO — visually hidden but readable by crawlers */}
- <h1 className="sr-only">Thankeeu Demo — Interactive Group Card Sample</h1>
+ <h1 className="sr-only">Thankeeu sample group card: see a real farewell card for Jane</h1>
 
- {/* ── Top action bar ── */}
- <div style={{ background:'#fff', borderBottom:'1.5px solid #EDE9FE', position:'sticky', top:0, zIndex:30, display:'flex', alignItems:'center', justifyContent:'center', padding:'10px 20px', gap:8, flexWrap:'wrap' }}>
- <button onClick={openModal} style={{ display:'inline-flex', alignItems:'center', gap:7, border:'2px solid #7C3AED', background:'#fff', color:'#7C3AED', borderRadius:24, padding:'9px 20px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, cursor:'pointer', whiteSpace:'nowrap' }}>
- <span style={{ fontSize:16, fontWeight:900 }}>+</span>Add a message
- </button>
- <div style={{ display:'flex', background:'#f0f0f8', borderRadius:24, padding:4, gap:2 }}>
- {[{id:'board',icon:<><rect x="0" y="0" width="7" height="7" rx="1.5"/><rect x="9" y="0" width="7" height="7" rx="1.5"/><rect x="0" y="9" width="7" height="7" rx="1.5"/><rect x="9" y="9" width="7" height="7" rx="1.5"/></>,label:'Board'},
- {id:'card', icon:<><rect x="0" y="0" width="7" height="16" rx="1.5"/><rect x="9" y="0" width="7" height="16" rx="1.5"/></>,label:'Card'}
- ].map(b => (
- <button key={b.id} onClick={()=>setView(b.id)} style={{ padding:'8px 20px', borderRadius:20, border:'none', cursor:'pointer', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:14, background:view===b.id?'linear-gradient(135deg,#7C3AED,#5B21B6)':'transparent', color:view===b.id?'#fff':'#6B7280', display:'inline-flex', alignItems:'center', gap:6, transition:'all 0.15s' }}>
- <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">{b.icon}</svg>
- {b.label}
- </button>
- ))}
- </div>
- </div>
+ {celebrate && <Confetti />}
+ <SampleMusic />
 
- {/* ── Main background — Thankeeu purple theme ── */}
- <div className="section-dots" style={{ minHeight:'100vh', background:'linear-gradient(160deg,#F5F0FF 0%,#EDE5FF 35%,#F8F0FF 65%,#FFF0F8 100%)', position:'relative', overflow:'hidden' }}>
- {/* Dot grid */}
- <div style={{ position:'absolute', inset:0, backgroundImage:'radial-gradient(rgba(124,58,237,0.10) 1.5px,transparent 1.5px)', backgroundSize:'30px 30px', pointerEvents:'none', zIndex:0 }}/>
- {/* Glow */}
- <div style={{ position:'absolute', top:-100, left:'50%', transform:'translateX(-50%)', width:700, height:400, background:'radial-gradient(ellipse,rgba(139,92,246,0.20) 0%,transparent 70%)', borderRadius:'50%', pointerEvents:'none', zIndex:0 }}/>
- {/* Floating emojis */}
- {['','','','','','','',''].map((e,i) => (
- <div key={i} style={{ position:'absolute', left:`${5+i*12}%`, top:`${3+(i%3)*6}%`, fontSize:24+(i%3)*6, opacity:0.14, pointerEvents:'none', userSelect:'none', animation:`float ${5+i}s ${i*0.4}s ease-in-out infinite` }}>{e}</div>
- ))}
+ {/* ── Hero: the card's own cover, blurred behind a short banner ── */}
+ <header className="relative overflow-hidden">
+   <div aria-hidden="true" className="absolute inset-0" style={{ background: `url("${demo().design.image}") center / cover no-repeat`, transform: 'scale(1.15)', filter: 'blur(26px) saturate(1.15)' }} />
+   <div aria-hidden="true" className="absolute inset-0" style={{ background: 'rgba(255,253,248,0.55)' }} />
+   <div className="relative mx-auto flex max-w-5xl flex-col items-center gap-6 px-4 py-8 sm:flex-row sm:items-center sm:py-10">
+     <div className="relative flex-shrink-0">
+       <img src={JANE_PHOTO} onError={onJaneError} alt="Jane, smiling" width="160" height="160"
+         className="h-32 w-32 rounded-full object-cover shadow-xl ring-4 ring-white sm:h-40 sm:w-40" />
+       <div className="absolute -bottom-2 -right-4 w-12 overflow-hidden rounded-md shadow-lg ring-2 ring-white sm:w-14" style={{ aspectRatio: '210/297', transform: 'rotate(8deg)' }}>
+         <img src={demo().design.image} alt="Farewell, legend! card cover" className="h-full w-full object-cover" />
+       </div>
+     </div>
+     <div className="min-w-0 flex-1 text-center sm:text-left">
+       <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary-700">Sample card · Farewell</p>
+       <h2 className="mt-1 text-warm-900" style={{ fontFamily: "'Great Vibes', cursive", fontSize: 'clamp(2.2rem,6vw,3.4rem)', lineHeight: 1.1 }}>Farewell, Jane!</h2>
+       <p className="mt-1 text-sm font-semibold text-warm-700">From the Bluepeak Studio team · {messages.length} messages · gift pot {formatNGN(487500)}</p>
+       <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
+         <button type="button" onClick={openModal} className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-primary-700" style={{ minHeight: 0 }}>
+           <Icon name="PenLine" size={16} /> Add your message
+         </button>
+         <button type="button" onClick={() => setShowGiftArea(s => !s)} className="inline-flex items-center gap-2 rounded-xl border-2 border-primary-200 bg-white px-5 py-2.5 text-sm font-bold text-primary-700 hover:border-primary-400" style={{ minHeight: 0 }}>
+           <Icon name="Gift" size={16} /> Chip in to the gift
+         </button>
+         <button type="button" onClick={() => setView('movie')} className="inline-flex items-center gap-2 rounded-xl border-2 border-primary-200 bg-white px-5 py-2.5 text-sm font-bold text-primary-700 hover:border-primary-400" style={{ minHeight: 0 }}>
+           <Icon name="Film" size={16} /> Watch the Memory Movie
+         </button>
+       </div>
+     </div>
+   </div>
+ </header>
 
- {/* Hero header */}
- <div style={{ position:'relative', zIndex:2, paddingTop:36, paddingBottom:20, paddingLeft:40 }}>
- <div style={{ display:'inline-flex', alignItems:'center', gap:14, background:'rgba(255,255,255,0.75)', backdropFilter:'blur(8px)', border:'1.5px solid rgba(124,58,237,0.15)', borderRadius:20, padding:'12px 22px' }}>
- <div style={{ width:52, height:52, borderRadius:'50%', background:'linear-gradient(135deg,#7C3AED,#EC4899)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:26, flexShrink:0 }}></div>
- <div>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:18, color:'#1A1035', margin:0, lineHeight:1.2 }}>Chisom Obi,</p>
- <p style={{ fontFamily:"'Caveat',cursive", fontSize:26, fontWeight:700, color:'#7C3AED', margin:0, lineHeight:1.1 }}>Farewell, We'll Miss You </p>
- </div>
- </div>
- <div style={{ marginTop:8, paddingLeft:8 }}>
- <span style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, color:'#4A3A7A', fontWeight:600 }}>
- From The Nexus Technologies Team · <span style={{ color:'#7C3AED', fontWeight:700 }}>{messages.length} messages</span>
- </span>
- </div>
- </div>
-
- {/* Action bar */}
- <div style={{ display:'flex', justifyContent:'center', gap:10, marginBottom:24, position:'relative', zIndex:3 }}>
- <button onClick={()=>setShowGiftArea(s=>!s)} style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', border:'none', borderRadius:28, padding:'11px 24px', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:15, cursor:'pointer', boxShadow:'0 4px 20px rgba(124,58,237,0.4)', display:'inline-flex', alignItems:'center', gap:8 }}>
- Gift pot · {formatNGN(487500)}
- </button>
- {[{icon:'Share',action:()=>{navigator.clipboard.writeText(window.location.href);toast.success('Link copied!');}},{icon:'Download',action:()=>toast.success('Download feature on real cards!')},{icon:'Reply',action:()=>openModal()}].map(b => (
- <button key={b.icon} onClick={b.action} style={{ width:44, height:44, borderRadius:'50%', border:'none', background:'rgba(255,255,255,0.85)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(0,0,0,0.10)' }}>
- <Icon name={b.icon} size={18} style={{ color:'#374151' }}/>
- </button>
- ))}
+ {/* ── Tabs ── */}
+ <div className="sticky top-0 z-30 border-b border-purple-100 bg-white/95 backdrop-blur">
+   <div className="mx-auto flex max-w-5xl justify-center gap-1 px-4 py-2">
+     {[['card', 'BookOpen', 'Card'], ['board', 'LayoutGrid', 'Board'], ['movie', 'Film', 'Memory Movie']].map(([id, icon, label]) => (
+       <button key={id} type="button" onClick={() => setView(id)} aria-pressed={view === id}
+         className={`inline-flex items-center gap-2 whitespace-nowrap rounded-xl px-3 sm:px-4 py-2 text-sm font-extrabold ${view === id ? 'bg-primary-600 text-white' : 'text-warm-600 hover:bg-purple-50'}`} style={{ minHeight: 0 }}>
+         <Icon name={icon} size={15} />{label}
+       </button>
+     ))}
+   </div>
  </div>
 
  {/* Gift area (expandable demo) */}
  {showGiftArea && (
- <div style={{ maxWidth:480, margin:'0 auto 24px', background:'rgba(255,255,255,0.92)', borderRadius:20, border:'1.5px solid #DDD6FE', padding:'20px 24px', position:'relative', zIndex:3 }}>
+ <div style={{ maxWidth:480, margin:'24px auto 0', background:'rgba(255,255,255,0.97)', borderRadius:20, border:'1.5px solid #DDD6FE', padding:'20px 24px', position:'relative', zIndex:3 }}>
  {!giftDone ? (
  <>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:17, color:'#1A1035', marginBottom:4 }}>Contribute to Chisom's gift</p>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, color:'#7A6CA8', marginBottom:14 }}>34 contributors · {formatNGN(487500)} raised · Demo mode — no real payment</p>
+ <p style={{ fontWeight:800, fontSize:17, color:'#1A1035', marginBottom:4 }}>Contribute to Jane's gift</p>
+ <p style={{ fontSize:13, color:'#7A6CA8', marginBottom:14 }}>34 contributors · {formatNGN(487500)} raised · Demo mode, no real payment</p>
  <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:10 }}>
  {AMOUNTS.map(a => (
- <button key={a} onClick={()=>{setGiftAmount(a);setCustomGift('');}} style={{ padding:'10px 4px', borderRadius:12, border:`2px solid ${giftAmount===a&&!customGift?'#7C3AED':'#DDD6FE'}`, background:giftAmount===a&&!customGift?'#7C3AED':'#fff', color:giftAmount===a&&!customGift?'#fff':'#374151', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:13, cursor:'pointer' }}>
+ <button key={a} onClick={()=>{setGiftAmount(a);setCustomGift('');}} style={{ padding:'10px 4px', borderRadius:12, border:`2px solid ${giftAmount===a&&!customGift?'#7C3AED':'#DDD6FE'}`, background:giftAmount===a&&!customGift?'#7C3AED':'#fff', color:giftAmount===a&&!customGift?'#fff':'#4A3A7A', fontWeight:700, fontSize:13, cursor:'pointer' }}>
  {formatNGN(a)}
  </button>
  ))}
  </div>
  <input className="input" type="number" placeholder="Custom amount ($)" value={customGift} onChange={e=>{setCustomGift(e.target.value);setGiftAmount(null);}} style={{ marginBottom:10 }}/>
- <button onClick={handleGift} style={{ width:'100%', padding:'13px', borderRadius:16, border:'none', background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:15, cursor:'pointer' }}>
+ <button onClick={handleGift} style={{ width:'100%', padding:'13px', borderRadius:14, border:'none', background:'#7C3AED', color:'#fff', fontWeight:800, fontSize:15, cursor:'pointer' }}>
  Contribute (Demo)
  </button>
  </>
  ) : (
  <div style={{ textAlign:'center', padding:'12px 0' }}>
- <div style={{ fontSize:44, marginBottom:8 }}></div>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:18, color:'#1A1035', marginBottom:6 }}>Gift accepted! (Demo)</p>
- <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:14, color:'#7A6CA8' }}>On a real card, this would process via Flutterwave.</p>
+ <p style={{ fontWeight:800, fontSize:18, color:'#1A1035', marginBottom:6 }}>Gift accepted! (Demo)</p>
+ <p style={{ fontSize:14, color:'#7A6CA8' }}>On a real card, Jane claims the pot to her bank or as a gift card.</p>
  </div>
  )}
  </div>
  )}
 
- {/* Board / Card content */}
- <div style={{ position:'relative', zIndex:2, padding:'0 24px 80px', maxWidth:1500, margin:'0 auto' }}>
- {view==='board' ? (
- <div style={{ columns:'var(--bc,5) 200px', columnGap:14 }}>
- <style>{`
- @media(max-width:1400px){:root{--bc:4}}
- @media(max-width:1100px){:root{--bc:3}}
- @media(max-width:720px){:root{--bc:2}}
- @media(max-width:480px){:root{--bc:1}}
- `}</style>
- {/* Info tile */}
- <div style={{ background:'#fffde7', borderRadius:16, padding:'18px 20px', marginBottom:14, boxShadow:'0 2px 8px rgba(0,0,0,0.05)', breakInside:'avoid', fontSize:14, color:'#374151', lineHeight:1.6 }}>
- <p style={{ margin:'0 0 6px', display:'flex', alignItems:'flex-start', gap:6 }}><span style={{ color:'#3B82F6', fontWeight:700, flexShrink:0 }}>ℹ</span>Your group can attach photos, GIFs, videos and voice notes to their messages.</p>
- <p style={{ margin:'0 0 6px' }}>To be even more personalised you can choose a Premium Thankeeu card that unlocks extra custom fonts!</p>
- <p style={{ margin:0, fontWeight:700, color:'#7C3AED', fontFamily:"'Caveat',cursive", fontSize:16 }}>Thankeeu Sample</p>
- </div>
- {messages.map(msg => <BoardTile key={msg.id} msg={msg}/>)}
- </div>
- ) : (
- <div style={{ maxWidth:600, margin:'0 auto', paddingLeft:24, paddingRight:24 }}>
- <FlipCard messages={messages} onAddMessage={openModal}/>
- </div>
+ {/* ── Card / Board / Movie ── */}
+ <main style={{ background:'#FAF8FF' }}>
+ <div className="mx-auto max-w-6xl px-3 py-8 sm:px-4 sm:py-10">
+ {view === 'card' && (
+   <AlbumFlipbookViewer card={demo().card} messages={realMessages} design={demo().design} albumTheme={demo().theme}
+     coverBackground={demo().design.background} coverTextColor={demo().design.ink || '#1A1035'} replyKit={null} onReact={noop} />
  )}
+ {view === 'board' && (
+   <>
+     <div className="mb-6 grid items-stretch gap-4 md:grid-cols-[1.4fr_1fr]">
+       <div className="flex items-start gap-4 rounded-2xl border border-purple-100 bg-white p-5">
+         <img src={JANE_PHOTO} onError={onJaneError} alt="Jane" width="64" height="64" className="h-16 w-16 flex-shrink-0 rounded-full object-cover ring-2 ring-primary-100" />
+         <div className="min-w-0">
+         <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-primary-700">The message wall for Jane</p>
+         <h2 className="mt-1 text-2xl font-extrabold text-warm-900">Words to keep forever</h2>
+         <p className="mt-2 text-sm leading-relaxed text-warm-500">{messages.length} colleagues signed with messages, photos, GIFs and voice notes. Tap a heart to like one, or add your own.</p>
+         </div>
+       </div>
+       <button type="button" onClick={() => setView('movie')} className="group relative overflow-hidden rounded-2xl text-left" style={{ minHeight: 140, background: '#140C2E' }}>
+         <img src={MOVIE_SLIDES[0].photo} alt="" className="absolute inset-0 h-full w-full object-cover opacity-55 transition group-hover:opacity-70" />
+         <span className="relative flex h-full flex-col justify-end p-5 text-white">
+           <span className="mb-2 flex h-11 w-11 items-center justify-center rounded-full bg-white text-primary-700"><Icon name="Play" size={18} className="ml-0.5" /></span>
+           <span className="text-lg font-extrabold">Memory Movie</span>
+           <span className="text-sm text-white/85">Every message turned into a short film with music</span>
+         </span>
+       </button>
+     </div>
+     <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3">
+       {realMessages.map((m, i) => (
+         <MessageCard key={m.id} message={m} index={i} design={demo().design} canViewPrivate onOpen={noop} onReact={noop} highlighted={false} replyKit={null} canDelete={false} />
+       ))}
+     </div>
+   </>
+ )}
+ {view === 'movie' && <DemoMovie messages={realMessages} />}
  </div>
- </div>
+ </main>
 
  {/* ── CTA ── */}
  <div style={{ background:'#fff', padding:'60px 24px', textAlign:'center' }}>
  <h2 style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:800, fontSize:28, color:'#1A1035', marginBottom:8 }}>Create a card like this for someone special</h2>
  <p style={{ color:'#6B7280', marginBottom:32, fontSize:16 }}>Beautiful group cards with gift pots. From {usdLabel('card_fee')}. Pay only when you send.</p>
  <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
- <Link to="/card/new" style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:8 }}>Create a card — it's free</Link>
+ <Link to="/card/new" style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:8 }}>Create a card, it's free</Link>
  <Link to="/signup" style={{ background:'#F5F0FF', color:'#7C3AED', border:'2px solid #DDD6FE', padding:'14px 32px', borderRadius:24, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:16, textDecoration:'none' }}>Get started free →</Link>
  </div>
  </div>
@@ -434,7 +438,7 @@ export default function SampleCard() {
  </button>
  </div>
  <p style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, color:'#7A6CA8', marginBottom:16 }}>
- This is a demo — your message appears here locally, no account needed.
+ This is a demo. Your message appears here locally, no account needed.
  </p>
 
  {/* Name */}
@@ -454,7 +458,7 @@ export default function SampleCard() {
  {/* Message */}
  <label style={{ fontFamily:'Plus Jakarta Sans,sans-serif', fontSize:13, fontWeight:700, color:'#5B4B8A', display:'block', marginBottom:6 }}>Message</label>
  <div style={{ position:'relative', marginBottom:4 }}>
- <textarea ref={textareaRef} className="input" rows={5} style={{ resize:'none', fontFamily:getFont(fontId).family, fontSize:getFont(fontId).size }} placeholder="Write something heartfelt for Chisom…" maxLength={1200} value={msgText} onChange={e=>setMsgText(e.target.value)}/>
+ <textarea ref={textareaRef} className="input" rows={5} style={{ resize:'none', fontFamily:getFont(fontId).family, fontSize:getFont(fontId).size }} placeholder="Write something heartfelt for Jane…" maxLength={1200} value={msgText} onChange={e=>setMsgText(e.target.value)}/>
  <button type="button" onClick={()=>{setShowEmoji(s=>!s);setShowGifPick(false);setShowGifFull(false);}} style={{ position:'absolute', bottom:8, right:8, width:34, height:34, border:'1.5px solid #EDE9FE', background:'#fff', borderRadius:'50%', cursor:'pointer', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}></button>
  {showEmoji && <EmojiPicker onSelect={insertEmoji} onClose={()=>setShowEmoji(false)}/>}
  </div>
@@ -521,7 +525,7 @@ export default function SampleCard() {
  </p>
  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
  <Link to="/card/new" style={{ background:'linear-gradient(135deg,#7C3AED,#5B21B6)', color:'#fff', padding:'14px 28px', borderRadius:20, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:15, textDecoration:'none', display:'inline-flex', alignItems:'center', justifyContent:'center', gap:8 }}>
- Create a card — it's free
+ Create a card, it's free
  </Link>
  <button onClick={()=>setShowModal(false)} style={{ background:'#F5F0FF', border:'2px solid #DDD6FE', padding:'12px 28px', borderRadius:20, fontFamily:'Plus Jakarta Sans,sans-serif', fontWeight:700, fontSize:15, color:'#7C3AED', cursor:'pointer' }}>
  Back to card
